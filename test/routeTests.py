@@ -4,8 +4,8 @@ import json
 
 class RouteTests(unittest.TestCase):
     # Test basic routes, including login and file submission
-    baseUrl = "http://127.0.0.1:5000"
-
+    BASE_URL = "http://127.0.0.1:5000"
+    JSON_HEADER = {"Content-Type": "application/json"}
     # Test login using config file
     def test_login_status(self):
         self.login()
@@ -37,27 +37,35 @@ class RouteTests(unittest.TestCase):
         json = self.response.json()
         assert(json["message"] == "Login successful"), "Incorrect content in json string"
 
+
+    # Send login route call
+    def session_route(self):
+        # Create user json for sample user, eventually load this from config file
+        # response does not yet exist
+        headerDict = {"Content-Type": "application/json"}
+        try:
+            current = self.cookies
+        except AttributeError:
+            self.cookies = {}
+        self.response = requests.request(method="GET", url=RouteTests.BASE_URL + "/v1/session/", headers = RouteTests.JSON_HEADER,cookies=self.cookies)
+        self.cookies =  self.response.cookies
     # Send login route call
     def login(self):
-        # Create user json for sample user, eventually load this from config file
-        # Check for current login response
         try:
-            self.response
-        except (NameError, AttributeError) as e:
-            # response does not yet exist
-            userJson = '{"username":"user3","password":"123abc"}'
-            headerDict = {"Content-Type": "application/json"}
-            self.response = requests.request(method="POST", url=self.baseUrl + "/v1/login/", data = userJson, headers = headerDict)
-
+            current = self.cookies
+        except AttributeError:
+            self.cookies = {}
+        userJson = '{"username":"user3","password":"123abc"}'
+        self.response = requests.request(method="POST", url=RouteTests.BASE_URL + "/v1/login/", data = userJson, headers = RouteTests.JSON_HEADER,cookies=self.cookies)
+        self.cookies =  self.response.cookies
     # Call logout route
     def logout(self):
         try:
-            self.logoutResponse
-        except (NameError, AttributeError) as e:
-            # response does not yet exist
-            headerDict = {"Content-Type": "application/json"}
-            self.logoutResponse = requests.request(method="GET", url=self.baseUrl + "/v1/logout/", headers = headerDict)
-
+            current = self.cookies
+        except AttributeError:
+            self.cookies = {}
+        self.logoutResponse = requests.request(method="GET", url=RouteTests.BASE_URL + "/v1/logout/", headers = RouteTests.JSON_HEADER,cookies=self.cookies)
+        self.cookies =  self.logoutResponse.cookies
     def test_logout_status(self):
         self.logout()
         # Check status is 200
@@ -86,6 +94,27 @@ class RouteTests(unittest.TestCase):
         self.logout()
         json = self.logoutResponse.json()
         assert(json["message"] == "Logout successful"), "Incorrect content in json string"
+
+    def test_session_logout1(self):
+        self.logout()
+        self.session_route()
+        json = self.response.json()
+        assert(json["status"] == "False"), "Session is still set"
+
+    def test_session_logout2(self):
+        self.logout()
+        self.login()
+        self.session_route()
+        json = self.response.json()
+        assert(json["status"] == "True"), "Session is not set"
+
+    def test_session_logout3(self):
+        self.logout()
+        self.login()
+        self.logout()
+        self.session_route()
+        json = self.response.json()
+        assert(json["status"] == "False"), "Session is stil set"
 
     # # Tests for session handling
     # def test_session_start(self):
