@@ -29,7 +29,6 @@ class RouteTests(unittest.TestCase):
     def test_json_exists(self):
         self.login()
         json = self.response.json()
-        print(str(type(json)))
         assert(str(type(json))=="<type 'dict'>"), "json component is not a dict"
 
     # Test content of json
@@ -46,10 +45,47 @@ class RouteTests(unittest.TestCase):
             self.response
         except (NameError, AttributeError) as e:
             # response does not yet exist
-            print("Logging in")
             userJson = '{"username":"user3","password":"123abc"}'
             headerDict = {"Content-Type": "application/json"}
             self.response = requests.request(method="POST", url=self.baseUrl + "/v1/login/", data = userJson, headers = headerDict)
+
+    # Call logout route
+    def logout(self):
+        try:
+            self.logoutResponse
+        except (NameError, AttributeError) as e:
+            # response does not yet exist
+            headerDict = {"Content-Type": "application/json"}
+            self.logoutResponse = requests.request(method="GET", url=self.baseUrl + "/v1/logout/", headers = headerDict)
+
+    def test_logout_status(self):
+        self.logout()
+        # Check status is 200
+        assert(self.logoutResponse.status_code == 200), "Error status code"
+
+    # Test header contains content-type
+    def test_logout_header_has_type(self):
+        self.logout()
+        # Check JSON content type header
+        #print(str(self.response.headers))
+        assert("Content-Type" in self.logoutResponse.headers), "No content type specified"
+
+    # Test content type is correct
+    def test_logout_type_is_json(self):
+        self.logout()
+        assert(self.logoutResponse.headers["Content-Type"]=="application/json"), "Content type is not json"
+
+    # Make sure json part of response exists and is a dict
+    def test_logout_json_exists(self):
+        self.logout()
+        json = self.logoutResponse.json()
+        assert(str(type(json))=="<type 'dict'>"), "json component is not a dict"
+
+    # Test content of json
+    def test_logout_json_content(self):
+        self.logout()
+        json = self.logoutResponse.json()
+        assert(json["message"] == "Logout successful"), "Incorrect content in json string"
 
     # # Tests for session handling
     # def test_session_start(self):

@@ -14,20 +14,17 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 
 #login route, will take either application/json or application/x-www-form-urlencoded
-@app.route("/v1/login/", methods = ['POST'])
+@app.route("/v1/login/", methods = ["POST"])
 def login():
     response = flask.Response()
     loginManager = LoginHandler(request, response)
     return loginManager.login()
 
-@app.route("/test/")
-def test():
+@app.route("/v1/logout/", methods = ["GET"])
+def logout():
     response = flask.Response()
-    response.status_code = 200
-    response.headers.add("Content-Type","application/json")
-    respJson = json.dumps({"message":"Test successful"})
-    response.set_data(respJson)
-    return response
+    loginManager = LoginHandler(request, response)
+    return loginManager.logout()
 
 if __name__ == '__main__':
     app.run(debug=debugFlag)

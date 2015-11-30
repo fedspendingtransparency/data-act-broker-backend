@@ -99,3 +99,12 @@ class LoginHandler:
             self.response.status_code = 400
             self.response.set_data(json.dumps({"message":e.message}))
         return self.response
+
+    # This function removes the session from the session table if currently logged in, and then returns a success message
+    def logout(self):
+        self.response.headers["Content-Type"] = "application/json"
+        # TODO: Add calls to session handler to check for session and then remove it
+
+        self.response.status_code = 200
+        self.response.set_data(json.dumps({"message":"Logout successful"}))
+        return self.response
