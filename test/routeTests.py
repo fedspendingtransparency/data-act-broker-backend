@@ -116,44 +116,5 @@ class RouteTests(unittest.TestCase):
         json = self.response.json()
         assert(json["status"] == "False"), "Session is stil set"
 
-    # # Tests for session handling
-    # def test_session_start(self):
-    #     print("Testing session start")
-    #     response = requests.get(self.baseUrl + "/v1/create_session/")
-    #     print(response)
-    #
-    #     responseDict = json.loads(response.content)
-    #     # message must exist and be correct
-    #     assert("message" in responseDict)
-    #     assert(responseDict["message"] =="Session created")
-    #     # session key must exist and represent a positive integer
-    #     assert("session_key" in responseDict)
-    #     key = 0
-    #     try:
-    #         key = int(responseDict["session_key"])
-    #         isInt = True
-    #     except Exception:
-    #         isInt = False
-    #     assert(isInt)
-    #     assert(key > 0)
-    #     return True
-    #
-    # def test_session_key_lookup(self):
-    #     print("Testing session key lookup")
-    #     response = requests.get(self.baseUrl + "/v1/session_key/")
-    #     # What should this return?
-    #     # Fail this test until desired behavior is defined
-    #     assert(False)
-    #
-    # # Tests for file submission
-    # def test_file_submission(self):
-    #     # Behavior not defined
-    #     assert(False)
-    #
-    # # Tests for validation
-    # def test_validation(self):
-    #     # Behavior not defined
-    #     assert(False)
-
 if __name__ == '__main__':
     unittest.main()
