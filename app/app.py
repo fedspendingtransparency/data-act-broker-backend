@@ -4,8 +4,15 @@ from flask import Flask, request, make_response, session, g, redirect, url_for, 
      abort, render_template, flash ,session
 import json
 import flask
+
 from loginHandler import LoginHandler
 from aws.session import DynamoInterface, SessionTable, LoginSession
+
+from handlers.loginHandler import LoginHandler
+from handlers.fileHandler import FileHandler
+from aws.s3UrlHandler import s3UrlHandler
+from fileRoutes import add_file_routes
+
 
 # Set parameters
 debugFlag = True # Should be false for prod
@@ -13,8 +20,12 @@ debugFlag = True # Should be false for prod
 # Create application
 app = Flask(__name__)
 app.config.from_object(__name__)
+
 #Enable AWS Sessions
 app.session_interface = DynamoInterface()
+
+
+
 #login route, will take either application/json or application/x-www-form-urlencoded
 @app.route("/v1/login/", methods = ["POST"])
 def login():
@@ -35,6 +46,8 @@ def sessionCheck():
     response.status_code = 200
     response.set_data(json.dumps({"status":str(LoginSession.isLogin(session))}))
     return response
+
+add_file_routes(app)
 
 if __name__ == '__main__':
     SessionTable.setup(app,True,False)

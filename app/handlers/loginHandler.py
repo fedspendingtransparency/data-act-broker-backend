@@ -1,7 +1,9 @@
 import json
 import os
+
 from json import JSONDecoder, JSONEncoder
 from aws.session import LoginSession
+
 
 class LoginHandler:
     # Handles login process, compares username and password provided
@@ -26,7 +28,8 @@ class LoginHandler:
             if(self.logFlag):
                 self.logFile.write(str(self.request))
                 self.logFile.write(self.request.headers['Content-Type'])
-            assert(self.request.headers['Content-Type'] == "application/json"),"Must pass in json"
+            if(not(self.request.headers['Content-Type'] == "application/json")):
+                raise ValueError("Must pass in json")
             # Get the JSON out of the request
             loginDict = self.request.get_json()
             #print(type(loginJson))
@@ -37,7 +40,8 @@ class LoginHandler:
             #loginDict = self.decoder.decode(loginJson,encoding)#json.loads('{"foo":"bar"}') #loginJson)
             if(self.logFlag):
                 self.logFile.write(str(loginDict)+"\n")
-            assert(isinstance(loginDict,dict)),"Failed to create a dictionary out of json"
+            if(not(isinstance(loginDict,dict))):
+                raise TypeError("Failed to create a dictionary out of json")
             # Make sure username and password are present
             if(not('username' in loginDict)):
                 raise KeyError("Missing username")
@@ -83,24 +87,12 @@ class LoginHandler:
                 return self.response
 
 
-        except AssertionError as e:
+        except (TypeError, KeyError, ValueError) as e:
             # Return a 400 with appropriate message
             if(self.logFlag):
-                self.logFile.write("AssertionError"+"\n")
+                self.logFile.write(str(type(e))+"\n")
             self.response.status_code = 400
             self.response.set_data(json.dumps({"message":(e.message+","+str(self.request.get_json))}))
-        except KeyError as e:
-            # Return a 400 passing message forward
-            if(self.logFlag):
-                self.logFile.write("KeyError"+"\n")
-            self.response.status_code = 400
-            self.response.set_data(json.dumps({"message":e.message}))
-        except ValueError as e:
-            # Return a 400 passing message forward
-            if(self.logFlag):
-                self.logFile.write("ValueError"+"\n")
-            self.response.status_code = 400
-            self.response.set_data(json.dumps({"message":e.message}))
         return self.response
 
     # This function removes the session from the session table if currently logged in, and then returns a success message
