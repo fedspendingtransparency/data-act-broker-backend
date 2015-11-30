@@ -1,5 +1,7 @@
 import json
+import os
 from json import JSONDecoder, JSONEncoder
+from aws.session import LoginSession
 
 class LoginHandler:
     # Handles login process, compares username and password provided
@@ -18,7 +20,7 @@ class LoginHandler:
 
         response.headers.add("Content-Type","application/json")
 
-    def login(self):
+    def login(self,session):
         try:
             self.response.headers["Content-Type"] = "application/json"
             if(self.logFlag):
@@ -48,7 +50,7 @@ class LoginHandler:
             if(self.logFlag):
                 self.logFile.write("Loaded password"+"\n")
             # For now import credentials list from a JSON file
-            credJson = open(self.credentialFile,"r").read()
+            credJson = open(os.getcwd()+"/"+self.credentialFile,"r").read()
             if(self.logFlag):
                 self.logFile.write(credJson+"\n")
                 self.logFile.write(str(type(credJson))+"\n")
@@ -75,6 +77,7 @@ class LoginHandler:
                 # We have a valid login
                 if(self.logFlag):
                     self.logFile.write("Valid login"+"\n")
+                LoginSession.login(session)
                 self.response.status_code = 200
                 self.response.set_data(json.dumps({"message":"Login successful"}))
                 return self.response
@@ -101,10 +104,10 @@ class LoginHandler:
         return self.response
 
     # This function removes the session from the session table if currently logged in, and then returns a success message
-    def logout(self):
+    def logout(self,session):
         self.response.headers["Content-Type"] = "application/json"
         # TODO: Add calls to session handler to check for session and then remove it
-
+        LoginSession.logout(session)
         self.response.status_code = 200
         self.response.set_data(json.dumps({"message":"Logout successful"}))
         return self.response
