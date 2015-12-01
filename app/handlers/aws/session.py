@@ -112,7 +112,7 @@ class SessionTable :
     DATE_FIELD = "expiration"
     TIME_OUT_LIMIT = 30
     TableConnection = ""
-    local = False
+    isLocal = False
 
     #
     #returns the Boto DynamoDB connection object
@@ -126,7 +126,7 @@ class SessionTable :
     #
     @staticmethod
     def getTable() :
-        if(True) :
+        if(SessionTable.isLocal) :
             return Table(SessionTable.TABLE_NAME,connection=SessionTable.getLocalConnection())
         return Table(SessionTable.TABLE_NAME)
 
@@ -135,7 +135,7 @@ class SessionTable :
     #
     @staticmethod
     def setup(app,isLocalHost,createTables):
-        SessionTable.local = isLocalHost
+        SessionTable.isLocal = isLocalHost
         if(createTables and isLocalHost) :
             TableConnection = Table.create(SessionTable.TABLE_NAME,schema=[HashKey(SessionTable.KEY_NAME)],connection=SessionTable.getLocalConnection())
 

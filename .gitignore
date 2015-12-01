@@ -6,3 +6,4 @@ node_modules
 app/*.pyc
 app/handlers/*.pyc
 app/handlers/aws/*.pyc
+app/venv
