@@ -12,3 +12,9 @@ def add_file_routes(app):
         response = flask.Response()
         fileManager = FileHandler(request,response)
         return fileManager.submit()
+
+    @app.route("/v1/complete_submission", methods = ["POST"])
+    def compelete_submission() :
+        response = flask.Response()
+        fileManager = FileHandler(request,response)
+        return fileManager.complete()

@@ -1,7 +1,6 @@
 import unittest
 import requests
 import json
-
 class RouteTests(unittest.TestCase):
     # Test basic routes, including login and file submission
     BASE_URL = "http://127.0.0.1:5000"

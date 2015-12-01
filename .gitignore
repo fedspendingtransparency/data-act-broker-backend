@@ -1,6 +1,8 @@
 .idea/*
 app/credentials.json
 app/logFile.dat
+logFile.dat
+credentials.json
 node_modules
 .tern-port
 app/*.pyc
