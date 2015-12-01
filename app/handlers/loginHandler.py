@@ -35,10 +35,12 @@ class LoginHandler:
                 print("Getting json")
                 loginDict = self.request.get_json()
             elif((self.request.headers['Content-Type'] == "application/x-www-form-urlencoded")):
-                #loginDict = self.request.form
-                #print(self.request.form)
+
+
                 print("Hit form urlencoded")
-                raise NotImplementedError("Url encoded not implemented yet")
+                print(self.request.form)
+                loginDict = self.request.form
+                #raise NotImplementedError("Url encoded not implemented yet")
             else:
                 raise ValueError("Must pass in json or urlencoded form")
 

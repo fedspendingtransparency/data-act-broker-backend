@@ -23,6 +23,7 @@ class FileHandler:
             elif(self.request.headers["Content-Type"] == "application/x-www-form-urlencoded"):
                 requestDict = self.request.form
             # Generate URLs for each file requested
+            raise NotImplementedError("S3 not available yet")
             responseDict["appropriations_url"] = self.s3manager.getSignedUrl()
             responseDict["award_financial_url"] = self.s3manager.getSignedUrl()
             responseDict["award_url"] = self.s3manager.getSignedUrl()
