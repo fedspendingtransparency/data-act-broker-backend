@@ -16,28 +16,35 @@ class LoginHandler:
         self.request = request
         self.response = response
         # Set logFlag to true if you want a log file
-        self.logFlag = False
+        self.logFlag = True
         if(self.logFlag):
             self.logFile = open("logFile.dat","w")
 
         response.headers.add("Content-Type","application/json")
 
     def login(self,session):
+        print("Login function")
         try:
             self.response.headers["Content-Type"] = "application/json"
             if(self.logFlag):
                 self.logFile.write(str(self.request))
                 self.logFile.write(self.request.headers['Content-Type'])
-            if(not(self.request.headers['Content-Type'] == "application/json")):
-                raise ValueError("Must pass in json")
-            # Get the JSON out of the request
-            loginDict = self.request.get_json()
-            #print(type(loginJson))
-            #print(loginJson)
-            # Convert the JSON to a dictionary
-            #print('{"foo":"bar"}')
+            print("Checking header")
+            if((self.request.headers['Content-Type'] == "application/json")):
+                # Get the JSON out of the request
+                print("Getting json")
+                loginDict = self.request.get_json()
+            elif((self.request.headers['Content-Type'] == "application/x-www-form-urlencoded")):
+                #loginDict = self.request.form
+                #print(self.request.form)
+                print("Hit form urlencoded")
+                raise NotImplementedError("Url encoded not implemented yet")
+            else:
+                raise ValueError("Must pass in json or urlencoded form")
 
-            #loginDict = self.decoder.decode(loginJson,encoding)#json.loads('{"foo":"bar"}') #loginJson)
+
+
+
             if(self.logFlag):
                 self.logFile.write(str(loginDict)+"\n")
             if(not(isinstance(loginDict,dict))):
@@ -87,7 +94,7 @@ class LoginHandler:
                 return self.response
 
 
-        except (TypeError, KeyError, ValueError) as e:
+        except (TypeError, KeyError, ValueError, NotImplementedError) as e:
             # Return a 400 with appropriate message
             if(self.logFlag):
                 self.logFile.write(str(type(e))+"\n")

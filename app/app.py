@@ -17,6 +17,8 @@ from loginRoutes import add_login_routes
 
 # Set parameters
 debugFlag = True # Should be false for prod
+runLocal = True # False for prod
+createTable = False # Should be false for most runs, true for first run with DynamoDB
 
 # Create application
 app = Flask(__name__)
@@ -36,5 +38,5 @@ add_file_routes(app)
 add_login_routes(app)
 
 if __name__ == '__main__':
-    SessionTable.setup(app,True,False)
+    SessionTable.setup(app,runLocal,createTable)
     app.run(debug=debugFlag)
