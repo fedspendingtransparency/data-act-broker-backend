@@ -13,3 +13,10 @@ CREATE TABLE type (type_id integer PRIMARY KEY, name text NOT NULL, description 
 CREATE SEQUENCE resourceIdSerial START 1;
 
 CREATE TABLE resource (resource_id integer PRIMARY KEY DEFAULT nextval('resourceIdSerial'));
+
+INSERT INTO status (status_id,name, description) VALUES (1, 'waiting', 'check dependency table'),  
+(2, 'ready', 'can be assigned'),
+(3, 'running', 'job is currently in progress'),
+(4, 'finished', 'job is complete');
+
+INSERT INTO type (type_id,name,description) VALUES (1, 'file_upload', 'file must be uploaded to S3'), (2, 'db_upload', 'file must have information added to staging DB'), (3, 'db_transfer', 'information must be moved from production DB to staging DB'), (4, 'validation', 'new information must be validated'), (5, 'external_validation', 'new information must be validated against external sources');
