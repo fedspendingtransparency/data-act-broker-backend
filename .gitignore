@@ -1,5 +1,6 @@
 .idea/*
 app/credentials.json
+app/dbCred.json
 app/logFile.dat
 logFile.dat
 credentials.json
@@ -8,4 +9,6 @@ node_modules
 app/*.pyc
 app/handlers/*.pyc
 app/handlers/aws/*.pyc
+app/models/*.pyc
+app/handlers/utils/*.pyc
 app/venv

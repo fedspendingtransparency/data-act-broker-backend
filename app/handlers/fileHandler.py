@@ -1,6 +1,10 @@
 import json
+import sys
+import traceback
 from aws.s3UrlHandler import s3UrlHandler
 from utils.requestDictionary import RequestDictionary
+from jobHandler import JobHandler
+
 class FileHandler:
 
     def __init__(self,request,response):
@@ -11,10 +15,16 @@ class FileHandler:
         responseDict = {"message":"File URLs attached"}
         self.response.headers["Content-Type"] = "application/json"
         try:
-
+            # TODO move this code into file handler, based on actual file names
+            jobManager = JobHandler()
+            jobManager.createJobs(["award.csv"])
             self.response.status_code = 200
+            self.response.set_data(json.dumps({"message":"Job tracker DB working"}))
+            # If no exceptions, return response
+            return self.response
+
             #TODO implement
-            safeDictionary = RequestHandler(request)
+            safeDictionary = RequestDictionary(self.request)
 
             # Generate URLs for each file requested
             raise NotImplementedError("S3 not available yet")
@@ -27,6 +37,19 @@ class FileHandler:
             self.response.status_code = 400
             responseDict["message"] = e.message
             responseDict["errorType"] = str(type(e))
+            self.response.set_data(json.dumps(responseDict))
+            return self.response
+        except Exception as e:
+            # Unexpected exception, this is a 500 server error
+            self.response.status_code = 500
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            responseDict["message"] = e.message
+            responseDict["errorType"] = str(type(e))
+            responseDict["errorArgs"] = e.args
+            trace = traceback.extract_tb(exc_tb, 10)
+            print(trace)
+            responseDict["trace"] = trace
+            del exc_tb
             self.response.set_data(json.dumps(responseDict))
             return self.response
 

@@ -115,5 +115,25 @@ class RouteTests(unittest.TestCase):
         json = self.response.json()
         assert(json["status"] == "False"), "Session is stil set"
 
+    def call_file_submission(self):
+        # TODO pass filenames in, current test is for basic functionality
+        self.response = requests.request(method="POST", url=RouteTests.BASE_URL + "/v1/submit_files/", headers = RouteTests.JSON_HEADER)
+
+    def test_file_sub_status(self):
+        self.call_file_submission()
+        assert(self.response.status_code==200)
+
+    def test_file_sub_content_type_exists(self):
+        self.call_file_submission()
+        assert("Content-Type" in self.response.headers)
+
+    def test_file_sub_content_type_json(self):
+        self.call_file_submission()
+        assert(self.response.headers["Content-Type"]=="application/json")
+
+    def test_file_sub_message(self):
+        self.call_file_submission()
+        assert(self.response.json()["message"]=="Job tracker DB working")
+
 if __name__ == '__main__':
     unittest.main()
