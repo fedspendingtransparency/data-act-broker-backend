@@ -20,3 +20,8 @@ class RequestDictionary() :
         if(not(value in self.requestDict)):
             raise ValueError(value + " not found")
         return self.requestDict[value]
+        
+    def exists(self,value) :
+        if(not(value in self.requestDict)):
+            return False
+        return True

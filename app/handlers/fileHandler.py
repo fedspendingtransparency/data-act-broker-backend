@@ -3,14 +3,16 @@ import sys
 import traceback
 from aws.s3UrlHandler import s3UrlHandler
 from utils.requestDictionary import RequestDictionary
-from jobHandler import JobHandler
+#from jobHandler import JobHandler
 
 class FileHandler:
 
+    FILE_TYPES = ["appropriations","award_financial","award","procurement"]
     def __init__(self,request,response):
         self.request = request
         self.response = response
-        self.s3manager = s3UrlHandler()
+        self.s3manager = s3UrlHandler("DatactFiles","TestUser")
+
     def submit(self):
         responseDict = {"message":"File URLs attached"}
         self.response.headers["Content-Type"] = "application/json"
@@ -23,15 +25,10 @@ class FileHandler:
             # If no exceptions, return response
             return self.response
 
-            #TODO implement
             safeDictionary = RequestDictionary(self.request)
-
-            # Generate URLs for each file requested
-            raise NotImplementedError("S3 not available yet")
-            responseDict["appropriations_url"] = self.s3manager.getSignedUrl()
-            responseDict["award_financial_url"] = self.s3manager.getSignedUrl()
-            responseDict["award_url"] = self.s3manager.getSignedUrl()
-            responseDict["procurement_url"] = self.s3manager.getSignedUrl()
+            for fileName in FileHandler.FILE_TYPES :
+                if( safeDictionary.exists(fileName+"_url")) :
+                    responseDict[fileName+"_url"] = self.s3manager.getSignedUrl(safeDictionary.getValue(fileName+"_url"))
             self.response.set_data(json.dumps(responseDict))
         except (ValueError , TypeError, NotImplementedError) as e:
             self.response.status_code = 400
