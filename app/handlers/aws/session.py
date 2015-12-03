@@ -11,16 +11,28 @@ from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
 # Wraper for Session Dictionary
 #
 class LoginSession():
+
+    @staticmethod
+    def getName(session) :
+        print str(session)
+        if session.get('name') is not None :
+            return session['name']
+        return ""
+
     @staticmethod
     def isLogin(session) :
         if session.get('login') is not None :
             return True
         return False
+
     @staticmethod
     def logout(session) :
         session.pop("login", None)
+        session.pop("name", None)
+
     @staticmethod
-    def login(session) :
+    def login(session,username) :
+        session["name"] =  username
         session["login"] = True
  #
  #@uid the session id
@@ -85,6 +97,7 @@ class DynamoInterface(SessionInterface):
         else:
             expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
         SessionTable.newSession(session.sid,session,expiration)
+
         response.set_cookie(app.session_cookie_name, session.sid,
                             expires=self.get_expiration_time(app, session),
                             httponly=True, domain=domain)

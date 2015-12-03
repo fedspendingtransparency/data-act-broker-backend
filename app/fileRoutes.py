@@ -3,7 +3,7 @@ from flask import Flask, request, make_response, session, g, redirect, url_for, 
      abort, render_template, flash
 from handlers.fileHandler import FileHandler
 from handlers.jobHandler import JobHandler
-
+from handlers.aws.session import LoginSession
 # Add the file submission route
 def add_file_routes(app):
 
@@ -12,8 +12,7 @@ def add_file_routes(app):
     def submit_files():
         response = flask.Response()
         fileManager = FileHandler(request,response)
-
-        return fileManager.submit()
+        return fileManager.submit(LoginSession.getName(session))
 
     @app.route("/v1/complete_submission/", methods = ["POST"])
     def compelete_submission() :

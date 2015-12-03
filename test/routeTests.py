@@ -119,9 +119,9 @@ class RouteTests(unittest.TestCase):
     def call_file_submission(self):
         # If fileResponse doesn't exist, send the request
         userJson = '{"appropriations_url":"test1.csv","award_financial_url":"test2.csv","award_url":"test3.csv","procurement_url":"test4.csv"}'
-
         if(self.fileResponse == None):
-            self.__class__.fileResponse = requests.request(method="POST",data = userJson, url=RouteTests.BASE_URL + "/v1/submit_files/", headers = RouteTests.JSON_HEADER)
+            self.login()
+            self.__class__.fileResponse = requests.request(method="POST",data = userJson, url=RouteTests.BASE_URL + "/v1/submit_files/", headers = RouteTests.JSON_HEADER,cookies=self.cookies)
 
     def test_file_sub_status(self):
         self.call_file_submission()

@@ -41,7 +41,7 @@ class LoginHandler:
                 raise ValueError("Incorrect password")
             else:
                 # We have a valid login
-                LoginSession.login(session)
+                LoginSession.login(session,username)
                 self.response.status_code = 200
                 self.response.set_data(json.dumps({"message":"Login successful"}))
                 return self.response

@@ -11,10 +11,11 @@ class FileHandler:
     def __init__(self,request,response):
         self.request = request
         self.response = response
-        self.s3manager = s3UrlHandler("reviewfile","TestUser")
+
 
     # Submit set of files
-    def submit(self):
+    def submit(self,name):
+        self.s3manager = s3UrlHandler("reviewfile",name)
         responseDict= {}
         self.response.headers["Content-Type"] = "application/json"
         try:
@@ -25,7 +26,6 @@ class FileHandler:
             safeDictionary = RequestDictionary(self.request)
             for fileName in FileHandler.FILE_TYPES :
                 if( safeDictionary.exists(fileName+"_url")) :
-                    print  self.s3manager.getSignedUrl(safeDictionary.getValue(fileName+"_url"))
                     responseDict[fileName+"_url"] = self.s3manager.getSignedUrl(safeDictionary.getValue(fileName+"_url"))
             self.response.status_code = 200
             self.response.set_data(json.dumps(responseDict))
