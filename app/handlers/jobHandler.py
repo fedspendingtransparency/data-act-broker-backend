@@ -4,14 +4,8 @@ import os
 import json
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+from models.jobModels import JobStatus,JobDependency,Status,Type,Resource
 
-try:
-    from jobModels import JobStatus,JobDependency,Status,Type,Resource
-except Exception:
-    # TODO add models directory to path with relative path
-    #sys.path.append(os.getcwd()+"/../models/")
-    sys.path.append("c:/Users/jworcest/Documents/data-act-broker/app/models")
-    from jobModels import JobStatus,JobDependency,Status,Type,Resource
 
 class JobHandler:
     dbName = "job_tracker"
