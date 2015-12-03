@@ -3,7 +3,7 @@ import sys
 import traceback
 from aws.s3UrlHandler import s3UrlHandler
 from utils.requestDictionary import RequestDictionary
-#from jobHandler import JobHandler
+from jobHandler import JobHandler
 
 class FileHandler:
 
@@ -13,13 +13,14 @@ class FileHandler:
         self.response = response
         self.s3manager = s3UrlHandler("DatactFiles","TestUser")
 
+    # Submit set of files
     def submit(self):
         responseDict = {"message":"File URLs attached"}
         self.response.headers["Content-Type"] = "application/json"
         try:
             # TODO move this code into file handler, based on actual file names
             jobManager = JobHandler()
-            jobManager.createJobs(["award.csv"])
+            jobManager.createJobs(["award.csv","awardFinancial.csv","procurement.csv","appropriation.csv"])
             self.response.status_code = 200
             self.response.set_data(json.dumps({"message":"Job tracker DB working"}))
             # If no exceptions, return response
@@ -44,7 +45,9 @@ class FileHandler:
             responseDict["errorType"] = str(type(e))
             responseDict["errorArgs"] = e.args
             trace = traceback.extract_tb(exc_tb, 10)
-            print(trace)
+            #print(str(type(e)))
+            #print(e.message)
+            #print(trace)
             responseDict["trace"] = trace
             del exc_tb
             self.response.set_data(json.dumps(responseDict))
