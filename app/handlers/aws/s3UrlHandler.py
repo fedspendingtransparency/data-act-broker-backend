@@ -16,4 +16,4 @@ class s3UrlHandler:
 
     def getSignedUrl(self,fileName,):
         seconds = int((datetime.utcnow()-datetime(1970,1,1)).total_seconds())
-        return self._signUrl(fileName)
+        return self._signUrl(str(seconds)+"_"+fileName)

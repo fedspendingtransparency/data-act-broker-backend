@@ -117,10 +117,11 @@ class RouteTests(unittest.TestCase):
         assert(json["status"] == "False"), "Session is stil set"
 
     def call_file_submission(self):
-        # TODO pass filenames in, current test is for basic functionality
         # If fileResponse doesn't exist, send the request
+        userJson = '{"appropriations_url":"test1.csv","award_financial_url":"test2.csv","award_url":"test3.csv","procurement_url":"test4.csv"}'
+
         if(self.fileResponse == None):
-            self.__class__.fileResponse = requests.request(method="POST", url=RouteTests.BASE_URL + "/v1/submit_files/", headers = RouteTests.JSON_HEADER)
+            self.__class__.fileResponse = requests.request(method="POST",data = userJson, url=RouteTests.BASE_URL + "/v1/submit_files/", headers = RouteTests.JSON_HEADER)
 
     def test_file_sub_status(self):
         self.call_file_submission()
@@ -136,7 +137,18 @@ class RouteTests(unittest.TestCase):
 
     def test_file_sub_message(self):
         self.call_file_submission()
-        assert(self.fileResponse.json()["message"]=="Job tracker DB working")
+        assert("_test1.csv" in self.fileResponse.json()["appropriations_url"] )
+        assert("_test2.csv" in self.fileResponse.json()["award_financial_url"])
+        assert("_test3.csv" in self.fileResponse.json()["award_url"])
+        assert("_test4.csv" in self.fileResponse.json()["procurement_url"])
+        assert("?Signature" in self.fileResponse.json()["appropriations_url"] )
+        assert("?Signature" in self.fileResponse.json()["award_financial_url"])
+        assert("?Signature" in self.fileResponse.json()["award_url"])
+        assert("?Signature" in self.fileResponse.json()["procurement_url"])
+        assert("&AWSAccessKeyId" in self.fileResponse.json()["appropriations_url"] )
+        assert("&AWSAccessKeyId" in self.fileResponse.json()["award_financial_url"])
+        assert("&AWSAccessKeyId" in self.fileResponse.json()["award_url"])
+        assert("&AWSAccessKeyId" in self.fileResponse.json()["procurement_url"])
 
 if __name__ == '__main__':
     unittest.main()

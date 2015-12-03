@@ -11,26 +11,25 @@ class FileHandler:
     def __init__(self,request,response):
         self.request = request
         self.response = response
-        self.s3manager = s3UrlHandler("DatactFiles","TestUser")
+        self.s3manager = s3UrlHandler("reviewfile","TestUser")
 
     # Submit set of files
     def submit(self):
-        responseDict = {"message":"File URLs attached"}
+        responseDict= {}
         self.response.headers["Content-Type"] = "application/json"
         try:
             # TODO move this code into file handler, based on actual file names
-            jobManager = JobHandler()
-            jobManager.createJobs(["award.csv","awardFinancial.csv","procurement.csv","appropriation.csv"])
-            self.response.status_code = 200
-            self.response.set_data(json.dumps({"message":"Job tracker DB working"}))
-            # If no exceptions, return response
-            return self.response
+            #jobManager = JobHandler()
+            #jobManager.createJobs(["award.csv","awardFinancial.csv","procurement.csv","appropriation.csv"])
 
             safeDictionary = RequestDictionary(self.request)
             for fileName in FileHandler.FILE_TYPES :
                 if( safeDictionary.exists(fileName+"_url")) :
+                    print  self.s3manager.getSignedUrl(safeDictionary.getValue(fileName+"_url"))
                     responseDict[fileName+"_url"] = self.s3manager.getSignedUrl(safeDictionary.getValue(fileName+"_url"))
+            self.response.status_code = 200
             self.response.set_data(json.dumps(responseDict))
+            return self.response
         except (ValueError , TypeError, NotImplementedError) as e:
             self.response.status_code = 400
             responseDict["message"] = e.message
