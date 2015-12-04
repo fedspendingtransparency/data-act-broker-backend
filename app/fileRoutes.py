@@ -14,12 +14,6 @@ def add_file_routes(app):
         fileManager = FileHandler(request,response)
         return fileManager.submit(LoginSession.getName(session))
 
-    @app.route("/v1/complete_submission/", methods = ["POST"])
-    def compelete_submission() :
-        response = flask.Response()
-        fileManager = FileHandler(request,response)
-        return fileManager.complete()
-
     @app.route("/v1/finalize_submission/", methods = ["POST"])
     def finalize_submission() :
         response = flask.Response()
