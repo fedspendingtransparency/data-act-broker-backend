@@ -166,7 +166,13 @@ class RouteTests(unittest.TestCase):
 
     def check_upload_complete(self, jobId):
         userJson = json.dumps({"upload_id":jobId})
-        finalizeResponse = requests.request(method="POST",data = userJson, url=RouteTests.BASE_URL + "/v1/finalize_submission/", headers = RouteTests.JSON_HEADER)
+        self.login()
+        try:
+            current = self.cookies
+        except AttributeError:
+            self.cookies = {}
+        finalizeResponse = requests.request(method="POST",data = userJson, url=RouteTests.BASE_URL + "/v1/finalize_submission/", headers = RouteTests.JSON_HEADER, cookies = self.cookies)
+        self.cookies =  finalizeResponse.cookies
         if(finalizeResponse.status_code != 200):
             print(finalizeResponse.status_code)
             print(finalizeResponse.json()["errorType"])
