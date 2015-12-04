@@ -137,6 +137,7 @@ class RouteTests(unittest.TestCase):
 
     def test_file_sub_message(self):
         self.call_file_submission()
+
         assert("_test1.csv" in self.fileResponse.json()["appropriations_url"] )
         assert("_test2.csv" in self.fileResponse.json()["award_financial_url"])
         assert("_test3.csv" in self.fileResponse.json()["award_url"])
@@ -161,12 +162,17 @@ class RouteTests(unittest.TestCase):
             except:
                 self.fail("One of the job ids returned was not an integer")
             # Call upload complete route for each id
-            self.check_upload_complete(responseDict[key])
+        self.check_upload_complete(responseDict["procurement_id"])
 
     def check_upload_complete(self, jobId):
         userJson = json.dumps({"upload_id":jobId})
-        requests.request(method="POST",data = userJson, url=RouteTests.BASE_URL + "/v1/finalize_submission/", headers = RouteTests.JSON_HEADER)
-
+        finalizeResponse = requests.request(method="POST",data = userJson, url=RouteTests.BASE_URL + "/v1/finalize_submission/", headers = RouteTests.JSON_HEADER)
+        if(finalizeResponse.status_code != 200):
+            print(finalizeResponse.status_code)
+            print(finalizeResponse.json()["errorType"])
+            print(finalizeResponse.json()["message"])
+            print(finalizeResponse.json()["trace"])
+        assert(finalizeResponse.status_code == 200)
 
 if __name__ == '__main__':
     unittest.main()

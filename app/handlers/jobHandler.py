@@ -15,7 +15,6 @@ class JobHandler:
     # Available instance variables:  session, waitingStatus, runningStatus, fileUploadType, dbUploadType, validationType, externalValidationTYpe
 
     def __init__(self):
-        print("Creating Job Handler")
         # Load credentials from config file
         cred = open(self.credentialsFile,"r").read()
         credDict = json.loads(cred)
@@ -103,16 +102,12 @@ class JobHandler:
 
     def changeToFinished(self, jobId):
         # Pull from job status table
-
+        queryResult = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
+        if(len(queryResult) != 1):
+            # Did not find a unique match to job ID
+            raise ValueError("Job ID not found")
+        jobToChange = queryResult[0]
         # Change status to finished
+        jobToChange.status_id = self.finishedStatus
         # Commit changes
-
-        #meta = sqlalchemy.MetaData(bind=self.engine)
-        #jobTable = sqlalchemy.Table("job_status",meta)
-        #stmt = table.update(values={table.status_id:})
-        #fin = self.finishedStatus
-        #stmt2 = stmt.where(JobStatus.job_id == jobId)
-        #stmt3 = stmt2.values(JobStatus.status_id = 4)
-        #stmt = update(JobStatus).values(JobStatus.status_id = self.finishedStatus).where(JobStatus.job_id == jobId)
-        #self.connection.execute(stmt)
-        # Check if id was found, if not return 400
+        self.session.commit()
