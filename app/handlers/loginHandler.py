@@ -60,7 +60,7 @@ class LoginHandler:
     # This function removes the session from the session table if currently logged in, and then returns a success message
     def logout(self,session):
         self.response.headers["Content-Type"] = "application/json"
-        # TODO: Add calls to session handler to check for session and then remove it
+        # Call session handler
         LoginSession.logout(session)
         self.response.status_code = 200
         self.response.set_data(json.dumps({"message":"Logout successful"}))

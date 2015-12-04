@@ -64,7 +64,7 @@ class RouteTests(unittest.TestCase):
             current = self.cookies
         except AttributeError:
             self.cookies = {}
-        self.logoutResponse = requests.request(method="GET", url=RouteTests.BASE_URL + "/v1/logout/", headers = RouteTests.JSON_HEADER,cookies=self.cookies)
+        self.logoutResponse = requests.request(method="POST", url=RouteTests.BASE_URL + "/v1/logout/", headers = RouteTests.JSON_HEADER,cookies=self.cookies)
         self.cookies =  self.logoutResponse.cookies
     def test_logout_status(self):
         self.logout()
@@ -118,7 +118,7 @@ class RouteTests(unittest.TestCase):
 
     def call_file_submission(self):
         # If fileResponse doesn't exist, send the request
-        userJson = '{"appropriations_url":"test1.csv","award_financial_url":"test2.csv","award_url":"test3.csv","procurement_url":"test4.csv"}'
+        userJson = '{"appropriations":"test1.csv","award_financial":"test2.csv","award":"test3.csv","procurement":"test4.csv"}'
         if(self.fileResponse == None):
             self.login()
             self.__class__.fileResponse = requests.request(method="POST",data = userJson, url=RouteTests.BASE_URL + "/v1/submit_files/", headers = RouteTests.JSON_HEADER,cookies=self.cookies)

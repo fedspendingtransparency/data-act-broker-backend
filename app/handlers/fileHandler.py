@@ -23,8 +23,8 @@ class FileHandler:
 
             safeDictionary = RequestDictionary(self.request)
             for fileName in FileHandler.FILE_TYPES :
-                if( safeDictionary.exists(fileName+"_url")) :
-                    responseDict[fileName+"_url"] = self.s3manager.getSignedUrl(safeDictionary.getValue(fileName+"_url"))
+                if( safeDictionary.exists(fileName)) :
+                    responseDict[fileName+"_url"] = self.s3manager.getSignedUrl(safeDictionary.getValue(fileName))
                     fileNameMap.append((fileName,self.s3manager.s3FileName))
 
             fileJobDict = jobManager.createJobs(fileNameMap)

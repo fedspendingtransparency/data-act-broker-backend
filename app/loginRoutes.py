@@ -12,7 +12,7 @@ def add_login_routes(app):
         loginManager = LoginHandler(request, response)
         return loginManager.login(session)
 
-    @app.route("/v1/logout/", methods = ["GET"])
+    @app.route("/v1/logout/", methods = ["POST"])
     def logout():
         response = flask.Response()
         loginManager = LoginHandler(request, response)
