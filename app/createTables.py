@@ -4,13 +4,14 @@ import json
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.exc import ProgrammingError, IntegrityError
 
 credentialsFile = "dbCred.json"
 host = "localhost"
 port = "5432"
 dbName = "job_tracker"
 dbBaseName = "postgres"
+userDbName = "user_manager"
 
 # Load credentials from config file
 cred = open(credentialsFile,"r").read()
@@ -20,14 +21,28 @@ credDict = json.loads(cred)
 try:
     baseEngine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+host+":"+port+"/"+dbBaseName, isolation_level = "AUTOCOMMIT")
     baseEngine.connect().execute("CREATE DATABASE " + '"' + dbName + '"')
+
 except ProgrammingError as e:
     # Happens if DB exists, just print and carry on
     print(e.message)
+
+try:
+    baseEngine.connect().execute("CREATE DATABASE " + '"' + userDbName + '"')
+except ProgrammingError as e:
+    # Happens if DB exists, just print and carry on
+    print(e.message)
+
 # Create engine and session
 engine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+host+":"+port+"/"+dbName)
+userEngine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+host+":"+port+"/"+userDbName)
+
 connection = engine.connect()
+userConnection = userEngine.connect()
+
 Session = sessionmaker(bind=engine)
 session = Session()
+UserSessionBase = sessionmaker(bind=userEngine)
+userSession = UserSessionBase()
 
 # TODO: refactor this to use sqlalchemy methods rather than direct SQL statements
 # Create tables
@@ -44,6 +59,15 @@ sqlStatements = ["CREATE SEQUENCE jobIdSerial START 1",
 for statement in sqlStatements:
     try:
         connection.execute(statement)
+    except (ProgrammingError, IntegrityError) as e:
+        # Usually a table exists error, print and continue
+        print(e.message)
+
+userStatements = ["CREATE SEQUENCE userIdSerial START 1",
+                  "CREATE TABLE users (user_id integer PRIMARY KEY DEFAULT nextval('userIdSerial'), username text)"]
+for statement in userStatements:
+    try:
+        userConnection.execute(statement)
     except ProgrammingError as e:
         # Usually a table exists error, print and continue
         print(e.message)

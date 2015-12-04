@@ -4,6 +4,7 @@ import os
 from json import JSONDecoder, JSONEncoder
 from aws.session import LoginSession
 from utils.requestDictionary import RequestDictionary
+from userHandler import UserHandler
 
 class LoginHandler:
     # Handles login process, compares username and password provided
@@ -15,6 +16,7 @@ class LoginHandler:
         # Set Http request and response objects
         self.request = request
         self.response = response
+        self.userManager = UserHandler()
 
         response.headers.add("Content-Type","application/json")
 
@@ -41,7 +43,7 @@ class LoginHandler:
                 raise ValueError("Incorrect password")
             else:
                 # We have a valid login
-                LoginSession.login(session,username)
+                LoginSession.login(session,self.userManager.getUserId(username))
                 self.response.status_code = 200
                 self.response.set_data(json.dumps({"message":"Login successful"}))
                 return self.response
