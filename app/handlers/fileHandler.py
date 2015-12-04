@@ -12,21 +12,24 @@ class FileHandler:
         self.request = request
         self.response = response
 
-
     # Submit set of files
     def submit(self,name):
         self.s3manager = s3UrlHandler("reviewfile",name)
         responseDict= {}
         self.response.headers["Content-Type"] = "application/json"
         try:
-            # TODO move this code into file handler, based on actual file names
-            #jobManager = JobHandler()
-            #jobManager.createJobs(["award.csv","awardFinancial.csv","procurement.csv","appropriation.csv"])
+            jobManager = JobHandler()
+            fileNameMap = []
 
             safeDictionary = RequestDictionary(self.request)
             for fileName in FileHandler.FILE_TYPES :
                 if( safeDictionary.exists(fileName+"_url")) :
+                    fileNameMap.append((fileName,self.s3manager.s3FileName))
                     responseDict[fileName+"_url"] = self.s3manager.getSignedUrl(safeDictionary.getValue(fileName+"_url"))
+
+            fileJobDict = jobManager.createJobs(fileNameMap)
+            for fileName in fileJobDict.keys():
+                responseDict[fileName+"_id"] = fileJobDict[fileName]
             self.response.status_code = 200
             self.response.set_data(json.dumps(responseDict))
             return self.response
@@ -34,6 +37,10 @@ class FileHandler:
             self.response.status_code = 400
             responseDict["message"] = e.message
             responseDict["errorType"] = str(type(e))
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            trace = traceback.extract_tb(exc_tb, 10)
+            responseDict["trace"] = trace
+            del exc_tb
             self.response.set_data(json.dumps(responseDict))
             return self.response
         except Exception as e:
@@ -52,17 +59,21 @@ class FileHandler:
             self.response.set_data(json.dumps(responseDict))
             return self.response
 
-    def complete(self):
+    def finalize(self):
         self.response.headers["Content-Type"] = "application/json"
+        responseDict = {}
         try:
-            safeDictionary = RequestHandler(request)
-            fileID = safeDictionary.getValue("upload_id")
+            inputDictionary = RequestDictionary(self.request)
+            jobId = inputDictionary.getValue("upload_id")
             #TODO Update database here
+            jobManager = JobHandler()
+            jobManager.ChangeToFinished(jobId)
             self.response.status_code = 200
-            responseDict["success"] = "True"
+            responseDict["success"] = True
             self.response.set_data(json.dumps(responseDict))
         except ( ValueError , TypeError ) as e:
             self.response.status_code = 400
+            responseDict["success"] = False
             responseDict["message"] = e.message
             responseDict["errorType"] = str(type(e))
             self.response.set_data(json.dumps(responseDict))

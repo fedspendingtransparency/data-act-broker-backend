@@ -3,7 +3,7 @@ import sys
 import os
 import json
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, update
 from models.jobModels import JobStatus,JobDependency,Status,Type,Resource
 
 
@@ -20,13 +20,14 @@ class JobHandler:
         cred = open(self.credentialsFile,"r").read()
         credDict = json.loads(cred)
         # Get status and type values from queries
-        engine = create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+self.host+":"+self.port+"/"+self.dbName)
-        engine.connect()
-        Session = sessionmaker(bind=engine)
+        self.engine = create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+self.host+":"+self.port+"/"+self.dbName)
+        self.connection = self.engine.connect()
+        Session = sessionmaker(bind=self.engine)
         self.session = Session()
         # Set up instance variables for status and type values
         self.waitingStatus = self.setStatus("waiting")
         self.runningStatus = self.setStatus("running")
+        self.finishedStatus = self.setStatus("finished")
         self.fileUploadType = self.setType("file_upload")
         self.dbUploadType = self.setType("db_upload")
         self.validationType = self.setType("validation")
@@ -52,7 +53,7 @@ class JobHandler:
 
     # Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
     def createJobs(self,filenames):
-        jobsRequired = self.addUploadJobs(filenames)
+        jobsRequired, uploadDict = self.addUploadJobs(filenames)
 
         # Create validation job
         validationJob = JobStatus(status_id = self.waitingStatus, type_id = self.validationType, resource_id = 0)
@@ -70,14 +71,16 @@ class JobHandler:
 
         # Commit all changes
         self.session.commit()
-        return True
+        return uploadDict
 
     def addUploadJobs(self,filenames):
-         # Keep list of job ids required for validation jobs
+        # Keep list of job ids required for validation jobs
         jobsRequired = []
+        # Dictionary of upload ids by filename to return to client
+        uploadDict = {}
 
         #TODO for missing files, create a job specifying what we need to pull out of the production database to validate against
-        for filename in filenames:
+        for originalName, filename in filenames:
             # Create upload job, mark as running since frontend should be doing this upload
             fileJob = JobStatus(filename = filename, status_id = self.runningStatus, type_id = self.fileUploadType, resource_id = 0)
 
@@ -93,6 +96,23 @@ class JobHandler:
             # Add both jobs to required list
             jobsRequired.append(fileJob.job_id)
             jobsRequired.append(dbJob.job_id)
+            uploadDict[originalName] = fileJob.job_id
 
         # Return list of upload jobs
-        return jobsRequired
+        return jobsRequired, uploadDict
+
+    def changeToFinished(self, jobId):
+        # Pull from job status table
+
+        # Change status to finished
+        # Commit changes
+
+        #meta = sqlalchemy.MetaData(bind=self.engine)
+        #jobTable = sqlalchemy.Table("job_status",meta)
+        #stmt = table.update(values={table.status_id:})
+        #fin = self.finishedStatus
+        #stmt2 = stmt.where(JobStatus.job_id == jobId)
+        #stmt3 = stmt2.values(JobStatus.status_id = 4)
+        #stmt = update(JobStatus).values(JobStatus.status_id = self.finishedStatus).where(JobStatus.job_id == jobId)
+        #self.connection.execute(stmt)
+        # Check if id was found, if not return 400

@@ -150,5 +150,23 @@ class RouteTests(unittest.TestCase):
         assert("&AWSAccessKeyId" in self.fileResponse.json()["award_url"])
         assert("&AWSAccessKeyId" in self.fileResponse.json()["procurement_url"])
 
+    def test_job_ids_exist(self):
+        self.call_file_submission()
+        responseDict = self.fileResponse.json()
+        idKeys = ["procurement_id", "award_id", "award_financial_id", "appropriations_id"]
+        for key in idKeys:
+            assert(key in responseDict)
+            try:
+                int(responseDict[key])
+            except:
+                self.fail("One of the job ids returned was not an integer")
+            # Call upload complete route for each id
+            self.check_upload_complete(responseDict[key])
+
+    def check_upload_complete(self, jobId):
+        userJson = json.dumps({"upload_id":jobId})
+        requests.request(method="POST",data = userJson, url=RouteTests.BASE_URL + "/v1/finalize_submission/", headers = RouteTests.JSON_HEADER)
+
+
 if __name__ == '__main__':
     unittest.main()

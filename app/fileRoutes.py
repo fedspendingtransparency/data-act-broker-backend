@@ -19,3 +19,9 @@ def add_file_routes(app):
         response = flask.Response()
         fileManager = FileHandler(request,response)
         return fileManager.complete()
+
+    @app.route("/v1/finalize_submission/", methods = ["POST"])
+    def finalize_submission() :
+        response = flask.Response()
+        fileManager = FileHandler(request,response)
+        return fileManager.finalize()
