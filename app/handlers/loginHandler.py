@@ -47,10 +47,14 @@ class LoginHandler:
                 return self.response
 
 
-        except (TypeError, KeyError, ValueError, NotImplementedError) as e:
+        except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
             self.response.status_code = 400
             self.response.set_data(json.dumps({"message":(e.message+","+str(self.request.get_json))}))
+        except ValueError as e:
+            # Return a 401 for login denied
+            self.response.status_code = 401
+            self.response.set_data(json.dumps({"message":(e.message)}))
         return self.response
 
     # This function removes the session from the session table if currently logged in, and then returns a success message
