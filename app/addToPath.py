@@ -3,7 +3,7 @@
 import os, sys, inspect
 
 filePath = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-neededSubDirs = ["","/handlers","/models","/handlers/aws","/handlers/utils"]
+neededSubDirs = ["","/handlers","/models","/handlers/aws","/handlers/utils","/test"]
 for subDir in neededSubDirs:
     pathToAdd =  filePath + subDir
     if(not(pathToAdd in sys.path)):
