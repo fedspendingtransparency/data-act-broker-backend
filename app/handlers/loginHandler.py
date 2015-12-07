@@ -8,21 +8,41 @@ from userHandler import UserHandler
 from utils.jsonResponse import JsonResponse
 
 class LoginHandler:
+    """
+    This class contains the login / logout  functions
+    """
     # Handles login process, compares username and password provided
     credentialFile = "credentials.json"
 
     # Instance fields include request, response, logFlag, and logFile
 
-    def __init__(self,request,response):
+    def __init__(self,request):
+        """
+
+        Creates the Login Handler
+
+        arguments:
+
+        request  -- (Request) object from flask
+
+        """
         # Set Http request and response objects
         self.request = request
-        self.response = response
         self.userManager = UserHandler()
 
-        response.headers.add("Content-Type","application/json")
 
     def login(self,session):
-        self.response.headers["Content-Type"] = "application/json"
+        """
+
+        Logs a user in if their password matches
+
+        arguments:
+
+        session  -- (Session) object from flask
+
+        return the reponse object
+
+        """
         try:
             safeDictionary = RequestDictionary(self.request)
 
@@ -45,24 +65,30 @@ class LoginHandler:
             else:
                 # We have a valid login
                 LoginSession.login(session,self.userManager.getUserId(username))
-                self.response.status_code = 200
-                self.response.set_data(json.dumps({"message":"Login successful"}))
-                return self.response
 
+                return JsonResponse.create(JsonResponse.OK,{"message":"Login successful"})
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
-            return JsonResponse.error(e,400)
+            return JsonResponse.error(e,JsonResponse.ERROR)
         except ValueError as e:
             # Return a 401 for login denied
-            return JsonResponse.error(e,401)
+            return JsonResponse.error(e,JsonResponse.LOGIN_REQUIRED)
         return self.response
 
-    # This function removes the session from the session table if currently logged in, and then returns a success message
+    #
     def logout(self,session):
-        self.response.headers["Content-Type"] = "application/json"
+        """
+
+        This function removes the session from the session table if currently logged in, and then returns a success message
+
+        arguments:
+
+        session  -- (Session) object from flask
+
+        return the reponse object
+
+        """
         # Call session handler
         LoginSession.logout(session)
-        self.response.status_code = 200
-        self.response.set_data(json.dumps({"message":"Logout successful"}))
-        return self.response
+        return JsonResponse.create(JsonResponse.OK,{"message":"Logout successful"})
