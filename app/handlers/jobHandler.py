@@ -8,18 +8,40 @@ from models.jobModels import JobStatus,JobDependency,Status,Type,Resource
 
 
 class JobHandler:
-    dbName = "job_tracker"
-    credentialsFile = "dbCred.json"
-    host = "localhost"
-    port = "5432"
+    """ Responsible for all interaction with the job tracker database
+
+    Static fields:
+    DB_NAME -- Name of Postgres job tracker database
+    CREDENTIALS_FILE -- File that holds a JSON with keys "username" and "password"
+    HOST -- host where database is located
+    PORT -- port for connecting to database
+
+    Instance fields:
+    engine -- sqlalchemy engine for generating connections and sessions
+    connection -- sqlalchemy connection for executing direct SQL statements
+    session -- sqlalchemy session for ORM usage
+    waitingStatus -- status_id for "waiting"
+    runningStatus -- status_id for "running"
+    finishedStatus -- status_id for "finished"
+    fileUploadType -- type_id for "file_upload"
+    dbUploadType -- type_id for "db_upload"
+    validationType -- type_id for "validation"
+    externalValidationType -- type_id for "external_validation"
+    """
+    DB_NAME = "job_tracker"
+    CREDENTIALS_FILE = "dbCred.json"
+    HOST = "localhost"
+    PORT = "5432"
     # Available instance variables:  session, waitingStatus, runningStatus, fileUploadType, dbUploadType, validationType, externalValidationTYpe
 
     def __init__(self):
+        """ Sets up connection to job_tracker database """
+
         # Load credentials from config file
-        cred = open(self.credentialsFile,"r").read()
+        cred = open(self.CREDENTIALS_FILE, "r").read()
         credDict = json.loads(cred)
         # Get status and type values from queries
-        self.engine = create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+self.host+":"+self.port+"/"+self.dbName)
+        self.engine = create_engine("postgresql://" + credDict["username"] +":" + credDict["password"] +"@" + self.HOST + ":" + self.PORT + "/" + self.DB_NAME)
         self.connection = self.engine.connect()
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
@@ -32,8 +54,15 @@ class JobHandler:
         self.validationType = self.setType("validation")
         self.externalValidationType = self.setType("external_validation")
 
-    # Get a result for specified status, if not unique throw an exception
     def setStatus(self,name):
+        """  Get an id for specified status, if not unique throw an exception
+
+        Arguments:
+        name -- Name of status to get an id for
+
+        Returns:
+        status_id of the specified status
+        """
         queryResult = self.session.query(Status.status_id).filter(Status.name==name).all()
         if(len(queryResult) != 1):
             # Did not get a unique result
@@ -43,6 +72,14 @@ class JobHandler:
 
     # Get a result for specified type, if not unique throw an exception
     def setType(self,name):
+        """  Get an id for specified type, if not unique throw an exception
+
+        Arguments:
+        name -- Name of type to get an id for
+
+        Returns:
+        type_id of the specified type
+        """
         queryResult = self.session.query(Type.type_id).filter(Type.name==name).all()
         if(len(queryResult) != 1):
             # Did not get a unique result

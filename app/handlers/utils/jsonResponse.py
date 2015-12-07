@@ -1,5 +1,7 @@
 import json
 import flask
+import sys
+import traceback
 from flask import Flask, request, make_response, session, g, redirect, url_for, \
      abort, render_template, flash
 
@@ -25,3 +27,13 @@ class JsonResponse :
         jsondata.status_code = code
         jsondata.set_data(json.dumps(dictionaryData))
         return jsondata
+
+    def error(self, exception, errorCode):
+        responseDict = {}
+        responseDict["message"] = exception.message
+        responseDict["errorType"] = str(type(exception))
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        trace = traceback.extract_tb(exc_tb, 10)
+        responseDict["trace"] = trace
+        del exc_tb
+        return self.create(errorCode, responseDict)
