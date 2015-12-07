@@ -36,6 +36,13 @@ class FileHandler:
         request -- A flask request object, comes with the request
         """
         self.request = request
+
+    def clearRequest(self):
+        """ Clears the request object to ensure the next request can't accidentally reuse it
+
+        """
+        self.request = None
+
     # Submit set of files
     def submit(self,name):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database

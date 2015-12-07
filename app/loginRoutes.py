@@ -10,13 +10,19 @@ from handlers.utils.statusCode import StatusCode
 def add_login_routes(app, loginManager):
     @app.route("/v1/login/", methods = ["POST"])
     def login():
-        loginManager.setRequest(request)
-        return loginManager.login(session)
+        try:
+            loginManager.setRequest(request)
+            return loginManager.login(session)
+        finally:
+            loginManager.clearRequest()
 
     @app.route("/v1/logout/", methods = ["POST"])
     def logout():
-        loginManager.setRequest(request)
-        return loginManager.logout(session)
+        try:
+            loginManager.setRequest(request)
+            return loginManager.logout(session)
+        finally:
+            loginManager.clearRequest()
 
     @app.route("/v1/session/", methods = ["GET"])
     def sessionCheck():

@@ -14,12 +14,18 @@ def add_file_routes(app, fileManager):
     @app.route("/v1/submit_files/", methods = ["POST"])
     @permissions_check
     def submit_files():
-        fileManager.setRequest(request)
-        return fileManager.submit(LoginSession.getName(session))
+        try:
+            fileManager.setRequest(request)
+            return fileManager.submit(LoginSession.getName(session))
+        finally:
+            fileManager.clearRequest()
 
 
     @app.route("/v1/finalize_submission/", methods = ["POST"])
     @permissions_check
     def finalize_submission() :
-        fileManager.setRequest(request)
-        return fileManager.finalize()
+        try:
+            fileManager.setRequest(request)
+            return fileManager.finalize()
+        finally:
+            fileManager.clearRequest()

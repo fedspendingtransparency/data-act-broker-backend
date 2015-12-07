@@ -18,7 +18,6 @@ connection = engine.connect()
 Session = sessionmaker(bind=engine)
 session = Session()
 
-# TODO: refactor this to use sqlalchemy methods rather than direct SQL statements
 # Create tables
 sqlStatements = ["DELETE FROM job_status", "DELETE FROM job_dependency"]
 

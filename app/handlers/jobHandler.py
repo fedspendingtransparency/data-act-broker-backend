@@ -133,7 +133,6 @@ class JobHandler:
         # Dictionary of upload ids by filename to return to client
         uploadDict = {}
 
-        #TODO for missing files, create a job specifying what we need to pull out of the production database to validate against
         for originalName, filename in filenames:
             # Create upload job, mark as running since frontend should be doing this upload
             fileJob = JobStatus(filename = filename, status_id = self.runningStatus, type_id = self.fileUploadType, resource_id = 0)
