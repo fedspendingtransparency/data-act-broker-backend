@@ -28,12 +28,20 @@ class JsonResponse :
         jsondata.set_data(json.dumps(dictionaryData))
         return jsondata
 
-    def error(self, exception, errorCode):
+    @staticmethod
+    def error(exception, errorCode):
         responseDict = {}
-        responseDict["message"] = exception.message
-        responseDict["errorType"] = str(type(exception))
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        trace = traceback.extract_tb(exc_tb, 10)
-        responseDict["trace"] = trace
-        del exc_tb
-        return self.create(errorCode, responseDict)
+        if(JsonResponse.debugMode):
+            responseDict["message"] = exception.message
+            responseDict["errorType"] = str(type(exception))
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            trace = traceback.extract_tb(exc_tb, 10)
+            responseDict["trace"] = trace
+            print(str(type(exception)))
+            print(exception.message)
+            print(trace)
+            del exc_tb
+            return JsonResponse.create(errorCode, responseDict)
+        else:
+            responseDict["message"] = "An error has occurred"
+            return JsonResponse.create(errorCode, responseDict)

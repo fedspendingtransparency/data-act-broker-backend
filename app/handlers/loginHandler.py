@@ -5,6 +5,7 @@ from json import JSONDecoder, JSONEncoder
 from aws.session import LoginSession
 from utils.requestDictionary import RequestDictionary
 from userHandler import UserHandler
+from utils.jsonResponse import JsonResponse
 
 class LoginHandler:
     # Handles login process, compares username and password provided
@@ -51,12 +52,10 @@ class LoginHandler:
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
-            self.response.status_code = 400
-            self.response.set_data(json.dumps({"message":(e.message+","+str(self.request.get_json))}))
+            return JsonResponse.error(e,400)
         except ValueError as e:
             # Return a 401 for login denied
-            self.response.status_code = 401
-            self.response.set_data(json.dumps({"message":(e.message)}))
+            return JsonResponse.error(e,401)
         return self.response
 
     # This function removes the session from the session table if currently logged in, and then returns a success message
