@@ -6,17 +6,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import ProgrammingError
 
 credentialsFile = "dbCred.json"
-host = "localhost"
-port = "5432"
 dbName = "job_tracker"
-dbBaseName = "postgres"
 
 # Load credentials from config file
 cred = open(credentialsFile,"r").read()
 credDict = json.loads(cred)
 
 # Create engine and session
-engine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+host+":"+port+"/"+dbName)
+engine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+dbName)
 connection = engine.connect()
 Session = sessionmaker(bind=engine)
 session = Session()

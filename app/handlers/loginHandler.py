@@ -6,7 +6,7 @@ from aws.session import LoginSession
 from utils.requestDictionary import RequestDictionary
 from userHandler import UserHandler
 from utils.jsonResponse import JsonResponse
-
+from utils.statusCode import StatusCode
 class LoginHandler:
     """
     This class contains the login / logout  functions
@@ -66,14 +66,14 @@ class LoginHandler:
                 # We have a valid login
                 LoginSession.login(session,self.userManager.getUserId(username))
 
-                return JsonResponse.create(JsonResponse.OK,{"message":"Login successful"})
+                return JsonResponse.create(StatusCode.OK,{"message":"Login successful"})
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
-            return JsonResponse.error(e,JsonResponse.ERROR)
+            return JsonResponse.error(e,StatusCode.ERROR)
         except ValueError as e:
             # Return a 401 for login denied
-            return JsonResponse.error(e,JsonResponse.LOGIN_REQUIRED)
+            return JsonResponse.error(e,StatusCode.LOGIN_REQUIRED)
         return self.response
 
     #
@@ -91,4 +91,4 @@ class LoginHandler:
         """
         # Call session handler
         LoginSession.logout(session)
-        return JsonResponse.create(JsonResponse.OK,{"message":"Logout successful"})
+        return JsonResponse.create(StatusCode.OK,{"message":"Logout successful"})

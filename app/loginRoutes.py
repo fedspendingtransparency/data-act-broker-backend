@@ -6,6 +6,7 @@ from flask import Flask, request, make_response, session, g, redirect, url_for, 
 from handlers.loginHandler import LoginHandler
 from handlers.aws.session import LoginSession
 from handlers.utils.jsonResponse import JsonResponse
+from handlers.utils.statusCode import StatusCode
 def add_login_routes(app):
     @app.route("/v1/login/", methods = ["POST"])
     def login():
@@ -19,4 +20,4 @@ def add_login_routes(app):
 
     @app.route("/v1/session/", methods = ["GET"])
     def sessionCheck():
-        return JsonResponse.create(JsonResponse.OK,{"status":str(LoginSession.isLogin(session))})
+        return JsonResponse.create(StatusCode.OK,{"status":str(LoginSession.isLogin(session))})

@@ -9,10 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import ProgrammingError, IntegrityError
 
 credentialsFile = "dbCred.json"
-host = "localhost"
-port = "5432"
 dbName = "job_tracker"
-dbBaseName = "postgres"
 userDbName = "user_manager"
 
 # Load credentials from config file
@@ -21,7 +18,7 @@ credDict = json.loads(cred)
 
 # Create database by connecting to default postgres database
 try:
-    baseEngine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+host+":"+port+"/"+dbBaseName, isolation_level = "AUTOCOMMIT")
+    baseEngine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+credDict["dbBaseName"], isolation_level = "AUTOCOMMIT")
     baseEngine.connect().execute("CREATE DATABASE " + '"' + dbName + '"')
 
 except ProgrammingError as e:
@@ -35,8 +32,8 @@ except ProgrammingError as e:
     print(e.message)
 
 # Create engine and session
-engine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+host+":"+port+"/"+dbName)
-userEngine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+host+":"+port+"/"+userDbName)
+engine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+dbName)
+userEngine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+userDbName)
 
 connection = engine.connect()
 userConnection = userEngine.connect()

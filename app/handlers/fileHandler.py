@@ -5,7 +5,7 @@ from aws.s3UrlHandler import s3UrlHandler
 from utils.requestDictionary import RequestDictionary
 from jobHandler import JobHandler
 from utils.jsonResponse import JsonResponse
-
+from utils.statusCode import StatusCode
 class FileHandler:
     """ Responsible for all tasks relating to file upload
 
@@ -57,12 +57,12 @@ class FileHandler:
             fileJobDict = jobManager.createJobs(fileNameMap)
             for fileName in fileJobDict.keys():
                 responseDict[fileName+"_id"] = fileJobDict[fileName]
-            return JsonResponse.create(200,responseDict)
+            return JsonResponse.create(StatusCode.OK,responseDict)
         except (ValueError , TypeError, NotImplementedError) as e:
-            return JsonResponse.error(e,400)
+            return JsonResponse.error(e,StatusCode.ERROR)
         except Exception as e:
             # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,500)
+            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
     def finalize(self):
         """ Set upload job in job tracker database to finished, allowing dependent jobs to be started
@@ -80,9 +80,9 @@ class FileHandler:
             jobManager = JobHandler()
             jobManager.changeToFinished(jobId)
             responseDict["success"] = True
-            return JsonResponse.create(200,responseDict)
+            return JsonResponse.create(StatusCode.OK,responseDict)
         except ( ValueError , TypeError ) as e:
-            return JsonResponse.error(e,400)
+            return JsonResponse.error(e,StatusCode.ERROR)
         except Exception as e:
             # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,500)
+            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
