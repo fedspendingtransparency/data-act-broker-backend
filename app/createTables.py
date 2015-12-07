@@ -43,7 +43,6 @@ session = Session()
 UserSessionBase = sessionmaker(bind=userEngine)
 userSession = UserSessionBase()
 
-# TODO: refactor this to use sqlalchemy methods rather than direct SQL statements
 # Create tables
 sqlStatements = ["CREATE SEQUENCE jobIdSerial START 1",
                  "CREATE TABLE job_status (job_id integer PRIMARY KEY DEFAULT nextval('jobIdSerial'), filename text, status_id integer NOT NULL, type_id integer NOT NULL, resource_id integer NOT NULL)",

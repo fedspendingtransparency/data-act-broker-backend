@@ -32,6 +32,12 @@ class LoginHandler:
         """
         self.request = request
 
+    def clearRequest(self):
+        """ Clears the request object to ensure the next request can't accidentally reuse it
+
+        """
+        self.request = None
+
     def login(self,session):
         """
 
