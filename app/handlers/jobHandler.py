@@ -30,8 +30,6 @@ class JobHandler:
     """
     DB_NAME = "job_tracker"
     CREDENTIALS_FILE = "dbCred.json"
-    HOST = "localhost"
-    PORT = "5432"
     # Available instance variables:  session, waitingStatus, runningStatus, fileUploadType, dbUploadType, validationType, externalValidationTYpe
 
     def __init__(self):
@@ -41,7 +39,7 @@ class JobHandler:
         cred = open(self.CREDENTIALS_FILE, "r").read()
         credDict = json.loads(cred)
         # Get status and type values from queries
-        self.engine = create_engine("postgresql://" + credDict["username"] +":" + credDict["password"] +"@" + self.HOST + ":" + self.PORT + "/" + self.DB_NAME)
+        self.engine = create_engine("postgresql://" + credDict["username"] +":" + credDict["password"] +"@" +credDict["host"] + ":" + credDict["port"] + "/" + self.DB_NAME)
         self.connection = self.engine.connect()
         Session = sessionmaker(bind=self.engine)
         self.session = Session()

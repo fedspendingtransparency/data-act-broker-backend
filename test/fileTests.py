@@ -1,7 +1,7 @@
 import unittest
 import requests
 import json
-from test.testUtils import TestUtils
+from testUtils import TestUtils
 
 class FileTests(unittest.TestCase):
     """ Test file submission routes """
