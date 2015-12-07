@@ -2,18 +2,9 @@ import unittest
 import requests
 import json
 from testUtils import TestUtils
-class LoginTests(unittest.TestCase):
+from baseTest import BaseTest
+class LoginTests(BaseTest):
     """ Test login, logout, and session handling """
-
-    def addUtils(self,utils):
-        self.utils = utils
-
-    def setup(self):
-        try:
-            self.utils
-        except:
-            self.utils = TestUtils()
-
     # Test login using config file
     def test_login(self):
 
@@ -35,14 +26,7 @@ class LoginTests(unittest.TestCase):
     def session_route(self):
         # Create user json for sample user, eventually load this from config file
         # response does not yet exist
-        headerDict = {"Content-Type": "application/json"}
-        try:
-            current = self.utils.cookies
-        except AttributeError:
-            self.utils.cookies = {}
-        self.utils.response = requests.request(method="GET", url=TestUtils.BASE_URL + "/v1/session/", headers = TestUtils.JSON_HEADER,cookies=self.utils.cookies)
-        self.utils.cookies =  self.utils.response.cookies
-        return self.utils.response
+        return self.utils.getRequest( "/v1/session/")
 
     def test_logout(self):
         logoutResponse = self.utils.logout()

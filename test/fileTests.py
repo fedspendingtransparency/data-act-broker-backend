@@ -2,27 +2,18 @@ import unittest
 import requests
 import json
 from testUtils import TestUtils
-
-class FileTests(unittest.TestCase):
+from baseTest import BaseTest
+class FileTests(BaseTest):
     """ Test file submission routes """
     fileResponse = None
 
-    def addUtils(self,utils):
-        self.utils = utils
-
-    def setup(self):
-
-        try:
-            self.utils
-        except:
-            self.utils = TestUtils()
 
     def call_file_submission(self):
         # If fileResponse doesn't exist, send the request
-        userJson = '{"appropriations":"test1.csv","award_financial":"test2.csv","award":"test3.csv","procurement":"test4.csv"}'
+        fileJson = '{"appropriations":"test1.csv","award_financial":"test2.csv","award":"test3.csv","procurement":"test4.csv"}'
         if(self.fileResponse == None):
             self.utils.login()
-            self.fileResponse = requests.request(method="POST",data = userJson, url=TestUtils.BASE_URL + "/v1/submit_files/", headers = TestUtils.JSON_HEADER,cookies=self.utils.cookies)
+            self.fileResponse = self.utils.postRequest("/v1/submit_files/",fileJson)
 
     def test_file_submission(self):
         self.call_file_submission()
@@ -57,14 +48,11 @@ class FileTests(unittest.TestCase):
         self.check_upload_complete(responseDict["procurement_id"])
 
     def check_upload_complete(self, jobId):
-        userJson = json.dumps({"upload_id":jobId})
+        jobJson = json.dumps({"upload_id":jobId})
         self.utils.login()
-        try:
-            current = self.utils.cookies
-        except AttributeError:
-            self.utils.cookies = {}
-        finalizeResponse = requests.request(method="POST",data = userJson, url=TestUtils.BASE_URL + "/v1/finalize_submission/", headers = TestUtils.JSON_HEADER, cookies = self.utils.cookies)
-        self.utils.cookies =  finalizeResponse.cookies
+
+        finalizeResponse = self.utils.postRequest("/v1/submit_files/",jobJson)
+
         if(finalizeResponse.status_code != 200):
             print(finalizeResponse.status_code)
             print(finalizeResponse.json()["errorType"])
