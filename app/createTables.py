@@ -1,5 +1,7 @@
-# This script creates the needed tables for the job tracker database.  Postgres, sqlalchemy, and psycopg2 must be installed,
-# and username and password must be in a json file called dbCred.json
+""" This script creates the needed tables for the job tracker database.  Postgres, sqlalchemy, and psycopg2 must be installed,
+ and username and password must be in a json file called dbCred.json
+
+ """
 import json
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker

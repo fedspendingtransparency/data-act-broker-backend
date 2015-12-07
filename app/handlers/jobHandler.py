@@ -87,8 +87,16 @@ class JobHandler:
         else:
             return queryResult[0].type_id
 
-    # Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
     def createJobs(self,filenames):
+        """  Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
+
+        Arguments:
+        filenames -- List of filenames to be uploaded
+
+        Returns:
+        Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
+        """
+
         jobsRequired, uploadDict = self.addUploadJobs(filenames)
 
         # Create validation job
@@ -110,6 +118,16 @@ class JobHandler:
         return uploadDict
 
     def addUploadJobs(self,filenames):
+        """  Add upload jobs to job tracker database
+
+        Arguments:
+        filenames -- List of filenames to be uploaded
+
+        Returns:
+        jobsRequired -- List of job ids required for validation jobs, used to populate the prerequisite table
+        uploadDict -- Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
+        """
+
         # Keep list of job ids required for validation jobs
         jobsRequired = []
         # Dictionary of upload ids by filename to return to client
@@ -138,6 +156,13 @@ class JobHandler:
         return jobsRequired, uploadDict
 
     def changeToFinished(self, jobId):
+        """  Mark an upload job as finished
+
+        Arguments:
+        jobId -- job_id to mark as finished
+
+        """
+
         # Pull from job status table
         queryResult = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
         if(len(queryResult) != 1):

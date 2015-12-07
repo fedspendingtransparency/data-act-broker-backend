@@ -8,12 +8,29 @@ from models.userModel import User
 from sqlalchemy.orm.exc import MultipleResultsFound
 
 class UserHandler:
+    """ Responsible for all interaction with the user database
+
+    Class Fields:
+    dbName -- Name of user database
+    credentialsFile -- This file should store a JSON with keys "username" and "password" for the database
+    host -- Where to look for the database
+    port -- Port to use for database
+
+    Instance Fields:
+    engine -- sqlalchemy engine for creating connections and sessions to database
+    connection -- sqlalchemy connection to user database
+    session - sqlalchemy session for ORM calls to user database
+    """
+
     dbName = "user_manager"
     credentialsFile = "dbCred.json"
     host = "localhost"
     port = "5432"
 
     def __init__(self):
+        """ Setup of database connection
+
+        """
         # Load credentials from config file
         cred = open(self.credentialsFile,"r").read()
         credDict = json.loads(cred)
@@ -24,6 +41,13 @@ class UserHandler:
         self.session = Session()
 
     def getUserId(self, username):
+        """ Find an id for specified username, creates a new entry for new usernames, raises an exception if multiple results found
+
+        Arguments:
+        username - username to find an id for
+        Returns:
+        user_id to be used by session handler
+        """
         # Check if user exists
         queryResult = self.session.query(User.user_id).filter(User.username == username).all()
         if(len(queryResult) == 1):

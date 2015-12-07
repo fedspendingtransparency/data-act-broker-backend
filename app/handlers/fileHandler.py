@@ -14,22 +14,19 @@ class FileHandler:
 
     Instance fields:
     request -- A flask request object, comes with the request
-    response -- A flask response object, created with flask.Response()
     s3manager -- instance of s3UrlHandler, manages calls to S3
     """
 
 
     FILE_TYPES = ["appropriations","award_financial","award","procurement"]
 
-    def __init__(self,request,response):
+    def __init__(self,request):
         """
 
         Arguments:
         request -- A flask request object, comes with the request
-        response -- A flask response object, created with flask.Response()
         """
         self.request = request
-        self.response = response
 
     # Submit set of files
     def submit(self,name):
@@ -47,7 +44,6 @@ class FileHandler:
         """
         self.s3manager = s3UrlHandler("reviewfile",name)
         responseDict= {}
-        self.response.headers["Content-Type"] = "application/json"
         try:
             jobManager = JobHandler()
             fileNameMap = []
@@ -76,7 +72,6 @@ class FileHandler:
         Returns:
         A flask response object, if successful just contains key "success" with value True, otherwise value is False
         """
-        self.response.headers["Content-Type"] = "application/json"
         responseDict = {}
         try:
             inputDictionary = RequestDictionary(self.request)
@@ -84,10 +79,8 @@ class FileHandler:
             # Change job status to finished
             jobManager = JobHandler()
             jobManager.changeToFinished(jobId)
-            self.response.status_code = 200
             responseDict["success"] = True
-            self.response.set_data(json.dumps(responseDict))
-            return self.response
+            return JsonResponse.create(200,responseDict)
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,400)
         except Exception as e:

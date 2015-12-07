@@ -1,4 +1,4 @@
-# This script clears all jobs from job_status and job_dependency
+""" This script clears all jobs from job_status and job_dependency """
 import json
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker

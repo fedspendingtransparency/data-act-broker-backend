@@ -1,6 +1,10 @@
+""" These classes define the ORM models to be used by sqlalchemy for the job tracker database """
+
 import sqlalchemy
 from sqlalchemy import Column, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
+
+
 
 Base = declarative_base()
 class JobStatus(Base):
