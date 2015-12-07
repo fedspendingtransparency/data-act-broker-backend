@@ -31,11 +31,3 @@ print(str(suite.countTestCases()) + " tests in suite")
 # Run tests and store results
 runner = unittest.TextTestRunner(verbosity=2)
 runner.run(suite)
-#print(unittest.TextTestResult.testsRun)
-#print(str(unittest.TextTestResult.errors))
-#result = unittest.TestResult()
-#suite.run(result)
-
-#unittest.defaultTestLoader.loadTestsFromTestCase(loginTests)
-#unittest.defaultTestLoader.loadTestsFromTestCase(fileTests)
-#unittest.main()

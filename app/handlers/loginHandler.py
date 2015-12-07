@@ -16,20 +16,21 @@ class LoginHandler:
 
     # Instance fields include request, response, logFlag, and logFile
 
-    def __init__(self,request):
+    def __init__(self):
         """
 
         Creates the Login Handler
-
-        arguments:
-
-        request  -- (Request) object from flask
-
         """
-        # Set Http request and response objects
-        self.request = request
         self.userManager = UserHandler()
+        self.request = None
 
+    def setRequest(self, request):
+        """ Set Http request object
+
+        Arguments:
+        request  -- (Request) object from flask
+        """
+        self.request = request
 
     def login(self,session):
         """

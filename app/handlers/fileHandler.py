@@ -20,14 +20,22 @@ class FileHandler:
 
     FILE_TYPES = ["appropriations","award_financial","award","procurement"]
 
-    def __init__(self,request):
+    def __init__(self,jobManager):
         """
+
+        Arguments:
+        jobManager -- A JobManager object to interact with job tracker database
+        """
+        self.jobManager = jobManager
+        self.request = None # Should be added for each request by calling setRequest
+
+    def setRequest(self,request):
+        """ Set Http request object
 
         Arguments:
         request -- A flask request object, comes with the request
         """
         self.request = request
-
     # Submit set of files
     def submit(self,name):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database

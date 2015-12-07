@@ -6,7 +6,7 @@ from handlers.jobHandler import JobHandler
 from handlers.aws.session import LoginSession
 from permissions import permissions_check
 # Add the file submission route
-def add_file_routes(app):
+def add_file_routes(app, fileManager):
     """ Create routes related to file submission for flask app
 
     """
@@ -14,12 +14,12 @@ def add_file_routes(app):
     @app.route("/v1/submit_files/", methods = ["POST"])
     @permissions_check
     def submit_files():
-        fileManager = FileHandler(request)
+        fileManager.setRequest(request)
         return fileManager.submit(LoginSession.getName(session))
 
 
     @app.route("/v1/finalize_submission/", methods = ["POST"])
     @permissions_check
     def finalize_submission() :
-        fileManager = FileHandler(request)
+        fileManager.setRequest(request)
         return fileManager.finalize()
