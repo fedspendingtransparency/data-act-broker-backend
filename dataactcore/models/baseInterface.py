@@ -1,6 +1,8 @@
 import sqlalchemy
 import json
 from sqlalchemy.orm import sessionmaker
+import os
+import inspect
 
 class BaseInterface:
     """ Abstract base interface to be inherited by interfaces for specific databases
@@ -14,7 +16,10 @@ class BaseInterface:
             # Child class needs to set these before calling base constructor
             raise ValueError("Need dbConfigFile and dbName defined")
         # Load config info
-        confDict = json.loads(open(self.dbConfigFile,"r").read())
+        try:
+            confDict = json.loads(open(self.dbConfigFile,"r").read())
+        except IOError:
+            raise IOError(str(self.dbConfigFile))
         # Create sqlalchemy connection and session
         self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName)
         self.connection = self.engine.connect()

@@ -36,6 +36,7 @@ class Status(Base):
     @staticmethod
     def getStatus(statusName):
         if(Status.STATUS_DICT == None):
+            Status.STATUS_DICT = {}
             # Pull status values out of DB
             for status in Status.STATUS_LIST:
                 Status.STATUS_DICT[status] = Status.setStatus(status)
@@ -71,6 +72,7 @@ class Type(Base):
     @staticmethod
     def getType(typeName):
         if(Type.TYPE_DICT == None):
+            Type.TYPE_DICT = {}
             # Pull status values out of DB
             for type in Type.TYPE_LIST:
                 Type.TYPE_DICT[type] = Type.setType(type)
