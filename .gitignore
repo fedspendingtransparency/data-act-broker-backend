@@ -1,0 +1,5 @@
+.idea/*
+dataactcore/*.pyc
+dataactcore/model/*.pyc
+dataactcore/utils/*.pyc
+dataactcore/aws/*.pyc
