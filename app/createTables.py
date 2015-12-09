@@ -9,16 +9,18 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import ProgrammingError, IntegrityError
 
 credentialsFile = "dbCred.json"
-dbName = "job_tracker"
 userDbName = "user_manager"
+dbBaseName = "postgres"
+dbName = "job_tracker"
 
 # Load credentials from config file
 cred = open(credentialsFile,"r").read()
 credDict = json.loads(cred)
 
 # Create database by connecting to default postgres database
+baseEngine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+dbBaseName, isolation_level = "AUTOCOMMIT")
 try:
-    baseEngine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+credDict["dbBaseName"], isolation_level = "AUTOCOMMIT")
+
     baseEngine.connect().execute("CREATE DATABASE " + '"' + dbName + '"')
 
 except ProgrammingError as e:
@@ -53,7 +55,7 @@ sqlStatements = ["CREATE SEQUENCE jobIdSerial START 1",
                  "CREATE SEQUENCE resourceIdSerial START 1",
                  "CREATE TABLE resource (resource_id integer PRIMARY KEY DEFAULT nextval('resourceIdSerial'))",
                  "INSERT INTO status (status_id,name, description) VALUES (1, 'waiting', 'check dependency table'), (2, 'ready', 'can be assigned'), (3, 'running', 'job is currently in progress'), (4, 'finished', 'job is complete')",
-                 "INSERT INTO type (type_id,name,description) VALUES (1, 'file_upload', 'file must be uploaded to S3'), (2, 'db_upload', 'file must have information added to staging DB'), (3, 'db_transfer', 'information must be moved from production DB to staging DB'), (4, 'validation', 'new information must be validated'), (5, 'external_validation', 'new information must be validated against external sources')"]
+                 "INSERT INTO type (type_id,name,description) VALUES (1, 'file_upload', 'file must be uploaded to S3'), (2, 'csv_record_validation', 'do record level validation and add to staging DB'), (3, 'db_transfer', 'information must be moved from production DB to staging DB'), (4, 'validation', 'new information must be validated'), (5, 'external_validation', 'new information must be validated against external sources')"]
 for statement in sqlStatements:
     try:
         connection.execute(statement)

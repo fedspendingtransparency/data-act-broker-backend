@@ -4,7 +4,8 @@ import os
 import json
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, update
-from models.jobModels import JobStatus,JobDependency,Status,Type,Resource
+from dataactcore.models.jobModels import JobStatus,JobDependency,Status,Type,Resource
+#from models.jobModels import JobStatus,JobDependency,Status,Type,Resource
 
 
 class JobHandler:
@@ -43,47 +44,6 @@ class JobHandler:
         self.connection = self.engine.connect()
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
-        # Set up instance variables for status and type values
-        self.waitingStatus = self.setStatus("waiting")
-        self.runningStatus = self.setStatus("running")
-        self.finishedStatus = self.setStatus("finished")
-        self.fileUploadType = self.setType("file_upload")
-        self.dbUploadType = self.setType("db_upload")
-        self.validationType = self.setType("validation")
-        self.externalValidationType = self.setType("external_validation")
-
-    def setStatus(self,name):
-        """  Get an id for specified status, if not unique throw an exception
-
-        Arguments:
-        name -- Name of status to get an id for
-
-        Returns:
-        status_id of the specified status
-        """
-        queryResult = self.session.query(Status.status_id).filter(Status.name==name).all()
-        if(len(queryResult) != 1):
-            # Did not get a unique result
-            raise ValueError("Database does not contain a unique ID for status "+name)
-        else:
-            return queryResult[0].status_id
-
-    # Get a result for specified type, if not unique throw an exception
-    def setType(self,name):
-        """  Get an id for specified type, if not unique throw an exception
-
-        Arguments:
-        name -- Name of type to get an id for
-
-        Returns:
-        type_id of the specified type
-        """
-        queryResult = self.session.query(Type.type_id).filter(Type.name==name).all()
-        if(len(queryResult) != 1):
-            # Did not get a unique result
-            raise ValueError("Database does not contain a unique ID for type "+name)
-        else:
-            return queryResult[0].type_id
 
     def createJobs(self,filenames):
         """  Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
@@ -98,10 +58,10 @@ class JobHandler:
         jobsRequired, uploadDict = self.addUploadJobs(filenames)
 
         # Create validation job
-        validationJob = JobStatus(status_id = self.waitingStatus, type_id = self.validationType, resource_id = 0)
+        validationJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("validation"), resource_id = 0)
         self.session.add(validationJob)
         # Create external validation job
-        externalJob = JobStatus(status_id = self.waitingStatus, type_id = self.externalValidationType, resource_id = 0)
+        externalJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("external_validation"), resource_id = 0)
         self.session.add(externalJob)
         self.session.flush()
         # Create dependencies for validation jobs
@@ -133,12 +93,12 @@ class JobHandler:
 
         for originalName, filename in filenames:
             # Create upload job, mark as running since frontend should be doing this upload
-            fileJob = JobStatus(filename = filename, status_id = self.runningStatus, type_id = self.fileUploadType, resource_id = 0)
+            fileJob = JobStatus(filename = filename, status_id = Status.getStatus("running"), type_id = Type.getType("file_upload"), resource_id = 0)
 
             self.session.add(fileJob)
 
             # Create parse into DB job
-            dbJob = JobStatus(filename = filename, status_id = self.waitingStatus, type_id = self.dbUploadType, resource_id = 0)
+            dbJob = JobStatus(filename = filename, status_id = Status.getStatus("waiting"), type_id = Type.getType("csv_record_validation"), resource_id = 0)
             self.session.add(dbJob)
             self.session.flush()
             # Add dependency between file upload and db upload
@@ -167,6 +127,6 @@ class JobHandler:
             raise ValueError("Job ID not found")
         jobToChange = queryResult[0]
         # Change status to finished
-        jobToChange.status_id = self.finishedStatus
+        jobToChange.status_id = Status.STATUS_DICT["finished"]
         # Commit changes
         self.session.commit()

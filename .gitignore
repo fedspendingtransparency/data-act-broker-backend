@@ -12,3 +12,4 @@ app/handlers/aws/*.pyc
 app/models/*.pyc
 app/handlers/utils/*.pyc
 app/venv
+test/*.pyc
