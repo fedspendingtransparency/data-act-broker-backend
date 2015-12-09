@@ -13,8 +13,6 @@ class UserHandler:
     Class Fields:
     dbName -- Name of user database
     credentialsFile -- This file should store a JSON with keys "username" and "password" for the database
-    host -- Where to look for the database
-    port -- Port to use for database
 
     Instance Fields:
     engine -- sqlalchemy engine for creating connections and sessions to database
@@ -24,8 +22,6 @@ class UserHandler:
 
     dbName = "user_manager"
     credentialsFile = "dbCred.json"
-    host = "localhost"
-    port = "5432"
 
     def __init__(self):
         """ Setup of database connection
@@ -35,7 +31,7 @@ class UserHandler:
         cred = open(self.credentialsFile,"r").read()
         credDict = json.loads(cred)
         # Set up engine and session
-        self.engine = create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+self.host+":"+self.port+"/"+self.dbName)
+        self.engine = create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+self.dbName)
         self.connection = self.engine.connect()
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
