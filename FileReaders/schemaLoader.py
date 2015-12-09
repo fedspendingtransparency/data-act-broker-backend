@@ -1,5 +1,5 @@
 from elementtree.ElementTree import Element, SubElement
-from _elementtree import ElementTree
+from elementtree import ElementTree
 
 class SchemaChecker:
     """ This class will load a schema file and writes the set of validation rules to validation database.

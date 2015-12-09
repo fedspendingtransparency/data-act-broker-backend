@@ -1,0 +1,6 @@
+.idea/*
+*.pyc
+FileReaders/*.pyc
+Handlers/*.pyc
+Interfaces/*.pyc
+jobTracker.conf

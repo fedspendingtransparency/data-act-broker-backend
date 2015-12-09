@@ -1,6 +1,17 @@
+import sqlalchemy
+import json
+
 class JobTrackerInterface:
     """ Manages all interaction with the job tracker database
     """
+    dbConfigFile = "jobTracker.conf"
+
+    def __init__(self):
+        """ Set up connection to job tracker database
+
+
+        """
+
 
     def checkPrerequisites(self, jobId):
         """ Checks that specified job has no unsatisfied prerequisites
