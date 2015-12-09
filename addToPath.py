@@ -3,7 +3,7 @@
 import os, sys, inspect
 
 filePath = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-neededSubDirs = ["data-act-core/aws","data-act-core/models","data-act-core/utils"]
+neededSubDirs = [""]
 for subDir in neededSubDirs:
     pathToAdd =  filePath + subDir
     if(not(pathToAdd in sys.path)):
