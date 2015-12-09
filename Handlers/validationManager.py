@@ -10,3 +10,8 @@ class ValidationManager:
         Returns:
 
         """
+
+        # Check that this is a csv file
+        # Save number of columns
+        # For each row, check number of columns, then pull list of validations from DB and call validator for each one
+        # If valid, write to staging DB
