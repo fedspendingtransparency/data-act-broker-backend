@@ -101,7 +101,14 @@ class JobHandler(JobTrackerInterface):
         Returns:
         True if file upload, False otherwise
         """
-        queryResult = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId)
+        queryResult = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId).all()
+        if(self.checkJobUnique(queryResult)):
+            # Got single job, check type
+            if(queryResult[0].type_id == Type.getType("file_upload")):
+                # Correct type
+                return True
+        # Did not confirm correct type
+        return False
 
     def changeToFinished(self, jobId):
         """  Mark an upload job as finished
@@ -118,6 +125,6 @@ class JobHandler(JobTrackerInterface):
             raise ValueError("Job ID not found")
         jobToChange = queryResult[0]
         # Change status to finished
-        jobToChange.status_id = Status.STATUS_DICT["finished"]
+        jobToChange.status_id = Status.getStatus("finished")
         # Commit changes
         self.session.commit()

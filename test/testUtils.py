@@ -29,7 +29,7 @@ class TestUtils:
     # Send login route call
     def login(self):
         userJson = '{"username":"user3","password":"123abc"}'
-        return self.postRequest("/v1/login/",userJson);
+        return self.postRequest("/v1/login/",userJson)
     # Call logout route
     def logout(self):
-        return self.postRequest("/v1/logout/",{});
+        return self.postRequest("/v1/logout/",{})

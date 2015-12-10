@@ -47,7 +47,7 @@ userSession = UserSessionBase()
 
 # Create tables
 sqlStatements = ["CREATE SEQUENCE jobIdSerial START 1",
-                 "CREATE TABLE job_status (job_id integer PRIMARY KEY DEFAULT nextval('jobIdSerial'), filename text, status_id integer NOT NULL, type_id integer NOT NULL, resource_id integer NOT NULL)",
+                 "CREATE TABLE job_status (job_id integer PRIMARY KEY DEFAULT nextval('jobIdSerial'), filename text, status_id integer NOT NULL, type_id integer NOT NULL, resource_id integer)",
                  "CREATE SEQUENCE dependencyIdSerial START 1",
                  "CREATE TABLE job_dependency (dependency_id integer PRIMARY KEY DEFAULT nextval('dependencyIdSerial'), job_id integer NOT NULL, prerequisite_id integer NOT NULL)",
                  "CREATE TABLE status (status_id integer PRIMARY KEY, name text NOT NULL, description text NOT NULL)",
