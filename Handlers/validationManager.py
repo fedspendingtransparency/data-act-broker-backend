@@ -19,8 +19,8 @@ class ValidationManager:
         """
         try:
             requestDict = RequestDictionary(request)
-            if(requestDict.exists("jobId")):
-                jobId = requestDict.getValue("jobId")
+            if(requestDict.exists("job_id")):
+                jobId = requestDict.getValue("job_id")
             else:
                 # Request does not have a job ID, can't validate
                 exc = ResponseException("No job ID specified in request")

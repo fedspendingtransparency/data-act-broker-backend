@@ -42,6 +42,10 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
                 #exc = ResponseException("Job is not ready")
                 #exc.status = 400
                 #raise exc
+        else:
+            exc = ResponseException("Job ID not found")
+            exc.status = 400
+            raise exc
         return True
 
     def checkPrerequisites(self, jobId):
