@@ -5,3 +5,4 @@ dataactcore/aws/*.pyc
 dataactcore/models/*.pyc
 dataactcore/utils/*.pyc
 dataactcore/models/jobTracker.conf
+dataactcore/credentials/dbCred.json
