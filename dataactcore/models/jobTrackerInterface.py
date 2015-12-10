@@ -8,18 +8,30 @@ from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 
 class JobTrackerInterface(BaseInterface):
     """ Manages all interaction with the job tracker database
+
+    STATIC FIELDS:
+    dbName -- Name of job tracker database
+    dbConfigFile -- Full path to credentials file
     """
-    path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-    lastBackSlash = path.rfind("\\",0,-1)
-    lastForwardSlash = path.rfind("/",0,-1)
-    lastSlash = max([lastBackSlash,lastForwardSlash])
-    dbConfigFile =  path[0:lastSlash] + "/credentials/dbCred.json" #"dbCred.json"
     dbName = "job_tracker"
-    # May or may not need constructor here to define config file location
-    #def __init__(self):
-        #""" Set up connection to job tracker database """
-        #self.dbConfigFile =
-        #super.__init__()
+
+    def __init__(self):
+        self.dbConfigFile = self.getCredFilePath()
+        super(JobTrackerInterface,self).__init__()
+
+    @staticmethod
+    def getCredFilePath():
+        """  Returns full path to credentials file """
+        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        lastBackSlash = path.rfind("\\",0,-1)
+        lastForwardSlash = path.rfind("/",0,-1)
+        lastSlash = max([lastBackSlash,lastForwardSlash])
+        return path[0:lastSlash] + "/credentials/dbCred.json" #"dbCred.json"
+
+    @staticmethod
+    def getDbName():
+        """ Return database name"""
+        return JobTrackerInterface.dbName
 
     @staticmethod
     def checkJobUnique(queryResult):
@@ -48,3 +60,4 @@ class JobTrackerInterface(BaseInterface):
 
     def getSession(self):
         return self.session
+

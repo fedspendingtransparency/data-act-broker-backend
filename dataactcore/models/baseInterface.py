@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 import inspect
 
-class BaseInterface:
+class BaseInterface(object):
     """ Abstract base interface to be inherited by interfaces for specific databases
     """
 
@@ -25,3 +25,8 @@ class BaseInterface:
         self.connection = self.engine.connect()
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
+
+    def runStatement(self,statement):
+        """ Run specified statement on this database"""
+        self.connection.execute(statement)
+        return True
