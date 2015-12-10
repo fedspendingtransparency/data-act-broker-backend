@@ -6,6 +6,8 @@ from utils.requestDictionary import RequestDictionary
 from jobHandler import JobHandler
 from utils.jsonResponse import JsonResponse
 from utils.statusCode import StatusCode
+from dataactcore.utils.responseException import ResponseException
+
 class FileHandler:
     """ Responsible for all tasks relating to file upload
 
@@ -93,11 +95,18 @@ class FileHandler:
             jobId = inputDictionary.getValue("upload_id")
             # Change job status to finished
             jobManager = JobHandler()
-            jobManager.changeToFinished(jobId)
-            responseDict["success"] = True
-            return JsonResponse.create(StatusCode.OK,responseDict)
+            if(jobManager.checkUploadType(jobId)):
+                jobManager.changeToFinished(jobId)
+                responseDict["success"] = True
+                return JsonResponse.create(StatusCode.OK,responseDict)
+            else:
+                exc = ResponseException("Wrong job type for finalize route")
+                exc.status = 400
+                raise exc
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.ERROR)
+        except ResponseException as e:
+            return JsonResponse.error(e,e.status)
         except Exception as e:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)

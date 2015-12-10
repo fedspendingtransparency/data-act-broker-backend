@@ -6,16 +6,10 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, update
 from dataactcore.models.jobModels import JobStatus,JobDependency,Status,Type,Resource
 #from models.jobModels import JobStatus,JobDependency,Status,Type,Resource
+from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 
-
-class JobHandler:
+class JobHandler(JobTrackerInterface):
     """ Responsible for all interaction with the job tracker database
-
-    Static fields:
-    DB_NAME -- Name of Postgres job tracker database
-    CREDENTIALS_FILE -- File that holds a JSON with keys "username" and "password"
-    HOST -- host where database is located
-    PORT -- port for connecting to database
 
     Instance fields:
     engine -- sqlalchemy engine for generating connections and sessions
@@ -29,21 +23,8 @@ class JobHandler:
     validationType -- type_id for "validation"
     externalValidationType -- type_id for "external_validation"
     """
-    DB_NAME = "job_tracker"
-    CREDENTIALS_FILE = "dbCred.json"
+
     # Available instance variables:  session, waitingStatus, runningStatus, fileUploadType, dbUploadType, validationType, externalValidationTYpe
-
-    def __init__(self):
-        """ Sets up connection to job_tracker database """
-
-        # Load credentials from config file
-        cred = open(self.CREDENTIALS_FILE, "r").read()
-        credDict = json.loads(cred)
-        # Get status and type values from queries
-        self.engine = create_engine("postgresql://" + credDict["username"] +":" + credDict["password"] +"@" +credDict["host"] + ":" + credDict["port"] + "/" + self.DB_NAME)
-        self.connection = self.engine.connect()
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
 
     def createJobs(self,filenames):
         """  Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
@@ -111,6 +92,16 @@ class JobHandler:
 
         # Return list of upload jobs
         return jobsRequired, uploadDict
+
+    def checkUploadType(self, jobId):
+        """ Check that specified job is a file_upload job
+
+        Args:
+        jobId -- Job ID to check
+        Returns:
+        True if file upload, False otherwise
+        """
+        queryResult = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId)
 
     def changeToFinished(self, jobId):
         """  Mark an upload job as finished
