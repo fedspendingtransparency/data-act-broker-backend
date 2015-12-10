@@ -108,9 +108,14 @@ class DynamoInterface(SessionInterface):
     Class That implements the SessionInterface and uses SessionTable to store data
 
     """
+
+
+    SESSSION_CLEAR_COUNT_LIMIT = 10
+
+    CountLimit = 1
+
     def __init__(self):
         return
-
 
     def open_session(self, app, request):
         """
@@ -155,6 +160,10 @@ class DynamoInterface(SessionInterface):
         else:
             expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
         SessionTable.newSession(session.sid,session,expiration)
+        DynamoInterface.CountLimit = DynamoInterface.CountLimit + 1
+        if DynamoInterface.CountLimit % DynamoInterface.SESSSION_CLEAR_COUNT_LIMIT == 0 :
+            SessionTable.clearSessions()
+            DynamoInterface.CountLimit = 1
 
         response.set_cookie(app.session_cookie_name, session.sid,
                             expires=self.get_expiration_time(app, session),
@@ -187,6 +196,16 @@ class SessionTable :
     TIME_OUT_LIMIT = 30
     TableConnection = ""
     isLocal = False
+
+    @staticmethod
+    def clearSessions() :
+        """
+        Removes old sessions that are expired
+        """
+        newTime = toUnixTime(datetime.utcnow())
+        old_sessions = SessionTable.getTable().scan(expiration__lte=newTime)
+        for recordItem in old_sessions :
+            recordItem.delete()
 
     @staticmethod
     def getLocalConnection() :
