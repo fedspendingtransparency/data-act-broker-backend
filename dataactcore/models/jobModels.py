@@ -3,7 +3,7 @@
 import sqlalchemy
 from sqlalchemy import Column, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
-from jobTrackerInterface import JobTrackerInterface
+from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 
 
 Base = declarative_base()
@@ -26,7 +26,7 @@ class JobDependency(Base):
 class Status(Base):
     __tablename__ = 'status'
     STATUS_DICT = None
-    STATUS_LIST = ["waiting","running","finished"]
+    STATUS_LIST = ["waiting","ready","running","finished"]
 
     status_id = Column(Integer, primary_key=True)
     name = Column(Text)
@@ -67,7 +67,7 @@ class Status(Base):
 class Type(Base):
     __tablename__ = 'type'
     TYPE_DICT = None
-    TYPE_LIST = ["file_upload", "csv_record_validation","validation","external_validation"]
+    TYPE_LIST = ["file_upload", "csv_record_validation","db_transfer","validation","external_validation"]
 
     @staticmethod
     def getType(typeName):

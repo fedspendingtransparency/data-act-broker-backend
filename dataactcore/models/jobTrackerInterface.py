@@ -1,6 +1,6 @@
 import sqlalchemy
 import json
-from baseInterface import BaseInterface
+from dataactcore.models.baseInterface import BaseInterface
 import os
 import inspect
 
