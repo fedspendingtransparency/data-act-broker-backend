@@ -1,15 +1,20 @@
+from interfaces.validationInterface import ValidationInterface
+
 class StagingInterface:
     """ Manages all interaction with the staging database
     """
 
-    def createTable(self,columnDict):
+    def createTable(self,filetype):
         """ Create staging table for new file
         Args:
-        columnDict -- Keys are column names, values are "type" (e.g. text NOT NULL)
+        filetype -- type of file to create a table for (e.g. Award, AwardFinancial)
 
         Returns:
         tableName if created, exception otherwise
         """
+        validationDB = ValidationInterface()
+        fields = validationDB.getFieldsByFile(filetype)
+
 
     def writeData(self,tableName, data):
         """ Writes some number of validated records to staging database

@@ -1,9 +1,8 @@
-class ValidationgInterface:
+from models.field import FieldType, FieldConstraint
+
+class ValidationInterface:
     """ Manages all interaction with the validation database
     """
-
-    TYPE_DICT = {"0":"Integer", "1":"Text"}
-    CONSTRAINT_DICT = {"0":"", "1":"Primary Key", "2":"NOT NULL"}
 
     def getValidations(self,type):
         """ Get array of dicts for all validations of specified type
@@ -21,5 +20,5 @@ class ValidationgInterface:
         filetype -- One of the set of valid types of files (e.g. Award, AwardFinancial)
 
         Returns:
-        dict with field names as keys and values "type" and "constraint" pulled from the TYPE_DICT and CONSTRAINT_DICT
+        dict with field names as keys and values "type" and "constraint" pulled from FieldType and FieldConstraint
         """
