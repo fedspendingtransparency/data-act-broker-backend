@@ -97,3 +97,17 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
                 exc = ResponseException("Wrong type of job for this service")
                 exc.status = 400
                 raise exc
+
+    def getStatus(self,jobId):
+        """ Get status for specified job
+
+        Args:
+        jobId -- job to get status for
+
+        Returns:
+        status ID
+        """
+
+        queryResult = self.session.query(JobStatus.status_id).filter(JobStatus.job_id == jobId).all()
+        if(self.checkJobUnique(queryResult)):
+            return queryResult[0].status_id

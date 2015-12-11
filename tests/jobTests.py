@@ -1,7 +1,8 @@
 import unittest
-from dataactcore.models.jobTrackerInterface import JobTrackerInterface
+#from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type
 import requests
+from interfaces.jobTrackerInterface import JobTrackerInterface
 
 class JobTests(unittest.TestCase):
     BASE_URL = "http://127.0.0.1:5000"
@@ -17,14 +18,14 @@ class JobTests(unittest.TestCase):
             #assert(False),"Check tables empty"
             # Populate with a defined test set
             jobTracker = JobTrackerInterface()
-            sqlStatements = ["INSERT INTO job_status (job_id, status_id, type_id) VALUES (1, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ")",
-            "INSERT INTO job_status (job_id, status_id, type_id) VALUES (2, " + str(Status.getStatus("ready")) + "," + str(Type.getType("file_upload")) + ")",
-            "INSERT INTO job_status (job_id, status_id, type_id) VALUES (3, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ")",
+            sqlStatements = ["INSERT INTO job_status (job_id, status_id, type_id, submission_id) VALUES (1, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id) VALUES (2, " + str(Status.getStatus("ready")) + "," + str(Type.getType("file_upload")) + ",1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id) VALUES (3, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1)",
             "INSERT INTO job_dependency (dependency_id, job_id, prerequisite_id) VALUES (1, 3, 2)",
-            "INSERT INTO job_status (job_id, status_id, type_id) VALUES (4, " + str(Status.getStatus("ready")) + "," + str(Type.getType("external_validation")) + ")",
-            "INSERT INTO job_status (job_id, status_id, type_id) VALUES (5, " + str(Status.getStatus("finished")) + "," + str(Type.getType("csv_record_validation")) + ")",
-            "INSERT INTO job_status (job_id, status_id, type_id) VALUES (6, " + str(Status.getStatus("finished")) + "," + str(Type.getType("file_upload")) + ")",
-            "INSERT INTO job_status (job_id, status_id, type_id) VALUES (7, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ")",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id) VALUES (4, " + str(Status.getStatus("ready")) + "," + str(Type.getType("external_validation")) + ",1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id) VALUES (5, " + str(Status.getStatus("finished")) + "," + str(Type.getType("csv_record_validation")) + ",1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id) VALUES (6, " + str(Status.getStatus("finished")) + "," + str(Type.getType("file_upload")) + ",1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id) VALUES (7, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1)",
             "INSERT INTO job_dependency (dependency_id, job_id, prerequisite_id) VALUES (2, 7, 6)",
             ]
             for statement in sqlStatements:
@@ -38,6 +39,9 @@ class JobTests(unittest.TestCase):
         validResponse = self.validateJob(1)
         assert(validResponse.status_code == 200)
         self.assertHeader(validResponse)
+        # Check that job is correctly marked as finished
+        jobTracker = JobTrackerInterface()
+        assert(jobTracker.getStatus(1) == Status.getStatus("finished"))
 
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """
