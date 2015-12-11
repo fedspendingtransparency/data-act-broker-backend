@@ -33,6 +33,7 @@ class CsvReader(object):
                 self.headerDictionary[(current)] = cell
                 current += 1
         self.columnCount = current
+
     def getNextRecord(self):
         """
         Read the next record into a dict and return it
@@ -42,6 +43,7 @@ class CsvReader(object):
         current = 0
         returnDict = {}
         line = self._getLine()
+        #return returnDict
         if(not self.isFinished):
             for row in csv.reader([line],dialect='excel'):
                 for cell in row :
@@ -64,7 +66,7 @@ class CsvReader(object):
         #packets are 8192 bytes in size
         for packet in self.s3File :
             currentBytes = self.unprocessed + packet
-            self.lines = re.split(r'[\n\r]+', currentBytes)
+            self.lines = self._splitLines(currentBytes)
             #last line still needs processing save and reuse
             self.unprocessed = self.lines.pop()
             if(len(self.lines) > 0) :
@@ -72,3 +74,32 @@ class CsvReader(object):
                 return  self.lines.pop(0)
 
         self.isFinished = True
+
+    def _splitLines(self,packet) :
+        """
+        arguments :
+        packet unprocessed string of CSV data
+        returns a list of strings broken by newline
+        """
+        linesToReturn = []
+        ecapeMode =  False
+        current = ""
+
+        for char in packet :
+            if(not ecapeMode) :
+                if(char =='\r' or char =='\n' or char =='\r\n') :
+                    if (len(current) >0 ) :
+                        linesToReturn.append(current)
+                    current = ""
+                else :
+                  current = current + char
+                  if(char == '"') :
+                        ecapeMode = True
+            else :
+                if(char == '"') :
+                    ecapeMode = False
+                current = current + char
+
+        if (len(current)>0) :
+            linesToReturn.append(current)
+        return linesToReturn
