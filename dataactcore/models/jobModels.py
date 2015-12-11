@@ -8,23 +8,25 @@ from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 
 Base = declarative_base()
 class JobStatus(Base):
-    __tablename__ = 'job_status'
+    __tablename__ = "job_status"
 
     job_id = Column(Integer, primary_key=True)
     filename = Column(Text)
     status_id = Column(Integer)
     type_id = Column(Integer)
     resource_id = Column(Integer)
+    submission_id = Column(Integer)
+    staging_table = Column(Text)
 
 class JobDependency(Base):
-    __tablename__ = 'job_dependency'
+    __tablename__ = "job_dependency"
 
     dependency_id = Column(Integer, primary_key=True)
     job_id = Column(Integer)
     prerequisite_id = Column(Integer)
 
 class Status(Base):
-    __tablename__ = 'status'
+    __tablename__ = "status"
     STATUS_DICT = None
     STATUS_LIST = ["waiting","ready","running","finished"]
 
@@ -65,7 +67,7 @@ class Status(Base):
             return queryResult[0].status_id
 
 class Type(Base):
-    __tablename__ = 'type'
+    __tablename__ = "type"
     TYPE_DICT = None
     TYPE_LIST = ["file_upload", "csv_record_validation","db_transfer","validation","external_validation"]
 
@@ -104,6 +106,12 @@ class Type(Base):
     description = Column(Text)
 
 class Resource(Base):
-    __tablename__ = 'resource'
+    __tablename__ = "resource"
 
     resource_id = Column(Integer, primary_key=True)
+
+class Submission(Base):
+    __tablename__ = "submission"
+
+    submission_id = Column(Integer, primary_key=True)
+    datetime_utc = Column(Text)
