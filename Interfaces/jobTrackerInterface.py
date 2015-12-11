@@ -111,3 +111,15 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
         queryResult = self.session.query(JobStatus.status_id).filter(JobStatus.job_id == jobId).all()
         if(self.checkJobUnique(queryResult)):
             return queryResult[0].status_id
+
+    def addStagingTable(self,jobId,stagingTable):
+        queryResult = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
+        if(self.checkJobUnique(queryResult)):
+            queryResult[0].staging_table = stagingTable
+            self.session.commit()
+            return True
+
+    def getFileName(self,jobId):
+        queryResult = self.session.query(JobStatus.filename).filter(JobStatus.job_id == jobId).all()
+        if(self.checkJobUnique(queryResult)):
+            return queryResult[0].filename

@@ -34,8 +34,10 @@ class ValidationManager:
                 exc.status = 400
                 raise exc
 
+            # Get bucket name and file name
+            fileName = jobTracker.getFileName(jobId)
+            bucketName = ""
             # Pull file from S3
-            # Check that this has a csv extension?
 
             # For now just use a local file
             path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))

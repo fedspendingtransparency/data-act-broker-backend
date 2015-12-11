@@ -1,5 +1,6 @@
 import json
 from dataactcore.scripts.databaseSetup import runCommands
+from dataactcore.models.validationInterface import ValidationInterface
 
 sql=[
 "CREATE SEQUENCE fileIdSerial START 1;",
@@ -27,5 +28,4 @@ sql=[
 "INSERT INTO field_type (field_type_id ,name,description) VALUES (1, 'INT', 'integer type'), (2, 'DECIMAL', 'decimal type '),(3, 'BOOLEAN', 'yes/no'), (4, 'STRING', 'string type');"
 ]
 
-config = json.loads(open("dbCred.json","r").read())
-runCommands(config,sql,"validation")
+runCommands(ValidationInterface.getCredDict(),sql,"validation")
