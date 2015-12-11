@@ -14,19 +14,13 @@ class JobTrackerInterface(BaseInterface):
     dbConfigFile -- Full path to credentials file
     """
     dbName = "job_tracker"
+    credFileName = "dbCred.json"
 
     def __init__(self):
         self.dbConfigFile = self.getCredFilePath()
         super(JobTrackerInterface,self).__init__()
 
-    @staticmethod
-    def getCredFilePath():
-        """  Returns full path to credentials file """
-        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        lastBackSlash = path.rfind("\\",0,-1)
-        lastForwardSlash = path.rfind("/",0,-1)
-        lastSlash = max([lastBackSlash,lastForwardSlash])
-        return path[0:lastSlash] + "/credentials/dbCred.json" #"dbCred.json"
+
 
     @staticmethod
     def getDbName():
