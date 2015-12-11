@@ -1,29 +1,12 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
 import sqlalchemy
-from sqlalchemy import Column, Integer, Text
+from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 
 
 Base = declarative_base()
-class JobStatus(Base):
-    __tablename__ = "job_status"
-
-    job_id = Column(Integer, primary_key=True)
-    filename = Column(Text)
-    status_id = Column(Integer)
-    type_id = Column(Integer)
-    resource_id = Column(Integer)
-    submission_id = Column(Integer)
-    staging_table = Column(Text)
-
-class JobDependency(Base):
-    __tablename__ = "job_dependency"
-
-    dependency_id = Column(Integer, primary_key=True)
-    job_id = Column(Integer)
-    prerequisite_id = Column(Integer)
 
 class Status(Base):
     __tablename__ = "status"
@@ -115,3 +98,22 @@ class Submission(Base):
 
     submission_id = Column(Integer, primary_key=True)
     datetime_utc = Column(Text)
+
+class JobStatus(Base):
+    __tablename__ = "job_status"
+
+    job_id = Column(Integer, primary_key=True)
+    filename = Column(Text)
+    status_id = Column(Integer, ForeignKey("status.status_id"))
+    type_id = Column(Integer, ForeignKey("type.type_id"))
+    resource_id = Column(Integer, ForeignKey("resource.resource_id"))
+    submission_id = Column(Integer, ForeignKey("submission.submission_id"))
+    staging_table = Column(Text)
+
+class JobDependency(Base):
+    __tablename__ = "job_dependency"
+
+    dependency_id = Column(Integer, primary_key=True)
+    job_id = Column(Integer, ForeignKey("job_status.job_id"))
+    prerequisite_id = Column(Integer, ForeignKey("job_status.job_id"))
+
