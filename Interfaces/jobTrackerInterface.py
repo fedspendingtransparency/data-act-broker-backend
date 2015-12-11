@@ -59,7 +59,7 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
         # Get list of prerequisites
         queryResult = self.session.query(JobDependency).filter(JobDependency.job_id == jobId).all()
         for prereq in queryResult:
-            statusResult = self.session.query(JobStatus.status_id).filter(JobStatus.job_id == prereq.dependency_id).all()
+            statusResult = self.session.query(JobStatus).filter(JobStatus.job_id == prereq.prerequisite_id).all()
             if(self.checkJobUnique(statusResult)):
                 # Found a unique job
                 if(statusResult[0].status_id != Status.getStatus("finished")):
