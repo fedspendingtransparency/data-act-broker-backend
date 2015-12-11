@@ -7,7 +7,6 @@ import json
 import flask
 
 from handlers.aws.session import DynamoInterface, SessionTable, LoginSession
-
 from handlers.loginHandler import LoginHandler
 from handlers.fileHandler import FileHandler
 from handlers.jobHandler import JobHandler
@@ -32,7 +31,7 @@ app.session_interface = DynamoInterface()
 
 
 # Root will point to index.html
-@app.route("/")
+@app.route("/", methods=["GET"])
 def root():
     filePath = os.path.join(PROJECT_ROOT, '..', 'index.html')
     content = open(filePath).read()
@@ -49,4 +48,4 @@ add_file_routes(app, fileManager)
 
 if __name__ == '__main__':
     SessionTable.setup(app, runLocal, createTable)
-    app.run(debug=debugFlag)
+    app.run() #(debug=debugFlag)

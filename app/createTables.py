@@ -46,16 +46,19 @@ UserSessionBase = sessionmaker(bind=userEngine)
 userSession = UserSessionBase()
 
 # Create tables
-sqlStatements = ["CREATE SEQUENCE jobIdSerial START 1",
-                 "CREATE TABLE job_status (job_id integer PRIMARY KEY DEFAULT nextval('jobIdSerial'), filename text, status_id integer NOT NULL, type_id integer NOT NULL, resource_id integer)",
-                 "CREATE SEQUENCE dependencyIdSerial START 1",
-                 "CREATE TABLE job_dependency (dependency_id integer PRIMARY KEY DEFAULT nextval('dependencyIdSerial'), job_id integer NOT NULL, prerequisite_id integer NOT NULL)",
-                 "CREATE TABLE status (status_id integer PRIMARY KEY, name text NOT NULL, description text NOT NULL)",
+sqlStatements = ["CREATE TABLE status (status_id integer PRIMARY KEY, name text NOT NULL, description text NOT NULL)",
                  "CREATE TABLE type (type_id integer PRIMARY KEY, name text NOT NULL, description text NOT NULL)",
                  "CREATE SEQUENCE resourceIdSerial START 1",
                  "CREATE TABLE resource (resource_id integer PRIMARY KEY DEFAULT nextval('resourceIdSerial'))",
+                 "CREATE SEQUENCE submissionIdSerial START 1",
+                 "CREATE TABLE submission (submission_id integer PRIMARY KEY DEFAULT nextval('submissionIdSerial'), datetime_utc text)",
+                 "CREATE SEQUENCE jobIdSerial START 1",
+                 "CREATE TABLE job_status (job_id integer PRIMARY KEY DEFAULT nextval('jobIdSerial'), filename text, status_id integer NOT NULL REFERENCES status, type_id integer NOT NULL REFERENCES type, resource_id integer REFERENCES resource, submission_id integer NOT NULL REFERENCES submission, staging_table text)",
+                 "CREATE SEQUENCE dependencyIdSerial START 1",
+                 "CREATE TABLE job_dependency (dependency_id integer PRIMARY KEY DEFAULT nextval('dependencyIdSerial'), job_id integer NOT NULL REFERENCES job_status, prerequisite_id integer NOT NULL REFERENCES job_status)",
                  "INSERT INTO status (status_id,name, description) VALUES (1, 'waiting', 'check dependency table'), (2, 'ready', 'can be assigned'), (3, 'running', 'job is currently in progress'), (4, 'finished', 'job is complete')",
                  "INSERT INTO type (type_id,name,description) VALUES (1, 'file_upload', 'file must be uploaded to S3'), (2, 'csv_record_validation', 'do record level validation and add to staging DB'), (3, 'db_transfer', 'information must be moved from production DB to staging DB'), (4, 'validation', 'new information must be validated'), (5, 'external_validation', 'new information must be validated against external sources')"]
+
 for statement in sqlStatements:
     try:
         connection.execute(statement)

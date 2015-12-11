@@ -4,9 +4,10 @@ import os
 import json
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, update
-from dataactcore.models.jobModels import JobStatus,JobDependency,Status,Type,Resource
+from dataactcore.models.jobModels import JobStatus,JobDependency,Status,Type,Resource, Submission
 #from models.jobModels import JobStatus,JobDependency,Status,Type,Resource
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
+from datetime import datetime
 
 class JobHandler(JobTrackerInterface):
     """ Responsible for all interaction with the job tracker database
@@ -35,14 +36,19 @@ class JobHandler(JobTrackerInterface):
         Returns:
         Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
         """
+        # Create submission entry
+        submission = Submission(datetime_utc = str(datetime.utcnow()))
+        self.session.add(submission)
+        self.session.commit()
 
-        jobsRequired, uploadDict = self.addUploadJobs(filenames)
+        jobsRequired, uploadDict = self.addUploadJobs(filenames,submission)
+
 
         # Create validation job
-        validationJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("validation"), resource_id = 0)
+        validationJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("validation"), resource_id = 0, submission_id = submission.submission_id)
         self.session.add(validationJob)
         # Create external validation job
-        externalJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("external_validation"), resource_id = 0)
+        externalJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("external_validation"), resource_id = 0, submission_id = submission.submission_id)
         self.session.add(externalJob)
         self.session.flush()
         # Create dependencies for validation jobs
@@ -56,7 +62,7 @@ class JobHandler(JobTrackerInterface):
         self.session.commit()
         return uploadDict
 
-    def addUploadJobs(self,filenames):
+    def addUploadJobs(self,filenames,submission):
         """  Add upload jobs to job tracker database
 
         Arguments:
@@ -74,12 +80,12 @@ class JobHandler(JobTrackerInterface):
 
         for originalName, filename in filenames:
             # Create upload job, mark as running since frontend should be doing this upload
-            fileJob = JobStatus(filename = filename, status_id = Status.getStatus("running"), type_id = Type.getType("file_upload"), resource_id = 0)
+            fileJob = JobStatus(filename = filename, status_id = Status.getStatus("running"), type_id = Type.getType("file_upload"), resource_id = 0, submission_id = submission.submission_id)
 
             self.session.add(fileJob)
 
             # Create parse into DB job
-            dbJob = JobStatus(filename = filename, status_id = Status.getStatus("waiting"), type_id = Type.getType("csv_record_validation"), resource_id = 0)
+            dbJob = JobStatus(filename = filename, status_id = Status.getStatus("waiting"), type_id = Type.getType("csv_record_validation"), resource_id = 0, submission_id = submission.submission_id)
             self.session.add(dbJob)
             self.session.flush()
             # Add dependency between file upload and db upload
