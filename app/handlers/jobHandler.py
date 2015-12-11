@@ -45,10 +45,10 @@ class JobHandler(JobTrackerInterface):
 
 
         # Create validation job
-        validationJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("validation"), resource_id = 0, submission_id = submission.submission_id)
+        validationJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("validation"), submission_id = submission.submission_id)
         self.session.add(validationJob)
         # Create external validation job
-        externalJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("external_validation"), resource_id = 0, submission_id = submission.submission_id)
+        externalJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("external_validation"), submission_id = submission.submission_id)
         self.session.add(externalJob)
         self.session.flush()
         # Create dependencies for validation jobs
@@ -80,12 +80,12 @@ class JobHandler(JobTrackerInterface):
 
         for originalName, filename in filenames:
             # Create upload job, mark as running since frontend should be doing this upload
-            fileJob = JobStatus(filename = filename, status_id = Status.getStatus("running"), type_id = Type.getType("file_upload"), resource_id = 0, submission_id = submission.submission_id)
+            fileJob = JobStatus(filename = filename, status_id = Status.getStatus("running"), type_id = Type.getType("file_upload"), submission_id = submission.submission_id)
 
             self.session.add(fileJob)
 
             # Create parse into DB job
-            dbJob = JobStatus(filename = filename, status_id = Status.getStatus("waiting"), type_id = Type.getType("csv_record_validation"), resource_id = 0, submission_id = submission.submission_id)
+            dbJob = JobStatus(filename = filename, status_id = Status.getStatus("waiting"), type_id = Type.getType("csv_record_validation"), submission_id = submission.submission_id)
             self.session.add(dbJob)
             self.session.flush()
             # Add dependency between file upload and db upload
