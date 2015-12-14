@@ -3,6 +3,7 @@
 import sqlalchemy
 from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 
 
@@ -92,12 +93,14 @@ class Resource(Base):
     __tablename__ = "resource"
 
     resource_id = Column(Integer, primary_key=True)
+    job = None
 
 class Submission(Base):
     __tablename__ = "submission"
 
     submission_id = Column(Integer, primary_key=True)
     datetime_utc = Column(Text)
+    jobs = None
 
 class JobStatus(Base):
     __tablename__ = "job_status"
@@ -105,9 +108,15 @@ class JobStatus(Base):
     job_id = Column(Integer, primary_key=True)
     filename = Column(Text)
     status_id = Column(Integer, ForeignKey("status.status_id"))
+    status = relationship("Status")
     type_id = Column(Integer, ForeignKey("type.type_id"))
+    type = relationship("Type")
     resource_id = Column(Integer, ForeignKey("resource.resource_id"))
+    resource = relationship("Resource", back_populates="job")
     submission_id = Column(Integer, ForeignKey("submission.submission_id"))
+    submission = relationship("Submission", back_populates="jobs")
+    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"))
+    file_type = relationship("FileType")
     staging_table = Column(Text)
 
 class JobDependency(Base):
@@ -115,5 +124,13 @@ class JobDependency(Base):
 
     dependency_id = Column(Integer, primary_key=True)
     job_id = Column(Integer, ForeignKey("job_status.job_id"))
+    job_status = relationship("JobStatus")
     prerequisite_id = Column(Integer, ForeignKey("job_status.job_id"))
+    prerequisite_status = relationship("JobStatus")
 
+class FileType(Base):
+    __tablename__ = "file_type"
+
+    file_type_id = Column(Integer, primary_key=True)
+    name = Column(Text)
+    description = Column(Text)

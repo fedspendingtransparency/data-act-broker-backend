@@ -15,16 +15,14 @@ Base.metadata.create_all(validationDb.engine)
 
 class Rule(Base):
     __tablename__ = "rule"
-    #__table__ = "rule"
 
     rule_id = Column(Integer, primary_key=True)
     file_column_id = Column(Integer, ForeignKey("file_columns.file_column_id"))
-    file_columns = relationship("FileColumn", back_populates="file_columns")
     rule_type_id = Column(Integer, ForeignKey("rule_type.rule_type_id"))
     rule_text_1 = Column(Text)
     rule_text_2 = Column(Text)
-    rule_type = relationship("RuleType", back_populates="rule_type")
-    file_column = relationship("FileColumn", back_populates="file_columns")
+    rule_type = relationship("RuleType")
+    file_column = relationship("FileColumn", back_populates="rules")
 
 class RuleType(Base):
     __tablename__ = "rule_type"
@@ -38,12 +36,13 @@ class FileColumn(Base):
 
     file_column_id = Column(Integer, primary_key=True)
     file_id = Column(Integer, ForeignKey("file_type.file_id"))
-    file = relationship("FileType", back_populates="file_type")
+    file = relationship("FileType")
     field_types_id = Column(Integer, ForeignKey("field_type.field_type_id"))
-    field_type = relationship("FieldType", back_populates="field_type")
+    field_type = relationship("FieldType")
     name = Column(Text)
     description = Column(Text)
     required = Column(Boolean)
+    rules = None
 
 class FieldType(Base):
     __tablename__ = "field_type"
