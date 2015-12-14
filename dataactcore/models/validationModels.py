@@ -5,9 +5,13 @@ from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
+from dataactcore.models.validationInterface import ValidationInterface
 
 
 Base = declarative_base()
+validationDb = ValidationInterface()
+Base.metadata.bind = validationDb.engine
+Base.metadata.create_all(validationDb.engine)
 
 class Rule(Base):
     __tablename__ = "rule"
