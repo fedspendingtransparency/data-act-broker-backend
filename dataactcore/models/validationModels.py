@@ -10,7 +10,8 @@ from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 Base = declarative_base()
 
 class Rule(Base):
-    __table__ = "rule"
+    __tablename__ = "rule"
+    #__table__ = "rule"
 
     rule_id = Column(Integer, primary_key=True)
     file_column_id = Column(Integer, ForeignKey("file_columns.file_column_id"))
@@ -22,14 +23,14 @@ class Rule(Base):
     file_column = relationship("FileColumn", back_populates="file_columns")
 
 class RuleType(Base):
-    __table__ = "rule_type"
+    __tablename__ = "rule_type"
 
     rule_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
 
 class FileColumn(Base):
-    __table__ = "file_columns"
+    __tablename__ = "file_columns"
 
     file_column_id = Column(Integer, primary_key=True)
     file_id = Column(Integer, ForeignKey("file_type.file_id"))
@@ -41,14 +42,14 @@ class FileColumn(Base):
     required = Column(Boolean)
 
 class FieldType(Base):
-    __table__ = "field_type"
+    __tablename__ = "field_type"
 
     field_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
 
 class FileType(Base):
-    __table__ = "file_type"
+    __tablename__ = "file_type"
 
     file_id = Column(Integer, primary_key=True)
     name = Column(Text)
