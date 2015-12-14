@@ -1,6 +1,7 @@
 .idea/*
 *.pyc
-FileReaders/*.pyc
-Handlers/*.pyc
-Interfaces/*.pyc
+fileReaders/*.pyc
+handlers/*.pyc
+interfaces/*.pyc
 jobTracker.conf
+handlers/s3bucket.json

@@ -37,6 +37,11 @@ class JobTests(unittest.TestCase):
         """ Test valid job """
 
         validResponse = self.validateJob(1)
+        if(validResponse.status_code != 200):
+            print(validResponse.status_code)
+            print(validResponse.json()["errorType"])
+            print(validResponse.json()["message"])
+            print(validResponse.json()["trace"])
         assert(validResponse.status_code == 200)
         self.assertHeader(validResponse)
         # Check that job is correctly marked as finished

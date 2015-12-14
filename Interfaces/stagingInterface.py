@@ -2,8 +2,10 @@ from interfaces.validationInterface import ValidationInterface
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.field import FieldType, FieldConstraint
 from interfaces.jobTrackerInterface import JobTrackerInterface
+from dataactcore.models.stagingInterface import StagingInterface as BaseStagingInterface
+import dataactcore
 
-class StagingInterface(BaseInterface):
+class StagingInterface(BaseStagingInterface):
     """ Manages all interaction with the staging database
     """
 
@@ -26,15 +28,26 @@ class StagingInterface(BaseInterface):
         # Create sequence to be used for primary key
         sequenceStatement = "CREATE SEQUENCE " + tableName + "Serial START 1"
         self.runStatement(sequenceStatement)
+        primaryAssigned = False
         # Construct the base table creation command
         tableStatement = "CREATE TABLE " + tableName + "("
         # Add each column
-        for field in fields.iterKeys():
-            tableStatement += field + " " + field["type"] + " "
-            if(field["constraint"] == FieldConstraint.PRIMARY_KEY):
-                tableStatement += field["constraint"] + " DEFAULT nextval('" + sequenceStatement + "'), "
+        for field in fields:
+            tableStatement += field.name + " " + field.field_type.name
+            if(field.field_type.description == "PRIMARY_KEY"):
+                tableStatement += " PRIMARY_KEY DEFAULT nextval('" + sequenceStatement + "'), "
+                primaryAssigned = True
+            elif(field.required):
+                tableStatement += " NOT NULL, "
             else:
-                tableStatement += field["constraint"] + ", "
+                tableStatement += ", "
+
+        if(not primaryAssigned):
+            # If no primary key assigned, add one based on table name
+            tableStatement += tableName + "id" + " INTEGER PRIMARY_KEY DEFAULT nextval('" + sequenceStatement + "'), "
+
+        # Add closing paranthesis
+        tableStatement = tableStatement[0:-2] + ")"
 
         # Execute table creation
         self.runStatement(tableStatement)
