@@ -112,9 +112,9 @@ class JobStatus(Base):
     type_id = Column(Integer, ForeignKey("type.type_id"))
     type = relationship("Type")
     resource_id = Column(Integer, ForeignKey("resource.resource_id"))
-    resource = relationship("Resource", back_populates="job")
+    resource = relationship("Resource")
     submission_id = Column(Integer, ForeignKey("submission.submission_id"))
-    submission = relationship("Submission", back_populates="jobs")
+    submission = relationship("Submission")
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"))
     file_type = relationship("FileType")
     staging_table = Column(Text)
@@ -124,9 +124,9 @@ class JobDependency(Base):
 
     dependency_id = Column(Integer, primary_key=True)
     job_id = Column(Integer, ForeignKey("job_status.job_id"))
-    job_status = relationship("JobStatus")
+    #job_status = relationship("JobStatus")
     prerequisite_id = Column(Integer, ForeignKey("job_status.job_id"))
-    prerequisite_status = relationship("JobStatus")
+    #prerequisite_status = relationship("JobStatus")
 
 class FileType(Base):
     __tablename__ = "file_type"

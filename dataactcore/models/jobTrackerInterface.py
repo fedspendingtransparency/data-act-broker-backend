@@ -4,7 +4,7 @@ from dataactcore.models.baseInterface import BaseInterface
 import os
 import inspect
 from dataactcore.utils.responseException import ResponseException
-from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
+
 
 class JobTrackerInterface(BaseInterface):
     """ Manages all interaction with the job tracker database
@@ -37,20 +37,8 @@ class JobTrackerInterface(BaseInterface):
         Returns:
         True if single result, otherwise exception
         """
-        # TODO move this code to a more general function in BaseInterface that takes error messages as arguments
-        if(len(queryResult) == 0):
-                # Did not get a result for this job
-            exc = ResponseException("Job ID not found in job_status table")
-            exc.status = 400
-            exc.wrappedException = NoResultFound("Job ID not found in job_status table")
-            raise exc
-        elif(len(queryResult) > 1):
-            # Multiple results for single job ID
-            exc = ResponseException("Conflicting jobs found for this ID")
-            exc.status = 400
-            exc.wrappedException = MultipleResultsFound("Conflicting jobs found for this ID")
-            raise exc
-        return True
+        return BaseInterface.checkUnique(queryResult, "Job ID not found in job_status table","Conflicting jobs found for this ID")
+
 
     def getSession(self):
         return self.session

@@ -20,7 +20,7 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 # Create tables
-sqlStatements = ["DELETE FROM job_status", "DELETE FROM job_dependency"]
+sqlStatements = ["DELETE FROM job_dependency", "DELETE FROM job_status"]
 
 for statement in sqlStatements:
     try:
