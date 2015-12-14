@@ -5,7 +5,7 @@ import os
 import inspect
 from dataactcore.utils.responseException import ResponseException
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
-
+from validationModels import Base
 class ValidationInterface(BaseInterface):
     """ Manages all interaction with the validation database
 
@@ -20,9 +20,11 @@ class ValidationInterface(BaseInterface):
     def __init__(self):
         self.dbConfigFile = self.getCredFilePath()
         super(ValidationInterface,self).__init__()
+        Base.metadata.bind = self.engine
+        Base.metadata.create_all(self.engine)
+
 
     @staticmethod
     def getDbName():
         """ Return database name"""
         return ValidationInterface.dbName
-
