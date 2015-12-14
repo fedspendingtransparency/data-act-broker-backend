@@ -52,12 +52,15 @@ sqlStatements = ["CREATE TABLE status (status_id integer PRIMARY KEY, name text 
                  "CREATE TABLE resource (resource_id integer PRIMARY KEY DEFAULT nextval('resourceIdSerial'))",
                  "CREATE SEQUENCE submissionIdSerial START 1",
                  "CREATE TABLE submission (submission_id integer PRIMARY KEY DEFAULT nextval('submissionIdSerial'), datetime_utc text)",
+                 "CREATE SEQUENCE fileTypeSerial START 1",
+                 "CREATE TABLE file_type (file_type_id integer PRIMARY KEY DEFAULT nextval('fileTypeSerial'), name text, description text)",
                  "CREATE SEQUENCE jobIdSerial START 1",
-                 "CREATE TABLE job_status (job_id integer PRIMARY KEY DEFAULT nextval('jobIdSerial'), filename text, status_id integer NOT NULL REFERENCES status, type_id integer NOT NULL REFERENCES type, resource_id integer REFERENCES resource, submission_id integer NOT NULL REFERENCES submission, staging_table text)",
+                 "CREATE TABLE job_status (job_id integer PRIMARY KEY DEFAULT nextval('jobIdSerial'), filename text, file_type_id integer REFERENCES file_type, status_id integer NOT NULL REFERENCES status, type_id integer NOT NULL REFERENCES type, resource_id integer REFERENCES resource, submission_id integer NOT NULL REFERENCES submission, staging_table text)",
                  "CREATE SEQUENCE dependencyIdSerial START 1",
                  "CREATE TABLE job_dependency (dependency_id integer PRIMARY KEY DEFAULT nextval('dependencyIdSerial'), job_id integer NOT NULL REFERENCES job_status, prerequisite_id integer NOT NULL REFERENCES job_status)",
                  "INSERT INTO status (status_id,name, description) VALUES (1, 'waiting', 'check dependency table'), (2, 'ready', 'can be assigned'), (3, 'running', 'job is currently in progress'), (4, 'finished', 'job is complete')",
-                 "INSERT INTO type (type_id,name,description) VALUES (1, 'file_upload', 'file must be uploaded to S3'), (2, 'csv_record_validation', 'do record level validation and add to staging DB'), (3, 'db_transfer', 'information must be moved from production DB to staging DB'), (4, 'validation', 'new information must be validated'), (5, 'external_validation', 'new information must be validated against external sources')"]
+                 "INSERT INTO type (type_id,name,description) VALUES (1, 'file_upload', 'file must be uploaded to S3'), (2, 'csv_record_validation', 'do record level validation and add to staging DB'), (3, 'db_transfer', 'information must be moved from production DB to staging DB'), (4, 'validation', 'new information must be validated'), (5, 'external_validation', 'new information must be validated against external sources')",
+                 "INSERT INTO file_type (file_type_id, name, description) VALUES (1, 'award', ''), (2, 'award_financial', ''), (3, 'appropriations', ''), (4, 'procurement', '')"]
 
 for statement in sqlStatements:
     try:

@@ -4,8 +4,7 @@ import os
 import json
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, update
-from dataactcore.models.jobModels import JobStatus,JobDependency,Status,Type,Resource, Submission
-#from models.jobModels import JobStatus,JobDependency,Status,Type,Resource
+from dataactcore.models.jobModels import JobStatus,JobDependency,Status,Type,Resource, Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from datetime import datetime
 
@@ -78,14 +77,20 @@ class JobHandler(JobTrackerInterface):
         # Dictionary of upload ids by filename to return to client
         uploadDict = {}
 
-        for originalName, filename in filenames:
+
+
+        for fileType, filename in filenames:
+            fileTypeResult = self.session.query(FileType.file_type_id).filter(FileType.name == fileType).all()
+            self.checkUnique(fileTypeResult,"No matching file type", "Multiple matching file types")
+            fileTypeId = fileTypeResult[0].file_type_id
+
             # Create upload job, mark as running since frontend should be doing this upload
-            fileJob = JobStatus(filename = filename, status_id = Status.getStatus("running"), type_id = Type.getType("file_upload"), submission_id = submission.submission_id)
+            fileJob = JobStatus(filename = filename, file_type_id = fileTypeId, status_id = Status.getStatus("running"), type_id = Type.getType("file_upload"), submission_id = submission.submission_id)
 
             self.session.add(fileJob)
 
             # Create parse into DB job
-            dbJob = JobStatus(filename = filename, status_id = Status.getStatus("waiting"), type_id = Type.getType("csv_record_validation"), submission_id = submission.submission_id)
+            dbJob = JobStatus(filename = filename, file_type_id = fileTypeId, status_id = Status.getStatus("waiting"), type_id = Type.getType("csv_record_validation"), submission_id = submission.submission_id)
             self.session.add(dbJob)
             self.session.flush()
             # Add dependency between file upload and db upload
@@ -94,7 +99,7 @@ class JobHandler(JobTrackerInterface):
             # Add both jobs to required list
             jobsRequired.append(fileJob.job_id)
             jobsRequired.append(dbJob.job_id)
-            uploadDict[originalName] = fileJob.job_id
+            uploadDict[fileType] = fileJob.job_id
 
         # Return list of upload jobs
         return jobsRequired, uploadDict
