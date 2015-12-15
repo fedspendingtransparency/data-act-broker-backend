@@ -116,6 +116,78 @@ class ValidatorTests(unittest.TestCase) :
         assert(not Validator.validate(record,[],schema)),"Incorrect Field Type for field"
 
     def test_schema_rules(self):
-        pass 
+        lessRule = RuleType()
+        lessRule.name = "LESS"
+        greaterRule = RuleType()
+        greaterRule.name = "GREATER"
+        lengthRule = RuleType()
+        lengthRule.name = "LENGTH"
+        equalRule = RuleType()
+        equalRule.name = "EQUAL"
+        notRule = RuleType()
+        notRule.name = "NOT EQUAL"
+
+        schema = self.createSchema()
+        rule1 =  Rule()
+        rule1.rule_type = equalRule
+        rule1.file_column = schema["test1"]
+        rule1.rule_text_1  = "hello"
+
+        rule2 =  Rule()
+        rule2.rule_type = notRule
+        rule2.file_column = schema["test1"]
+        rule2.rule_text_1  = "bye"
+
+        rule3 =  Rule()
+        rule3.rule_type = lengthRule
+        rule3.file_column = schema["test1"]
+        rule3.rule_text_1  = "6"
+
+
+        rule4 =  Rule()
+        rule4.rule_type = equalRule
+        rule4.file_column = schema["test3"]
+        rule4.rule_text_1  = "YES"
+
+
+        rule5 =  Rule()
+        rule5.rule_type = equalRule
+        rule5.file_column = schema["test4"]
+        rule5.rule_text_1  = "44"
+
+        rule6 =  Rule()
+        rule6.rule_type = lessRule
+        rule6.file_column = schema["test4"]
+        rule6.rule_text_1  = "45"
+
+        rule7 =  Rule()
+        rule7.rule_type = greaterRule
+        rule7.file_column = schema["test2"]
+        rule7.rule_text_1  = ".5"
+
+
+        rules = [rule1,rule2,rule3,rule4,rule5,rule6,rule7]
+        record = {
+            "test1" : "hello" ,
+            "test2" : "1.0",
+            "test3" :"YES",
+            "test4" :"44",
+            "test5" :"1",
+        }
+        assert( Validator.validate(record,rules,schema)),"Values do not match rules"
+
+        record = {
+            "test1" : "goodbye" ,
+            "test2" : ".4",
+            "test3" :"NO",
+            "test4" :"45",
+            "test5" :"1",
+        }
+        assert( not Validator.validate(record,[rule3],schema)),"Rule for test1 passed"
+        assert( not Validator.validate(record,[rule4],schema)),"Rule for test3 passed"
+        assert( not Validator.validate(record,[rule5],schema)),"Rule for test4 passed"
+        assert( not Validator.validate(record,[rule6],schema)),"Rule for test4 passed"
+        assert( not Validator.validate(record,[rule7],schema)),"Rule for test2 passed"
+        assert( not Validator.validate(record,rules,schema)),"Rules passed"
 if __name__ == '__main__':
     unittest.main()

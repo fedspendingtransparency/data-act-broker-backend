@@ -26,10 +26,9 @@ class Validator(object):
             # Always check the type
             if(not Validator.checkType(currentData,currentSchema.field_type.name) ) :
                 return False
-
             #Field must pass all rules
             for currentRule in ruleSubset :
-                if(not Validator.evaluateRule(currentData,currentRule)):
+                if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name)):
                     return False
         return True
 
@@ -84,5 +83,5 @@ class Validator(object):
         if(currentRuleType =="EQUAL") :
             return Validator.getType(data,datatype) == Validator.getType(value1,datatype)
         if(currentRuleType =="NOT EQUAL") :
-            return Validator.getType(data,datatype) == Validator.getType(value1,datatype)
+            return not (Validator.getType(data,datatype) == Validator.getType(value1,datatype))
         raise ValueError("Rule Type Invalid")
