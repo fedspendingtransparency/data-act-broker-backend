@@ -6,7 +6,7 @@ class CsvReader(object):
     """
     Reads data from S3 CSV file
     """
-    def openFile(self,bucket,filename):
+    def openFile(self,bucket,filename,csvSchema):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
             bucket : the S3 Bucket
@@ -15,6 +15,11 @@ class CsvReader(object):
         """
         s3connection = boto.connect_s3()
         s3Bucket = s3connection.lookup(bucket)
+
+        possibleFields = {}
+        for schema in  csvSchema:
+            possibleFields[schema.name] = 0
+
         self.s3File = s3Bucket.lookup(filename)
         self.unprocessed = ''
         self.lines = []
@@ -30,7 +35,13 @@ class CsvReader(object):
         #create the header
         for row in csv.reader([line],dialect='excel'):
             for cell in row :
-                self.headerDictionary[(current)] = cell
+                headerValue = cell.strip()
+                if( not headerValue in possibleFields) :
+                    raise ValueError("Header : "+ headerValue + " not in CSV schema")
+                if(possibleFields[headerValue] == 1) :
+                    raise ValueError("Header : "+ headerValue + " allready exists")
+                self.headerDictionary[(current)] = headerValue
+                possibleFields[headerValue]  = 1
                 current += 1
         self.columnCount = current
 

@@ -6,6 +6,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from fileReaders.csvReader import CsvReader
 from interfaces.stagingInterface import StagingInterface
+from interfaces.validationInterface import ValidationInterface
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 
 class ValidationManager:
@@ -45,6 +46,8 @@ class ValidationManager:
             fileName = jobTracker.getFileName(jobId)
             bucketName = s3UrlHandler.getBucketNameFromConfig()
 
+            validationDB = ValidationInterface()
+            fieldList = validationDB.getFieldsByFileList(fileType)
 
 
             # Pull file from S3
@@ -53,7 +56,7 @@ class ValidationManager:
             print(fileName)
             # Use test file for now
             #fileName = "test.csv"
-            reader.openFile(bucketName, fileName)
+            reader.openFile(bucketName, fileName,fieldList)
             # Create staging table
             stagingDb = StagingInterface()
             tableName = stagingDb.createTable(fileType,fileName,jobId)

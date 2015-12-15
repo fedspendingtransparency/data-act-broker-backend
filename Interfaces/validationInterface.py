@@ -20,6 +20,23 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         array of dicts, each representing a single validation
         """
         pass
+
+    def getFieldsByFileList(self,filetype):
+        """ Returns a list of valid field names that can appear in this type of file
+
+        Args:
+        filetype -- One of the set of valid types of files (e.g. Award, AwardFinancial)
+
+        Returns:
+        list of names
+        """
+        fileId = self.getFileId(filetype)
+        returnList  = []
+        if(fileId is None) :
+            raise ValueError("Filetype does not exist")
+        queryResult = self.session.query(FileColumn.name).filter(FileColumn.file_id == fileId).all()
+        return queryResult
+
     def getFieldsByFile(self,filetype):
         """ Returns a dict of valid field names that can appear in this type of file
 
@@ -27,7 +44,7 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         filetype -- One of the set of valid types of files (e.g. Award, AwardFinancial)
 
         Returns:
-        dict with field names as keys and values "type" and "constraint" pulled from FieldType and FieldConstraint
+        dict with field names as keys and values are ORM object FileColumn
         """
         returnDict = {}
         fileId = self.getFileId(filetype)

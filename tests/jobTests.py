@@ -3,6 +3,7 @@ from dataactcore.models.stagingInterface import StagingInterface
 from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type
 import requests
 from interfaces.jobTrackerInterface import JobTrackerInterface
+from interfaces.validationInterface import ValidationInterface
 import os
 import inspect
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
@@ -77,6 +78,20 @@ class JobTests(unittest.TestCase):
             ]
             for statement in sqlStatements:
                 jobTracker.runStatement(statement)
+            validationDB = ValidationInterface()
+#"CREATE TABLE file_columns (file_column_id integer PRIMARY KEY DEFAULT nextval('fileColumnSerial'), file_id integer REFERENCES file_type,field_types_id integer REFERENCES field_type , name text ,description text , required  boolean);",
+
+            sqlStatements = [
+            "DELETE FROM file_columns",
+            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (1,3,4,'header 1','',True)",
+            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (2,3,4,'header 2','',True)",
+            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (3,3,4,'header 3','',True)",
+            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (4,3,4,'header 4','',True)",
+            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (5,3,4,'header 5','',True)"
+
+            ]
+            for statement in sqlStatements:
+                validationDB.runStatement(statement)
             JobTests.TABLE_POPULATED = True
 
 
