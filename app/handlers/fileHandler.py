@@ -1,7 +1,7 @@
 import json
 import sys
 import traceback
-from aws.s3UrlHandler import s3UrlHandler
+from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from utils.requestDictionary import RequestDictionary
 from jobHandler import JobHandler
 from utils.jsonResponse import JsonResponse

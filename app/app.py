@@ -10,7 +10,6 @@ from handlers.aws.session import DynamoInterface, SessionTable, LoginSession
 from handlers.loginHandler import LoginHandler
 from handlers.fileHandler import FileHandler
 from handlers.jobHandler import JobHandler
-from handlers.aws.s3UrlHandler import s3UrlHandler
 from fileRoutes import add_file_routes
 from loginRoutes import add_login_routes
 
