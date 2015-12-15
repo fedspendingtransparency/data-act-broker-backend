@@ -59,7 +59,7 @@ class FileHandler:
         key_url is the S3 URL for uploading
         key_id is the job id to be passed to the finalize_submission route
         """
-        self.s3manager = s3UrlHandler("reviewfile",name)
+        self.s3manager = s3UrlHandler(s3UrlHandler.getBucketNameFromConfig(),name)
         responseDict= {}
         try:
             jobManager = JobHandler()
