@@ -1,5 +1,5 @@
 import unittest
-#from dataactcore.models.jobTrackerInterface import JobTrackerInterface
+from dataactcore.models.stagingInterface import StagingInterface
 from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type
 import requests
 from interfaces.jobTrackerInterface import JobTrackerInterface
@@ -7,6 +7,10 @@ import os
 import inspect
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 import json
+import boto
+from boto.s3.connection import S3Connection
+from boto.s3.key import Key
+from dataactcore.scripts.databaseSetup import runCommands
 
 class JobTests(unittest.TestCase):
     BASE_URL = "http://127.0.0.1:5000"
@@ -17,44 +21,58 @@ class JobTests(unittest.TestCase):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(JobTests,self).__init__(methodName=methodName)
         if(not self.TABLE_POPULATED):
+            # Create staging database
+            try:
+                runCommands(StagingInterface.getCredDict(),[],"staging")
+            except:
+                # Staging database already exists, keep going
+                pass
+
             # Clear job tables
             import dataactcore.scripts.clearJobs
-            """
-            # Get bucket name
-            path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-            bucketFile = open(path+"/s3bucket.json","r").read()
-            bucketDict = json.loads(bucketFile)
-            bucketName = bucketDict["bucket"]
 
-            # Upload needed files to S3
+            # Get bucket name
+            bucketName = s3UrlHandler.getBucketNameFromConfig()
             user = 1
             s3manager = s3UrlHandler(bucketName,user)
-            fnameValid = ""
-            fnamePrereq = ""
+            # Upload needed files to S3
+
+            fnameValid = "testValid.csv"
+            fnamePrereq = "testPrereq.csv"
             urlValid = s3manager.getSignedUrl(fnameValid)
             urlPrereq = s3manager.getSignedUrl(fnamePrereq)
             path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-            fullPathValid = path + fnameValid
-            fullPathPrereq = path + fnamePrereq
-            uploadResponseValid = requests.post(urlValid, files={fnameValid: open(fullPathValid, 'rb')})
-            uploadResponsePrereq = requests.post(urlPrereq, files={fnamePrereq: open(fullPathPrereq, 'rb')})
-            assert(uploadResponseValid.status_code == 200)
-            assert(uploadResponsePrereq.status_code == 200)
-            """
-            s3FileNameValid = "a" #"/" + str(user) + "/" + fnameValid
-            s3FileNamePrereq = "a" # "/" + str(user) + "/" + fnamePrereq
+            fullPathValid = path + "/" +fnameValid
+            fullPathPrereq = path + "/" + fnamePrereq
+            fileValid = open(fullPathValid, 'rb')
+            filePrereq = open(fullPathPrereq, 'rb')
+
+            # Create file names for S3
+            s3FileNameValid = str(user) + "/" + fnameValid
+            s3FileNamePrereq = str(user) + "/" + fnamePrereq
+
+            # Use boto to put files on S3
+            s3conn = S3Connection()
+            keyValid = Key(s3conn.get_bucket(bucketName))
+            keyValid.key = s3FileNameValid
+            validWritten = keyValid.set_contents_from_filename(fullPathValid)
+            keyPrereq = Key(s3conn.get_bucket(bucketName))
+            keyPrereq.key = s3FileNamePrereq
+            prereqWritten = keyPrereq.set_contents_from_filename(fullPathPrereq)
+            assert(validWritten > 0)
+            assert(prereqWritten > 0)
 
             # Populate with a defined test set
             jobTracker = JobTrackerInterface()
             sqlStatements = ["INSERT INTO submission (submission_id) VALUES (1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename) VALUES (1, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameValid + "')",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id) VALUES (2, " + str(Status.getStatus("ready")) + "," + str(Type.getType("file_upload")) + ",1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id) VALUES (3, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (1, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameValid + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (2, " + str(Status.getStatus("ready")) + "," + str(Type.getType("file_upload")) + ",1,1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (3, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1,1)",
             "INSERT INTO job_dependency (dependency_id, job_id, prerequisite_id) VALUES (1, 3, 2)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id) VALUES (4, " + str(Status.getStatus("ready")) + "," + str(Type.getType("external_validation")) + ",1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id) VALUES (5, " + str(Status.getStatus("finished")) + "," + str(Type.getType("csv_record_validation")) + ",1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id) VALUES (6, " + str(Status.getStatus("finished")) + "," + str(Type.getType("file_upload")) + ",1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename) VALUES (7, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNamePrereq + "')",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (4, " + str(Status.getStatus("ready")) + "," + str(Type.getType("external_validation")) + ",1,1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (5, " + str(Status.getStatus("finished")) + "," + str(Type.getType("csv_record_validation")) + ",1,1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (6, " + str(Status.getStatus("finished")) + "," + str(Type.getType("file_upload")) + ",1,1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (7, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNamePrereq + "',1)",
             "INSERT INTO job_dependency (dependency_id, job_id, prerequisite_id) VALUES (2, 7, 6)",
             ]
             for statement in sqlStatements:

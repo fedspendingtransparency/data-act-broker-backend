@@ -4,12 +4,14 @@ from dataactcore.models.field import FieldType, FieldConstraint
 from interfaces.jobTrackerInterface import JobTrackerInterface
 from dataactcore.models.stagingInterface import StagingInterface as BaseStagingInterface
 import dataactcore
+from sqlalchemy.exc import ProgrammingError
 
 class StagingInterface(BaseStagingInterface):
     """ Manages all interaction with the staging database
     """
+    tables = []
 
-    def createTable(self,filetype,jobId):
+    def createTable(self,filetype,filename,jobId):
         """ Create staging table for new file
         Args:
         filetype -- type of file to create a table for (e.g. Award, AwardFinancial)
@@ -17,8 +19,13 @@ class StagingInterface(BaseStagingInterface):
         Returns:
         tableName if created, exception otherwise
         """
-        tableName = str(filetype)+str(jobId)
+        tableName = "job"+str(jobId)
 
+        print("Appending table name "+tableName)
+        self.tables.append(tableName)
+        print(str(self.tables))
+        # Alternate way of naming tables
+        #tableName = "data" + tableName.replace("/","").replace("\\","").replace(".","")
         # Write tablename to related job in job tracker
         jobTracker = JobTrackerInterface()
         jobTracker.addStagingTable(jobId,tableName)
@@ -26,16 +33,21 @@ class StagingInterface(BaseStagingInterface):
         validationDB = ValidationInterface()
         fields = validationDB.getFieldsByFile(filetype)
         # Create sequence to be used for primary key
-        sequenceStatement = "CREATE SEQUENCE " + tableName + "Serial START 1"
-        self.runStatement(sequenceStatement)
+        sequenceName = tableName + "Serial"
+        sequenceStatement = "CREATE SEQUENCE " + sequenceName + " START 1"
+        try:
+            self.runStatement(sequenceStatement)
+        except ProgrammingError:
+            # Sequence already exists
+            pass
         primaryAssigned = False
         # Construct the base table creation command
-        tableStatement = "CREATE TABLE " + tableName + "("
+        tableStatement = "CREATE TABLE " + tableName + " ("
         # Add each column
         for field in fields:
             tableStatement += field.name + " " + field.field_type.name
             if(field.field_type.description == "PRIMARY_KEY"):
-                tableStatement += " PRIMARY_KEY DEFAULT nextval('" + sequenceStatement + "'), "
+                tableStatement += " PRIMARY KEY DEFAULT nextval('" + sequenceName + "'), "
                 primaryAssigned = True
             elif(field.required):
                 tableStatement += " NOT NULL, "
@@ -44,7 +56,7 @@ class StagingInterface(BaseStagingInterface):
 
         if(not primaryAssigned):
             # If no primary key assigned, add one based on table name
-            tableStatement += tableName + "id" + " INTEGER PRIMARY_KEY DEFAULT nextval('" + sequenceStatement + "'), "
+            tableStatement += tableName + "id" + " INTEGER PRIMARY KEY DEFAULT nextval('" + sequenceName + "'), "
 
         # Add closing paranthesis
         tableStatement = tableStatement[0:-2] + ")"
@@ -78,10 +90,12 @@ class StagingInterface(BaseStagingInterface):
         Returns:
         True if successful
         """
+        print("Record to be written:")
+        print(str(record))
         fieldNames = "("
         fieldValues = "("
         # For each field, add to fieldNames and fieldValues strings
-        for key in record.iterKeys():
+        for key in record.iterkeys():
             fieldNames += key + ", "
             fieldValues += record[key] + ", "
 
@@ -92,3 +106,6 @@ class StagingInterface(BaseStagingInterface):
         # Create insert statement
         statement = "INSERT INTO " + tableName + " " + fieldNames + " VALUES " + fieldValues
         self.runStatement(statement)
+
+    def getTables(self):
+        return self.tables

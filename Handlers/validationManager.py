@@ -6,6 +6,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from fileReaders.csvReader import CsvReader
 from interfaces.stagingInterface import StagingInterface
+from dataactcore.aws.s3UrlHandler import s3UrlHandler
 
 class ValidationManager:
     """ Outer level class, called by flask route
@@ -42,10 +43,7 @@ class ValidationManager:
 
             # Get bucket name and file name
             fileName = jobTracker.getFileName(jobId)
-            path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-            bucketFile = open(path+"/s3bucket.json","r").read()
-            bucketDict = json.loads(bucketFile)
-            bucketName = bucketDict["bucket"]
+            bucketName = s3UrlHandler.getBucketNameFromConfig()
 
 
 
@@ -54,11 +52,11 @@ class ValidationManager:
             print(bucketName)
             print(fileName)
             # Use test file for now
-            fileName = "test.csv"
+            #fileName = "test.csv"
             reader.openFile(bucketName, fileName)
             # Create staging table
             stagingDb = StagingInterface()
-            tableName = stagingDb.createTable(fileType,jobId)
+            tableName = stagingDb.createTable(fileType,fileName,jobId)
             # While not done, pull one row and put it into staging
             record = reader.getNextRecord()
             while(len(record.keys()) > 0):

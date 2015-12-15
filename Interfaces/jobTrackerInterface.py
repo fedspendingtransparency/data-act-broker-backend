@@ -4,6 +4,7 @@ from dataactcore.models import jobTrackerInterface
 from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type, Resource
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.utils.responseException import ResponseException
+from sqlalchemy.orm import subqueryload, joinedload
 
 class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
     """ Manages all interaction with the job tracker database
@@ -125,6 +126,6 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
             return queryResult[0].filename
 
     def getFileType(self,jobId):
-        queryResult = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
+        queryResult = self.session.query(JobStatus).options(joinedload("file_type")).filter(JobStatus.job_id == jobId).all()
         if(self.checkJobUnique(queryResult)):
             return queryResult[0].file_type.name

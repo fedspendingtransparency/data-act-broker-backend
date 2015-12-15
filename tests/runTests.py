@@ -1,6 +1,8 @@
 import unittest, inspect
 from jobTests import JobTests
 from validatorTests import ValidatorTests
+from interfaces.stagingInterface import StagingInterface
+
 # Create test suite
 suite = unittest.TestSuite()
 # Get lists of method names
@@ -25,4 +27,14 @@ print(str(suite.countTestCases()) + " tests in suite")
 
 # Run tests and store results
 runner = unittest.TextTestRunner(verbosity=2)
-runner.run(suite)
+try:
+    print("Running tests")
+    runner.run(suite)
+finally:
+    # Drop staging tables
+    print("Dropping tables")
+    stagingDb = StagingInterface()
+    tables = stagingDb.getTables()
+    for table in tables:
+        print("Dropping table "+table)
+        stagingDb.runStatement("DROP TABLE " + table)
