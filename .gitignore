@@ -6,3 +6,4 @@ dataactcore/models/*.pyc
 dataactcore/utils/*.pyc
 dataactcore/models/jobTracker.conf
 dataactcore/credentials/dbCred.json
+dataactcore/aws/s3bucket.json

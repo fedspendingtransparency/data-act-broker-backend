@@ -1,5 +1,8 @@
 from datetime import datetime, timedelta
 import boto
+import os
+import inspect
+import json
 
 class s3UrlHandler:
     """
@@ -49,3 +52,10 @@ class s3UrlHandler:
         seconds = int((datetime.utcnow()-datetime(1970,1,1)).total_seconds())
         self.s3FileName = str(seconds)+"_"+fileName
         return self._signUrl(self.s3FileName)
+
+    @staticmethod
+    def getBucketNameFromConfig():
+        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        bucketFile = open(path+"/s3bucket.json","r").read()
+        bucketDict = json.loads(bucketFile)
+        return bucketDict["bucket"]
