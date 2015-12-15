@@ -19,7 +19,7 @@ class Validator(object):
             currentSchema =  csvSchema[fieldName]
             ruleSubset = Validator.getRules(fieldName,rules)
             currentData = record[fieldName].strip()
-            print"s"+str(len(ruleSubset))
+
             #if field is empty and not required its valid
             if(len(currentData) == 0 and not currentSchema.required ) :
                 continue
@@ -28,7 +28,6 @@ class Validator(object):
                 return False
             #Field must pass all rules
             for currentRule in ruleSubset :
-                print "2"
                 if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name)):
                     return False
         return True
@@ -75,9 +74,7 @@ class Validator(object):
     def evaluateRule(data,rule,datatype):
         value1 = rule.rule_text_1
         currentRuleType = rule.rule_type.name
-        print data
         if(currentRuleType =="LENGTH") :
-            print str(len(data))  + " " + str(Validator.getIntFromString(value1))
             return len(data) < Validator.getIntFromString(value1)
         if(currentRuleType =="LESS") :
             return Validator.getType(data,datatype) < Validator.getType(value1,datatype)
