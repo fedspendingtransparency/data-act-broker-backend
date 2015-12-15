@@ -8,7 +8,6 @@ def runCommands(credDict, sqlCommands,dbName) :
     dbBaseName = "postgres"
     baseEngine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+dbBaseName, isolation_level = "AUTOCOMMIT")
     try:
-
         baseEngine.connect().execute("CREATE DATABASE " + '"' + dbName + '"')
 
     except ProgrammingError as e:

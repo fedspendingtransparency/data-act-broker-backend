@@ -24,7 +24,7 @@ class s3UrlHandler:
         self.bucketRoute = name
         self.user  = user
 
-    def _signUrl(self,fileName) :
+    def _signUrl(self,fileName,method="PUT") :
         """
         Creates the object for signing URLS
 
@@ -37,10 +37,10 @@ class s3UrlHandler:
         """
         if(s3UrlHandler.ENABLE_S3) :
             s3connection = boto.connect_s3()
-            return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, 'PUT', self.bucketRoute, "/"+str(self.user)+"/" +fileName)
+            return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method, self.bucketRoute, "/"+str(self.user)+"/" +fileName)
         return s3UrlHandler.BASE_URL + "/"+self.bucketRoute +"/"+self.user+"/" +fileName
 
-    def getSignedUrl(self,fileName):
+    def getSignedUrl(self,fileName,method="PUT"):
         """
         Signs a URL for PUT requests
 
@@ -49,9 +49,12 @@ class s3UrlHandler:
 
         returns signed url (String)
         """
-        seconds = int((datetime.utcnow()-datetime(1970,1,1)).total_seconds())
-        self.s3FileName = str(seconds)+"_"+fileName
-        return self._signUrl(self.s3FileName)
+        if(method=="PUT"):
+            seconds = int((datetime.utcnow()-datetime(1970,1,1)).total_seconds())
+            self.s3FileName = str(seconds)+"_"+fileName
+        else:
+            self.s3FileName = fileName
+        return self._signUrl(self.s3FileName, method)
 
     @staticmethod
     def getBucketNameFromConfig():
