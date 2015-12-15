@@ -1,23 +1,35 @@
-import interfaces
-class Validator(ValidationInterface):
+import re
+class Validator(object):
     """
     Checks individual records against specified validation tests
     """
 
     @staticmethod
-    def validate(record,rules):
+    def validate(record,rules,csvSchema):
         """
         Args:
-        record -- dict represenation of a single record
-        testDef -- String representation of validation to be performed
-
+        record -- dict represenation of a single record of data
+        rules -- list of rule Objects
+        csvSchema -- dict of schema for the current file.
         Returns:
         True if validation passed, False if failed
         """
         for fieldName in record :
-            ruleSubset = Validator.getRules(fieldName)
+
+            currentSchema =  csvSchema[fieldName]
+            ruleSubset = Validator.getRules(fieldName,rules)
+            currentData = record[fieldName].strip()
+
+            #if field is empty and not required its valid
+            if(len(currentData) == 0 and not currentSchema.required ) :
+                continue
+            # Always check the type
+            if(not Validator.checkType(currentData,currentSchema.field_type.name) ) :
+                return False
+
+            #Field must pass all rules
             for currentRule in ruleSubset :
-                if(not validateor.evaluateRule(record[fieldName],currentRule)):
+                if(not Validator.evaluateRule(currentData,currentRule)):
                     return False
         return True
 
@@ -27,9 +39,50 @@ class Validator(ValidationInterface):
         for rule in rules :
             if( rule.file_column.name == fieldName) :
                 returnList.append(rule)
-    return returnList
+        return returnList
 
     @staticmethod
-    def evaluateRule(data,rule):
-        #TODO The rules
-        return False
+    def checkType(data,datatype) :
+        if(datatype == "STRING") :
+            return(len(data) > 0)
+        if(datatype == "BOOLEAN") :
+            if(data in ["YES","NO","1","0"]) :
+                return True
+            return False
+        if(datatype == "INT") :
+            return re.match(r"^[-]?[1-9]\d*$", data) is not None
+        if(datatype == "DECIMAL") :
+            if (re.match(r"^[-]?((\d+(\.\d*)?)|(\.\d+))$", data) is None ) :
+                return re.match(r"^[-]?[1-9]\d*$", data) is not None
+            return True
+        raise ValueError("Data Type Invalid " + data)
+
+    @staticmethod
+    def getIntFromString(data) :
+        return int(float(data))
+
+    @staticmethod
+    def getType(data,datatype) :
+        if(datatype =="INT") :
+            return int(float(data))
+        if(datatype =="DECIMAL") :
+            return float(data)
+        if(datatype == "STRING" or datatype =="BOOLEAN") :
+            return data
+        raise ValueError("Data Type Invalid")
+
+    @staticmethod
+    def evaluateRule(data,rule,datatype):
+        value1 = rule.rule_text_1
+        currentRuleType = rule.rule_type.name
+        if(currentRuleType =="LENGTH") :
+            return len(data) < Validator.getIntFromString(value1)
+        if(currentRuleType =="LESS") :
+            return Validator.getType(data,datatype) < Validator.getType(value1,datatype)
+        if(currentRuleType =="GREATER") :
+            return Validator.getType(data,datatype) > Validator.getType(value1,datatype)
+        if(currentRuleType =="EQUAL") :
+            return Validator.getType(data,datatype) == Validator.getType(value1,datatype)
+        if(currentRuleType =="NOT EQUAL") :
+            return Validator.getType(data,datatype) == Validator.getType(value1,datatype)
+        raise ValueError("Rule Type Invalid")
