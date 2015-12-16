@@ -1,6 +1,6 @@
 import sys
 import os
-
+from flask.ext.cors import CORS
 from flask import Flask, request, make_response, session, g, redirect, url_for, \
      abort, render_template, flash ,session, Response
 import json
@@ -24,6 +24,8 @@ PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 # Create application
 app = Flask(__name__)
 app.config.from_object(__name__)
+
+cors = CORS(app)
 
 #Enable AWS Sessions
 app.session_interface = DynamoInterface()
