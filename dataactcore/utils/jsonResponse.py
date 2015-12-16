@@ -22,8 +22,10 @@ class JsonResponse :
         return jsondata
 
     @staticmethod
-    def error(exception, errorCode):
+    def error(exception, errorCode, extraDict = {}):
         responseDict = {}
+        for key in extraDict.iterkeys():
+            responseDict[key] = extraDict[key]
         if(JsonResponse.debugMode):
             responseDict["message"] = exception.message
             responseDict["errorType"] = str(type(exception))
