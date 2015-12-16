@@ -54,15 +54,13 @@ class CsvReader(object):
         current = 0
         returnDict = {}
         line = self._getLine()
-        #return returnDict
-        if(not self.isFinished):
-            for row in csv.reader([line],dialect='excel'):
-                for cell in row :
-                    if(current >= self.columnCount) :
-                        raise ValueError("Record contains to many fields")
-                    returnDict[self.headerDictionary[current]] = cell
-                    current += 1
 
+        for row in csv.reader([line],dialect='excel'):
+            for cell in row :
+                if(current >= self.columnCount) :
+                    raise ValueError("Record contains to many fields")
+                returnDict[self.headerDictionary[current]] = cell
+                current += 1
         return returnDict
 
     def _getLine(self):
@@ -85,6 +83,7 @@ class CsvReader(object):
                 return  self.lines.pop(0)
 
         self.isFinished = True
+        return self.unprocessed
 
     def _splitLines(self,packet) :
         """

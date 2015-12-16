@@ -7,6 +7,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from fileReaders.csvReader import CsvReader
 from interfaces.stagingInterface import StagingInterface
 from interfaces.validationInterface import ValidationInterface
+from validator import Validator
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.responseException import ResponseException
 
@@ -70,8 +71,9 @@ class ValidationManager:
                 except ValueError as e:
                     #TODO Logging
                     continue
-                if(Vaildator.validate(record,rules,csvSchema)) :
-                    stagingDb.writeRecord(tableName,record,csvSchema)
+                if(Validator.validate(record,rules,csvSchema)) :
+                    print record
+                    #stagingDb.writeRecord(tableName,record)
                 else:
                     #TODO Logging
                     pass
