@@ -17,13 +17,15 @@ class CsvReader(object):
         s3Bucket = s3connection.lookup(bucket)
 
         possibleFields = {}
+        currentFields = {}
         for schema in  csvSchema:
-            possibleFields[schema.name] = 0
+                possibleFields[schema.name] = 0
 
         self.s3File = s3Bucket.lookup(filename)
         self.unprocessed = ''
         self.lines = []
         self.headerDictionary = {}
+
         current = 0
         self.isFinished = False
         self.columnCount = 0
@@ -44,6 +46,10 @@ class CsvReader(object):
                 possibleFields[headerValue]  = 1
                 current += 1
         self.columnCount = current
+        #Check that all required fields exists
+        for schema in csvSchema :
+            if(schema.required and  possibleFields[schema.name] == 0) :
+                raise ValueError("Header : "+ schema.name + " is required")
 
     def getNextRecord(self):
         """

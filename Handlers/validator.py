@@ -14,6 +14,10 @@ class Validator(object):
         Returns:
         True if validation passed, False if failed
         """
+        for fieldName in csvSchema :
+            if(csvSchema[fieldName].required and  not fieldName in record ):
+                return False
+
         for fieldName in record :
 
             currentSchema =  csvSchema[fieldName]

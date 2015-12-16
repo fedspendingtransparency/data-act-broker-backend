@@ -24,7 +24,7 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         returnList  = []
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
-        queryResult = self.session.query(FileColumn.name).filter(FileColumn.file_id == fileId).all()
+        queryResult = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).all()
         return queryResult
 
     def getFieldsByFile(self,filetype):
