@@ -25,7 +25,6 @@ class BaseInterface(object):
             raise IOError(str(self.dbConfigFile))
         # Create sqlalchemy connection and session
         self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName)
-        self.connection = self.engine.connect()
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
 
@@ -62,5 +61,6 @@ class BaseInterface(object):
 
     def runStatement(self,statement):
         """ Run specified statement on this database"""
-        self.connection.execute(statement)
-        return True
+        response =  self.session.execute(statement)
+        self.session.commit()
+        return response
