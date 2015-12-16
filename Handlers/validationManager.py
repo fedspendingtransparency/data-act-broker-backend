@@ -72,7 +72,7 @@ class ValidationManager:
             jobTracker.markFinished(jobId)
             return JsonResponse.create(200,{"table":tableName})
         except ResponseException as e:
-            return JsonResponse.error(e,e.status)
+            return JsonResponse.error(e,e.status,{"table":tableName})
         except Exception as e:
             exc = ResponseException(e.message)
             exc.wrappedException = e

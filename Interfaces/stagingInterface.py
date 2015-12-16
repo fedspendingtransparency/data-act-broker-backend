@@ -6,7 +6,7 @@ from dataactcore.models.stagingInterface import StagingInterface as BaseStagingI
 import dataactcore
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, Column, Integer, Text, Numeric, Boolean
 
 
 
@@ -22,8 +22,6 @@ class StagingInterface(BaseStagingInterface):
         Returns:
         tableName if created, exception otherwise
         """
-        print("Table name:")
-        print(tableName)
         if(tableName==None):
             tableName = "job"+str(jobId)
 
@@ -32,11 +30,9 @@ class StagingInterface(BaseStagingInterface):
         # Write tablename to related job in job tracker
         jobTracker = JobTrackerInterface()
         jobTracker.addStagingTable(jobId,tableName)
-        print(filetype)
         validationDB = ValidationInterface()
         fields = validationDB.getFieldsByFile(filetype)
-        print("Fields by file number of keys:")
-        print(str(len(fields)))
+
         """ Might not need sequence for ORM
         # Create sequence to be used for primary key
         sequenceName = tableName + "Serial"
@@ -57,28 +53,32 @@ class StagingInterface(BaseStagingInterface):
             # Get correct type name
             fieldTypeName = fields[key].field_type.name
             if(fieldTypeName.lower() == "string"):
-                fieldTypeName = "Text"
+                fieldTypeName = Text
             elif(fieldTypeName.lower() == "int"):
-                fieldTypeName = "Integer"
+                fieldTypeName = Integer
+            elif(fieldTypeName.lower() == "decimal"):
+                fieldTypeName = Numeric
+            elif(fieldTypeName.lower() == "boolean"):
+                fieldTypeName = Boolean
+            else:
+                raise ValueError("Bad field type")
             # Get extra parameters (primary key or not null)
             extraParam = ""
             if(fields[key].field_type.description == "PRIMARY_KEY"):
-                extraParam =  ", primary_key = True"
+                classFieldDict[key.replace(" ","_")] = Column(fieldTypeName, primary_key=True)
                 primaryAssigned = True
             elif(fields[key].required):
-                extraParam = ", nullable = False"
+                classFieldDict[key.replace(" ","_")] = Column(fieldTypeName, nullable=False)
+            else:
+                classFieldDict[key.replace(" ","_")] = Column(fieldTypeName)
 
-            columnDeclaration = "Column("+fieldTypeName+extraParam+")"
-            # Add column to dict
-            classFieldDict[key.replace(" ","_")] = columnDeclaration
 
         if(not primaryAssigned):
             # If no primary key assigned, add one based on table name
-            classFieldDict[tableName + "id"] = "Column(Integer, primary_key = True)"
+            classFieldDict[tableName + "id"] = Column(Integer, primary_key = True)
 
 
         # Create ORM class based on dict
-        print(str(classFieldDict))
         self.orm = type(tableName,(declarative_base(),),classFieldDict)
 
         # Create table
@@ -115,24 +115,25 @@ class StagingInterface(BaseStagingInterface):
         Returns:
         True if successful
         """
+        print("Record to be written:")
+        print(str(record))
 
-        # TODO rewrite to use ORM model stored in self.orm
+        # Create ORM object from class defined by createTable
+        try:
+            record = self.orm()
+        except:
+            # createTable was not called
+            raise Exception("Must call createTable before writing")
 
-        fieldNames = "("
-        fieldValues = "("
-        # For each field, add to fieldNames and fieldValues strings
+        # For each field, add value to ORM object
         for key in record.iterkeys():
-            fieldNames += key.replace(" ","_") + ", "
-            fieldValues += record[key] + ", "
+            print("Before adding")
+            print(record.__dict__)
+            record[key.replace(" ","_")] = record[key]
+            print("After adding")
+            print(record.__dict__)
 
-        # Remove last comma and space and close lists
-        fieldNames = fieldNames[:-2] + ")"
-        fieldValues = fieldValues[:-2] + ")"
-
-        # Create insert statement
-        statement = "INSERT INTO " + tableName + " " + fieldNames + " VALUES " + fieldValues
-
-        self.runStatement(statement)
+        self.session.commit()
 
     #@staticmethod
     def dropTable(self,table):
@@ -141,5 +142,6 @@ class StagingInterface(BaseStagingInterface):
             self.runStatement("DROP TABLE "+table)
         except:
             # Table was not found
+            print("Table "+table+" not found")
             pass
         return True
