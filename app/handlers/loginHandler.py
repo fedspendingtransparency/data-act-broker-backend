@@ -7,6 +7,8 @@ from utils.requestDictionary import RequestDictionary
 from userHandler import UserHandler
 from utils.jsonResponse import JsonResponse
 from utils.statusCode import StatusCode
+import inspect
+
 class LoginHandler:
     """
     This class contains the login / logout  functions
@@ -58,7 +60,12 @@ class LoginHandler:
             password = safeDictionary.getValue('password')
 
             # For now import credentials list from a JSON file
-            credJson = open(os.getcwd()+"/"+self.credentialFile,"r").read()
+            path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+            lastBackSlash = path.rfind("\\",0,-1)
+            lastForwardSlash = path.rfind("/",0,-1)
+            lastSlash = max([lastBackSlash,lastForwardSlash])
+            credFile = path[0:lastSlash] + "/" + self.credentialFile
+            credJson = open(credFile,"r").read()
 
 
             credDict = json.loads(credJson)
