@@ -25,8 +25,14 @@ class BaseInterface(object):
             raise IOError(str(self.dbConfigFile))
         # Create sqlalchemy connection and session
         self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
+        self.Session = sessionmaker(bind=self.engine)
+        self.session = self.Session()
+
+    def __del__(self):
+        # Close session
+        self.session.close()
+        self.Session.close_all()
+        self.engine.dispose()
 
     @classmethod
     def getCredDict(cls):
