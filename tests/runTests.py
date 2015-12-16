@@ -27,14 +27,4 @@ print(str(suite.countTestCases()) + " tests in suite")
 
 # Run tests and store results
 runner = unittest.TextTestRunner(verbosity=2)
-try:
-    print("Running tests")
-    runner.run(suite)
-finally:
-    # Drop staging tables
-    print("Dropping tables")
-    stagingDb = StagingInterface()
-    tables = stagingDb.getTables()
-    for table in tables:
-        print("Dropping table "+table)
-        stagingDb.runStatement("DROP TABLE " + table)
+runner.run(suite)

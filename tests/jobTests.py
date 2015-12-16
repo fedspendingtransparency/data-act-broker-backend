@@ -1,5 +1,5 @@
 import unittest
-from dataactcore.models.stagingInterface import StagingInterface
+from interfaces.stagingInterface import StagingInterface
 from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type
 import requests
 from interfaces.jobTrackerInterface import JobTrackerInterface
@@ -153,7 +153,14 @@ class JobTests(unittest.TestCase):
     def validateJob(self, jobId):
         """ Send request to validate specified job """
         url = "/validate/"
-        return requests.request(method="POST", url=self.BASE_URL + url, data=self.jobJson(jobId), headers = self.JSON_HEADER)
+        response = ""
+        try:
+            response = requests.request(method="POST", url=self.BASE_URL + url, data=self.jobJson(jobId), headers = self.JSON_HEADER)
+        finally:
+            print("Dropping a table")
+            stagingDb = StagingInterface()
+            stagingDb.dropTable(response.json()["table"])
+            return response
 
     def jobJson(self,jobId):
         """ Create JSON to hold jobId """

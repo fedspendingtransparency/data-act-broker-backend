@@ -9,9 +9,8 @@ from sqlalchemy.exc import ProgrammingError
 class StagingInterface(BaseStagingInterface):
     """ Manages all interaction with the staging database
     """
-    tables = []
 
-    def createTable(self,filetype,filename,jobId):
+    def createTable(self,filetype,filename,jobId,tableName=None):
         """ Create staging table for new file
         Args:
         filetype -- type of file to create a table for (e.g. Award, AwardFinancial)
@@ -19,19 +18,19 @@ class StagingInterface(BaseStagingInterface):
         Returns:
         tableName if created, exception otherwise
         """
-        tableName = "job"+str(jobId)
+        if(tableName==None):
+            tableName = "job"+str(jobId)
 
-        print("Appending table name "+tableName)
-        self.tables.append(tableName)
-        print(str(self.tables))
         # Alternate way of naming tables
         #tableName = "data" + tableName.replace("/","").replace("\\","").replace(".","")
         # Write tablename to related job in job tracker
         jobTracker = JobTrackerInterface()
         jobTracker.addStagingTable(jobId,tableName)
-
+        print(filetype)
         validationDB = ValidationInterface()
         fields = validationDB.getFieldsByFile(filetype)
+        print("Fields by file:")
+        print(str(fields))
         # Create sequence to be used for primary key
         sequenceName = tableName + "Serial"
         sequenceStatement = "CREATE SEQUENCE " + sequenceName + " START 1"
@@ -45,6 +44,7 @@ class StagingInterface(BaseStagingInterface):
         tableStatement = "CREATE TABLE " + tableName + " ("
         # Add each column
         for field in fields:
+            print("Adding field " + str(field))
             tableStatement += field.name + " " + field.field_type.name
             if(field.field_type.description == "PRIMARY_KEY"):
                 tableStatement += " PRIMARY KEY DEFAULT nextval('" + sequenceName + "'), "
@@ -90,13 +90,12 @@ class StagingInterface(BaseStagingInterface):
         Returns:
         True if successful
         """
-        print("Record to be written:")
-        print(str(record))
+
         fieldNames = "("
         fieldValues = "("
         # For each field, add to fieldNames and fieldValues strings
         for key in record.iterkeys():
-            fieldNames += key + ", "
+            fieldNames += key.replace(" ","_") + ", "
             fieldValues += record[key] + ", "
 
         # Remove last comma and space and close lists
@@ -105,7 +104,15 @@ class StagingInterface(BaseStagingInterface):
 
         # Create insert statement
         statement = "INSERT INTO " + tableName + " " + fieldNames + " VALUES " + fieldValues
+
         self.runStatement(statement)
 
-    def getTables(self):
-        return self.tables
+    #@staticmethod
+    def dropTable(self,table):
+        try:
+            print("Dropping table "+table)
+            self.runStatement("DROP TABLE "+table)
+        except:
+            # Table was not found
+            pass
+        return True

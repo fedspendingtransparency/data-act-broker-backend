@@ -3,11 +3,12 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from interfaces.jobTrackerInterface import JobTrackerInterface
 import struct
 from dataactcore.utils.requestDictionary import RequestDictionary
-from dataactcore.utils.responseException import ResponseException
 from fileReaders.csvReader import CsvReader
 from interfaces.stagingInterface import StagingInterface
 from interfaces.validationInterface import ValidationInterface
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
+from dataactcore.utils.responseException import ResponseException
+
 
 class ValidationManager:
     """ Outer level class, called by flask route
@@ -21,7 +22,9 @@ class ValidationManager:
         Returns:
         Http response object
         """
+        tableName = ""
         try:
+
             requestDict = RequestDictionary(request)
             if(requestDict.exists("job_id")):
                 jobId = requestDict.getValue("job_id")
@@ -40,7 +43,6 @@ class ValidationManager:
 
             # Get file type from job tracker
             fileType = jobTracker.getFileType(jobId)
-            print(fileType)
 
             # Get bucket name and file name
             fileName = jobTracker.getFileName(jobId)
@@ -52,14 +54,12 @@ class ValidationManager:
 
             # Pull file from S3
             reader = CsvReader()
-            print(bucketName)
-            print(fileName)
             # Use test file for now
             #fileName = "test.csv"
             reader.openFile(bucketName, fileName,fieldList)
             # Create staging table
             stagingDb = StagingInterface()
-            tableName = stagingDb.createTable(fileType,fileName,jobId)
+            tableName = stagingDb.createTable(fileType,fileName,jobId,tableName)
             # While not done, pull one row and put it into staging
             record = reader.getNextRecord()
             while(len(record.keys()) > 0):
@@ -68,9 +68,13 @@ class ValidationManager:
 
             # Mark validation as finished in job tracker
             jobTracker.markFinished(jobId)
-            return JsonResponse.create(200,{})
+            return JsonResponse.create(200,{"table":tableName})
         except ResponseException as e:
             return JsonResponse.error(e,e.status)
+        except Exception as e:
+            exc = ResponseException(e.message)
+            exc.wrappedException = e
+            return JsonResponse.error(exc,exc.status,{"table":tableName})
 
 if __name__ == '__main__':
     validManager = ValidationManager()
