@@ -64,7 +64,7 @@ class ValidationManager:
             stagingDb = StagingInterface()
             tableName = stagingDb.createTable(fileType,fileName,jobId,tableName)
             # While not done, pull one row and put it into staging if it passes
-            # the Vaildator
+            # the Validator
             while(not reader.isFinished):
                 try :
                     record = reader.getNextRecord()
@@ -73,7 +73,12 @@ class ValidationManager:
                     continue
                 if(Validator.validate(record,rules,csvSchema)) :
                     print record
-                    #stagingDb.writeRecord(tableName,record)
+                    try:
+                        stagingDb.writeRecord(tableName,record)
+                    except:
+                        # Write failed, move to next record
+                        # TODO Logging
+                        continue
                 else:
                     #TODO Logging
                     pass
