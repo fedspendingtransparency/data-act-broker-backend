@@ -17,10 +17,14 @@ class JobTests(unittest.TestCase):
     BASE_URL = "http://127.0.0.1:5000"
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False # Gets set to true by the first test to populate the tables
+    DROP_TABLES = True # If true, staging tables are dropped after tests are run
 
     def __init__(self,methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(JobTests,self).__init__(methodName=methodName)
+        # Get staging handler
+
+
         if(not self.TABLE_POPULATED):
             # Create staging database
             try:
@@ -28,6 +32,8 @@ class JobTests(unittest.TestCase):
             except:
                 # Staging database already exists, keep going
                 pass
+
+            self.stagingDb = StagingInterface()
 
             # Clear job tables
             import dataactcore.scripts.clearJobs
@@ -85,7 +91,7 @@ class JobTests(unittest.TestCase):
             "DELETE FROM file_columns",
             "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (1,3,4,'header 1','',True)",
             "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (2,3,4,'header 2','',True)",
-            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (3,3,4,'header 3','',True)",
+            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (3,3,4,'header 3','',False)",
             "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (4,3,4,'header 4','',True)",
             "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (5,3,4,'header 5','',True)"
 
@@ -93,57 +99,79 @@ class JobTests(unittest.TestCase):
             for statement in sqlStatements:
                 validationDB.runStatement(statement)
             JobTests.TABLE_POPULATED = True
+        else:
+            self.stagingDb = StagingInterface()
+
 
 
     def test_valid_job(self):
         """ Test valid job """
 
-        validResponse = self.validateJob(1)
-        if(validResponse.status_code != 200):
-            print(validResponse.status_code)
-            print(validResponse.json()["errorType"])
-            print(validResponse.json()["message"])
-            print(validResponse.json()["trace"])
-        assert(validResponse.status_code == 200)
-        self.assertHeader(validResponse)
+        self.response = self.validateJob(1)
+        if(self.response.status_code != 200):
+            print(self.response.status_code)
+            print(self.response.json()["errorType"])
+            print(self.response.json()["message"])
+            print(self.response.json()["trace"])
+        assert(self.response.status_code == 200)
+        self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
         assert(jobTracker.getStatus(1) == Status.getStatus("finished"))
+        tableName = self.response.json()["table"]
+        assert(self.stagingDb.tableExists(tableName)==True)
+        assert(self.stagingDb.countRows(tableName)==1)
 
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """
-        badIdResponse = self.validateJob(2001)
-        assert(badIdResponse.status_code == 400)
-        self.assertHeader(badIdResponse)
-        assert(badIdResponse.json()["message"]=="Job ID not found in job_status table")
+        self.response = self.validateJob(2001)
+        assert(self.response.status_code == 400)
+        self.assertHeader(self.response)
+        assert(self.response.json()["message"]=="Job ID not found in job_status table")
+        tableName = self.response.json()["table"]
+        assert(self.stagingDb.tableExists(tableName)==False)
+        assert(self.stagingDb.countRows(tableName)==0)
 
     def test_prereq_job(self):
         """ Test job with prerequisites finished """
-        prereqResponse = self.validateJob(7)
-        assert(prereqResponse.status_code == 200)
-        self.assertHeader(prereqResponse)
+        self.response = self.validateJob(7)
+        assert(self.response.status_code == 200)
+        self.assertHeader(self.response)
+        tableName = self.response.json()["table"]
+        assert(self.stagingDb.tableExists(tableName)==True)
+        assert(self.stagingDb.countRows(tableName)==4)
 
     def test_bad_prereq_job(self):
         """ Test job with unfinished prerequisites """
-        prereqResponse = self.validateJob(3)
-        assert(prereqResponse.status_code == 400)
-        self.assertHeader(prereqResponse)
-        assert(prereqResponse.json()["message"] == "Prerequisites incomplete, job cannot be started")
+        self.response = self.validateJob(3)
+        assert(self.response.status_code == 400)
+        self.assertHeader(self.response)
+        assert(self.response.json()["message"] == "Prerequisites incomplete, job cannot be started")
+        tableName = self.response.json()["table"]
+        assert(self.stagingDb.tableExists(tableName)==False)
+        assert(self.stagingDb.countRows(tableName)==0)
 
     def test_bad_type_job(self):
         """ Test job with wrong type """
-        badTypeResponse = self.validateJob(4)
-        assert(badTypeResponse.status_code == 400)
-        self.assertHeader(badTypeResponse)
-        assert(badTypeResponse.json()["message"] == "Wrong type of job for this service")
+        self.response = self.validateJob(4)
+        assert(self.response.status_code == 400)
+        self.assertHeader(self.response)
+        assert(self.response.json()["message"] == "Wrong type of job for this service")
+        tableName = self.response.json()["table"]
+        assert(self.stagingDb.tableExists(tableName)==False)
+        assert(self.stagingDb.countRows(tableName)==0)
 
     # TODO uncomment this unit test once jobs are labeled as ready
     #def test_finished_job(self):
         #""" Test job that is already finished """
-        #finishedResponse = self.validateJob(5)
-        #assert(finishedResponse.status_code == 400)
-        #self.assertHeader(finishedResponse)
-        #assert(finishedResponse.json()["message"] == "Job is not ready")
+        #self.response = self.validateJob(5)
+        #assert(self.response.status_code == 400)
+        #self.assertHeader(self.response)
+        #assert(self.response.json()["message"] == "Job is not ready")
+        #tableName = self.response.json()["table"]
+        #assert(self.stagingDb.tableExists(tableName)==False)
+        #assert(self.stagingDb.countRows(tableName)==0)
+        #self.dropTables(tableName)
 
     def assertHeader(self, response):
         """ Assert that content type header exists and is json """
@@ -153,15 +181,20 @@ class JobTests(unittest.TestCase):
     def validateJob(self, jobId):
         """ Send request to validate specified job """
         url = "/validate/"
-        response = ""
-        try:
-            response = requests.request(method="POST", url=self.BASE_URL + url, data=self.jobJson(jobId), headers = self.JSON_HEADER)
-        finally:
+        return requests.request(method="POST", url=self.BASE_URL + url, data=self.jobJson(jobId), headers = self.JSON_HEADER)
+
+    def tearDown(self):
+        self.dropTables(self.response.json()["table"])
+
+    def dropTables(self, table):
+        if(self.DROP_TABLES):
             print("Dropping a table")
             stagingDb = StagingInterface()
-            stagingDb.dropTable(response.json()["table"])
-            return response
-
+            stagingDb.dropTable(table)
+            return True
+        else:
+            return False
     def jobJson(self,jobId):
         """ Create JSON to hold jobId """
         return '{"job_id":'+str(jobId)+'}'
+

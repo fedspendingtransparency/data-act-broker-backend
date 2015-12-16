@@ -4,10 +4,10 @@ from dataactcore.models.field import FieldType, FieldConstraint
 from interfaces.jobTrackerInterface import JobTrackerInterface
 from dataactcore.models.stagingInterface import StagingInterface as BaseStagingInterface
 import dataactcore
-from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.exc import ProgrammingError, ResourceClosedError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import MetaData, Column, Integer, Text, Numeric, Boolean
-
+import inspect
 
 
 class StagingInterface(BaseStagingInterface):
@@ -24,6 +24,9 @@ class StagingInterface(BaseStagingInterface):
         """
         if(tableName==None):
             tableName = "job"+str(jobId)
+
+        while(self.tableExists(tableName)):
+            tableName += "_"
 
         # Alternate way of naming tables
         #tableName = "data" + tableName.replace("/","").replace("\\","").replace(".","")
@@ -117,31 +120,72 @@ class StagingInterface(BaseStagingInterface):
         """
         print("Record to be written:")
         print(str(record))
+        print(type(record))
 
         # Create ORM object from class defined by createTable
         try:
-            record = self.orm()
+            recordOrm = self.orm()
         except:
             # createTable was not called
             raise Exception("Must call createTable before writing")
 
+        print("Members in ORM:")
+        attributes = self.getPublicMembers(recordOrm)
+        print(str(attributes))
         # For each field, add value to ORM object
         for key in record.iterkeys():
-            print("Before adding")
-            print(record.__dict__)
-            record[key.replace(" ","_")] = record[key]
-            print("After adding")
-            print(record.__dict__)
+            attr = key.replace(" ","_")
+            print("Writing attribute " + attr)
+            if not attr in attributes:
+                print(attr + " is not in " + str(attributes))
+            print("Before writing")
+            print(getattr(recordOrm,attr))
+            setattr(recordOrm,attr,record[key])
+            print("After writing")
+            print(getattr(recordOrm,attr))
 
+        self.session.add(recordOrm)
         self.session.commit()
 
     #@staticmethod
     def dropTable(self,table):
         try:
             print("Dropping table "+table)
+            self.session.close()
+            try:
+                #self.connection.close()
+                pass
+            except ResourceClosedError:
+                # Connection already closed
+                pass
             self.runStatement("DROP TABLE "+table)
-        except:
+            print("Finished dropping table")
+        except Exception as e:
+            print(e.message)
+
             # Table was not found
-            print("Table "+table+" not found")
+            #print("Table "+table+" not found")
             pass
         return True
+
+    @staticmethod
+    def getPublicMembers(obj):
+        response = []
+        for member in dir(obj):
+            if(member[0] != "_"):
+                response.append(member)
+        return response
+
+    def tableExists(self,table):
+        """ True if table exists, false otherwise """
+        return self.engine.dialect.has_table(self.engine.connect(),table)
+
+    def countRows(self,table):
+        """ Returns number of rows in the specified table """
+        if(self.tableExists(table)):
+            response =  (self.runStatement("SELECT COUNT(*) FROM "+table)).fetchone()[0]
+            # Try to prevent blocking
+            self.session.close()
+            return response
+        else:
+            return 0
