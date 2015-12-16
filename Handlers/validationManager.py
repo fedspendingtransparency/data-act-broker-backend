@@ -1,5 +1,6 @@
 import sys, os, inspect, json
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.statusCode import StatusCode
 from interfaces.jobTrackerInterface import JobTrackerInterface
 import struct
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -32,14 +33,14 @@ class ValidationManager:
             else:
                 # Request does not have a job ID, can't validate
                 exc = ResponseException("No job ID specified in request")
-                exc.status = 400
+                exc.status = StatusCode.ERROR
                 raise exc
             # Create connection to job tracker database
             jobTracker = JobTrackerInterface()
             # Check that job exists and is ready
             if(not (jobTracker.runChecks(jobId))):
                 exc = ResponseException("Checks failed on Job ID")
-                exc.status = 400
+                exc.status = StatusCode.ERROR
                 raise exc
 
             # Get file type from job tracker
@@ -51,8 +52,8 @@ class ValidationManager:
 
             validationDB = ValidationInterface()
             fieldList = validationDB.getFieldsByFileList(fileType)
-
-
+            csvSchema  = validationDB.getFieldsByFile(fileType)
+            rules = validationDB.getRulesByFile(fileType)
             # Pull file from S3
             reader = CsvReader()
             # Use test file for now
@@ -61,23 +62,26 @@ class ValidationManager:
             # Create staging table
             stagingDb = StagingInterface()
             tableName = stagingDb.createTable(fileType,fileName,jobId,tableName)
-            # While not done, pull one row and put it into staging
-            record = reader.getNextRecord()
-            while(len(record.keys()) > 0):
-                # TODO put validation checks here
-                stagingDb.writeRecord(tableName,record)
-                record = reader.getNextRecord()
+            # While not done, pull one row and put it into staging if it passes
+            # the Vaildator
+            while(not reader.isFinished):
+                try :
+                    record = reader.getNextRecord()
+                except ValueError as e:
+                    #TODO Logging
+                    continue
+                if(Vaildator.validate(record,rules,csvSchema)) :
+                    stagingDb.writeRecord(tableName,record,csvSchema)
+                else:
+                    #TODO Logging
+                    pass
 
             # Mark validation as finished in job tracker
             jobTracker.markFinished(jobId)
-            return JsonResponse.create(200,{"table":tableName})
+            return JsonResponse.create(StatusCode.OK,{"table":tableName})
         except ResponseException as e:
             return JsonResponse.error(e,e.status)
         except Exception as e:
             exc = ResponseException(e.message)
             exc.wrappedException = e
             return JsonResponse.error(exc,exc.status,{"table":tableName})
-
-if __name__ == '__main__':
-    validManager = ValidationManager()
-    validManager.validateJob(1)

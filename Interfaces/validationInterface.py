@@ -11,16 +11,6 @@ class ValidationInterface(validationInterface.ValidationInterface) :
     """ Manages all interaction with the validation database
     """
 
-    def getValidations(self,type):
-        """ Get array of dicts for all validations of specified type
-        Args:
-        type -- type of validation to check for (e.g. single_record, cross_record, external)
-
-        Returns:
-        array of dicts, each representing a single validation
-        """
-        pass
-
     def getFieldsByFileList(self,filetype):
         """ Returns a list of valid field names that can appear in this type of file
 
@@ -71,4 +61,4 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         fileId = self.getFileId(filetype)
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
-        return self.session.query(Rule).options(subqueryload("rule_type")).options(subqueryload("file_column")).filter(FileColumn.file_column_id == fileId).all()
+        return self.session.query(Rule).options(subqueryload("rule_type")).options(subqueryload("file_column")).filter(FileColumn.file_id == fileId).all()
