@@ -17,7 +17,7 @@ class JobTests(unittest.TestCase):
     BASE_URL = "http://127.0.0.1:5000"
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False # Gets set to true by the first test to populate the tables
-    DROP_TABLES = True # If true, staging tables are dropped after tests are run
+    DROP_TABLES = False # If true, staging tables are dropped after tests are run
 
     def __init__(self,methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
@@ -38,36 +38,14 @@ class JobTests(unittest.TestCase):
             # Clear job tables
             import dataactcore.scripts.clearJobs
 
-            # Get bucket name
-            bucketName = s3UrlHandler.getBucketNameFromConfig()
+            # Define user
             user = 1
-            s3manager = s3UrlHandler(bucketName,user)
             # Upload needed files to S3
 
-            fnameValid = "testValid.csv"
-            fnamePrereq = "testPrereq.csv"
-            urlValid = s3manager.getSignedUrl(fnameValid)
-            urlPrereq = s3manager.getSignedUrl(fnamePrereq)
-            path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-            fullPathValid = path + "/" +fnameValid
-            fullPathPrereq = path + "/" + fnamePrereq
-            fileValid = open(fullPathValid, 'rb')
-            filePrereq = open(fullPathPrereq, 'rb')
-
-            # Create file names for S3
-            s3FileNameValid = str(user) + "/" + fnameValid
-            s3FileNamePrereq = str(user) + "/" + fnamePrereq
-
-            # Use boto to put files on S3
-            s3conn = S3Connection()
-            keyValid = Key(s3conn.get_bucket(bucketName))
-            keyValid.key = s3FileNameValid
-            validWritten = keyValid.set_contents_from_filename(fullPathValid)
-            keyPrereq = Key(s3conn.get_bucket(bucketName))
-            keyPrereq.key = s3FileNamePrereq
-            prereqWritten = keyPrereq.set_contents_from_filename(fullPathPrereq)
-            assert(validWritten > 0)
-            assert(prereqWritten > 0)
+            s3FileNameValid = self.uploadFile("testValid.csv",user)
+            s3FileNamePrereq = self.uploadFile("testPrereq.csv",user)
+            s3FileNameBadValues = self.uploadFile("testBadValues.csv",user)
+            s3FileNameMixed = self.uploadFile("testMixed.csv",user)
 
             # Populate with a defined test set
             jobTracker = JobTrackerInterface()
@@ -81,6 +59,8 @@ class JobTests(unittest.TestCase):
             "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (6, " + str(Status.getStatus("finished")) + "," + str(Type.getType("file_upload")) + ",1,1)",
             "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (7, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNamePrereq + "',1)",
             "INSERT INTO job_dependency (dependency_id, job_id, prerequisite_id) VALUES (2, 7, 6)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (8, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameBadValues + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (9, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameMixed + "',1)"
             ]
             for statement in sqlStatements:
                 jobTracker.runStatement(statement)
@@ -102,12 +82,31 @@ class JobTests(unittest.TestCase):
         else:
             self.stagingDb = StagingInterface()
 
+    def uploadFile(self,filename,user):
+        """ Upload file to S3 and return S3 filename"""
+        # Get bucket name
+        bucketName = s3UrlHandler.getBucketNameFromConfig()
 
+        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        fullPath = path + "/" +filename
+
+        # Create file names for S3
+        s3FileName = str(user) + "/" + filename
+
+        # Use boto to put files on S3
+        s3conn = S3Connection()
+        key = Key(s3conn.get_bucket(bucketName))
+        key.key = s3FileName
+        bytesWritten = key.set_contents_from_filename(fullPath)
+
+        assert(bytesWritten > 0)
+        return s3FileName
 
     def test_valid_job(self):
         """ Test valid job """
 
         self.response = self.validateJob(1)
+
         if(self.response.status_code != 200):
             print(self.response.status_code)
             print(self.response.json()["errorType"])
@@ -121,6 +120,35 @@ class JobTests(unittest.TestCase):
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==1)
+
+
+
+    def test_bad_values_job(self):
+        # Test job with bad values
+        jobId = 8
+        self.response = self.validateJob(jobId)
+        assert(self.response.status_code == 200)
+        self.assertHeader(self.response)
+        # Check that job is correctly marked as finished
+        jobTracker = JobTrackerInterface()
+        assert(jobTracker.getStatus(jobId) == Status.getStatus("finished"))
+        tableName = self.response.json()["table"]
+        assert(self.stagingDb.tableExists(tableName)==True)
+        # TODO change number of rows to 0 once rules limiting type to integer are added
+        assert(self.stagingDb.countRows(tableName)==2)
+
+    def test_mixed_job(self):
+        """ Test mixed job """
+        jobId = 9
+        self.response = self.validateJob(jobId)
+        assert(self.response.status_code == 200)
+        self.assertHeader(self.response)
+        # Check that job is correctly marked as finished
+        jobTracker = JobTrackerInterface()
+        assert(jobTracker.getStatus(jobId) == Status.getStatus("finished"))
+        tableName = self.response.json()["table"]
+        assert(self.stagingDb.tableExists(tableName)==True)
+        assert(self.stagingDb.countRows(tableName)==3)
 
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """
@@ -188,7 +216,6 @@ class JobTests(unittest.TestCase):
 
     def dropTables(self, table):
         if(self.DROP_TABLES):
-            print("Dropping a table")
             stagingDb = StagingInterface()
             stagingDb.dropTable(table)
             return True

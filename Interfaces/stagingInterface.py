@@ -150,7 +150,6 @@ class StagingInterface(BaseStagingInterface):
     #@staticmethod
     def dropTable(self,table):
         try:
-            print("Dropping table "+table)
             self.session.close()
             try:
                 #self.connection.close()
@@ -159,10 +158,7 @@ class StagingInterface(BaseStagingInterface):
                 # Connection already closed
                 pass
             self.runStatement("DROP TABLE "+table)
-            print("Finished dropping table")
         except Exception as e:
-            print(e.message)
-
             # Table was not found
             #print("Table "+table+" not found")
             pass
