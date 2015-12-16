@@ -50,7 +50,7 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         fileId = self.getFileId(filetype)
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
-        queryResult = self.session.query(FileColumn).options(subqueryload("field_type")).filter(FileColumn.file_column_id == fileId).all()
+        queryResult = self.session.query(FileColumn).options(subqueryload("field_type")).filter(FileColumn.file_id == fileId).all()
         for column in queryResult :
             returnDict[column.name]  = column
         return returnDict

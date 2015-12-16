@@ -28,6 +28,7 @@ class ValidationManager:
             requestDict = RequestDictionary(request)
             if(requestDict.exists("job_id")):
                 jobId = requestDict.getValue("job_id")
+                tableName = "job"+str(jobId)
             else:
                 # Request does not have a job ID, can't validate
                 exc = ResponseException("No job ID specified in request")
@@ -63,6 +64,7 @@ class ValidationManager:
             # While not done, pull one row and put it into staging
             record = reader.getNextRecord()
             while(len(record.keys()) > 0):
+                # TODO put validation checks here
                 stagingDb.writeRecord(tableName,record)
                 record = reader.getNextRecord()
 
