@@ -24,6 +24,8 @@ class ValidationManager:
         Returns:
         Http response object
         """
+        # Create connection to job tracker database
+
         tableName = ""
         try:
 
@@ -36,8 +38,9 @@ class ValidationManager:
                 exc = ResponseException("No job ID specified in request")
                 exc.status = StatusCode.CLIENT_ERROR
                 raise exc
-            # Create connection to job tracker database
             jobTracker = JobTrackerInterface()
+            jobTracker.markStatus(jobId,"running")
+
             # Check that job exists and is ready
             if(not (jobTracker.runChecks(jobId))):
                 exc = ResponseException("Checks failed on Job ID")
@@ -83,16 +86,19 @@ class ValidationManager:
                     pass
 
             # Mark validation as finished in job tracker
-            jobTracker.markFinished(jobId)
+            jobTracker.markStatus(jobId,"finished")
             return JsonResponse.create(StatusCode.OK,{"table":tableName})
         except ResponseException as e:
+            jobTracker.markStatus(jobId,"invalid")
             return JsonResponse.error(e,e.status,{"table":tableName})
         except ValueError as e:
             exc = ResponseException(e.message)
             exc.wrappedException = e
+            jobTracker.markStatus(jobId,"invalid")
             return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Exception as e:
             exc = ResponseException(e.message)
             exc.status = StatusCode.CLIENT_ERROR
             exc.wrappedException = e
+            jobTracker.markStatus(jobId,"failed")
             return JsonResponse.error(exc,exc.status,{"table":tableName})

@@ -70,12 +70,13 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
                     raise exc
         return True
 
-    def markFinished(self,jobId):
+    def markStatus(self,jobId,statsType):
         # Pull JobStatus for jobId
+
         queryResult = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
         if(self.checkJobUnique(queryResult)):
             # Mark it finished
-            queryResult[0].status_id = Status.getStatus("finished")
+            queryResult[0].status_id = Status.getStatus(statsType)
             # Push
             self.session.commit()
 
