@@ -25,6 +25,7 @@ class ValidationManager:
         Http response object
         """
         tableName = ""
+        rowNumber = 0
         try:
 
             requestDict = RequestDictionary(request)
@@ -66,10 +67,12 @@ class ValidationManager:
             # While not done, pull one row and put it into staging if it passes
             # the Validator
             while(not reader.isFinished):
+                rowNumber += 1
                 try :
                     record = reader.getNextRecord()
                 except ValueError as e:
                     #TODO Logging
+                    print("Row " + str(rowNumber) + " failed to get record")
                     continue
                 if(Validator.validate(record,rules,csvSchema)) :
                     try:
@@ -77,9 +80,11 @@ class ValidationManager:
                     except:
                         # Write failed, move to next record
                         # TODO Logging
+                        print("Row " + str(rowNumber) + " failed to write record")
                         continue
                 else:
                     #TODO Logging
+                    print("Row " + str(rowNumber) + " failed validation")
                     pass
 
             # Mark validation as finished in job tracker
