@@ -27,6 +27,7 @@ class ValidationManager:
         # Create connection to job tracker database
 
         tableName = ""
+        rowNumber = 0
         try:
 
             requestDict = RequestDictionary(request)
@@ -69,10 +70,12 @@ class ValidationManager:
             # While not done, pull one row and put it into staging if it passes
             # the Validator
             while(not reader.isFinished):
+                rowNumber += 1
                 try :
                     record = reader.getNextRecord()
                 except ValueError as e:
                     #TODO Logging
+                    print("Row " + str(rowNumber) + " failed to get record")
                     continue
                 if(Validator.validate(record,rules,csvSchema)) :
                     try:
@@ -80,9 +83,11 @@ class ValidationManager:
                     except:
                         # Write failed, move to next record
                         # TODO Logging
+                        print("Row " + str(rowNumber) + " failed to write record")
                         continue
                 else:
                     #TODO Logging
+                    print("Row " + str(rowNumber) + " failed validation")
                     pass
 
             # Mark validation as finished in job tracker
@@ -93,12 +98,12 @@ class ValidationManager:
             return JsonResponse.error(e,e.status,{"table":tableName})
         except ValueError as e:
             exc = ResponseException(e.message)
+            exc.status = StatusCode.CLIENT_ERROR
             exc.wrappedException = e
             jobTracker.markStatus(jobId,"invalid")
             return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Exception as e:
             exc = ResponseException(e.message)
-            exc.status = StatusCode.CLIENT_ERROR
             exc.wrappedException = e
             jobTracker.markStatus(jobId,"failed")
             return JsonResponse.error(exc,exc.status,{"table":tableName})

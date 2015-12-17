@@ -46,7 +46,10 @@ class JobTests(unittest.TestCase):
             s3FileNamePrereq = self.uploadFile("testPrereq.csv",user)
             s3FileNameBadValues = self.uploadFile("testBadValues.csv",user)
             s3FileNameMixed = self.uploadFile("testMixed.csv",user)
-            s3FileNameMissingHeader = self.uploadFile("testMissing.csv",user)
+            s3FileNameEmpty = self.uploadFile("testEmpty.csv",user)
+            s3FileNameMissingHeader = self.uploadFile("testMissingHeader.csv",user)
+            s3FileNameBadHeader = self.uploadFile("testBadHeader.csv",user)
+            s3FileNameLongString = self.uploadFile("test.csv",user)
 
             # Populate with a defined test set
             jobTracker = JobTrackerInterface()
@@ -62,7 +65,10 @@ class JobTests(unittest.TestCase):
             "INSERT INTO job_dependency (dependency_id, job_id, prerequisite_id) VALUES (2, 7, 6)",
             "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (8, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameBadValues + "',1)",
             "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (9, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameMixed + "',1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (10, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameMissingHeader + "',1)"
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (10, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameEmpty + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (11, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameMissingHeader + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (12, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameBadHeader + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (13, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameLongString + "',1)"
             ]
             for statement in sqlStatements:
                 jobTracker.runStatement(statement)
@@ -152,25 +158,62 @@ class JobTests(unittest.TestCase):
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==3)
 
-    def test_missing_header(self):
-        """ Test csv missing required header """
+    def test_empty(self):
+        """ Test empty file """
         jobId = 10
         self.response = self.validateJob(jobId)
-        print(self.response.status_code)
+        assert(self.response.status_code == 400)
+        self.assertHeader(self.response)
+        # Check that job is correctly marked as finished
+        jobTracker = JobTrackerInterface()
+        assert(self.response.json()["message"]=="CSV file must have a header")
+        tableName = self.response.json()["table"]
+        assert(self.stagingDb.tableExists(tableName)==False)
+        assert(self.stagingDb.countRows(tableName)==0)
+
+    def test_missing_header(self):
+        """ Test missing header in first row """
+        jobId = 11
+        self.response = self.validateJob(jobId)
+        assert(self.response.status_code == 400)
+        self.assertHeader(self.response)
+        # Check that job is correctly marked as finished
+        jobTracker = JobTrackerInterface()
+        assert(self.response.json()["message"]=="Header : header 5 is required")
+        tableName = self.response.json()["table"]
+        assert(self.stagingDb.tableExists(tableName)==False)
+        assert(self.stagingDb.countRows(tableName)==0)
+
+    def test_bad_header(self):
+        """ Test bad header value in first row """
+        jobId = 12
+        self.response = self.validateJob(jobId)
+        assert(self.response.status_code == 400)
+        self.assertHeader(self.response)
+        # Check that job is correctly marked as finished
+        jobTracker = JobTrackerInterface()
+        assert(self.response.json()["message"]=="Header : Walrus not in CSV schema")
+        tableName = self.response.json()["table"]
+        assert(self.stagingDb.tableExists(tableName)==False)
+        assert(self.stagingDb.countRows(tableName)==0)
+
+    def test_long_string(self):
+        """ Test many rows, and with one value being a long string with escaped values """
+        jobId = 13
+        self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             print(self.response.status_code)
             print(self.response.json()["errorType"])
             print(self.response.json()["message"])
             print(self.response.json()["trace"])
-        assert(self.response.status_code == 400)
+        assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
-        print(self.response.json()["message"])
-        assert(self.response.json()["message"]=="")
         tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName)==False)
-        assert(self.stagingDb.countRows(tableName)==0)
+        assert(self.stagingDb.tableExists(tableName)==True)
+        print(self.stagingDb.countRows(tableName))
+        assert(self.stagingDb.countRows(tableName)==18287)
 
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """
