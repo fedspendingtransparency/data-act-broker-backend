@@ -3,10 +3,10 @@ import os
 
 from json import JSONDecoder, JSONEncoder
 from aws.session import LoginSession
-from utils.requestDictionary import RequestDictionary
+from dataactcore.utils.requestDictionary import RequestDictionary
 from userHandler import UserHandler
-from utils.jsonResponse import JsonResponse
-from utils.statusCode import StatusCode
+from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.statusCode import StatusCode
 import inspect
 
 class LoginHandler:
@@ -84,7 +84,7 @@ class LoginHandler:
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
-            return JsonResponse.error(e,StatusCode.ERROR)
+            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ValueError as e:
             # Return a 401 for login denied
             return JsonResponse.error(e,StatusCode.LOGIN_REQUIRED)

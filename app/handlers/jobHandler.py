@@ -39,6 +39,8 @@ class JobHandler(JobTrackerInterface):
         submission = Submission(datetime_utc = str(datetime.utcnow()))
         self.session.add(submission)
         self.session.commit()
+        # Calling submission_id to force query to load this
+        submission.submission_id
 
         jobsRequired, uploadDict = self.addUploadJobs(filenames,submission)
 

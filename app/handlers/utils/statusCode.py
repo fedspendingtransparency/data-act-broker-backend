@@ -1,8 +1,0 @@
-class StatusCode() :
-    """
-    Constants for the status code
-    """
-    OK = 200
-    ERROR  = 400
-    LOGIN_REQUIRED = 401
-    INTERNAL_ERROR = 500

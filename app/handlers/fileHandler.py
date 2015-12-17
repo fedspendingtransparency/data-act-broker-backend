@@ -2,10 +2,10 @@ import json
 import sys
 import traceback
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
-from utils.requestDictionary import RequestDictionary
+from dataactcore.utils.requestDictionary import RequestDictionary
 from jobHandler import JobHandler
-from utils.jsonResponse import JsonResponse
-from utils.statusCode import StatusCode
+from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 
 class FileHandler:
@@ -76,7 +76,7 @@ class FileHandler:
                 responseDict[fileName+"_id"] = fileJobDict[fileName]
             return JsonResponse.create(StatusCode.OK,responseDict)
         except (ValueError , TypeError, NotImplementedError) as e:
-            return JsonResponse.error(e,StatusCode.ERROR)
+            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except Exception as e:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
@@ -104,7 +104,7 @@ class FileHandler:
                 exc.status = 400
                 raise exc
         except ( ValueError , TypeError ) as e:
-            return JsonResponse.error(e,StatusCode.ERROR)
+            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:
             return JsonResponse.error(e,e.status)
         except Exception as e:
