@@ -89,10 +89,10 @@ class ValidationManager:
             return JsonResponse.error(e,e.status,{"table":tableName})
         except ValueError as e:
             exc = ResponseException(e.message)
+            exc.status = StatusCode.CLIENT_ERROR
             exc.wrappedException = e
             return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Exception as e:
             exc = ResponseException(e.message)
-            exc.status = StatusCode.CLIENT_ERROR
             exc.wrappedException = e
             return JsonResponse.error(exc,exc.status,{"table":tableName})
