@@ -4,6 +4,7 @@ import sys
 import traceback
 from flask import Flask, request, make_response, session, g, redirect, url_for, \
      abort, render_template, flash
+from dataactcore.utils.responseException import ResponseException
 
 class JsonResponse :
 
@@ -30,6 +31,11 @@ class JsonResponse :
         if(JsonResponse.debugMode):
             responseDict["message"] = exception.message
             responseDict["errorType"] = str(type(exception))
+            print("Checking for wrapped")
+            print(str(exception.wrappedException))
+            if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):
+                responseDict["wrappedType"] = str(type(exception.wrappedException))
+                responseDict["wrappedMessage"] = exception.wrappedException.message
             exc_type, exc_obj, exc_tb = sys.exc_info()
             trace = traceback.extract_tb(exc_tb, 10)
             responseDict["trace"] = trace
