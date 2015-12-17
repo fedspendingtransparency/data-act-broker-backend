@@ -17,7 +17,7 @@ class JobTests(unittest.TestCase):
     BASE_URL = "http://127.0.0.1:5000"
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False # Gets set to true by the first test to populate the tables
-    DROP_TABLES = False # If true, staging tables are dropped after tests are run
+    DROP_TABLES = True # If true, staging tables are dropped after tests are run
 
     def __init__(self,methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
@@ -46,6 +46,7 @@ class JobTests(unittest.TestCase):
             s3FileNamePrereq = self.uploadFile("testPrereq.csv",user)
             s3FileNameBadValues = self.uploadFile("testBadValues.csv",user)
             s3FileNameMixed = self.uploadFile("testMixed.csv",user)
+            s3FileNameMissingHeader = self.uploadFile("testMissing.csv",user)
 
             # Populate with a defined test set
             jobTracker = JobTrackerInterface()
@@ -60,7 +61,8 @@ class JobTests(unittest.TestCase):
             "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (7, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNamePrereq + "',1)",
             "INSERT INTO job_dependency (dependency_id, job_id, prerequisite_id) VALUES (2, 7, 6)",
             "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (8, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameBadValues + "',1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (9, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameMixed + "',1)"
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (9, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameMixed + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (10, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameMissingHeader + "',1)"
             ]
             for statement in sqlStatements:
                 jobTracker.runStatement(statement)
@@ -149,6 +151,26 @@ class JobTests(unittest.TestCase):
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==3)
+
+    def test_missing_header(self):
+        """ Test csv missing required header """
+        jobId = 10
+        self.response = self.validateJob(jobId)
+        print(self.response.status_code)
+        if(self.response.status_code != 200):
+            print(self.response.status_code)
+            print(self.response.json()["errorType"])
+            print(self.response.json()["message"])
+            print(self.response.json()["trace"])
+        assert(self.response.status_code == 400)
+        self.assertHeader(self.response)
+        # Check that job is correctly marked as finished
+        jobTracker = JobTrackerInterface()
+        print(self.response.json()["message"])
+        assert(self.response.json()["message"]=="")
+        tableName = self.response.json()["table"]
+        assert(self.stagingDb.tableExists(tableName)==False)
+        assert(self.stagingDb.countRows(tableName)==0)
 
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """

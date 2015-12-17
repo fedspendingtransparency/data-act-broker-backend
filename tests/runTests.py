@@ -3,6 +3,8 @@ from jobTests import JobTests
 from validatorTests import ValidatorTests
 from interfaces.stagingInterface import StagingInterface
 
+runMany = False # True to run the test suite multiple times
+
 # Create test suite
 suite = unittest.TestSuite()
 # Get lists of method names
@@ -27,4 +29,10 @@ print(str(suite.countTestCases()) + " tests in suite")
 
 # Run tests and store results
 runner = unittest.TextTestRunner(verbosity=2)
-runner.run(suite)
+if(runMany):
+    for i in range(0,100):
+        result = runner.run(suite)
+        if(len(result.errors) > 0 or len(result.failures) > 0):
+            raise Exception("Test Failed")
+else:
+    result = runner.run(suite)

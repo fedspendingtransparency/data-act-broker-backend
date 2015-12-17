@@ -34,14 +34,14 @@ class ValidationManager:
             else:
                 # Request does not have a job ID, can't validate
                 exc = ResponseException("No job ID specified in request")
-                exc.status = StatusCode.ERROR
+                exc.status = StatusCode.CLIENT_ERROR
                 raise exc
             # Create connection to job tracker database
             jobTracker = JobTrackerInterface()
             # Check that job exists and is ready
             if(not (jobTracker.runChecks(jobId))):
                 exc = ResponseException("Checks failed on Job ID")
-                exc.status = StatusCode.ERROR
+                exc.status = StatusCode.CLIENT_ERROR
                 raise exc
 
             # Get file type from job tracker
@@ -72,7 +72,6 @@ class ValidationManager:
                     #TODO Logging
                     continue
                 if(Validator.validate(record,rules,csvSchema)) :
-                    print record
                     try:
                         stagingDb.writeRecord(tableName,record)
                     except:
@@ -88,7 +87,12 @@ class ValidationManager:
             return JsonResponse.create(StatusCode.OK,{"table":tableName})
         except ResponseException as e:
             return JsonResponse.error(e,e.status,{"table":tableName})
+        except ValueError as e:
+            exc = ResponseException(e.message)
+            exc.wrappedException = e
+            return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Exception as e:
             exc = ResponseException(e.message)
+            exc.status = StatusCode.CLIENT_ERROR
             exc.wrappedException = e
             return JsonResponse.error(exc,exc.status,{"table":tableName})

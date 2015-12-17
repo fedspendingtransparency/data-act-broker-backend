@@ -82,6 +82,9 @@ class CsvReader(object):
         for packet in self.s3File :
             currentBytes = self.unprocessed + packet
             self.lines = self._splitLines(currentBytes)
+            if(len(self.lines) == 0):
+                # If out of data, break and set finished to true
+                break
             #last line still needs processing save and reuse
             self.unprocessed = self.lines.pop()
             if(len(self.lines) > 0) :

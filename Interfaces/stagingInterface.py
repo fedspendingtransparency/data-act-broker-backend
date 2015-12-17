@@ -118,9 +118,6 @@ class StagingInterface(BaseStagingInterface):
         Returns:
         True if successful
         """
-        print("Record to be written:")
-        print(str(record))
-        print(type(record))
 
         # Create ORM object from class defined by createTable
         try:
@@ -129,20 +126,12 @@ class StagingInterface(BaseStagingInterface):
             # createTable was not called
             raise Exception("Must call createTable before writing")
 
-        print("Members in ORM:")
         attributes = self.getPublicMembers(recordOrm)
-        print(str(attributes))
+
         # For each field, add value to ORM object
         for key in record.iterkeys():
             attr = key.replace(" ","_")
-            print("Writing attribute " + attr)
-            if not attr in attributes:
-                print(attr + " is not in " + str(attributes))
-            print("Before writing")
-            print(getattr(recordOrm,attr))
             setattr(recordOrm,attr,record[key])
-            print("After writing")
-            print(getattr(recordOrm,attr))
 
         self.session.add(recordOrm)
         self.session.commit()
@@ -160,7 +149,6 @@ class StagingInterface(BaseStagingInterface):
             self.runStatement("DROP TABLE "+table)
         except Exception as e:
             # Table was not found
-            #print("Table "+table+" not found")
             pass
         return True
 
