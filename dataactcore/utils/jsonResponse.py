@@ -8,6 +8,7 @@ from flask import Flask, request, make_response, session, g, redirect, url_for, 
 class JsonResponse :
 
     debugMode = True
+    printDebug = False
 
     @staticmethod
     def create(code,dictionaryData):
@@ -32,9 +33,10 @@ class JsonResponse :
             exc_type, exc_obj, exc_tb = sys.exc_info()
             trace = traceback.extract_tb(exc_tb, 10)
             responseDict["trace"] = trace
-            print(str(type(exception)))
-            print(exception.message)
-            print(trace)
+            if(JsonResponse.printDebug):
+                print(str(type(exception)))
+                print(exception.message)
+                print(trace)
             del exc_tb
             return JsonResponse.create(errorCode, responseDict)
         else:
