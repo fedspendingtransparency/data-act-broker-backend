@@ -10,7 +10,7 @@ from interfaces.validationInterface import ValidationInterface
 from validator import Validator
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.responseException import ResponseException
-
+from csv import Error
 
 class ValidationManager:
     """ Outer level class, called by flask route
@@ -27,7 +27,7 @@ class ValidationManager:
         # Create connection to job tracker database
 
         tableName = ""
-        rowNumber = 0
+        rowNumber = 1
         try:
 
             requestDict = RequestDictionary(request)
@@ -97,6 +97,13 @@ class ValidationManager:
             jobTracker.markStatus(jobId,"invalid")
             return JsonResponse.error(e,e.status,{"table":tableName})
         except ValueError as e:
+            # Problem with CSV headers
+            exc = ResponseException(e.message)
+            exc.status = StatusCode.CLIENT_ERROR
+            exc.wrappedException = e
+            return JsonResponse.error(exc,exc.status,{"table":tableName})
+        except Error as e:
+            # CSV file not properly formatted (usually too much in one field)
             exc = ResponseException(e.message)
             exc.status = StatusCode.CLIENT_ERROR
             exc.wrappedException = e
