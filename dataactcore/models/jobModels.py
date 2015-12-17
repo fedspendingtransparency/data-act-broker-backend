@@ -12,7 +12,6 @@ Base = declarative_base()
 class Status(Base):
     __tablename__ = "status"
     STATUS_DICT = None
-    STATUS_LIST = ["waiting","ready","running","finished"]
 
     status_id = Column(Integer, primary_key=True)
     name = Column(Text)
@@ -24,31 +23,15 @@ class Status(Base):
         if(Status.STATUS_DICT == None):
             Status.STATUS_DICT = {}
             # Pull status values out of DB
-            for status in Status.STATUS_LIST:
-                Status.STATUS_DICT[status] = Status.setStatus(status)
+            if(Status.session == None):
+                Status.session = JobTrackerInterface().getSession()
+            queryResult = Status.session.query(Status).all()
+            for status in queryResult:
+                Status.STATUS_DICT[status.name] = status.status_id
         if(not statusName in Status.STATUS_DICT):
             raise ValueError("Not a valid job status")
         return Status.STATUS_DICT[statusName]
 
-
-    @staticmethod
-    def setStatus(name):
-        """  Get an id for specified status, if not unique throw an exception
-
-        Arguments:
-        name -- Name of status to get an id for
-
-        Returns:
-        status_id of the specified status
-        """
-        if(Status.session == None):
-            Status.session = JobTrackerInterface().getSession()
-        queryResult = Status.session.query(Status.status_id).filter(Status.name==name).all()
-        if(len(queryResult) != 1):
-            # Did not get a unique result
-            raise ValueError("Database does not contain a unique ID for status "+name)
-        else:
-            return queryResult[0].status_id
 
 class Type(Base):
     __tablename__ = "type"
