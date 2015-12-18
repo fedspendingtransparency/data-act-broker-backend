@@ -7,7 +7,7 @@ from jobHandler import JobHandler
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
-
+from managerProxy import ManagerProxy
 class FileHandler:
     """ Responsible for all tasks relating to file upload
 
@@ -103,6 +103,8 @@ class FileHandler:
                 exc = ResponseException("Wrong job type for finalize route")
                 exc.status = 400
                 raise exc
+            proxy =  ManagerProxy()
+            proxy.sendJobRequest(jobId)
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:
