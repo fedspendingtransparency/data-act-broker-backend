@@ -4,8 +4,8 @@ from threading import Thread
 from flask import Flask, request, make_response, session, g, redirect, url_for, \
      abort, render_template, flash ,session, Response, copy_current_request_context
 import json
-print(sys.path())
-open("pathLog","w").write(str(sys.path()))
+print(sys.path)
+open("pathLog","w").write(str(sys.path))
 from handlers.validationManager import ValidationManager
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
