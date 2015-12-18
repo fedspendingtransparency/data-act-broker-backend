@@ -6,6 +6,9 @@ class CsvReader(object):
     """
     Reads data from S3 CSV file
     """
+
+    BUFFER_SIZE = 8192
+
     def openFile(self,bucket,filename,csvSchema):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
@@ -25,12 +28,13 @@ class CsvReader(object):
         self.unprocessed = ''
         self.lines = []
         self.headerDictionary = {}
-
+        self.packetCounter = 0;
         current = 0
         self.isFinished = False
         self.columnCount = 0
         line = self._getLine()
         # make sure we have not finished reading the file
+
         if(self.isFinished) :
              raise ValueError("CSV file must have a header")
 
@@ -79,18 +83,30 @@ class CsvReader(object):
             #Get the next line
             return self.lines.pop(0)
         #packets are 8192 bytes in size
-        for packet in self.s3File :
+        #for packet in self.s3File :
+        while( self.packetCounter *  CsvReader.BUFFER_SIZE <=  self.s3File.size) :
+            offsetCheck = self.packetCounter *  CsvReader.BUFFER_SIZE
+            header ={'Range' : 'bytes='+str(offsetCheck)+'-'+str(offsetCheck +CsvReader.BUFFER_SIZE) }
+            try:
+                packet = self.s3File.get_contents_as_string(headers=header)
+            except :
+                # Exit
+                break
+            self.packetCounter +=1
+
+            #Get the current lines
             currentBytes = self.unprocessed + packet
             self.lines = self._splitLines(currentBytes)
-            if(len(self.lines) == 0):
-                # If out of data, break and set finished to true
-                break
+
+            #edge case if the packet was filled with newlines only try again
+            if( len(self.lines) ==0 ):
+                continue
+
             #last line still needs processing save and reuse
             self.unprocessed = self.lines.pop()
             if(len(self.lines) > 0) :
                 #Get the next line
                 return  self.lines.pop(0)
-
         self.isFinished = True
         return self.unprocessed
 
@@ -104,11 +120,16 @@ class CsvReader(object):
         ecapeMode =  False
         current = ""
 
-        for char in packet :
+        index = 0
+        for  char in packet :
             if(not ecapeMode) :
                 if(char =='\r' or char =='\n' or char =='\r\n') :
                     if (len(current) >0 ) :
                         linesToReturn.append(current)
+                        #check the last char if its a new line add extra line
+                        # as its at the end of the packet
+                        if( index == len(packet)-1 ) :
+                            linesToReturn.append("")
                     current = ""
                 else :
                   current = current + char
@@ -118,7 +139,7 @@ class CsvReader(object):
                 if(char == '"') :
                     ecapeMode = False
                 current = current + char
-
+            index+=1
         if (len(current)>0) :
             linesToReturn.append(current)
         return linesToReturn
