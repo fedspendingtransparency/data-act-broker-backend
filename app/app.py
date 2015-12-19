@@ -49,4 +49,4 @@ add_file_routes(app, fileManager)
 
 if __name__ == '__main__':
     SessionTable.setup(app, runLocal, createTable)
-    app.run(debug=debugFlag)
+    app.run(host="0.0.0.0")
