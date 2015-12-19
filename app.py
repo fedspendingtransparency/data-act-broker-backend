@@ -6,7 +6,9 @@ import json
 from handlers.validationManager import ValidationManager
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
-
+from dataactcore.utils.responseException import ResponseException
+from csv import Error
+from interfaces.jobTrackerInterface import JobTrackerInterface
 debugFlag = True
 
 # Create application
@@ -20,18 +22,54 @@ validationManager = ValidationManager()
 @app.route("/validate_threaded/",methods=["POST"])
 def validate_threaded():
 
-    @copy_current_request_context
-    def ThreadedFunction ()  :
-        threadedManager = ValidationManager()
-        threadedManager.validateJob(flask.request)
+    def markJob(job,jobTracker,status) :
+        try :
+            jobTracker.markStatus(jobId,status)
+        except Exception as e:
+           pass
 
-    thread = Thread(target=ThreadedFunction)
+    @copy_current_request_context
+    def ThreadedFunction (arg) :
+            threadedManager = ValidationManager()
+            threadedManager.threadedValidateJob(arg)
+
+    jobId = None
+    try:
+        manager = ValidationManager()
+        jobId = manager.getJobID(flask.request)
+    except ResponseException as e:
+        exc = ResponseException(e.message)
+        exc.wrappedException = e
+        return JsonResponse.error(exc,400,{"table":""})
+    except Exception as e:
+        exc = ResponseException(e.message)
+        exc.wrappedException = e
+        return JsonResponse.error(exc,400,{"table":""})
+    try :
+        jobTracker = JobTrackerInterface()
+    except ResponseException as e:
+        exc = ResponseException(e.message)
+        exc.wrappedException = e
+        markJob(jobTracker,jobId,"invalid")
+        return JsonResponse.error(exc,400,{"table":"cannot connect to job database"})
+    except Exception as e:
+        markJob(jobTracker,jobId,"invalid")
+        return JsonResponse.error(exc,400,{"table":"cannot connect to job database"})
+
+
+    thread = Thread(target=ThreadedFunction, args= (jobId,))
+    #thread.setDaemon(True)
     thread.start()
-    return JsonResponse.create(StatusCode.OK,{"table":"TESTING"})
+    try :
+        jobTracker.markStatus(jobId,"running")
+    except Exception as e:
+        return JsonResponse.error(exc,400,{"table":"could not start job"})
+
+    return JsonResponse.create(StatusCode.OK,{"table":"job"+str(jobId)})
 
 @app.route("/validate/",methods=["POST"])
 def validate():
     return validationManager.validateJob(request)
 
 if __name__ == '__main__':
-    app.run(debug=debugFlag)
+    app.run(debug=debugFlag,threaded=True)

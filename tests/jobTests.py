@@ -6,6 +6,8 @@ from interfaces.jobTrackerInterface import JobTrackerInterface
 from interfaces.validationInterface import ValidationInterface
 import os
 import inspect
+import time
+
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 import json
 import boto
@@ -18,7 +20,7 @@ class JobTests(unittest.TestCase):
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False # Gets set to true by the first test to populate the tables
     DROP_TABLES = True # If true, staging tables are dropped after tests are run
-
+    USE_THREADS = True
     def __init__(self,methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(JobTests,self).__init__(methodName=methodName)
@@ -75,7 +77,6 @@ class JobTests(unittest.TestCase):
             for statement in sqlStatements:
                 jobTracker.runStatement(statement)
             validationDB = ValidationInterface()
-#"CREATE TABLE file_columns (file_column_id integer PRIMARY KEY DEFAULT nextval('fileColumnSerial'), file_id integer REFERENCES file_type,field_types_id integer REFERENCES field_type , name text ,description text , required  boolean);",
 
             sqlStatements = [
             "DELETE FROM file_columns",
@@ -116,7 +117,7 @@ class JobTests(unittest.TestCase):
         """ Test valid job """
 
         self.response = self.validateJob(1)
-
+        self.waitOnJob(1)
         if(self.response.status_code != 200):
             print(self.response.status_code)
             print(self.response.json()["errorType"])
@@ -137,6 +138,7 @@ class JobTests(unittest.TestCase):
         # Test job with bad values
         jobId = 8
         self.response = self.validateJob(jobId)
+        self.waitOnJob(8)
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
@@ -151,6 +153,7 @@ class JobTests(unittest.TestCase):
         """ Test mixed job """
         jobId = 9
         self.response = self.validateJob(jobId)
+        self.waitOnJob(9)
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
@@ -164,11 +167,16 @@ class JobTests(unittest.TestCase):
         """ Test empty file """
         jobId = 10
         self.response = self.validateJob(jobId)
-        assert(self.response.status_code == 400)
+        self.waitOnJob(10)
+        if(JobTests.USE_THREADS) :
+            assert(self.response.status_code == 200)
+        else :
+            assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
-        assert(self.response.json()["message"]=="CSV file must have a header")
+        if(not JobTests.USE_THREADS) :
+            assert(self.response.json()["message"]=="CSV file must have a header")
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
@@ -177,11 +185,16 @@ class JobTests(unittest.TestCase):
         """ Test missing header in first row """
         jobId = 11
         self.response = self.validateJob(jobId)
-        assert(self.response.status_code == 400)
+        self.waitOnJob(11)
+        if(JobTests.USE_THREADS) :
+            assert(self.response.status_code == 200)
+        else :
+            assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
-        assert(self.response.json()["message"]=="Header : header 5 is required")
+        if(not JobTests.USE_THREADS) :
+            assert(self.response.json()["message"]=="Header : header 5 is required")
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
@@ -190,11 +203,16 @@ class JobTests(unittest.TestCase):
         """ Test bad header value in first row """
         jobId = 12
         self.response = self.validateJob(jobId)
-        assert(self.response.status_code == 400)
+        self.waitOnJob(12)
+        if(JobTests.USE_THREADS) :
+            assert(self.response.status_code == 200)
+        else :
+            assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
-        assert(self.response.json()["message"]=="Header : Walrus not in CSV schema")
+        if(not JobTests.USE_THREADS) :
+            assert(self.response.json()["message"]=="Header : Walrus not in CSV schema")
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
@@ -203,6 +221,7 @@ class JobTests(unittest.TestCase):
         """ Test many rows """
         jobId = 13
         self.response = self.validateJob(jobId)
+        self.waitOnJob(13)
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
@@ -215,6 +234,7 @@ class JobTests(unittest.TestCase):
         """ Test potentially problematic characters """
         jobId = 14
         self.response = self.validateJob(jobId)
+        self.waitOnJob(14)
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
@@ -224,7 +244,7 @@ class JobTests(unittest.TestCase):
         assert(self.stagingDb.countRows(tableName)==6)
 
     def test_bad_id_job(self):
-        """ Test job ID not found in job status table """
+        """ Test job ID not found in job status table """ 
         self.response = self.validateJob(2001)
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
@@ -236,6 +256,7 @@ class JobTests(unittest.TestCase):
     def test_prereq_job(self):
         """ Test job with prerequisites finished """
         self.response = self.validateJob(7)
+        self.waitOnJob(7)
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         tableName = self.response.json()["table"]
@@ -245,6 +266,7 @@ class JobTests(unittest.TestCase):
     def test_bad_prereq_job(self):
         """ Test job with unfinished prerequisites """
         self.response = self.validateJob(3)
+        self.waitOnJob(3)
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         assert(self.response.json()["message"] == "Prerequisites incomplete, job cannot be started")
@@ -255,6 +277,7 @@ class JobTests(unittest.TestCase):
     def test_bad_type_job(self):
         """ Test job with wrong type """
         self.response = self.validateJob(4)
+        self.waitOnJob(4)
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         assert(self.response.json()["message"] == "Wrong type of job for this service")
@@ -279,9 +302,23 @@ class JobTests(unittest.TestCase):
         assert("Content-Type" in response.headers)
         assert(response.headers["Content-Type"] == "application/json")
 
+    def waitOnJob(self,jobId) :
+        jobTracker = JobTrackerInterface()
+        currentID = Status.getStatus("running")
+        if(JobTests.USE_THREADS) :
+            while ( (jobTracker.getStatus(jobId) == currentID) ):
+                time.sleep(5)
+
+        else :
+            return
+
     def validateJob(self, jobId):
         """ Send request to validate specified job """
-        url = "/validate/"
+        if(JobTests.USE_THREADS) :
+            url = "/validate_threaded/"
+        else :
+            url = "/validate/"
+
         return requests.request(method="POST", url=self.BASE_URL + url, data=self.jobJson(jobId), headers = self.JSON_HEADER)
 
     def tearDown(self):
@@ -297,4 +334,3 @@ class JobTests(unittest.TestCase):
     def jobJson(self,jobId):
         """ Create JSON to hold jobId """
         return '{"job_id":'+str(jobId)+'}'
-
