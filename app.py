@@ -37,4 +37,4 @@ def validate():
     return validationManager.validateJob(request)
 
 if __name__ == '__main__':
-    app.run(debug=debugFlag)
+    app.run(host="0.0.0.0")
