@@ -1,6 +1,6 @@
 import sqlalchemy
 import json
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker , scoped_session, create_session
 import os
 import inspect
 from dataactcore.utils.responseException import ResponseException
@@ -24,15 +24,16 @@ class BaseInterface(object):
         except IOError:
             raise IOError(str(self.dbConfigFile))
         # Create sqlalchemy connection and session
-        self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName)
-        self.Session = sessionmaker(bind=self.engine)
+        self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName,pool_size=100)
+        self.Session = scoped_session(sessionmaker(bind=self.engine))
         self.session = self.Session()
 
     def __del__(self):
-        # Close session
+        #Close session
         self.session.close()
-        self.Session.close_all()
+        self.Session.close_all() 
         self.engine.dispose()
+        pass
 
     @classmethod
     def getCredDict(cls):
