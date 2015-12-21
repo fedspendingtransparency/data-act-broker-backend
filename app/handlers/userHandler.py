@@ -6,8 +6,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, update
 from dataactcore.models.userModel import User
 from sqlalchemy.orm.exc import MultipleResultsFound
+from dataactcore.models.userInterface import UserInterface
 
-class UserHandler:
+class UserHandler(UserInterface):
     """ Responsible for all interaction with the user database
 
     Class Fields:
@@ -19,22 +20,6 @@ class UserHandler:
     connection -- sqlalchemy connection to user database
     session - sqlalchemy session for ORM calls to user database
     """
-
-    dbName = "user_manager"
-    credentialsFile = "dbCred.json"
-
-    def __init__(self):
-        """ Setup of database connection
-
-        """
-        # Load credentials from config file
-        cred = open(self.credentialsFile,"r").read()
-        credDict = json.loads(cred)
-        # Set up engine and session
-        self.engine = create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+self.dbName)
-        self.connection = self.engine.connect()
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
 
     def getUserId(self, username):
         """ Find an id for specified username, creates a new entry for new usernames, raises an exception if multiple results found
