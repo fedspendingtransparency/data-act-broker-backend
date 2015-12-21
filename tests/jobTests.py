@@ -117,7 +117,7 @@ class JobTests(unittest.TestCase):
         """ Test valid job """
 
         self.response = self.validateJob(1)
-        self.waitOnJob(1)
+        self.waitOnJob(1,"finished")
         if(self.response.status_code != 200):
             print(self.response.status_code)
             print(self.response.json()["errorType"])
@@ -138,7 +138,7 @@ class JobTests(unittest.TestCase):
         # Test job with bad values
         jobId = 8
         self.response = self.validateJob(jobId)
-        self.waitOnJob(8)
+        self.waitOnJob(8,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
@@ -153,7 +153,7 @@ class JobTests(unittest.TestCase):
         """ Test mixed job """
         jobId = 9
         self.response = self.validateJob(jobId)
-        self.waitOnJob(9)
+        self.waitOnJob(9,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
@@ -167,7 +167,7 @@ class JobTests(unittest.TestCase):
         """ Test empty file """
         jobId = 10
         self.response = self.validateJob(jobId)
-        self.waitOnJob(10)
+        self.waitOnJob(10,"invalid")
         if(JobTests.USE_THREADS) :
             assert(self.response.status_code == 200)
         else :
@@ -185,7 +185,7 @@ class JobTests(unittest.TestCase):
         """ Test missing header in first row """
         jobId = 11
         self.response = self.validateJob(jobId)
-        self.waitOnJob(11)
+        self.waitOnJob(11,"invalid")
         if(JobTests.USE_THREADS) :
             assert(self.response.status_code == 200)
         else :
@@ -203,7 +203,7 @@ class JobTests(unittest.TestCase):
         """ Test bad header value in first row """
         jobId = 12
         self.response = self.validateJob(jobId)
-        self.waitOnJob(12)
+        self.waitOnJob(12,"invalid")
         if(JobTests.USE_THREADS) :
             assert(self.response.status_code == 200)
         else :
@@ -221,7 +221,7 @@ class JobTests(unittest.TestCase):
         """ Test many rows """
         jobId = 13
         self.response = self.validateJob(jobId)
-        self.waitOnJob(13)
+        self.waitOnJob(13,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
@@ -234,7 +234,7 @@ class JobTests(unittest.TestCase):
         """ Test potentially problematic characters """
         jobId = 14
         self.response = self.validateJob(jobId)
-        self.waitOnJob(14)
+        self.waitOnJob(14,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
@@ -256,7 +256,7 @@ class JobTests(unittest.TestCase):
     def test_prereq_job(self):
         """ Test job with prerequisites finished """
         self.response = self.validateJob(7)
-        self.waitOnJob(7)
+        self.waitOnJob(7,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         tableName = self.response.json()["table"]
@@ -266,7 +266,7 @@ class JobTests(unittest.TestCase):
     def test_bad_prereq_job(self):
         """ Test job with unfinished prerequisites """
         self.response = self.validateJob(3)
-        self.waitOnJob(3)
+        self.waitOnJob(3,"ready")
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         assert(self.response.json()["message"] == "Prerequisites incomplete, job cannot be started")
@@ -277,7 +277,7 @@ class JobTests(unittest.TestCase):
     def test_bad_type_job(self):
         """ Test job with wrong type """
         self.response = self.validateJob(4)
-        self.waitOnJob(4)
+        self.waitOnJob(4,"ready")
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         assert(self.response.json()["message"] == "Wrong type of job for this service")
@@ -302,12 +302,14 @@ class JobTests(unittest.TestCase):
         assert("Content-Type" in response.headers)
         assert(response.headers["Content-Type"] == "application/json")
 
-    def waitOnJob(self,jobId) :
+    def waitOnJob(self,jobId, status) :
         jobTracker = JobTrackerInterface()
         currentID = Status.getStatus("running")
+        targetStatus = Status.getStatus(status)
         if(JobTests.USE_THREADS) :
             while ( (jobTracker.getStatus(jobId) == currentID) ):
                 time.sleep(1)
+            assert(targetStatus ==jobTracker.getStatus(jobId) )
         else :
             return
 

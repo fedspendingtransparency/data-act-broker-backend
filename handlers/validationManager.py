@@ -90,7 +90,9 @@ class ValidationManager:
                     record = reader.getNextRecord()
                 except ValueError as e:
                     #TODO Logging
-                    print("Row " + str(rowNumber) + " failed to get record")
+                    if(not reader.isFinished) :
+                        #Last line may be blank dont throw an error
+                        print("Row " + str(rowNumber) + " failed to get record")
                     continue
                 if(Validator.validate(record,rules,csvSchema)) :
                     try:
