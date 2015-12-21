@@ -19,7 +19,7 @@ class JobTests(unittest.TestCase):
     BASE_URL = "http://127.0.0.1:5000"
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False # Gets set to true by the first test to populate the tables
-    DROP_TABLES = True # If true, staging tables are dropped after tests are run
+    DROP_TABLES = False # If true, staging tables are dropped after tests are run
     USE_THREADS = True
     def __init__(self,methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
@@ -244,7 +244,7 @@ class JobTests(unittest.TestCase):
         assert(self.stagingDb.countRows(tableName)==6)
 
     def test_bad_id_job(self):
-        """ Test job ID not found in job status table """ 
+        """ Test job ID not found in job status table """
         self.response = self.validateJob(2001)
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
@@ -307,8 +307,7 @@ class JobTests(unittest.TestCase):
         currentID = Status.getStatus("running")
         if(JobTests.USE_THREADS) :
             while ( (jobTracker.getStatus(jobId) == currentID) ):
-                time.sleep(5)
-
+                time.sleep(1)
         else :
             return
 

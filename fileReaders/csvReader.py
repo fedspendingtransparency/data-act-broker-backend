@@ -41,7 +41,7 @@ class CsvReader(object):
         #create the header
         for row in csv.reader([line],dialect='excel'):
             for cell in row :
-                headerValue = cell.strip()
+                headerValue = cell.strip().lower()
                 if( not headerValue in possibleFields) :
                     raise ValueError("Header : "+ headerValue + " not in CSV schema")
                 if(possibleFields[headerValue] == 1) :
