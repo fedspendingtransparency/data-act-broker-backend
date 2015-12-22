@@ -4,7 +4,7 @@ import sqlalchemy
 from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from dataactcore.models.jobTrackerInterface import JobTrackerInterface
+
 
 
 Base = declarative_base()
@@ -24,6 +24,7 @@ class Status(Base):
             Status.STATUS_DICT = {}
             # Pull status values out of DB
             if(Status.session == None):
+                from dataactcore.models.jobTrackerInterface import JobTrackerInterface
                 Status.session = JobTrackerInterface().getSession()
             queryResult = Status.session.query(Status).all()
             for status in queryResult:
@@ -60,6 +61,7 @@ class Type(Base):
         type_id of the specified type
         """
         if(Status.session == None):
+            from dataactcore.models.jobTrackerInterface import JobTrackerInterface
             Status.session = JobTrackerInterface().getSession()
         queryResult = Status.session.query(Type.type_id).filter(Type.name==name).all()
         if(len(queryResult) != 1):
