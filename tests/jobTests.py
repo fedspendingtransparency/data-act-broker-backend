@@ -20,7 +20,8 @@ class JobTests(unittest.TestCase):
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False # Gets set to true by the first test to populate the tables
     DROP_TABLES = False # If true, staging tables are dropped after tests are run
-    USE_THREADS = True
+    USE_THREADS = False
+    INCLUDE_LONG_TESTS = False
     def __init__(self,methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(JobTests,self).__init__(methodName=methodName)
@@ -94,7 +95,7 @@ class JobTests(unittest.TestCase):
                 validationDB.runStatement(statement)
 
             # Remove existing tables from staging if they exist
-            for jobId in range(1,lastJob):
+            for jobId in range(1,lastJob+1):
                 self.stagingDb.dropTable("job"+str(jobId))
 
             JobTests.TABLE_POPULATED = True
@@ -157,6 +158,7 @@ class JobTests(unittest.TestCase):
         # TODO change number of rows to 0 once rules limiting type to integer are added
         assert(self.stagingDb.countRows(tableName)==2)
 
+
     def test_mixed_job(self):
         """ Test mixed job """
         jobId = 9
@@ -211,22 +213,32 @@ class JobTests(unittest.TestCase):
         """ Test bad header value in first row """
         jobId = 12
         self.response = self.validateJob(jobId)
-        self.waitOnJob(12,"invalid")
+        if(self.response.status_code != 200):
+            print(self.response.status_code)
+            print(self.response.json()["errorType"])
+            print(self.response.json()["message"])
+            print(self.response.json()["trace"])
+            print(self.response.json()["wrappedType"])
+            print(self.response.json()["wrappedMessage"])
         if(JobTests.USE_THREADS) :
             assert(self.response.status_code == 200)
         else :
             assert(self.response.status_code == 400)
+        self.waitOnJob(12,"invalid")
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
         if(not JobTests.USE_THREADS) :
-            assert(self.response.json()["message"]=="Header : Walrus not in CSV schema")
+            assert(self.response.json()["message"]=="Header : walrus not in CSV schema")
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
 
     def test_many_rows(self):
         """ Test many rows """
+        if(not self.INCLUDE_LONG_TESTS):
+            # Don't do this test when skipping long tests
+            return
         jobId = 13
         self.response = self.validateJob(jobId)
         self.waitOnJob(13,"finished")
@@ -243,6 +255,13 @@ class JobTests(unittest.TestCase):
         jobId = 14
         self.response = self.validateJob(jobId)
         self.waitOnJob(14,"finished")
+        if(self.response.status_code != 200):
+            print(self.response.status_code)
+            print(self.response.json()["errorType"])
+            print(self.response.json()["message"])
+            print(self.response.json()["trace"])
+            print(self.response.json()["wrappedType"])
+            print(self.response.json()["wrappedMessage"])
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
@@ -331,7 +350,11 @@ class JobTests(unittest.TestCase):
         return requests.request(method="POST", url=self.BASE_URL + url, data=self.jobJson(jobId), headers = self.JSON_HEADER)
 
     def tearDown(self):
-        self.dropTables(self.response.json()["table"])
+        try:
+            self.dropTables(self.response.json()["table"])
+        except:
+            # Table not specified, generally this means the job didn't run
+            pass
 
     def dropTables(self, table):
         if(self.DROP_TABLES):

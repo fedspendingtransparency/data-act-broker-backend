@@ -59,54 +59,12 @@ class ValidationManager:
         job status being updated
 
         """
-        rowNumber = 1
+
+        jobTracker = JobTrackerInterface()
         try:
-            jobTracker = JobTrackerInterface()
-            fileName = jobTracker.getFileName(jobId)
-            fileType = jobTracker.getFileType(jobId)
-            # Get bucket name and file name
-            fileName = jobTracker.getFileName(jobId)
-            bucketName = s3UrlHandler.getBucketNameFromConfig()
+            self.runValidation(jobId, jobTracker)
 
-            validationDB = ValidationInterface()
-            fieldList = validationDB.getFieldsByFileList(fileType)
-            csvSchema  = validationDB.getFieldsByFile(fileType)
-            rules = validationDB.getRulesByFile(fileType)
-            # Pull file from S3
-            reader = CsvReader()
-            # Use test file for now
-            #fileName = "test.csv"
-            reader.openFile(bucketName, fileName,fieldList)
-            # Create staging table
-            # While not done, pull one row and put it into staging if it passes
-            # the Validator
-            tableName = "job"+str(jobId)
-            stagingDb = StagingInterface()
-            tableName = stagingDb.createTable(fileType,fileName,jobId,tableName)
 
-            while(not reader.isFinished):
-                rowNumber += 1
-                try :
-                    record = reader.getNextRecord()
-                except ValueError as e:
-                    #TODO Logging
-                    if(not reader.isFinished) :
-                        #Last line may be blank dont throw an error
-                        print("Row " + str(rowNumber) + " failed to get record")
-                    continue
-                if(Validator.validate(record,rules,csvSchema)) :
-                    try:
-                        stagingDb.writeRecord(tableName,record)
-                    except:
-                        # Write failed, move to next record
-                        # TODO Logging
-                        print("Row " + str(rowNumber) + " failed to write record")
-                        continue
-                else:
-                    #TODO Logging
-                    print("Row " + str(rowNumber) + " failed validation")
-                    pass
-            jobTracker.markStatus(jobId,"finished")
             return
         except ResponseException as e:
             self.markJob(jobId,jobTracker,"invalid")
@@ -119,6 +77,57 @@ class ValidationManager:
             self.markJob(jobId,jobTracker,"failed")
 
 
+    def runValidation(self, jobId, jobTracker):
+        rowNumber = 1
+
+        fileType = jobTracker.getFileType(jobId)
+        # Get bucket name and file name
+        fileName = jobTracker.getFileName(jobId)
+        bucketName = s3UrlHandler.getBucketNameFromConfig()
+
+        validationDB = ValidationInterface()
+        fieldList = validationDB.getFieldsByFileList(fileType)
+        csvSchema  = validationDB.getFieldsByFile(fileType)
+        rules = validationDB.getRulesByFile(fileType)
+        # Pull file from S3
+        reader = CsvReader()
+        # Use test file for now
+        #fileName = "test.csv"
+        reader.openFile(bucketName, fileName,fieldList)
+        # Create staging table
+        # While not done, pull one row and put it into staging if it passes
+        # the Validator
+        tableName = "job"+str(jobId)
+        stagingDb = StagingInterface()
+        tableName = stagingDb.createTable(fileType,fileName,jobId,tableName)
+
+        while(not reader.isFinished):
+            rowNumber += 1
+            try :
+                record = reader.getNextRecord()
+            except ResponseException as e:
+                #TODO Logging
+                if(not reader.isFinished) :
+                    #Last line may be blank dont throw an error
+                    print("Row " + str(rowNumber) + " failed to get record")
+                continue
+            if(Validator.validate(record,rules,csvSchema)) :
+                try:
+                    stagingDb.writeRecord(tableName,record)
+                except ResponseException as e:
+                    # Write failed, move to next record
+                    # TODO Logging
+                    print("Row " + str(rowNumber) + " failed to write record")
+                    continue
+            else:
+                #TODO Logging
+                print("Row " + str(rowNumber) + " failed validation")
+                pass
+
+        # Mark validation as finished in job tracker
+        jobTracker.markStatus(jobId,"finished")
+        return True
+
     def validateJob(self, request):
         """ Gets file for job, validates each row, and sends valid rows to staging database
         Args:
@@ -130,7 +139,6 @@ class ValidationManager:
         # Create connection to job tracker database
 
         tableName = ""
-        rowNumber = 1
         try:
 
             requestDict = RequestDictionary(request)
@@ -151,70 +159,28 @@ class ValidationManager:
                 exc.status = StatusCode.CLIENT_ERROR
                 raise exc
 
-            # Get file type from job tracker
-            fileType = jobTracker.getFileType(jobId)
+            self.runValidation(jobId,jobTracker)
 
-            # Get bucket name and file name
-            fileName = jobTracker.getFileName(jobId)
-            bucketName = s3UrlHandler.getBucketNameFromConfig()
-
-            validationDB = ValidationInterface()
-            fieldList = validationDB.getFieldsByFileList(fileType)
-            csvSchema  = validationDB.getFieldsByFile(fileType)
-            rules = validationDB.getRulesByFile(fileType)
-            # Pull file from S3
-            reader = CsvReader()
-            # Use test file for now
-            #fileName = "test.csv"
-            reader.openFile(bucketName, fileName,fieldList)
-            # Create staging table
-            stagingDb = StagingInterface()
-            tableName = stagingDb.createTable(fileType,fileName,jobId,tableName)
-            # While not done, pull one row and put it into staging if it passes
-            # the Validator
-            while(not reader.isFinished):
-                rowNumber += 1
-                try :
-                    record = reader.getNextRecord()
-                except ValueError as e:
-                    #TODO Logging
-                    print("Row " + str(rowNumber) + " failed to get record")
-                    continue
-                if(Validator.validate(record,rules,csvSchema)) :
-                    try:
-                        stagingDb.writeRecord(tableName,record)
-                    except:
-                        # Write failed, move to next record
-                        # TODO Logging
-                        print("Row " + str(rowNumber) + " failed to write record")
-                        continue
-                else:
-                    #TODO Logging
-                    print("Row " + str(rowNumber) + " failed validation")
-                    pass
-
-            # Mark validation as finished in job tracker
-            jobTracker.markStatus(jobId,"finished")
             return  JsonResponse.create(StatusCode.OK,{"table":tableName})
         except ResponseException as e:
             self.markJob(jobId,jobTracker,"invalid")
             return JsonResponse.error(e,e.status,{"table":tableName})
         except ValueError as e:
             # Problem with CSV headers
-            exc = ResponseException(e.message)
+            exc = ResponseException("Internal value error")
             exc.status = StatusCode.CLIENT_ERROR
             exc.wrappedException = e
             self.markJob(jobId,jobTracker,"invalid")
             return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Error as e:
             # CSV file not properly formatted (usually too much in one field)
-            exc = ResponseException(e.message)
+            exc = ResponseException("Internal error")
             exc.status = StatusCode.CLIENT_ERROR
             exc.wrappedException = e
             self.markJob(jobId,jobTracker,"invalid")
             return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Exception as e:
-            exc = ResponseException(e.message)
+            exc = ResponseException("Internal exception")
             exc.wrappedException = e
             self.markJob(jobId,jobTracker,"failed")
             return JsonResponse.error(exc,exc.status,{"table":tableName})

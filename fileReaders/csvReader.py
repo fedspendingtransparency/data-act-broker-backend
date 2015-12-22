@@ -1,6 +1,7 @@
 import boto
 import csv
 import re
+from dataactcore.utils.responseException import ResponseException
 
 class CsvReader(object):
     """
@@ -36,16 +37,16 @@ class CsvReader(object):
         # make sure we have not finished reading the file
 
         if(self.isFinished) :
-             raise ValueError("CSV file must have a header")
+             raise ResponseException("CSV file must have a header",400,ValueError)
 
         #create the header
         for row in csv.reader([line],dialect='excel'):
             for cell in row :
                 headerValue = cell.strip().lower()
                 if( not headerValue in possibleFields) :
-                    raise ValueError("Header : "+ headerValue + " not in CSV schema")
+                    raise ResponseException(("Header : "+ headerValue + " not in CSV schema"), 400, ValueError)
                 if(possibleFields[headerValue] == 1) :
-                    raise ValueError("Header : "+ headerValue + " allready exists")
+                    raise ResponseException(("Header : "+ headerValue + " is duplicated"), 400, ValueError)
                 self.headerDictionary[(current)] = headerValue
                 possibleFields[headerValue]  = 1
                 current += 1
@@ -53,7 +54,7 @@ class CsvReader(object):
         #Check that all required fields exists
         for schema in csvSchema :
             if(schema.required and  possibleFields[schema.name] == 0) :
-                raise ValueError("Header : "+ schema.name + " is required")
+                raise ResponseException(("Header : "+ schema.name + " is required"), 400, ValueError)
 
     def getNextRecord(self):
         """
@@ -68,7 +69,7 @@ class CsvReader(object):
         for row in csv.reader([line],dialect='excel'):
             for cell in row :
                 if(current >= self.columnCount) :
-                    raise ValueError("Record contains to many fields")
+                    raise ResponseException("Record contains too many fields",ValueError)
                 returnDict[self.headerDictionary[current]] = cell
                 current += 1
         return returnDict

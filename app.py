@@ -66,8 +66,7 @@ def validate_threaded():
         return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
 
     thread = Thread(target=ThreadedFunction, args= (jobId,))
-    #thread.setDaemon(True)
-    thread.start()
+
     try :
         jobTracker.markStatus(jobId,"running")
     except Exception as e:
@@ -75,6 +74,8 @@ def validate_threaded():
         exc.wrappedException = e
         exc.status = StatusCode.INTERNAL_ERROR
         return JsonResponse.error(exc,exc.status,{"table":"could not start job"})
+
+    thread.start()
 
     return JsonResponse.create(StatusCode.OK,{"table":"job"+str(jobId)})
 
