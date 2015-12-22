@@ -21,7 +21,7 @@ class JobTests(unittest.TestCase):
     TABLE_POPULATED = False # Gets set to true by the first test to populate the tables
     DROP_TABLES = False # If true, staging tables are dropped after tests are run
     USE_THREADS = False
-    INCLUDE_LONG_TESTS = False
+    INCLUDE_LONG_TESTS = True
     def __init__(self,methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(JobTests,self).__init__(methodName=methodName)
@@ -30,7 +30,7 @@ class JobTests(unittest.TestCase):
 
         if(not self.TABLE_POPULATED):
             # Last job number
-            lastJob = 14
+            lastJob = 100
 
             # Create staging database
             try:
@@ -57,26 +57,28 @@ class JobTests(unittest.TestCase):
             s3FileNameBadHeader = self.uploadFile("testBadHeader.csv",user)
             s3FileNameMany = self.uploadFile("testMany.csv",user)
             s3FileNameOdd = self.uploadFile("testOddCharacters.csv",user)
+            s3FileNameManyBad = self.uploadFile("testManyBadValues.csv",user)
 
             # Populate with a defined test set
             jobTracker = JobTrackerInterface()
-            sqlStatements = ["INSERT INTO submission (submission_id) VALUES (1)",
+            sqlStatements = ["INSERT INTO submission (submission_id) VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),(14),(15)",
             "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (1, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameValid + "',1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (2, " + str(Status.getStatus("ready")) + "," + str(Type.getType("file_upload")) + ",1,1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (3, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1,1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (2, " + str(Status.getStatus("ready")) + "," + str(Type.getType("file_upload")) + ",2,1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (3, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",2,1)",
             "INSERT INTO job_dependency (dependency_id, job_id, prerequisite_id) VALUES (1, 3, 2)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (4, " + str(Status.getStatus("ready")) + "," + str(Type.getType("external_validation")) + ",1,1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (5, " + str(Status.getStatus("finished")) + "," + str(Type.getType("csv_record_validation")) + ",1,1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (6, " + str(Status.getStatus("finished")) + "," + str(Type.getType("file_upload")) + ",1,1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (7, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNamePrereq + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (4, " + str(Status.getStatus("ready")) + "," + str(Type.getType("external_validation")) + ",4,1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (5, " + str(Status.getStatus("finished")) + "," + str(Type.getType("csv_record_validation")) + ",5,1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, file_type_id) VALUES (6, " + str(Status.getStatus("finished")) + "," + str(Type.getType("file_upload")) + ",6,1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (7, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",6, '" + s3FileNamePrereq + "',1)",
             "INSERT INTO job_dependency (dependency_id, job_id, prerequisite_id) VALUES (2, 7, 6)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (8, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameBadValues + "',1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (9, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameMixed + "',1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (10, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameEmpty + "',1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (11, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameMissingHeader + "',1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (12, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameBadHeader + "',1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (13, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameMany + "',1)",
-            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (14, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameOdd + "',1)"
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (8, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",8, '" + s3FileNameBadValues + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (9, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",9, '" + s3FileNameMixed + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (10, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",10, '" + s3FileNameEmpty + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (11, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",11, '" + s3FileNameMissingHeader + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (12, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",12, '" + s3FileNameBadHeader + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (13, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",13, '" + s3FileNameMany + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (14, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",14, '" + s3FileNameOdd + "',1)",
+            "INSERT INTO job_status (job_id, status_id, type_id, submission_id, filename, file_type_id) VALUES (15, " + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",15, '" + s3FileNameManyBad + "',1)"
             ]
             for statement in sqlStatements:
                 jobTracker.runStatement(statement)
@@ -84,8 +86,8 @@ class JobTests(unittest.TestCase):
 
             sqlStatements = [
             "DELETE FROM file_columns",
-            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (1,3,4,'header 1','',True)",
-            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (2,3,4,'header 2','',True)",
+            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (1,3,1,'header 1','',True)",
+            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (2,3,1,'header 2','',True)",
             "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (3,3,4,'header 3','',False)",
             "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (4,3,4,'header 4','',True)",
             "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (5,3,4,'header 5','',True)"
@@ -155,8 +157,31 @@ class JobTests(unittest.TestCase):
         assert(jobTracker.getStatus(jobId) == Status.getStatus("finished"))
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
-        # TODO change number of rows to 0 once rules limiting type to integer are added
-        assert(self.stagingDb.countRows(tableName)==2)
+        assert(self.stagingDb.countRows(tableName)==0)
+
+    def test_many_bad_values_job(self):
+        # Test job with many bad values
+        if(not self.INCLUDE_LONG_TESTS):
+            return
+        jobId = 15
+        self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            print(self.response.status_code)
+            print(self.response.json()["errorType"])
+            print(self.response.json()["message"])
+            print(self.response.json()["trace"])
+            print(self.response.json()["wrappedType"])
+            print(self.response.json()["wrappedMessage"])
+        self.waitOnJob(8,"finished")
+
+        assert(self.response.status_code == 200)
+        self.assertHeader(self.response)
+        # Check that job is correctly marked as finished
+        jobTracker = JobTrackerInterface()
+        assert(jobTracker.getStatus(jobId) == Status.getStatus("finished"))
+        tableName = self.response.json()["table"]
+        assert(self.stagingDb.tableExists(tableName)==True)
+        assert(self.stagingDb.countRows(tableName)==0)
 
 
     def test_mixed_job(self):
@@ -213,13 +238,6 @@ class JobTests(unittest.TestCase):
         """ Test bad header value in first row """
         jobId = 12
         self.response = self.validateJob(jobId)
-        if(self.response.status_code != 200):
-            print(self.response.status_code)
-            print(self.response.json()["errorType"])
-            print(self.response.json()["message"])
-            print(self.response.json()["trace"])
-            print(self.response.json()["wrappedType"])
-            print(self.response.json()["wrappedMessage"])
         if(JobTests.USE_THREADS) :
             assert(self.response.status_code == 200)
         else :

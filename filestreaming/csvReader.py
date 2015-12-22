@@ -27,6 +27,7 @@ class CsvReader(object):
 
         self.s3File = s3Bucket.lookup(filename)
         self.unprocessed = ''
+        self.extraLine = False
         self.lines = []
         self.headerDictionary = {}
         self.packetCounter = 0;
@@ -109,6 +110,9 @@ class CsvReader(object):
                 #Get the next line
                 return  self.lines.pop(0)
         self.isFinished = True
+        if(len(self.unprocessed) < 2):
+            # Got an extra line from a line break on the last line
+            self.extraLine = True
         return self.unprocessed
 
     def _splitLines(self,packet) :

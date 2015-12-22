@@ -121,12 +121,4 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
             self.session.commit()
             return True
 
-    def getFileName(self,jobId):
-        queryResult = self.session.query(JobStatus.filename).filter(JobStatus.job_id == jobId).all()
-        if(self.checkJobUnique(queryResult)):
-            return queryResult[0].filename
 
-    def getFileType(self,jobId):
-        queryResult = self.session.query(JobStatus).options(joinedload("file_type")).filter(JobStatus.job_id == jobId).all()
-        if(self.checkJobUnique(queryResult)):
-            return queryResult[0].file_type.name

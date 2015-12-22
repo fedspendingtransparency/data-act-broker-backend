@@ -11,6 +11,8 @@ from validator import Validator
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.responseException import ResponseException
 from csv import Error
+from filestreaming.csvWriter import CsvWriter
+from handlers.validationError import ValidationError
 
 class ValidationManager:
     """
@@ -18,6 +20,7 @@ class ValidationManager:
     Outer level class, called by flask route
 
     """
+    reportHeaders = ["Field name", "Error message", "Row number"]
 
     def markJob(self,jobId,jobTracker,status) :
         try :
@@ -84,6 +87,7 @@ class ValidationManager:
         # Get bucket name and file name
         fileName = jobTracker.getFileName(jobId)
         bucketName = s3UrlHandler.getBucketNameFromConfig()
+        errorFileName = jobTracker.getReportPath(jobId)
 
         validationDB = ValidationInterface()
         fieldList = validationDB.getFieldsByFileList(fileType)
@@ -101,28 +105,26 @@ class ValidationManager:
         stagingDb = StagingInterface()
         tableName = stagingDb.createTable(fileType,fileName,jobId,tableName)
 
-        while(not reader.isFinished):
-            rowNumber += 1
-            try :
-                record = reader.getNextRecord()
-            except ResponseException as e:
-                #TODO Logging
-                if(not reader.isFinished) :
-                    #Last line may be blank dont throw an error
-                    print("Row " + str(rowNumber) + " failed to get record")
-                continue
-            if(Validator.validate(record,rules,csvSchema)) :
-                try:
-                    stagingDb.writeRecord(tableName,record)
+        with CsvWriter(bucketName, errorFileName, self.reportHeaders) as writer:
+            while(not reader.isFinished):
+                rowNumber += 1
+                try :
+                    record = reader.getNextRecord()
                 except ResponseException as e:
-                    # Write failed, move to next record
-                    # TODO Logging
-                    print("Row " + str(rowNumber) + " failed to write record")
+                    if(not (reader.isFinished and reader.extraLine) ) :
+                        #Last line may be blank dont throw an error
+                        writer.write(["Formatting Error", ValidationError.readError, str(rowNumber)])
                     continue
-            else:
-                #TODO Logging
-                print("Row " + str(rowNumber) + " failed validation")
-                pass
+                if(Validator.validate(record,rules,csvSchema)) :
+                    try:
+                        stagingDb.writeRecord(tableName,record)
+                    except ResponseException as e:
+                        # Write failed, move to next record
+                        writer.write(["Formatting Error", ValidationError.writeError, str(rowNumber)])
+                        continue
+                else:
+                    writer.write(["Unknown","Row " + str(rowNumber) + " failed validation",str(rowNumber)])
+                    pass
 
         # Mark validation as finished in job tracker
         jobTracker.markStatus(jobId,"finished")
