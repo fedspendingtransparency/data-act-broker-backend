@@ -26,7 +26,8 @@ class StagingInterface(BaseStagingInterface):
             tableName = "job"+str(jobId)
 
         while(self.tableExists(tableName)):
-            tableName += "_"
+            # Now an exception, could change the name here if desired
+            raise ValueError("Table already exists")
 
         # Alternate way of naming tables
         #tableName = "data" + tableName.replace("/","").replace("\\","").replace(".","")
@@ -139,16 +140,15 @@ class StagingInterface(BaseStagingInterface):
     #@staticmethod
     def dropTable(self,table):
         try:
-            self.session.close()
-            try:
-                #self.connection.close()
-                pass
-            except ResourceClosedError:
-                # Connection already closed
-                pass
             self.runStatement("DROP TABLE "+table)
         except Exception as e:
             # Table was not found
+            pass
+
+        try:
+            self.session.close()
+        except ResourceClosedError:
+            # Connection already closed
             pass
         return True
 

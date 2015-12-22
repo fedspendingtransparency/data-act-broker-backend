@@ -4,7 +4,6 @@ from threading import Thread
 from flask import Flask, request, make_response, session, g, redirect, url_for, \
      abort, render_template, flash ,session, Response, copy_current_request_context
 import json
-print(sys.path)
 open("pathLog","w").write(str(sys.path))
 from handlers.validationManager import ValidationManager
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -43,22 +42,28 @@ def validate_threaded():
     except ResponseException as e:
         exc = ResponseException(e.message)
         exc.wrappedException = e
-        return JsonResponse.error(exc,400,{"table":""})
+        exc.status = StatusCode.CLIENT_ERROR
+        return JsonResponse.error(exc,exc.status,{"table":""})
     except Exception as e:
         exc = ResponseException(e.message)
         exc.wrappedException = e
-        return JsonResponse.error(exc,400,{"table":""})
+        exc.status = StatusCode.CLIENT_ERROR
+        return JsonResponse.error(exc,exc.status,{"table":""})
+
     try :
         jobTracker = JobTrackerInterface()
     except ResponseException as e:
         exc = ResponseException(e.message)
         exc.wrappedException = e
+        exc.status = StatusCode.CLIENT_ERROR
         markJob(jobTracker,jobId,"invalid")
-        return JsonResponse.error(exc,400,{"table":"cannot connect to job database"})
+        return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
     except Exception as e:
         markJob(jobTracker,jobId,"invalid")
-        return JsonResponse.error(exc,400,{"table":"cannot connect to job database"})
-
+        exc = ResponseException(e.message)
+        exc.wrappedException = e
+        exc.status = StatusCode.INTERNAL_ERROR
+        return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
 
     thread = Thread(target=ThreadedFunction, args= (jobId,))
     #thread.setDaemon(True)
@@ -66,7 +71,10 @@ def validate_threaded():
     try :
         jobTracker.markStatus(jobId,"running")
     except Exception as e:
-        return JsonResponse.error(exc,400,{"table":"could not start job"})
+        exc = ResponseException(e.message)
+        exc.wrappedException = e
+        exc.status = StatusCode.INTERNAL_ERROR
+        return JsonResponse.error(exc,exc.status,{"table":"could not start job"})
 
     return JsonResponse.create(StatusCode.OK,{"table":"job"+str(jobId)})
 

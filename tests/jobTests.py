@@ -28,6 +28,9 @@ class JobTests(unittest.TestCase):
 
 
         if(not self.TABLE_POPULATED):
+            # Last job number
+            lastJob = 14
+
             # Create staging database
             try:
                 runCommands(StagingInterface.getCredDict(),[],"staging")
@@ -89,6 +92,11 @@ class JobTests(unittest.TestCase):
             ]
             for statement in sqlStatements:
                 validationDB.runStatement(statement)
+
+            # Remove existing tables from staging if they exist
+            for jobId in range(1,lastJob):
+                self.stagingDb.dropTable("job"+str(jobId))
+
             JobTests.TABLE_POPULATED = True
         else:
             self.stagingDb = StagingInterface()
