@@ -12,7 +12,6 @@ def runCommands(credDict, sqlCommands,dbName) :
 
     except ProgrammingError as e:
         # Happens if DB exists, just print and carry on
-        raise e
         print(e.message)
     engine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+dbName)
     connection = engine.connect()
