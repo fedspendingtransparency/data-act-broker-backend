@@ -7,6 +7,7 @@ from jobHandler import JobHandler
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
+
 from managerProxy import ManagerProxy
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -22,28 +23,26 @@ class FileHandler:
 
     FILE_TYPES = ["appropriations","award_financial","award","procurement"]
 
-    def __init__(self,jobManager):
+    def __init__(self,request):
         """
 
         Arguments:
         jobManager -- A JobManager object to interact with job tracker database
         """
-        self.jobManager = jobManager
-        self.request = None # Should be added for each request by calling setRequest
+        self.jobManager = JobHandler()
+        self.request = request # Should be added for each request by calling setRequest
 
-    def setRequest(self,request):
-        """ Set Http request object
 
-        Arguments:
-        request -- A flask request object, comes with the request
+    def getErrorReportURL(self):
         """
-        self.request = request
-
-    def clearRequest(self):
-        """ Clears the request object to ensure the next request can't accidentally reuse it
-
+        Gets the Signed URL for download based on the jobId
         """
-        self.request = None
+        try :
+            safeDictionary = RequestDictionary(self.request)
+            responseDict["error_url"] = self.s3manager.getSignedUrl(self.jobManager.getReportPath(safeDictionary.getValue("jobId")))
+        except ResponseException as e:
+            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+        return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
     # Submit set of files
     def submit(self,name):
@@ -59,7 +58,7 @@ class FileHandler:
         key_url is the S3 URL for uploading
         key_id is the job id to be passed to the finalize_submission route
         """
-        self.s3manager = s3UrlHandler(s3UrlHandler.getBucketNameFromConfig(),name)
+        self.s3manager = s3UrlHandler(s3UrlHandler.getBucketNameFromConfig())
         responseDict= {}
         try:
             jobManager = JobHandler()
@@ -68,7 +67,7 @@ class FileHandler:
             safeDictionary = RequestDictionary(self.request)
             for fileName in FileHandler.FILE_TYPES :
                 if( safeDictionary.exists(fileName)) :
-                    responseDict[fileName+"_url"] = self.s3manager.getSignedUrl(safeDictionary.getValue(fileName))
+                    responseDict[fileName+"_url"] = self.s3manager.getSignedUrl(str(name),safeDictionary.getValue(fileName))
                     fileNameMap.append((fileName,self.s3manager.s3FileName))
 
             fileJobDict = jobManager.createJobs(fileNameMap)

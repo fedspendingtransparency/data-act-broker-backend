@@ -71,7 +71,6 @@ class LoginSession():
 
 
 
-
 def toUnixTime(datetimeValue) :
     """
     arguments:

@@ -14,7 +14,7 @@ from fileRoutes import add_file_routes
 from loginRoutes import add_login_routes
 
 # Set parameters
-debugFlag = True  # Should be false for prod
+debugFlag = False  # Should be false for prod
 runLocal = True  # False for prod
 createTable = False  # Should be false for most runs, true for first run with DynamoDB
 
@@ -38,15 +38,11 @@ def root():
     content = open(filePath).read()
     return Response(content, mimetype="text/html")
 
-# Create handler objects
-jobManager = JobHandler()
-fileManager = FileHandler(jobManager)
-loginManager = LoginHandler()
 
 # Add routes for modules here
-add_login_routes(app, loginManager)
-add_file_routes(app, fileManager)
+add_login_routes(app)
+add_file_routes(app)
 
 if __name__ == '__main__':
     SessionTable.setup(app, runLocal, createTable)
-    app.run(host="0.0.0.0")
+    app.run(debug=debugFlag,threaded=True,host="0.0.0.0")

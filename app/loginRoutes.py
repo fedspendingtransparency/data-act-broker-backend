@@ -7,22 +7,16 @@ from handlers.loginHandler import LoginHandler
 from handlers.aws.session import LoginSession
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
-def add_login_routes(app, loginManager):
+def add_login_routes(app):
     @app.route("/v1/login/", methods = ["POST"])
     def login():
-        try:
-            loginManager.setRequest(request)
-            return loginManager.login(session)
-        finally:
-            loginManager.clearRequest()
+        loginManager = LoginHandler(request)
+        return loginManager.login(session)
 
     @app.route("/v1/logout/", methods = ["POST"])
     def logout():
-        try:
-            loginManager.setRequest(request)
-            return loginManager.logout(session)
-        finally:
-            loginManager.clearRequest()
+        loginManager = LoginHandler(request)
+        return loginManager.logout(session)
 
     @app.route("/v1/session/", methods = ["GET"])
     def sessionCheck():
