@@ -4,7 +4,7 @@ from dataactcore.utils.statusCode import StatusCode
 from interfaces.jobTrackerInterface import JobTrackerInterface
 import struct
 from dataactcore.utils.requestDictionary import RequestDictionary
-from fileReaders.csvReader import CsvReader
+from filestreaming.csvReader import CsvReader
 from interfaces.stagingInterface import StagingInterface
 from interfaces.validationInterface import ValidationInterface
 from validator import Validator
