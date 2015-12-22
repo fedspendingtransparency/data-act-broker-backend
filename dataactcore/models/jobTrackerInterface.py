@@ -4,7 +4,8 @@ from dataactcore.models.baseInterface import BaseInterface
 import os
 import inspect
 from dataactcore.utils.responseException import ResponseException
-
+from dataactcore.models.jobModels import JobStatus
+from sqlalchemy.orm import subqueryload, joinedload
 
 class JobTrackerInterface(BaseInterface):
     """ Manages all interaction with the job tracker database
@@ -42,4 +43,22 @@ class JobTrackerInterface(BaseInterface):
 
     def getSession(self):
         return self.session
+
+    def getFileName(self,jobId):
+        queryResult = self.session.query(JobStatus.filename).filter(JobStatus.job_id == jobId).all()
+        if(self.checkJobUnique(queryResult)):
+            return queryResult[0].filename
+
+    def getFileType(self,jobId):
+        queryResult = self.session.query(JobStatus).options(joinedload("file_type")).filter(JobStatus.job_id == jobId).all()
+        if(self.checkJobUnique(queryResult)):
+            return queryResult[0].file_type.name
+
+    def getSubmissionId(self,jobId):
+        queryResult = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
+        if(self.checkJobUnique(queryResult)):
+            return queryResult[0].submission_id
+
+    def getReportPath(self,jobId):
+        return "errors/" + "submission_" + self.getSubmissionId(jobId) + "_" + self.getFileType(jobId) + "_error_report"
 
