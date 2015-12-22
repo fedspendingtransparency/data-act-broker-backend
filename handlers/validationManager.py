@@ -87,7 +87,7 @@ class ValidationManager:
         # Get bucket name and file name
         fileName = jobTracker.getFileName(jobId)
         bucketName = s3UrlHandler.getBucketNameFromConfig()
-        errorFileName = jobTracker.getReportPath(jobId)
+        errorFileName = "errors/"+jobTracker.getReportPath(jobId)
 
         validationDB = ValidationInterface()
         fieldList = validationDB.getFieldsByFileList(fileType)
