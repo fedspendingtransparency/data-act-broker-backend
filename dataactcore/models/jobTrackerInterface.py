@@ -60,4 +60,8 @@ class JobTrackerInterface(BaseInterface):
             return queryResult[0].submission_id
 
     def getReportPath(self,jobId):
-        return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_error_report.csv"
+        try:
+            return  "errors/submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_error_report.csv"
+        except:
+            # Bad job ID
+            return False

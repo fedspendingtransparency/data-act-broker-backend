@@ -12,7 +12,7 @@ class s3UrlHandler:
     ENABLE_S3 = True
     URL_LIFETIME = 2000
 
-    def __init__(self,name):
+    def __init__(self,name = None):
         """
         Creates the object for signing URLS
 
@@ -21,7 +21,10 @@ class s3UrlHandler:
         user -- (int) User id folder of S3 bucket
 
         """
-        self.bucketRoute = name
+        if(name == None):
+            self.bucketRoute = s3UrlHandler.getBucketNameFromConfig()
+        else:
+            self.bucketRoute = name
 
     def _signUrl(self,path,fileName,method="PUT") :
         """
@@ -61,3 +64,28 @@ class s3UrlHandler:
         bucketFile = open(path+"/s3bucket.json","r").read()
         bucketDict = json.loads(bucketFile)
         return bucketDict["bucket"]
+
+    @staticmethod
+    def doesFileExist(filename):
+        """ Returns True if specified filename exists in the S3 bucket """
+        # Get key
+        s3connection = boto.connect_s3()
+        bucket = s3connection.get_bucket(s3UrlHandler.getBucketNameFromConfig())
+        key = bucket.get_key(filename)
+        if(key == None):
+            return False
+        else:
+            return True
+
+    @staticmethod
+    def getFileSize(filename):
+        """ Returns file size in number of bytes for specified filename, or False if file doesn't exist """
+
+        # Get key
+        s3connection = boto.connect_s3()
+        bucket = s3connection.get_bucket(s3UrlHandler.getBucketNameFromConfig())
+        key = bucket.get_key(filename)
+        if(key == None):
+            return False
+        else:
+            return key.size
