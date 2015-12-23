@@ -31,8 +31,6 @@ class JsonResponse :
         if(JsonResponse.debugMode):
             responseDict["message"] = exception.message
             responseDict["errorType"] = str(type(exception))
-            print("Checking for wrapped")
-            print(str(exception.wrappedException))
             if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):
                 responseDict["wrappedType"] = str(type(exception.wrappedException))
                 responseDict["wrappedMessage"] = exception.wrappedException.message
