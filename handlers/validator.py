@@ -16,7 +16,7 @@ class Validator(object):
         """
         for fieldName in csvSchema :
             if(csvSchema[fieldName].required and  not fieldName in record ):
-                return False
+                return False, fieldName, "Required field not populated"
 
         for fieldName in record :
 
@@ -39,7 +39,7 @@ class Validator(object):
             for currentRule in ruleSubset :
                 if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name)):
                     return False, fieldName, "Failed rule: " + str(currentRule.description)
-        return True, "", ""
+        return True, " ", " "
 
     @staticmethod
     def getRules(fieldName,rules) :

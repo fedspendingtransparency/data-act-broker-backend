@@ -21,12 +21,12 @@ class JobTests(unittest.TestCase):
     TABLE_POPULATED = False # Gets set to true by the first test to populate the tables
     DROP_TABLES = False # If true, staging tables are dropped after tests are run
     USE_THREADS = False
-    INCLUDE_LONG_TESTS = True
+    INCLUDE_LONG_TESTS = False
+
     def __init__(self,methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(JobTests,self).__init__(methodName=methodName)
         # Get staging handler
-
 
         if(not self.TABLE_POPULATED):
             # Last job number
@@ -40,7 +40,6 @@ class JobTests(unittest.TestCase):
                 pass
 
             self.stagingDb = StagingInterface()
-
             # Clear job tables
             import dataactcore.scripts.clearJobs
 
@@ -126,9 +125,9 @@ class JobTests(unittest.TestCase):
 
     def test_valid_job(self):
         """ Test valid job """
-
+        jobId = 1
         self.response = self.validateJob(1)
-        self.waitOnJob(1,"finished")
+        self.waitOnJob(jobId,"finished")
         if(self.response.status_code != 200):
             print(self.response.status_code)
             print(self.response.json()["errorType"])
@@ -138,7 +137,8 @@ class JobTests(unittest.TestCase):
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
-        assert(jobTracker.getStatus(1) == Status.getStatus("finished"))
+        assert(jobTracker.getStatus(jobId) == Status.getStatus("finished"))
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 37)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==1)
@@ -155,6 +155,7 @@ class JobTests(unittest.TestCase):
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
         assert(jobTracker.getStatus(jobId) == Status.getStatus("finished"))
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 5259)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==0)
@@ -179,6 +180,7 @@ class JobTests(unittest.TestCase):
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
         assert(jobTracker.getStatus(jobId) == Status.getStatus("finished"))
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 86416679)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==0)
@@ -194,6 +196,7 @@ class JobTests(unittest.TestCase):
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
         assert(jobTracker.getStatus(jobId) == Status.getStatus("finished"))
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 78)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==3)
@@ -212,6 +215,7 @@ class JobTests(unittest.TestCase):
         jobTracker = JobTrackerInterface()
         if(not JobTests.USE_THREADS) :
             assert(self.response.json()["message"]=="CSV file must have a header")
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == False)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
@@ -228,6 +232,7 @@ class JobTests(unittest.TestCase):
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == False)
         if(not JobTests.USE_THREADS) :
             assert(self.response.json()["message"]=="Header : header 5 is required")
         tableName = self.response.json()["table"]
@@ -246,6 +251,7 @@ class JobTests(unittest.TestCase):
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == False)
         if(not JobTests.USE_THREADS) :
             assert(self.response.json()["message"]=="Header : walrus not in CSV schema")
         tableName = self.response.json()["table"]
@@ -271,6 +277,7 @@ class JobTests(unittest.TestCase):
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 37)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==22380)
@@ -291,48 +298,61 @@ class JobTests(unittest.TestCase):
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 78)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==6)
 
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """
-        self.response = self.validateJob(2001)
+        jobId = 2001
+        self.response = self.validateJob(jobId)
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         assert(self.response.json()["message"]=="Job ID not found in job_status table")
+        jobTracker = JobTrackerInterface()
+        assert(jobTracker.getReportPath(jobId) == False)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
 
     def test_prereq_job(self):
         """ Test job with prerequisites finished """
-        self.response = self.validateJob(7)
-        self.waitOnJob(7,"finished")
+        jobId = 7
+        self.response = self.validateJob(jobId)
+        self.waitOnJob(jobId,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
+        jobTracker = JobTrackerInterface()
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 37)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==4)
 
     def test_bad_prereq_job(self):
         """ Test job with unfinished prerequisites """
-        self.response = self.validateJob(3)
-        self.waitOnJob(3,"ready")
+        jobId = 3
+        self.response = self.validateJob(jobId)
+        self.waitOnJob(jobId,"ready")
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         assert(self.response.json()["message"] == "Prerequisites incomplete, job cannot be started")
+        jobTracker = JobTrackerInterface()
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == False)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
 
     def test_bad_type_job(self):
         """ Test job with wrong type """
-        self.response = self.validateJob(4)
-        self.waitOnJob(4,"ready")
+        jobId = 4
+        self.response = self.validateJob(jobId)
+        self.waitOnJob(jobId,"ready")
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         assert(self.response.json()["message"] == "Wrong type of job for this service")
+        jobTracker = JobTrackerInterface()
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == False)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
@@ -340,10 +360,13 @@ class JobTests(unittest.TestCase):
     # TODO uncomment this unit test once jobs are labeled as ready
     #def test_finished_job(self):
         #""" Test job that is already finished """
-        #self.response = self.validateJob(5)
+        #jobId = 5
+        #self.response = self.validateJob(jobId)
         #assert(self.response.status_code == 400)
         #self.assertHeader(self.response)
         #assert(self.response.json()["message"] == "Job is not ready")
+        #jobTracker = JobTrackerInterface()
+        #assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == False)
         #tableName = self.response.json()["table"]
         #assert(self.stagingDb.tableExists(tableName)==False)
         #assert(self.stagingDb.countRows(tableName)==0)

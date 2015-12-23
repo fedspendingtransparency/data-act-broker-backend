@@ -78,7 +78,7 @@ class CsvReader(object):
     def _getLine(self):
         """
         This method reads 8192 bytes from S3 Bucket at a time and stores
-        it in a line buffer. The line buffer is used untill its empty then
+        it in a line buffer. The line buffer is used until its empty then
         another request is created to S3 for more data.
         """
         if(len(self.lines) > 0) :
@@ -110,7 +110,7 @@ class CsvReader(object):
                 #Get the next line
                 return  self.lines.pop(0)
         self.isFinished = True
-        if(len(self.unprocessed) < 2):
+        if(len(self.unprocessed) < 5):
             # Got an extra line from a line break on the last line
             self.extraLine = True
         return self.unprocessed

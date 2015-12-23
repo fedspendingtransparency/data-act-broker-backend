@@ -87,7 +87,7 @@ class ValidationManager:
         # Get bucket name and file name
         fileName = jobTracker.getFileName(jobId)
         bucketName = s3UrlHandler.getBucketNameFromConfig()
-        errorFileName = "errors/"+jobTracker.getReportPath(jobId)
+        errorFileName = jobTracker.getReportPath(jobId)
 
         validationDB = ValidationInterface()
         fieldList = validationDB.getFieldsByFileList(fileType)
@@ -110,6 +110,9 @@ class ValidationManager:
                 rowNumber += 1
                 try :
                     record = reader.getNextRecord()
+                    if(reader.isFinished and len(record) < 2):
+                        # This is the last line and is empty, don't record an error
+                        break
                 except ResponseException as e:
                     if(not (reader.isFinished and reader.extraLine) ) :
                         #Last line may be blank dont throw an error
