@@ -259,6 +259,13 @@ class JobTests(unittest.TestCase):
             return
         jobId = 13
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            print(self.response.status_code)
+            print(self.response.json()["errorType"])
+            print(self.response.json()["message"])
+            print(self.response.json()["trace"])
+            print(self.response.json()["wrappedType"])
+            print(self.response.json()["wrappedMessage"])
         self.waitOnJob(13,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)

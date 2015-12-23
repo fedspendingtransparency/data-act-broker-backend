@@ -24,17 +24,22 @@ class Validator(object):
             ruleSubset = Validator.getRules(fieldName,rules)
             currentData = record[fieldName].strip()
 
-            #if field is empty and not required its valid
-            if(len(currentData) == 0 and not currentSchema.required ) :
-                continue
+
+            if(len(currentData) == 0):
+                if(currentSchema.required ):
+                    # If empty and required return field name and error
+                    return False, fieldName, "Required field not populated"
+                else:
+                    #if field is empty and not required its valid
+                    continue
             # Always check the type
             if(not Validator.checkType(currentData,currentSchema.field_type.name) ) :
-                return False
+                return False, fieldName, "Wrong type for this field"
             #Field must pass all rules
             for currentRule in ruleSubset :
                 if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name)):
-                    return False
-        return True
+                    return False, fieldName, "Failed rule: " + str(currentRule.description)
+        return True, "", ""
 
     @staticmethod
     def getRules(fieldName,rules) :

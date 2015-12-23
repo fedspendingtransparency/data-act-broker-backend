@@ -115,7 +115,8 @@ class ValidationManager:
                         #Last line may be blank dont throw an error
                         writer.write(["Formatting Error", ValidationError.readError, str(rowNumber)])
                     continue
-                if(Validator.validate(record,rules,csvSchema)) :
+                valid, fieldName, errorMsg = Validator.validate(record,rules,csvSchema)
+                if(valid) :
                     try:
                         stagingDb.writeRecord(tableName,record)
                     except ResponseException as e:
@@ -123,7 +124,7 @@ class ValidationManager:
                         writer.write(["Formatting Error", ValidationError.writeError, str(rowNumber)])
                         continue
                 else:
-                    writer.write(["Unknown","Row " + str(rowNumber) + " failed validation",str(rowNumber)])
+                    writer.write([fieldName,errorMsg,str(rowNumber)])
                     pass
 
         # Mark validation as finished in job tracker

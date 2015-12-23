@@ -20,7 +20,7 @@ sql=[
 "CREATE TABLE file_columns (file_column_id integer PRIMARY KEY DEFAULT nextval('fileColumnSerial'), file_id integer REFERENCES file_type,field_types_id integer REFERENCES field_type , name text ,description text , required  boolean);",
 
 "CREATE SEQUENCE ruleIdSerial START 1;",
-"CREATE TABLE rule (rule_id integer PRIMARY KEY DEFAULT nextval('ruleIdSerial'), file_column_id integer REFERENCES file_columns, rule_type_id integer REFERENCES rule_type,rule_text_1 text,rule_text_2 text);",
+"CREATE TABLE rule (rule_id integer PRIMARY KEY DEFAULT nextval('ruleIdSerial'), file_column_id integer REFERENCES file_columns, rule_type_id integer REFERENCES rule_type,rule_text_1 text,rule_text_2 text, description text);",
 
 
 "INSERT INTO file_type (file_id,name, description) VALUES (1, 'appropriations', 'appropriations file'), (2, 'award_financial', 'award_financial file'), (3, 'award', 'award file'), (4, 'procurement','procurement file');",
