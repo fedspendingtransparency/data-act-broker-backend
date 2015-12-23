@@ -61,6 +61,7 @@ class JobHandler(JobTrackerInterface):
 
         # Commit all changes
         self.session.commit()
+        uploadDict["submission_id"] = submission.submission_id
         return uploadDict
 
     def addUploadJobs(self,filenames,submission):

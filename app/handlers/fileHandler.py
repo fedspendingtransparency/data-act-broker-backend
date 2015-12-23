@@ -38,12 +38,16 @@ class FileHandler:
         Gets the Signed URL for download based on the jobId
         """
         try :
+            self.s3manager = s3UrlHandler(s3UrlHandler.getBucketNameFromConfig())
             safeDictionary = RequestDictionary(self.request)
-            responseDict["error_url"] = self.s3manager.getSignedUrl(self.jobManager.getReportPath(safeDictionary.getValue("jobId")))
+            responseDict ={}
+            responseDict["error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(safeDictionary.getValue("upload_id")),"GET")
+            return JsonResponse.create(StatusCode.OK,responseDict)
         except ResponseException as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
-        return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
-
+        except Exception as e:
+            # Unexpected exception, this is a 500 server error
+            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
     # Submit set of files
     def submit(self,name):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
@@ -72,7 +76,10 @@ class FileHandler:
 
             fileJobDict = jobManager.createJobs(fileNameMap)
             for fileName in fileJobDict.keys():
-                responseDict[fileName+"_id"] = fileJobDict[fileName]
+                if (not "submission_id" in fileName) :
+                    responseDict[fileName+"_id"] = fileJobDict[fileName]
+
+            responseDict["submission_id"] = fileJobDict["submission_id"] 
             return JsonResponse.create(StatusCode.OK,responseDict)
         except (ValueError , TypeError, NotImplementedError) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)

@@ -23,3 +23,9 @@ def add_file_routes(app):
     def finalize_submission() :
         fileManager = FileHandler(request)
         return fileManager.finalize()
+
+    @app.route("/v1/submission_error_report/", methods = ["POST"])
+    @permissions_check
+    def submission_error_report() :
+        fileManager = FileHandler(request)
+        return fileManager.getErrorReportURL()

@@ -52,6 +52,15 @@ class FileTests(BaseTest):
                 self.fail("One of the job ids returned was not an integer")
             # Call upload complete route for each id
         self.check_upload_complete(responseDict["procurement_id"])
+        self.check_error_route (responseDict["procurement_id"],responseDict["submission_id"])
+
+
+    def check_error_route(self,jobId,submissonId) :
+        jobJson = json.dumps({"upload_id":jobId})
+        urlData = self.utils.postRequest("/v1/submission_error_report/",jobJson)
+        assert("submission_"+str(submissonId)+"_procurement_error_report" in urlData.json()["error_url"] )
+        assert("?Signature" in urlData.json()["error_url"] )
+        assert("&AWSAccessKeyId" in urlData.json()["error_url"])
 
     def check_upload_complete(self, jobId):
         jobJson = json.dumps({"upload_id":jobId})
