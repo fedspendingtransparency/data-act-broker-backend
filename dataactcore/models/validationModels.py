@@ -53,5 +53,6 @@ class Rule(Base):
     rule_type_id  = Column(Integer, ForeignKey("rule_type.rule_id"))
     rule_text_1 = Column(Text)
     rule_text_2 = Column(Text)
+    description = Column(Text)
     rule_type = relationship("RuleType", uselist=False)
     file_column = relationship("FileColumn", uselist=False)
