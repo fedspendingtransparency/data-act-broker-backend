@@ -1,8 +1,9 @@
 class ResponseException(Exception):
-    def __init__(self,message,status = 500,errorType = None):
+    def __init__(self,message,status = 500,errorClass = None,errorType = None):
         super(ResponseException,self).__init__(message)
         self.status = status # This will be used for the HTTP response status code, 500 if unspecified
-        if(errorType == None):
+        self.errorType = errorType # This is used for writing to the error DB
+        if(errorClass == None):
             self.wrappedException = None # Can be used to wrap another type of exception into a ResponseException
         else:
-            self.wrappedException = errorType(message)
+            self.wrappedException = errorClass(message)

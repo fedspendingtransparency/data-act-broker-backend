@@ -5,6 +5,7 @@ import os
 import inspect
 from dataactcore.utils.responseException import ResponseException
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
+from dataactcore.utils.statusCode import StatusCode
 
 class BaseInterface(object):
     """ Abstract base interface to be inherited by interfaces for specific databases
@@ -53,17 +54,13 @@ class BaseInterface(object):
     def checkUnique(queryResult, noResultMessage, multipleResultMessage):
         """ Check that result is unique, if not raise exception"""
         if(len(queryResult) == 0):
-                # Did not get a result for this job
-            exc = ResponseException(noResultMessage)
-            exc.status = 400
-            exc.wrappedException = NoResultFound(noResultMessage)
-            raise exc
+            # Did not get a result for this job, mark as a job error
+            raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound,10)
+
         elif(len(queryResult) > 1):
             # Multiple results for single job ID
-            exc = ResponseException(multipleResultMessage)
-            exc.status = 400
-            exc.wrappedException = MultipleResultsFound(multipleResultMessage)
-            raise exc
+            raise ResponseException(multipleResultMessage,StatusCode.CLIENT_ERROR,MultipleResultsFound,10)
+
         return True
 
     def runStatement(self,statement):
