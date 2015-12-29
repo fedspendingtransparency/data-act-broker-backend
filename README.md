@@ -15,6 +15,8 @@ Logs the current user out, only the login route will be accessible until the nex
 Checks that the session is still valid.  Returns a 200, and a JSON with key "status" containing True if the session exists, and False if not.
 #### POST /v1/submit_files/
 This route is used to retrieve S3 URLs to upload files to.  Data should be either JSON or form-urlencoded with keys: ["appropriations","award_financial","award","procurement"] each with a filename as a value.  
-Route will add jobs to the job tracker DB and generate signed S3 URLs for uploading.  Each key put in comes back with key_url containing the S3 URL and key_id containing the job id.  When upload is complete, the finalize_submission route should be called with the job id
+Route will add jobs to the job tracker DB and generate signed S3 URLs for uploading.  Each key put in comes back with key_url containing the S3 URL and key_id containing the job id.  When upload is complete, the finalize_submission route should be called with the job id.
 #### POST /v1/finalize_submission/
 A call to this route should have JSON or form_urlencoded with a key of "upload_id" and value of the job id received from the submit_files route.  This will change the status of the upload job to finished so that jobs dependent on it can be started.
+#### POST /v1/submission_error_report/
+A call to this route should have JSON or form_urlencoded with a key of "upload_id" and value of the job id received from the submit_files route.  The response object will be JSON with a key of "error_url" and value will be a signed URL to the error report on S3.
