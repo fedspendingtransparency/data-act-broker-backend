@@ -1,4 +1,6 @@
 import re
+from validationError import ValidationError
+
 class Validator(object):
     """
     Checks individual records against specified validation tests
@@ -16,7 +18,7 @@ class Validator(object):
         """
         for fieldName in csvSchema :
             if(csvSchema[fieldName].required and  not fieldName in record ):
-                return False, fieldName, "Required field not populated"
+                return False, fieldName, ValidationError.requiredError
 
         for fieldName in record :
 
@@ -28,13 +30,13 @@ class Validator(object):
             if(len(currentData) == 0):
                 if(currentSchema.required ):
                     # If empty and required return field name and error
-                    return False, fieldName, "Required field not populated"
+                    return False, fieldName, ValidationError.requiredError
                 else:
                     #if field is empty and not required its valid
                     continue
             # Always check the type
             if(not Validator.checkType(currentData,currentSchema.field_type.name) ) :
-                return False, fieldName, "Wrong type for this field"
+                return False, fieldName, ValidationError.typeError
             #Field must pass all rules
             for currentRule in ruleSubset :
                 if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name)):

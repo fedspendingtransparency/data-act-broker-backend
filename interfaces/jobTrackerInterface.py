@@ -5,6 +5,8 @@ from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type,
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.utils.responseException import ResponseException
 from sqlalchemy.orm import subqueryload, joinedload
+from dataactcore.utils.statusCode import StatusCode
+from handlers.validationError import ValidationError
 
 class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
     """ Manages all interaction with the job tracker database
@@ -40,13 +42,12 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
                 # Job manager is not yet implemented, so for now doesn't have to be ready
                 return True
                 # TODO when job manager exists, change to exception below
-                #exc = ResponseException("Job is not ready")
+                #exc = ResponseException("Job is not ready",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
                 #exc.status = 400
                 #raise exc
         else:
-            exc = ResponseException("Job ID not found")
-            exc.status = 400
-            raise exc
+            raise ResponseException("Job ID not found",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
+
         return True
 
     def checkPrerequisites(self, jobId):
@@ -65,9 +66,8 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
                 # Found a unique job
                 if(statusResult[0].status_id != Status.getStatus("finished")):
                     # Prerequisite not complete
-                    exc = ResponseException("Prerequisites incomplete, job cannot be started")
-                    exc.status = 400
-                    raise exc
+                    raise ResponseException("Prerequisites incomplete, job cannot be started",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
+
         return True
 
     def markStatus(self,jobId,statsType):
@@ -96,9 +96,7 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
                 return True
             else:
                 # Wrong type
-                exc = ResponseException("Wrong type of job for this service")
-                exc.status = 400
-                raise exc
+                raise ResponseException("Wrong type of job for this service",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
 
     def getStatus(self,jobId):
         """ Get status for specified job

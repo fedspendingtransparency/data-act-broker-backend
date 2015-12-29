@@ -1,9 +1,11 @@
 import unittest
 from interfaces.stagingInterface import StagingInterface
 from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type
+from dataactcore.models import errorModels
 import requests
 from interfaces.jobTrackerInterface import JobTrackerInterface
 from interfaces.validationInterface import ValidationInterface
+from interfaces.errorInterface import ErrorInterface
 import os
 import inspect
 import time
@@ -20,13 +22,14 @@ class JobTests(unittest.TestCase):
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False # Gets set to true by the first test to populate the tables
     DROP_TABLES = False # If true, staging tables are dropped after tests are run
-    USE_THREADS = False
-    INCLUDE_LONG_TESTS = False
+    USE_THREADS = True
+    INCLUDE_LONG_TESTS = True
 
     def __init__(self,methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(JobTests,self).__init__(methodName=methodName)
         # Get staging handler
+
 
         if(not self.TABLE_POPULATED):
             # Last job number
@@ -40,8 +43,9 @@ class JobTests(unittest.TestCase):
                 pass
 
             self.stagingDb = StagingInterface()
-            # Clear job tables
+            # Clear job tables and error tables
             import dataactcore.scripts.clearJobs
+            import dataactcore.scripts.clearErrors
 
             # Define user
             user = 1
@@ -128,11 +132,7 @@ class JobTests(unittest.TestCase):
         jobId = 1
         self.response = self.validateJob(1)
         self.waitOnJob(jobId,"finished")
-        if(self.response.status_code != 200):
-            print(self.response.status_code)
-            print(self.response.json()["errorType"])
-            print(self.response.json()["message"])
-            print(self.response.json()["trace"])
+
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
@@ -142,23 +142,28 @@ class JobTests(unittest.TestCase):
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==1)
-
+        errorInterface = ErrorInterface()
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
 
 
     def test_bad_values_job(self):
         # Test job with bad values
         jobId = 8
         self.response = self.validateJob(jobId)
-        self.waitOnJob(8,"finished")
+        self.waitOnJob(jobId,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
         assert(jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 5259)
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 5319)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==0)
+        errorInterface = ErrorInterface()
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 90)
 
     def test_many_bad_values_job(self):
         # Test job with many bad values
@@ -166,25 +171,20 @@ class JobTests(unittest.TestCase):
             return
         jobId = 15
         self.response = self.validateJob(jobId)
-        if(self.response.status_code != 200):
-            print(self.response.status_code)
-            print(self.response.json()["errorType"])
-            print(self.response.json()["message"])
-            print(self.response.json()["trace"])
-            print(self.response.json()["wrappedType"])
-            print(self.response.json()["wrappedMessage"])
-        self.waitOnJob(8,"finished")
+        self.waitOnJob(jobId,"finished")
 
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
         assert(jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 86416679)
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 103683914)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==0)
-
+        errorInterface = ErrorInterface()
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 1727355)
 
     def test_mixed_job(self):
         """ Test mixed job """
@@ -196,10 +196,13 @@ class JobTests(unittest.TestCase):
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
         assert(jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 78)
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 83)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==3)
+        errorInterface = ErrorInterface()
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 1)
 
     def test_empty(self):
         """ Test empty file """
@@ -219,6 +222,9 @@ class JobTests(unittest.TestCase):
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
+        errorInterface = ErrorInterface()
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("single_row_error"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
 
     def test_missing_header(self):
         """ Test missing header in first row """
@@ -238,6 +244,9 @@ class JobTests(unittest.TestCase):
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
+        errorInterface = ErrorInterface()
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("missing_header_error"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
 
     def test_bad_header(self):
         """ Test bad header value in first row """
@@ -257,6 +266,9 @@ class JobTests(unittest.TestCase):
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
+        errorInterface = ErrorInterface()
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("bad_header_error"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
 
     def test_many_rows(self):
         """ Test many rows """
@@ -265,13 +277,6 @@ class JobTests(unittest.TestCase):
             return
         jobId = 13
         self.response = self.validateJob(jobId)
-        if(self.response.status_code != 200):
-            print(self.response.status_code)
-            print(self.response.json()["errorType"])
-            print(self.response.json()["message"])
-            print(self.response.json()["trace"])
-            print(self.response.json()["wrappedType"])
-            print(self.response.json()["wrappedMessage"])
         self.waitOnJob(13,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
@@ -281,27 +286,26 @@ class JobTests(unittest.TestCase):
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==22380)
+        errorInterface = ErrorInterface()
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
 
     def test_odd_characters(self):
         """ Test potentially problematic characters """
         jobId = 14
         self.response = self.validateJob(jobId)
         self.waitOnJob(14,"finished")
-        if(self.response.status_code != 200):
-            print(self.response.status_code)
-            print(self.response.json()["errorType"])
-            print(self.response.json()["message"])
-            print(self.response.json()["trace"])
-            print(self.response.json()["wrappedType"])
-            print(self.response.json()["wrappedMessage"])
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
-        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 78)
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 83)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==6)
+        errorInterface = ErrorInterface()
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 1)
 
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """
@@ -315,6 +319,9 @@ class JobTests(unittest.TestCase):
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
+        errorInterface = ErrorInterface()
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("job_error"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
 
     def test_prereq_job(self):
         """ Test job with prerequisites finished """
@@ -328,6 +335,9 @@ class JobTests(unittest.TestCase):
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==4)
+        errorInterface = ErrorInterface()
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
 
     def test_bad_prereq_job(self):
         """ Test job with unfinished prerequisites """
@@ -342,6 +352,9 @@ class JobTests(unittest.TestCase):
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
+        errorInterface = ErrorInterface()
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("job_error"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
 
     def test_bad_type_job(self):
         """ Test job with wrong type """
@@ -356,6 +369,9 @@ class JobTests(unittest.TestCase):
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==False)
         assert(self.stagingDb.countRows(tableName)==0)
+        errorInterface = ErrorInterface()
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("job_error"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
 
     # TODO uncomment this unit test once jobs are labeled as ready
     #def test_finished_job(self):
@@ -371,6 +387,9 @@ class JobTests(unittest.TestCase):
         #assert(self.stagingDb.tableExists(tableName)==False)
         #assert(self.stagingDb.countRows(tableName)==0)
         #self.dropTables(tableName)
+        #errorInterface = ErrorInterface()
+        #assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("job_error"))
+        #assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
 
     def assertHeader(self, response):
         """ Assert that content type header exists and is json """
@@ -386,6 +405,7 @@ class JobTests(unittest.TestCase):
                 time.sleep(1)
             assert(targetStatus ==jobTracker.getStatus(jobId) )
         else :
+            assert(targetStatus ==jobTracker.getStatus(jobId) )
             return
 
     def validateJob(self, jobId):
@@ -394,7 +414,6 @@ class JobTests(unittest.TestCase):
             url = "/validate_threaded/"
         else :
             url = "/validate/"
-
         return requests.request(method="POST", url=self.BASE_URL + url, data=self.jobJson(jobId), headers = self.JSON_HEADER)
 
     def tearDown(self):

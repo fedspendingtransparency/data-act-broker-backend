@@ -11,6 +11,9 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from csv import Error
 from interfaces.jobTrackerInterface import JobTrackerInterface
+from interfaces.errorInterface import ErrorInterface
+from handlers.validationError import ValidationError
+
 debugFlag = True
 
 # Create application
@@ -36,19 +39,7 @@ def validate_threaded():
             threadedManager.threadedValidateJob(arg)
 
     jobId = None
-    try:
-        manager = ValidationManager()
-        jobId = manager.getJobID(flask.request)
-    except ResponseException as e:
-        exc = ResponseException(e.message)
-        exc.wrappedException = e
-        exc.status = StatusCode.CLIENT_ERROR
-        return JsonResponse.error(exc,exc.status,{"table":""})
-    except Exception as e:
-        exc = ResponseException(e.message)
-        exc.wrappedException = e
-        exc.status = StatusCode.CLIENT_ERROR
-        return JsonResponse.error(exc,exc.status,{"table":""})
+    manager = ValidationManager()
 
     try :
         jobTracker = JobTrackerInterface()
@@ -56,14 +47,50 @@ def validate_threaded():
         exc = ResponseException(e.message)
         exc.wrappedException = e
         exc.status = StatusCode.CLIENT_ERROR
-        markJob(jobTracker,jobId,"invalid")
         return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
     except Exception as e:
-        markJob(jobTracker,jobId,"invalid")
         exc = ResponseException(e.message)
         exc.wrappedException = e
         exc.status = StatusCode.INTERNAL_ERROR
         return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
+
+    try:
+        jobId = manager.getJobID(flask.request)
+    except ResponseException as e:
+        exc = ResponseException(e.message)
+        exc.wrappedException = e
+        exc.status = StatusCode.CLIENT_ERROR
+        manager.markJob(jobId,jobTracker,"invalid")
+        errorHandler = ErrorInterface()
+        errorHandler.writeFileError(jobId,manager.filename,ValidationError.unknownError)
+        return JsonResponse.error(exc,exc.status,{"table":""})
+    except Exception as e:
+        exc = ResponseException(e.message)
+        exc.wrappedException = e
+        exc.status = StatusCode.CLIENT_ERROR
+        manager.markJob(jobId,jobTracker,"invalid")
+        errorHandler = ErrorInterface()
+        errorHandler.writeFileError(jobId,manager.filename,ValidationError.unknownError)
+        return JsonResponse.error(exc,exc.status,{"table":""})
+
+    try:
+        manager.testJobID(jobId)
+    except ResponseException as e:
+        exc = ResponseException(e.message)
+        exc.wrappedException = e
+        exc.status = StatusCode.CLIENT_ERROR
+        errorHandler = ErrorInterface()
+        errorHandler.writeFileError(jobId,manager.filename,ValidationError.jobError)
+        return JsonResponse.error(exc,exc.status,{"table":""})
+    except Exception as e:
+        exc = ResponseException(e.message)
+        exc.wrappedException = e
+        exc.status = StatusCode.CLIENT_ERROR
+        errorHandler = ErrorInterface()
+        errorHandler.writeFileError(jobId,manager.filename,ValidationError.jobError)
+        return JsonResponse.error(exc,exc.status,{"table":""})
+
+
 
     thread = Thread(target=ThreadedFunction, args= (jobId,))
 

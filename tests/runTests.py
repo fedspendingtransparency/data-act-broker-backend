@@ -27,7 +27,7 @@ for method in jobMethods:
         suite.addTest(test)
 
 
-print(str(suite.countTestCases()) + " tests in suite")
+#print(str(suite.countTestCases()) + " tests in suite")
 
 # Run tests and store results
 runner = unittest.TextTestRunner(verbosity=2)

@@ -22,7 +22,6 @@ class CsvWriter(object):
         header - list of strings for the header
 
         """
-        print CsvWriter.BUFFER_SIZE
         self.stream = smart_open.smart_open("s3://"+bucket+"/"+filename, 'wb',min_part_size=CsvWriter.BUFFER_SIZE)
         self.write(header)
 

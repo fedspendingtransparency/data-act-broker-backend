@@ -2,6 +2,8 @@ import boto
 import csv
 import re
 from dataactcore.utils.responseException import ResponseException
+from handlers.validationError import ValidationError
+from dataactcore.utils.statusCode import StatusCode
 
 class CsvReader(object):
     """
@@ -38,16 +40,16 @@ class CsvReader(object):
         # make sure we have not finished reading the file
 
         if(self.isFinished) :
-             raise ResponseException("CSV file must have a header",400,ValueError)
+             raise ResponseException("CSV file must have a header",400,ValueError,ValidationError.singleRow)
 
         #create the header
         for row in csv.reader([line],dialect='excel'):
             for cell in row :
                 headerValue = cell.strip().lower()
                 if( not headerValue in possibleFields) :
-                    raise ResponseException(("Header : "+ headerValue + " not in CSV schema"), 400, ValueError)
+                    raise ResponseException(("Header : "+ headerValue + " not in CSV schema"), 400, ValueError,ValidationError.badHeaderError)
                 if(possibleFields[headerValue] == 1) :
-                    raise ResponseException(("Header : "+ headerValue + " is duplicated"), 400, ValueError)
+                    raise ResponseException(("Header : "+ headerValue + " is duplicated"), 400, ValueError,ValidationError.duplicateError)
                 self.headerDictionary[(current)] = headerValue
                 possibleFields[headerValue]  = 1
                 current += 1
@@ -55,7 +57,7 @@ class CsvReader(object):
         #Check that all required fields exists
         for schema in csvSchema :
             if(schema.required and  possibleFields[schema.name] == 0) :
-                raise ResponseException(("Header : "+ schema.name + " is required"), 400, ValueError)
+                raise ResponseException(("Header : "+ schema.name + " is required"), 400, ValueError,ValidationError.missingHeaderError)
 
     def getNextRecord(self):
         """
@@ -70,7 +72,7 @@ class CsvReader(object):
         for row in csv.reader([line],dialect='excel'):
             for cell in row :
                 if(current >= self.columnCount) :
-                    raise ResponseException("Record contains too many fields",ValueError)
+                    raise ResponseException("Record contains too many fields",StatusCode.CLIENT_ERROR,ValueError,ValidationError.readError)
                 returnDict[self.headerDictionary[current]] = cell
                 current += 1
         return returnDict
