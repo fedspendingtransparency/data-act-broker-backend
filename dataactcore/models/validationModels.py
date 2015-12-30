@@ -27,7 +27,7 @@ class FieldType(Base):
 class RuleType(Base):
     __tablename__ = "rule_type"
 
-    rule_id = Column(Integer, primary_key=True)
+    rule_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
 
@@ -50,7 +50,7 @@ class Rule(Base):
     __tablename__ = "rule"
     rule_id = Column(Integer, primary_key=True)
     file_column_id = Column(Integer, ForeignKey("file_columns.file_column_id"))
-    rule_type_id  = Column(Integer, ForeignKey("rule_type.rule_id"))
+    rule_type_id  = Column(Integer, ForeignKey("rule_type.rule_type_id"))
     rule_text_1 = Column(Text)
     rule_text_2 = Column(Text)
     description = Column(Text)
