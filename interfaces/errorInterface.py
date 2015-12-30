@@ -1,5 +1,5 @@
-from dataactcore.models import errorInterface
 from dataactcore.models.errorModels import FileStatus, ErrorData, ErrorType, Status
+from dataactcore.models import errorInterface
 from handlers.validationError import ValidationError
 
 class ErrorInterface(errorInterface.ErrorInterface):
