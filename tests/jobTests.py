@@ -22,7 +22,7 @@ class JobTests(unittest.TestCase):
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False # Gets set to true by the first test to populate the tables
     DROP_TABLES = False # If true, staging tables are dropped after tests are run
-    USE_THREADS = False
+    USE_THREADS = True
     INCLUDE_LONG_TESTS = False
 
     def __init__(self,methodName):
@@ -97,7 +97,7 @@ class JobTests(unittest.TestCase):
             "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (3,3,4,'header 3','',False)",
             "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (4,3,4,'header 4','',True)",
             "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (5,3,4,'header 5','',True)",
-            "INSERT INTO rule (rule_id, file_column_id, rule_type_id, rule_text_1, description) VALUES (1, 1, 5, 0, 'value 1 must be greater than zero'),(2,1,3,13,'value 1 may not be 13'),(3,5,1,'INT','value 5 must be an integer'),(4,3,2,42,'value 3 must be equal to 42 if present')"
+            "INSERT INTO rule (rule_id, file_column_id, rule_type_id, rule_text_1, description) VALUES (1, 1, 5, 0, 'value 1 must be greater than zero'),(2,1,3,13,'value 1 may not be 13'),(3,5,1,'INT','value 5 must be an integer'),(4,3,2,42,'value 3 must be equal to 42 if present'),(5,1,4,100,'value 1 must be less than 100')"
             ]
             for statement in sqlStatements:
                 validationDB.runStatement(statement)
@@ -161,13 +161,13 @@ class JobTests(unittest.TestCase):
         # Check that job is correctly marked as finished
         jobTracker = JobTrackerInterface()
         assert(jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 196)
+        assert(s3UrlHandler.getFileSize(jobTracker.getReportPath(jobId)) == 315)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName)==True)
         assert(self.stagingDb.countRows(tableName)==1)
         errorInterface = ErrorInterface()
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 3)
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 5)
 
     def test_bad_values_job(self):
         # Test job with bad values
