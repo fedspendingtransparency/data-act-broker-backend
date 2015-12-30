@@ -16,12 +16,13 @@ class ValidationInterface(BaseInterface):
 
     dbName = "validation"
     credFileName = "dbCred.json"
+    Session = None
 
     def __init__(self):
         self.dbConfigFile = self.getCredFilePath()
         super(ValidationInterface,self).__init__()
-        Base.metadata.bind = self.engine
-        Base.metadata.create_all(self.engine)
+        #Base.metadata.bind = self.engine
+        #Base.metadata.create_all(self.engine)
 
 
     @staticmethod

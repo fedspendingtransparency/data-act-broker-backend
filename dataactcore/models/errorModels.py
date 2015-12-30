@@ -26,6 +26,7 @@ class Status(Base):
             queryResult = Status.session.query(Status).all()
             for status in queryResult:
                 Status.STATUS_DICT[status.name] = status.status_id
+            Status.session.close()
         if(not statusName in Status.STATUS_DICT):
             raise ValueError("Not a valid file status")
         return Status.STATUS_DICT[statusName]
@@ -50,6 +51,7 @@ class ErrorType(Base):
             queryResult = ErrorType.session.query(ErrorType).all()
             for type in queryResult:
                 ErrorType.TYPE_DICT[type.name] = type.error_type_id
+            ErrorType.session.close()
         if(not typeName in ErrorType.TYPE_DICT):
             raise ValueError("Not a valid error type")
         return ErrorType.TYPE_DICT[typeName]

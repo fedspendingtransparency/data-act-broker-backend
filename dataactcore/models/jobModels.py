@@ -29,6 +29,7 @@ class Status(Base):
             queryResult = Status.session.query(Status).all()
             for status in queryResult:
                 Status.STATUS_DICT[status.name] = status.status_id
+            Status.session.close()
         if(not statusName in Status.STATUS_DICT):
             raise ValueError("Not a valid job status")
         return Status.STATUS_DICT[statusName]
@@ -64,6 +65,7 @@ class Type(Base):
             from dataactcore.models.jobTrackerInterface import JobTrackerInterface
             Status.session = JobTrackerInterface().getSession()
         queryResult = Status.session.query(Type.type_id).filter(Type.name==name).all()
+        Status.session.close()
         if(len(queryResult) != 1):
             # Did not get a unique result
             raise ValueError("Database does not contain a unique ID for type "+name)

@@ -10,6 +10,7 @@ class StagingInterface(BaseInterface):
 
     dbName = "staging"
     credFileName = "dbCred.json"
+    Session = None
 
     def __init__(self):
         self.dbConfigFile = self.getCredFilePath()

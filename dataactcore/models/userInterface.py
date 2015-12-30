@@ -15,6 +15,7 @@ class UserInterface(BaseInterface):
 
     dbName = "user_manager"
     credFileName = "dbCred.json"
+    Session = None
 
     def __init__(self):
         self.dbConfigFile = self.getCredFilePath()

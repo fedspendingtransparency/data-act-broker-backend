@@ -25,14 +25,16 @@ class BaseInterface(object):
         except IOError:
             raise IOError(str(self.dbConfigFile))
         # Create sqlalchemy connection and session
-        self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName,pool_size=100)
-        self.Session = scoped_session(sessionmaker(bind=self.engine))
+        self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName,pool_size=10,max_overflow=5)
+        if(self.Session == None):
+            self.Session = scoped_session(sessionmaker(bind=self.engine))
         self.session = self.Session()
 
     def __del__(self):
         #Close session
         self.session.close()
-        self.Session.close_all() 
+        #self.Session.close_all()
+        self.Session.remove()
         self.engine.dispose()
         pass
 

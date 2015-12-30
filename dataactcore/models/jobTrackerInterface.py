@@ -16,6 +16,7 @@ class JobTrackerInterface(BaseInterface):
     """
     dbName = "job_tracker"
     credFileName = "dbCred.json"
+    Session = None
 
     def __init__(self):
         self.dbConfigFile = self.getCredFilePath()
