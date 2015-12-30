@@ -21,7 +21,7 @@ class ErrorInterface(errorInterface.ErrorInterface):
         Returns:
             True if successful
         """
-
+        open("errorLog","a").write("jobId: " + str(jobId) + ", filename: " + str(filename) + ", errorType: " + str(errorType) + "\n")
         fileError = FileStatus(job_id = jobId, filename = filename, status_id = Status.getStatus(ValidationError.getErrorTypeString(errorType)))
         self.session.add(fileError)
         self.session.commit()

@@ -22,7 +22,7 @@ class JobTests(unittest.TestCase):
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False # Gets set to true by the first test to populate the tables
     DROP_TABLES = False # If true, staging tables are dropped after tests are run
-    USE_THREADS = False
+    USE_THREADS = True
     INCLUDE_LONG_TESTS = False
 
     def __init__(self,methodName):
