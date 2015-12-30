@@ -107,10 +107,12 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
         Returns:
         status ID
         """
-
+        status = None
         queryResult = self.session.query(JobStatus.status_id).filter(JobStatus.job_id == jobId).all()
         if(self.checkJobUnique(queryResult)):
-            return queryResult[0].status_id
+            status = queryResult[0].status_id
+        self.session.commit()
+        return status
 
     def addStagingTable(self,jobId,stagingTable):
         queryResult = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
