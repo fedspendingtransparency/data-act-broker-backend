@@ -17,18 +17,21 @@ class Status(Base):
 
     @staticmethod
     def getStatus(statusName):
-        if(Status.STATUS_DICT == None):
+        if(Status.STATUS_DICT == None or (len(Status.STATUS_DICT)==0)):
             Status.STATUS_DICT = {}
             # Pull status values out of DB
             if(Status.session == None):
                 from dataactcore.models.errorInterface import ErrorInterface
-                Status.session = ErrorInterface().getSession()
+                errorDB = ErrorInterface()
+                Status.session = errorDB.getSession()
             queryResult = Status.session.query(Status).all()
+
             for status in queryResult:
                 Status.STATUS_DICT[status.name] = status.status_id
             Status.session.close()
         if(not statusName in Status.STATUS_DICT):
-            raise ValueError("Not a valid file status")
+            open("errorLog","a").write("Not a valid file status: " + statusName + ", dict is: " + str(Status.STATUS_DICT))
+            raise ValueError("Not a valid file status: " + statusName + ", dict is: " + str(Status.STATUS_DICT))
         return Status.STATUS_DICT[statusName]
 
 class ErrorType(Base):
@@ -49,11 +52,12 @@ class ErrorType(Base):
                 from dataactcore.models.errorInterface import ErrorInterface
                 ErrorType.session = ErrorInterface().getSession()
             queryResult = ErrorType.session.query(ErrorType).all()
+
             for type in queryResult:
                 ErrorType.TYPE_DICT[type.name] = type.error_type_id
             ErrorType.session.close()
         if(not typeName in ErrorType.TYPE_DICT):
-            raise ValueError("Not a valid error type")
+            raise ValueError("Not a valid error type: " + typeName)
         return ErrorType.TYPE_DICT[typeName]
 
 class FileStatus(Base):
