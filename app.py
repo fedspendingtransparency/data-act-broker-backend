@@ -22,7 +22,9 @@ app.config.from_object(__name__)
 
 validationManager = ValidationManager()
 
-
+@app.route("/",methods=["GET"])
+def testApp():
+    return "Validator is running"
 
 @app.route("/validate_threaded/",methods=["POST"])
 def validate_threaded():

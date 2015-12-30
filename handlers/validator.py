@@ -16,6 +16,7 @@ class Validator(object):
         Returns:
         True if validation passed, False if failed
         """
+
         for fieldName in csvSchema :
             if(csvSchema[fieldName].required and  not fieldName in record ):
                 return False, fieldName, ValidationError.requiredError
@@ -34,9 +35,16 @@ class Validator(object):
                 else:
                     #if field is empty and not required its valid
                     continue
-            # Always check the type
+            # Always check the type in the schema
             if(not Validator.checkType(currentData,currentSchema.field_type.name) ) :
                 return False, fieldName, ValidationError.typeError
+
+            # Check for a type rule in the rule table, don't want to do value checks if type is not correct
+            for currentRule in ruleSubset:
+                if(currentRule.rule_type.name == "TYPE"):
+                    if(not Validator.checkType(currentData,currentRule.rule_text_1) ) :
+                        return False, fieldName, ValidationError.typeError
+
             #Field must pass all rules
             for currentRule in ruleSubset :
                 if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name)):
@@ -65,7 +73,7 @@ class Validator(object):
             if (re.match(r"^[-]?((\d+(\.\d*)?)|(\.\d+))$", data) is None ) :
                 return re.match(r"^[-]?[1-9]\d*$", data) is not None
             return True
-        raise ValueError("Data Type Invalid " + data)
+        raise ValueError("Data Type Error, Type: " + datatype + ", Value: " + data)
 
     @staticmethod
     def getIntFromString(data) :
@@ -87,12 +95,15 @@ class Validator(object):
         currentRuleType = rule.rule_type.name
         if(currentRuleType =="LENGTH") :
             return len(data) < Validator.getIntFromString(value1)
-        if(currentRuleType =="LESS") :
+        elif(currentRuleType =="LESS") :
             return Validator.getType(data,datatype) < Validator.getType(value1,datatype)
-        if(currentRuleType =="GREATER") :
+        elif(currentRuleType =="GREATER") :
             return Validator.getType(data,datatype) > Validator.getType(value1,datatype)
-        if(currentRuleType =="EQUAL") :
+        elif(currentRuleType =="EQUAL") :
             return Validator.getType(data,datatype) == Validator.getType(value1,datatype)
-        if(currentRuleType =="NOT EQUAL") :
+        elif(currentRuleType =="NOT EQUAL") :
             return not (Validator.getType(data,datatype) == Validator.getType(value1,datatype))
+        elif(currentRuleType == "TYPE"):
+            # Type checks happen earlier, but type rule is still included in rule set, so skip it
+            return True
         raise ValueError("Rule Type Invalid")

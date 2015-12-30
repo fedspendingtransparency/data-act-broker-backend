@@ -119,8 +119,6 @@ class ValidationManager:
         rules = validationDB.getRulesByFile(fileType)
         # Pull file from S3
         reader = CsvReader()
-        # Use test file for now
-        #fileName = "test.csv"
         reader.openFile(bucketName, fileName,fieldList)
         # Create staging table
         # While not done, pull one row and put it into staging if it passes
