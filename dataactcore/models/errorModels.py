@@ -64,8 +64,8 @@ class FileStatus(Base):
     __tablename__ = "file_status"
 
     file_id = Column(Integer, primary_key=True)
-    job_id = Column(Integer)
-    filename = Column(Text)
+    job_id = Column(Integer, nullable=True)
+    filename = Column(Text, nullable=True)
     status_id = Column(Integer, ForeignKey("status.status_id"))
     status = relationship("Status", uselist=False)
 
@@ -74,11 +74,11 @@ class ErrorData(Base):
 
     error_data_id = Column(Integer, primary_key=True)
     job_id = Column(Integer)
-    filename = Column(Text)
+    filename = Column(Text, nullable=True)
     field_name = Column(Text)
-    error_type_id = Column(Integer, ForeignKey("error_type.error_type_id"))
+    error_type_id = Column(Integer, ForeignKey("error_type.error_type_id"), nullable=True)
     error_type = relationship("ErrorType", uselist=False)
     occurrences = Column(Integer)
     first_row = Column(Integer)
-    rule_failed = Column(Text)
+    rule_failed = Column(Text, nullable=True)
 

@@ -93,18 +93,18 @@ class JobStatus(Base):
     __tablename__ = "job_status"
 
     job_id = Column(Integer, primary_key=True)
-    filename = Column(Text)
+    filename = Column(Text, nullable=True)
     status_id = Column(Integer, ForeignKey("status.status_id"))
     status = relationship("Status", uselist=False)
     type_id = Column(Integer, ForeignKey("type.type_id"))
     type = relationship("Type", uselist=False)
-    resource_id = Column(Integer, ForeignKey("resource.resource_id"))
+    resource_id = Column(Integer, ForeignKey("resource.resource_id"), nullable=True)
     resource = relationship("Resource", uselist=False)
     submission_id = Column(Integer, ForeignKey("submission.submission_id"))
     submission = relationship("Submission", uselist=False)
-    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"))
+    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"), nullable=True)
     file_type = relationship("FileType", uselist=False)
-    staging_table = Column(Text)
+    staging_table = Column(Text, nullable=True)
 
 class JobDependency(Base):
     __tablename__ = "job_dependency"

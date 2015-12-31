@@ -20,10 +20,8 @@ class BaseInterface(object):
             # Child class needs to set these before calling base constructor
             raise ValueError("Need dbConfigFile and dbName defined")
         # Load config info
-        try:
-            confDict = json.loads(open(self.dbConfigFile,"r").read())
-        except IOError:
-            raise IOError(str(self.dbConfigFile))
+        confDict = json.loads(open(self.dbConfigFile,"r").read())
+
         # Create sqlalchemy connection and session
         self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName,pool_size=10,max_overflow=5)
         if(self.Session == None):
