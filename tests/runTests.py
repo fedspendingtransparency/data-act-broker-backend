@@ -26,7 +26,7 @@ for method in jobMethods:
         test =JobTests(methodName=method[0])
         suite.addTest(test)
 
-
+open("errorLog","a").write(str(suite.countTestCases()) + " tests in suite")
 #print(str(suite.countTestCases()) + " tests in suite")
 
 # Run tests and store results
@@ -38,3 +38,4 @@ if(runMany):
             raise Exception("Test Failed")
 else:
     result = runner.run(suite)
+    open("errorLog","a").write(str(result))

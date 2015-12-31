@@ -133,6 +133,7 @@ class JobTests(unittest.TestCase):
     def test_valid_job(self):
         """ Test valid job """
         jobId = 1
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(1)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
@@ -160,6 +161,7 @@ class JobTests(unittest.TestCase):
     def test_rules(self):
         """ Test rules, should have one type failure and two value failures """
         jobId = 16
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
@@ -186,6 +188,7 @@ class JobTests(unittest.TestCase):
     def test_bad_values_job(self):
         # Test job with bad values
         jobId = 8
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
@@ -213,6 +216,7 @@ class JobTests(unittest.TestCase):
         if(not self.INCLUDE_LONG_TESTS):
             return
         jobId = 15
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
@@ -239,6 +243,7 @@ class JobTests(unittest.TestCase):
     def test_mixed_job(self):
         """ Test mixed job """
         jobId = 9
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
@@ -265,6 +270,7 @@ class JobTests(unittest.TestCase):
     def test_empty(self):
         """ Test empty file """
         jobId = 10
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
@@ -294,6 +300,7 @@ class JobTests(unittest.TestCase):
     def test_missing_header(self):
         """ Test missing header in first row """
         jobId = 11
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
@@ -324,6 +331,7 @@ class JobTests(unittest.TestCase):
     def test_bad_header(self):
         """ Test bad header value in first row """
         jobId = 12
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
@@ -357,6 +365,7 @@ class JobTests(unittest.TestCase):
             # Don't do this test when skipping long tests
             return
         jobId = 13
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
@@ -382,6 +391,7 @@ class JobTests(unittest.TestCase):
     def test_odd_characters(self):
         """ Test potentially problematic characters """
         jobId = 14
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
@@ -407,6 +417,7 @@ class JobTests(unittest.TestCase):
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """
         jobId = 2001
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
@@ -431,6 +442,7 @@ class JobTests(unittest.TestCase):
     def test_prereq_job(self):
         """ Test job with prerequisites finished """
         jobId = 7
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
@@ -455,6 +467,7 @@ class JobTests(unittest.TestCase):
     def test_bad_prereq_job(self):
         """ Test job with unfinished prerequisites """
         jobId = 3
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
@@ -480,6 +493,7 @@ class JobTests(unittest.TestCase):
     def test_bad_type_job(self):
         """ Test job with wrong type """
         jobId = 4
+        open("errorLog","a").write("Starting test " + str(jobId) +"\n")
         self.response = self.validateJob(jobId)
         if(self.response.status_code != 200):
             open("errorLog","a").write(self.response.status_code+"\n")
