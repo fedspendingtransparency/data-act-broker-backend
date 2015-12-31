@@ -221,6 +221,7 @@ class ValidationManager:
             errorInterface.markFileComplete(jobId,self.filename)
             return  JsonResponse.create(StatusCode.OK,{"table":tableName})
         except ResponseException as e:
+            open("errorLog","a").write(e.message)
             self.markJob(jobId,jobTracker,"invalid")
             errorHandler = ErrorInterface()
             if(e.errorType == None):

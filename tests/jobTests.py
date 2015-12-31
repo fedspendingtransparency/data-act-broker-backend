@@ -134,6 +134,13 @@ class JobTests(unittest.TestCase):
         """ Test valid job """
         jobId = 1
         self.response = self.validateJob(1)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         self.waitOnJob(jobId,"finished")
 
         assert(self.response.status_code == 200)
@@ -154,6 +161,13 @@ class JobTests(unittest.TestCase):
         """ Test rules, should have one type failure and two value failures """
         jobId = 16
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         self.waitOnJob(jobId,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
@@ -173,6 +187,13 @@ class JobTests(unittest.TestCase):
         # Test job with bad values
         jobId = 8
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         self.waitOnJob(jobId,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
@@ -193,6 +214,13 @@ class JobTests(unittest.TestCase):
             return
         jobId = 15
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         self.waitOnJob(jobId,"finished")
 
         assert(self.response.status_code == 200)
@@ -212,6 +240,13 @@ class JobTests(unittest.TestCase):
         """ Test mixed job """
         jobId = 9
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         self.waitOnJob(9,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
@@ -231,6 +266,13 @@ class JobTests(unittest.TestCase):
         """ Test empty file """
         jobId = 10
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         self.waitOnJob(10,"invalid")
         if(JobTests.USE_THREADS) :
             assert(self.response.status_code == 200)
@@ -253,6 +295,13 @@ class JobTests(unittest.TestCase):
         """ Test missing header in first row """
         jobId = 11
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         self.waitOnJob(11,"invalid")
         if(JobTests.USE_THREADS) :
             assert(self.response.status_code == 200)
@@ -276,6 +325,13 @@ class JobTests(unittest.TestCase):
         """ Test bad header value in first row """
         jobId = 12
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         if(JobTests.USE_THREADS) :
             assert(self.response.status_code == 200)
         else :
@@ -302,6 +358,13 @@ class JobTests(unittest.TestCase):
             return
         jobId = 13
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         self.waitOnJob(13,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
@@ -320,6 +383,13 @@ class JobTests(unittest.TestCase):
         """ Test potentially problematic characters """
         jobId = 14
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         self.waitOnJob(14,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
@@ -338,6 +408,13 @@ class JobTests(unittest.TestCase):
         """ Test job ID not found in job status table """
         jobId = 2001
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         assert(self.response.json()["message"]=="Job ID not found in job_status table")
@@ -355,6 +432,13 @@ class JobTests(unittest.TestCase):
         """ Test job with prerequisites finished """
         jobId = 7
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         self.waitOnJob(jobId,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
@@ -372,6 +456,13 @@ class JobTests(unittest.TestCase):
         """ Test job with unfinished prerequisites """
         jobId = 3
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         self.waitOnJob(jobId,"ready")
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
@@ -390,6 +481,13 @@ class JobTests(unittest.TestCase):
         """ Test job with wrong type """
         jobId = 4
         self.response = self.validateJob(jobId)
+        if(self.response.status_code != 200):
+            open("errorLog","a").write(self.response.status_code+"\n")
+            open("errorLog","a").write(self.response.json()["errorType"]+"\n")
+            open("errorLog","a").write(self.response.json()["message"]+"\n")
+            open("errorLog","a").write(self.response.json()["trace"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedType"]+"\n")
+            open("errorLog","a").write(self.response.json()["wrappedMessage"]+"\n")
         self.waitOnJob(jobId,"ready")
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
