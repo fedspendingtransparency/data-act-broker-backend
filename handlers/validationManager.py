@@ -177,9 +177,9 @@ class ValidationManager:
         Http response object
         """
         # Create connection to job tracker database
-        self.filename = ""
+        self.filename = None
         tableName = ""
-        jobId = ""
+        jobId = None
         jobTracker = JobTrackerInterface()
         try:
 
