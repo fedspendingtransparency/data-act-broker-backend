@@ -39,7 +39,6 @@ class LoginHandler:
 
         """
         try:
-            open("errorLog","a").write("Called login function\n")
             safeDictionary = RequestDictionary(self.request)
 
             username = safeDictionary.getValue('username')
@@ -52,7 +51,6 @@ class LoginHandler:
             lastForwardSlash = path.rfind("/",0,-1)
             lastSlash = max([lastBackSlash,lastForwardSlash])
             credFile = path[0:lastSlash] + "/" + self.credentialFile
-            open("errorLog","a").write("Opening credentials file\n")
             credJson = open(credFile,"r").read()
 
 
@@ -66,9 +64,7 @@ class LoginHandler:
                 raise ValueError("Incorrect password")
             else:
                 # We have a valid login
-                open("errorLog","a").write("Calling session login\n")
                 LoginSession.login(session,self.userManager.getUserId(username))
-                open("errorLog","a").write("Returning 200\n")
                 return JsonResponse.create(StatusCode.OK,{"message":"Login successful"})
 
         except (TypeError, KeyError, NotImplementedError) as e:
