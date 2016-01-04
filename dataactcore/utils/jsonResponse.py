@@ -10,6 +10,7 @@ class JsonResponse :
 
     debugMode = True
     printDebug = False
+    logDebug = False
 
     @staticmethod
     def create(code,dictionaryData):
@@ -17,13 +18,10 @@ class JsonResponse :
         Creates a JSON response object
         if debugMode is enabled errors are added
         """
-        open("errorLog","a").write("Called create response\n")
         jsondata  =  flask.Response()
         jsondata.headers["Content-Type"] = "application/json"
         jsondata.status_code = code
-        open("errorLog","a").write("Setting data\n")
         jsondata.set_data(json.dumps(dictionaryData))
-        open("errorLog","a").write("Finished creating response\n")
         return jsondata
 
     @staticmethod
@@ -44,6 +42,10 @@ class JsonResponse :
                 print(str(type(exception)))
                 print(exception.message)
                 print(trace)
+            if(JsonResponse.logDebug):
+                open("responseErrorLog","a").write(str(type(exception)))
+                open("responseErrorLog","a").write(exception.message)
+                open("responseErrorLog","a").write(trace)
             del exc_tb
             return JsonResponse.create(errorCode, responseDict)
         else:
