@@ -24,6 +24,7 @@ validationManager = ValidationManager()
 
 @app.route("/",methods=["GET"])
 def testApp():
+    # Confirm server running
     return "Validator is running"
 
 @app.route("/validate_threaded/",methods=["POST"])
