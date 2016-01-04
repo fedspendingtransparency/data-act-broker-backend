@@ -5,7 +5,8 @@ import json
 
 class TestUtils:
     # Test basic routes, including login and file submission
-    BASE_URL = "http://127.0.0.1:5000"
+    #BASE_URL = "http://127.0.0.1:5000"
+    BASE_URL = "http://54.172.114.78:5000"
     JSON_HEADER = {"Content-Type": "application/json"}
 
     def getRequest(self,url) :
