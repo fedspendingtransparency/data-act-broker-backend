@@ -37,6 +37,7 @@ class JobHandler(JobTrackerInterface):
         """
         # Create submission entry
         submission = Submission(datetime_utc = str(datetime.utcnow()))
+
         self.session.add(submission)
         self.session.commit()
         # Calling submission_id to force query to load this

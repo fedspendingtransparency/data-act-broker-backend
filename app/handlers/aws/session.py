@@ -65,7 +65,7 @@ class LoginSession():
 
         Sets the current session status
         """
-
+        open("errorLog","a").write("Setting session variables\n")
         session["name"] =  username
         session["login"] = True
 

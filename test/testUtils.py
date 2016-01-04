@@ -23,7 +23,7 @@ class TestUtils:
             current = self.cookies
         except AttributeError:
             self.cookies = {}
-        responseData = requests.request(method="POST", url=TestUtils.BASE_URL + url, data=jsonData, headers = TestUtils.JSON_HEADER,cookies=self.cookies)
+        responseData = requests.request(method="POST", url=TestUtils.BASE_URL + url, data=jsonData, headers = TestUtils.JSON_HEADER,cookies=self.cookies,timeout=5)
         self.cookies =  responseData.cookies
         return responseData
 
