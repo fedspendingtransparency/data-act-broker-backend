@@ -104,13 +104,14 @@ class FileHandler:
             if(jobManager.checkUploadType(jobId)):
                 jobManager.changeToFinished(jobId)
                 responseDict["success"] = True
+                proxy =  ManagerProxy()
+                proxy.sendJobRequest(jobId)
                 return JsonResponse.create(StatusCode.OK,responseDict)
             else:
                 exc = ResponseException("Wrong job type for finalize route")
                 exc.status = 400
                 raise exc
-            proxy =  ManagerProxy()
-            proxy.sendJobRequest(jobId)
+
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:

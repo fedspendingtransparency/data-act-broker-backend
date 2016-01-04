@@ -18,13 +18,13 @@ def add_file_routes(app):
         return fileManager.submit(LoginSession.getName(session))
 
 
-    @app.route("/v1/finalize_submission/", methods = ["POST"])
+    @app.route("/v1/finalize_job/", methods = ["POST"])
     @permissions_check
     def finalize_submission() :
         fileManager = FileHandler(request)
         return fileManager.finalize()
 
-    @app.route("/v1/submission_error_report/", methods = ["POST"])
+    @app.route("/v1/job_error_report/", methods = ["POST"])
     @permissions_check
     def submission_error_report() :
         fileManager = FileHandler(request)

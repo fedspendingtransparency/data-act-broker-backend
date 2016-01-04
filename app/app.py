@@ -15,7 +15,7 @@ from loginRoutes import add_login_routes
 
 # Set parameters
 debugFlag = False  # Should be false for prod
-runLocal = False  # False for prod, when True this assumes that the Dynamo is on the same server
+runLocal = True  # False for prod, when True this assumes that the Dynamo is on the same server
 createTable = False  # Should be false for most runs, true for first run with DynamoDB
 
 # Get the project's root folder

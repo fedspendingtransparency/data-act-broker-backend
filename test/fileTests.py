@@ -3,9 +3,12 @@ import requests
 import json
 from testUtils import TestUtils
 from baseTest import BaseTest
+from app.handlers.managerProxy import ManagerProxy
+
 class FileTests(BaseTest):
     """ Test file submission routes """
     fileResponse = None
+    CHECK_VALIDATOR = False
 
 
     def call_file_submission(self):
@@ -53,11 +56,13 @@ class FileTests(BaseTest):
             # Call upload complete route for each id
         self.check_upload_complete(responseDict["procurement_id"])
         self.check_error_route (responseDict["procurement_id"],responseDict["submission_id"])
+        if(self.CHECK_VALIDATOR):
+            self.check_validator(responseDict["procurement_id"])
 
 
     def check_error_route(self,jobId,submissonId) :
         jobJson = json.dumps({"upload_id":jobId})
-        urlData = self.utils.postRequest("/v1/submission_error_report/",jobJson)
+        urlData = self.utils.postRequest("/v1/job_error_report/",jobJson)
         assert("submission_"+str(submissonId)+"_procurement_error_report" in urlData.json()["error_url"] )
         assert("?Signature" in urlData.json()["error_url"] )
         assert("&AWSAccessKeyId" in urlData.json()["error_url"])
@@ -65,8 +70,7 @@ class FileTests(BaseTest):
     def check_upload_complete(self, jobId):
         jobJson = json.dumps({"upload_id":jobId})
         self.utils.login()
-
-        finalizeResponse = self.utils.postRequest("/v1/submit_files/",jobJson)
+        finalizeResponse = self.utils.postRequest("/v1/finalize_job/",jobJson)
 
         if(finalizeResponse.status_code != 200):
             print(finalizeResponse.status_code)
@@ -74,6 +78,11 @@ class FileTests(BaseTest):
             print(finalizeResponse.json()["message"])
             print(finalizeResponse.json()["trace"])
         assert(finalizeResponse.status_code == 200)
+
+    def check_validator(self, jobId):
+        proxy = ManagerProxy()
+        response = proxy.sendJobRequest(jobId)
+        assert(response.status_code == 200)
 
 if __name__ == '__main__':
     unittest.main()
