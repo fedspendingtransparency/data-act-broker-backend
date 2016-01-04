@@ -2,6 +2,14 @@ from dataactcore.scripts.databaseSetup import runCommands
 from dataactcore.models.errorInterface import ErrorInterface
 
 sqlStatements=[
+
+
+    "DROP TABLE IF EXISTS error_data",
+    "DROP TABLE IF EXISTS file_status",
+    "DROP TABLE IF EXISTS error_type",
+    "DROP TABLE IF EXISTS status",
+    "DROP SEQUENCE IF EXISTS fileSerial",
+    "DROP SEQUENCE IF EXISTS errorDataSerial",
     "CREATE TABLE status (status_id integer PRIMARY KEY, name text NOT NULL,description text NOT NULL);",
     "CREATE TABLE error_type (error_type_id integer PRIMARY KEY, name text NOT NULL,description text NOT NULL);",
     "CREATE SEQUENCE fileSerial START 1;",
