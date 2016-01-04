@@ -12,7 +12,10 @@ def add_login_routes(app):
     def login():
         open("errorLog","a").write("Called login route\n")
         loginManager = LoginHandler(request)
-        return loginManager.login(session)
+        response = loginManager.login(session)
+        open("errorLog","a").write("Returning response to client\n")
+        open("errorLog","a").write(str(response)+"\n")
+        return response
 
     @app.route("/v1/logout/", methods = ["POST"])
     def logout():
