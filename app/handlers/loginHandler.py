@@ -77,6 +77,9 @@ class LoginHandler:
         except ValueError as e:
             # Return a 401 for login denied
             return JsonResponse.error(e,StatusCode.LOGIN_REQUIRED)
+        except Exception as e:
+            # Return 500
+            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
         return self.response
 
     #
