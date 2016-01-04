@@ -21,6 +21,7 @@ class JsonResponse :
         jsondata.headers["Content-Type"] = "application/json"
         jsondata.status_code = code
         jsondata.set_data(json.dumps(dictionaryData))
+        open("errorLog","a").write("Finished creating response\n")
         return jsondata
 
     @staticmethod
