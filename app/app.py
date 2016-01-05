@@ -12,6 +12,7 @@ from handlers.aws.session import DynamoInterface, SessionTable, LoginSession
 from handlers.loginHandler import LoginHandler
 from handlers.fileHandler import FileHandler
 from handlers.jobHandler import JobHandler
+from handlers.managerProxy import ManagerProxy
 from fileRoutes import add_file_routes
 from loginRoutes import add_login_routes
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -58,9 +59,7 @@ def getAppConfig() :
 # Root will point to index.html
 @app.route("/", methods=["GET"])
 def root():
-    filePath = os.path.join(PROJECT_ROOT, '..', 'index.html')
-    content = open(filePath).read()
-    return Response(content, mimetype="text/html")
+    return "Broker is running"
 
 
 # Add routes for modules here
