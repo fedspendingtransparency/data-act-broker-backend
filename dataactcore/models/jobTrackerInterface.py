@@ -66,3 +66,18 @@ class JobTrackerInterface(BaseInterface):
         except:
             # Bad job ID
             return False
+
+    def getJobsBySubmission(self,submissionId):
+        """ Get list of jobs that are part of the specified submission
+
+        Args:
+            submissionId: submission to list jobs for
+
+        Returns:
+            List of job IDs
+        """
+        jobList = []
+        queryResult = self.session.query(JobStatus.job_id).filter(JobStatus.submission_id == submissionId).all()
+        for result in queryResult:
+            jobList.append(result.job_id)
+        return jobList
