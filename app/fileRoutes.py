@@ -29,3 +29,9 @@ def add_file_routes(app):
     def submission_error_report() :
         fileManager = FileHandler(request)
         return fileManager.getErrorReportURL()
+
+    @app.route("/v1/error_metrics/", methods = ["POST"])
+    @permissions_check
+    def submission_error_metrics() :
+        fileManager = FileHandler(request)
+        return fileManager.getErrorMeterics()

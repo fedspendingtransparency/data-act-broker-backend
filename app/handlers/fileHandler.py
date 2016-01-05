@@ -4,11 +4,15 @@ import traceback
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.requestDictionary import RequestDictionary
 from jobHandler import JobHandler
+from errorHandler import ErrorHandler
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 
 from managerProxy import ManagerProxy
+
+
+
 class FileHandler:
     """ Responsible for all tasks relating to file upload
 
@@ -79,7 +83,7 @@ class FileHandler:
                 if (not "submission_id" in fileName) :
                     responseDict[fileName+"_id"] = fileJobDict[fileName]
 
-            responseDict["submission_id"] = fileJobDict["submission_id"] 
+            responseDict["submission_id"] = fileJobDict["submission_id"]
             return JsonResponse.create(StatusCode.OK,responseDict)
         except (ValueError , TypeError, NotImplementedError) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
@@ -112,6 +116,42 @@ class FileHandler:
                 exc.status = 400
                 raise exc
 
+        except ( ValueError , TypeError ) as e:
+            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+        except ResponseException as e:
+            return JsonResponse.error(e,e.status)
+        except Exception as e:
+            # Unexpected exception, this is a 500 server error
+            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+
+    def getJobsBySubmission(self,submissionId):
+        """ Get list of jobs that are part of the specified submission
+
+        Args:
+            submissionId: submission to list jobs for
+
+        Returns:
+            List of job IDs
+        """
+        jobList = []
+        queryResult = self.session.query(JobStatus.job_id).filter(JobStatus.submission_id == submissionId).all()
+        for result in queryResult:
+            jobList.append(result.job_id)
+        return jobList
+
+    def getErrorMeterics(self) :
+        responseDict = {}
+        returnDict = {}
+        try:
+            safeDictionary = RequestDictionary(self.request)
+            submission_id =  safeDictionary.getValue("submission_id")
+            jobIds = self.jobManager.getJobsBySubmission(submission_id)
+            for currentId in jobIds :
+                fileName = self.jobManager.getFileType(currentId)
+                errorHandler = ErrorHandler()
+                dataList = errorHandler.getErrorMetericsByJobId(currentId)
+                returnDict[fileName]  = dataList
+            return JsonResponse.create(StatusCode.OK,returnDict)
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:
