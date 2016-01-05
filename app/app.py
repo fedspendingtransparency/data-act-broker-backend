@@ -1,5 +1,7 @@
 import sys
+import json
 import os
+import inspect
 from flask.ext.cors import CORS
 from flask import Flask, request, make_response, session, g, redirect, url_for, \
      abort, render_template, flash ,session, Response
@@ -12,12 +14,24 @@ from handlers.fileHandler import FileHandler
 from handlers.jobHandler import JobHandler
 from fileRoutes import add_file_routes
 from loginRoutes import add_login_routes
+from dataactcore.utils.jsonResponse import JsonResponse
+from json import JSONDecoder, JSONEncoder
 
+
+def getAppConfiguration() :
+    path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+    lastBackSlash = path.rfind("\\",0,-1)
+    lastForwardSlash = path.rfind("/",0,-1)
+    lastSlash = max([lastBackSlash,lastForwardSlash])
+    configFile = path[0:lastSlash] + "/web_api_configuration.json"
+    return json.loads(open(configFile,"r").read())
+
+config = getAppConfiguration()
 # Set parameters
-debugFlag = False  # Should be false for prod
-runLocal = False  # False for prod, when True this assumes that the Dynamo is on the same server
-createTable = False  # Should be false for most runs, true for first run with DynamoDB
-
+debugFlag = config["ServerDebug"]  # Should be false for prod
+runLocal = config["LocalDynamo"]  # False for prod, when True this assumes that the Dynamo is on the same server
+createTable = config["CreateDynamo"]  # Should be false for most runs, true for first run with DynamoDB
+JsonResponse.debugMode = config["JSONDebug"]
 # Get the project's root folder
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 
@@ -29,6 +43,16 @@ cors = CORS(app)
 
 #Enable AWS Sessions
 app.session_interface = DynamoInterface()
+
+
+def getAppConfig() :
+    path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+    lastBackSlash = path.rfind("\\",0,-1)
+    lastForwardSlash = path.rfind("/",0,-1)
+    lastSlash = max([lastBackSlash,lastForwardSlash])
+    configFile = path[0:lastSlash] + "/" + ManagerProxy.MANAGER_FILE
+    return json.loads(open(configFile,"r").read())
+
 
 
 # Root will point to index.html
