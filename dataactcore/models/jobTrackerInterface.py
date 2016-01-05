@@ -81,3 +81,30 @@ class JobTrackerInterface(BaseInterface):
         for result in queryResult:
             jobList.append(result.job_id)
         return jobList
+
+    def getJobStatus(self, jobId):
+        """
+
+        Args:
+            jobId: Job to get status for
+
+        Returns:
+            status of specified job
+        """
+        queryResult = self.session.query(JobStatus).options(joinedload("status")).filter(JobStatus.job_id == jobId).all()
+        if(self.checkJobUnique(queryResult)):
+            return queryResult[0].status.name
+
+    def getJobType(self, jobId):
+        """
+
+        Args:
+            jobId: Job to get description for
+
+        Returns:
+            description of specified job
+        """
+
+        queryResult = self.session.query(JobStatus).options(joinedload("type")).filter(JobStatus.job_id == jobId).all()
+        if(self.checkJobUnique(queryResult)):
+            return queryResult[0].type.name
