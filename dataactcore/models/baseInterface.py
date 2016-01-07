@@ -23,7 +23,7 @@ class BaseInterface(object):
         confDict = json.loads(open(self.dbConfigFile,"r").read())
 
         # Create sqlalchemy connection and session
-        self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName,pool_size=10,max_overflow=5)
+        self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName,pool_size=100,max_overflow=50)
         if(self.Session == None):
             self.Session = scoped_session(sessionmaker(bind=self.engine))
         self.session = self.Session()
