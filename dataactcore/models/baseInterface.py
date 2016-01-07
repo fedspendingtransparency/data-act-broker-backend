@@ -25,7 +25,7 @@ class BaseInterface(object):
         # Create sqlalchemy connection and session
         self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName,pool_size=100,max_overflow=50)
         if(self.Session == None):
-            self.Session = scoped_session(sessionmaker(bind=self.engine))
+            self.Session = scoped_session(sessionmaker(bind=self.engine,autoflush=True))
         self.session = self.Session()
 
     def __del__(self):
