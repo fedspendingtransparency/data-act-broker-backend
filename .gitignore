@@ -5,3 +5,5 @@ handlers/*.pyc
 interfaces/*.pyc
 jobTracker.conf
 handlers/s3bucket.json
+errorLog
+tests/errorLog

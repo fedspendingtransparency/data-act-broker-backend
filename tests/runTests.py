@@ -12,7 +12,7 @@ suite = unittest.TestSuite()
 validatorMethods = inspect.getmembers(ValidatorTests, predicate=inspect.ismethod)
 jobMethods = inspect.getmembers(JobTests, predicate=inspect.ismethod)
 #validatorMethods = []
-#jobMethods = [["test_many_rows"]]
+#jobMethods = [["test_odd_characters"]]
 
 for method in validatorMethods:
     # If test method, add to suite

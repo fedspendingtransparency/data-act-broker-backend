@@ -16,6 +16,7 @@ import boto
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.scripts.databaseSetup import runCommands
+from dataactcore.scripts.createJobTables import createJobTables
 
 class JobTests(unittest.TestCase):
     #BASE_URL = "http://127.0.0.1:5000"
@@ -45,8 +46,9 @@ class JobTests(unittest.TestCase):
 
             self.stagingDb = StagingInterface()
             # Clear job tables and error tables
-            from scripts import createJobTables
+            createJobTables()
             import dataactcore.scripts.clearErrors
+            from scripts import setupValidationDB
 
             # Define user
             user = 1
@@ -80,10 +82,10 @@ class JobTests(unittest.TestCase):
             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",9, '" + s3FileNameMixed + "',1)",
             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",10, '" + s3FileNameEmpty + "',1)",
             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",11, '" + s3FileNameMissingHeader + "',1)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",12, '" + s3FileNameBadHeader + "',1)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",13, '" + s3FileNameMany + "',1)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",14, '" + s3FileNameOdd + "',1)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",15, '" + s3FileNameManyBad + "',1)",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",11, '" + s3FileNameBadHeader + "',2)",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",11, '" + s3FileNameMany + "',3)",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",14, '" + s3FileNameOdd + "',2)",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",11, '" + s3FileNameManyBad + "',4)",
             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",16, '" + s3FileNameTestRules + "',1)"
             ]
             for statement in sqlStatements:
@@ -93,12 +95,27 @@ class JobTests(unittest.TestCase):
             sqlStatements = [
             "DELETE FROM rule",
             "DELETE FROM file_columns",
-            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (1,3,1,'header 1','',True)",
-            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (2,3,1,'header 2','',True)",
-            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (3,3,4,'header 3','',False)",
-            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (4,3,4,'header 4','',True)",
-            "INSERT INTO file_columns (file_column_id,file_id,field_types_id,name,description,required) VALUES (5,3,4,'header 5','',True)",
-            "INSERT INTO rule (rule_id, file_column_id, rule_type_id, rule_text_1, description) VALUES (1, 1, 5, 0, 'value 1 must be greater than zero'),(2,1,3,13,'value 1 may not be 13'),(3,5,1,'INT','value 5 must be an integer'),(4,3,2,42,'value 3 must be equal to 42 if present'),(5,1,4,100,'value 1 must be less than 100')"
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header 1','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header 2','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header 3','',False)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header 4','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header 5','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header 1','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header 2','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header 3','',False)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header 4','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header 5','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header 1','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header 2','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header 3','',False)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header 4','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header 5','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header 1','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header 2','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header 3','',False)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header 4','',True)",
+            "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header 5','',True)",
+            "INSERT INTO rule (file_column_id, rule_type_id, rule_text_1, description) VALUES (1, 5, 0, 'value 1 must be greater than zero'),(1,3,13,'value 1 may not be 13'),(5,1,'INT','value 5 must be an integer'),(3,2,42,'value 3 must be equal to 42 if present'),(1,4,100,'value 1 must be less than 100')"
             ]
             for statement in sqlStatements:
                 validationDB.runStatement(statement)
@@ -325,7 +342,7 @@ class JobTests(unittest.TestCase):
         """ Test potentially problematic characters """
         jobId = 14
         self.response = self.validateJob(jobId)
-        self.waitOnJob(14,"finished")
+        self.waitOnJob(jobId,"finished")
         assert(self.response.status_code == 200)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
