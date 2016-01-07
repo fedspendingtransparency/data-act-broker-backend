@@ -7,9 +7,12 @@ from sqlalchemy.exc import ProgrammingError, IntegrityError
 def runCommands(credDict, sqlCommands,dbName) :
     dbBaseName = "postgres"
     baseEngine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+dbBaseName, isolation_level = "AUTOCOMMIT")
-    try:
-        baseEngine.connect().execute("CREATE DATABASE " + '"' + dbName + '"')
 
+    try:
+        connect = baseEngine.connect()
+        rows  = connect.execute("SELECT 1 FROM pg_database WHERE datname = '" +dbName+"'")
+        if ((rows.rowcount) == 0) :
+            connect.execute("CREATE DATABASE " + '"' + dbName + '"')
     except ProgrammingError as e:
         # Happens if DB exists, just print and carry on
         print(e.message)
