@@ -1,7 +1,4 @@
 import unittest
-import requests
-import json
-from testUtils import TestUtils
 from baseTest import BaseTest
 class LoginTests(BaseTest):
     """ Test login, logout, and session handling """
@@ -10,14 +7,6 @@ class LoginTests(BaseTest):
 
         response = self.utils.login()
 
-        if(response.status_code != 200):
-            self.response = response
-            print(self.response.status_code)
-            print(self.response.json()["message"])
-            print(self.response.json()["trace"])
-            print(self.response.json()["errorType"])
-            print(self.response.json()["wrappedType"])
-            print(self.response.json()["wrappedMessage"])
         # Check status is 200
         assert(response.status_code == 200), "Status code is not 200"
         # Check JSON content type header

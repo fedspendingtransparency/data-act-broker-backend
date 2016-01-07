@@ -1,6 +1,5 @@
 import unittest
-import requests
-import json
+
 from testUtils import TestUtils
 class BaseTest(unittest.TestCase):
     """ Test login, logout, and session handling """

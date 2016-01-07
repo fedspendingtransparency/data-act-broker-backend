@@ -1,14 +1,35 @@
-import unittest
-import requests
 import json
-from testUtils import TestUtils
-from baseTest import BaseTest
+import unittest
+from app.handlers.jobHandler import JobHandler
 from app.handlers.managerProxy import ManagerProxy
+from baseTest import BaseTest
+from testUtils import TestUtils
+from dataactcore.scripts.createJobTables import createJobTables
 
 class FileTests(BaseTest):
     """ Test file submission routes """
     fileResponse = None
     CHECK_VALIDATOR = False
+    tablesCleared = False # Set to true after first time setup is run
+
+    def __init__(self,methodName):
+        """ Run scripts to clear the job tables and populate with a defined test set """
+        super(FileTests,self).__init__(methodName=methodName)
+
+        jobTracker = JobHandler()
+        if(not self.tablesCleared):
+            # Clear job tracker
+            createJobTables()
+            self.tablesCleared = True
+
+            if(len(jobTracker.getJobsBySubmission(1))==0):
+                sqlStatements = [
+                    "INSERT INTO submission (datetime_utc) VALUES (0)",
+                    "INSERT INTO job_status (file_type_id, status_id, type_id, submission_id) VALUES (1,4,1,1),(1,3,2,1),(1,1,5,1),(2,2,2,1),(3,2,2,1),(4,2,2,1)"
+                ]
+
+                for statement in sqlStatements:
+                    jobTracker.runStatement(statement)
 
 
     def call_file_submission(self):
@@ -21,11 +42,6 @@ class FileTests(BaseTest):
     def test_file_submission(self):
         self.call_file_submission()
 
-        if(self.fileResponse.status_code != 200):
-            print(self.fileResponse.status_code)
-            print(self.fileResponse.json()["errorType"])
-            print(self.fileResponse.json()["message"])
-            print(self.fileResponse.json()["trace"])
         # Test that status is 200
         assert(self.fileResponse.status_code==200)
         # Test Content-Type header
@@ -55,10 +71,29 @@ class FileTests(BaseTest):
                 self.fail("One of the job ids returned was not an integer")
             # Call upload complete route for each id
         self.check_upload_complete(responseDict["procurement_id"])
-        self.check_error_route (responseDict["procurement_id"],responseDict["submission_id"])
+        #self.check_error_route (responseDict["procurement_id"],responseDict["submission_id"])
         if(self.CHECK_VALIDATOR):
             self.check_validator(responseDict["procurement_id"])
 
+    def test_check_status(self):
+        """ Check that test status route returns correct JSON"""
+        utils = TestUtils()
+        utils.login()
+        response = utils.postRequest("/v1/check_status/",'{"submission_id":1}')
+
+        assert(response.status_code == 200)
+        assert(response.json()["1"]["status"]=="finished")
+        assert(response.json()["1"]["job_type"]=="file_upload")
+        assert(response.json()["1"]["file_type"]=="award")
+        assert(response.json()["2"]["status"]=="running")
+        assert(response.json()["2"]["job_type"]=="csv_record_validation")
+        assert(response.json()["2"]["file_type"]=="award")
+        assert(response.json()["3"]["status"]=="waiting")
+        assert(response.json()["3"]["job_type"]=="external_validation")
+        assert(response.json()["3"]["file_type"]=="award")
+        assert(response.json()["5"]["status"]=="ready")
+        assert(response.json()["5"]["job_type"]=="csv_record_validation")
+        assert(response.json()["5"]["file_type"]=="appropriations")
 
     def check_error_route(self,jobId,submissonId) :
         jobJson = json.dumps({"upload_id":jobId})
@@ -72,17 +107,35 @@ class FileTests(BaseTest):
         self.utils.login()
         finalizeResponse = self.utils.postRequest("/v1/finalize_job/",jobJson)
 
-        if(finalizeResponse.status_code != 200):
-            print(finalizeResponse.status_code)
-            print(finalizeResponse.json()["errorType"])
-            print(finalizeResponse.json()["message"])
-            print(finalizeResponse.json()["trace"])
         assert(finalizeResponse.status_code == 200)
 
     def check_validator(self, jobId):
         proxy = ManagerProxy()
         response = proxy.sendJobRequest(jobId)
         assert(response.status_code == 200)
+
+    def test_error_report(self):
+        # Will only pass if validator unit tests have been run to generate the error reports
+        utils = TestUtils()
+        utils.login()
+        self.setupJobsForReports()
+        response = utils.postRequest("/v1/submission_error_reports/",'{"submission_id":11}')
+        createJobTables() # Clear job DB again so sequence errors don't occur
+        assert(response.status_code == 200)
+        assert(len(response.json()) == 4)
+
+    def setupJobsForReports(self):
+        """ Setting Jobs table to correct state for checking error reports from validator unit tests """
+        createJobTables()
+        self.tablesCleared = False
+        sqlStatements = [
+            "INSERT INTO submission (submission_id,datetime_utc) VALUES (11,0)",
+            "INSERT INTO job_status (job_id,file_type_id, status_id, type_id, submission_id) VALUES (11,1,4,2,11),(12,2,4,2,11),(13,3,4,2,11),(15,4,4,2,11)"
+        ]
+        jobTracker = JobHandler()
+        for statement in sqlStatements:
+            jobTracker.runStatement(statement)
+
 
 if __name__ == '__main__':
     unittest.main()

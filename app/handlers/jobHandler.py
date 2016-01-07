@@ -1,9 +1,3 @@
-import sqlalchemy
-import sys
-import os
-import json
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine, update
 from dataactcore.models.jobModels import JobStatus,JobDependency,Status,Type,Resource, Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from datetime import datetime

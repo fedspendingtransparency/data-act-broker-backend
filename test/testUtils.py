@@ -1,12 +1,9 @@
-import unittest
 import requests
-import json
-
 
 class TestUtils:
     # Test basic routes, including login and file submission
-    #BASE_URL = "http://127.0.0.1:5000"
-    BASE_URL = "http://54.173.199.34:5000"
+    BASE_URL = "http://127.0.0.1:5000"
+    #BASE_URL = "http://54.173.199.34:5000"
     JSON_HEADER = {"Content-Type": "application/json"}
 
     def getRequest(self,url) :
@@ -19,6 +16,15 @@ class TestUtils:
         return responseData
 
     def postRequest(self,url,jsonData) :
+        """
+
+        Args:
+            url - Route to call
+            jsonData - String representation of a JSON
+
+        Returns:
+            Response object returned by route
+        """
         try:
             current = self.cookies
         except AttributeError:

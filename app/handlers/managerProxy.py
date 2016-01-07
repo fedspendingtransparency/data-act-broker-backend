@@ -1,7 +1,6 @@
 import requests
 import json
 import os
-from json import JSONDecoder, JSONEncoder
 import inspect
 
 class ManagerProxy(object):

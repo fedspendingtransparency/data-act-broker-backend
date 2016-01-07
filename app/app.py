@@ -1,22 +1,15 @@
-import sys
-import json
+
 import os
 import inspect
 from flask.ext.cors import CORS
-from flask import Flask, request, make_response, session, g, redirect, url_for, \
-     abort, render_template, flash ,session, Response
+from flask import Flask
 import json
-import flask
 
 from handlers.aws.session import DynamoInterface, SessionTable, LoginSession
-from handlers.loginHandler import LoginHandler
-from handlers.fileHandler import FileHandler
-from handlers.jobHandler import JobHandler
 from handlers.managerProxy import ManagerProxy
 from fileRoutes import add_file_routes
 from loginRoutes import add_login_routes
 from dataactcore.utils.jsonResponse import JsonResponse
-from json import JSONDecoder, JSONEncoder
 
 
 def getAppConfiguration() :

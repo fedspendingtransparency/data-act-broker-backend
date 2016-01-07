@@ -1,9 +1,3 @@
-import sqlalchemy
-import sys
-import os
-import json
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine, update
 from dataactcore.models.userModel import User
 from sqlalchemy.orm.exc import MultipleResultsFound
 from dataactcore.models.userInterface import UserInterface

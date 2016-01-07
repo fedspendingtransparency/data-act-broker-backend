@@ -24,8 +24,14 @@ def add_file_routes(app):
         fileManager = FileHandler(request)
         return fileManager.finalize()
 
-    @app.route("/v1/job_error_report/", methods = ["POST"])
+    @app.route("/v1/check_status/", methods = ["POST"])
     @permissions_check
-    def submission_error_report() :
+    def check_status():
         fileManager = FileHandler(request)
-        return fileManager.getErrorReportURL()
+        return fileManager.getStatus()
+
+    @app.route("/v1/submission_error_reports/", methods = ["POST"])
+    @permissions_check
+    def submission_error_reports() :
+        fileManager = FileHandler(request)
+        return fileManager.getErrorReportURLsForSubmission()
