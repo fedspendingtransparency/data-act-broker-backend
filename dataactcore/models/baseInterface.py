@@ -16,6 +16,11 @@ class BaseInterface(object):
     credFileName = None
 
     def __init__(self):
+
+        if(self.session != None):
+            # session is already set up for this DB
+            return
+
         if(self.dbConfigFile == None or self.dbName == None):
             # Child class needs to set these before calling base constructor
             raise ValueError("Need dbConfigFile and dbName defined")
@@ -35,6 +40,7 @@ class BaseInterface(object):
         self.Session.remove()
         self.engine.dispose()
         pass
+
 
     @classmethod
     def getCredDict(cls):

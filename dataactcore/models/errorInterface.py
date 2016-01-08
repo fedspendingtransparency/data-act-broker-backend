@@ -5,6 +5,8 @@ class ErrorInterface(BaseInterface):
     dbName = "error_data"
     credFileName = "dbCred.json"
     Session = None
+    engine = None
+    session = None
 
     def __init__(self):
         self.dbConfigFile = self.getCredFilePath()

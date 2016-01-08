@@ -3,12 +3,11 @@
 
  """
 
-import json
 from dataactcore.scripts.databaseSetup import runCommands
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.models.userInterface import UserInterface
 
-def createJobTables():
+def createJobTables(connection = None):
     sql = ["DROP TABLE IF EXISTS job_dependency",
                 "DROP TABLE IF EXISTS job_status",
                 "DROP TABLE IF EXISTS file_type",
@@ -40,7 +39,7 @@ def createJobTables():
                 "INSERT INTO type (type_id,name,description) VALUES (1, 'file_upload', 'file must be uploaded to S3'), (2, 'csv_record_validation', 'do record level validation and add to staging DB'), (3, 'db_transfer', 'information must be moved from production DB to staging DB'), (4, 'validation', 'new information must be validated'), (5, 'external_validation', 'new information must be validated against external sources')",
                 "INSERT INTO file_type (file_type_id, name, description) VALUES (1, 'award', ''), (2, 'award_financial', ''), (3, 'appropriations', ''), (4, 'procurement', '')",
                 ]
-    runCommands(JobTrackerInterface.getCredDict(),sql,"job_tracker")
+    runCommands(JobTrackerInterface.getCredDict(),sql,"job_tracker",connection)
 
     sql = ["DROP TABLE IF EXISTS users",
                 "DROP SEQUENCE IF EXISTS userIdSerial",
@@ -48,3 +47,7 @@ def createJobTables():
                 "CREATE TABLE users (user_id integer PRIMARY KEY DEFAULT nextval('userIdSerial'), username text)"]
 
     runCommands(UserInterface.getCredDict(),sql,"user_manager")
+
+if __name__ == '__main__':
+    for i in range(0,100):
+        createJobTables()

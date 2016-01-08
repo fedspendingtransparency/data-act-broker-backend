@@ -9,7 +9,7 @@ from dataactcore.utils.responseException import ResponseException
 class JsonResponse :
 
     debugMode = True
-    printDebug = False
+    printDebug = True
     logDebug = False
 
     @staticmethod

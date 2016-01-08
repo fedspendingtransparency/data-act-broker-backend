@@ -17,6 +17,8 @@ class ValidationInterface(BaseInterface):
     dbName = "validation"
     credFileName = "dbCred.json"
     Session = None
+    engine = None
+    session = None
 
     def __init__(self):
         self.dbConfigFile = self.getCredFilePath()
