@@ -6,7 +6,7 @@ from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.utils.responseException import ResponseException
 from sqlalchemy.orm import subqueryload, joinedload
 from dataactcore.utils.statusCode import StatusCode
-from handlers.validationError import ValidationError
+from validation_handlers.validationError import ValidationError
 
 class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
     """ Manages all interaction with the job tracker database

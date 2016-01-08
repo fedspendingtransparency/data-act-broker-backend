@@ -1,8 +1,6 @@
-import sys, os, inspect, json
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from interfaces.jobTrackerInterface import JobTrackerInterface
-import struct
 from dataactcore.utils.requestDictionary import RequestDictionary
 from filestreaming.csvReader import CsvReader
 from interfaces.stagingInterface import StagingInterface
@@ -12,8 +10,9 @@ from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.responseException import ResponseException
 from csv import Error
 from filestreaming.csvWriter import CsvWriter
-from handlers.validationError import ValidationError
+from validation_handlers.validationError import ValidationError
 from interfaces.errorInterface import ErrorInterface
+from interfaces.interfaceHolder import InterfaceHolder
 
 class ValidationManager:
     """
@@ -63,7 +62,7 @@ class ValidationManager:
         True if the job is ready, if the job is not ready an exception will be raised
         """
         tableName = "job"+str(jobId)
-        jobTracker = JobTrackerInterface()
+        jobTracker = InterfaceHolder.JOB_TRACKER
         if(not (jobTracker.runChecks(jobId))):
             exc = ResponseException("Checks failed on Job ID")
             exc.status = StatusCode.CLIENT_ERROR
@@ -82,24 +81,24 @@ class ValidationManager:
 
         """
         self.filename = ""
-        jobTracker = JobTrackerInterface()
+        jobTracker = InterfaceHolder.JOB_TRACKER
         try:
             self.runValidation(jobId, jobTracker)
-            errorInterface = ErrorInterface()
+            errorInterface = InterfaceHolder.ERROR
             errorInterface.markFileComplete(jobId,self.filename)
             return
         except ResponseException as e:
             self.markJob(jobId,jobTracker,"invalid")
-            errorHandler = ErrorInterface()
+            errorHandler = InterfaceHolder.ERROR
             errorHandler.writeFileError(jobId,self.filename,e.errorType)
         except ValueError as e:
             self.markJob(jobId,jobTracker,"invalid")
-            errorHandler = ErrorInterface()
+            errorHandler = InterfaceHolder.ERROR
             errorHandler.writeFileError(jobId,self.filename,ValidationError.unknownError)
         except Exception as e:
             #Something unkown happend we may need to try again!
             self.markJob(jobId,jobTracker,"failed")
-            errorHandler = ErrorInterface()
+            errorHandler = InterfaceHolder.ERROR
             errorHandler.writeFileError(jobId,self.filename,ValidationError.unknownError)
 
 
@@ -113,7 +112,7 @@ class ValidationManager:
         bucketName = s3UrlHandler.getBucketNameFromConfig()
         errorFileName = jobTracker.getReportPath(jobId)
 
-        validationDB = ValidationInterface()
+        validationDB = InterfaceHolder.VALIDATION
         fieldList = validationDB.getFieldsByFileList(fileType)
         csvSchema  = validationDB.getFieldsByFile(fileType)
         rules = validationDB.getRulesByFile(fileType)
@@ -124,9 +123,9 @@ class ValidationManager:
         # While not done, pull one row and put it into staging if it passes
         # the Validator
         tableName = "job"+str(jobId)
-        stagingDb = StagingInterface()
+        stagingDb = InterfaceHolder.STAGING
         tableName = stagingDb.createTable(fileType,fileName,jobId,tableName)
-        errorInterface = ErrorInterface()
+        errorInterface = InterfaceHolder.ERROR
 
         with CsvWriter(bucketName, errorFileName, self.reportHeaders) as writer:
             while(not reader.isFinished):
@@ -180,7 +179,8 @@ class ValidationManager:
         self.filename = None
         tableName = ""
         jobId = None
-        jobTracker = JobTrackerInterface()
+        jobTracker = InterfaceHolder.JOB_TRACKER
+
         try:
 
             requestDict = RequestDictionary(request)
@@ -201,13 +201,13 @@ class ValidationManager:
                 raise exc
 
         except ResponseException as e:
-            errorHandler = ErrorInterface()
+            errorHandler = InterfaceHolder.ERROR
             if(e.errorType == None):
                 e.errorType = ValidationError.jobError
             errorHandler.writeFileError(jobId,self.filename,e.errorType)
             return JsonResponse.error(e,e.status,{"table":tableName})
         except Exception as e:
-            errorHandler = ErrorInterface()
+            errorHandler = InterfaceHolder.ERROR
             exc = ResponseException("Internal exception")
             exc.wrappedException = e
             self.markJob(jobId,jobTracker,"failed")
@@ -217,13 +217,13 @@ class ValidationManager:
         try:
             jobTracker.markStatus(jobId,"running")
             self.runValidation(jobId,jobTracker)
-            errorInterface = ErrorInterface()
+            errorInterface = InterfaceHolder.ERROR
             errorInterface.markFileComplete(jobId,self.filename)
             return  JsonResponse.create(StatusCode.OK,{"table":tableName})
         except ResponseException as e:
             open("errorLog","a").write(e.message)
             self.markJob(jobId,jobTracker,"invalid")
-            errorHandler = ErrorInterface()
+            errorHandler = InterfaceHolder.ERROR
             if(e.errorType == None):
                 e.errorType = ValidationError.unknownError
             errorHandler.writeFileError(jobId,self.filename,e.errorType)
@@ -234,7 +234,7 @@ class ValidationManager:
             exc.status = StatusCode.CLIENT_ERROR
             exc.wrappedException = e
             self.markJob(jobId,jobTracker,"invalid")
-            errorHandler = ErrorInterface()
+            errorHandler = InterfaceHolder.ERROR
             errorHandler.writeFileError(jobId,self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Error as e:
@@ -243,11 +243,11 @@ class ValidationManager:
             exc.status = StatusCode.CLIENT_ERROR
             exc.wrappedException = e
             self.markJob(jobId,jobTracker,"invalid")
-            errorHandler = ErrorInterface()
+            errorHandler = InterfaceHolder.ERROR
             errorHandler.writeFileError(jobId,self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Exception as e:
-            errorHandler = ErrorInterface()
+            errorHandler = InterfaceHolder.ERROR
             exc = ResponseException("Internal exception")
             exc.wrappedException = e
             self.markJob(jobId,jobTracker,"failed")

@@ -5,14 +5,17 @@ from flask import Flask, request, make_response, session, g, redirect, url_for, 
      abort, render_template, flash ,session, Response, copy_current_request_context
 import json
 #open("pathLog","w").write(str(sys.path))
-from handlers.validationManager import ValidationManager
+from validation_handlers.validationManager import ValidationManager
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from csv import Error
 from interfaces.jobTrackerInterface import JobTrackerInterface
 from interfaces.errorInterface import ErrorInterface
-from handlers.validationError import ValidationError
+from interfaces.stagingInterface import StagingInterface
+from interfaces.validationInterface import ValidationInterface
+from validation_handlers.validationError import ValidationError
+from interfaces.interfaceHolder import InterfaceHolder
 
 debugFlag = True
 
@@ -21,6 +24,11 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 
 validationManager = ValidationManager()
+# Hold copy of interface objects to limit to a single session for each
+jobTracker = InterfaceHolder.JOB_TRACKER
+errorDb = InterfaceHolder.ERROR
+stagingDb = InterfaceHolder.STAGING
+validationDb = InterfaceHolder.VALIDATION
 
 @app.route("/",methods=["GET"])
 def testApp():
@@ -45,7 +53,7 @@ def validate_threaded():
     manager = ValidationManager()
 
     try :
-        jobTracker = JobTrackerInterface()
+        jobTracker = InterfaceHolder.JOB_TRACKER
     except ResponseException as e:
         exc = ResponseException(e.message)
         exc.wrappedException = e
@@ -64,7 +72,7 @@ def validate_threaded():
         exc.wrappedException = e
         exc.status = StatusCode.CLIENT_ERROR
         manager.markJob(jobId,jobTracker,"invalid")
-        errorHandler = ErrorInterface()
+        errorHandler = InterfaceHolder.ERROR
         errorHandler.writeFileError(jobId,manager.filename,ValidationError.unknownError)
         return JsonResponse.error(exc,exc.status,{"table":""})
     except Exception as e:
@@ -72,7 +80,7 @@ def validate_threaded():
         exc.wrappedException = e
         exc.status = StatusCode.CLIENT_ERROR
         manager.markJob(jobId,jobTracker,"invalid")
-        errorHandler = ErrorInterface()
+        errorHandler = InterfaceHolder.ERROR
         errorHandler.writeFileError(jobId,manager.filename,ValidationError.unknownError)
         return JsonResponse.error(exc,exc.status,{"table":""})
 
@@ -82,14 +90,14 @@ def validate_threaded():
         exc = ResponseException(e.message)
         exc.wrappedException = e
         exc.status = StatusCode.CLIENT_ERROR
-        errorHandler = ErrorInterface()
+        errorHandler = InterfaceHolder.ERROR
         errorHandler.writeFileError(jobId,manager.filename,ValidationError.jobError)
         return JsonResponse.error(exc,exc.status,{"table":""})
     except Exception as e:
         exc = ResponseException(e.message)
         exc.wrappedException = e
         exc.status = StatusCode.CLIENT_ERROR
-        errorHandler = ErrorInterface()
+        errorHandler = InterfaceHolder.ERROR
         errorHandler.writeFileError(jobId,manager.filename,ValidationError.jobError)
         return JsonResponse.error(exc,exc.status,{"table":""})
 

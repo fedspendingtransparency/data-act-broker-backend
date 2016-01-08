@@ -1,5 +1,5 @@
 import unittest
-from  handlers.validator import Validator
+from  validation_handlers.validator import Validator
 from dataactcore.models.validationModels import  FileType, FieldType,RuleType, FileColumn, Rule
 class ValidatorTests(unittest.TestCase) :
 

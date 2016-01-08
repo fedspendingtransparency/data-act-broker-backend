@@ -7,3 +7,4 @@ jobTracker.conf
 handlers/s3bucket.json
 errorLog
 tests/errorLog
+tests/stats

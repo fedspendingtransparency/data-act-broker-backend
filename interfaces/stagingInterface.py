@@ -14,10 +14,10 @@ class StagingInterface(BaseStagingInterface):
     """ Manages all interaction with the staging database
     """
 
-    def createTable(self,filetype,filename,jobId,tableName=None):
+    def createTable(self, fileType, filename, jobId, tableName=None):
         """ Create staging table for new file
         Args:
-        filetype -- type of file to create a table for (e.g. Award, AwardFinancial)
+        fileType -- type of file to create a table for (e.g. Award, AwardFinancial)
 
         Returns:
         tableName if created, exception otherwise
@@ -31,11 +31,12 @@ class StagingInterface(BaseStagingInterface):
 
         # Alternate way of naming tables
         #tableName = "data" + tableName.replace("/","").replace("\\","").replace(".","")
-        # Write tablename to related job in job tracker
-        jobTracker = JobTrackerInterface()
+        # Write tableName to related job in job tracker
+        from interfaces.interfaceHolder import InterfaceHolder  # This is done here to avoid circular import issues
+        jobTracker = InterfaceHolder.JOB_TRACKER
         jobTracker.addStagingTable(jobId,tableName)
-        validationDB = ValidationInterface()
-        fields = validationDB.getFieldsByFile(filetype)
+        validationDB = InterfaceHolder.VALIDATION
+        fields = validationDB.getFieldsByFile(fileType)
 
         """ Might not need sequence for ORM
         # Create sequence to be used for primary key
