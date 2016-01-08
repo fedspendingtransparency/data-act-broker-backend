@@ -7,6 +7,7 @@ from userHandler import UserHandler
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 import inspect
+from handlers.interfaceHolder import InterfaceHolder
 
 class LoginHandler:
     """
@@ -22,7 +23,7 @@ class LoginHandler:
 
         Creates the Login Handler
         """
-        self.userManager = UserHandler()
+        self.userManager = InterfaceHolder.USER
         self.request = request
 
     def login(self,session):

@@ -1,10 +1,8 @@
-import flask
-from flask import Flask, request, make_response, session, g, redirect, url_for, \
-     abort, render_template, flash
+from flask import request, session
 from handlers.fileHandler import FileHandler
-from handlers.jobHandler import JobHandler
 from handlers.aws.session import LoginSession
 from permissions import permissions_check
+
 # Add the file submission route
 def add_file_routes(app):
     """ Create routes related to file submission for flask app
@@ -20,7 +18,7 @@ def add_file_routes(app):
 
     @app.route("/v1/finalize_job/", methods = ["POST"])
     @permissions_check
-    def finalize_submission() :
+    def finalize_submission():
         fileManager = FileHandler(request)
         return fileManager.finalize()
 
@@ -32,12 +30,12 @@ def add_file_routes(app):
 
     @app.route("/v1/submission_error_reports/", methods = ["POST"])
     @permissions_check
-    def submission_error_reports() :
+    def submission_error_reports():
         fileManager = FileHandler(request)
         return fileManager.getErrorReportURLsForSubmission()
 
     @app.route("/v1/error_metrics/", methods = ["POST"])
     @permissions_check
-    def submission_error_metrics() :
+    def submission_error_metrics():
         fileManager = FileHandler(request)
         return fileManager.getErrorMetrics()

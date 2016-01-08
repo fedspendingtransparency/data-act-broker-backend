@@ -5,10 +5,8 @@ from errorHandler import ErrorHandler
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
-
 from managerProxy import ManagerProxy
-
-
+from handlers.interfaceHolder import InterfaceHolder
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -30,7 +28,7 @@ class FileHandler:
         Arguments:
         request - HTTP request object for this route
         """
-        self.jobManager = JobHandler()
+        self.jobManager = InterfaceHolder.JOB_TRACKER
         self.request = request
 
 
@@ -43,9 +41,10 @@ class FileHandler:
             safeDictionary = RequestDictionary(self.request)
             submissionId = safeDictionary.getValue("submission_id")
             responseDict ={}
-            jobTracker = JobHandler()
+            jobTracker = InterfaceHolder.JOB_TRACKER
             for jobId in jobTracker.getJobsBySubmission(submissionId):
                 responseDict["job_"+str(jobId)+"_error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(jobId),"GET")
+
             return JsonResponse.create(StatusCode.OK,responseDict)
         except ResponseException as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
@@ -86,7 +85,7 @@ class FileHandler:
         try:
             responseDict= {}
             self.s3manager = s3UrlHandler(s3UrlHandler.getBucketNameFromConfig())
-            jobManager = JobHandler()
+            jobManager = InterfaceHolder.JOB_TRACKER
             fileNameMap = []
             safeDictionary = RequestDictionary(self.request)
             for fileName in FileHandler.FILE_TYPES :
@@ -121,7 +120,7 @@ class FileHandler:
             inputDictionary = RequestDictionary(self.request)
             jobId = inputDictionary.getValue("upload_id")
             # Change job status to finished
-            jobManager = JobHandler()
+            jobManager = InterfaceHolder.JOB_TRACKER
             if(jobManager.checkUploadType(jobId)):
                 jobManager.changeToFinished(jobId)
                 responseDict["success"] = True
@@ -148,7 +147,7 @@ class FileHandler:
             A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding description and status
         """
         try:
-            jobTracker = JobHandler()
+            jobTracker = InterfaceHolder.JOB_TRACKER
             inputDictionary = RequestDictionary(self.request)
             submissionId = inputDictionary.getValue("submission_id")
             # Get jobs in this submission
@@ -179,7 +178,7 @@ class FileHandler:
             jobIds = self.jobManager.getJobsBySubmission(submission_id)
             for currentId in jobIds :
                 fileName = self.jobManager.getFileType(currentId)
-                errorHandler = ErrorHandler()
+                errorHandler = InterfaceHolder.ERROR
                 dataList = errorHandler.getErrorMetericsByJobId(currentId)
                 returnDict[fileName]  = dataList
             return JsonResponse.create(StatusCode.OK,returnDict)

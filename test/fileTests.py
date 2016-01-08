@@ -1,10 +1,11 @@
 import json
 import unittest
-from app.handlers.jobHandler import JobHandler
-from app.handlers.managerProxy import ManagerProxy
+from handlers.managerProxy import ManagerProxy
 from baseTest import BaseTest
 from testUtils import TestUtils
 from dataactcore.scripts.createJobTables import createJobTables
+from dataactcore.scripts.clearJobs import clearJobs
+from handlers.interfaceHolder import InterfaceHolder
 
 class FileTests(BaseTest):
     """ Test file submission routes """
@@ -15,8 +16,8 @@ class FileTests(BaseTest):
     def __init__(self,methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(FileTests,self).__init__(methodName=methodName)
+        jobTracker = InterfaceHolder.JOB_TRACKER
 
-        jobTracker = JobHandler()
         if(not self.tablesCleared):
             # Clear job tracker
             createJobTables()
@@ -30,7 +31,6 @@ class FileTests(BaseTest):
 
                 for statement in sqlStatements:
                     jobTracker.runStatement(statement)
-
 
     def call_file_submission(self):
         # If fileResponse doesn't exist, send the request
@@ -118,24 +118,25 @@ class FileTests(BaseTest):
         # Will only pass if validator unit tests have been run to generate the error reports
         utils = TestUtils()
         utils.login()
+
         self.setupJobsForReports()
         response = utils.postRequest("/v1/submission_error_reports/",'{"submission_id":11}')
-        createJobTables() # Clear job DB again so sequence errors don't occur
+        clearJobs()  # Clear job DB again so sequence errors don't occur
         assert(response.status_code == 200)
         assert(len(response.json()) == 4)
 
     def setupJobsForReports(self):
         """ Setting Jobs table to correct state for checking error reports from validator unit tests """
-        createJobTables()
+        clearJobs()
         self.tablesCleared = False
         sqlStatements = [
             "INSERT INTO submission (submission_id,datetime_utc) VALUES (11,0)",
             "INSERT INTO job_status (job_id,file_type_id, status_id, type_id, submission_id) VALUES (11,1,4,2,11),(12,2,4,2,11),(13,3,4,2,11),(15,4,4,2,11)"
         ]
-        jobTracker = JobHandler()
+
+        jobTracker = InterfaceHolder.JOB_TRACKER
         for statement in sqlStatements:
             jobTracker.runStatement(statement)
-
 
 if __name__ == '__main__':
     unittest.main()
