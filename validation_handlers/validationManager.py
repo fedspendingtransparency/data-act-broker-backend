@@ -124,7 +124,7 @@ class ValidationManager:
         # the Validator
         tableName = "job"+str(jobId)
         stagingDb = InterfaceHolder.STAGING
-        tableName = stagingDb.createTable(fileType,fileName,jobId,tableName)
+        tableObject = stagingDb.createTable(fileType,fileName,jobId,tableName)
         errorInterface = InterfaceHolder.ERROR
 
         with CsvWriter(bucketName, errorFileName, self.reportHeaders) as writer:
@@ -143,8 +143,8 @@ class ValidationManager:
                     continue
                 valid, fieldName, error = Validator.validate(record,rules,csvSchema)
                 if(valid) :
-                    try:
-                        stagingDb.writeRecord(tableName,record)
+                    try: 
+                        stagingDb.writeRecord(tableObject,record)
                     except ResponseException as e:
                         # Write failed, move to next record
                         writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber)])

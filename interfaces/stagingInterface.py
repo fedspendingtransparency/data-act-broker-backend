@@ -1,4 +1,5 @@
 from interfaces.validationInterface import ValidationInterface
+from interfaces.stagingTable import StagingTable
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.field import FieldType, FieldConstraint
 from interfaces.jobTrackerInterface import JobTrackerInterface
@@ -84,16 +85,16 @@ class StagingInterface(BaseStagingInterface):
 
 
         # Create ORM class based on dict
-        self.orm = type(tableName,(declarative_base(),),classFieldDict)
+        customTable =  StagingTable(type(tableName,(declarative_base(),),classFieldDict))
 
         # Create table
-        self.orm.__table__.create(self.engine)
+        customTable.create(self.engine)
 
         # Create table from metadata
         #meta = MetaData()
         #meta.create_all(bind=self.engine,)
 
-        return tableName
+        return customTable
 
     def writeData(self,tableName, data):
         """ Writes some number of validated records to staging database
@@ -111,10 +112,11 @@ class StagingInterface(BaseStagingInterface):
                 success = False
         return success
 
-    def writeRecord(self, tableName, record):
+
+    def writeRecord(self, table, record):
         """ Write single record to specified table
         Args:
-        tableName -- table to write to
+        table -- table orm object to write to
         record -- dict with column names as keys
 
         Returns:
@@ -123,19 +125,13 @@ class StagingInterface(BaseStagingInterface):
 
         # Create ORM object from class defined by createTable
         try:
-            recordOrm = self.orm()
+            insert = table.insert(record)
         except:
+            print "!!!!"
             # createTable was not called
             raise Exception("Must call createTable before writing")
 
-        attributes = self.getPublicMembers(recordOrm)
-
-        # For each field, add value to ORM object
-        for key in record.iterkeys():
-            attr = key.replace(" ","_")
-            setattr(recordOrm,attr,record[key])
-
-        self.session.add(recordOrm)
+        self.session.add(insert)
         self.session.commit()
 
     #@staticmethod
@@ -153,13 +149,6 @@ class StagingInterface(BaseStagingInterface):
             pass
         return True
 
-    @staticmethod
-    def getPublicMembers(obj):
-        response = []
-        for member in dir(obj):
-            if(member[0] != "_"):
-                response.append(member)
-        return response
 
     def tableExists(self,table):
         """ True if table exists, false otherwise """

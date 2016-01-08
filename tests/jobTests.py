@@ -24,10 +24,10 @@ class JobTests(unittest.TestCase):
     #BASE_URL = "http://52.90.92.100:5000"
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False  # Gets set to true by the first test to populate the tables
-    DROP_TABLES = False  # If true, staging tables are dropped after tests are run
+    DROP_TABLES = True  # If true, staging tables are dropped after tests are run
     USE_THREADS = True
     INCLUDE_LONG_TESTS = False
-
+    UPLOAD_FILES = False
     def __init__(self, methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(JobTests, self).__init__(methodName=methodName)
@@ -136,13 +136,14 @@ class JobTests(unittest.TestCase):
         # Create file names for S3
         s3FileName = str(user) + "/" + filename
 
-        # Use boto to put files on S3
-        s3conn = S3Connection()
-        key = Key(s3conn.get_bucket(bucketName))
-        key.key = s3FileName
-        bytesWritten = key.set_contents_from_filename(fullPath)
+        if(JobTests.UPLOAD_FILES) :
+            # Use boto to put files on S3
+            s3conn = S3Connection()
+            key = Key(s3conn.get_bucket(bucketName))
+            key.key = s3FileName
+            bytesWritten = key.set_contents_from_filename(fullPath)
 
-        assert(bytesWritten > 0)
+            assert(bytesWritten > 0)
         return s3FileName
 
     def test_valid_job(self):
