@@ -13,6 +13,9 @@ import inspect
 class StagingInterface(BaseStagingInterface):
     """ Manages all interaction with the staging database
     """
+    BATCH_INSERT = True
+    INSERT_BY_ORM = False
+    BATCH_SIZE = 1000
 
     def createTable(self, fileType, filename, jobId, tableName=None):
         """ Create staging table for new file
@@ -88,6 +91,8 @@ class StagingInterface(BaseStagingInterface):
 
         # Create table
         self.orm.__table__.create(self.engine)
+        # Begin first batch
+        self.batch = []
 
         # Create table from metadata
         #meta = MetaData()
@@ -111,6 +116,9 @@ class StagingInterface(BaseStagingInterface):
                 success = False
         return success
 
+    def endBatch(self):
+        """ Called at end of process to send the last batch """
+
     def writeRecord(self, tableName, record):
         """ Write single record to specified table
         Args:
@@ -122,21 +130,35 @@ class StagingInterface(BaseStagingInterface):
         """
 
         # Create ORM object from class defined by createTable
-        try:
-            recordOrm = self.orm()
-        except:
-            # createTable was not called
-            raise Exception("Must call createTable before writing")
+        if(self.BATCH_INSERT):
+            if(self.INSERT_BY_ORM):
+                raise NotImplementedError("Have not implemented ORM method for batch insert")
+            else:
+                self.batch.append(record)
+                if(len(self.batch)>self.BATCH_SIZE):
+                    # Time to write the batch
+                    self.connection(self.orm.__table__.insert(),self.batch)
+                    # Reset batch
+                    self.batch = []
+        else:
+            if(self.INSERT_BY_ORM):
+                try:
+                    recordOrm = self.orm()
+                except:
+                    # createTable was not called
+                    raise Exception("Must call createTable before writing")
 
-        attributes = self.getPublicMembers(recordOrm)
+                attributes = self.getPublicMembers(recordOrm)
 
-        # For each field, add value to ORM object
-        for key in record.iterkeys():
-            attr = key.replace(" ","_")
-            setattr(recordOrm,attr,record[key])
+                # For each field, add value to ORM object
+                for key in record.iterkeys():
+                    attr = key.replace(" ","_")
+                    setattr(recordOrm,attr,record[key])
 
-        self.session.add(recordOrm)
-        self.session.commit()
+                self.session.add(recordOrm)
+                self.session.commit()
+            else:
+                raise ValueError("Must do either batch or use ORM, cannot set both to False")
 
     #@staticmethod
     def dropTable(self,table):

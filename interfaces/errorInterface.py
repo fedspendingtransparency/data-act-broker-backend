@@ -97,6 +97,8 @@ class ErrorInterface(errorInterface.ErrorInterface):
 
         # Commit the session to write all rows
         self.session.commit()
+        # Clear the dictionary
+        self.rowErrors = {}
 
     def checkStatusByJobId(self, jobId):
         """ Query status for specified job

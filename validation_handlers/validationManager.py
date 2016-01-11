@@ -130,6 +130,8 @@ class ValidationManager:
         with CsvWriter(bucketName, errorFileName, self.reportHeaders) as writer:
             while(not reader.isFinished):
                 rowNumber += 1
+                if (rowNumber % 1000) == 0:
+                    print("Validating row " + str(rowNumber))
                 try :
                     record = reader.getNextRecord()
                     if(reader.isFinished and len(record) < 2):
@@ -143,13 +145,16 @@ class ValidationManager:
                     continue
                 valid, fieldName, error = Validator.validate(record,rules,csvSchema)
                 if(valid) :
-                    try:
+                    if(stagingDb.BATCH_INSERT):
                         stagingDb.writeRecord(tableName,record)
-                    except ResponseException as e:
-                        # Write failed, move to next record
-                        writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber)])
-                        errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.writeError,rowNumber)
-                        continue
+                    else:
+                        try:
+                            stagingDb.writeRecord(tableName,record)
+                        except ResponseException as e:
+                            # Write failed, move to next record
+                            writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber)])
+                            errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.writeError,rowNumber)
+                            continue
                 else:
 
                     try:
@@ -182,7 +187,6 @@ class ValidationManager:
         jobTracker = InterfaceHolder.JOB_TRACKER
 
         try:
-
             requestDict = RequestDictionary(request)
             if(requestDict.exists("job_id")):
                 jobId = requestDict.getValue("job_id")
