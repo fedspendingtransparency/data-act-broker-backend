@@ -6,11 +6,13 @@ import inspect
 from dataactcore.utils.responseException import ResponseException
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.utils.statusCode import StatusCode
+from flask import _app_ctx_stack
 
 class BaseInterface(object):
     """ Abstract base interface to be inherited by interfaces for specific databases
     """
-
+    #For Flask Apps use the context for locals
+    IS_FLASK = True
     dbConfigFile = None # Should be overwritten by child classes
     dbName = None # Should be overwritten by child classes
     credFileName = None
@@ -30,7 +32,10 @@ class BaseInterface(object):
         # Create sqlalchemy connection and session
         self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName,pool_size=100,max_overflow=50)
         if(self.Session == None):
-            self.Session = scoped_session(sessionmaker(bind=self.engine,autoflush=True))
+            if(BaseInterface.IS_FLASK) :
+                self.Session = scoped_session(sessionmaker(bind=self.engine,autoflush=True),scopefunc=_app_ctx_stack.__ident_func__)
+            else :
+                self.Session = scoped_session(sessionmaker(bind=self.engine,autoflush=True))
         self.session = self.Session()
 
     def __del__(self):
@@ -39,7 +44,6 @@ class BaseInterface(object):
         #self.Session.close_all()
         self.Session.remove()
         self.engine.dispose()
-        pass
 
 
     @classmethod
