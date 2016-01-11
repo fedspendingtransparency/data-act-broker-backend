@@ -28,6 +28,7 @@ class JobTests(unittest.TestCase):
     DROP_TABLES = False  # If true, staging tables are dropped after tests are run
     USE_THREADS = False
     INCLUDE_LONG_TESTS = True
+    UPLOAD_FILES = True
 
     def __init__(self, methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
@@ -143,13 +144,14 @@ class JobTests(unittest.TestCase):
         # Create file names for S3
         s3FileName = str(user) + "/" + filename
 
-        # Use boto to put files on S3
-        s3conn = S3Connection()
-        key = Key(s3conn.get_bucket(bucketName))
-        key.key = s3FileName
-        bytesWritten = key.set_contents_from_filename(fullPath)
+        if(JobTests.UPLOAD_FILES) :
+            # Use boto to put files on S3
+            s3conn = S3Connection()
+            key = Key(s3conn.get_bucket(bucketName))
+            key.key = s3FileName
+            bytesWritten = key.set_contents_from_filename(fullPath)
 
-        assert(bytesWritten > 0)
+            assert(bytesWritten > 0)
         return s3FileName
 
     def test_valid_job(self):
