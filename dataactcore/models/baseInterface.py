@@ -31,6 +31,7 @@ class BaseInterface(object):
 
         # Create sqlalchemy connection and session
         self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName,pool_size=100,max_overflow=50)
+        self.connection = self.engine.connect()
         if(self.Session == None):
             if(BaseInterface.IS_FLASK) :
                 self.Session = scoped_session(sessionmaker(bind=self.engine,autoflush=True),scopefunc=_app_ctx_stack.__ident_func__)
@@ -43,6 +44,7 @@ class BaseInterface(object):
         self.session.close()
         #self.Session.close_all()
         self.Session.remove()
+        self.connection.close()
         self.engine.dispose()
 
 
