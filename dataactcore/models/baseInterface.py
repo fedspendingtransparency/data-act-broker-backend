@@ -18,7 +18,6 @@ class BaseInterface(object):
     credFileName = None
 
     def __init__(self):
-
         if(self.session != None):
             # session is already set up for this DB
             return
