@@ -3,9 +3,6 @@ from interfaces.stagingInterface import StagingInterface
 from dataactcore.models.jobModels import Status, Type
 from dataactcore.models import errorModels
 import requests
-from interfaces.jobTrackerInterface import JobTrackerInterface
-from interfaces.validationInterface import ValidationInterface
-from interfaces.errorInterface import ErrorInterface
 import os
 import inspect
 import time
@@ -13,7 +10,6 @@ from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.scripts.databaseSetup import runCommands
-from dataactcore.scripts.createJobTables import createJobTables
 from scripts.setupValidationDB import setupValidationDB
 from dataactcore.scripts.clearErrors import clearErrors
 from interfaces.interfaceHolder import InterfaceHolder
