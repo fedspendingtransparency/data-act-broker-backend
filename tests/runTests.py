@@ -1,6 +1,7 @@
 import unittest, inspect
 from jobTests import JobTests
 from validatorTests import ValidatorTests
+from appropTests import AppropTests
 import cProfile
 import pstats
 
@@ -9,11 +10,12 @@ def runTests():
 
     # Create test suite
     suite = unittest.TestSuite()
-    appropSuite = unittest.TestSuite()
+
     # Get lists of method names
 
     validatorMethods = inspect.getmembers(ValidatorTests, predicate=inspect.ismethod)
     jobMethods = inspect.getmembers(JobTests, predicate=inspect.ismethod)
+
     #validatorMethods = []
     #jobMethods = [["test_many_rows"]]
 
@@ -29,7 +31,10 @@ def runTests():
             test =JobTests(methodName=method[0])
             suite.addTest(test)
 
+
+
     open("errorLog","a").write(str(suite.countTestCases()) + " tests in suite")
+
     #print(str(suite.countTestCases()) + " tests in suite")
 
     # Run tests and store results
@@ -41,6 +46,18 @@ def runTests():
                 raise Exception("Test Failed")
     else:
         result = runner.run(suite)
+
+    appropSuite = unittest.TestSuite()
+    appropMethods = inspect.getmembers(AppropTests, predicate=inspect.ismethod)
+
+    for method in appropMethods:
+        # If test method, add to suite
+        if(method[0][0:4] == "test"):
+            test =AppropTests(methodName=method[0])
+            appropSuite.addTest(test)
+
+    open("errorLog","a").write(str(appropSuite.countTestCases()) + " tests in appropriations suite")
+    appropResult = runner.run(appropSuite)
 
 if __name__ == '__main__':
     runTests()
