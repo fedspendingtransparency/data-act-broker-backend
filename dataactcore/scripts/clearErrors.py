@@ -27,4 +27,5 @@ def clearErrors():
             connection.execute(statement)
         except ProgrammingError as e:
             # Usually a table exists error, print and continue
-            print(e.message)
+            #print(e.message)
+            pass

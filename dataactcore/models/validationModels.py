@@ -1,14 +1,10 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
-import sqlalchemy
 from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
-from dataactcore.models.jobTrackerInterface import JobTrackerInterface
-
 
 Base = declarative_base()
-
 
 class FileType(Base):
     __tablename__ = "file_type"

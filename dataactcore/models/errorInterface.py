@@ -1,5 +1,4 @@
 from dataactcore.models.baseInterface import BaseInterface
-from errorModels import Base
 
 class ErrorInterface(BaseInterface):
     dbName = "error_data"
