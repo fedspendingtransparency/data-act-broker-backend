@@ -1,0 +1,33 @@
+DAIMS Semantic Standard Label,Definitional Field Length,Primitive Data Type,Required Element (data to be provided by agency)
+Submitting Agency Id,,Integer,Required
+Package Submission Date,,Alphanumeric,Required
+Reporting Period/Measure Date,,Alphanumeric,Required
+{Treasury Account Symbol Entry ID},,Integer,Required
+Apportionment Category A,,Alphanumeric,Required
+Apportionment Category B,,Alphanumeric,Required
+Apportionment Category AB,,Alphanumeric,Required
+Apportionment Category E,,Alphanumeric,Required
+Treasury Account Symbol Common Rendering Label,,Alphanumeric,Optional
+Allocation Transfer Recipient Agency Id,3,Integer,Required if relevant
+Appropriation Account Responsible Agency id,3,Integer,Required
+Obligation Unlimited Availability Period Indicator,1, Alphanumeric (logically a Boolean),Required if relevant
+Obligation Availability Period Start FiscalYear,4,Integer,Required if relevant
+Obligation Availability Period Start Date,10,Alphanumeric,Optional
+Obligation Availability Period End FiscalYear,4,Integer,Required if relevant
+Obligation Availability Period End Date,10,Alphanumeric,Optional
+Appropriation Main Account Code,4,Integer,Required
+Appropriation Sub Account Code,3,Integer,Required
+Appropriation Account Expired Status,,Alphanumeric (logically a Boolean),(Required)
+Budget Authority Available Amount - Total,,Numeric,(Required)
+"Budget Authority Unobligated Amount, Prior Year Carryover",,Numeric,(Required)
+Budget Authority Appropriated Amount - Total,,Numeric,Required
+Other Budgetary Resources Amount - Total,,Numeric,Required
+Contract Authority Amount - Total,,Numeric,(Required)
+Borrowing Authority Amount - Total,,Numeric,(Required)
+Spending Authority from Offsetting Collections Amount - Total,,Numeric,(Required)
+Budget Authority Adjustments - Total,,Numeric,(Required)
+Available For Obligation Amount - Total,,Numeric,(Required)
+Obligations Incurred - Total,,Numeric,(Required)
+Obligations Amount - Total,,Numeric,(Required)
+Outlays Amount - Total,,Numeric,(Required)
+Unobligated Amount - Total,,Numeric,Required
