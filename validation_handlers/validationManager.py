@@ -13,6 +13,7 @@ from filestreaming.csvWriter import CsvWriter
 from validation_handlers.validationError import ValidationError
 from interfaces.errorInterface import ErrorInterface
 from interfaces.interfaceHolder import InterfaceHolder
+from interfaces.stagingTable import StagingTable
 
 class ValidationManager:
     """
@@ -123,8 +124,8 @@ class ValidationManager:
         # While not done, pull one row and put it into staging if it passes
         # the Validator
         tableName = "job"+str(jobId)
-        stagingDb = InterfaceHolder.STAGING
-        tableObject = stagingDb.createTable(fileType,fileName,jobId,tableName)
+        tableObject = StagingTable()
+        tableObject.createTable(fileType,fileName,jobId,tableName)
         errorInterface = InterfaceHolder.ERROR
 
         with CsvWriter(bucketName, errorFileName, self.reportHeaders) as writer:
@@ -146,7 +147,7 @@ class ValidationManager:
                 valid, fieldName, error = Validator.validate(record,rules,csvSchema)
                 if(valid) :
                     try: 
-                        stagingDb.writeRecord(tableObject,record)
+                        tableObject.insert(record)
                     except ResponseException as e:
                         # Write failed, move to next record
                         writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber)])

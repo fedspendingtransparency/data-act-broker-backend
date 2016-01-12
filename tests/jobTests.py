@@ -18,6 +18,8 @@ from scripts.setupValidationDB import setupValidationDB
 from dataactcore.scripts.clearErrors import clearErrors
 from interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.scripts.clearJobs import clearJobs
+from sqlalchemy.exc import InvalidRequestError
+import json
 
 class JobTests(unittest.TestCase):
 
@@ -27,13 +29,15 @@ class JobTests(unittest.TestCase):
     TABLE_POPULATED = False  # Gets set to true by the first test to populate the tables
     DROP_TABLES = False  # If true, staging tables are dropped after tests are run
     USE_THREADS = False
-    INCLUDE_LONG_TESTS = True
+    INCLUDE_LONG_TESTS = False
     UPLOAD_FILES = True
+    JOB_ID_FILE = "jobId.json"
+    jobIdDict = {}
 
     def __init__(self, methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(JobTests, self).__init__(methodName=methodName)
-        # Get staging handler
+
 
         if not self.TABLE_POPULATED:
             print("Initial setup")
@@ -47,7 +51,7 @@ class JobTests(unittest.TestCase):
             # Clear databases and run setup
             print("Resetting databases:")
             print("Job tracker")
-            createJobTables()
+            clearJobs()
             print("Error DB")
             clearErrors()
             print("Validation DB")
@@ -72,58 +76,92 @@ class JobTests(unittest.TestCase):
             # Populate with a defined test set
             self.jobTracker = InterfaceHolder.JOB_TRACKER
 
-            sqlStatements = ["INSERT INTO submission (datetime_utc) VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13),(14),(15),(16)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",1, '" + s3FileNameValid + "',1)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("file_upload")) + ",2,1)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",2,1)",
-            "INSERT INTO job_dependency (job_id, prerequisite_id) VALUES (3, 2)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("external_validation")) + ",4,1)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("finished")) + "," + str(Type.getType("csv_record_validation")) + ",5,1)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("finished")) + "," + str(Type.getType("file_upload")) + ",6,1)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",6, '" + s3FileNamePrereq + "',1)",
-            "INSERT INTO job_dependency (job_id, prerequisite_id) VALUES (7, 6)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",8, '" + s3FileNameBadValues + "',1)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",9, '" + s3FileNameMixed + "',1)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",10, '" + s3FileNameEmpty + "',1)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",11, '" + s3FileNameMissingHeader + "',1)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",11, '" + s3FileNameBadHeader + "',2)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",11, '" + s3FileNameMany + "',3)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",14, '" + s3FileNameOdd + "',2)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",11, '" + s3FileNameManyBad + "',4)",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ",16, '" + s3FileNameTestRules + "',1)"
+            # Create submissions and get IDs back
+            submissionIDs = {}
+            for i in range(1,17):
+                submissionIDs[i] = self.insertSubmission()
+
+            # Create jobs
+            sqlStatements = ["INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[1])+", '" + s3FileNameValid + "',1) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("file_upload")) + ","+str(submissionIDs[2])+",1) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[2])+",1) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("external_validation")) + ","+str(submissionIDs[4])+",1) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("finished")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[5])+",1) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("finished")) + "," + str(Type.getType("file_upload")) + ","+str(submissionIDs[6])+",1) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[6])+", '" + s3FileNamePrereq + "',1) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[8])+", '" + s3FileNameBadValues + "',1) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[9])+", '" + s3FileNameMixed + "',1) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[10])+", '" + s3FileNameEmpty + "',1) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[11])+", '" + s3FileNameMissingHeader + "',1) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[12])+", '" + s3FileNameBadHeader + "',2) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[11])+", '" + s3FileNameMany + "',3) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[14])+", '" + s3FileNameOdd + "',2) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[11])+", '" + s3FileNameManyBad + "',4) RETURNING job_id",
+            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[16])+", '" + s3FileNameTestRules + "',1) RETURNING job_id"
             ]
             print("Setting up job tracker")
+            self.jobIdDict = {}
+            keyList = ["valid","bad_upload","bad_prereq","wrong_type","not_ready","valid_upload","valid_prereq","bad_values","mixed","empty","missing_header","bad_header","many","odd_characters","many_bad","rules"]
+            index = 0
             for statement in sqlStatements:
+                jobId = self.jobTracker.runStatement(statement)
+                try:
+                    self.jobIdDict[keyList[index]] = jobId.fetchone()[0]
+                except InvalidRequestError:
+                    # Problem getting result back, may happen for dependency statements
+                    pass
+                index += 1
+
+            # Save jobIdDict to file
+            open(self.JOB_ID_FILE,"w").write(json.dumps(self.jobIdDict))
+
+            # Create dependencies
+            depStatements = ["INSERT INTO job_dependency (job_id, prerequisite_id) VALUES ("+str(self.jobIdDict["bad_prereq"])+", "+str(self.jobIdDict["bad_upload"])+")",
+            "INSERT INTO job_dependency (job_id, prerequisite_id) VALUES ("+str(self.jobIdDict["valid_prereq"])+", "+str(self.jobIdDict["valid_upload"])+")"]
+
+            for statement in depStatements:
                 self.jobTracker.runStatement(statement)
+
             validationDB = InterfaceHolder.VALIDATION
 
-            sqlStatements = [
-                "DELETE FROM rule",
-                "DELETE FROM file_columns",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header 1','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header 2','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header 3','',False)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header 4','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header 5','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header 1','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header 2','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header 3','',False)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header 4','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header 5','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header 1','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header 2','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header 3','',False)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header 4','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header 5','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header 1','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header 2','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header 3','',False)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header 4','',True)",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header 5','',True)",
-                "INSERT INTO rule (file_column_id, rule_type_id, rule_text_1, description) VALUES (1, 5, 0, 'value 1 must be greater than zero'),(1,3,13,'value 1 may not be 13'),(5,1,'INT','value 5 must be an integer'),(3,2,42,'value 3 must be equal to 42 if present'),(1,4,100,'value 1 must be less than 100')"
-                ]
-            for statement in sqlStatements:
-                validationDB.runStatement(statement)
+            validationDB.runStatement("DELETE FROM rule")
+            validationDB.runStatement("DELETE FROM file_columns")
+            fileColumnStatements = [[
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header 1','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header 2','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header 3','',False) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header 4','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header 5','',True) RETURNING file_column_id"],[
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header 1','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header 2','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header 3','',False) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header 4','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header 5','',True) RETURNING file_column_id"],[
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header 1','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header 2','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header 3','',False) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header 4','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header 5','',True) RETURNING file_column_id"],[
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header 1','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header 2','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header 3','',False) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header 4','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header 5','',True) RETURNING file_column_id"]]
+
+            colIdDict = {}
+            for fileType in range(0,4):
+                for i in range(0,5):
+                    colId = validationDB.runStatement(fileColumnStatements[fileType][i])
+                    try:
+                        colIdDict["header_"+str(i+1)+"_file_type_"+str(fileType+1)] = colId.fetchone()[0]
+                    except InvalidRequestError as e:
+                        # Could not get column ID
+                        print(e.message)
+                        pass
+
+            ruleStatement = "INSERT INTO rule (file_column_id, rule_type_id, rule_text_1, description) VALUES ("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+", 5, 0, 'value 1 must be greater than zero'),("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+",3,13,'value 1 may not be 13'),("+str(colIdDict["header_"+str(5)+"_file_type_"+str(3)])+",1,'INT','value 5 must be an integer'),("+str(colIdDict["header_"+str(3)+"_file_type_"+str(3)])+",2,42,'value 3 must be equal to 42 if present'),("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+",4,100,'value 1 must be less than 100')"
+
+            validationDB.runStatement(ruleStatement)
 
             # Remove existing tables from staging if they exist
             for jobId in range(1, lastJob+1):
@@ -132,6 +170,14 @@ class JobTests(unittest.TestCase):
             JobTests.TABLE_POPULATED = True
         else:
             self.stagingDb = InterfaceHolder.STAGING
+            # Read job ID dict from file
+            self.jobIdDict = json.loads(open(self.JOB_ID_FILE,"r").read())
+
+    def insertSubmission(self):
+        """ Insert one submission into job tracker and get submission ID back """
+        stmt = "INSERT INTO submission (datetime_utc) VALUES (0) RETURNING submission_id"
+        response = self.jobTracker.runStatement(stmt)
+        return response.fetchone()[0]
 
     def uploadFile(self, filename, user):
         """ Upload file to S3 and return S3 filename"""
@@ -156,11 +202,13 @@ class JobTests(unittest.TestCase):
 
     def test_valid_job(self):
         """ Test valid job """
-        jobId = 1
-        self.response = self.validateJob(1)
-        self.waitOnJob(jobId, "finished")
+        jobId = self.jobIdDict["valid"]
+        self.response = self.validateJob(jobId)
 
         assert(self.response.status_code == 200)
+        self.waitOnJob(jobId, "finished")
+
+
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
@@ -175,7 +223,7 @@ class JobTests(unittest.TestCase):
 
     def test_rules(self):
         """ Test rules, should have one type failure and two value failures """
-        jobId = 16
+        jobId = self.jobIdDict["rules"]
         self.response = self.validateJob(jobId)
         self.waitOnJob(jobId, "finished")
         assert(self.response.status_code == 200)
@@ -193,7 +241,7 @@ class JobTests(unittest.TestCase):
 
     def test_bad_values_job(self):
         # Test job with bad values
-        jobId = 8
+        jobId = self.jobIdDict["bad_values"]
         self.response = self.validateJob(jobId)
         self.waitOnJob(jobId, "finished")
         assert(self.response.status_code == 200)
@@ -212,7 +260,7 @@ class JobTests(unittest.TestCase):
         # Test job with many bad values
         if not self.INCLUDE_LONG_TESTS:
             return
-        jobId = 15
+        jobId = self.jobIdDict["many_bad"]
         self.response = self.validateJob(jobId)
         self.waitOnJob(jobId, "finished")
 
@@ -230,11 +278,12 @@ class JobTests(unittest.TestCase):
 
     def test_mixed_job(self):
         """ Test mixed job """
-        jobId = 9
+        jobId = self.jobIdDict["mixed"]
         self.response = self.validateJob(jobId)
 
-        self.waitOnJob(9, "finished")
         assert(self.response.status_code == 200)
+        self.waitOnJob(jobId, "finished")
+
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
@@ -249,10 +298,10 @@ class JobTests(unittest.TestCase):
 
     def test_empty(self):
         """ Test empty file """
-        jobId = 10
+        jobId = self.jobIdDict["empty"]
         self.response = self.validateJob(jobId)
 
-        self.waitOnJob(10, "invalid")
+        self.waitOnJob(jobId, "invalid")
         if JobTests.USE_THREADS:
             assert(self.response.status_code == 200)
         else:
@@ -271,10 +320,10 @@ class JobTests(unittest.TestCase):
 
     def test_missing_header(self):
         """ Test missing header in first row """
-        jobId = 11
+        jobId = self.jobIdDict["missing_header"]
         self.response = self.validateJob(jobId)
 
-        self.waitOnJob(11, "invalid")
+        self.waitOnJob(jobId, "invalid")
         if JobTests.USE_THREADS:
             assert(self.response.status_code == 200)
         else:
@@ -294,14 +343,14 @@ class JobTests(unittest.TestCase):
 
     def test_bad_header(self):
         """ Test bad header value in first row """
-        jobId = 12
+        jobId = self.jobIdDict["bad_header"]
 
         self.response = self.validateJob(jobId)
         if JobTests.USE_THREADS:
             assert(self.response.status_code == 200)
         else:
             assert(self.response.status_code == 400)
-        self.waitOnJob(12, "invalid")
+        self.waitOnJob(jobId, "invalid")
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         assert(s3UrlHandler.getFileSize(self.jobTracker.getReportPath(jobId)) == False)
@@ -320,17 +369,11 @@ class JobTests(unittest.TestCase):
         if not self.INCLUDE_LONG_TESTS:
             # Don't do this test when skipping long tests
             return
-        jobId = 13
+        jobId = self.jobIdDict["many"]
         self.response = self.validateJob(jobId)
-        self.waitOnJob(13, "finished")
+
         assert(self.response.status_code == 200)
-        if(self.response.status_code != 200):
-            print(self.response.status_code)
-            print(self.response.json()["errorType"])
-            print(self.response.json()["message"])
-            print(self.response.json()["trace"])
-            print(self.response.json()["wrappedType"])
-            print(self.response.json()["wrappedMessage"])
+        self.waitOnJob(13, "finished")
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
         assert(s3UrlHandler.getFileSize(self.jobTracker.getReportPath(jobId)) == 37)
@@ -344,7 +387,7 @@ class JobTests(unittest.TestCase):
 
     def test_odd_characters(self):
         """ Test potentially problematic characters """
-        jobId = 14
+        jobId = self.jobIdDict["odd_characters"]
         self.response = self.validateJob(jobId)
         self.waitOnJob(jobId, "finished")
         assert(self.response.status_code == 200)
@@ -377,7 +420,7 @@ class JobTests(unittest.TestCase):
 
     def test_prereq_job(self):
         """ Test job with prerequisites finished """
-        jobId = 7
+        jobId = self.jobIdDict["valid_prereq"]
         self.response = self.validateJob(jobId)
         self.waitOnJob(jobId, "finished")
         assert(self.response.status_code == 200)
@@ -393,7 +436,7 @@ class JobTests(unittest.TestCase):
 
     def test_bad_prereq_job(self):
         """ Test job with unfinished prerequisites """
-        jobId = 3
+        jobId = self.jobIdDict["bad_prereq"]
         self.response = self.validateJob(jobId)
         self.waitOnJob(jobId, "ready")
         assert(self.response.status_code == 400)
@@ -410,7 +453,7 @@ class JobTests(unittest.TestCase):
 
     def test_bad_type_job(self):
         """ Test job with wrong type """
-        jobId = 4
+        jobId = self.jobIdDict["wrong_type"]
         self.response = self.validateJob(jobId)
         self.waitOnJob(jobId, "ready")
         assert(self.response.status_code == 400)
