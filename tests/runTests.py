@@ -9,6 +9,7 @@ def runTests():
 
     # Create test suite
     suite = unittest.TestSuite()
+    appropSuite = unittest.TestSuite()
     # Get lists of method names
 
     validatorMethods = inspect.getmembers(ValidatorTests, predicate=inspect.ismethod)

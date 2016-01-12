@@ -75,7 +75,7 @@ class JobTests(unittest.TestCase):
             # Create submissions and get IDs back
             submissionIDs = {}
             for i in range(1,17):
-                submissionIDs[i] = self.insertSubmission()
+                submissionIDs[i] = self.insertSubmission(self.jobTracker)
 
             # Create jobs
             sqlStatements = ["INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[1])+", '" + s3FileNameValid + "',1) RETURNING job_id",
@@ -169,13 +169,15 @@ class JobTests(unittest.TestCase):
             # Read job ID dict from file
             self.jobIdDict = json.loads(open(self.JOB_ID_FILE,"r").read())
 
-    def insertSubmission(self):
+    @staticmethod
+    def insertSubmission(jobTracker):
         """ Insert one submission into job tracker and get submission ID back """
         stmt = "INSERT INTO submission (datetime_utc) VALUES (0) RETURNING submission_id"
-        response = self.jobTracker.runStatement(stmt)
+        response = jobTracker.runStatement(stmt)
         return response.fetchone()[0]
 
-    def uploadFile(self, filename, user):
+    @staticmethod
+    def uploadFile(filename, user):
         """ Upload file to S3 and return S3 filename"""
         # Get bucket name
         bucketName = s3UrlHandler.getBucketNameFromConfig()
