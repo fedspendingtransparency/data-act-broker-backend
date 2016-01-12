@@ -29,3 +29,6 @@ def clearJobs():
         except ProgrammingError as e:
             # Usually a table exists error, print and continue
             print(e.message)
+
+if __name__ == '__main__':
+    clearJobs()

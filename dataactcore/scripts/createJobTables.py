@@ -49,5 +49,4 @@ def createJobTables(connection = None):
     runCommands(UserInterface.getCredDict(),sql,"user_manager")
 
 if __name__ == '__main__':
-    for i in range(0,100):
-        createJobTables()
+    createJobTables()
