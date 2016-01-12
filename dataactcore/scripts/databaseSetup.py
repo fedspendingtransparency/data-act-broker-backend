@@ -10,6 +10,7 @@ def runCommands(credDict, sqlCommands, dbName, connection = None):
         rows  = connect.execute("SELECT 1 FROM pg_database WHERE datname = '" +dbName+"'")
         if ((rows.rowcount) == 0) :
             connect.execute("CREATE DATABASE " + '"' + dbName + '"')
+        connect.close()
     except ProgrammingError as e:
         # Happens if DB exists, just print and carry on
         print(e.message)
@@ -23,3 +24,4 @@ def runCommands(credDict, sqlCommands, dbName, connection = None):
         except (ProgrammingError, IntegrityError) as e:
             # Usually a table exists error, print and continue
             print(e.message)
+    connection.close()
