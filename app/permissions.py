@@ -1,8 +1,8 @@
 from functools import wraps
 import json
 import flask
-from flask import Flask, request, make_response, session, g, redirect, url_for, \
-     abort, render_template, flash
+from flask import session
+
 from handlers.aws.session import LoginSession
 
 def permissions_check(f):

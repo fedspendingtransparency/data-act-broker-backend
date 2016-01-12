@@ -1,8 +1,8 @@
 import json
 import unittest
 from handlers.managerProxy import ManagerProxy
-from baseTest import BaseTest
-from testUtils import TestUtils
+from test.baseTest import BaseTest
+from test.testUtils import TestUtils
 from dataactcore.scripts.createJobTables import createJobTables
 from dataactcore.scripts.clearJobs import clearJobs
 from handlers.interfaceHolder import InterfaceHolder

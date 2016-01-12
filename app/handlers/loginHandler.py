@@ -3,7 +3,6 @@ import os
 
 from aws.session import LoginSession
 from dataactcore.utils.requestDictionary import RequestDictionary
-from userHandler import UserHandler
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 import inspect

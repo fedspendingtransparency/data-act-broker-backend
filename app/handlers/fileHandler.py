@@ -1,11 +1,9 @@
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.requestDictionary import RequestDictionary
-from jobHandler import JobHandler
-from errorHandler import ErrorHandler
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
-from managerProxy import ManagerProxy
+from handlers.managerProxy import ManagerProxy
 from handlers.interfaceHolder import InterfaceHolder
 
 class FileHandler:
