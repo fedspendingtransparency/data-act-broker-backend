@@ -1,5 +1,3 @@
-from filestreaming.csvWriter import CsvWriter
-
 class ValidationError:
     """ This class holds errors that can occur during validation, for use in the error report and database """
 

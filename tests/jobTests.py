@@ -28,6 +28,7 @@ class JobTests(unittest.TestCase):
     INCLUDE_LONG_TESTS = False
     UPLOAD_FILES = True
     JOB_ID_FILE = "jobId.json"
+    LAST_CLEARED_FILE = "lastClearedId"
     jobIdDict = {}
 
     def __init__(self, methodName):
@@ -36,8 +37,7 @@ class JobTests(unittest.TestCase):
 
 
         if not self.TABLE_POPULATED:
-            # Last job number
-            lastJob = 100
+
 
             # Create staging database
             runCommands(StagingInterface.getCredDict(), [], "staging")
@@ -94,6 +94,7 @@ class JobTests(unittest.TestCase):
             self.jobIdDict = {}
             keyList = ["valid","bad_upload","bad_prereq","wrong_type","not_ready","valid_upload","valid_prereq","bad_values","mixed","empty","missing_header","bad_header","many","odd_characters","many_bad","rules"]
             index = 0
+
             for statement in sqlStatements:
                 jobId = self.jobTracker.runStatement(statement)
                 try:
@@ -102,6 +103,9 @@ class JobTests(unittest.TestCase):
                     # Problem getting result back, may happen for dependency statements
                     pass
                 index += 1
+
+            # Last job number
+            lastJob = min(self.jobIdDict.values())-1
 
             # Save jobIdDict to file
             open(self.JOB_ID_FILE,"w").write(json.dumps(self.jobIdDict))
@@ -153,11 +157,18 @@ class JobTests(unittest.TestCase):
             ruleStatement = "INSERT INTO rule (file_column_id, rule_type_id, rule_text_1, description) VALUES ("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+", 5, 0, 'value 1 must be greater than zero'),("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+",3,13,'value 1 may not be 13'),("+str(colIdDict["header_"+str(5)+"_file_type_"+str(3)])+",1,'INT','value 5 must be an integer'),("+str(colIdDict["header_"+str(3)+"_file_type_"+str(3)])+",2,42,'value 3 must be equal to 42 if present'),("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+",4,100,'value 1 must be less than 100')"
 
             validationDB.runStatement(ruleStatement)
+            try:
+                firstJob = open(self.LAST_CLEARED_FILE,"r").read()
+            except:
+                # If anything goes wrong, just clear from 0
+                firstJob = 0
 
             # Remove existing tables from staging if they exist
-            for jobId in range(1, lastJob+1):
+            for jobId in range(int(firstJob)+1, lastJob+1):
+                print("Dropping staging table job"+str(jobId))
                 self.stagingDb.dropTable("job"+str(jobId))
 
+            open(self.LAST_CLEARED_FILE,"w").write(str(lastJob))
             JobTests.TABLE_POPULATED = True
         else:
             self.stagingDb = InterfaceHolder.STAGING

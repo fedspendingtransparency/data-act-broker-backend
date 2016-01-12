@@ -1,4 +1,3 @@
-import json
 from dataactcore.scripts.databaseSetup import runCommands
 from dataactcore.models.validationInterface import ValidationInterface
 

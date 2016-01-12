@@ -1,5 +1,5 @@
 import re
-from validationError import ValidationError
+from validation_handlers.validationError import ValidationError
 
 class Validator(object):
     """

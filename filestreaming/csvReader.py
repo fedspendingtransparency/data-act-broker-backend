@@ -1,6 +1,5 @@
 import boto
 import csv
-import re
 from dataactcore.utils.responseException import ResponseException
 from validation_handlers.validationError import ValidationError
 from dataactcore.utils.statusCode import StatusCode

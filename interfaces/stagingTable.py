@@ -1,7 +1,4 @@
-from sqlalchemy.exc import ProgrammingError, ResourceClosedError
 from sqlalchemy.ext.declarative import declarative_base
-from dataactcore.models.baseInterface import BaseInterface
-from interfaces.interfaceHolder import InterfaceHolder
 from sqlalchemy import MetaData, Column, Integer, Text, Numeric, Boolean
 from interfaces.interfaceHolder import InterfaceHolder
 
@@ -9,7 +6,7 @@ class StagingTable(object):
 
     BATCH_INSERT = False
     INSERT_BY_ORM = True
-    BATCH_SIZE = 1000
+    BATCH_SIZE = 10
 
     def __init__(self):
         # Start first batch

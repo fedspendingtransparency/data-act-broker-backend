@@ -2,7 +2,6 @@ import io
 import csv
 import boto
 import smart_open
-from smart_open import smart_open_lib
 
 class CsvWriter(object):
     """
