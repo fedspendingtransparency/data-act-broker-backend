@@ -165,7 +165,6 @@ class JobTests(unittest.TestCase):
 
             # Remove existing tables from staging if they exist
             for jobId in range(int(firstJob)+1, lastJob+1):
-                print("Dropping staging table job"+str(jobId))
                 self.stagingDb.dropTable("job"+str(jobId))
 
             open(self.LAST_CLEARED_FILE,"w").write(str(lastJob))

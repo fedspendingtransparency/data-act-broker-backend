@@ -66,10 +66,10 @@ class Validator(object):
         if(datatype == "STRING") :
             return(len(data) > 0)
         if(datatype == "BOOLEAN") :
-            if(data in ["YES","NO","1","0"]) :
+            if(data.upper() in ["YES","NO","1","0"]) :
                 return True
-            return False
-        if(datatype == "INT") : 
+            return False 
+        if(datatype == "INT") :
             return Validator.IS_INTERGER.match(data) is not None
         if(datatype == "DECIMAL") :
             if (Validator.IS_DECIMAL.match(data) is None ) :
