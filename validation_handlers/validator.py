@@ -5,6 +5,8 @@ class Validator(object):
     """
     Checks individual records against specified validation tests
     """
+    IS_INTERGER  = re.compile(r"^[-]?[1-9]\d*$")
+    IS_DECIMAL  = re.compile(r"^[-]?((\d+(\.\d*)?)|(\.\d+))$")
 
     @staticmethod
     def validate(record,rules,csvSchema):
@@ -67,11 +69,11 @@ class Validator(object):
             if(data in ["YES","NO","1","0"]) :
                 return True
             return False
-        if(datatype == "INT") :
-            return re.match(r"^[-]?[1-9]\d*$", data) is not None
+        if(datatype == "INT") : 
+            return Validator.IS_INTERGER.match(data) is not None
         if(datatype == "DECIMAL") :
-            if (re.match(r"^[-]?((\d+(\.\d*)?)|(\.\d+))$", data) is None ) :
-                return re.match(r"^[-]?[1-9]\d*$", data) is not None
+            if (Validator.IS_DECIMAL.match(data) is None ) :
+                return Validator.IS_INTERGER.match(data) is not None
             return True
         raise ValueError("Data Type Error, Type: " + datatype + ", Value: " + data)
 
