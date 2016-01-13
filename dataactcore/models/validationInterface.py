@@ -25,3 +25,6 @@ class ValidationInterface(BaseInterface):
     def getDbName():
         """ Return database name"""
         return ValidationInterface.dbName
+
+    def getSession(self):
+        return self.session

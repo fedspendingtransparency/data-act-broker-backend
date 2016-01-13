@@ -58,6 +58,7 @@ class JobTrackerInterface(BaseInterface):
             return queryResult[0].submission_id
 
     def getReportPath(self,jobId):
+        """ Return the filename for the error report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
         try:
             return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_error_report.csv"
         except:

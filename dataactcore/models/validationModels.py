@@ -27,7 +27,41 @@ class RuleType(Base):
     name = Column(Text)
     description = Column(Text)
 
+    session = None
+    TYPE_DICT = None
+    TYPE_LIST = ["TYPE", "EQUAL","NOT EQUAL","LESS","GREATER","LENGTH"]
 
+    @staticmethod
+    def getType(typeName):
+        if(RuleType.TYPE_DICT == None):
+            RuleType.TYPE_DICT = {}
+            # Pull status values out of DB
+            for type in RuleType.TYPE_LIST:
+                RuleType.TYPE_DICT[type] = RuleType.setType(type)
+        if(not typeName in RuleType.TYPE_DICT):
+            raise ValueError("Not a valid job type")
+        return RuleType.TYPE_DICT[typeName]
+
+    @staticmethod
+    def setType(name):
+        """  Get an id for specified type, if not unique throw an exception
+
+        Arguments:
+        name -- Name of type to get an id for
+
+        Returns:
+        type_id of the specified type
+        """
+        if(RuleType.session == None):
+            from dataactcore.models.validationInterface import ValidationInterface
+            RuleType.session = ValidationInterface().getSession()
+        queryResult = RuleType.session.query(RuleType.rule_type_id).filter(RuleType.name==name).all()
+        RuleType.session.close()
+        if(len(queryResult) != 1):
+            # Did not get a unique result
+            raise ValueError("Database does not contain a unique ID for type "+name)
+        else:
+            return queryResult[0].rule_type_id
 
 class FileColumn(Base):
     __tablename__ = "file_columns"
