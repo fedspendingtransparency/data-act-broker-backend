@@ -93,7 +93,7 @@ class ValidationManager:
             errorHandler = InterfaceHolder.ERROR
             errorHandler.writeFileError(jobId,self.filename,ValidationError.unknownError)
         except Exception as e:
-            #Something unkown happend we may need to try again!
+            #Something unknown happened we may need to try again!
             self.markJob(jobId,jobTracker,"failed")
             errorHandler = InterfaceHolder.ERROR
             errorHandler.writeFileError(jobId,self.filename,ValidationError.unknownError)
@@ -182,9 +182,10 @@ class ValidationManager:
         self.filename = None
         tableName = ""
         jobId = None
-        jobTracker = InterfaceHolder.JOB_TRACKER
+        jobTracker = None
 
         try:
+            jobTracker = InterfaceHolder.JOB_TRACKER
             requestDict = RequestDictionary(request)
             if(requestDict.exists("job_id")):
                 jobId = requestDict.getValue("job_id")
@@ -209,8 +210,10 @@ class ValidationManager:
             errorHandler.writeFileError(jobId,self.filename,e.errorType)
             return JsonResponse.error(e,e.status,{"table":tableName})
         except Exception as e:
+            open("errorLog","a").write(e.message)
             errorHandler = InterfaceHolder.ERROR
             exc = ResponseException("Internal exception")
+            exc.status = StatusCode.INTERNAL_ERROR
             exc.wrappedException = e
             self.markJob(jobId,jobTracker,"failed")
             errorHandler.writeFileError(jobId,self.filename,ValidationError.unknownError)
@@ -249,8 +252,10 @@ class ValidationManager:
             errorHandler.writeFileError(jobId,self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Exception as e:
+            open("errorLog","a").write(e.message)
             errorHandler = InterfaceHolder.ERROR
             exc = ResponseException("Internal exception")
+            exc.status = StatusCode.INTERNAL_ERROR
             exc.wrappedException = e
             self.markJob(jobId,jobTracker,"failed")
             errorHandler.writeFileError(jobId,self.filename,ValidationError.unknownError)

@@ -17,7 +17,7 @@ def runTests():
     jobMethods = inspect.getmembers(JobTests, predicate=inspect.ismethod)
 
     #validatorMethods = []
-    #jobMethods = [["test_many_rows"]]
+    #jobMethods = [["test_valid_job"]]
 
     for method in validatorMethods:
         # If test method, add to suite
@@ -49,6 +49,7 @@ def runTests():
 
     appropSuite = unittest.TestSuite()
     appropMethods = inspect.getmembers(AppropTests, predicate=inspect.ismethod)
+    #appropMethods = []
 
     for method in appropMethods:
         # If test method, add to suite

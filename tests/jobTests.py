@@ -19,22 +19,24 @@ import json
 
 class JobTests(unittest.TestCase):
 
-    BASE_URL = "http://127.0.0.1:5000"
-    #BASE_URL = "http://52.90.92.100:5000"
+    #BASE_URL = "http://127.0.0.1:5000"
+    BASE_URL = "http://52.90.92.100:5000"
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False  # Gets set to true by the first test to populate the tables
     DROP_TABLES = False  # If true, staging tables are dropped after tests are run
     USE_THREADS = False
-    INCLUDE_LONG_TESTS = True
-    UPLOAD_FILES = True
+    INCLUDE_LONG_TESTS = False
+    UPLOAD_FILES = False
     JOB_ID_FILE = "jobId.json"
     LAST_CLEARED_FILE = "lastClearedId"
     jobIdDict = {}
+    passed = False # Gets set to True by each test that passes
+    testName = None
 
     def __init__(self, methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(JobTests, self).__init__(methodName=methodName)
-
+        self.testName = methodName
 
         if not self.TABLE_POPULATED:
 
@@ -178,6 +180,9 @@ class JobTests(unittest.TestCase):
             # Read job ID dict from file
             self.jobIdDict = json.loads(open(self.JOB_ID_FILE,"r").read())
 
+    def setup(self):
+        self.passed = False
+
     @staticmethod
     def insertSubmission(jobTracker):
         """ Insert one submission into job tracker and get submission ID back """
@@ -212,6 +217,7 @@ class JobTests(unittest.TestCase):
         jobId = self.jobIdDict["valid"]
         self.response = self.validateJob(jobId)
 
+
         assert(self.response.status_code == 200)
         self.waitOnJob(self.jobTracker, jobId, "finished")
 
@@ -227,6 +233,7 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
+        self.passed = True
 
     def test_rules(self):
         """ Test rules, should have one type failure and two value failures """
@@ -245,6 +252,7 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 5)
+        self.passed = True
 
     def test_bad_values_job(self):
         # Test job with bad values
@@ -262,10 +270,12 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 92)
+        self.passed = True
 
     def test_many_bad_values_job(self):
         # Test job with many bad values
         if not self.INCLUDE_LONG_TESTS:
+            self.passed = True
             return
         jobId = self.jobIdDict["many_bad"]
         self.response = self.validateJob(jobId)
@@ -282,6 +292,7 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 2302930)
+        self.passed = True
 
     def test_mixed_job(self):
         """ Test mixed job """
@@ -302,6 +313,7 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 1)
+        self.passed = True
 
     def test_empty(self):
         """ Test empty file """
@@ -309,6 +321,7 @@ class JobTests(unittest.TestCase):
         self.response = self.validateJob(jobId)
 
         self.waitOnJob(self.jobTracker, jobId, "invalid")
+
         if JobTests.USE_THREADS:
             assert(self.response.status_code == 200)
         else:
@@ -324,6 +337,7 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("single_row_error"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
+        self.passed = True
 
     def test_missing_header(self):
         """ Test missing header in first row """
@@ -347,6 +361,7 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("missing_header_error"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
+        self.passed = True
 
     def test_bad_header(self):
         """ Test bad header value in first row """
@@ -370,11 +385,13 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("bad_header_error"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
+        self.passed = True
 
     def test_many_rows(self):
         """ Test many rows """
         if not self.INCLUDE_LONG_TESTS:
             # Don't do this test when skipping long tests
+            self.passed = True
             return
         jobId = self.jobIdDict["many"]
         self.response = self.validateJob(jobId)
@@ -391,6 +408,7 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
+        self.passed = True
 
     def test_odd_characters(self):
         """ Test potentially problematic characters """
@@ -408,6 +426,7 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 2)
+        self.passed = True
 
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """
@@ -424,6 +443,7 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("job_error"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
+        self.passed = True
 
     def test_prereq_job(self):
         """ Test job with prerequisites finished """
@@ -440,6 +460,7 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
+        self.passed = True
 
     def test_bad_prereq_job(self):
         """ Test job with unfinished prerequisites """
@@ -457,13 +478,16 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("job_error"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
+        self.passed = True
 
     def test_bad_type_job(self):
         """ Test job with wrong type """
         jobId = self.jobIdDict["wrong_type"]
         self.response = self.validateJob(jobId)
-        self.waitOnJob(self.jobTracker, jobId, "ready")
+
         assert(self.response.status_code == 400)
+        self.waitOnJob(self.jobTracker, jobId, "ready")
+
         self.assertHeader(self.response)
         assert(self.response.json()["message"] == "Wrong type of job for this service")
         assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == False)
@@ -474,6 +498,7 @@ class JobTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("job_error"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
+        self.passed = True
 
     # TODO uncomment this unit test once jobs are labeled as ready
     # def test_finished_job(self):
@@ -492,6 +517,7 @@ class JobTests(unittest.TestCase):
         # errorInterface = InterfaceHolder.ERROR
         # assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("job_error"))
         # assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
+        #elf.passed = True
 
     @staticmethod
     def assertHeader(response):
@@ -526,6 +552,15 @@ class JobTests(unittest.TestCase):
         self.errorInterface = InterfaceHolder.ERROR
 
     def tearDown(self):
+        if not self.passed:
+            print("Test failed: " + self.testName)
+            # Runs only for tests that fail
+            print(self.response.status_code)
+            print(self.response.json()["errorType"])
+            print(self.response.json()["message"])
+            print(self.response.json()["trace"])
+            print(self.response.json()["wrappedType"])
+            print(self.response.json()["wrappedMessage"])
         try:
             self.dropTables(self.response.json()["table"])
         except AttributeError:
