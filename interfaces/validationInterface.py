@@ -16,6 +16,9 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         fieldName -- The name of the scheam column
         required --  marks the column if data is allways required
         field_type  -- sets the type of data allowed in the column
+
+        Returns:
+            ID of new column
         """
         fileId = self.getFileId(fileType)
         if(fileId is None) :
@@ -50,6 +53,7 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         # Save
         self.session.add(newColumn)
         self.session.commit()
+        return newColumn.file_column_id
 
     def getDataTypes(self) :
         """"
@@ -138,3 +142,18 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
         return self.session.query(Rule).options(subqueryload("rule_type")).options(subqueryload("file_column")).filter(FileColumn.file_id == fileId).all()
+
+    def addRule(self, columnId, ruleTypeText, ruleText, description):
+        """
+
+        Args:
+            columnId: ID of column to add rule for
+            ruleTypeText: Specifies which type of rule by one of the names in the rule_type table
+            ruleText: Usually a number to compare to, e.g. length or value to be equal to
+
+        Returns:
+            True if successful
+        """
+        newRule = Rule(file_column_id = columnId, rule_type_id = RuleType.getType(ruleTypeText), rule_text_1 = ruleText, description = description)
+        self.session.add(newRule)
+        self.session.commit()

@@ -47,7 +47,6 @@ def runTests():
     else:
         result = runner.run(suite)
 
-    """ Don't test appropriations file schema yet
     appropSuite = unittest.TestSuite()
     appropMethods = inspect.getmembers(AppropTests, predicate=inspect.ismethod)
 
@@ -59,7 +58,7 @@ def runTests():
 
     open("errorLog","a").write(str(appropSuite.countTestCases()) + " tests in appropriations suite")
     appropResult = runner.run(appropSuite)
-    """
+
 
 if __name__ == '__main__':
     runTests()

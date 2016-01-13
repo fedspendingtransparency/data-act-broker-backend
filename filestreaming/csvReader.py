@@ -24,7 +24,7 @@ class CsvReader(object):
         possibleFields = {}
         currentFields = {}
         for schema in  csvSchema:
-                possibleFields[schema.name] = 0
+                possibleFields[schema.name.lower()] = 0
 
         self.s3File = s3Bucket.lookup(filename)
         self.unprocessed = ''
@@ -55,7 +55,7 @@ class CsvReader(object):
         self.columnCount = current
         #Check that all required fields exists
         for schema in csvSchema :
-            if(schema.required and  possibleFields[schema.name] == 0) :
+            if(schema.required and  possibleFields[schema.name.lower()] == 0) :
                 raise ResponseException(("Header : "+ schema.name + " is required"), 400, ValueError,ValidationError.missingHeaderError)
 
     def getNextRecord(self):

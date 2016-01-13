@@ -10,4 +10,5 @@ tests/errorLog
 tests/stats
 tests/jobId.json
 tests/appropJobIds.json
+tests/lastClearedId
 pathLog

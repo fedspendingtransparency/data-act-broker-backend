@@ -107,7 +107,7 @@ class ValidationManager:
         fileName = jobTracker.getFileName(jobId)
         self.filename = fileName
         bucketName = s3UrlHandler.getBucketNameFromConfig()
-        errorFileName = jobTracker.getReportPath(jobId)
+        errorFileName = "errors/"+jobTracker.getReportPath(jobId)
 
         validationDB = InterfaceHolder.VALIDATION
         fieldList = validationDB.getFieldsByFileList(fileType)
@@ -127,8 +127,8 @@ class ValidationManager:
         with CsvWriter(bucketName, errorFileName, self.reportHeaders) as writer:
             while(not reader.isFinished):
                 rowNumber += 1
-                if (rowNumber % 1000) == 0:
-                    print("Validating row " + str(rowNumber))
+                #if (rowNumber % 1000) == 0:
+                #    print("Validating row " + str(rowNumber))
                 try :
                     record = reader.getNextRecord()
                     if(reader.isFinished and len(record) < 2):
@@ -140,7 +140,7 @@ class ValidationManager:
                         writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber)])
                         errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
                     continue
-                valid, fieldName, error = Validator.validate(record,rules,csvSchema)
+                valid, failures = Validator.validate(record,rules,csvSchema)
                 if(valid) :
                     try: 
                         tableObject.insert(record)
@@ -151,16 +151,19 @@ class ValidationManager:
                         continue
 
                 else:
-
-                    try:
-                        # If error is an int, it's one of our prestored messages
-                        errorType = int(error)
-                        errorMsg = ValidationError.getErrorMessage(errorType)
-                    except ValueError:
-                        # If not, treat it literally
-                        errorMsg = error
-                    writer.write([fieldName,errorMsg,str(rowNumber)])
-                    errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber)
+                    # For each failure, record it in error report and metadata
+                    for failure in failures:
+                        fieldName = failure[0]
+                        error = failure[1]
+                        try:
+                            # If error is an int, it's one of our prestored messages
+                            errorType = int(error)
+                            errorMsg = ValidationError.getErrorMessage(errorType)
+                        except ValueError:
+                            # If not, treat it literally
+                            errorMsg = error
+                        writer.write([fieldName,errorMsg,str(rowNumber)])
+                        errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber)
 
         # Mark validation as finished in job tracker
         jobTracker.markStatus(jobId,"finished")

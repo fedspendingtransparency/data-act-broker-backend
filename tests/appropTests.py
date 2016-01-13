@@ -19,6 +19,7 @@ class AppropTests(unittest.TestCase):
     def __init__(self, methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(AppropTests, self).__init__(methodName=methodName)
+        self.jobTracker = InterfaceHolder.JOB_TRACKER
 
         if not self.TABLE_POPULATED:
             # Last job number
@@ -43,8 +44,8 @@ class AppropTests(unittest.TestCase):
                 submissionIDs[i] = JobTests.insertSubmission(self.jobTracker)
 
             # Create jobs
-            sqlStatements = ["INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[1])+", '" + s3FileNameValid + "',1) RETURNING job_id",
-                             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[2])+", '" + s3FileNameMixed + "',1) RETURNING job_id"]
+            sqlStatements = ["INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[1])+", '" + s3FileNameValid + "',3) RETURNING job_id",
+                             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[2])+", '" + s3FileNameMixed + "',3) RETURNING job_id"]
 
             self.jobIdDict = {}
             keyList = ["valid","mixed"]
@@ -62,7 +63,7 @@ class AppropTests(unittest.TestCase):
             print(self.jobIdDict)
             open(self.JOB_ID_FILE,"w").write(json.dumps(self.jobIdDict))
 
-            SchemaLoader.loadFields("appropriationsFields.csv","appropriations")
+            SchemaLoader.loadFields("appropriations","appropriationsFields.csv")
 
             # Remove existing tables from staging if they exist
             for jobId in self.jobIdDict.values():
@@ -92,7 +93,7 @@ class AppropTests(unittest.TestCase):
         JobTests.assertHeader(self.response)
         # Check that job is correctly marked as finished
         assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        print(s3UrlHandler.getFileSize(self.jobTracker.getReportPath(jobId)))
+        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 37)
 
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName) == True)
@@ -119,11 +120,11 @@ class AppropTests(unittest.TestCase):
         JobTests.assertHeader(self.response)
         # Check that job is correctly marked as finished
         assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        print(s3UrlHandler.getFileSize(self.jobTracker.getReportPath(jobId)))
+        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 2617)
 
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 17)
+        assert(self.stagingDb.countRows(tableName) == 15)
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 3)
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 31)

@@ -33,7 +33,7 @@ def setupValidationDB( hardReset = False):
         "CREATE SEQUENCE ruleIdSerial START 1;",
         "CREATE TABLE rule (rule_id integer PRIMARY KEY DEFAULT nextval('ruleIdSerial'), file_column_id integer REFERENCES file_columns, rule_type_id integer REFERENCES rule_type,rule_text_1 text,rule_text_2 text,description text);",
 
-        "INSERT INTO file_type (file_id,name, description) VALUES (1, 'appropriations', 'appropriations file'), (2, 'award_financial', 'award_financial file'), (3, 'award', 'award file'), (4, 'procurement','procurement file');",
+        "INSERT INTO file_type (file_id,name, description) VALUES (1, 'award', 'award file'), (2, 'award_financial', 'award_financial file'), (3, 'appropriations', 'appropriations file'), (4, 'procurement','procurement file');",
         "INSERT INTO rule_type (rule_type_id, name,description) VALUES (1, 'TYPE', 'checks type'), (2, 'EQUAL', 'equals operatior '),(3, 'NOT EQUAL', 'not equals operator '), (4, 'LESS', 'less than operator '), (5, 'GREATER', 'greater than operator'), (6, 'LENGTH', 'string length');",
         "INSERT INTO field_type (field_type_id ,name,description) VALUES (1, 'INT', 'integer type'), (2, 'DECIMAL', 'decimal type '),(3, 'BOOLEAN', 'yes/no'), (4, 'STRING', 'string type');"
     ]

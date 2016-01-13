@@ -29,13 +29,19 @@ class SchemaLoader(object):
             reader = csv.DictReader(csvfile)
             for record in reader:
                 if(SchemaLoader.checkRecord(record, ["fieldname","required","data_type"])) :
-                    database.addColumnByFileType(fileTypeName,record["fieldname"],record["required"],record["data_type"])
+                    columnId = database.addColumnByFileType(fileTypeName,record["fieldname"].lower(),record["required"],record["data_type"])
+                    if "field_length" in record:
+                        # When a field length is specified, create a rule for it
+                        length = record["field_length"].strip()
+                        if(len(length) > 0):
+                            # If there are non-whitespace characters here, create a length rule
+                            database.addRule(columnId,"LENGTH",length,"Field must be no longer than specified limit")
                 else :
                    raise ValueError('CSV File does not follow schema')
 
     @staticmethod
     def checkRecord (record, fields) :
         for data in fields :
-            if ( not data in record  ):
+            if ( not data in record ):
                 return False
         return True
