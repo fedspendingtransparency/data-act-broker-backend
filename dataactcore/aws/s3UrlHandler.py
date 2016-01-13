@@ -39,7 +39,7 @@ class s3UrlHandler:
         """
         if(s3UrlHandler.ENABLE_S3) :
             s3connection = boto.connect_s3()
-            return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method, self.bucketRoute, "/"+path+"/" +fileName)
+            return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method, self.bucketRoute, "/"+path+"/" +fileName,headers={'Content-Type': 'application/octet-stream'})
         return s3UrlHandler.BASE_URL + "/"+self.bucketRoute +"/"+path+"/" +fileName
 
     def getSignedUrl(self,path,fileName,method="PUT"):
