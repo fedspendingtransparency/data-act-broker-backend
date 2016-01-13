@@ -32,9 +32,10 @@ PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 # Create application
 app = Flask(__name__)
 app.config.from_object(__name__)
-
-cors = CORS(app,supports_credentials=True)
-
+if(config["Origins"] ==  "*") :
+    cors = CORS(app,supports_credentials=True)
+else :
+    cors = CORS(app,supports_credentials=True,origins=config["Origins"])
 #Enable AWS Sessions
 app.session_interface = DynamoInterface()
 
