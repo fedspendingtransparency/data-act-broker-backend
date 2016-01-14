@@ -17,7 +17,7 @@ class ManagerProxy(object):
 
     def jobJson(self,jobId):
         """ Create JSON to hold jobId """
-        return '{"job_id":'+str(jobId)+'}'
+        return '{"job_id":"'+str(jobId)+'"}'
 
     def sendJobRequest(self,jobId):
         return requests.request(method="POST", url=self._getPath() + "/validate/", data=self.jobJson(jobId), headers = self.JSON_HEADER)

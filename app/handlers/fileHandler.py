@@ -90,7 +90,8 @@ class FileHandler:
             for fileName in FileHandler.FILE_TYPES :
                 if( safeDictionary.exists(fileName)) :
                     responseDict[fileName+"_url"] = self.s3manager.getSignedUrl(str(name),safeDictionary.getValue(fileName))
-                    fileNameMap.append((fileName,self.s3manager.s3FileName))
+                    fileNameMap.append((fileName,str(name)+"/"+self.s3manager.s3FileName))
+
             fileJobDict = jobManager.createJobs(fileNameMap)
             for fileName in fileJobDict.keys():
                 if (not "submission_id" in fileName) :
@@ -126,7 +127,7 @@ class FileHandler:
                 proxy =  ManagerProxy()
                 validationId = jobManager.getDependentJobs(jobId)
                 if(len(validationId) == 1):
-                    proxy.sendJobRequest(validationId)
+                    proxy.sendJobRequest(validationId[0])
                 elif(len(validationId) == 0):
                     raise NoResultFound("No jobs were dependent on upload job")
                 else:

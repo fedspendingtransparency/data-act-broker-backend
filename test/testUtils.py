@@ -15,7 +15,7 @@ class TestUtils:
         self.cookies =  responseData.cookies
         return responseData
 
-    def postRequest(self,url,jsonData) :
+    def postRequest(self,url,jsonData,headers = None, ignoreBase = False, method = "POST") :
         """
 
         Args:
@@ -29,7 +29,12 @@ class TestUtils:
             current = self.cookies
         except AttributeError:
             self.cookies = {}
-        responseData = requests.request(method="POST", url=TestUtils.BASE_URL + url, data=jsonData, headers = TestUtils.JSON_HEADER,cookies=self.cookies,timeout=5)
+        if(headers == None):
+            headers = TestUtils.JSON_HEADER
+        if not ignoreBase:
+            url = TestUtils.BASE_URL + url
+
+        responseData = requests.request(method=method, url=url, data=jsonData, headers = headers,cookies=self.cookies,timeout=5)
         self.cookies =  responseData.cookies
         return responseData
 

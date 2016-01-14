@@ -14,4 +14,7 @@ app/handlers/utils/*.pyc
 app/venv
 app/errorLog
 test/*.pyc
+test/jobId.json
+test/submissionId
+test/tablesCleared
 web_api_configuration.json
