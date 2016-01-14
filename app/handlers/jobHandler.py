@@ -94,8 +94,7 @@ class JobHandler(JobTrackerInterface):
             # Add dependency between file upload and db upload
             uploadDependency = JobDependency(job_id = dbJob.job_id, prerequisite_id = fileJob.job_id)
             self.session.add(uploadDependency)
-            # Add both jobs to required list
-            jobsRequired.append(fileJob.job_id)
+            # Later validation jobs are dependent only on record level validation, not upload jobs
             jobsRequired.append(dbJob.job_id)
             uploadDict[fileType] = fileJob.job_id
 

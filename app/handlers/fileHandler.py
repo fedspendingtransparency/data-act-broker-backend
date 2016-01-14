@@ -5,6 +5,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from handlers.managerProxy import ManagerProxy
 from handlers.interfaceHolder import InterfaceHolder
+from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -123,11 +124,17 @@ class FileHandler:
                 jobManager.changeToFinished(jobId)
                 responseDict["success"] = True
                 proxy =  ManagerProxy()
-                proxy.sendJobRequest(jobId)
+                validationId = jobManager.getDependentJobs(jobId)
+                if(len(validationId) == 1):
+                    proxy.sendJobRequest(validationId)
+                elif(len(validationId) == 0):
+                    raise NoResultFound("No jobs were dependent on upload job")
+                else:
+                    raise MultipleResultsFound("Got more than one job dependent on upload job")
                 return JsonResponse.create(StatusCode.OK,responseDict)
             else:
                 exc = ResponseException("Wrong job type for finalize route")
-                exc.status = 400
+                exc.status = StatusCode.CLIENT_ERROR
                 raise exc
 
         except ( ValueError , TypeError ) as e:
