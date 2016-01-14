@@ -9,7 +9,7 @@ from dataactcore.utils.responseException import ResponseException
 class JsonResponse :
 
     debugMode = True
-    printDebug = True
+    printDebug = False # Can cause errors when printing trace on ec2 if set to True
     logDebug = False
 
     @staticmethod
