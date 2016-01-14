@@ -147,16 +147,22 @@ class FileHandler:
         try:
             jobTracker = InterfaceHolder.JOB_TRACKER
             inputDictionary = RequestDictionary(self.request)
+
             submissionId = inputDictionary.getValue("submission_id")
             # Get jobs in this submission
+
             jobs = jobTracker.getJobsBySubmission(submissionId)
+
             # Build dictionary of submission info with info about each job
             submissionInfo = {}
             for job in jobs:
                 jobInfo = {}
                 jobInfo["status"] = jobTracker.getJobStatus(job)
                 jobInfo["job_type"] = jobTracker.getJobType(job)
-                jobInfo["file_type"] = jobTracker.getFileType(job)
+                try :
+                    jobInfo["file_type"] = jobTracker.getFileType(job)
+                except Exception as e:
+                    jobInfo["file_type"]  = ''
                 submissionInfo[job] = jobInfo
 
             # Build response object holding dictionary
@@ -187,4 +193,3 @@ class FileHandler:
         except Exception as e:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
-
