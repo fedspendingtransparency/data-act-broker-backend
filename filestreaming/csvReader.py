@@ -27,6 +27,8 @@ class CsvReader(object):
                 possibleFields[schema.name.lower()] = 0
 
         self.s3File = s3Bucket.lookup(filename)
+        if(self.s3File == None):
+            raise ValueError("Filename provided not found on S3: " + str(filename))
         self.unprocessed = ''
         self.extraLine = False
         self.lines = []
