@@ -11,6 +11,7 @@ import os
 import inspect
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
+from handlers.fileHandler import FileHandler
 
 class FileTests(BaseTest):
     """ Test file submission routes """
@@ -83,6 +84,7 @@ class FileTests(BaseTest):
             self.fileResponse = self.utils.postRequest("/v1/submit_files/",fileJson)
 
     def test_file_submission(self):
+        open(FileHandler.VALIDATOR_RESPONSE_FILE,"w").write(str(-1))
         self.call_file_submission()
 
         # Test that status is 200
@@ -95,7 +97,6 @@ class FileTests(BaseTest):
         assert("_test2.csv" in self.fileResponse.json()["award_financial_url"])
         assert("_test3.csv" in self.fileResponse.json()["award_url"])
         assert("_test4.csv" in self.fileResponse.json()["procurement_url"])
-        self.uploadFileSigned(self.fileResponse.json()["procurement_url"],"test4.csv")
         assert("?Signature" in self.fileResponse.json()["appropriations_url"] )
         assert("?Signature" in self.fileResponse.json()["award_financial_url"])
         assert("?Signature" in self.fileResponse.json()["award_url"])
@@ -104,6 +105,7 @@ class FileTests(BaseTest):
         assert("&AWSAccessKeyId" in self.fileResponse.json()["award_financial_url"])
         assert("&AWSAccessKeyId" in self.fileResponse.json()["award_url"])
         assert("&AWSAccessKeyId" in self.fileResponse.json()["procurement_url"])
+        self.uploadFileSigned(self.fileResponse.json()["appropriations_url"],"test1.csv")
         # Test that job ids are returned
         responseDict = self.fileResponse.json()
         idKeys = ["procurement_id", "award_id", "award_financial_id", "appropriations_id"]
@@ -114,10 +116,13 @@ class FileTests(BaseTest):
             except:
                 self.fail("One of the job ids returned was not an integer")
             # Call upload complete route for each id
-        self.check_upload_complete(responseDict["procurement_id"])
+        self.check_upload_complete(responseDict["appropriations_id"])
         #self.check_error_route (responseDict["procurement_id"],responseDict["submission_id"])
         if(self.CHECK_VALIDATOR):
-            self.check_validator(responseDict["procurement_id"])
+            # Just check status code in file, cannot validate file twice
+            status = open(FileHandler.VALIDATOR_RESPONSE_FILE,"r").read()
+            assert(status == str(200))
+            #self.check_validator(responseDict["appropriations_id"])
 
     def test_check_status(self):
         """ Check that test status route returns correct JSON"""
@@ -154,13 +159,15 @@ class FileTests(BaseTest):
         assert(finalizeResponse.status_code == 200)
 
     def check_validator(self, jobId):
+        """ Manually check validation of jobId, will not work if broker validates automatically """
         proxy = ManagerProxy()
         # Get the ID of the validation job dependent on this upload job
-        self.uploadFile("test4.csv","1")
+        self.uploadFile("test1.csv","1")
         jobTracker = InterfaceHolder.JOB_TRACKER
         validationId = jobTracker.getDependentJobs(jobId)
         assert(len(validationId) == 1) # Should only be one job directly dependent on upload
         self.response = proxy.sendJobRequest(validationId[0])
+
         assert(self.response.status_code == 400)
 
     @staticmethod

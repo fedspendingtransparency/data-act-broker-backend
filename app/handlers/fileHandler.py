@@ -6,6 +6,8 @@ from dataactcore.utils.responseException import ResponseException
 from handlers.managerProxy import ManagerProxy
 from handlers.interfaceHolder import InterfaceHolder
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
+import os
+import inspect
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -20,6 +22,7 @@ class FileHandler:
 
 
     FILE_TYPES = ["appropriations","award_financial","award","procurement"]
+    VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
     def __init__(self,request):
         """
@@ -126,8 +129,18 @@ class FileHandler:
                 responseDict["success"] = True
                 proxy =  ManagerProxy()
                 validationId = jobManager.getDependentJobs(jobId)
+                print("validationId is "+str(validationId))
                 if(len(validationId) == 1):
-                    proxy.sendJobRequest(validationId[0])
+                    response = proxy.sendJobRequest(validationId[0])
+                    path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+                    lastBackSlash = path.rfind("\\",0,-1)
+                    lastForwardSlash = path.rfind("/",0,-1)
+                    lastSlash = max([lastBackSlash,lastForwardSlash])
+                    secondBackSlash = path.rfind("\\",0,lastSlash-1)
+                    secondForwardSlash = path.rfind("/",0,lastSlash-1)
+                    secondSlash = max([secondBackSlash,secondForwardSlash])
+                    responsePath = path[0:secondSlash] + "/test/" + self.VALIDATOR_RESPONSE_FILE
+                    open(responsePath,"w").write(str(response.status_code))
                 elif(len(validationId) == 0):
                     raise NoResultFound("No jobs were dependent on upload job")
                 else:
