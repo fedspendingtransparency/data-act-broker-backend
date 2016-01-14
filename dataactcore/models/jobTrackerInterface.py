@@ -1,5 +1,5 @@
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import JobStatus
+from dataactcore.models.jobModels import JobStatus, JobDependency
 from sqlalchemy.orm import subqueryload, joinedload
 
 class JobTrackerInterface(BaseInterface):
@@ -106,3 +106,18 @@ class JobTrackerInterface(BaseInterface):
         queryResult = self.session.query(JobStatus).options(joinedload("type")).filter(JobStatus.job_id == jobId).all()
         if(self.checkJobUnique(queryResult)):
             return queryResult[0].type.name
+
+    def getDependentJobs(self, jobId):
+        """
+
+        Args:
+            jobId: job to get dependent jobs of
+        Returns:
+            list of jobs dependent on the specified job
+        """
+
+        dependents = []
+        queryResult = self.session.query(JobDependency).filter(JobDependency.prerequisite_id == jobId).all()
+        for result in queryResult:
+            dependents.append(result.job_id)
+        return dependents
