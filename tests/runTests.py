@@ -33,8 +33,6 @@ def runTests():
 
 
 
-    open("errorLog","a").write(str(suite.countTestCases()) + " tests in suite")
-
     #print(str(suite.countTestCases()) + " tests in suite")
 
     # Run tests and store results
@@ -57,7 +55,6 @@ def runTests():
             test =AppropTests(methodName=method[0])
             appropSuite.addTest(test)
 
-    open("errorLog","a").write(str(appropSuite.countTestCases()) + " tests in appropriations suite")
     appropResult = runner.run(appropSuite)
 
 
