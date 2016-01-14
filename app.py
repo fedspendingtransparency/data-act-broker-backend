@@ -119,7 +119,15 @@ def validate_threaded():
 
 @app.route("/validate/",methods=["POST"])
 def validate():
-    return validationManager.validateJob(request)
+    try:
+        return validationManager.validateJob(request)
+    except Exception as e:
+        # Something went wrong getting the flask request
+        open("errorLog","a").write(e.message)
+        exc = ResponseException("Internal exception")
+        exc.status = StatusCode.INTERNAL_ERROR
+        exc.wrappedException = e
+        return JsonResponse.error(exc,exc.status,{"table":""})
 
 if __name__ == '__main__':
     app.run(debug=debugFlag,threaded=True,host="0.0.0.0")
