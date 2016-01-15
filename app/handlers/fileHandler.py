@@ -20,7 +20,6 @@ class FileHandler:
     s3manager -- instance of s3UrlHandler, manages calls to S3
     """
 
-    LOCAL_FILES = True
     FILE_TYPES = ["appropriations","award_financial","award","procurement"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
@@ -132,16 +131,6 @@ class FileHandler:
                 print("validationId is "+str(validationId))
                 if(len(validationId) == 1):
                     response = proxy.sendJobRequest(validationId[0])
-                    if(FileHandler.LOCAL_FILES) :
-                        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-                        lastBackSlash = path.rfind("\\",0,-1)
-                        lastForwardSlash = path.rfind("/",0,-1)
-                        lastSlash = max([lastBackSlash,lastForwardSlash])
-                        secondBackSlash = path.rfind("\\",0,lastSlash-1)
-                        secondForwardSlash = path.rfind("/",0,lastSlash-1)
-                        secondSlash = max([secondBackSlash,secondForwardSlash])
-                        responsePath = path[0:secondSlash] + "/test/" + self.VALIDATOR_RESPONSE_FILE
-                        open(responsePath,"w").write(str(response.status_code))
                 elif(len(validationId) == 0):
                     raise NoResultFound("No jobs were dependent on upload job")
                 else:

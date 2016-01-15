@@ -12,6 +12,8 @@ import inspect
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from handlers.fileHandler import FileHandler
+from dataactcore.models.jobModels import Status
+import time
 
 class FileTests(BaseTest):
     """ Test file submission routes """
@@ -28,6 +30,7 @@ class FileTests(BaseTest):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(FileTests,self).__init__(methodName=methodName)
         jobTracker = InterfaceHolder.JOB_TRACKER
+        self.jobTracker = jobTracker
         try:
             self.tablesCleared = self.toBool(open(self.TABLES_CLEARED_FILE,"r").read())
         except Exception as e:
@@ -119,10 +122,22 @@ class FileTests(BaseTest):
         self.check_upload_complete(responseDict["appropriations_id"])
         #self.check_error_route (responseDict["procurement_id"],responseDict["submission_id"])
         if(self.CHECK_VALIDATOR):
-            # Just check status code in file, cannot validate file twice
-            status = open(FileHandler.VALIDATOR_RESPONSE_FILE,"r").read()
-            assert(status == str(200))
+            # Check that validation job has been set to finished
+            validationIdList = self.jobTracker.getDependentJobs(responseDict["appropriations_id"])
+            assert(len(validationIdList) == 1)
+            print("validation job ID is " + str(validationIdList[0]))
+            print("validation job status is " + str(self.jobTracker.getJobStatus(validationIdList[0])))
+            self.waitOnJob(self.jobTracker,validationIdList[0],"finished")
+
             #self.check_validator(responseDict["appropriations_id"])
+
+    @staticmethod
+    def waitOnJob(jobTracker, jobId, status):
+        currentID = Status.getStatus("running")
+        targetStatus = Status.getStatus(status)
+        while jobTracker.getStatus(jobId) == currentID:
+            time.sleep(1)
+        assert(targetStatus == jobTracker.getStatus(jobId))
 
     def test_check_status(self):
         """ Check that test status route returns correct JSON"""
