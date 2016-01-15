@@ -2,8 +2,8 @@ import requests
 
 class TestUtils:
     # Test basic routes, including login and file submission
-    BASE_URL = "http://127.0.0.1:5000"
-    #BASE_URL = "http://54.173.199.34:5000"
+    #BASE_URL = "http://127.0.0.1:5000"
+    BASE_URL = "http://54.173.199.34:5000"
     JSON_HEADER = {"Content-Type": "application/json"}
 
     def getRequest(self,url) :
@@ -34,7 +34,7 @@ class TestUtils:
         if not ignoreBase:
             url = TestUtils.BASE_URL + url
 
-        responseData = requests.request(method=method, url=url, data=jsonData, headers = headers,cookies=self.cookies,timeout=5)
+        responseData = requests.request(method=method, url=url, data=jsonData, headers = headers,cookies=self.cookies,timeout=500)
         self.cookies =  responseData.cookies
         return responseData
 

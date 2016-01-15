@@ -17,4 +17,6 @@ test/*.pyc
 test/jobId.json
 test/submissionId
 test/tablesCleared
+test/validatorResponse
+app/validatorResponse
 web_api_configuration.json
