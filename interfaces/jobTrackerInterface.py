@@ -73,4 +73,21 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
             self.session.commit()
             return True
 
+    def checkJobType(self,jobId):
+        """ Job should be of type csv_record_validation, or this is the wrong service
 
+        Args:
+        jobId -- job ID to check
+
+        Returns:
+        True if correct type, False or exception otherwise
+        """
+        queryResult = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId).all()
+        if(self.checkJobUnique(queryResult)):
+            if(queryResult[0].type_id == Type.getType("csv_record_validation")):
+                # Correct type
+                return True
+            else:
+                # Wrong type
+                raise ResponseException("Wrong type of job for this service",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
+            

@@ -21,8 +21,8 @@ import json
 
 class JobTests(unittest.TestCase):
 
-    #BASE_URL = "http://127.0.0.1:5000"
-    BASE_URL = "http://52.90.92.100:5000"
+    BASE_URL = "http://127.0.0.1:5000"
+    #BASE_URL = "http://52.90.92.100:5000"
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False  # Gets set to true by the first test to populate the tables
     DROP_TABLES = False  # If true, staging tables are dropped after tests are run
@@ -110,6 +110,7 @@ class JobTests(unittest.TestCase):
 
             print(str(self.jobIdDict))
             # Last job number
+            minJob = min(self.jobIdDict.values())
             lastJob = max(self.jobIdDict.values())
 
             # Save jobIdDict to file
@@ -167,7 +168,7 @@ class JobTests(unittest.TestCase):
                 # If anything goes wrong, just clear from 0
                 firstJob = 0
 
-            if(firstJob > lastJob):
+            if(firstJob >= minJob):
                 # This probably means sequence got reset and we started from 0, so clear all up to lastJob
                 firstJob = 0
 
