@@ -90,4 +90,3 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
             else:
                 # Wrong type
                 raise ResponseException("Wrong type of job for this service",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
-            

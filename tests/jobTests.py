@@ -27,7 +27,7 @@ class JobTests(unittest.TestCase):
     TABLE_POPULATED = False  # Gets set to true by the first test to populate the tables
     DROP_TABLES = False  # If true, staging tables are dropped after tests are run
     USE_THREADS = False
-    INCLUDE_LONG_TESTS = False
+    INCLUDE_LONG_TESTS = True
     UPLOAD_FILES = False
     JOB_ID_FILE = "jobId.json"
     LAST_CLEARED_FILE = "lastClearedId"
@@ -125,29 +125,27 @@ class JobTests(unittest.TestCase):
 
             validationDB = InterfaceHolder.VALIDATION
 
-            validationDB.runStatement("DELETE FROM rule")
-            validationDB.runStatement("DELETE FROM file_columns")
             fileColumnStatements = [[
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header 1','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header 2','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header 3','',False) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header 4','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header 5','',True) RETURNING file_column_id"],[
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header 1','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header 2','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header 3','',False) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header 4','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header 5','',True) RETURNING file_column_id"],[
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header 1','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header 2','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header 3','',False) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header 4','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header 5','',True) RETURNING file_column_id"],[
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header 1','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header 2','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header 3','',False) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header 4','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header 5','',True) RETURNING file_column_id"]]
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header_1','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header_2','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header_3','',False) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header_4','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header_5','',True) RETURNING file_column_id"],[
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header_1','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header_2','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header_3','',False) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header_4','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header_5','',True) RETURNING file_column_id"],[
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header_1','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header_2','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header_3','',False) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header_4','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header_5','',True) RETURNING file_column_id"],[
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header_1','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header_2','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header_3','',False) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header_4','',True) RETURNING file_column_id",
+                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header_5','',True) RETURNING file_column_id"]]
 
             colIdDict = {}
             for fileType in range(0,4):
@@ -167,11 +165,15 @@ class JobTests(unittest.TestCase):
             except:
                 # If anything goes wrong, just clear from 0
                 firstJob = 0
-
-            if(firstJob >= minJob):
-                # This probably means sequence got reset and we started from 0, so clear all up to lastJob
+            try:
+                if(int(firstJob) > minJob):
+                    # This probably means sequence got reset and we started from 0, so clear all up to lastJob
+                    firstJob = 0
+            except:
+                # Could not cast as int
                 firstJob = 0
 
+            print("Dropping staging tables from " + str(firstJob) + " to " + str(lastJob))
             # Remove existing tables from staging if they exist
             for jobId in range(int(firstJob)+1, lastJob+1):
                 self.stagingDb.dropTable("job"+str(jobId))
@@ -357,7 +359,7 @@ class JobTests(unittest.TestCase):
         assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == False)
 
         if not JobTests.USE_THREADS:
-            assert(self.response.json()["message"] == "Header : header 5 is required")
+            assert(self.response.json()["message"] == "Header : header_5 is required")
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName) == False)
         assert(self.stagingDb.countRows(tableName) == 0)
@@ -433,7 +435,7 @@ class JobTests(unittest.TestCase):
 
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """
-        jobId = 2001
+        jobId = -1
         self.response = self.validateJob(jobId)
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)

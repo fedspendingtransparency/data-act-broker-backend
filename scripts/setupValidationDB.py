@@ -42,4 +42,4 @@ def setupValidationDB( hardReset = False):
     runCommands(ValidationInterface.getCredDict(),sql,"validation")
 
 if __name__ == '__main__':
-    setupValidationDB(True)
+    setupValidationDB(False)

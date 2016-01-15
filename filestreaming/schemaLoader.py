@@ -29,7 +29,7 @@ class SchemaLoader(object):
             reader = csv.DictReader(csvfile)
             for record in reader:
                 if(SchemaLoader.checkRecord(record, ["fieldname","required","data_type"])) :
-                    columnId = database.addColumnByFileType(fileTypeName,record["fieldname"].lower(),record["required"],record["data_type"])
+                    columnId = database.addColumnByFileType(fileTypeName,record["fieldname"].lower().replace(" ","_"),record["required"],record["data_type"])
                     if "field_length" in record:
                         # When a field length is specified, create a rule for it
                         length = record["field_length"].strip()

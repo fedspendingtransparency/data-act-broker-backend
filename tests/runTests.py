@@ -59,7 +59,7 @@ def runTests():
 
 
 if __name__ == '__main__':
-    runTests()
-    #cProfile.run("runTests()","stats")
-    #stats = pstats.Stats("stats")
-    #stats.sort_stats("cumulative").print_stats(100)
+    #runTests()
+    cProfile.run("runTests()","stats")
+    stats = pstats.Stats("stats")
+    stats.sort_stats("cumulative").print_stats(100)

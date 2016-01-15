@@ -24,7 +24,7 @@ class CsvReader(object):
         possibleFields = {}
         currentFields = {}
         for schema in  csvSchema:
-                possibleFields[schema.name.lower()] = 0
+                possibleFields[schema.name.lower().replace(" ","_")] = 0
 
         self.s3File = s3Bucket.lookup(filename)
         if(self.s3File == None):
@@ -33,7 +33,7 @@ class CsvReader(object):
         self.extraLine = False
         self.lines = []
         self.headerDictionary = {}
-        self.packetCounter = 0;
+        self.packetCounter = 0
         current = 0
         self.isFinished = False
         self.columnCount = 0
@@ -46,7 +46,7 @@ class CsvReader(object):
         #create the header
         for row in csv.reader([line],dialect='excel'):
             for cell in row :
-                headerValue = cell.strip().lower()
+                headerValue = cell.strip().lower().replace(" ","_")
                 if( not headerValue in possibleFields) :
                     raise ResponseException(("Header : "+ headerValue + " not in CSV schema"), 400, ValueError,ValidationError.badHeaderError)
                 if(possibleFields[headerValue] == 1) :
@@ -57,7 +57,7 @@ class CsvReader(object):
         self.columnCount = current
         #Check that all required fields exists
         for schema in csvSchema :
-            if(schema.required and  possibleFields[schema.name.lower()] == 0) :
+            if(schema.required and  possibleFields[schema.name.lower().replace(" ","_")] == 0) :
                 raise ResponseException(("Header : "+ schema.name + " is required"), 400, ValueError,ValidationError.missingHeaderError)
 
     def getNextRecord(self):

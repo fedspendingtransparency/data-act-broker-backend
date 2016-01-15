@@ -105,6 +105,8 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
         queryResult = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).all()
+        for result in queryResult:
+            result.name = result.name.lower().replace(" ","_") # Standardize field names
         return queryResult
 
     def getFieldsByFile(self, fileType):
@@ -122,7 +124,7 @@ class ValidationInterface(validationInterface.ValidationInterface) :
             raise ValueError("File type does not exist")
         queryResult = self.session.query(FileColumn).options(subqueryload("field_type")).filter(FileColumn.file_id == fileId).all()
         for column in queryResult :
-            returnDict[column.name]  = column
+            returnDict[column.name.lower().replace(" ","_")]  = column
         return returnDict
 
 

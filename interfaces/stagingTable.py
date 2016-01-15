@@ -4,9 +4,9 @@ from interfaces.interfaceHolder import InterfaceHolder
 
 class StagingTable(object):
 
-    BATCH_INSERT = False
-    INSERT_BY_ORM = True
-    BATCH_SIZE = 10
+    BATCH_INSERT = True
+    INSERT_BY_ORM = False
+    BATCH_SIZE = 100
 
     def __init__(self):
         # Start first batch
@@ -91,8 +91,14 @@ class StagingTable(object):
 
     def endBatch(self):
         """ Called at end of process to send the last batch """
+        print("Called endBatch")
+        if not self.BATCH_INSERT:
+            # Not batching, just return
+            return False
+        print("Batch: " + str(self.batch))
+        print("Batch length: " + str(len(self.batch)))
         if(len(self.batch)>0):
-            self.interface.connection(self.orm.__table__.insert(),self.batch)
+            self.interface.connection.execute(self.orm.__table__.insert(),self.batch)
             self.batch = []
             return True
         else:
@@ -129,7 +135,10 @@ class StagingTable(object):
                 self.batch.append(record)
                 if(len(self.batch)>self.BATCH_SIZE):
                     # Time to write the batch
-                    self.interface.connection(self.orm.__table__.insert(),self.batch)
+                    print("Connection object:")
+                    print(str(self.interface.connection))
+                    print(str(type(self.interface.connection)))
+                    self.interface.connection.execute(self.orm.__table__.insert(),self.batch)
                     # Reset batch
                     self.batch = []
                 return True
