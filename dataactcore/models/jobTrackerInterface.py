@@ -2,6 +2,7 @@ from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type
 from sqlalchemy.orm import subqueryload, joinedload
 from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
 
 class JobTrackerInterface(BaseInterface):
     """ Manages all interaction with the job tracker database
@@ -132,24 +133,6 @@ class JobTrackerInterface(BaseInterface):
             queryResult[0].status_id = Status.getStatus(statsType)
             # Push
             self.session.commit()
-
-    def checkJobType(self,jobId):
-        """ Job should be of type csv_record_validation, or this is the wrong service
-
-        Args:
-        jobId -- job ID to check
-
-        Returns:
-        True if correct type, False or exception otherwise
-        """
-        queryResult = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId).all()
-        if(self.checkJobUnique(queryResult)):
-            if(queryResult[0].type_id == Type.getType("csv_record_validation")):
-                # Correct type
-                return True
-            else:
-                # Wrong type
-                raise ResponseException("Wrong type of job for this service",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
 
     def getStatus(self,jobId):
         """ Get status for specified job
