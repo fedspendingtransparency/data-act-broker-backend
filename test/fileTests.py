@@ -31,6 +31,7 @@ class FileTests(BaseTest):
         super(FileTests,self).__init__(methodName=methodName)
         jobTracker = InterfaceHolder.JOB_TRACKER
         self.jobTracker = jobTracker
+        self.errorDatabase = InterfaceHolder.ERROR
         try:
             self.tablesCleared = self.toBool(open(self.TABLES_CLEARED_FILE,"r").read())
         except Exception as e:
@@ -229,6 +230,65 @@ class FileTests(BaseTest):
         clearJobs()  # Clear job DB again so sequence errors don't occur
         assert(response.status_code == 200)
         assert(len(response.json()) == 4)
+
+    @staticmethod
+    def check_metrics(submissionId,exists,type_file) :
+        utils = TestUtils()
+        utils.login()
+        response = utils.postRequest("/v1/error_metrics/",'{"submission_id": '+str(submissionId)+ '}')
+        print response.json()
+        assert(response.status_code == 200)
+        if(exists) :
+            assert(len(response.json()[type_file]) > 0)
+        else :
+            assert(len(response.json()[type_file]) == 0)
+
+
+    def test_meterics(self):
+        #setup the database for the route test
+        submissionId = str(self.insertSubmission(self.jobTracker))
+
+        job = self.insertJob(self.jobTracker,"1","2","2",submissionId)
+        self.insertFileStatus(self.errorDatabase,str(job),"1") # Everything Is Fine
+
+        job = self.insertJob(self.jobTracker,"2","2","2",submissionId)
+        self.insertFileStatus(self.errorDatabase,str(job),"3") #Bad Header
+
+        job = self.insertJob(self.jobTracker,"3","2","2",submissionId)
+        self.insertFileStatus(self.errorDatabase,str(job),"1") # Validation level Errors
+        self.insertRowLevelError(self.errorDatabase,str(job))
+
+        #Check the route
+        self.check_metrics(submissionId,False,"award")
+        self.check_metrics(submissionId,True,"award_financial")
+        self.check_metrics(submissionId,True,"appropriations")
+
+    @staticmethod
+    def insertSubmission(jobTracker):
+        """ Insert one submission into job tracker and get submission ID back """
+        stmt = "INSERT INTO submission (datetime_utc) VALUES (0) RETURNING submission_id"
+        response = jobTracker.runStatement(stmt)
+        return response.fetchone()[0]
+
+    @staticmethod
+    def insertJob(jobTracker,filetype,status,type_id,submission):
+        """ Insert one job into job tracker and get ID back """
+        stmt = "INSERT INTO job_status (file_type_id, status_id, type_id, submission_id)VALUES("+filetype+","+status+","+type_id+","+submission+") RETURNING job_id"
+        results = jobTracker.runStatement(stmt)
+        return results.fetchone()[0]
+
+    @staticmethod
+    def insertFileStatus(errorDB,job,status):
+        """ Insert one file status into error database and get ID back """
+        stmt = "INSERT INTO file_status(job_id, filename, status_id) VALUES("+job+",' ',"+status+") RETURNING status_id"
+        response = errorDB.runStatement(stmt)
+        return response.fetchone()[0]
+
+    @staticmethod
+    def insertRowLevelError(errorDB,job):
+        """ Insert one error into error database """
+        stmt = "INSERT INTO error_data(job_id, filename, field_name, error_type_id, occurrences,first_row, rule_failed) VALUES ("+job+ ", 'test.csv', 'header 1', 1, 100, 123, 'Type Check' );"
+        errorDB.runStatement(stmt)
 
     def setupJobsForReports(self):
         """ Setting Jobs table to correct state for checking error reports from validator unit tests """
