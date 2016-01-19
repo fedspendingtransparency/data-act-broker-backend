@@ -21,8 +21,8 @@ import json
 
 class JobTests(unittest.TestCase):
 
-    #BASE_URL = "http://127.0.0.1:80"
-    BASE_URL = "http://52.90.92.100:80"
+    BASE_URL = "http://127.0.0.1:80"
+    #BASE_URL = "http://52.90.92.100:80"
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False  # Gets set to true by the first test to populate the tables
     DROP_TABLES = False  # If true, staging tables are dropped after tests are run
@@ -59,7 +59,6 @@ class JobTests(unittest.TestCase):
             # Clear databases and run setup
             #clearJobs()
             clearErrors()
-
 
             # Define user
             user = 1
@@ -126,37 +125,17 @@ class JobTests(unittest.TestCase):
 
 
             if(self.CREATE_VALIDATION_RULES):
-                fileColumnStatements = [[
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header_1','',True) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header_2','',True) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header_3','',False) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header_4','',True) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header_5','',True) RETURNING file_column_id"],[
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header_1','',True) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header_2','',True) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header_3','',False) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header_4','',True) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header_5','',True) RETURNING file_column_id"],[
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header_1','',True) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header_2','',True) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header_3','',False) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header_4','',True) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header_5','',True) RETURNING file_column_id"],[
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header_1','',True) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header_2','',True) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header_3','',False) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header_4','',True) RETURNING file_column_id",
-                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header_5','',True) RETURNING file_column_id"]]
-
                 colIdDict = {}
-                for fileType in range(0,4):
-                    for i in range(0,5):
-                        colId = validationDB.runStatement(fileColumnStatements[fileType][i])
-                        try:
-                            colIdDict["header_"+str(i+1)+"_file_type_"+str(fileType+1)] = colId.fetchone()[0]
-                        except InvalidRequestError as e:
-                            # Could not get column ID
-                            pass
+                for fileId in range(1,5):
+                    for columnId in range(1,6):
+                        if(columnId < 3):
+                            fieldType = 1
+                        else:
+                            fieldType = 4
+                        columnName = "header_" + str(columnId)
+                        statement = self.createColumnStatement(fileId, fieldType, columnName, "", (columnId != 3))
+                        colId = validationDB.runStatement(statement)
+                        colIdDict["header_"+str(columnId)+"_file_type_"+str(fileId)] = colId.fetchone()[0]
 
                 ruleStatement = "INSERT INTO rule (file_column_id, rule_type_id, rule_text_1, description) VALUES ("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+", 5, 0, 'value 1 must be greater than zero'),("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+",3,13,'value 1 may not be 13'),("+str(colIdDict["header_"+str(5)+"_file_type_"+str(3)])+",1,'INT','value 5 must be an integer'),("+str(colIdDict["header_"+str(3)+"_file_type_"+str(3)])+",2,42,'value 3 must be equal to 42 if present'),("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+",4,100,'value 1 must be less than 100')"
 
@@ -191,6 +170,10 @@ class JobTests(unittest.TestCase):
     def createJobStatement(status, type, submission, s3Filename, fileType):
         """ Build SQL statement to create a job  """
         return "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + status + "," + type + "," + submission + ", '" + s3Filename + "',"+ fileType +") RETURNING job_id"
+
+    @staticmethod
+    def createColumnStatement(file_id, field_type, columnName, description, required):
+        return "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (" + str(file_id) + ", " + str(field_type) + ", '" + columnName + "', '" + description + "', " + str(required) + ") RETURNING file_column_id"
 
     def setup(self):
         self.passed = False
@@ -228,305 +211,135 @@ class JobTests(unittest.TestCase):
             assert(bytesWritten > 0)
         return s3FileName
 
+    def run_test(self,jobId, statusId,statusName,fileSize,stagingRows,errorStatus,numErrors):
+        self.response = self.validateJob(jobId)
+
+        assert(self.response.status_code == statusId)
+        if(statusName != False):
+            self.waitOnJob(self.jobTracker, jobId, statusName)
+            assert(self.jobTracker.getStatus(jobId) == Status.getStatus(statusName))
+
+        self.assertHeader(self.response)
+
+        if(fileSize != False):
+            assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == fileSize)
+
+        tableName = self.response.json()["table"]
+        if(stagingRows == False):
+            assert(self.stagingDb.tableExists(tableName) == False)
+        else:
+            assert(self.stagingDb.tableExists(tableName) == True)
+            assert(self.stagingDb.countRows(tableName) == stagingRows)
+        errorInterface = InterfaceHolder.ERROR
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus(errorStatus))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == numErrors)
+        self.passed = True
+
     def test_valid_job(self):
         """ Test valid job """
         jobId = self.jobIdDict["valid"]
-        print("valid job ID is " + str(jobId))
-        self.response = self.validateJob(jobId)
-
-
-        assert(self.response.status_code == 200)
-        self.waitOnJob(self.jobTracker, jobId, "finished")
-
-
-        self.assertHeader(self.response)
-        # Check that job is correctly marked as finished
-        assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 37)
-
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 1)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
-        self.passed = True
+        self.run_test(jobId,200,"finished",37,1,"complete",0)
 
     def test_rules(self):
         """ Test rules, should have one type failure and two value failures """
         jobId = self.jobIdDict["rules"]
-        self.response = self.validateJob(jobId)
-        self.waitOnJob(self.jobTracker, jobId, "finished")
-        assert(self.response.status_code == 200)
-        self.assertHeader(self.response)
-        # Check that job is correctly marked as finished
-        assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 315)
-
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 1)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 5)
-        self.passed = True
+        self.run_test(jobId,200,"finished",315,1,"complete",5)
 
     def test_bad_values_job(self):
         # Test job with bad values
         jobId = self.jobIdDict["bad_values"]
-        self.response = self.validateJob(jobId)
-        self.waitOnJob(self.jobTracker, jobId, "finished")
-        assert(self.response.status_code == 200)
-        self.assertHeader(self.response)
-        # Check that job is correctly marked as finished
-        assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 5413)
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 0)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 92)
-        self.passed = True
+        self.run_test(jobId,200,"finished",5413,0,"complete",92)
 
     def test_many_bad_values_job(self):
         # Test job with many bad values
-        if not self.INCLUDE_LONG_TESTS:
+        if self.INCLUDE_LONG_TESTS:
+            jobId = self.jobIdDict["many_bad"]
+            self.run_test(jobId,200,"finished",133820283,0,"complete",2302930)
+        else:
             self.passed = True
-            return
-        jobId = self.jobIdDict["many_bad"]
-        self.response = self.validateJob(jobId)
-        self.waitOnJob(self.jobTracker, jobId, "finished")
-
-        assert(self.response.status_code == 200)
-        self.assertHeader(self.response)
-        # Check that job is correctly marked as finished
-        assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 133820283)
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 0)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 2302930)
-        self.passed = True
 
     def test_mixed_job(self):
         """ Test mixed job """
         jobId = self.jobIdDict["mixed"]
-        self.response = self.validateJob(jobId)
-
-        assert(self.response.status_code == 200)
-        self.waitOnJob(self.jobTracker, jobId, "finished")
-
-        self.assertHeader(self.response)
-        # Check that job is correctly marked as finished
-        assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 83)
-
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 3)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 1)
-        self.passed = True
+        self.run_test(jobId,200,"finished",83,3,"complete",1)
 
     def test_empty(self):
         """ Test empty file """
         jobId = self.jobIdDict["empty"]
-        self.response = self.validateJob(jobId)
-
-        self.waitOnJob(self.jobTracker, jobId, "invalid")
-
         if JobTests.USE_THREADS:
-            assert(self.response.status_code == 200)
+            status = 200
         else:
-            assert(self.response.status_code == 400)
-        self.assertHeader(self.response)
-        # Check that job is correctly marked as finished
+            status = 400
+        self.run_test(jobId,status,"invalid",False,False,"single_row_error",0)
+
         if not JobTests.USE_THREADS:
             assert(self.response.json()["message"] == "CSV file must have a header")
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == False)
-        assert(self.stagingDb.countRows(tableName) == 0)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("single_row_error"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
-        self.passed = True
 
     def test_missing_header(self):
         """ Test missing header in first row """
         jobId = self.jobIdDict["missing_header"]
-        self.response = self.validateJob(jobId)
-
-        self.waitOnJob(self.jobTracker, jobId, "invalid")
         if JobTests.USE_THREADS:
-            assert(self.response.status_code == 200)
+            status = 200
         else:
-            assert(self.response.status_code == 400)
-        self.assertHeader(self.response)
-        # Check that job is correctly marked as finished
+            status = 400
+        self.run_test(jobId,status,"invalid",False,False,"missing_header_error",0)
 
         if not JobTests.USE_THREADS:
             assert(self.response.json()["message"] == "Header : header_5 is required")
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == False)
-        assert(self.stagingDb.countRows(tableName) == 0)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("missing_header_error"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
-        self.passed = True
+
 
     def test_bad_header(self):
         """ Test bad header value in first row """
         jobId = self.jobIdDict["bad_header"]
-
-        self.response = self.validateJob(jobId)
         if JobTests.USE_THREADS:
-            assert(self.response.status_code == 200)
+            status = 200
         else:
-            assert(self.response.status_code == 400)
-        self.waitOnJob(self.jobTracker, jobId, "invalid")
-        self.assertHeader(self.response)
-        # Check that job is correctly marked as finished
+            status = 400
+        self.run_test(jobId,status,"invalid",False,False,"bad_header_error",0)
 
         if not JobTests.USE_THREADS:
             assert(self.response.json()["message"] == "Header : walrus not in CSV schema")
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == False)
-        assert(self.stagingDb.countRows(tableName) == 0)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("bad_header_error"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
-        self.passed = True
 
     def test_many_rows(self):
         """ Test many rows """
-        if not self.INCLUDE_LONG_TESTS:
+        if self.INCLUDE_LONG_TESTS:
             # Don't do this test when skipping long tests
+            jobId = self.jobIdDict["many"]
+            self.run_test(jobId,200,"finished",37,22380,"complete",0)
+        else:
             self.passed = True
-            return
-        jobId = self.jobIdDict["many"]
-        self.response = self.validateJob(jobId)
 
-        assert(self.response.status_code == 200)
-        self.waitOnJob(self.jobTracker, jobId, "finished")
-        self.assertHeader(self.response)
-        # Check that job is correctly marked as finished
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 37)
-
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 22380)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
-        self.passed = True
 
     def test_odd_characters(self):
         """ Test potentially problematic characters """
         jobId = self.jobIdDict["odd_characters"]
-        self.response = self.validateJob(jobId)
-        self.waitOnJob(self.jobTracker, jobId, "finished")
-        assert(self.response.status_code == 200)
-        self.assertHeader(self.response)
-        # Check that job is correctly marked as finished
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 136)
-
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 5)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 2)
-        self.passed = True
+        self.run_test(jobId,200,"finished",136,5,"complete",2)
 
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """
         jobId = -1
-        self.response = self.validateJob(jobId)
-        assert(self.response.status_code == 400)
-        self.assertHeader(self.response)
-        assert(self.response.json()["message"] == "Job ID not found in job_status table")
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == False)
-        assert(self.stagingDb.countRows(tableName) == 0)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("job_error"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
-        self.passed = True
+        self.run_test(jobId,400,False,False,False,"job_error",0)
 
     def test_prereq_job(self):
         """ Test job with prerequisites finished """
         jobId = self.jobIdDict["valid_prereq"]
-        self.response = self.validateJob(jobId)
-        self.waitOnJob(self.jobTracker, jobId, "finished")
-        assert(self.response.status_code == 200)
-        self.assertHeader(self.response)
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 37)
-
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 4)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
-        self.passed = True
+        self.run_test(jobId,200,"finished",37,4,"complete",0)
 
     def test_bad_prereq_job(self):
         """ Test job with unfinished prerequisites """
         jobId = self.jobIdDict["bad_prereq"]
-        self.response = self.validateJob(jobId)
-        self.waitOnJob(self.jobTracker, jobId, "ready")
-        assert(self.response.status_code == 400)
-        self.assertHeader(self.response)
-        assert(self.response.json()["message"] == "Prerequisites incomplete, job cannot be started")
-
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == False)
-        assert(self.stagingDb.countRows(tableName) == 0)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("job_error"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
-        self.passed = True
+        self.run_test(jobId,400,"ready",False,False,"job_error",0)
 
     def test_bad_type_job(self):
         """ Test job with wrong type """
         jobId = self.jobIdDict["wrong_type"]
-        self.response = self.validateJob(jobId)
-
-        assert(self.response.status_code == 400)
-        self.waitOnJob(self.jobTracker, jobId, "ready")
-
-        self.assertHeader(self.response)
-        assert(self.response.json()["message"] == "Wrong type of job for this service")
-
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == False)
-        assert(self.stagingDb.countRows(tableName) == 0)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("job_error"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
-        self.passed = True
+        self.run_test(jobId,400,"ready",False,False,"job_error",0)
 
     # TODO uncomment this unit test once jobs are labeled as ready
     # def test_finished_job(self):
         # """ Test job that is already finished """
-        # jobId = 5
-        # self.response = self.validateJob(jobId)
-        # assert(self.response.status_code == 400)
-        # self.assertHeader(self.response)
-        # assert(self.response.json()["message"] == "Job is not ready")
-
-        # tableName = self.response.json()["table"]
-        # assert(self.stagingDb.tableExists(tableName) == False)
-        # assert(self.stagingDb.countRows(tableName) == 0)
-        # self.dropTables(tableName)
-        # errorInterface = InterfaceHolder.ERROR
-        # assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("job_error"))
-        # assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
-        #elf.passed = True
+        # jobId = self.jobIdDict["finished"]
+        # self.run_test(jobId,400,"finished",False,False,"job_error",0)
 
     @staticmethod
     def assertHeader(response):
