@@ -4,8 +4,8 @@ from interfaces.interfaceHolder import InterfaceHolder
 
 class StagingTable(object):
 
-    BATCH_INSERT = True
-    INSERT_BY_ORM = False
+    BATCH_INSERT = False
+    INSERT_BY_ORM = True
     BATCH_SIZE = 100
 
     def __init__(self):

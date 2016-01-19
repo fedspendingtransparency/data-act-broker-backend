@@ -225,7 +225,7 @@ class JobTests(unittest.TestCase):
             assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == fileSize)
 
         tableName = self.response.json()["table"]
-        if(stagingRows == False):
+        if(type(stagingRows) == type(False) and not stagingRows):
             assert(self.stagingDb.tableExists(tableName) == False)
         else:
             assert(self.stagingDb.tableExists(tableName) == True)
