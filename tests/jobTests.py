@@ -21,14 +21,15 @@ import json
 
 class JobTests(unittest.TestCase):
 
-    BASE_URL = "http://127.0.0.1:5000"
-    #BASE_URL = "http://52.90.92.100:5000"
+    #BASE_URL = "http://127.0.0.1:80"
+    BASE_URL = "http://52.90.92.100:80"
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False  # Gets set to true by the first test to populate the tables
     DROP_TABLES = False  # If true, staging tables are dropped after tests are run
     USE_THREADS = False
-    INCLUDE_LONG_TESTS = True
+    INCLUDE_LONG_TESTS = False
     UPLOAD_FILES = False
+    CREATE_VALIDATION_RULES = True
     JOB_ID_FILE = "jobId.json"
     LAST_CLEARED_FILE = "lastClearedId"
     jobIdDict = {}
@@ -47,28 +48,23 @@ class JobTests(unittest.TestCase):
             runCommands(StagingInterface.getCredDict(), [], "staging")
             self.stagingDb = InterfaceHolder.STAGING
 
+            setupValidationDB()
+            validationDB = InterfaceHolder.VALIDATION
+            if(self.CREATE_VALIDATION_RULES):
+                # Clear validation rules
+                for fileType in ["award","award_financial","appropriations","procurement"]:
+                    validationDB.removeRulesByFileType(fileType)
+                    validationDB.removeColumnsByFileType(fileType)
+
             # Clear databases and run setup
             #clearJobs()
             clearErrors()
-            setupValidationDB()
+
 
             # Define user
             user = 1
-            # Upload needed files to S3
 
-            s3FileNameValid = self.uploadFile("testValid.csv", user)
-            s3FileNamePrereq = self.uploadFile("testPrereq.csv", user)
-            s3FileNameBadValues = self.uploadFile("testBadValues.csv", user)
-            s3FileNameMixed = self.uploadFile("testMixed.csv", user)
-            s3FileNameEmpty = self.uploadFile("testEmpty.csv", user)
-            s3FileNameMissingHeader = self.uploadFile("testMissingHeader.csv", user)
-            s3FileNameBadHeader = self.uploadFile("testBadHeader.csv", user)
-            s3FileNameMany = self.uploadFile("testMany.csv", user)
-            s3FileNameOdd = self.uploadFile("testOddCharacters.csv", user)
-            s3FileNameManyBad = self.uploadFile("testManyBadValues.csv", user)
-            s3FileNameTestRules = self.uploadFile("testRules.csv", user)
-
-            # Populate with a defined test set
+            # Get interface for job tracker
             self.jobTracker = InterfaceHolder.JOB_TRACKER
 
             # Create submissions and get IDs back
@@ -76,37 +72,41 @@ class JobTests(unittest.TestCase):
             for i in range(1,17):
                 submissionIDs[i] = self.insertSubmission(self.jobTracker)
 
-            # Create jobs
-            sqlStatements = ["INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[1])+", '" + s3FileNameValid + "',1) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("file_upload")) + ","+str(submissionIDs[2])+",1) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[2])+",1) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("external_validation")) + ","+str(submissionIDs[4])+",1) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("finished")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[5])+",1) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, file_type_id) VALUES (" + str(Status.getStatus("finished")) + "," + str(Type.getType("file_upload")) + ","+str(submissionIDs[6])+",1) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[6])+", '" + s3FileNamePrereq + "',1) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[8])+", '" + s3FileNameBadValues + "',1) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[9])+", '" + s3FileNameMixed + "',1) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[10])+", '" + s3FileNameEmpty + "',1) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[11])+", '" + s3FileNameMissingHeader + "',1) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[12])+", '" + s3FileNameBadHeader + "',2) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[11])+", '" + s3FileNameMany + "',3) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[14])+", '" + s3FileNameOdd + "',2) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[11])+", '" + s3FileNameManyBad + "',4) RETURNING job_id",
-            "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[16])+", '" + s3FileNameTestRules + "',1) RETURNING job_id"
-            ]
+
+            csvFiles = {"valid":{"filename":"testValid.csv","status":"ready","type":"csv_record_validation","submissionLocalId":1,"fileType":1},
+                        "bad_upload":{"filename":"","status":"ready","type":"file_upload","submissionLocalId":2,"fileType":1},
+                        "bad_prereq":{"filename":"","status":"ready","type":"csv_record_validation","submissionLocalId":2,"fileType":1},
+                        "wrong_type":{"filename":"","status":"ready","type":"external_validation","submissionLocalId":4,"fileType":1},
+                        "not_ready":{"filename":"","status":"finished","type":"csv_record_validation","submissionLocalId":5,"fileType":1},
+                        "valid_upload":{"filename":"","status":"finished","type":"file_upload","submissionLocalId":6,"fileType":1},
+                        "valid_prereq":{"filename":"testPrereq.csv","status":"ready","type":"csv_record_validation","submissionLocalId":6,"fileType":1},
+                        "bad_values":{"filename":"testBadValues.csv","status":"ready","type":"csv_record_validation","submissionLocalId":8,"fileType":1},
+                        "mixed":{"filename":"testMixed.csv","status":"ready","type":"csv_record_validation","submissionLocalId":9,"fileType":1},
+                        "empty":{"filename":"testEmpty.csv","status":"ready","type":"csv_record_validation","submissionLocalId":10,"fileType":1},
+                        "missing_header":{"filename":"testMissingHeader.csv","status":"ready","type":"csv_record_validation","submissionLocalId":11,"fileType":1},
+                        "bad_header":{"filename":"testBadHeader.csv","status":"ready","type":"csv_record_validation","submissionLocalId":12,"fileType":2},
+                        "many":{"filename":"testMany.csv","status":"ready","type":"csv_record_validation","submissionLocalId":11,"fileType":3},
+                        "odd_characters":{"filename":"testOddCharacters.csv","status":"ready","type":"csv_record_validation","submissionLocalId":14,"fileType":2},
+                        "many_bad":{"filename":"testManyBadValues.csv","status":"ready","type":"csv_record_validation","submissionLocalId":11,"fileType":4},
+                        "rules":{"filename":"testRules.csv","status":"ready","type":"csv_record_validation","submissionLocalId":16,"fileType":1}}
+
+            # Upload needed files to S3
+            for key in csvFiles.keys():
+                csvFiles[key]["s3Filename"] = self.uploadFile(csvFiles[key]["filename"],user)
 
             self.jobIdDict = {}
-            keyList = ["valid","bad_upload","bad_prereq","wrong_type","not_ready","valid_upload","valid_prereq","bad_values","mixed","empty","missing_header","bad_header","many","odd_characters","many_bad","rules"]
-            index = 0
 
-            for statement in sqlStatements:
+            sqlStatements = []
+            for key in csvFiles.keys():
+                # Create SQL statement and add to list
+                statement = self.createJobStatement(str(Status.getStatus(csvFiles[key]["status"])), str(Type.getType(csvFiles[key]["type"])), str(submissionIDs[csvFiles[key]["submissionLocalId"]]), csvFiles[key]["s3Filename"], str(csvFiles[key]["fileType"]))
                 jobId = self.jobTracker.runStatement(statement)
                 try:
-                    self.jobIdDict[keyList[index]] = jobId.fetchone()[0]
+                    self.jobIdDict[key] = jobId.fetchone()[0]
                 except InvalidRequestError:
                     # Problem getting result back, may happen for dependency statements
                     pass
-                index += 1
+
 
             print(str(self.jobIdDict))
             # Last job number
@@ -123,43 +123,45 @@ class JobTests(unittest.TestCase):
             for statement in depStatements:
                 self.jobTracker.runStatement(statement)
 
-            validationDB = InterfaceHolder.VALIDATION
 
-            fileColumnStatements = [[
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header_1','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header_2','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header_3','',False) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header_4','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header_5','',True) RETURNING file_column_id"],[
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header_1','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header_2','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header_3','',False) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header_4','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header_5','',True) RETURNING file_column_id"],[
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header_1','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header_2','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header_3','',False) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header_4','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header_5','',True) RETURNING file_column_id"],[
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header_1','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header_2','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header_3','',False) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header_4','',True) RETURNING file_column_id",
-                "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header_5','',True) RETURNING file_column_id"]]
 
-            colIdDict = {}
-            for fileType in range(0,4):
-                for i in range(0,5):
-                    colId = validationDB.runStatement(fileColumnStatements[fileType][i])
-                    try:
-                        colIdDict["header_"+str(i+1)+"_file_type_"+str(fileType+1)] = colId.fetchone()[0]
-                    except InvalidRequestError as e:
-                        # Could not get column ID
-                        pass
+            if(self.CREATE_VALIDATION_RULES):
+                fileColumnStatements = [[
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header_1','',True) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,1,'header_2','',True) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header_3','',False) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header_4','',True) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (1,4,'header_5','',True) RETURNING file_column_id"],[
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header_1','',True) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,1,'header_2','',True) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header_3','',False) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header_4','',True) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (2,4,'header_5','',True) RETURNING file_column_id"],[
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header_1','',True) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,1,'header_2','',True) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header_3','',False) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header_4','',True) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (3,4,'header_5','',True) RETURNING file_column_id"],[
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header_1','',True) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,1,'header_2','',True) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header_3','',False) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header_4','',True) RETURNING file_column_id",
+                    "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (4,4,'header_5','',True) RETURNING file_column_id"]]
 
-            ruleStatement = "INSERT INTO rule (file_column_id, rule_type_id, rule_text_1, description) VALUES ("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+", 5, 0, 'value 1 must be greater than zero'),("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+",3,13,'value 1 may not be 13'),("+str(colIdDict["header_"+str(5)+"_file_type_"+str(3)])+",1,'INT','value 5 must be an integer'),("+str(colIdDict["header_"+str(3)+"_file_type_"+str(3)])+",2,42,'value 3 must be equal to 42 if present'),("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+",4,100,'value 1 must be less than 100')"
+                colIdDict = {}
+                for fileType in range(0,4):
+                    for i in range(0,5):
+                        colId = validationDB.runStatement(fileColumnStatements[fileType][i])
+                        try:
+                            colIdDict["header_"+str(i+1)+"_file_type_"+str(fileType+1)] = colId.fetchone()[0]
+                        except InvalidRequestError as e:
+                            # Could not get column ID
+                            pass
 
-            validationDB.runStatement(ruleStatement)
+                ruleStatement = "INSERT INTO rule (file_column_id, rule_type_id, rule_text_1, description) VALUES ("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+", 5, 0, 'value 1 must be greater than zero'),("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+",3,13,'value 1 may not be 13'),("+str(colIdDict["header_"+str(5)+"_file_type_"+str(3)])+",1,'INT','value 5 must be an integer'),("+str(colIdDict["header_"+str(3)+"_file_type_"+str(3)])+",2,42,'value 3 must be equal to 42 if present'),("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+",4,100,'value 1 must be less than 100')"
+
+                validationDB.runStatement(ruleStatement)
+
             try:
                 firstJob = open(self.LAST_CLEARED_FILE,"r").read()
             except:
@@ -185,6 +187,11 @@ class JobTests(unittest.TestCase):
             # Read job ID dict from file
             self.jobIdDict = json.loads(open(self.JOB_ID_FILE,"r").read())
 
+    @staticmethod
+    def createJobStatement(status, type, submission, s3Filename, fileType):
+        """ Build SQL statement to create a job  """
+        return "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + status + "," + type + "," + submission + ", '" + s3Filename + "',"+ fileType +") RETURNING job_id"
+
     def setup(self):
         self.passed = False
 
@@ -198,6 +205,10 @@ class JobTests(unittest.TestCase):
     @staticmethod
     def uploadFile(filename, user):
         """ Upload file to S3 and return S3 filename"""
+        if(len(filename.strip())==0):
+            # Empty filename, just return empty
+            return ""
+
         # Get bucket name
         bucketName = s3UrlHandler.getBucketNameFromConfig()
 
@@ -220,6 +231,7 @@ class JobTests(unittest.TestCase):
     def test_valid_job(self):
         """ Test valid job """
         jobId = self.jobIdDict["valid"]
+        print("valid job ID is " + str(jobId))
         self.response = self.validateJob(jobId)
 
 
@@ -335,7 +347,6 @@ class JobTests(unittest.TestCase):
         # Check that job is correctly marked as finished
         if not JobTests.USE_THREADS:
             assert(self.response.json()["message"] == "CSV file must have a header")
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == False)
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName) == False)
         assert(self.stagingDb.countRows(tableName) == 0)
@@ -356,7 +367,6 @@ class JobTests(unittest.TestCase):
             assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == False)
 
         if not JobTests.USE_THREADS:
             assert(self.response.json()["message"] == "Header : header_5 is required")
@@ -380,7 +390,6 @@ class JobTests(unittest.TestCase):
         self.waitOnJob(self.jobTracker, jobId, "invalid")
         self.assertHeader(self.response)
         # Check that job is correctly marked as finished
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == False)
 
         if not JobTests.USE_THREADS:
             assert(self.response.json()["message"] == "Header : walrus not in CSV schema")
@@ -440,8 +449,6 @@ class JobTests(unittest.TestCase):
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         assert(self.response.json()["message"] == "Job ID not found in job_status table")
-        assert(self.jobTracker.getReportPath(jobId) == False)
-
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName) == False)
         assert(self.stagingDb.countRows(tableName) == 0)
@@ -475,7 +482,6 @@ class JobTests(unittest.TestCase):
         assert(self.response.status_code == 400)
         self.assertHeader(self.response)
         assert(self.response.json()["message"] == "Prerequisites incomplete, job cannot be started")
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == False)
 
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName) == False)
@@ -495,7 +501,6 @@ class JobTests(unittest.TestCase):
 
         self.assertHeader(self.response)
         assert(self.response.json()["message"] == "Wrong type of job for this service")
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == False)
 
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName) == False)
@@ -513,7 +518,6 @@ class JobTests(unittest.TestCase):
         # assert(self.response.status_code == 400)
         # self.assertHeader(self.response)
         # assert(self.response.json()["message"] == "Job is not ready")
-        # assert(s3UrlHandler.getFileSize(self.jobTracker.getReportPath(jobId)) == False)
 
         # tableName = self.response.json()["table"]
         # assert(self.stagingDb.tableExists(tableName) == False)

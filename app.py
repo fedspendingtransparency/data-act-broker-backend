@@ -130,4 +130,4 @@ def validate():
         return JsonResponse.error(exc,exc.status,{"table":""})
 
 if __name__ == '__main__':
-    app.run(debug=debugFlag,threaded=True,host="0.0.0.0")
+    app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port=80)
