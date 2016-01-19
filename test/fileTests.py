@@ -236,7 +236,6 @@ class FileTests(BaseTest):
         utils = TestUtils()
         utils.login()
         response = utils.postRequest("/v1/error_metrics/",'{"submission_id": '+str(submissionId)+ '}')
-        print response.json()
         assert(response.status_code == 200)
         if(exists) :
             assert(len(response.json()[type_file]) > 0)

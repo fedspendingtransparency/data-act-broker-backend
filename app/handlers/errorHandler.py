@@ -10,7 +10,7 @@ class ErrorHandler(ErrorInterface) :
         queryResult = self.session.query(FileStatus).options(joinedload("status")).filter(FileStatus.job_id == jobId).all()
         if(self.checkUnique(queryResult,"","")) :
             if(not queryResult[0].status.status_id == Status.getStatus("complete")) :
-                return ["File Level Error",str(queryResult[0].status.description),1]
+                return [["File Level Error",str(queryResult[0].status.description),1]]
 
         queryResult = self.session.query(ErrorData).options(joinedload("error_type")).filter(ErrorData.job_id == jobId).all()
         for result in queryResult:
