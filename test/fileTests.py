@@ -126,8 +126,6 @@ class FileTests(BaseTest):
             # Check that validation job has been set to finished
             validationIdList = self.jobTracker.getDependentJobs(responseDict["appropriations_id"])
             assert(len(validationIdList) == 1)
-            print("validation job ID is " + str(validationIdList[0]))
-            print("validation job status is " + str(self.jobTracker.getJobStatus(validationIdList[0])))
             self.waitOnJob(self.jobTracker,validationIdList[0],"finished")
 
             #self.check_validator(responseDict["appropriations_id"])
@@ -227,7 +225,7 @@ class FileTests(BaseTest):
 
         self.setupJobsForReports()
         response = utils.postRequest("/v1/submission_error_reports/",'{"submission_id":11}')
-        clearJobs()  # Clear job DB again so sequence errors don't occur
+        #clearJobs()  # Clear job DB again so sequence errors don't occur
         assert(response.status_code == 200)
         assert(len(response.json()) == 4)
 
@@ -291,7 +289,7 @@ class FileTests(BaseTest):
 
     def setupJobsForReports(self):
         """ Setting Jobs table to correct state for checking error reports from validator unit tests """
-        clearJobs()
+        #clearJobs()
         self.tablesCleared = False
         sqlStatements = [
             "INSERT INTO submission (submission_id,datetime_utc) VALUES (11,0)",
