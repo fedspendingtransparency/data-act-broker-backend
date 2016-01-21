@@ -96,11 +96,9 @@ class s3UrlHandler:
         """
         stsConnection = boto.connect_sts()
         role = stsConnection.assume_role(s3UrlHandler.S3_ROLE,"FileUpload"+str(user),duration_seconds=s3UrlHandler.STS_LIFETIME)
-        credentials ={}
-        credentials["AccessKeyId"] =  role.credentials.access_key
-        credentials["SecretAccessKey"] = role.credentials.secret_key
-        credentials["SessionToken"] = role.credentials.session_token
-        return credentials
+        
+
+        return role.credentials
 
     @staticmethod
     def getFileSize(filename):
