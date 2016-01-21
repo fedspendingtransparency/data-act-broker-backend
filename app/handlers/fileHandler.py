@@ -38,14 +38,14 @@ class FileHandler:
         Gets the Signed URLs for download based on the submissionId
         """
         try :
-            self.s3manager = s3UrlHandler(s3UrlHandler.getBucketNameFromConfig())
+            self.s3manager = s3UrlHandler(s3UrlHandler.getValueFromConfig("bucket"))
             safeDictionary = RequestDictionary(self.request)
             submissionId = safeDictionary.getValue("submission_id")
             responseDict ={}
             jobTracker = InterfaceHolder.JOB_TRACKER
             for jobId in jobTracker.getJobsBySubmission(submissionId):
-                responseDict["job_"+str(jobId)+"_error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(jobId),"GET")
-
+                if(self.jobManager.getJobType(currentId) == "csv_record_validation"):
+                    responseDict["job_"+str(jobId)+"_error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(jobId),"GET")
             return JsonResponse.create(StatusCode.OK,responseDict)
         except ResponseException as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
@@ -85,21 +85,23 @@ class FileHandler:
         """
         try:
             responseDict= {}
-            self.s3manager = s3UrlHandler(s3UrlHandler.getBucketNameFromConfig())
+            self.s3manager = s3UrlHandler(s3UrlHandler.getValueFromConfig("bucket"))
             jobManager = InterfaceHolder.JOB_TRACKER
             fileNameMap = []
             safeDictionary = RequestDictionary(self.request)
             for fileName in FileHandler.FILE_TYPES :
                 if( safeDictionary.exists(fileName)) :
-                    responseDict[fileName+"_url"] = self.s3manager.getSignedUrl(str(name),safeDictionary.getValue(fileName))
-                    fileNameMap.append((fileName,str(name)+"/"+self.s3manager.s3FileName))
+                    uploadName =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(safeDictionary.getValue(fileName))
+                    responseDict[fileName+"_key"] = uploadName
+                    fileNameMap.append((fileName,uploadName))
 
             fileJobDict = jobManager.createJobs(fileNameMap)
             for fileName in fileJobDict.keys():
                 if (not "submission_id" in fileName) :
                     responseDict[fileName+"_id"] = fileJobDict[fileName]
-
+            responseDict["credentials"]  = self.s3manager.getTemporaryCredentials(name)
             responseDict["submission_id"] = fileJobDict["submission_id"]
+            responseDict["bucket_name"] =s3UrlHandler.getValueFromConfig("bucket")
             return JsonResponse.create(StatusCode.OK,responseDict)
         except (ValueError , TypeError, NotImplementedError) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
@@ -192,10 +194,11 @@ class FileHandler:
             submission_id =  safeDictionary.getValue("submission_id")
             jobIds = self.jobManager.getJobsBySubmission(submission_id)
             for currentId in jobIds :
-                fileName = self.jobManager.getFileType(currentId)
-                errorHandler = InterfaceHolder.ERROR
-                dataList = errorHandler.getErrorMetericsByJobId(currentId)
-                returnDict[fileName]  = dataList
+                if(self.jobManager.getJobType(currentId) == "csv_record_validation"):
+                    fileName = self.jobManager.getFileType(currentId)
+                    errorHandler = InterfaceHolder.ERROR
+                    dataList = errorHandler.getErrorMetericsByJobId(currentId)
+                    returnDict[fileName]  = dataList
             return JsonResponse.create(StatusCode.OK,returnDict)
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)

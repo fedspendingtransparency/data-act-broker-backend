@@ -62,4 +62,4 @@ add_file_routes(app)
 
 if __name__ == '__main__':
     SessionTable.setup(app, runLocal, createTable)
-    app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port=80)
+    app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port= config["Port"])
