@@ -93,7 +93,7 @@ class AppropTests(unittest.TestCase):
         JobTests.assertHeader(self.response)
         # Check that job is correctly marked as finished
         assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 37)
+        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 52)
 
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName) == True)
@@ -120,7 +120,7 @@ class AppropTests(unittest.TestCase):
         JobTests.assertHeader(self.response)
         # Check that job is correctly marked as finished
         assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 2617)
+        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 2988)
 
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName) == True)

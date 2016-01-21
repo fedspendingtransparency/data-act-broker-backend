@@ -16,13 +16,13 @@ class Validator(object):
         rules -- list of rule Objects
         csvSchema -- dict of schema for the current file.
         Returns:
-        True if validation passed, False if failed, and list of failed rules, each with field and description of failure
+        True if validation passed, False if failed, and list of failed rules, each with field, description of failure, and value that failed
         """
         recordFailed = False
         failedRules = []
         for fieldName in csvSchema :
             if(csvSchema[fieldName].required and  not fieldName in record ):
-                return False, [[fieldName, ValidationError.requiredError]]
+                return False, [[fieldName, ValidationError.requiredError, ""]]
 
         for fieldName in record :
 
@@ -34,14 +34,14 @@ class Validator(object):
             if(len(currentData) == 0):
                 if(currentSchema.required ):
                     # If empty and required return field name and error
-                    return False, [[fieldName, ValidationError.requiredError]]
+                    return False, [[fieldName, ValidationError.requiredError, ""]]
                 else:
                     #if field is empty and not required its valid
                     continue
             # Always check the type in the schema
             if(not Validator.checkType(currentData,currentSchema.field_type.name) ) :
                 recordFailed = True
-                failedRules.append([fieldName, ValidationError.typeError])
+                failedRules.append([fieldName, ValidationError.typeError, currentData])
                 # Don't check value rules if type failed
                 continue
 
@@ -52,7 +52,7 @@ class Validator(object):
                     if(not Validator.checkType(currentData,currentRule.rule_text_1) ) :
                         recordFailed = True
                         typeFailed = True
-                        failedRules.append([fieldName, ValidationError.typeError])
+                        failedRules.append([fieldName, ValidationError.typeError, currentData])
             if(typeFailed):
                 # If type failed, don't do value checks
                 continue
@@ -60,7 +60,7 @@ class Validator(object):
             for currentRule in ruleSubset :
                 if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name)):
                     recordFailed = True
-                    failedRules.append([fieldName, "Failed rule: " + str(currentRule.description)])
+                    failedRules.append([fieldName, "Failed rule: " + str(currentRule.description), currentData])
         return (not recordFailed), failedRules
 
     @staticmethod

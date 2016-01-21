@@ -17,7 +17,7 @@ class ValidationManager:
     Outer level class, called by flask route
 
     """
-    reportHeaders = ["Field name", "Error message", "Row number"]
+    reportHeaders = ["Field name", "Error message", "Row number", "Value provided"]
 
     def __init__(self):
         # Initialize instance variables
@@ -137,7 +137,7 @@ class ValidationManager:
                 except ResponseException as e:
                     if(not (reader.isFinished and reader.extraLine) ) :
                         #Last line may be blank dont throw an error
-                        writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber)])
+                        writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber), ""])
                         errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
                     continue
                 valid, failures = Validator.validate(record,rules,csvSchema)
@@ -146,7 +146,7 @@ class ValidationManager:
                         tableObject.insert(record)
                     except ResponseException as e:
                         # Write failed, move to next record
-                        writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber)])
+                        writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber),""])
                         errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.writeError,rowNumber)
                         continue
 
@@ -155,6 +155,7 @@ class ValidationManager:
                     for failure in failures:
                         fieldName = failure[0]
                         error = failure[1]
+                        failedValue = failure[2]
                         try:
                             # If error is an int, it's one of our prestored messages
                             errorType = int(error)
@@ -162,7 +163,7 @@ class ValidationManager:
                         except ValueError:
                             # If not, treat it literally
                             errorMsg = error
-                        writer.write([fieldName,errorMsg,str(rowNumber)])
+                        writer.write([fieldName,errorMsg,str(rowNumber),failedValue])
                         errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber)
         # Write leftover records
         tableObject.endBatch()

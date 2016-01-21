@@ -43,3 +43,6 @@ def setupValidationDB( hardReset = False):
 
 if __name__ == '__main__':
     setupValidationDB(False)
+
+# "CREATE SEQUENCE multiFieldRuleIdSerial START 1;",
+#        "CREATE TABLE multi_field_rule (rule_id integer PRIMARY KEY DEFAULT nextval('ruleIdSerial'), file_column_id integer REFERENCES file_columns, rule_type_id integer REFERENCES rule_type,rule_text_1 text,rule_text_2 text,description text);",

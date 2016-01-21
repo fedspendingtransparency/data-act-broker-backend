@@ -238,30 +238,30 @@ class JobTests(unittest.TestCase):
     def test_valid_job(self):
         """ Test valid job """
         jobId = self.jobIdDict["valid"]
-        self.run_test(jobId,200,"finished",37,1,"complete",0)
+        self.run_test(jobId,200,"finished",52,1,"complete",0)
 
     def test_rules(self):
         """ Test rules, should have one type failure and two value failures """
         jobId = self.jobIdDict["rules"]
-        self.run_test(jobId,200,"finished",315,1,"complete",5)
+        self.run_test(jobId,200,"finished",350,1,"complete",5)
 
     def test_bad_values_job(self):
         # Test job with bad values
         jobId = self.jobIdDict["bad_values"]
-        self.run_test(jobId,200,"finished",5413,0,"complete",92)
+        self.run_test(jobId,200,"finished",5574,0,"complete",92)
 
     def test_many_bad_values_job(self):
         # Test job with many bad values
         if self.INCLUDE_LONG_TESTS:
             jobId = self.jobIdDict["many_bad"]
-            self.run_test(jobId,200,"finished",133820283,0,"complete",2302930)
+            self.run_test(jobId,200,"finished",151665643,0,"complete",2302930)
         else:
             self.passed = True
 
     def test_mixed_job(self):
         """ Test mixed job """
         jobId = self.jobIdDict["mixed"]
-        self.run_test(jobId,200,"finished",83,3,"complete",1)
+        self.run_test(jobId,200,"finished",99,3,"complete",1)
 
     def test_empty(self):
         """ Test empty file """
@@ -305,7 +305,7 @@ class JobTests(unittest.TestCase):
         if self.INCLUDE_LONG_TESTS:
             # Don't do this test when skipping long tests
             jobId = self.jobIdDict["many"]
-            self.run_test(jobId,200,"finished",37,22380,"complete",0)
+            self.run_test(jobId,200,"finished",52,22380,"complete",0)
         else:
             self.passed = True
 
@@ -313,7 +313,7 @@ class JobTests(unittest.TestCase):
     def test_odd_characters(self):
         """ Test potentially problematic characters """
         jobId = self.jobIdDict["odd_characters"]
-        self.run_test(jobId,200,"finished",136,5,"complete",2)
+        self.run_test(jobId,200,"finished",165,5,"complete",2)
 
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """
@@ -323,7 +323,7 @@ class JobTests(unittest.TestCase):
     def test_prereq_job(self):
         """ Test job with prerequisites finished """
         jobId = self.jobIdDict["valid_prereq"]
-        self.run_test(jobId,200,"finished",37,4,"complete",0)
+        self.run_test(jobId,200,"finished",52,4,"complete",0)
 
     def test_bad_prereq_job(self):
         """ Test job with unfinished prerequisites """
