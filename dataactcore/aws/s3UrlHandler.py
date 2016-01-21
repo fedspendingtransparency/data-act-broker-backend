@@ -68,22 +68,15 @@ class s3UrlHandler:
         Gets a Timestamped file name to prevent conflicts on S3 Uploading
         """
         seconds = int((datetime.utcnow()-datetime(1970,1,1)).total_seconds())
-        return str(seconds)+"_"+fileName
+        return str(seconds)+"_"+filename
 
     @staticmethod
-    def gettValueFromConfig(value):
+    def getValueFromConfig(value):
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         bucketFile = open(path+"/s3bucket.json","r").read()
         bucketDict = json.loads(bucketFile)
         return bucketDict[value]
 
-
-    @staticmethod
-    def getS3RolefromConfig():
-        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        bucketFile = open(path+"/s3bucket.json","r").read()
-        bucketDict = json.loads(bucketFile)
-        return bucketDict["bucket"]
 
     @staticmethod
     def doesFileExist(filename):
@@ -102,11 +95,11 @@ class s3UrlHandler:
         Gets token that allows for S3 Uploads for seconds set in STS_LIFETIME
         """
         stsConnection = boto.connect_sts()
-        role = stsConnection.assume_role(s3UrlHandler.S3_ROLE,"FileUpload"+str(user) duration_seconds=s3UrlHandler.STS_LIFETIME)
+        role = stsConnection.assume_role(s3UrlHandler.S3_ROLE,"FileUpload"+str(user),duration_seconds=s3UrlHandler.STS_LIFETIME)
         credentials ={}
-        credentials["AccessKeyId"] =  role.access_key
-        credentials["SecretAccessKey"] = role.secret_key
-        credentials["SessionToken"] = role.session_token
+        credentials["AccessKeyId"] =  role.credentials.access_key
+        credentials["SecretAccessKey"] = role.credentials.secret_key
+        credentials["SessionToken"] = role.credentials.session_token
         return credentials
 
     @staticmethod
