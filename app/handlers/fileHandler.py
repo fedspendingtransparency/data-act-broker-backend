@@ -70,7 +70,7 @@ class FileHandler:
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
     # Submit set of files
-    def submit(self,name):
+    def submit(self,name,CreateCredentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
 
         Flask request should include keys from FILE_TYPES class variable above
@@ -99,7 +99,11 @@ class FileHandler:
             for fileName in fileJobDict.keys():
                 if (not "submission_id" in fileName) :
                     responseDict[fileName+"_id"] = fileJobDict[fileName]
-            responseDict["credentials"]  = self.s3manager.getTemporaryCredentials(name)
+            if(CreateCredentials) :
+                responseDict["credentials"] = self.s3manager.getTemporaryCredentials(name)
+            else :
+                responseDict["credentials"] ={"AccessKeyId" : "local","SecretAccessKey" :"local","SessionToken":"local" ,"Expiration" :"local"}
+
             responseDict["submission_id"] = fileJobDict["submission_id"]
             responseDict["bucket_name"] =s3UrlHandler.getValueFromConfig("bucket")
             return JsonResponse.create(StatusCode.OK,responseDict)

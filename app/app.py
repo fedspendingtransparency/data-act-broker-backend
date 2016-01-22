@@ -26,6 +26,7 @@ debugFlag = config["ServerDebug"]  # Should be false for prod
 runLocal = config["LocalDynamo"]  # False for prod, when True this assumes that the Dynamo is on the same server
 createTable = config["CreateDynamo"]  # Should be false for most runs, true for first run with DynamoDB
 JsonResponse.debugMode = config["JSONDebug"]
+ #Allows for real Credentials to be created for S3 uploads
 # Get the project's root folder
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 
@@ -40,16 +41,6 @@ else :
 app.session_interface = DynamoInterface()
 
 
-def getAppConfig() :
-    path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-    lastBackSlash = path.rfind("\\",0,-1)
-    lastForwardSlash = path.rfind("/",0,-1)
-    lastSlash = max([lastBackSlash,lastForwardSlash])
-    configFile = path[0:lastSlash] + "/" + ManagerProxy.MANAGER_FILE
-    return json.loads(open(configFile,"r").read())
-
-
-
 # Root will point to index.html
 @app.route("/", methods=["GET"])
 def root():
@@ -58,7 +49,7 @@ def root():
 
 # Add routes for modules here
 add_login_routes(app)
-add_file_routes(app)
+add_file_routes(app,config["CreateCredentials"])
 
 if __name__ == '__main__':
     SessionTable.setup(app, runLocal, createTable)

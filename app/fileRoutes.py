@@ -6,18 +6,20 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.jsonResponse import JsonResponse
 
+
 # Add the file submission route
-def add_file_routes(app):
+def add_file_routes(app,CreateCredentials):
     """ Create routes related to file submission for flask app
 
     """
+    CREATE_CREDENTIALS = CreateCredentials
     # Keys for the post route will correspond to the four types of files
     @app.route("/v1/submit_files/", methods = ["POST"])
     @permissions_check
     def submit_files():
         try:
             fileManager = FileHandler(request)
-            return fileManager.submit(LoginSession.getName(session))
+            return fileManager.submit(LoginSession.getName(session),CREATE_CREDENTIALS)
         except Exception as e:
             exc = ResponseException(e.message)
             exc.wrappedException = e

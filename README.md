@@ -9,7 +9,7 @@ In general, status codes returned are as follows:
 This route confirms that the broker is running
 
 Example input: None  
-Example output: "Broker is running" 
+Example output: "Broker is running"
 
 #### POST "/v1/login/"
 This route checks the username and password against a credentials file.  Accepts input as json or form-urlencoded, with keys "username" and "password".  
@@ -30,22 +30,42 @@ Example input: None
 Example output: {"status": "True"}
 
 #### POST "/v1/submit_files/"
-This route is used to retrieve S3 URLs to upload files to.  Data should be either JSON or form-urlencoded with keys: ["appropriations","award_financial","award","procurement"] each with a filename as a value.  
-Route will add jobs to the job tracker DB and generate signed S3 URLs for uploading.  Each key put in comes back with key_url containing the S3 URL and key_id containing the job id.  When upload is complete, the finalize_submission route should be called with the job id.
+This route is used to retrieve S3 URLs to upload files.  Data should be either JSON or form-urlencoded with keys: ["appropriations","award_financial","award","procurement"] each with a filename as a value.  
+The Route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key_id containing the job id. A returning submission_id will also exist which acts as identifier for the submission.
 
-Example input: 
+A credentials object is also part of the returning request. This object provides temporarily access to upload S3 Files using an AWS SDK. It contains the following :SecretAccessKey , SessionToken, Expiration, and AccessKeyId.
+It is important to note that the role used to create the credentials should be limited to just S3 access.
+
+When upload is complete, the finalize_submission route should be called with the job id.
+
+Example input:
 {"appropriations":"appropriations.csv","award_financial":"award_financial.csv","award":"award.csv","procurement":"procurement.csv}  
 Example output:  
 {
-  "submission_id": 1610,
-  "procurement_url": "https...",
-  "procurement_id": 3011,
-  "appropriations_url": "https...",
-  "award_url": "https...",
-  "appropriations_id": 3005,
-  "award_financial_id": 3007,
-  "award_financial_url": "https...",
-  "award_id": 3009
+  "submission_id": 12345,
+
+  "bucket_name": "S3-bucket",
+
+  "award_id": 100,
+  "award_key": "2/1453474323_awards.csv",
+
+  "appropriations_id": 101,
+  "appropriations_key": "2/1453474324_appropriations.csv"
+
+
+  "award_financial_id": 102,
+  "award_financial_key": "2/1453474327_award_financial.csv",
+
+  "procurement_id": 103,
+  "procurement_key": "2/1453474333_procurement.csv"
+
+  "credentials": {
+    "SecretAccessKey": "ABCDEFG",
+    "SessionToken": "ABCDEFG",
+    "Expiration": "2016-01-22T15:25:23Z",
+    "AccessKeyId": "ABCDEFG"
+  },
+
 }
 
 #### POST "/v1/finalize_job/"

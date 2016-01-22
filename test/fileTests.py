@@ -19,7 +19,7 @@ class FileTests(BaseTest):
     """ Test file submission routes """
     fileResponse = None
     CHECK_ERROR_REPORTS = False
-    CHECK_VALIDATOR = True
+    CHECK_VALIDATOR = False
     JOB_ID_FILE = "jobId.json"
     SUBMISSION_ID_FILE = "submissionId"
     TABLES_CLEARED_FILE = "tablesCleared" # Holds a boolean flag in a file so it can be checked before doing table setup
@@ -90,26 +90,23 @@ class FileTests(BaseTest):
     def test_file_submission(self):
         open(FileHandler.VALIDATOR_RESPONSE_FILE,"w").write(str(-1))
         self.call_file_submission()
-
         # Test that status is 200
         assert(self.fileResponse.status_code==200)
         # Test Content-Type header
         assert("Content-Type" in self.fileResponse.headers)
         assert(self.fileResponse.headers["Content-Type"]=="application/json")
         # Test message parts for urls
-        assert("_test1.csv" in self.fileResponse.json()["appropriations_url"] )
-        assert("_test2.csv" in self.fileResponse.json()["award_financial_url"])
-        assert("_test3.csv" in self.fileResponse.json()["award_url"])
-        assert("_test4.csv" in self.fileResponse.json()["procurement_url"])
-        assert("?Signature" in self.fileResponse.json()["appropriations_url"] )
-        assert("?Signature" in self.fileResponse.json()["award_financial_url"])
-        assert("?Signature" in self.fileResponse.json()["award_url"])
-        assert("?Signature" in self.fileResponse.json()["procurement_url"])
-        assert("&AWSAccessKeyId" in self.fileResponse.json()["appropriations_url"] )
-        assert("&AWSAccessKeyId" in self.fileResponse.json()["award_financial_url"])
-        assert("&AWSAccessKeyId" in self.fileResponse.json()["award_url"])
-        assert("&AWSAccessKeyId" in self.fileResponse.json()["procurement_url"])
-        self.uploadFileSigned(self.fileResponse.json()["appropriations_url"],"test1.csv")
+        assert("_test1.csv" in self.fileResponse.json()["appropriations_key"] )
+        assert("_test2.csv" in self.fileResponse.json()["award_financial_key"])
+        assert("_test3.csv" in self.fileResponse.json()["award_key"])
+        assert("_test4.csv" in self.fileResponse.json()["procurement_key"])
+
+        for requiredField in ["AccessKeyId","SecretAccessKey","SessionToken","SessionToken"] :
+            assert(len(self.fileResponse.json()["credentials"][requiredField]) > 0)
+
+        assert(len(self.fileResponse.json()["bucket_name"]) > 0)
+
+        self.uploadFileByURL("/"+self.fileResponse.json()["appropriations_key"],"test1.csv")
         # Test that job ids are returned
         responseDict = self.fileResponse.json()
         idKeys = ["procurement_id", "award_id", "award_financial_id", "appropriations_id"]
@@ -121,14 +118,13 @@ class FileTests(BaseTest):
                 self.fail("One of the job ids returned was not an integer")
             # Call upload complete route for each id
         self.check_upload_complete(responseDict["appropriations_id"])
-        #self.check_error_route (responseDict["procurement_id"],responseDict["submission_id"])
+
         if(self.CHECK_VALIDATOR):
             # Check that validation job has been set to finished
             validationIdList = self.jobTracker.getDependentJobs(responseDict["appropriations_id"])
             assert(len(validationIdList) == 1)
             self.waitOnJob(self.jobTracker,validationIdList[0],"finished")
 
-            #self.check_validator(responseDict["appropriations_id"])
 
     @staticmethod
     def waitOnJob(jobTracker, jobId, status):
@@ -169,7 +165,6 @@ class FileTests(BaseTest):
         jobJson = json.dumps({"upload_id":jobId})
         self.utils.login()
         finalizeResponse = self.utils.postRequest("/v1/finalize_job/",jobJson)
-
         assert(finalizeResponse.status_code == 200)
 
     def check_validator(self, jobId):
@@ -184,19 +179,32 @@ class FileTests(BaseTest):
 
         assert(self.response.status_code == 400)
 
+
+
     @staticmethod
-    def uploadFileSigned(s3Url, filename):
-        """ Upload file to signed S3 URL and return True if successful"""
-        utils = TestUtils()
-        response = utils.postRequest(s3Url,open(filename,"r").read(),{"Content-Type":"application/octet-stream"},True,"PUT")
-        assert(response.status_code == 200)
-        return True
+    def uploadFileByURL(s3FileName,filename):
+        """ Upload file to S3 and return S3 filename"""
+        # Get bucket name
+        bucketName = s3UrlHandler.getValueFromConfig("bucket")
+
+        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        fullPath = path + "/" + filename
+
+        # Use boto to put files on S3
+        s3conn = S3Connection()
+        key = Key(s3conn.get_bucket(bucketName))
+        key.key = s3FileName
+        bytesWritten = key.set_contents_from_filename(fullPath)
+
+        assert(bytesWritten > 0)
+        return s3FileName
+
 
     @staticmethod
     def uploadFile(filename, user, s3FileName = None):
         """ Upload file to S3 and return S3 filename"""
         # Get bucket name
-        bucketName = s3UrlHandler.getBucketNameFromConfig()
+        bucketName =  s3UrlHandler.getValueFromConfig("bucket")
 
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         fullPath = path + "/" + filename
