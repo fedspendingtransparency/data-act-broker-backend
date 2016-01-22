@@ -1,5 +1,6 @@
 import re
 from validation_handlers.validationError import ValidationError
+from interfaces.interfaceHolder import InterfaceHolder
 
 class Validator(object):
     """
@@ -9,7 +10,7 @@ class Validator(object):
     IS_DECIMAL  = re.compile(r"^[-]?((\d+(\.\d*)?)|(\.\d+))$")
 
     @staticmethod
-    def validate(record,rules,csvSchema):
+    def validate(record,rules,csvSchema,fileType):
         """
         Args:
         record -- dict represenation of a single record of data
@@ -61,6 +62,12 @@ class Validator(object):
                 if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name)):
                     recordFailed = True
                     failedRules.append([fieldName, "Failed rule: " + str(currentRule.description), currentData])
+        # Check all multi field rules for this file type
+        validationDb = InterfaceHolder.VALIDATION
+        multiFieldRules = validationDb.getMultiFieldRulesByFile(fileType)
+        for rule in multiFieldRules:
+            if not Validator.evaluateMultiFieldRules(rule,record):
+                failedRules.append(["MultiField", "Failed rule: " + str(rule.description), "MultiData"])
         return (not recordFailed), failedRules
 
     @staticmethod
@@ -118,4 +125,18 @@ class Validator(object):
         elif(currentRuleType == "TYPE"):
             # Type checks happen earlier, but type rule is still included in rule set, so skip it
             return True
+        elif(currentRuleType == "IN_SET"):
+            setList = value1.split(",")
+            for i in range(0,len(setList)):
+                setList[i] = setList[i].trim()
+            return (data in setList)
         raise ValueError("Rule Type Invalid")
+
+    @staticmethod
+    def evaluateMultiFieldRule(rule, record):
+        ruleType = rule.multi_field_rule_type.name.upper()
+        if(ruleType == "CAR_MATCH"):
+            # Look for an entry in car table that matches all fields
+            fieldsToCheck = rule.rule_text_1.split(",")
+            for i in range(0,len(fieldsToCheck)):
+                fieldsToCheck[i] = fieldsToCheck[i].trim()

@@ -1,6 +1,6 @@
 from dataactcore.models import validationInterface
 from sqlalchemy.orm import subqueryload
-from dataactcore.models.validationModels import Rule, RuleType, FileColumn, FileType ,FieldType
+from dataactcore.models.validationModels import Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType
 
 class ValidationInterface(validationInterface.ValidationInterface) :
     """ Manages all interaction with the validation database
@@ -159,3 +159,39 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         newRule = Rule(file_column_id = columnId, rule_type_id = RuleType.getType(ruleTypeText), rule_text_1 = ruleText, description = description)
         self.session.add(newRule)
         self.session.commit()
+        return True
+
+    def addMultiFieldRule(self,fileId, ruleTypeText, ruleTextOne, ruleTextTwo, description):
+        """
+
+        Args:
+            fileId:  Which file this rule applies to
+            ruleTypeText: type for this rule
+            ruleTextOne: definition of rule
+            ruleTextTwo: definition of rule
+            description: readable explanation of rule
+
+        Returns:
+            True if successful
+        """
+        newRule = MultiFieldRule(file_id = fileId, multi_field_rule_type_id = MultiFieldRuleType.getType(ruleTypeText), rule_text_1 = ruleTextOne, rule_text_2 = ruleTextTwo, description = description)
+        self.session.add(newRule)
+        self.session.commit()
+        return True
+
+    def getMultiFieldRulesByFile(self, fileType):
+        """
+
+        Args:
+            fileType:  Which type of file to get rules for
+
+        Returns:
+            list of MultiFieldRule objects
+        """
+        fileId = self.getFileId(fileType)
+        return self.session.query(MultiFieldRule).filter(MultiFieldRule.file_id == fileId).all()
+
+    def getColumnId(self, fieldName, fileId):
+        column = self.session.query(FileColumn).filter(FileColumn.name == fieldName.lower()).filter(FileColumn.file_id == fileId).all()
+        self.checkUnique(column,"No field found with that name for that file type", "Multiple fields with that name for that file type")
+        return column[0].file_column_id

@@ -140,7 +140,7 @@ class ValidationManager:
                         writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber), ""])
                         errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
                     continue
-                valid, failures = Validator.validate(record,rules,csvSchema)
+                valid, failures = Validator.validate(record,rules,csvSchema,fileType)
                 if(valid) :
                     try: 
                         tableObject.insert(record)

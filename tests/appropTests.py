@@ -19,6 +19,10 @@ class AppropTests(unittest.TestCase):
     def __init__(self, methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(AppropTests, self).__init__(methodName=methodName)
+
+         # Load fields and rules
+        import scripts.loadApprop
+
         self.jobTracker = InterfaceHolder.JOB_TRACKER
 
         if not self.TABLE_POPULATED:

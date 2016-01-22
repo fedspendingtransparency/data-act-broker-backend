@@ -41,7 +41,31 @@ class SchemaLoader(object):
 
     @staticmethod
     def checkRecord (record, fields) :
-        for data in fields :
+        """ Returns True if all elements of fields are present in record """
+        for data in fields:
             if ( not data in record ):
                 return False
         return True
+
+    @staticmethod
+    def loadRules(fileTypeName, filename):
+        """ Populate rule and multi_field_rule tables from rule rile
+
+        Args:
+            filename: File with rule specifications
+        """
+        validationDb = ValidationInterface()
+        fileId = validationDb.getFileId(fileTypeName)
+        ruleFile = open(filename)
+        reader = csv.DictReader(ruleFile)
+
+        for record in reader:
+            print(str(record))
+            if(record["is_single_field"].lower() == "true"):
+                # Find column ID based on field name
+                columnId = validationDb.getColumnId(record["field_name"],fileId)
+                # Write to rule table
+                validationDb.addRule(columnId,record["rule_type"],record["rule_text_one"],record["description"])
+            else:
+                # Write to multi_field_rule table
+                validationDb.addMultiFieldRule(fileId,record["rule_type"],record["rule_text_one"],record["rule_text_two"],record["description"])
