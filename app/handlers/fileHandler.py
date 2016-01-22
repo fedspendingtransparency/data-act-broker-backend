@@ -44,7 +44,7 @@ class FileHandler:
             responseDict ={}
             jobTracker = InterfaceHolder.JOB_TRACKER
             for jobId in jobTracker.getJobsBySubmission(submissionId):
-                if(self.jobManager.getJobType(currentId) == "csv_record_validation"):
+                if(self.jobManager.getJobType(jobId) == "csv_record_validation"):
                     responseDict["job_"+str(jobId)+"_error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(jobId),"GET")
             return JsonResponse.create(StatusCode.OK,responseDict)
         except ResponseException as e:
