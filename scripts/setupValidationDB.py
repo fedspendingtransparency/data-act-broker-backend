@@ -12,6 +12,7 @@ def setupValidationDB( hardReset = False):
         "DROP TABLE IF EXISTS multi_field_rule_type",
         "DROP TABLE IF EXISTS rule_type",
         "DROP TABLE IF EXISTS file_type",
+        "DROP TABLE IF EXISTS tas_lookup",
         "DROP SEQUENCE IF EXISTS fileIdSerial",
         "DROP SEQUENCE IF EXISTS ruleTypeSerial",
         "DROP SEQUENCE IF EXISTS multiFieldRuleTypeSerial",
@@ -19,9 +20,23 @@ def setupValidationDB( hardReset = False):
         "DROP SEQUENCE IF EXISTS fileColumnSerial",
         "DROP SEQUENCE IF EXISTS ruleIdSerial",
         "DROP SEQUENCE IF EXISTS multiFieldRuleIdSerial"
+        "DROP SEQUENCE IF EXISTS tasIdSerial;"
     ]
 
     sql=[
+
+        "CREATE SEQUENCE tasIdSerial START 1;",
+        ("CREATE TABLE TAS_LOOKUP ("
+            "tas_id integer PRIMARY KEY DEFAULT nextval('tasIdSerial'),"
+            "allocation_transfer_agency  text,"
+            "agency_identifier  text,"
+            "beginning_period_of_availability text,"
+            "ending_period_of_availability text,"
+            "availability_type_code text ,"
+            "main_account_code text,"
+            "sub_account_code text "
+        ");"),
+
         "CREATE SEQUENCE fileIdSerial START 1;",
         "CREATE TABLE file_type (file_id integer PRIMARY KEY DEFAULT nextval('fileIdSerial'), name text ,description text)",
 
@@ -54,4 +69,3 @@ def setupValidationDB( hardReset = False):
 
 if __name__ == '__main__':
     setupValidationDB(True)
-
