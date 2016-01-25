@@ -19,6 +19,7 @@ class Validator(object):
         Returns:
         True if validation passed, False if failed, and list of failed rules, each with field, description of failure, and value that failed
         """
+
         recordFailed = False
         failedRules = []
         for fieldName in csvSchema :
@@ -66,7 +67,7 @@ class Validator(object):
         validationDb = InterfaceHolder.VALIDATION
         multiFieldRules = validationDb.getMultiFieldRulesByFile(fileType)
         for rule in multiFieldRules:
-            if not Validator.evaluateMultiFieldRules(rule,record):
+            if not Validator.evaluateMultiFieldRule(rule,record):
                 failedRules.append(["MultiField", "Failed rule: " + str(rule.description), "MultiData"])
         return (not recordFailed), failedRules
 
@@ -128,7 +129,7 @@ class Validator(object):
         elif(currentRuleType == "IN_SET"):
             setList = value1.split(",")
             for i in range(0,len(setList)):
-                setList[i] = setList[i].trim()
+                setList[i] = setList[i].strip()
             return (data in setList)
         raise ValueError("Rule Type Invalid")
 
@@ -139,4 +140,5 @@ class Validator(object):
             # Look for an entry in car table that matches all fields
             fieldsToCheck = rule.rule_text_1.split(",")
             for i in range(0,len(fieldsToCheck)):
-                fieldsToCheck[i] = fieldsToCheck[i].trim()
+                fieldsToCheck[i] = fieldsToCheck[i].strip()
+        return True

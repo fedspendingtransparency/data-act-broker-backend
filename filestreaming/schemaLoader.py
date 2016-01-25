@@ -58,9 +58,7 @@ class SchemaLoader(object):
         fileId = validationDb.getFileId(fileTypeName)
         ruleFile = open(filename)
         reader = csv.DictReader(ruleFile)
-
         for record in reader:
-            print(str(record))
             if(record["is_single_field"].lower() == "true"):
                 # Find column ID based on field name
                 columnId = validationDb.getColumnId(record["field_name"],fileId)

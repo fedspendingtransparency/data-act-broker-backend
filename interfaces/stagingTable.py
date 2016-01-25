@@ -91,12 +91,9 @@ class StagingTable(object):
 
     def endBatch(self):
         """ Called at end of process to send the last batch """
-        print("Called endBatch")
         if not self.BATCH_INSERT:
             # Not batching, just return
             return False
-        print("Batch: " + str(self.batch))
-        print("Batch length: " + str(len(self.batch)))
         if(len(self.batch)>0):
             self.interface.connection.execute(self.orm.__table__.insert(),self.batch)
             self.batch = []
@@ -135,9 +132,6 @@ class StagingTable(object):
                 self.batch.append(record)
                 if(len(self.batch)>self.BATCH_SIZE):
                     # Time to write the batch
-                    print("Connection object:")
-                    print(str(self.interface.connection))
-                    print(str(type(self.interface.connection)))
                     self.interface.connection.execute(self.orm.__table__.insert(),self.batch)
                     # Reset batch
                     self.batch = []

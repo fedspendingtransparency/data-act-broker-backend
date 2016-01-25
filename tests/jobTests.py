@@ -28,7 +28,7 @@ class JobTests(unittest.TestCase):
     DROP_TABLES = False  # If true, staging tables are dropped after tests are run
     USE_THREADS = False
     INCLUDE_LONG_TESTS = False
-    UPLOAD_FILES = False
+    UPLOAD_FILES = True
     CREATE_VALIDATION_RULES = True
     JOB_ID_FILE = "jobId.json"
     LAST_CLEARED_FILE = "lastClearedId"
@@ -193,7 +193,7 @@ class JobTests(unittest.TestCase):
             return ""
 
         # Get bucket name
-        bucketName = s3UrlHandler.getBucketNameFromConfig()
+        bucketName = s3UrlHandler.getValueFromConfig("bucket")
 
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         fullPath = path + "/" + filename

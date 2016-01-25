@@ -106,7 +106,7 @@ class ValidationManager:
         # Get bucket name and file name
         fileName = jobTracker.getFileName(jobId)
         self.filename = fileName
-        bucketName = s3UrlHandler.getBucketNameFromConfig()
+        bucketName = s3UrlHandler.getValueFromConfig("bucket")
         errorFileName = "errors/"+jobTracker.getReportPath(jobId)
 
         validationDB = InterfaceHolder.VALIDATION

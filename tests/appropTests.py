@@ -20,8 +20,7 @@ class AppropTests(unittest.TestCase):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(AppropTests, self).__init__(methodName=methodName)
 
-         # Load fields and rules
-        import scripts.loadApprop
+
 
         self.jobTracker = InterfaceHolder.JOB_TRACKER
 
@@ -67,7 +66,8 @@ class AppropTests(unittest.TestCase):
             print(self.jobIdDict)
             open(self.JOB_ID_FILE,"w").write(json.dumps(self.jobIdDict))
 
-            SchemaLoader.loadFields("appropriations","appropriationsFields.csv")
+            # Load fields and rules
+            import scripts.loadApprop
 
             # Remove existing tables from staging if they exist
             for jobId in self.jobIdDict.values():
@@ -124,11 +124,11 @@ class AppropTests(unittest.TestCase):
         JobTests.assertHeader(self.response)
         # Check that job is correctly marked as finished
         assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 2988)
+        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 4175)
 
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 15)
+        assert(self.stagingDb.countRows(tableName) == 14)
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 31)
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 44)

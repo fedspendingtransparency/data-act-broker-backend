@@ -102,18 +102,18 @@ class ValidatorTests(unittest.TestCase) :
             "test4" :"1",
             "test5" :"1",
          }
-        assert( Validator.validate(record,[],schema)[0]),"Fields are not correct type"
+        assert( Validator.validate(record,[],schema, None)[0]),"Fields are not correct type"
         record["test5"] = ""
 
 
-        assert( Validator.validate(record,[],schema)[0]),"Blank optional field is vaild"
+        assert( Validator.validate(record,[],schema, None)[0]),"Blank optional field is vaild"
 
         record["test5"] = "s"
-        assert(not Validator.validate(record,[],schema)[0]),"Incorrect Field Type for optional field"
+        assert(not Validator.validate(record,[],schema, None)[0]),"Incorrect Field Type for optional field"
 
         record["test5"] = ""
         record["test3"] = ""
-        assert(not Validator.validate(record,[],schema)[0]),"Incorrect Field Type for field"
+        assert(not Validator.validate(record,[],schema, None)[0]),"Incorrect Field Type for field"
 
     def test_schema_rules(self):
         lessRule = RuleType()
@@ -174,7 +174,7 @@ class ValidatorTests(unittest.TestCase) :
             "test4" :"44",
             "test5" :"1",
         }
-        assert( Validator.validate(record,rules,schema)[0]),"Values do not match rules"
+        assert( Validator.validate(record,rules,schema, None)[0]),"Values do not match rules"
 
         record = {
             "test1" : "goodbye" ,
@@ -183,11 +183,11 @@ class ValidatorTests(unittest.TestCase) :
             "test4" :"45",
             "test5" :"1",
         }
-        assert( not Validator.validate(record,[rule3],schema)[0]),"Rule for test1 passed"
-        assert( not Validator.validate(record,[rule4],schema)[0]),"Rule for test3 passed"
-        assert( not Validator.validate(record,[rule5],schema)[0]),"Rule for test4 passed"
-        assert( not Validator.validate(record,[rule6],schema)[0]),"Rule for test4 passed"
-        assert( not Validator.validate(record,[rule7],schema)[0]),"Rule for test2 passed"
-        assert( not Validator.validate(record,rules,schema)[0]),"Rules passed"
+        assert( not Validator.validate(record,[rule3],schema, None)[0]),"Rule for test1 passed"
+        assert( not Validator.validate(record,[rule4],schema, None)[0]),"Rule for test3 passed"
+        assert( not Validator.validate(record,[rule5],schema, None)[0]),"Rule for test4 passed"
+        assert( not Validator.validate(record,[rule6],schema, None)[0]),"Rule for test4 passed"
+        assert( not Validator.validate(record,[rule7],schema, None)[0]),"Rule for test2 passed"
+        assert( not Validator.validate(record,rules,schema, None)[0]),"Rules passed"
 if __name__ == '__main__':
     unittest.main()
