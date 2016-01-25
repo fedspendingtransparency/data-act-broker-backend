@@ -27,7 +27,15 @@ class TASLoader(object):
                 #Let the user know that the script is still running.
                 if(counter % 40000 == 0) :
                     print "Loading ... " + str(counter)
-
+                #Pad Record
+                record["ATA"] = record["ATA"].zfill(3)
+                record["AID"] = record["AID"].zfill(3)
+                record["BPOA"] = record["BPOA"].zfill(4)
+                record["EPOA"] = record["EPOA"].zfill(4)
+                record["A"] = record["A"].zfill(1)
+                record["MAIN"] = record["MAIN"].zfill(4)
+                record["SUB"] = record["SUB"].zfill(3)
+                #Check if record exists
                 if(not (TASLoader.compareRecords(record,lastRecord,TASLoader.FILE_SCHEMA))) :
                     if(TASLoader.checkRecord(record,TASLoader.FILE_SCHEMA)) :
                         if(database.addTAS(record["ATA"],
@@ -49,6 +57,7 @@ class TASLoader(object):
         print "Total TAS added : " + str(totalTASAdded)
         print "Duplicate TAS in file :" + str(totalExistingTAS)
         print "Total TAS in file : " + str(totalExistingTAS + totalTASAdded)
+
 
 
     @staticmethod
