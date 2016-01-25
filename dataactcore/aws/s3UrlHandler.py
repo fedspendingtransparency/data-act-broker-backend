@@ -109,7 +109,7 @@ class s3UrlHandler:
 
         # Get key
         s3connection = boto.connect_s3()
-        bucket = s3connection.get_bucket(s3UrlHandler.getBucketNameFromConfig())
+        bucket = s3connection.get_bucket(s3UrlHandler.getValueFromConfig("bucket"))
         key = bucket.get_key(filename)
         if(key == None):
             return False
