@@ -1,10 +1,56 @@
 from dataactcore.models import validationInterface
 from sqlalchemy.orm import subqueryload
-from dataactcore.models.validationModels import Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType
+from dataactcore.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType
 
 class ValidationInterface(validationInterface.ValidationInterface) :
     """ Manages all interaction with the validation database
     """
+
+
+    def deleteTAS(self) :
+        """
+        Removes the TAS table
+        """
+        queryResult = self.session.query(TASLookup).delete(synchronize_session='fetch')
+        self.session.commit()
+
+
+    def addTAS(self,ata,aid,bpoa,epoa,availability,main,sub):
+        """
+
+        Add a TAS to the validation database if it does not exist.
+        This method can be slow.
+
+        Args:
+            ata -- allocation transfer agency
+            aid --  agency identifier
+            bpoa -- beginning period of availability
+            epoa -- ending period of availability
+            availability -- availability type code
+            main --  main account code
+            sub -- sub account code
+        """
+        queryResult = self.session.query(TASLookup).\
+            filter(TASLookup.allocation_transfer_agency == ata).\
+            filter(TASLookup.agency_identifier == aid).\
+            filter(TASLookup.beginning_period_of_availability == bpoa).\
+            filter(TASLookup.ending_period_of_availability == epoa).\
+            filter(TASLookup.availability_type_code == availability).\
+            filter(TASLookup.main_account_code == main).\
+            filter(TASLookup.sub_account_code == sub).all()
+        if ( len(queryResult) == 0) :
+            tas = TASLookup()
+            tas.allocation_transfer_agency =ata
+            tas.agency_identifier=aid
+            tas.beginning_period_of_availability = bpoa
+            tas.ending_period_of_availability = epoa
+            tas.availability_type_code = availability
+            tas.main_account_code = main
+            tas.sub_account_code = sub
+            self.session.add(tas)
+            self.session.commit()
+            return True
+        return False
 
     def addColumnByFileType(self,fileType,fieldName,required,field_type):
         """
