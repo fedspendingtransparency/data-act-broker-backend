@@ -21,7 +21,11 @@ class TASLoader(object):
         lastRecord = {}
         #Step 2 add the new data
         with open(filename,'rU') as csvfile:
+            #skip the first line of the csv as its just metadata
+            next(csvfile, None)
+            #second line contains headers
             reader = csv.DictReader(csvfile)
+            #Loop over each row
             for record in reader:
                 counter = counter + 1
                 #Let the user know that the script is still running.
@@ -59,7 +63,6 @@ class TASLoader(object):
         print "Total TAS in file : " + str(totalExistingTAS + totalTASAdded)
 
 
-
     @staticmethod
     def compareRecords (recordA,recordB, fields) :
         """ Compares two dictionaries based of a field subset """
@@ -70,7 +73,6 @@ class TASLoader(object):
             else :
                 return False
         return True
-
 
     @staticmethod
     def checkRecord (record, fields) :
