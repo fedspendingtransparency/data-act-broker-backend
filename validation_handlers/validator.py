@@ -1,6 +1,9 @@
 import re
 from validation_handlers.validationError import ValidationError
 from interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.models.validationModels import TASLookup
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
 
 class Validator(object):
     """
@@ -8,6 +11,8 @@ class Validator(object):
     """
     IS_INTERGER  = re.compile(r"^[-]?[1-9]\d*$")
     IS_DECIMAL  = re.compile(r"^[-]?((\d+(\.\d*)?)|(\.\d+))$")
+    FIELD_LENGTH = {"allocationtransferrecipientagencyid":3, "appropriationaccountresponsibleagencyid":3, "obligationavailabilityperiodstartfiscalyear":4, "obligationavailabilityperiodendfiscalyear":4,"appropriationmainaccountcode":3, "appropriationsubaccountcode":3, "obligationunlimitedavailabilityperiodindicator":1}
+    FIRST_TAS = True
 
     @staticmethod
     def validate(record,rules,csvSchema,fileType):
@@ -68,7 +73,7 @@ class Validator(object):
         multiFieldRules = validationDb.getMultiFieldRulesByFile(fileType)
         for rule in multiFieldRules:
             if not Validator.evaluateMultiFieldRule(rule,record):
-                failedRules.append(["MultiField", "Failed rule: " + str(rule.description), "MultiData"])
+                failedRules.append(["MultiField", "Failed rule: " + str(rule.description), Validator.getMultiValues(rule,record)])
         return (not recordFailed), failedRules
 
     @staticmethod
@@ -138,7 +143,67 @@ class Validator(object):
         ruleType = rule.multi_field_rule_type.name.upper()
         if(ruleType == "CAR_MATCH"):
             # Look for an entry in car table that matches all fields
-            fieldsToCheck = rule.rule_text_1.split(",")
-            for i in range(0,len(fieldsToCheck)):
-                fieldsToCheck[i] = fieldsToCheck[i].strip()
-        return True
+            fieldsToCheck = Validator.cleanSplit(rule.rule_text_1)
+            tasFields = Validator.cleanSplit(rule.rule_text_2)
+            if(len(fieldsToCheck) != len(tasFields)):
+                raise ResponseException("Number of fields to check does not match number of fields checked against",StatusCode.CLIENT_ERROR,ValueError)
+            return Validator.validateTAS(fieldsToCheck, tasFields, record)
+        else:
+            raise ResponseException("Bad rule type for multi-field rule",StatusCode.INTERNAL_ERROR)
+
+    @staticmethod
+    def cleanSplit(string):
+        string = string.split(",")
+        for i in range(0,len(string)):
+            string[i] = string[i].lower().strip()
+        return string
+
+    @staticmethod
+    def getMultiValues(rule,record):
+        fields = Validator.cleanSplit(rule.rule_text_1)
+        output = ""
+        for field in fields:
+            output += field + ": " + record[field] + ", "
+        return output[0:len(output)-2]
+
+    @staticmethod
+    def validateTAS(fieldsToCheck, tasFields, record):
+        if(Validator.FIRST_TAS):
+            Validator.FIRST_TAS = False
+        else:
+            # Skipping all but first tas validation for debugging
+            return True
+        validationDB = InterfaceHolder.VALIDATION
+        query = validationDB.session.query(TASLookup)
+        queryResult = query.all()
+        print("fieldsToCheck: " + str(fieldsToCheck))
+        print("Initial results: " + str(len(queryResult)))
+        for i in range(0,len(fieldsToCheck)):
+            data = record[str(fieldsToCheck[i])]
+            field = fieldsToCheck[i].lower()
+            print("Field name is " + field)
+            # Pad field with leading zeros
+            if field in Validator.FIELD_LENGTH:
+                print("Found length definition")
+                length = Validator.FIELD_LENGTH[field]
+                if len(data) < length:
+                    numZeros = length - len(data)
+                    zeroString = ""
+                    for i in range(0,numZeros):
+                        zeroString += "0"
+                    data = zeroString + data
+            else:
+                print("No length definition")
+            query = query.filter(TASLookup.__dict__[tasFields[i]] == data)
+            queryResult = query.all()
+            print("Number of results after searching for " + data + " in " + field + ": " + str(len(queryResult)))
+        queryResult = query.all()
+        if(len(queryResult) == 0):
+            # TAS not found, record invalid
+            return False
+        elif(len(queryResult) == 1):
+            # Found a TAS match
+            return True
+        else:
+            # Multiple instances of same TAS, something is going wrong
+            raise ResponseException("TAS check is malfunctioning",StatusCode.INTERNAL_ERROR)

@@ -135,6 +135,7 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
         self.session.execute("DELETE FROM rule where file_column_id in (SELECT file_column_id FROM file_columns WHERE file_id = :param)",{"param":fileId})
+        self.session.execute("DELETE FROM multi_field_rule WHERE file_id = :param",{"param":fileId})
         self.session.commit()
 
     def getFieldsByFileList(self, fileType):

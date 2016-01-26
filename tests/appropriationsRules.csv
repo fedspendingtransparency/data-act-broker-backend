@@ -1,5 +1,5 @@
 rule_type,is_single_field,field_name,rule_text_one,rule_text_two,description
-car_match,FALSE,,"AllocationTransferRecipientAgencyId, AppropriationAccountResponsibleAgencyId, ObligationAvailabilityPeriodStartFiscalYear, ObligationAvailabilityPeriodEndFiscalYear, ObligationUnlimitedAvailabilityPeriodIndicator, AppropriationMainAccountCode, AppropriationSubAccountCode","ATA, AID, BPOA, EPOA, A, MAIN, SUB",TAS fields must match CAR file
+car_match,FALSE,,"AllocationTransferRecipientAgencyId, AppropriationAccountResponsibleAgencyId, ObligationAvailabilityPeriodStartFiscalYear, ObligationAvailabilityPeriodEndFiscalYear, ObligationUnlimitedAvailabilityPeriodIndicator, AppropriationMainAccountCode, AppropriationSubAccountCode","allocation_transfer_agency, agency_identifier, beginning_period_of_availability, ending_period_of_availability, availability_type_code, main_account_code, sub_account_code",TAS fields must match CAR file
 GREATER,TRUE,AllocationTransferRecipientAgencyId,-1,,Agency ID must be positive
 LESS,TRUE,AllocationTransferRecipientAgencyId,1000,,Agency ID must be three digits
 GREATER,TRUE,AppropriationAccountResponsibleAgencyId,-1,,Agency ID must be positive

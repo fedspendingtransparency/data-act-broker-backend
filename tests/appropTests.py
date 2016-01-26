@@ -38,20 +38,22 @@ class AppropTests(unittest.TestCase):
 
             s3FileNameValid = JobTests.uploadFile("appropValid.csv", user)
             s3FileNameMixed = JobTests.uploadFile("appropMixed.csv", user)
+            s3FileNameTas = JobTests.uploadFile("tasMixed.csv", user)
 
             self.jobTracker = InterfaceHolder.JOB_TRACKER
 
             # Create submissions and get IDs back
             submissionIDs = {}
-            for i in range(1,3):
+            for i in range(1,4):
                 submissionIDs[i] = JobTests.insertSubmission(self.jobTracker)
 
             # Create jobs
             sqlStatements = ["INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[1])+", '" + s3FileNameValid + "',3) RETURNING job_id",
-                             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[2])+", '" + s3FileNameMixed + "',3) RETURNING job_id"]
+                             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[2])+", '" + s3FileNameMixed + "',3) RETURNING job_id",
+                             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[3])+", '" + s3FileNameTas + "',3) RETURNING job_id"]
 
             self.jobIdDict = {}
-            keyList = ["valid","mixed"]
+            keyList = ["valid","mixed","tas"]
             index = 0
             for statement in sqlStatements:
                 jobId = self.jobTracker.runStatement(statement)
@@ -132,3 +134,30 @@ class AppropTests(unittest.TestCase):
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 44)
+
+    def test_tas_mixed(self):
+        """ Test TAS validation """
+        jobId = self.jobIdDict["tas"]
+        self.response = JobTests.validateJob(jobId)
+        if(self.response.status_code != 200):
+            print(self.response.status_code)
+            print(self.response.json()["errorType"])
+            print(self.response.json()["message"])
+            print(self.response.json()["trace"])
+            print(self.response.json()["wrappedType"])
+            print(self.response.json()["wrappedMessage"])
+        assert(self.response.status_code == 200)
+
+        JobTests.waitOnJob(self.jobTracker, jobId, "finished")
+
+        JobTests.assertHeader(self.response)
+        # Check that job is correctly marked as finished
+        assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
+        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 52)
+
+        tableName = self.response.json()["table"]
+        assert(self.stagingDb.tableExists(tableName) == True)
+        assert(self.stagingDb.countRows(tableName) == 20)
+        errorInterface = InterfaceHolder.ERROR
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
