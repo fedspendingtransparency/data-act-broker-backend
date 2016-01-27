@@ -85,13 +85,6 @@ class AppropTests(unittest.TestCase):
         """ Test valid job """
         jobId = self.jobIdDict["valid"]
         self.response = JobTests.validateJob(jobId)
-        if(self.response.status_code != 200):
-            print(self.response.status_code)
-            print(self.response.json()["errorType"])
-            print(self.response.json()["message"])
-            print(self.response.json()["trace"])
-            print(self.response.json()["wrappedType"])
-            print(self.response.json()["wrappedMessage"])
         assert(self.response.status_code == 200)
 
         JobTests.waitOnJob(self.jobTracker, jobId, "finished")
@@ -109,16 +102,9 @@ class AppropTests(unittest.TestCase):
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
 
     def test_approp_mixed(self):
-        """ Test mixed job with 3 rows failing """
+        """ Test mixed job with 5 rows failing """
         jobId = self.jobIdDict["mixed"]
         self.response = JobTests.validateJob(jobId)
-        if(self.response.status_code != 200):
-            print(self.response.status_code)
-            print(self.response.json()["errorType"])
-            print(self.response.json()["message"])
-            print(self.response.json()["trace"])
-            print(self.response.json()["wrappedType"])
-            print(self.response.json()["wrappedMessage"])
         assert(self.response.status_code == 200)
 
         JobTests.waitOnJob(self.jobTracker, jobId, "finished")
@@ -126,26 +112,19 @@ class AppropTests(unittest.TestCase):
         JobTests.assertHeader(self.response)
         # Check that job is correctly marked as finished
         assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 4175)
+        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 5606)
 
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 14)
+        assert(self.stagingDb.countRows(tableName) == 15)
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 44)
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 47)
 
     def test_tas_mixed(self):
         """ Test TAS validation """
         jobId = self.jobIdDict["tas"]
         self.response = JobTests.validateJob(jobId)
-        if(self.response.status_code != 200):
-            print(self.response.status_code)
-            print(self.response.json()["errorType"])
-            print(self.response.json()["message"])
-            print(self.response.json()["trace"])
-            print(self.response.json()["wrappedType"])
-            print(self.response.json()["wrappedMessage"])
         assert(self.response.status_code == 200)
 
         JobTests.waitOnJob(self.jobTracker, jobId, "finished")
@@ -153,11 +132,11 @@ class AppropTests(unittest.TestCase):
         JobTests.assertHeader(self.response)
         # Check that job is correctly marked as finished
         assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 52)
+        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 1237)
 
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 20)
+        assert(self.stagingDb.countRows(tableName) == 1)
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 4)

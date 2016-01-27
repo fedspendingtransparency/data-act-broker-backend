@@ -11,4 +11,5 @@ tests/stats
 tests/jobId.json
 tests/appropJobIds.json
 tests/lastClearedId
+scripts/all_tas_betc.csv
 pathLog
