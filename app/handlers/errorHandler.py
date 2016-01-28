@@ -3,8 +3,10 @@ from dataactcore.models.errorInterface import ErrorInterface
 from sqlalchemy.orm import subqueryload, joinedload
 
 class ErrorHandler(ErrorInterface) :
+    """ Manages communication with the error database """
 
     def getErrorMetericsByJobId (self,jobId) :
+        """ Get error metrics for specified job, including number of errors for each field name and error type """
         resultList = []
 
         queryResult = self.session.query(FileStatus).options(joinedload("status")).filter(FileStatus.job_id == jobId).all()

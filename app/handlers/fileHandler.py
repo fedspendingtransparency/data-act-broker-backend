@@ -191,6 +191,7 @@ class FileHandler:
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
     def getErrorMetrics(self) :
+        """ Returns an Http response object containing error information for every validation job in specified submission """
         responseDict = {}
         returnDict = {}
         try:
