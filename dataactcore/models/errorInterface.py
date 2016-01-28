@@ -1,6 +1,7 @@
 from dataactcore.models.baseInterface import BaseInterface
 
 class ErrorInterface(BaseInterface):
+    """ Manages communication with error database """
     dbName = "error_data"
     credFileName = "dbCred.json"
     Session = None

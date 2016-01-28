@@ -42,19 +42,23 @@ class JobTrackerInterface(BaseInterface):
 
 
     def getSession(self):
+        """ Return session object"""
         return self.session
 
     def getFileName(self,jobId):
+        """ Get filename listed in database for this job """
         queryResult = self.session.query(JobStatus.filename).filter(JobStatus.job_id == jobId).all()
         if(self.checkJobUnique(queryResult)):
             return queryResult[0].filename
 
     def getFileType(self,jobId):
+        """ Get type of file associated with this job """
         queryResult = self.session.query(JobStatus).options(joinedload("file_type")).filter(JobStatus.job_id == jobId).all()
         if(self.checkJobUnique(queryResult)):
             return queryResult[0].file_type.name
 
     def getSubmissionId(self,jobId):
+        """ Find submission that this job is part of """
         queryResult = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
         if(self.checkJobUnique(queryResult)):
             return queryResult[0].submission_id

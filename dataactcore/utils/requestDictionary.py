@@ -1,5 +1,7 @@
 import json
 class RequestDictionary() :
+    """ Provides an interface to an http request """
+
     def __init__(self,request):
 
         self.requestDict = None
@@ -17,11 +19,13 @@ class RequestDictionary() :
 
 
     def getValue(self,value) :
+        """ Returns value for specified key """
         if(not(value in self.requestDict)):
             raise ValueError(value + " not found")
         return self.requestDict[value]
         
     def exists(self,value) :
+        """ Returns True if key is in request json """
         if(not(value in self.requestDict)):
             return False
         return True

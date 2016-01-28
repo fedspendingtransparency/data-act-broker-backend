@@ -72,6 +72,7 @@ class s3UrlHandler:
 
     @staticmethod
     def getValueFromConfig(value):
+        """ Retrieve specified value from config file """
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         bucketFile = open(path+"/s3bucket.json","r").read()
         bucketDict = json.loads(bucketFile)

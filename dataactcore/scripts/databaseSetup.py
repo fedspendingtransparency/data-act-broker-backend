@@ -2,6 +2,7 @@ import sqlalchemy
 from sqlalchemy.exc import ProgrammingError, IntegrityError
 
 def runCommands(credDict, sqlCommands, dbName, connection = None):
+    """ Apply commands to specified database """
     dbBaseName = "postgres"
     baseEngine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+dbBaseName, isolation_level = "AUTOCOMMIT")
 
