@@ -1,6 +1,6 @@
 import csv
 
-from interfaces.validationInterface import ValidationInterface
+from dataactvalidator.interfaces.validationInterface import ValidationInterface
 class SchemaLoader(object):
 
     """

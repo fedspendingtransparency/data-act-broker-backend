@@ -1,5 +1,5 @@
 import unittest
-from interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
 class StagingTests(unittest.TestCase):
     BASE_URL = "http://127.0.0.1:5000"

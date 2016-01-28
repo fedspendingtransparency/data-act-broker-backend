@@ -14,7 +14,7 @@ from dataactcore.scripts.setupValidationDB import setupValidationDB
 from dataactcore.scripts.clearErrors import clearErrors
 from dataactcore.models.baseInterface import BaseInterface
 BaseInterface.IS_FLASK = False # Unit tests using interfaces are not enclosed in a Flask route
-from interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.scripts.clearJobs import clearJobs
 from sqlalchemy.exc import InvalidRequestError
 import json

@@ -2,7 +2,7 @@ from dataactcore.models import jobTrackerInterface
 from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type, Resource
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from validation_handlers.validationError import ValidationError
+from dataactvalidator.validation_handlers.validationError import ValidationError
 
 class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
     """ Manages all interaction with the job tracker database

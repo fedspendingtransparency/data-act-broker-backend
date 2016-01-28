@@ -1,14 +1,14 @@
 import unittest
-from interfaces.stagingInterface import StagingInterface
+from dataactvalidator.interfaces.stagingInterface import StagingInterface
 from dataactcore.models.jobModels import Status, Type
 from dataactcore.models import errorModels
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.scripts.databaseSetup import runCommands
-from interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from sqlalchemy.exc import InvalidRequestError
 import json
 from tests.jobTests import JobTests
-from filestreaming.schemaLoader import SchemaLoader
+from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 
 class AppropTests(unittest.TestCase):
 

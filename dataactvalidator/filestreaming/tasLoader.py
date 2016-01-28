@@ -1,5 +1,5 @@
 import csv
-from interfaces.validationInterface import ValidationInterface
+from dataactvalidator.interfaces.validationInterface import ValidationInterface
 class TASLoader(object):
 
     FILE_SCHEMA = ["ATA","AID","BPOA","EPOA","A","MAIN","SUB"]

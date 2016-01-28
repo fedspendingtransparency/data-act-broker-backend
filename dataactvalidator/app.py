@@ -4,18 +4,18 @@ from threading import Thread
 from flask import Flask, request, make_response, session, g, redirect, url_for, \
      abort, render_template, flash ,session, Response, copy_current_request_context
 import json
-#open("pathLog","w").write(str(sys.path))
-from validation_handlers.validationManager import ValidationManager
+
+from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from csv import Error
-from interfaces.jobTrackerInterface import JobTrackerInterface
-from interfaces.errorInterface import ErrorInterface
-from interfaces.stagingInterface import StagingInterface
-from interfaces.validationInterface import ValidationInterface
-from validation_handlers.validationError import ValidationError
-from interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.interfaces.jobTrackerInterface import JobTrackerInterface
+from dataactvalidator.interfaces.errorInterface import ErrorInterface
+from dataactvalidator.interfaces.stagingInterface import StagingInterface
+from dataactvalidator.interfaces.validationInterface import ValidationInterface
+from dataactvalidator.validation_handlers.validationError import ValidationError
+from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
 debugFlag = True
 

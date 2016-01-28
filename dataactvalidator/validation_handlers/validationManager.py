@@ -1,15 +1,15 @@
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
-from filestreaming.csvReader import CsvReader
-from validation_handlers.validator import Validator
+from dataactvalidator.filestreaming.csvReader import CsvReader
+from dataactvalidator.validation_handlers.validator import Validator
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.responseException import ResponseException
 from csv import Error
-from filestreaming.csvWriter import CsvWriter
-from validation_handlers.validationError import ValidationError
-from interfaces.interfaceHolder import InterfaceHolder
-from interfaces.stagingTable import StagingTable
+from dataactvalidator.filestreaming.csvWriter import CsvWriter
+from dataactvalidator.validation_handlers.validationError import ValidationError
+from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.interfaces.stagingTable import StagingTable
 
 class ValidationManager:
     """
@@ -142,7 +142,7 @@ class ValidationManager:
                     continue
                 valid, failures = Validator.validate(record,rules,csvSchema,fileType)
                 if(valid) :
-                    try: 
+                    try:
                         tableObject.insert(record)
                     except ResponseException as e:
                         # Write failed, move to next record

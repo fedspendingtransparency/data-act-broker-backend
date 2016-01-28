@@ -1,7 +1,7 @@
 import boto
 import csv
 from dataactcore.utils.responseException import ResponseException
-from validation_handlers.validationError import ValidationError
+from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.utils.statusCode import StatusCode
 
 class CsvReader(object):

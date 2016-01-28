@@ -1,6 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import MetaData, Column, Integer, Text, Numeric, Boolean
-from interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
 class StagingTable(object):
 

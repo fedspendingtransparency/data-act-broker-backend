@@ -1,6 +1,6 @@
 import re
 from validation_handlers.validationError import ValidationError
-from interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.models.validationModels import TASLookup
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -93,7 +93,7 @@ class Validator(object):
         if(datatype == "BOOLEAN") :
             if(data.upper() in ["TRUE","FALSE","YES","NO","1","0"]) :
                 return True
-            return False 
+            return False
         if(datatype == "INT") :
             return Validator.IS_INTERGER.match(data) is not None
         if(datatype == "DECIMAL") :
