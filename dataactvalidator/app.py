@@ -1,3 +1,7 @@
+
+import os
+import inspect
+
 import sys
 import flask
 from threading import Thread
@@ -32,13 +36,15 @@ validationDb = InterfaceHolder.VALIDATION
 
 @app.route("/",methods=["GET"])
 def testApp():
+    """Confirm server running"""
     # Confirm server running
     return "Validator is running"
 
 @app.route("/validate_threaded/",methods=["POST"])
 def validate_threaded():
-
+    """Starts the validation process on a new thread"""
     def markJob(job,jobTracker,status) :
+        """helper function to mark status without throwing errors"""
         try :
             jobTracker.markStatus(jobId,status)
         except Exception as e:
@@ -46,6 +52,7 @@ def validate_threaded():
 
     @copy_current_request_context
     def ThreadedFunction (arg) :
+            """The new thread"""
             threadedManager = ValidationManager()
             threadedManager.threadedValidateJob(arg)
 
@@ -101,8 +108,6 @@ def validate_threaded():
         errorHandler.writeFileError(jobId,manager.filename,ValidationError.jobError)
         return JsonResponse.error(exc,exc.status,{"table":""})
 
-
-
     thread = Thread(target=ThreadedFunction, args= (jobId,))
 
     try :
@@ -119,6 +124,7 @@ def validate_threaded():
 
 @app.route("/validate/",methods=["POST"])
 def validate():
+    """Starts the validation process on the same threads"""
     try:
         return validationManager.validateJob(request)
     except Exception as e:
@@ -129,5 +135,14 @@ def validate():
         exc.wrappedException = e
         return JsonResponse.error(exc,exc.status,{"table":""})
 
+
+def getAppConfiguration():
+    """Gets the JSON for configuring the validator """
+    path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+    configFile = path + "/validator_configuration.json"
+    return json.loads(open(configFile,"r").read())
+
 if __name__ == '__main__':
-    app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port=80)
+    config = getAppConfiguration()
+    JsonResponse.debugMode = config["rest_trace"]
+    app.run(debug=config["server_debug"],threaded=True,host="0.0.0.0",port=config["port"])
