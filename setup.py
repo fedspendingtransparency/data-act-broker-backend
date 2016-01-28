@@ -122,7 +122,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'foo = dataactcore.scripts.finishInstall:finishInstall',
+            'finishInstall = dataactcore.scripts.finishInstall:finishInstall',
         ],
     }, 
     cmdclass={'install': CustomInstall}
