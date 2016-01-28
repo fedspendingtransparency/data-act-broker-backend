@@ -25,6 +25,14 @@ class ValidationManager:
 
     @staticmethod
     def markJob(jobId,jobTracker,status) :
+        """ Update status of a job in job tracker database
+
+        Args:
+            jobId: Job to be updated
+            jobTracker: Interface object for job tracker
+            status: New status for specified job
+
+        """
         try :
             jobTracker.markStatus(jobId,status)
         except Exception as e:
@@ -100,6 +108,15 @@ class ValidationManager:
 
 
     def runValidation(self, jobId, jobTracker):
+        """ Run validations for specified job
+
+        Args:
+            jobId: Job to be validated
+            jobTracker: Interface for job tracker
+
+        Returns:
+            True if successful
+        """
         rowNumber = 1
 
         fileType = jobTracker.getFileType(jobId)

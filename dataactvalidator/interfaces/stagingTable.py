@@ -3,6 +3,7 @@ from sqlalchemy import MetaData, Column, Integer, Text, Numeric, Boolean
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
 class StagingTable(object):
+    """ Represents a staging table used for a single job """
 
     BATCH_INSERT = False
     INSERT_BY_ORM = True
@@ -159,6 +160,7 @@ class StagingTable(object):
 
     @staticmethod
     def getPublicMembers(obj):
+        """ Get list of available members that do not begin with underscore """
         response = []
         for member in dir(obj):
             if(member[0] != "_"):

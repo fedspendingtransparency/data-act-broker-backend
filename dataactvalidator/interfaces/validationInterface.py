@@ -3,8 +3,7 @@ from sqlalchemy.orm import subqueryload
 from dataactcore.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType
 
 class ValidationInterface(validationInterface.ValidationInterface) :
-    """ Manages all interaction with the validation database
-    """
+    """ Manages all interaction with the validation database """
 
 
     def deleteTAS(self) :
@@ -176,6 +175,14 @@ class ValidationInterface(validationInterface.ValidationInterface) :
 
 
     def getFileId(self, filename) :
+        """ Retrieves ID for specified file type
+
+        Args:
+            filename: Type of file to get ID for
+
+        Returns:
+            ID if file type found, or None if file type is not found
+        """
         queryResult = self.session.query(FileType).filter(FileType.name== filename).all()
         if(len(queryResult) > 0) :
             return queryResult[0].file_id
@@ -239,6 +246,15 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         return self.session.query(MultiFieldRule).filter(MultiFieldRule.file_id == fileId).all()
 
     def getColumnId(self, fieldName, fileId):
+        """ Find file column given field name and file type
+
+        Args:
+            fieldName: Field to search for
+            fileId: Which file this field is associated with
+
+        Returns:
+            ID for file column if found, otherwise raises exception
+        """
         column = self.session.query(FileColumn).filter(FileColumn.name == fieldName.lower()).filter(FileColumn.file_id == fileId).all()
         self.checkUnique(column,"No field found with that name for that file type", "Multiple fields with that name for that file type")
         return column[0].file_column_id

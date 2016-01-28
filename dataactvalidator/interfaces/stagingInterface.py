@@ -2,11 +2,18 @@ from dataactcore.models.stagingInterface import StagingInterface as BaseStagingI
 from sqlalchemy.exc import ResourceClosedError
 
 class StagingInterface(BaseStagingInterface):
-    """ Manages all interaction with the staging database
-    """
+    """ Manages all interaction with the staging database """
 
     #@staticmethod
     def dropTable(self,table):
+        """
+
+        Args:
+            table: Table to be dropped
+
+        Returns:
+            True if successful
+        """
         try:
             self.runStatement("DROP TABLE "+table)
         except Exception as e:

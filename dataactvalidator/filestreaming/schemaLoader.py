@@ -53,6 +53,7 @@ class SchemaLoader(object):
 
         Args:
             filename: File with rule specifications
+            fileTypeName: Which type of file to load rules for
         """
         validationDb = ValidationInterface()
         fileId = validationDb.getFileId(fileTypeName)

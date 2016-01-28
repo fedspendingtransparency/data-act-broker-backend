@@ -1,5 +1,5 @@
 import re
-from validation_handlers.validationError import ValidationError
+from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.models.validationModels import TASLookup
 from dataactcore.utils.responseException import ResponseException
@@ -80,6 +80,15 @@ class Validator(object):
 
     @staticmethod
     def getRules(fieldName,rules) :
+        """ From a given set of rules, create a list of only the rules that apply to specified field
+
+        Args:
+            fieldName: Field to find rules for
+            rules: Original set of rules
+
+        Returns:
+            List of rules that apply to specified field
+        """
         returnList =[]
         for rule in rules :
             if( rule.file_column.name == fieldName) :
@@ -88,6 +97,15 @@ class Validator(object):
 
     @staticmethod
     def checkType(data,datatype) :
+        """ Determine whether data is of the correct type
+
+        Args:
+            data: Data to be checked
+            datatype: Type to check against
+
+        Returns:
+            True if data is of specified type, False otherwise
+        """
         if(datatype == "STRING") :
             return(len(data) > 0)
         if(datatype == "BOOLEAN") :
@@ -104,10 +122,20 @@ class Validator(object):
 
     @staticmethod
     def getIntFromString(data) :
+        """ Convert string to int, converts to float first to avoid exceptions when data is represented as float """
         return int(float(data))
 
     @staticmethod
     def getType(data,datatype) :
+        """ Convert data into specified type
+
+        Args:
+            data: Data to be converted
+            datatype: Type to conert into
+
+        Returns:
+            Data in specified type
+        """
         if(datatype =="INT") :
             return int(float(data))
         if(datatype =="DECIMAL") :
@@ -118,6 +146,16 @@ class Validator(object):
 
     @staticmethod
     def evaluateRule(data,rule,datatype):
+        """ Checks data against specified rule
+
+        Args:
+            data: Data to be checked
+            rule: Rule object to test against
+            datatype: Type to convert data into
+
+        Returns:
+            True if rule passed, False otherwise
+        """
         value1 = rule.rule_text_1
         currentRuleType = rule.rule_type.name
         if(currentRuleType =="LENGTH") :
@@ -142,6 +180,15 @@ class Validator(object):
 
     @staticmethod
     def evaluateMultiFieldRule(rule, record):
+        """ Check a rule involving more than one field of a record
+
+        Args:
+            rule: MultiFieldRule object to check against
+            record: Record to be checked
+
+        Returns:
+            True if rule passes, False otherwise
+        """
         ruleType = rule.multi_field_rule_type.name.upper()
         if(ruleType == "CAR_MATCH"):
             # Look for an entry in car table that matches all fields
@@ -155,6 +202,7 @@ class Validator(object):
 
     @staticmethod
     def cleanSplit(string):
+        """ Split string on commas and remove whitespace around each element"""
         string = string.split(",")
         for i in range(0,len(string)):
             string[i] = string[i].lower().strip()
@@ -162,6 +210,15 @@ class Validator(object):
 
     @staticmethod
     def getMultiValues(rule,record):
+        """ Create string out of values for all fields involved in this rule
+
+        Args:
+            rule: Rule to return fields for
+            record: Record to pull values from
+
+        Returns:
+            One string including all values involved in this rule check
+        """
         fields = Validator.cleanSplit(rule.rule_text_1)
         output = ""
         for field in fields:
@@ -170,6 +227,16 @@ class Validator(object):
 
     @staticmethod
     def validateTAS(fieldsToCheck, tasFields, record):
+        """ Check for presence of TAS for specified record in TASLookup table
+
+        Args:
+            fieldsToCheck: Set of fields involved in TAS check
+            tasFields: Corresponding field names in TASLookup table
+            record: Record to check TAS for
+
+        Returns:
+            True if TAS is in CARS, False otherwise
+        """
         validationDB = InterfaceHolder.VALIDATION
         query = validationDB.session.query(TASLookup)
         queryResult = query.all()

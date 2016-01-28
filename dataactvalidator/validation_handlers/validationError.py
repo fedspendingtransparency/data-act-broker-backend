@@ -33,16 +33,18 @@ class ValidationError:
 
     @staticmethod
     def getErrorMessage(errorType):
+        """ Retrieve error message for specified error type """
         if(errorType in ValidationError.errorDict):
             return ValidationError.errorDict[errorType]
         else:
             # Not a valid error type
-            raise ValueError("Called writeErrorMessage with an invalid error type")
+            raise ValueError("Called getErrorMessage with an invalid error type")
 
     @staticmethod
     def getErrorTypeString(errorType):
+        """ Get string identifier used in database for specified error type """
         if(errorType in ValidationError.errorTypeDict):
             return ValidationError.errorTypeDict[errorType]
         else:
             # Not a valid error type
-            raise ValueError("Called getErrorMessage with an invalid error type")
+            raise ValueError("Called getErrorTypeString with an invalid error type")

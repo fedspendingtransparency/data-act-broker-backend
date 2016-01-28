@@ -5,8 +5,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
 class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
-    """ Manages all interaction with the job tracker database
-    """
+    """ Manages all interaction with the job tracker database """
 
     def runChecks(self,jobId):
         """ Run all checks on this jobId
@@ -67,6 +66,15 @@ class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
         return True
 
     def addStagingTable(self,jobId,stagingTable):
+        """
+
+        Args:
+            jobId: Job to write table name for
+            stagingTable: Name of staging table for this job
+
+        Returns:
+            True if successful
+        """
         queryResult = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
         if(self.checkJobUnique(queryResult)):
             queryResult[0].staging_table = stagingTable
