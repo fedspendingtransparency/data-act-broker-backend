@@ -37,9 +37,10 @@ For Treasury Account Symbol checks, you'll need to get the updated [`all_tas_bet
 
 ```bash
 $ python loadTas.py
+$ python setupTASIndexs.py
 ```
 
-Once both scripts have run, the databases will contain everything they need to validate appropriations files.
+Once these scripts have been run, the databases will contain everything they need to validate appropriations files.
 
 #### Data Broker Database Reference
 
