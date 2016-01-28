@@ -7,7 +7,7 @@ from dataactcore.scripts.databaseSetup import runCommands
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from sqlalchemy.exc import InvalidRequestError
 import json
-from tests.jobTests import JobTests
+from jobTests import JobTests
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 
 class AppropTests(unittest.TestCase):
@@ -69,7 +69,7 @@ class AppropTests(unittest.TestCase):
             open(self.JOB_ID_FILE,"w").write(json.dumps(self.jobIdDict))
 
             # Load fields and rules
-            import scripts.loadApprop
+            import dataactvalidator.scripts.loadApprop
 
             # Remove existing tables from staging if they exist
             for jobId in self.jobIdDict.values():

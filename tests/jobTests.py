@@ -1,5 +1,5 @@
 import unittest
-from interfaces.stagingInterface import StagingInterface
+from dataactvalidator.interfaces.stagingInterface import StagingInterface
 from dataactcore.models.jobModels import Status, Type
 from dataactcore.models import errorModels
 import requests
