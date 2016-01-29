@@ -15,7 +15,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='Data Act Core',
+    name='dataactcore',
     version='0.0.1',
     description='A sample Python project',
     long_description=long_description,
