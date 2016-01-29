@@ -20,29 +20,33 @@ class ConfigureValidator(object):
         returnJson ["port"] = port
         returnJson ["rest_trace"] = trace
         returnJson ["server_debug"] = debug
-        return json.dumps(returnJson);
+        return json.dumps(returnJson)
 
+    @staticmethod
+    def questionPrompt(question):
+        "Creates a yes/no question propt"
+        response = raw_input(question)
+        if(response.lower() =="y" or response.lower() =="yes" ):
+            return True
+        return False
 
     @staticmethod
     def promptWebservice():
         """Promts user validator web service"""
         debugMode = False
         traceMode = False
-        reponse = raw_input("Would you like to configure your validator web service? (y/n) : ")
-        if(reponse.lower() =="y"):
+        if(ConfigureValidator.questionPrompt("Would you like to configure your validator web service? (y/n) : ")):
             port = raw_input("Enter web service port :")
 
-            reponse = raw_input("Would you like to enable server side debuging (y/n) : ")
-            if(reponse.lower() =="y"):
+            if(ConfigureValidator.questionPrompt("Would you like to enable server side debuging (y/n) : ")):
                 debugMode = True
 
-            reponse = raw_input("Would you like to enable debug traces on REST requests (y/n) : ")
-            if(reponse.lower() =="y"):
+            if(ConfigureValidator.questionPrompt("Would you like to enable debug traces on REST requests (y/n) : ")):
                 traceMode = True
 
             json = ConfigureValidator.createJSON(port,traceMode,debugMode)
 
-            with open(ConfigureValidator.getDatacorePath()+"/validator_configuration.json", 'wb') as bucketFile :
+            with open(ConfigureValidator.getDatacorePath()+"/validator_configuration.json", 'wb') as bucketFile:
                 bucketFile.write(json)
 
 if __name__ == '__main__':
