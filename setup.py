@@ -35,9 +35,12 @@ setup(
     ],
     keywords='dataAct validator setup',
     packages=find_packages(),
-
-    #keeping required packages in requirements.txt
-
+    install_requires=[
+      'data_act_core==0.0.1','Flask==0.10.1','Decorator==4.0.4','Requests==2.8.1','flask-cors==2.1.2','smart-open==1.3.1',
+    ],
+    dependency_links=[
+      'git+ssh://git@github.com/fedspendingtransparency/data-act-core.git@configuration#egg=data_act_core-0.0.1',
+    ],
     entry_points={
         'console_scripts': [
             'validator = dataactvalidator.scripts.baseScript:baseScript',
