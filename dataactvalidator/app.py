@@ -21,128 +21,131 @@ from dataactvalidator.interfaces.validationInterface import ValidationInterface
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
-debugFlag = True
+def runApp():
+    debugFlag = True
 
-# Create application
-app = Flask(__name__)
-app.config.from_object(__name__)
+    # Create application
+    app = Flask(__name__)
+    app.config.from_object(__name__)
 
-validationManager = ValidationManager()
-# Hold copy of interface objects to limit to a single session for each
-jobTracker = InterfaceHolder.JOB_TRACKER
-errorDb = InterfaceHolder.ERROR
-stagingDb = InterfaceHolder.STAGING
-validationDb = InterfaceHolder.VALIDATION
+    validationManager = ValidationManager()
+    # Hold copy of interface objects to limit to a single session for each
+    jobTracker = InterfaceHolder.JOB_TRACKER
+    errorDb = InterfaceHolder.ERROR
+    stagingDb = InterfaceHolder.STAGING
+    validationDb = InterfaceHolder.VALIDATION
 
-@app.route("/",methods=["GET"])
-def testApp():
-    """Confirm server running"""
-    # Confirm server running
-    return "Validator is running"
+    @app.route("/",methods=["GET"])
+    def testApp():
+        """Confirm server running"""
+        # Confirm server running
+        return "Validator is running"
 
-@app.route("/validate_threaded/",methods=["POST"])
-def validate_threaded():
-    """Starts the validation process on a new thread"""
-    def markJob(job,jobTracker,status) :
-        """helper function to mark status without throwing errors"""
+    @app.route("/validate_threaded/",methods=["POST"])
+    def validate_threaded():
+        """Starts the validation process on a new thread"""
+        def markJob(job,jobTracker,status) :
+            """helper function to mark status without throwing errors"""
+            try :
+                jobTracker.markStatus(jobId,status)
+            except Exception as e:
+               pass
+
+        @copy_current_request_context
+        def ThreadedFunction (arg) :
+                """The new thread"""
+                threadedManager = ValidationManager()
+                threadedManager.threadedValidateJob(arg)
+
+        jobId = None
+        manager = ValidationManager()
+
         try :
-            jobTracker.markStatus(jobId,status)
+            jobTracker = InterfaceHolder.JOB_TRACKER
+        except ResponseException as e:
+            exc = ResponseException(e.message)
+            exc.wrappedException = e
+            exc.status = StatusCode.CLIENT_ERROR
+            return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
         except Exception as e:
-           pass
+            exc = ResponseException(e.message)
+            exc.wrappedException = e
+            exc.status = StatusCode.INTERNAL_ERROR
+            return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
 
-    @copy_current_request_context
-    def ThreadedFunction (arg) :
-            """The new thread"""
-            threadedManager = ValidationManager()
-            threadedManager.threadedValidateJob(arg)
+        try:
+            jobId = manager.getJobID(flask.request)
+        except ResponseException as e:
+            exc = ResponseException(e.message)
+            exc.wrappedException = e
+            exc.status = StatusCode.CLIENT_ERROR
+            manager.markJob(jobId,jobTracker,"invalid")
+            errorHandler = InterfaceHolder.ERROR
+            errorHandler.writeFileError(jobId,manager.filename,ValidationError.unknownError)
+            return JsonResponse.error(exc,exc.status,{"table":""})
+        except Exception as e:
+            exc = ResponseException(e.message)
+            exc.wrappedException = e
+            exc.status = StatusCode.CLIENT_ERROR
+            manager.markJob(jobId,jobTracker,"invalid")
+            errorHandler = InterfaceHolder.ERROR
+            errorHandler.writeFileError(jobId,manager.filename,ValidationError.unknownError)
+            return JsonResponse.error(exc,exc.status,{"table":""})
 
-    jobId = None
-    manager = ValidationManager()
+        try:
+            manager.testJobID(jobId)
+        except ResponseException as e:
+            exc = ResponseException(e.message)
+            exc.wrappedException = e
+            exc.status = StatusCode.CLIENT_ERROR
+            errorHandler = InterfaceHolder.ERROR
+            errorHandler.writeFileError(jobId,manager.filename,ValidationError.jobError)
+            return JsonResponse.error(exc,exc.status,{"table":""})
+        except Exception as e:
+            exc = ResponseException(e.message)
+            exc.wrappedException = e
+            exc.status = StatusCode.CLIENT_ERROR
+            errorHandler = InterfaceHolder.ERROR
+            errorHandler.writeFileError(jobId,manager.filename,ValidationError.jobError)
+            return JsonResponse.error(exc,exc.status,{"table":""})
 
-    try :
-        jobTracker = InterfaceHolder.JOB_TRACKER
-    except ResponseException as e:
-        exc = ResponseException(e.message)
-        exc.wrappedException = e
-        exc.status = StatusCode.CLIENT_ERROR
-        return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
-    except Exception as e:
-        exc = ResponseException(e.message)
-        exc.wrappedException = e
-        exc.status = StatusCode.INTERNAL_ERROR
-        return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
+        thread = Thread(target=ThreadedFunction, args= (jobId,))
 
-    try:
-        jobId = manager.getJobID(flask.request)
-    except ResponseException as e:
-        exc = ResponseException(e.message)
-        exc.wrappedException = e
-        exc.status = StatusCode.CLIENT_ERROR
-        manager.markJob(jobId,jobTracker,"invalid")
-        errorHandler = InterfaceHolder.ERROR
-        errorHandler.writeFileError(jobId,manager.filename,ValidationError.unknownError)
-        return JsonResponse.error(exc,exc.status,{"table":""})
-    except Exception as e:
-        exc = ResponseException(e.message)
-        exc.wrappedException = e
-        exc.status = StatusCode.CLIENT_ERROR
-        manager.markJob(jobId,jobTracker,"invalid")
-        errorHandler = InterfaceHolder.ERROR
-        errorHandler.writeFileError(jobId,manager.filename,ValidationError.unknownError)
-        return JsonResponse.error(exc,exc.status,{"table":""})
+        try :
+            jobTracker.markStatus(jobId,"running")
+        except Exception as e:
+            exc = ResponseException(e.message)
+            exc.wrappedException = e
+            exc.status = StatusCode.INTERNAL_ERROR
+            return JsonResponse.error(exc,exc.status,{"table":"could not start job"})
 
-    try:
-        manager.testJobID(jobId)
-    except ResponseException as e:
-        exc = ResponseException(e.message)
-        exc.wrappedException = e
-        exc.status = StatusCode.CLIENT_ERROR
-        errorHandler = InterfaceHolder.ERROR
-        errorHandler.writeFileError(jobId,manager.filename,ValidationError.jobError)
-        return JsonResponse.error(exc,exc.status,{"table":""})
-    except Exception as e:
-        exc = ResponseException(e.message)
-        exc.wrappedException = e
-        exc.status = StatusCode.CLIENT_ERROR
-        errorHandler = InterfaceHolder.ERROR
-        errorHandler.writeFileError(jobId,manager.filename,ValidationError.jobError)
-        return JsonResponse.error(exc,exc.status,{"table":""})
+        thread.start()
 
-    thread = Thread(target=ThreadedFunction, args= (jobId,))
+        return JsonResponse.create(StatusCode.OK,{"table":"job"+str(jobId)})
 
-    try :
-        jobTracker.markStatus(jobId,"running")
-    except Exception as e:
-        exc = ResponseException(e.message)
-        exc.wrappedException = e
-        exc.status = StatusCode.INTERNAL_ERROR
-        return JsonResponse.error(exc,exc.status,{"table":"could not start job"})
-
-    thread.start()
-
-    return JsonResponse.create(StatusCode.OK,{"table":"job"+str(jobId)})
-
-@app.route("/validate/",methods=["POST"])
-def validate():
-    """Starts the validation process on the same threads"""
-    try:
-        return validationManager.validateJob(request)
-    except Exception as e:
-        # Something went wrong getting the flask request
-        open("errorLog","a").write(e.message)
-        exc = ResponseException("Internal exception")
-        exc.status = StatusCode.INTERNAL_ERROR
-        exc.wrappedException = e
-        return JsonResponse.error(exc,exc.status,{"table":""})
+    @app.route("/validate/",methods=["POST"])
+    def validate():
+        """Starts the validation process on the same threads"""
+        try:
+            return validationManager.validateJob(request)
+        except Exception as e:
+            # Something went wrong getting the flask request
+            open("errorLog","a").write(e.message)
+            exc = ResponseException("Internal exception")
+            exc.status = StatusCode.INTERNAL_ERROR
+            exc.wrappedException = e
+            return JsonResponse.error(exc,exc.status,{"table":""})
 
 
-def getAppConfiguration():
-    """Gets the JSON for configuring the validator """
-    path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-    configFile = path + "/validator_configuration.json"
-    return json.loads(open(configFile,"r").read())
+    def getAppConfiguration():
+        """Gets the JSON for configuring the validator """
+        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        configFile = path + "/validator_configuration.json"
+        return json.loads(open(configFile,"r").read())
 
-if __name__ == '__main__':
     config = getAppConfiguration()
     JsonResponse.debugMode = config["rest_trace"]
-    app.run(debug=config["server_debug"],threaded=True,host="0.0.0.0",port=config["port"])
+    app.run(debug=config["server_debug"],threaded=True,host="0.0.0.0",port=int(config["port"]))
+
+if __name__ == '__main__':
+    runApp()
