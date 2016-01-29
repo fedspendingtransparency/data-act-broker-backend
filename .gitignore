@@ -19,4 +19,5 @@ test/submissionId
 test/tablesCleared
 test/validatorResponse
 app/validatorResponse
+app/manager.json
 web_api_configuration.json
