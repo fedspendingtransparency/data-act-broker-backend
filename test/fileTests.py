@@ -18,8 +18,8 @@ import time
 class FileTests(BaseTest):
     """ Test file submission routes """
     fileResponse = None
-    CHECK_ERROR_REPORTS = False
-    CHECK_VALIDATOR = False
+    CHECK_ERROR_REPORTS = False # If True, must provide submission ID below
+    ERROR_REPORT_SUBMISSION_ID = 11
     JOB_ID_FILE = "jobId.json"
     SUBMISSION_ID_FILE = "submissionId"
     TABLES_CLEARED_FILE = "tablesCleared" # Holds a boolean flag in a file so it can be checked before doing table setup
@@ -90,6 +90,13 @@ class FileTests(BaseTest):
     def test_file_submission(self):
         open(FileHandler.VALIDATOR_RESPONSE_FILE,"w").write(str(-1))
         self.call_file_submission()
+        if(self.fileResponse.status_code != 200):
+            print(self.fileResponse.status_code)
+            print(self.fileResponse.json()["errorType"])
+            print(self.fileResponse.json()["message"])
+            print(self.fileResponse.json()["trace"])
+            print(self.fileResponse.json()["wrappedType"])
+            print(self.fileResponse.json()["wrappedMessage"])
         # Test that status is 200
         assert(self.fileResponse.status_code==200)
         # Test Content-Type header
@@ -119,13 +126,6 @@ class FileTests(BaseTest):
             # Call upload complete route for each id
         self.check_upload_complete(responseDict["appropriations_id"])
 
-        if(self.CHECK_VALIDATOR):
-            # Check that validation job has been set to finished
-            validationIdList = self.jobTracker.getDependentJobs(responseDict["appropriations_id"])
-            assert(len(validationIdList) == 1)
-            self.waitOnJob(self.jobTracker,validationIdList[0],"finished")
-
-
     @staticmethod
     def waitOnJob(jobTracker, jobId, status):
         currentID = Status.getStatus("running")
@@ -141,6 +141,7 @@ class FileTests(BaseTest):
         response = utils.postRequest("/v1/check_status/",'{"submission_id":'+str(self.submissionId)+'}')
 
         assert(response.status_code == 200)
+        print(str(response.json()))
         assert(response.json()[str(self.jobIdDict["uploadFinished"])]["status"]=="finished")
         assert(response.json()[str(self.jobIdDict["uploadFinished"])]["job_type"]=="file_upload")
         assert(response.json()[str(self.jobIdDict["uploadFinished"])]["file_type"]=="award")
@@ -166,20 +167,6 @@ class FileTests(BaseTest):
         self.utils.login()
         finalizeResponse = self.utils.postRequest("/v1/finalize_job/",jobJson)
         assert(finalizeResponse.status_code == 200)
-
-    def check_validator(self, jobId):
-        """ Manually check validation of jobId, will not work if broker validates automatically """
-        proxy = ManagerProxy()
-        # Get the ID of the validation job dependent on this upload job
-        self.uploadFile("test1.csv","1")
-        jobTracker = InterfaceHolder.JOB_TRACKER
-        validationId = jobTracker.getDependentJobs(jobId)
-        assert(len(validationId) == 1) # Should only be one job directly dependent on upload
-        self.response = proxy.sendJobRequest(validationId[0])
-
-        assert(self.response.status_code == 400)
-
-
 
     @staticmethod
     def uploadFileByURL(s3FileName,filename):
@@ -232,7 +219,7 @@ class FileTests(BaseTest):
         utils.login()
 
         self.setupJobsForReports()
-        response = utils.postRequest("/v1/submission_error_reports/",'{"submission_id":11}')
+        response = utils.postRequest("/v1/submission_error_reports/",'{"submission_id":'+str(self.ERROR_REPORT_SUBMISSION_ID)+'}')
         #clearJobs()  # Clear job DB again so sequence errors don't occur
         assert(response.status_code == 200)
         assert(len(response.json()) == 4)
@@ -249,7 +236,7 @@ class FileTests(BaseTest):
             assert(len(response.json()[type_file]) == 0)
 
 
-    def test_meterics(self):
+    def test_metrics(self):
         #setup the database for the route test
         submissionId = str(self.insertSubmission(self.jobTracker))
 
