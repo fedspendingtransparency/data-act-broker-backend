@@ -17,7 +17,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 
 setup(
-    name='Data Act Validator',
+    name='dataactvalidator',
     version='0.0.1',
     description='Validation service for the Data Act Broker',
     long_description=long_description,
