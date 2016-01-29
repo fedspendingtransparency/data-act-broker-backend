@@ -22,7 +22,7 @@ def baseScript():
 		if "-start" in sys.argv:
 			startValidator()
 	else:
-		
+		"Please enter an argument."
 
 
 def initialize():
