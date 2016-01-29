@@ -19,7 +19,7 @@ def setupValidationDB( hardReset = False):
         "DROP SEQUENCE IF EXISTS fieldTypesSerial",
         "DROP SEQUENCE IF EXISTS fileColumnSerial",
         "DROP SEQUENCE IF EXISTS ruleIdSerial",
-        "DROP SEQUENCE IF EXISTS multiFieldRuleIdSerial"
+        "DROP SEQUENCE IF EXISTS multiFieldRuleIdSerial",
         "DROP SEQUENCE IF EXISTS tasIdSerial;"
     ]
 
