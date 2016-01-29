@@ -35,8 +35,8 @@ def initialize():
 
 def configValidator():
 	ConfigureValidator.promptWebservice()
-    ConfigureValidator.promptForAppropriations()
-    ConfigureValidator.promptForTAS()
+	ConfigureValidator.promptForAppropriations()
+	ConfigureValidator.promptForTAS()
 
 def configAWS():
 	ConfigureCore.promtS3()
