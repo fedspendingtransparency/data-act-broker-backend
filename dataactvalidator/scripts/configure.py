@@ -1,6 +1,12 @@
 import os
 import inspect
 import json
+import sys
+from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
+from dataactvalidator.filestreaming.tasLoader import TASLoader
+from dataactcore.scripts.databaseSetup import runCommands
+from dataactcore.models.validationInterface import ValidationInterface
+
 
 class ConfigureValidator(object):
     """
@@ -30,6 +36,39 @@ class ConfigureValidator(object):
             return True
         return False
 
+
+    @staticmethod
+    def promptForAppropriations():
+        if(ConfigureValidator.questionPrompt("Would you like to configure your appropriations rules? (y/n) : ")):
+            path = raw_input("Enter the full file path for your schema (appropriationsFields.csv) : " ).strip()
+            SchemaLoader.loadFields("appropriations",path)
+
+            try :
+                SchemaLoader.loadFields("appropriations",path)
+            except IOError as e:
+                print "Cant open file"
+            except :
+                  print "Unexpected error:", sys.exc_info()[0]
+            path = raw_input("Enter the full file path for your rules (appropriationsRules.csv) :  " ).strip()
+
+            try :
+                SchemaLoader.loadRules("appropriations",path)
+            except IOError as e:
+                print "Cant open file"
+            except :
+                  print "Unexpected error:", sys.exc_info()[0]
+    @staticmethod
+    def promptForTAS():
+        if(ConfigureValidator.questionPrompt("Would you like to add a new TAS File? (y/n) : ")):
+
+            path = raw_input("Enter the full file path for your TAS data (all_tas_betc.csv) : " ).strip()
+            try :
+                TASLoader.loadFields(path)
+                setupTASIndexs()
+            except IOError as e:
+                print "Cant open file"
+            except :
+                 print "Unexpected error:", sys.exc_info()[0]
     @staticmethod
     def promptWebservice():
         """Promts user validator web service"""
@@ -51,3 +90,5 @@ class ConfigureValidator(object):
 
 if __name__ == '__main__':
     ConfigureValidator.promptWebservice()
+    ConfigureValidator.promptForAppropriations()
+    ConfigureValidator.promptForTAS()
