@@ -31,10 +31,13 @@ def initialize():
 	configDB()
 	configValidator()
 	resetDB()
+	loadValidator()
 	print "The validator has been initialized. You may now run the validator with the -start argument."
 
 def configValidator():
 	ConfigureValidator.promptWebservice()
+
+def loadValidator():
 	ConfigureValidator.promptForAppropriations()
 	ConfigureValidator.promptForTAS()
 
