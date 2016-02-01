@@ -6,7 +6,7 @@ from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.tasLoader import TASLoader
 from dataactcore.scripts.databaseSetup import runCommands
 from dataactcore.models.validationInterface import ValidationInterface
-from dataactvalidator.scripts.setupTASIndexs import setupTASIndexs 
+from dataactvalidator.scripts.setupTASIndexs import setupTASIndexs
 
 
 class ConfigureValidator(object):
@@ -42,13 +42,11 @@ class ConfigureValidator(object):
     def promptForAppropriations():
         if(ConfigureValidator.questionPrompt("Would you like to configure your appropriations rules? (y/n) : ")):
             path = raw_input("Enter the full file path for your schema (appropriationsFields.csv) : " ).strip()
-            SchemaLoader.loadFields("appropriations",path)
-
             try :
                 SchemaLoader.loadFields("appropriations",path)
             except IOError as e:
                 print "Cant open file"
-            except :
+            except Exception as e:
                   print "Unexpected error:", sys.exc_info()[0]
             path = raw_input("Enter the full file path for your rules (appropriationsRules.csv) :  " ).strip()
 
@@ -56,7 +54,7 @@ class ConfigureValidator(object):
                 SchemaLoader.loadRules("appropriations",path)
             except IOError as e:
                 print "Cant open file"
-            except :
+            except Exception as e:
                   print "Unexpected error:", sys.exc_info()[0]
     @staticmethod
     def promptForTAS():
@@ -68,7 +66,7 @@ class ConfigureValidator(object):
                 setupTASIndexs()
             except IOError as e:
                 print "Cant open file"
-            except :
+            except Exception as e:
                  print "Unexpected error:", sys.exc_info()[0]
     @staticmethod
     def promptWebservice():

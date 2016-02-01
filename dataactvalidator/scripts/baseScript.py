@@ -13,6 +13,8 @@ def baseScript():
 			initialize()
 		if "-configValidator" in sys.argv:
 			configValidator()
+		if "-loadValidator" in sys.argv:
+			loadValidator()
 		if "-configAWS" in sys.argv:
 			configAWS()
 		if "-configDB" in sys.argv:
@@ -22,7 +24,7 @@ def baseScript():
 		if "-start" in sys.argv:
 			startValidator()
 	else:
-		print "Please enter an argument."
+		print ("Please enter an argument.")
 
 
 def initialize():
@@ -32,7 +34,7 @@ def initialize():
 	configValidator()
 	resetDB()
 	loadValidator()
-	print "The validator has been initialized. You may now run the validator with the -start argument."
+	print ("The validator has been initialized. You may now run the validator with the -start argument.")
 
 def configValidator():
 	ConfigureValidator.promptWebservice()
