@@ -10,6 +10,7 @@ class CsvWriter(object):
     """
 
     BUFFER_SIZE =  (5 * 1024 ** 2)
+    BATCH_SIZE = 100
 
     def __init__(self,bucket,filename,header) :
         """
@@ -21,8 +22,10 @@ class CsvWriter(object):
         header - list of strings for the header
 
         """
+        self.rows = []
         self.stream = smart_open.smart_open("s3://"+bucket+"/"+filename, 'wb',min_part_size=CsvWriter.BUFFER_SIZE)
         self.write(header)
+
 
     @staticmethod
     def doesFileExist(bucket,filename) :
@@ -49,10 +52,22 @@ class CsvWriter(object):
         Adds a row of csv into the S3 stream
 
         """
+
+        self.rows.append(dataList)
+        if(len(self.rows) > self.BATCH_SIZE):
+            ioStream = io.BytesIO()
+            csvFormatter = csv.writer(ioStream)
+            csvFormatter.writerows(self.rows)
+            self.stream.write(ioStream.getvalue())
+            self.rows = []
+
+    def finishBatch(self):
+        """ Write the last unfinished batch """
         ioStream = io.BytesIO()
         csvFormatter = csv.writer(ioStream)
-        csvFormatter.writerow(dataList)
+        csvFormatter.writerows(self.rows)
         self.stream.write(ioStream.getvalue())
+        self.rows = []
 
     def __enter__(self) :
         """

@@ -9,7 +9,7 @@ class Validator(object):
     """
     Checks individual records against specified validation tests
     """
-    IS_INTERGER  = re.compile(r"^[-]?\d+$")
+    IS_INTERGER  = re.compile(r"^[-]?\d*$")
     IS_DECIMAL  = re.compile(r"^[-]?((\d+(\.\d*)?)|(\.\d+))$")
     FIELD_LENGTH = {"allocationtransferrecipientagencyid":3, "appropriationaccountresponsibleagencyid":3, "obligationavailabilityperiodstartfiscalyear":4, "obligationavailabilityperiodendfiscalyear":4,"appropriationmainaccountcode":4, "appropriationsubaccountcode":3, "obligationunlimitedavailabilityperiodindicator":1}
 
