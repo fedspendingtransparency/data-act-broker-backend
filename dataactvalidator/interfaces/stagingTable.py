@@ -5,8 +5,8 @@ from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 class StagingTable(object):
     """ Represents a staging table used for a single job """
 
-    BATCH_INSERT = False
-    INSERT_BY_ORM = True
+    BATCH_INSERT = True
+    INSERT_BY_ORM = False
     BATCH_SIZE = 100
 
     def __init__(self):
@@ -22,7 +22,7 @@ class StagingTable(object):
         Returns:
         tableName if created, exception otherwise
         """
-        if(tableName==None):
+        if(tableName == None):
             tableName = "job"+str(jobId)
         self.name = tableName
 
