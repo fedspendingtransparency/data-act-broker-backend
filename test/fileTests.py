@@ -3,7 +3,7 @@ import unittest
 from handlers.managerProxy import ManagerProxy
 from test.baseTest import BaseTest
 from test.testUtils import TestUtils
-from dataactcore.scripts.createJobTables import createJobTables
+from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.clearJobs import clearJobs
 from handlers.interfaceHolder import InterfaceHolder
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
