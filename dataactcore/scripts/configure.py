@@ -42,7 +42,7 @@ class ConfigureCore(object):
         return False
 
     @staticmethod
-    def promtS3():
+    def promptS3():
         """Promts user for input for S3 Setup"""
         if(ConfigureCore.questionPrompt("Would you like to configure your S3 connection? (y/n) : ")):
             bucket = raw_input("Enter your bucket name :")
@@ -52,7 +52,7 @@ class ConfigureCore(object):
                 bucketFile.write(json)
 
     @staticmethod
-    def promtDatabase():
+    def promptDatabase():
         """Promts user for database setup"""
         if(ConfigureCore.questionPrompt("Would you like to configure your database connection? (y/n) : ")):
             host = raw_input("Enter your database address :")
@@ -67,5 +67,5 @@ class ConfigureCore(object):
                 bucketFile.write(json)
 
 if __name__ == '__main__':
-    ConfigureCore.promtS3()
-    ConfigureCore.promtDatabase()
+    ConfigureCore.promptS3()
+    ConfigureCore.promptDatabase()

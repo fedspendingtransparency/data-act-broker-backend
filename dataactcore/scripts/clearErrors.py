@@ -29,3 +29,6 @@ def clearErrors():
             # Usually a table exists error, print and continue
             #print(e.message)
             pass
+
+if __name__ == '__main__':
+    clearErrors()
