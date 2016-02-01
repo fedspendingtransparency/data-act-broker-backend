@@ -52,7 +52,7 @@ def resetDB():
 	from dataactcore.scripts.setupErrorDB import setupErrorDB
 	from dataactcore.scripts.setupValidationDB import setupValidationDB
 	import dataactcore.scripts.setupStaging
-	setupJobTrackerDB()
+	setupJobTrackerDB(hardReset=True)
 	setupValidationDB(True)
 	setupErrorDB(True)
 	dataactcore.scripts.setupStaging
