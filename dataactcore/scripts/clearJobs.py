@@ -6,7 +6,7 @@ from sqlalchemy.exc import ProgrammingError
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 
 def clearJobs():
-    """ Use this instead of createJobTables if an app is currently running """
+    """ Use this instead of setupJobTracker.py if an app is currently running """
     credentialsFile = JobTrackerInterface.getCredFilePath()
     dbName = JobTrackerInterface.getDbName()
 

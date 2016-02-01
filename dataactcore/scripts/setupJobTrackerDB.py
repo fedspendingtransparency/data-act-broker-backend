@@ -7,8 +7,9 @@ from dataactcore.scripts.databaseSetup import runCommands
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.models.userInterface import UserInterface
 
-def createJobTables(connection = None):
-    sql = ["DROP TABLE IF EXISTS job_dependency",
+def setupJobTrackerDB(connection = None, hardReset = False):
+    if(hardReset):
+        sql = ["DROP TABLE IF EXISTS job_dependency",
                 "DROP TABLE IF EXISTS job_status",
                 "DROP TABLE IF EXISTS file_type",
                 "DROP TABLE IF EXISTS submission",
@@ -20,8 +21,10 @@ def createJobTables(connection = None):
                 "DROP SEQUENCE IF EXISTS submissionIdSerial",
                 "DROP SEQUENCE IF EXISTS fileTypeSerial",
                 "DROP SEQUENCE IF EXISTS jobIdSerial",
-                "DROP SEQUENCE IF EXISTS dependencyIdSerial",
-                "CREATE TABLE status (status_id integer PRIMARY KEY, name text NOT NULL, description text NOT NULL)",
+                "DROP SEQUENCE IF EXISTS dependencyIdSerial"]
+        runCommands(JobTrackerInterface.getCredDict(),sql,"job_tracker",connection)
+
+    sql = ["CREATE TABLE status (status_id integer PRIMARY KEY, name text NOT NULL, description text NOT NULL)",
                 "CREATE TABLE type (type_id integer PRIMARY KEY, name text NOT NULL, description text NOT NULL)",
                 "CREATE SEQUENCE resourceIdSerial START 1",
                 "CREATE TABLE resource_status (resource_status_id integer PRIMARY KEY, name text NOT NULL, description text NOT NULL)",
@@ -41,12 +44,15 @@ def createJobTables(connection = None):
                 ]
     runCommands(JobTrackerInterface.getCredDict(),sql,"job_tracker",connection)
 
-    sql = ["DROP TABLE IF EXISTS users",
-                "DROP SEQUENCE IF EXISTS userIdSerial",
+    if(hardReset):
+        sql = ["DROP TABLE IF EXISTS users"]
+        runCommands(UserInterface.getCredDict(),sql,"user_manager")
+
+    sql = ["DROP SEQUENCE IF EXISTS userIdSerial",
                 "CREATE SEQUENCE userIdSerial START 1",
                 "CREATE TABLE users (user_id integer PRIMARY KEY DEFAULT nextval('userIdSerial'), username text)"]
 
     runCommands(UserInterface.getCredDict(),sql,"user_manager")
 
 if __name__ == '__main__':
-    createJobTables()
+    setupJobTrackerDB(hardReset = False)

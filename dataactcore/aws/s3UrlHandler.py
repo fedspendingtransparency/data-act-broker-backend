@@ -84,7 +84,7 @@ class s3UrlHandler:
         """ Returns True if specified filename exists in the S3 bucket """
         # Get key
         s3connection = boto.connect_s3()
-        bucket = s3connection.get_bucket(s3UrlHandler.getBucketNameFromConfig())
+        bucket = s3connection.get_bucket(s3UrlHandler.getValueFromConfig("bucket"))
         key = bucket.get_key(filename)
         if(key == None):
             return False

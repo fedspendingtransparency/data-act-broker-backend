@@ -20,7 +20,7 @@ You will also need to have setup a Postgres database to be used by the broker. I
 After creating the Postgres database and credentials file, several setup scripts should be run to create the databases and tables that will be used by the broker. In your data-act-core installation, there will be a folder [dataactcore/scripts/](https://github.com/fedspendingtransparency/data-act-core/dataactcore/scripts). In this folder, run the following python scripts:
 
 ```bash
-$ python createJobTables.py
+$ python setupJobTrackerDB.py
 
 $ python setupErrorDB.py
 
