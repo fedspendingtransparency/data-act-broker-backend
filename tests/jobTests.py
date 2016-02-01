@@ -26,6 +26,7 @@ class JobTests(unittest.TestCase):
     JSON_HEADER = {"Content-Type": "application/json"}
     TABLE_POPULATED = False  # Gets set to true by the first test to populate the tables
     DROP_TABLES = False  # If true, staging tables are dropped after tests are run
+    DROP_OLD_TABLES = False # If true, attempts to drop staging tables from previous runs
     USE_THREADS = False
     INCLUDE_LONG_TESTS = False
     UPLOAD_FILES = True
@@ -141,25 +142,27 @@ class JobTests(unittest.TestCase):
 
                 validationDB.runStatement(ruleStatement)
 
-            try:
-                firstJob = open(self.LAST_CLEARED_FILE,"r").read()
-            except:
-                # If anything goes wrong, just clear from 0
-                firstJob = 0
-            try:
-                if(int(firstJob) > minJob):
-                    # This probably means sequence got reset and we started from 0, so clear all up to lastJob
+            if(self.DROP_OLD_TABLES):
+                try:
+                    firstJob = open(self.LAST_CLEARED_FILE,"r").read()
+                except:
+                    # If anything goes wrong, just clear from 0
                     firstJob = 0
-            except:
-                # Could not cast as int
-                firstJob = 0
+                try:
+                    if(int(firstJob) > minJob):
+                        # This probably means sequence got reset and we started from 0, so clear all up to lastJob
+                        firstJob = 0
+                except:
+                    # Could not cast as int
+                    firstJob = 0
 
-            print("Dropping staging tables from " + str(firstJob) + " to " + str(lastJob))
-            # Remove existing tables from staging if they exist
-            for jobId in range(int(firstJob)+1, lastJob+1):
-                self.stagingDb.dropTable("job"+str(jobId))
 
-            open(self.LAST_CLEARED_FILE,"w").write(str(lastJob))
+                print("Dropping staging tables from " + str(firstJob) + " to " + str(lastJob))
+                # Remove existing tables from staging if they exist
+                for jobId in range(int(firstJob)+1, lastJob+1):
+                    self.stagingDb.dropTable("job"+str(jobId))
+
+                open(self.LAST_CLEARED_FILE,"w").write(str(lastJob))
             JobTests.TABLE_POPULATED = True
         else:
             self.stagingDb = InterfaceHolder.STAGING

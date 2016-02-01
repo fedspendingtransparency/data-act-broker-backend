@@ -182,6 +182,9 @@ class ValidationManager:
                             errorMsg = error
                         writer.write([fieldName,errorMsg,str(rowNumber),failedValue])
                         errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber)
+            # Write unfinished batch
+            writer.finishBatch()
+
         # Write leftover records
         tableObject.endBatch()
         # Mark validation as finished in job tracker

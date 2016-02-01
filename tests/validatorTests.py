@@ -14,8 +14,8 @@ class ValidatorTests(unittest.TestCase) :
         assert(not Validator.checkType("1234Test","BOOLEAN")), "Invalid Type"
 
         assert(not Validator.checkType("","STRING")), "Valid Type"
-        assert(not Validator.checkType("","INT")), "Valid Type"
-        assert( not Validator.checkType("","DECIMAL")), "Valid Type"
+        assert(Validator.checkType("","INT")), "Valid Type"
+        assert(Validator.checkType("","DECIMAL")), "Valid Type"
         assert(not Validator.checkType("","BOOLEAN")), "Valid Type"
 
         assert( Validator.checkType("01234","STRING")), "Valid Type"
