@@ -39,7 +39,7 @@ setup(
       'dataactcore==0.0.1','Flask==0.10.1','Decorator==4.0.4','Requests==2.8.1','flask-cors==2.1.2','smart-open==1.3.1',
     ],
     dependency_links=[
-      'git+ssh://git@github.com/fedspendingtransparency/data-act-core.git@configuration#egg=dataactcore-0.0.1',
+      'git+https://git@github.com/fedspendingtransparency/data-act-core.git@configuration#egg=dataactcore-0.0.1',
     ],
     entry_points={
         'console_scripts': [
