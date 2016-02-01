@@ -4,7 +4,11 @@
 
 Before beginning this process, the [data-act-core](https://github.com/fedspendingtransparency/data-act-core) and [data-act-validator](https://github.com/fedspendingtransparency/data-act-validator) repositories should be installed. Please see the [Data Act Installation Guide]() for details on this process.
 
-You will also need to have setup a Postgres database to be used by the broker. Information about this database should be placed in a JSON file in your data-act-core installation located at `dataactcore/credentials/dbCred.json`, containing a JSON dictionary with keys `username`, `password`, `host`, and `port`. Below is an example of what should be in this file: 
+You will also need to have setup a Postgres database to be used by the broker.
+
+[@James - please describe this process / list the commands required to set this up]
+
+Information about this database should be placed in a JSON file in your data-act-core installation located at `dataactcore/credentials/dbCred.json`, containing a JSON dictionary with keys `username`, `password`, `host`, and `port`. Below is an example of what should be in this file: 
 
 ```json
 {
@@ -17,15 +21,12 @@ You will also need to have setup a Postgres database to be used by the broker. I
 
 #### Setup Scripts
 
-After creating the Postgres database and credentials file, several setup scripts should be run to create the databases and tables that will be used by the broker. In your data-act-core installation, there will be a folder [dataactcore/scripts/](https://github.com/fedspendingtransparency/data-act-core/dataactcore/scripts). In this folder, run the following python scripts:
+After creating the Postgres database and credentials file, several setup scripts should be run to create the databases and tables that will be used by the broker. In your data-act-core installation, there will be a folder [dataactcore/scripts/](https://github.com/fedspendingtransparency/data-act-core/dataactcore/scripts). From within this folder, run the following commands:
 
 ```bash
 $ python setupJobTrackerDB.py
-
 $ python setupErrorDB.py
-
 $ python setupStaging.py
-
 $ python setupValidationDB.py
 ```
 
