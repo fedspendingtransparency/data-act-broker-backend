@@ -59,6 +59,7 @@ In addition to the JSON configuration scripts, database creation scripts are loc
 - setupValidationDB (Creates validation databases)
 - setupErrorDB      (Creates the error database)
 - setupStagingDB    (Creates the staging database)
+- setupAllDB        (Creates all of the needed databases)
 
 The order of execution does not matter, as long as each of them are executed.
 
@@ -90,7 +91,7 @@ It would be accessed by:
 
     requestDictionary = RequestDictionary(request)
     value = requestDictionary.getValue("data")
-    
+
 ```
 
 The `JsonResponse` object contains methods for automatically encoding a JSON response
