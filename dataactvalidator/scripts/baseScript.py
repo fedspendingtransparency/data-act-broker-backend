@@ -45,11 +45,11 @@ def configDB():
 	ConfigureCore.promtDatabase()
 
 def resetDB():
-	from dataactcore.scripts.createJobTables import createJobTables
+	from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 	from dataactcore.scripts.setupErrorDB import setupErrorDB
 	from dataactcore.scripts.setupValidationDB import setupValidationDB
 	import dataactcore.scripts.setupStaging
-	createJobTables()
+	setupJobTrackerDB()
 	setupValidationDB(True)
 	setupErrorDB(True)
 	dataactcore.scripts.setupStaging
