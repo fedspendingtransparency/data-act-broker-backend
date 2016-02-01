@@ -22,7 +22,7 @@ def baseScript():
 		if "-start" in sys.argv:
 			startValidator()
 	else:
-		"Please enter an argument."
+		print "Please enter an argument."
 
 
 def initialize():
@@ -42,10 +42,10 @@ def loadValidator():
 	ConfigureValidator.promptForTAS()
 
 def configAWS():
-	ConfigureCore.promtS3()
+	ConfigureCore.promptS3()
 
 def configDB():
-	ConfigureCore.promtDatabase()
+	ConfigureCore.promptDatabase()
 
 def resetDB():
 	from dataactcore.scripts.createJobTables import createJobTables
@@ -63,4 +63,3 @@ def startValidator():
 
 if __name__ == '__main__':
     baseScript()
-
