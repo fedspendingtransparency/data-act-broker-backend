@@ -39,13 +39,16 @@ class BaseInterface(object):
         self.session = self.Session()
 
     def __del__(self):
-        #Close session
-        self.session.close()
-        #self.Session.close_all()
-        self.Session.remove()
-        self.connection.close()
-        self.engine.dispose()
-
+        try:
+            #Close session
+            self.session.close()
+            #self.Session.close_all()
+            self.Session.remove()
+            self.connection.close()
+            self.engine.dispose()
+        except KeyError:
+            # KeyError will occur in Python 3 on engine dispose
+            pass
 
     @classmethod
     def getCredDict(cls):
