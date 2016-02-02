@@ -53,7 +53,7 @@ class StagingTable(object):
         # Create empty dict for field names and values
         classFieldDict = {"__tablename__":tableName}
         # Add each column
-        for key in fields.iterkeys():
+        for key in fields:
             # Build column statement for this key
             # Get correct type name
             fieldTypeName = fields[key].field_type.name
@@ -148,7 +148,7 @@ class StagingTable(object):
                 attributes = self.getPublicMembers(recordOrm)
 
                 # For each field, add value to ORM object
-                for key in record.iterkeys():
+                for key in record:
                     attr = key.replace(" ","_")
                     setattr(recordOrm,attr,record[key])
 
