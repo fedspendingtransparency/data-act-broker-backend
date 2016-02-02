@@ -33,7 +33,7 @@ Each record is checked against the set of rules for the fields present in the fi
 #### Available Validations
 The available rule types are as follows:
 * Type checks - verifies that data fits the specified type
-* Equality - checks that values is equal to a specified value.  Not equal is also available.
+* Equal / Not equal - checks that value is equal to a specified value, or not equal
 * Less than / Greater than - compares value against a specified reference point
 * Length - checks that value is no longer than specified length
 * Set membership - checks that value is one of an allowed set of values  
@@ -66,7 +66,7 @@ The current test suite for the validator may be run by navigating to the tests f
 
 ## Requirements
 
-Data Act Validator is currently being built with Python 2.7.  Before installing the Validator, please install the Data Act Core by following the [Data Act Core Installation Guide](https://github.com/fedspendingtransparency/data-act-core/blob/master/README.md)
+Data Act Validator is currently being built with Python 2.7.   Before installing the Validator, please install the Data Act Core by following the [Data Act Core Installation Guide](https://github.com/fedspendingtransparency/data-act-core/blob/master/README.md).
 
 ## Install dependencies
 
