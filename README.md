@@ -14,7 +14,7 @@ dataactcore/
 
 #### AWS
 
-The `aws/` folder contains all of the common code that uses AWS Boto SDK, which requires the AWS CLI to function correctly. The installation instructions for the AWS CLI can be found in the [DATA Act installation guide](README.md#AWSCLI).
+The `aws/` folder contains all of the common code that uses AWS Boto SDK, which requires the AWS CLI to function correctly. The installation instructions for the AWS CLI can be found in the [DATA Act installation guide](https://github.com/fedspendingtransparency/data-act-validator/tree/configuration/README.md#AWSCLI).
 
 #### Models
 
@@ -45,10 +45,10 @@ Database interfaces are defined for each database used within the project. Each 
 
 The `scripts/` folder contains various python scripts to setup parts of the DATA Act Core
 repository for local installation. These scripts are used by the pip install process
-to provide a seamless setup. See the [DATA Act installation guide]() for more details.
+to provide a seamless setup. See the [DATA Act installation guide](https://github.com/fedspendingtransparency/data-act-validator/tree/configuration/README.md#Install) for more details.
 If needed, these scripts can be run manually to setup an environment.
 
-`configure.py` provides interactive command line contains prompts to set the S3 bucket JSON and database access credentials. The [DATA Act installation guide]() covers the usage of these scripts.
+`configure.py` provides interactive command line prompts to set the S3 bucket JSON and database access credentials. The S3 JSON format can be found in [AWS Setup][].  The databases credentials format can be found in the [Database Setup Guide][].
 
 In addition to the JSON configuration scripts, database creation scripts are located in this folder. When run directly, the following scripts take no parameters and stand up all required tables within each database:
 
@@ -101,13 +101,13 @@ In addition, the static `error` method will auto create a JSON response with the
 
 #### Requirements
 
-Before beginning this process, the [data-act-core](https://github.com/fedspendingtransparency/data-act-core) and [data-act-validator](https://github.com/fedspendingtransparency/data-act-validator) repositories should be installed. Please see the [Data Act Installation Guide]() for details on this process.
+Before beginning this process, the [data-act-core](https://github.com/fedspendingtransparency/data-act-core) and [data-act-validator](https://github.com/fedspendingtransparency/data-act-validator) repositories should be installed.
 
 You will also need to have a PostgreSQL database to be used by the broker.  This can either be a local installation of PostgreSQL, or a remote PostgreSQL database you have access to.
 
 For a local installation, installers can be found at [EnterpriseDB](http://www.enterprisedb.com/products-services-training/pgdownload), we recommend PostgreSQL 9.4.x.  Please take note of your choices for port number and password, as you will need those in the next step.  For other installation options, more complete documentation is available on the PostgreSQL [wiki](https://wiki.postgresql.org/wiki/Detailed_installation_guides).
 
-Information about this database should be placed in a JSON file in your data-act-core installation located at `dataactcore/credentials/dbCred.json`, containing a JSON dictionary with keys `username`, `password`, `host`, and `port`. Below is an example of what should be in this file: 
+Information about this database should be placed in a JSON file in your data-act-core installation located at `dataactcore/credentials/dbCred.json`, containing a JSON dictionary with keys `username`, `password`, `host`, and `port`. Below is an example of what should be in this file:
 
 ```json
 {
@@ -133,7 +133,7 @@ Finally, to prepare the validator to run checks against a specified set of field
 
 For example: `loadApprop.py` may be run to create the included rule set for testing an appropriations file, or you may replace `appropriationsFields.csv` and `appropriationsRules.csv` with custom versions to run a different set of rules.
 
-For Treasury Account Symbol checks, you'll need to get the updated [`all_tas_betc.csv`](https://www.sam.fms.treas.gov/SAMPublicApp/all_tas_betc.csv) file and place that in the [scripts/](https://github.com/fedspendingtransparency/data-act-validator/scripts) folder before running: 
+For Treasury Account Symbol checks, you'll need to get the updated [`all_tas_betc.csv`](https://www.sam.fms.treas.gov/SAMPublicApp/all_tas_betc.csv) file and place that in the [scripts/](https://github.com/fedspendingtransparency/data-act-validator/scripts) folder before running:
 
 ```bash
 $ python loadTas.py
