@@ -63,12 +63,12 @@ def runApp():
         try :
             jobTracker = InterfaceHolder.JOB_TRACKER
         except ResponseException as e:
-            exc = ResponseException(e.message)
+            exc = ResponseException(str(e))
             exc.wrappedException = e
             exc.status = StatusCode.CLIENT_ERROR
             return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
         except Exception as e:
-            exc = ResponseException(e.message)
+            exc = ResponseException(str(e))
             exc.wrappedException = e
             exc.status = StatusCode.INTERNAL_ERROR
             return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
@@ -76,7 +76,7 @@ def runApp():
         try:
             jobId = manager.getJobID(flask.request)
         except ResponseException as e:
-            exc = ResponseException(e.message)
+            exc = ResponseException(str(e))
             exc.wrappedException = e
             exc.status = StatusCode.CLIENT_ERROR
             manager.markJob(jobId,jobTracker,"invalid")
@@ -84,7 +84,7 @@ def runApp():
             errorHandler.writeFileError(jobId,manager.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,{"table":""})
         except Exception as e:
-            exc = ResponseException(e.message)
+            exc = ResponseException(str(e))
             exc.wrappedException = e
             exc.status = StatusCode.CLIENT_ERROR
             manager.markJob(jobId,jobTracker,"invalid")
@@ -95,14 +95,14 @@ def runApp():
         try:
             manager.testJobID(jobId)
         except ResponseException as e:
-            exc = ResponseException(e.message)
+            exc = ResponseException(str(e))
             exc.wrappedException = e
             exc.status = StatusCode.CLIENT_ERROR
             errorHandler = InterfaceHolder.ERROR
             errorHandler.writeFileError(jobId,manager.filename,ValidationError.jobError)
             return JsonResponse.error(exc,exc.status,{"table":""})
         except Exception as e:
-            exc = ResponseException(e.message)
+            exc = ResponseException(str(e))
             exc.wrappedException = e
             exc.status = StatusCode.CLIENT_ERROR
             errorHandler = InterfaceHolder.ERROR
@@ -114,7 +114,7 @@ def runApp():
         try :
             jobTracker.markStatus(jobId,"running")
         except Exception as e:
-            exc = ResponseException(e.message)
+            exc = ResponseException(str(e))
             exc.wrappedException = e
             exc.status = StatusCode.INTERNAL_ERROR
             return JsonResponse.error(exc,exc.status,{"table":"could not start job"})
@@ -130,7 +130,7 @@ def runApp():
             return validationManager.validateJob(request)
         except Exception as e:
             # Something went wrong getting the flask request
-            open("errorLog","a").write(e.message)
+            open("errorLog","a").write(str(e))
             exc = ResponseException("Internal exception")
             exc.status = StatusCode.INTERNAL_ERROR
             exc.wrappedException = e

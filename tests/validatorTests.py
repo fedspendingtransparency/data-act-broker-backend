@@ -83,12 +83,19 @@ class ValidatorTests(unittest.TestCase) :
         column5.required = False
         column5.field_type =intType
 
+        column6 =  FileColumn()
+        column6.file_column_id = 6
+        column6.name= "test6"
+        column6.required = False
+        column6.field_type =stringType
+
         schema =  {
             "test1" :column1,
             "test2" :column2,
             "test3" :column3,
             "test4" :column4,
-            "test5" :column5
+            "test5" :column5,
+            "test6" :column6
         }
         return schema
 
@@ -106,7 +113,7 @@ class ValidatorTests(unittest.TestCase) :
         record["test5"] = ""
 
 
-        assert( Validator.validate(record,[],schema, None)[0]),"Blank optional field is vaild"
+        assert( Validator.validate(record,[],schema, None)[0]),"Blank optional field is valid"
 
         record["test5"] = "s"
         assert(not Validator.validate(record,[],schema, None)[0]),"Incorrect Field Type for optional field"
@@ -126,6 +133,8 @@ class ValidatorTests(unittest.TestCase) :
         equalRule.name = "EQUAL"
         notRule = RuleType()
         notRule.name = "NOT EQUAL"
+        setRule = RuleType()
+        setRule.name = "IN_SET"
 
         schema = self.createSchema()
         rule1 =  Rule()
@@ -165,14 +174,20 @@ class ValidatorTests(unittest.TestCase) :
         rule7.file_column = schema["test2"]
         rule7.rule_text_1  = ".5"
 
+        rule8 = Rule()
+        rule8.rule_type = setRule
+        rule8.file_column = schema["test6"]
+        rule8.rule_text_1 = "X, F, A"
 
-        rules = [rule1,rule2,rule3,rule4,rule5,rule6,rule7]
+
+        rules = [rule1,rule2,rule3,rule4,rule5,rule6,rule7,rule8]
         record = {
             "test1" : "hello" ,
             "test2" : "1.0",
             "test3" :"YES",
             "test4" :"44",
             "test5" :"1",
+            "test6" :"X"
         }
         assert( Validator.validate(record,rules,schema, None)[0]),"Values do not match rules"
 
@@ -182,12 +197,14 @@ class ValidatorTests(unittest.TestCase) :
             "test3" :"NO",
             "test4" :"45",
             "test5" :"1",
+            "test6" :"Q"
         }
         assert( not Validator.validate(record,[rule3],schema, None)[0]),"Rule for test1 passed"
         assert( not Validator.validate(record,[rule4],schema, None)[0]),"Rule for test3 passed"
         assert( not Validator.validate(record,[rule5],schema, None)[0]),"Rule for test4 passed"
         assert( not Validator.validate(record,[rule6],schema, None)[0]),"Rule for test4 passed"
         assert( not Validator.validate(record,[rule7],schema, None)[0]),"Rule for test2 passed"
+        assert( not Validator.validate(record,[rule8],schema, None)[0]),"Rule for test6 passed"
         assert( not Validator.validate(record,rules,schema, None)[0]),"Rules passed"
 if __name__ == '__main__':
     unittest.main()

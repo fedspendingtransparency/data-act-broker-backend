@@ -232,7 +232,7 @@ class ValidationManager:
             errorHandler.writeFileError(jobId,self.filename,e.errorType)
             return JsonResponse.error(e,e.status,{"table":tableName})
         except Exception as e:
-            open("errorLog","a").write(e.message)
+            open("errorLog","a").write(str(e))
             errorHandler = InterfaceHolder.ERROR
             exc = ResponseException("Internal exception")
             exc.status = StatusCode.INTERNAL_ERROR
@@ -273,7 +273,7 @@ class ValidationManager:
             errorHandler.writeFileError(jobId,self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Exception as e:
-            open("errorLog","a").write(e.message)
+            open("errorLog","a").write(str(e))
             errorHandler = InterfaceHolder.ERROR
             exc = ResponseException("Internal exception")
             exc.status = StatusCode.INTERNAL_ERROR
