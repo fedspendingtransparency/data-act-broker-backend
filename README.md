@@ -60,13 +60,13 @@ The available rule types are as follows:
 * `InterfaceHolder` - Container that holds one interface for each database as a static variable to ensure that redundant connections are not created
 
 #### Test cases
-The current test suite for the validator may be run by navigating to the tests folder and running python runTests.py
+The current test suite for the validator may be run by navigating to the tests folder and running "python runTests.py".
 
 # Installation
 
 ## Requirements
 
-Data Act Validator is currently being built with Python 2.7.
+Data Act Validator is currently being built with Python 2.7.  Before installing the Validator, please install the Data Act Core by following the [Data Act Core Installation Guide](https://github.com/fedspendingtransparency/data-act-core/blob/master/README.md)
 
 ## Install dependencies
 
