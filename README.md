@@ -102,6 +102,8 @@ $ sudo pip install --process-dependency-links git+git://github.com/fedspendingtr
 
 Note: we recommend [virtualenv](https://virtualenv.readthedocs.org/en/latest/installation.html) and [virtualenvwrapper](https://virtualenvwrapper.readthedocs.org/en/latest/install.html) to manage Python environments.
 
+#### AWS CLI tools
+
 Then, configure AWS using the CLI tools you installed earlier:
 
 ```bash
