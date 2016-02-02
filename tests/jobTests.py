@@ -35,12 +35,12 @@ class JobTests(unittest.TestCase):
     LAST_CLEARED_FILE = "lastClearedId"
     jobIdDict = {}
     passed = False # Gets set to True by each test that passes
-    testName = None
+    methodName = None
 
     def __init__(self, methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(JobTests, self).__init__(methodName=methodName)
-        self.testName = methodName
+        self.methodName = methodName
 
         if not self.TABLE_POPULATED:
 
@@ -378,7 +378,7 @@ class JobTests(unittest.TestCase):
 
     def tearDown(self):
         if not self.passed:
-            print("Test failed: " + self.testName)
+            print("Test failed: " + self.methodName)
             # Runs only for tests that fail
             print(self.response.status_code)
             print(self.response.json()["errorType"])

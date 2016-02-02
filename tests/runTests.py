@@ -12,23 +12,22 @@ def runTests():
     suite = unittest.TestSuite()
 
     # Get lists of method names
-
-    validatorMethods = inspect.getmembers(ValidatorTests, predicate=inspect.ismethod)
-    jobMethods = inspect.getmembers(JobTests, predicate=inspect.ismethod)
+    validatorMethods = ValidatorTests.__dict__.keys()
+    jobMethods = JobTests.__dict__.keys()
 
     #validatorMethods = []
-    #jobMethods = [] #[["test_valid_job"]]
+    #jobMethods = [] #["test_valid_job"]
 
     for method in validatorMethods:
         # If test method, add to suite
-        if(method[0][0:4] == "test"):
-            test =ValidatorTests(methodName=method[0])
+        if(str(method[0:4]) == "test"):
+            test =ValidatorTests(methodName=method)
             suite.addTest(test)
 
     for method in jobMethods:
         # If test method, add to suite
-        if(method[0][0:4] == "test"):
-            test =JobTests(methodName=method[0])
+        if(method[0:4] == "test"):
+            test =JobTests(methodName=method)
             suite.addTest(test)
 
 
@@ -46,20 +45,20 @@ def runTests():
         result = runner.run(suite)
 
     appropSuite = unittest.TestSuite()
-    appropMethods = inspect.getmembers(AppropTests, predicate=inspect.ismethod)
-    #appropMethods = [["test_tas_mixed"]]
+    appropMethods = AppropTests.__dict__.keys()
+    #appropMethods = ["test_tas_mixed"]
 
     for method in appropMethods:
         # If test method, add to suite
-        if(method[0][0:4] == "test"):
-            test =AppropTests(methodName=method[0])
+        if(method[0:4] == "test"):
+            test =AppropTests(methodName=method)
             appropSuite.addTest(test)
 
     appropResult = runner.run(appropSuite)
 
 
 if __name__ == '__main__':
-    #runTests()
-    cProfile.run("runTests()","stats")
-    stats = pstats.Stats("stats")
-    stats.sort_stats("cumulative").print_stats(100)
+    runTests()
+    #cProfile.run("runTests()","stats")
+    #stats = pstats.Stats("stats")
+    #stats.sort_stats("cumulative").print_stats(100)
