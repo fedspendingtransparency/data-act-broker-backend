@@ -40,21 +40,21 @@ class JsonResponse :
         for key in extraDict.iterkeys():
             responseDict[key] = extraDict[key]
         if(JsonResponse.debugMode):
-            responseDict["message"] = exception.message
+            responseDict["message"] = str(exception)
             responseDict["errorType"] = str(type(exception))
             if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):
                 responseDict["wrappedType"] = str(type(exception.wrappedException))
-                responseDict["wrappedMessage"] = exception.wrappedException.message
+                responseDict["wrappedMessage"] = str(exception.wrappedException)
             exc_type, exc_obj, exc_tb = sys.exc_info()
             trace = traceback.extract_tb(exc_tb, 10)
             responseDict["trace"] = trace
             if(JsonResponse.printDebug):
                 print(str(type(exception)))
-                print(exception.message)
+                print(str(exception))
                 print(trace)
             if(JsonResponse.logDebug):
                 open("responseErrorLog","a").write(str(type(exception)))
-                open("responseErrorLog","a").write(exception.message)
+                open("responseErrorLog","a").write(str(exception))
                 open("responseErrorLog","a").write(trace)
             del exc_tb
             return JsonResponse.create(errorCode, responseDict)
