@@ -120,7 +120,7 @@ Information about this database should be placed in a JSON file in your data-act
 
 #### Setup Scripts
 
-After creating the Postgres database and credentials file, several setup scripts should be run to create the databases and tables that will be used by the broker. In your data-act-core installation, there will be a folder [dataactcore/scripts/](https://github.com/fedspendingtransparency/data-act-core/tree/master/dataactcore/scripts). From within this folder, run the following commands:
+After creating the Postgres database and credentials file, several setup scripts should be run to create the databases and tables that will be used by the broker. In your data-act-core installation, there will be a folder [dataactcore/scripts/](https://github.com/fedspendingtransparency/data-act-core/tree/configuration/dataactcore/scripts). From within this folder, run the following commands:
 
 ```bash
 $ python setupJobTrackerDB.py
@@ -129,11 +129,11 @@ $ python setupStaging.py
 $ python setupValidationDB.py
 ```
 
-Finally, to prepare the validator to run checks against a specified set of fields and rules, your `data-act-validator` installation will have a [scripts/](https://github.com/fedspendingtransparency/data-act-validator/tree/master/dataactvalidator/scripts) folder containing scripts to create the rule sets for testing.
+Finally, to prepare the validator to run checks against a specified set of fields and rules, your `data-act-validator` installation will have a [scripts/](https://github.com/fedspendingtransparency/data-act-validator/tree/configuration/dataactvalidator/scripts) folder containing scripts to create the rule sets for testing.
 
 For example: `loadApprop.py` may be run to create the included rule set for testing an appropriations file, or you may replace `appropriationsFields.csv` and `appropriationsRules.csv` with custom versions to run a different set of rules.
 
-For Treasury Account Symbol checks, you'll need to get the updated [`all_tas_betc.csv`](https://www.sam.fms.treas.gov/SAMPublicApp/all_tas_betc.csv) file and place that in the [scripts/](https://github.com/fedspendingtransparency/data-act-validator/scripts) folder before running:
+For Treasury Account Symbol checks, you'll need to get the updated [`all_tas_betc.csv`](https://www.sam.fms.treas.gov/SAMPublicApp/all_tas_betc.csv) file and place that in the [scripts/](https://github.com/fedspendingtransparency/data-act-validator/tree/configuration/dataactvalidator/scripts) folder before running:
 
 ```bash
 $ python loadTas.py
