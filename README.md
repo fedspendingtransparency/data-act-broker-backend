@@ -66,7 +66,7 @@ The current test suite for the validator may be run by navigating to the tests f
 
 ## Requirements
 
-Data Act Validator is currently being built with Python 2.7.   Before installing the Validator, please install the Data Act Core by following the [Data Act Core Installation Guide](https://github.com/fedspendingtransparency/data-act-core/blob/master/README.md).
+Data Act Validator is currently being built with Python 2.7.   Before installing the Validator, please install the Data Act Core by following the [Data Act Core Installation Guide](https://github.com/fedspendingtransparency/data-act-core/blob/configuration/README.md).
 
 ## Install dependencies
 
