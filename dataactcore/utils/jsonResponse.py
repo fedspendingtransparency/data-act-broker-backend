@@ -37,7 +37,7 @@ class JsonResponse :
             Http response object containing specified error
         """
         responseDict = {}
-        for key in extraDict.iterkeys():
+        for key in extraDict:
             responseDict[key] = extraDict[key]
         if(JsonResponse.debugMode):
             responseDict["message"] = str(exception)
