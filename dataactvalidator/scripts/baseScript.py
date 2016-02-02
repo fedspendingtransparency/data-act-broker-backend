@@ -6,9 +6,10 @@ import os
 
 
 def baseScript():
-# for arg in sys.argv:
-# 	print arg
-	if len(sys.argv) > 1:
+	if ( os.getuid() != 0) :
+		print ("Please run this script with sudo")
+
+	if(len(sys.argv) > 1):
 		if "-initialize" in sys.argv:
 			initialize()
 		if "-configValidator" in sys.argv:
