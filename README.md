@@ -48,7 +48,7 @@ repository for local installation. These scripts are used by the pip install pro
 to provide a seamless setup. See the [DATA Act installation guide](https://github.com/fedspendingtransparency/data-act-validator/tree/configuration/README.md#Install) for more details.
 If needed, these scripts can be run manually to setup an environment.
 
-`configure.py` provides interactive command line prompts to set the S3 bucket JSON and database access credentials. The S3 JSON format can be found in [AWS Setup][#aws-setup].  The databases credentials format can be found in the [Database Setup Guide](#database-setup-guide).
+`configure.py` provides interactive command line prompts to set the S3 bucket JSON and database access credentials. The S3 JSON format can be found in [AWS Setup](#aws-setup).  The databases credentials format can be found in the [Database Setup Guide](#database-setup-guide).
 
 In addition to the JSON configuration scripts, database creation scripts are located in this folder. When run directly, the following scripts take no parameters and stand up all required tables within each database:
 
