@@ -59,8 +59,8 @@ The available rule types are as follows:
 * `StagingTable` - Used to create a new table for each job and manage writes to that table
 * `InterfaceHolder` - Container that holds one interface for each database as a static variable to ensure that redundant connections are not created
 
-#### Test cases
-The current test suite for the validator may be run by navigating to the tests folder and running "python runTests.py".
+#### Test Cases
+Before running test cases, start the Flask app by running "python app.py" in the dataactvalidator folder.  The current test suite for the validator may then be run by navigating to the tests folder and running "python runTests.py".
 
 # Installation
 
