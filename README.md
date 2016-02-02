@@ -12,15 +12,15 @@ Example input: None
 Example output: `Validator is running`
 
 ##### POST `/validate/`
-Called to apply validation rules to a specified job ID.  Valid records will be written to the staging database, and errors will be listed in the error report and summarized in the error database.
+Called to apply validation rules to a specified job ID.  Expects a JSON with key "job_id" specifying which job to validate.  Valid records will be written to the staging database, and errors will be listed in the error report and summarized in the error database.
 
-Example input: `{"job_id":3664}`
+Example input: `{"job_id":3664}`  
 Example output: None (status 200 if successful)
 
 ##### POST `/validate_threaded/`
 Same as validate route, but launches validation in a separate thread and immediately returns 200.  Success or failure of the validation should then be determined from the job tracker database.  
 
-Example input: `{"job_id":3664}` 
+Example input: `{"job_id":3664}`  
 Example output: None
 
 #### Process Overview
