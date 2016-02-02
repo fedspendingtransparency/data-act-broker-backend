@@ -6,7 +6,7 @@ Before beginning this process, the [data-act-core](https://github.com/fedspendin
 
 You will also need to have a PostgreSQL database to be used by the broker.  This can either be a local installation of PostgreSQL, or a remote PostgreSQL database you have access to.
 
-For a local installation, installers can be found at [EnterpriseDB](http://www.enterprisedb.com/products-services-training/pgdownload), we recommend PostgreSQL 9.4.x.  Please take note of your choices for port number and password, as you will need those in the next step.  For other installation options, more complete documentation is available on the PostgreSQL [wiki](https://wiki.postgresql.org/wiki/Detailed_installation_guides)
+For a local installation, installers can be found at [EnterpriseDB](http://www.enterprisedb.com/products-services-training/pgdownload), we recommend PostgreSQL 9.4.x.  Please take note of your choices for port number and password, as you will need those in the next step.  For other installation options, more complete documentation is available on the PostgreSQL [wiki](https://wiki.postgresql.org/wiki/Detailed_installation_guides).
 
 Information about this database should be placed in a JSON file in your data-act-core installation located at `dataactcore/credentials/dbCred.json`, containing a JSON dictionary with keys `username`, `password`, `host`, and `port`. Below is an example of what should be in this file: 
 
