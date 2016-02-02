@@ -14,7 +14,7 @@ dataactcore/
 
 #### AWS
 
-The `aws/` folder contains all of the common code that uses AWS Boto SDK, which requires the AWS CLI to function correctly. The installation instructions for the AWS CLI can be found in the [DATA Act installation guide](https://github.com/fedspendingtransparency/data-act-validator/tree/configuration/README.md#AWSCLI).
+The `aws/` folder contains all of the common code that uses AWS Boto SDK, which requires the AWS CLI to function correctly. The installation instructions for the AWS CLI can be found in the [DATA Act installation guide](https://github.com/fedspendingtransparency/data-act-validator/tree/configuration/README.md#aws-cli-tools).
 
 #### Models
 
@@ -45,7 +45,7 @@ Database interfaces are defined for each database used within the project. Each 
 
 The `scripts/` folder contains various python scripts to setup parts of the DATA Act Core
 repository for local installation. These scripts are used by the pip install process
-to provide a seamless setup. See the [DATA Act installation guide](https://github.com/fedspendingtransparency/data-act-validator/tree/configuration/README.md#Install) for more details.
+to provide a seamless setup. See the [DATA Act installation guide](https://github.com/fedspendingtransparency/data-act-validator/tree/configuration/README.md#Installation) for more details.
 If needed, these scripts can be run manually to setup an environment.
 
 `configure.py` provides interactive command line prompts to set the S3 bucket JSON and database access credentials. The S3 JSON format can be found in [AWS Setup](#aws-setup).  The databases credentials format can be found in the [Database Setup Guide](#database-setup-guide).
@@ -120,7 +120,7 @@ Information about this database should be placed in a JSON file in your data-act
 
 #### Setup Scripts
 
-After creating the Postgres database and credentials file, several setup scripts should be run to create the databases and tables that will be used by the broker. In your data-act-core installation, there will be a folder [dataactcore/scripts/](https://github.com/fedspendingtransparency/data-act-core/dataactcore/scripts). From within this folder, run the following commands:
+After creating the Postgres database and credentials file, several setup scripts should be run to create the databases and tables that will be used by the broker. In your data-act-core installation, there will be a folder [dataactcore/scripts/](https://github.com/fedspendingtransparency/data-act-core/tree/master/dataactcore/scripts). From within this folder, run the following commands:
 
 ```bash
 $ python setupJobTrackerDB.py
@@ -129,7 +129,7 @@ $ python setupStaging.py
 $ python setupValidationDB.py
 ```
 
-Finally, to prepare the validator to run checks against a specified set of fields and rules, your `data-act-validator` installation will have a [scripts/](https://github.com/fedspendingtransparency/data-act-validator/scripts) folder containing scripts to create the rule sets for testing.
+Finally, to prepare the validator to run checks against a specified set of fields and rules, your `data-act-validator` installation will have a [scripts/](https://github.com/fedspendingtransparency/data-act-validator/tree/master/dataactvalidator/scripts) folder containing scripts to create the rule sets for testing.
 
 For example: `loadApprop.py` may be run to create the included rule set for testing an appropriations file, or you may replace `appropriationsFields.csv` and `appropriationsRules.csv` with custom versions to run a different set of rules.
 
