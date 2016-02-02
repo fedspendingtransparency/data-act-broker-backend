@@ -45,7 +45,7 @@ Database interfaces are defined for each database used within the project. Each 
 
 The `scripts/` folder contains various python scripts to setup parts of the DATA Act Core
 repository for local installation. These scripts are used by the pip install process
-to provide a seamless setup. See the [DATA Act installation guide](https://github.com/fedspendingtransparency/data-act-validator/tree/configuration/README.md#Installation) for more details.
+to provide a seamless setup. See the [DATA Act installation guide](https://github.com/fedspendingtransparency/data-act-validator/tree/configuration/README.md#installation) for more details.
 If needed, these scripts can be run manually to setup an environment.
 
 `configure.py` provides interactive command line prompts to set the S3 bucket JSON and database access credentials. The S3 JSON format can be found in [AWS Setup](#aws-setup).  The databases credentials format can be found in the [Database Setup Guide](#database-setup-guide).
