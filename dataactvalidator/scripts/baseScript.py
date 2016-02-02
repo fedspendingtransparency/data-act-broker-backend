@@ -3,26 +3,36 @@ from dataactvalidator.scripts.configure import ConfigureValidator
 from dataactcore.utils.jsonResponse import JsonResponse
 import sys
 import os
-
+import argparse
 
 def baseScript():
 	if ( os.getuid() != 0) :
 		print ("Please run this script with sudo")
 
+	parser = argparse.ArgumentParser()
+	parser.add_argument("-i", "--initialize", action="store_true",help="Runs all of the setup options")
+	parser.add_argument("-c", "--configValidator", action="store_true",help="Configures validator settings" )
+	parser.add_argument("-l", "--loadValidator", action="store_true",help="Loads validator Schema files and rules" )
+	parser.add_argument("-cdb", "--configDB", action="store_true",help="Configures database connection" )
+	parser.add_argument("-aws","--configAWS", action="store_true",help="Configures AWS settings" )
+	parser.add_argument("-db", "--setupDB", action="store_true",help="Creates the database schema" )
+	parser.add_argument("-s", "--start", action="store_true",help="Starts the validator" )
+	args = parser.parse_args()
+
 	if(len(sys.argv) > 1):
-		if "-initialize" in sys.argv:
+		if args.initialize:
 			initialize()
-		if "-configValidator" in sys.argv:
+		if args.configValidator:
 			configValidator()
-		if "-loadValidator" in sys.argv:
+		if args.loadValidator:
 			loadValidator()
-		if "-configAWS" in sys.argv:
+		if args.configAWS:
 			configAWS()
-		if "-configDB" in sys.argv:
+		if args.configDB:
 			configDB()
-		if "-resetDB" in sys.argv:
+		if args.setupDB:
 			resetDB()
-		if "-start" in sys.argv:
+		if args.start:
 			startValidator()
 	else:
 		print ("Please enter an argument.")
