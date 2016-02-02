@@ -30,6 +30,14 @@ The file location on S3 is specified in the job tracker, and the validator strea
 
 Each record is checked against the set of rules for the fields present in the file.  If a record passes all rules, it goes into the staging database.  Otherwise, each failed rule goes into the error report, and a running sum is kept of error occurrences for each rule, which are written to the error database after all rows have been checked.  Finally, the job is marked as finished in the job tracker, the file is marked completed in the error database.
 
+#### Available Validations
+The available rule types are as follows:
+* Type checks - verifies that data fits the specified type
+* Equality - checks that values is equal to a specified value.  Not equal is also available.
+* Less than / Greater than - compares value against a specified reference point
+* Length - checks that value is no longer than specified length
+* Set membership - checks that value is one of an allowed set of values  
+
 #### Class Descriptions
 
 ##### Validation Handlers
@@ -51,11 +59,14 @@ Each record is checked against the set of rules for the fields present in the fi
 * `StagingTable` - Used to create a new table for each job and manage writes to that table
 * `InterfaceHolder` - Container that holds one interface for each database as a static variable to ensure that redundant connections are not created
 
+#### Test cases
+The current test suite for the validator may be run by navigating to the tests folder and running python runTests.py
+
 # Installation
 
 ## Requirements
 
-Data Act Core is currently being built with Python 2.7.
+Data Act Validator is currently being built with Python 2.7.
 
 ## Install dependencies
 
