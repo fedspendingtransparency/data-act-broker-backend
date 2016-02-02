@@ -4,15 +4,15 @@
 
 Before beginning this process, the [data-act-core](https://github.com/fedspendingtransparency/data-act-core) and [data-act-validator](https://github.com/fedspendingtransparency/data-act-validator) repositories should be installed. Please see the [Data Act Installation Guide]() for details on this process.
 
-You will also need to have setup a Postgres database to be used by the broker.
+You will also need to have a PostgreSQL database to be used by the broker.  This can either be a local installation of PostgreSQL, or a remote PostgreSQL database you have access to.
 
-[@James - please describe this process / list the commands required to set this up]
+For a local installation, installers can be found at [EnterpriseDB](http://www.enterprisedb.com/products-services-training/pgdownload), we recommend PostgreSQL 9.4.x.  Please take note of your choices for port number and password, as you will need those in the next step.  For other installation options, more complete documentation is available on the PostgreSQL [wiki](https://wiki.postgresql.org/wiki/Detailed_installation_guides)
 
 Information about this database should be placed in a JSON file in your data-act-core installation located at `dataactcore/credentials/dbCred.json`, containing a JSON dictionary with keys `username`, `password`, `host`, and `port`. Below is an example of what should be in this file: 
 
 ```json
 {
-    "username":"user",
+    "username":"postgres",
     "password":"pass",
     "host":"localhost",
     "port":"5432"

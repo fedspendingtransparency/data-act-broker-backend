@@ -8,5 +8,6 @@ dataactcore/models/jobTracker.conf
 dataactcore/credentials/dbCred.json
 dataactcore/credentials/dbCredAws.json
 dataactcore/credentials/dbCredLocal.json
+dataactcore/credentials/dbCredProd.json
 dataactcore/credentials/dbCredOther.json
 dataactcore/aws/s3bucket.json
