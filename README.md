@@ -114,11 +114,11 @@ $ aws configure
 Initialize the validator and follow the prompted steps:
 
 ```bash
-$ sudo validator –initialize
+$ sudo validator –i
 ```
 
 Finally, once the validator has been initialized, run the validator:
 
 ```bash
-$ sudo validator -start
+$ sudo validator -s
 ```
