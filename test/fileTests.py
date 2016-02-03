@@ -90,13 +90,6 @@ class FileTests(BaseTest):
     def test_file_submission(self):
         open(FileHandler.VALIDATOR_RESPONSE_FILE,"w").write(str(-1))
         self.call_file_submission()
-        if(self.fileResponse.status_code != 200):
-            print(self.fileResponse.status_code)
-            print(self.fileResponse.json()["errorType"])
-            print(self.fileResponse.json()["message"])
-            print(self.fileResponse.json()["trace"])
-            print(self.fileResponse.json()["wrappedType"])
-            print(self.fileResponse.json()["wrappedMessage"])
         # Test that status is 200
         assert(self.fileResponse.status_code==200)
         # Test Content-Type header
