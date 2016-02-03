@@ -132,11 +132,12 @@ class AppropTests(unittest.TestCase):
         JobTests.assertHeader(self.response)
         # Check that job is correctly marked as finished
         assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == 1237)
+        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) > 1592)
+        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) < 1602)
 
         tableName = self.response.json()["table"]
         assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 1)
+        assert(self.stagingDb.countRows(tableName) == 2)
         errorInterface = InterfaceHolder.ERROR
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 4)
+        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 5)
