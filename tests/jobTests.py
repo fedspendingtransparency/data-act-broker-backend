@@ -225,7 +225,8 @@ class JobTests(unittest.TestCase):
         self.assertHeader(self.response)
 
         if(fileSize != False):
-            assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) == fileSize)
+            assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) > fileSize - 5)
+            assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) < fileSize + 5)
 
         tableName = self.response.json()["table"]
         if(type(stagingRows) == type(False) and not stagingRows):
