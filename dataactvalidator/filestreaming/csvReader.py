@@ -93,7 +93,7 @@ class CsvReader(object):
             offsetCheck = self.packetCounter *  CsvReader.BUFFER_SIZE
             header ={'Range' : 'bytes='+str(offsetCheck)+'-'+str(offsetCheck +CsvReader.BUFFER_SIZE) }
             try:
-                packet = self.s3File.get_contents_as_string(headers=header)
+                packet = self.s3File.get_contents_as_string(headers=header).decode('utf-8')
             except :
                 # Exit
                 break
