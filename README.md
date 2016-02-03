@@ -1,4 +1,4 @@
-# Data Act Validator
+# DATA Act Validator
 
 The validator is used to check files submitted by users against a set of rules specified in a CSV file, to ensure that data submitted is correctly formatted with reasonable values, and is not inconsistent with other sources.
 
@@ -37,6 +37,20 @@ The available rule types are as follows:
 * Less than / Greater than - compares value against a specified reference point
 * Length - checks that value is no longer than specified length
 * Set membership - checks that value is one of an allowed set of values  
+
+
+###Configuration
+The validator takes in number of parameters to configure the Flask service. The configuration JSON located in `dataactvalidator/validatior_configuations.json`, has the following format, which defines the server port, debug mode, and enabling
+the stack trace:
+
+```json
+{
+  "rest_trace": true,
+  "port": "80",
+  "server_debug": true
+}
+```
+This file is automatically created in the initialization step of the install process; see the step [Validator Configuration](#validator-configuration) for more details.
 
 #### Class Descriptions
 
@@ -110,6 +124,8 @@ Then, configure AWS using the CLI tools you installed earlier:
 $ aws configure
 // Enter your Access Key ID, Secret Access Key and region
 ```
+
+#### Validator Configuration
 
 Initialize the validator and follow the prompted steps:
 
