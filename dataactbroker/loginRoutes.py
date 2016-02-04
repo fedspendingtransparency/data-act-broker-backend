@@ -1,7 +1,7 @@
 from flask import Flask, request, make_response, session, g, redirect, url_for, \
      abort, render_template, flash
-from handlers.loginHandler import LoginHandler
-from handlers.aws.session import LoginSession
+from dataactbroker.handlers.loginHandler import LoginHandler
+from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 

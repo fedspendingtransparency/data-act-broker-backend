@@ -5,3 +5,4 @@ Flask==0.10.1
 Decorator==4.0.4
 Requests==2.8.1
 flask-cors==2.1.2
+git+git://github.com/fedspendingtransparency/data-act-core.git

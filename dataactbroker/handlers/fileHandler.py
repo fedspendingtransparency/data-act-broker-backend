@@ -3,8 +3,8 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
-from handlers.managerProxy import ManagerProxy
-from handlers.interfaceHolder import InterfaceHolder
+from dataactbroker.handlers.managerProxy import ManagerProxy
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 import os
 import inspect

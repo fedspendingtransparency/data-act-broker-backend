@@ -7,10 +7,10 @@ credentials.json
 node_modules
 .tern-port
 app/*.pyc
-app/handlers/*.pyc
-app/handlers/aws/*.pyc
-app/models/*.pyc
-app/handlers/utils/*.pyc
+dataactbroker/handlers/*.pyc
+dataactbroker/handlers/aws/*.pyc
+dataactbroker/models/*.pyc
+dataactbroker/handlers/utils/*.pyc
 app/venv
 app/errorLog
 test/*.pyc

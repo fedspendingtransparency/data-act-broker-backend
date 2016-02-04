@@ -1,5 +1,5 @@
 import unittest
-from test.baseTest import BaseTest
+from baseTest import BaseTest
 
 class LoginTests(BaseTest):
     """ Test login, logout, and session handling """

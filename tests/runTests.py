@@ -1,6 +1,6 @@
-from test.testUtils import TestUtils
-from test.loginTests import LoginTests
-from test.fileTests import FileTests
+from testUtils import TestUtils
+from loginTests import LoginTests
+from fileTests import FileTests
 import unittest
 import inspect
 from dataactcore.models.baseInterface import BaseInterface

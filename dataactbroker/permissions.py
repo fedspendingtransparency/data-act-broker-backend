@@ -3,7 +3,7 @@ import json
 import flask
 from flask import session
 
-from handlers.aws.session import LoginSession
+from dataactbroker.handlers.aws.session import LoginSession
 
 def permissions_check(f):
     @wraps(f)

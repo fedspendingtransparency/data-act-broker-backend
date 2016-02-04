@@ -6,7 +6,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 import inspect
-from handlers.interfaceHolder import InterfaceHolder
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 
 class LoginHandler:
     """

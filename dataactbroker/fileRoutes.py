@@ -1,7 +1,7 @@
 from flask import request, session
-from handlers.fileHandler import FileHandler
-from handlers.aws.session import LoginSession
-from permissions import permissions_check
+from dataactbroker.handlers.fileHandler import FileHandler
+from dataactbroker.handlers.aws.session import LoginSession
+from dataactbroker.permissions import permissions_check
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.jsonResponse import JsonResponse

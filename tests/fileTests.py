@@ -1,11 +1,11 @@
 import json
 import unittest
-from handlers.managerProxy import ManagerProxy
-from test.baseTest import BaseTest
-from test.testUtils import TestUtils
+from dataactbroker.handlers.managerProxy import ManagerProxy
+from tests.baseTest import BaseTest
+from tests.testUtils import TestUtils
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.clearJobs import clearJobs
-from handlers.interfaceHolder import InterfaceHolder
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 import os
 import inspect
@@ -63,7 +63,6 @@ class FileTests(BaseTest):
                 self.jobIdDict[jobKeyList[index]] = jobTracker.runStatement(statement).fetchone()[0]
                 index += 1
             # Save jobIdDict to file
-            print("jobIdDict is " + str(self.jobIdDict))
             open(self.JOB_ID_FILE,"w").write(json.dumps(self.jobIdDict))
             open(self.SUBMISSION_ID_FILE,"w").write(str(submissionId))
         else:
@@ -134,7 +133,6 @@ class FileTests(BaseTest):
         response = utils.postRequest("/v1/check_status/",'{"submission_id":'+str(self.submissionId)+'}')
 
         assert(response.status_code == 200)
-        print(str(response.json()))
         assert(response.json()[str(self.jobIdDict["uploadFinished"])]["status"]=="finished")
         assert(response.json()[str(self.jobIdDict["uploadFinished"])]["job_type"]=="file_upload")
         assert(response.json()[str(self.jobIdDict["uploadFinished"])]["file_type"]=="award")

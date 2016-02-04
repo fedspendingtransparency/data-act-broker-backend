@@ -1,0 +1,2 @@
+class ConfigureBroker(object):
+    pass

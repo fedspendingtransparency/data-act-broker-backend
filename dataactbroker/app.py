@@ -5,14 +5,16 @@ from flask.ext.cors import CORS
 from flask import Flask
 import json
 
-from handlers.aws.session import DynamoInterface, SessionTable, LoginSession
-from handlers.managerProxy import ManagerProxy
+from dataactbroker.handlers.aws.session import DynamoInterface, SessionTable, LoginSession
+from dataactbroker.handlers.managerProxy import ManagerProxy
 from fileRoutes import add_file_routes
 from loginRoutes import add_login_routes
 from dataactcore.utils.jsonResponse import JsonResponse
 
 def runApp():
+    """Set up the Application"""
     def getAppConfiguration() :
+        """gets the web_api_configuration JSON"""
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         lastBackSlash = path.rfind("\\",0,-1)
         lastForwardSlash = path.rfind("/",0,-1)
@@ -33,9 +35,9 @@ def runApp():
     # Create application
     app = Flask(__name__)
     app.config.from_object(__name__)
-    if(config["Origins"] ==  "*") :
+    if(config["Origins"] ==  "*"):
         cors = CORS(app,supports_credentials=True)
-    else :
+    else:
         cors = CORS(app,supports_credentials=True,origins=config["Origins"])
     #Enable AWS Sessions
     app.session_interface = DynamoInterface()
