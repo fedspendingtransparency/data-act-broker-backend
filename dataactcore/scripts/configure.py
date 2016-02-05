@@ -2,7 +2,6 @@ import os
 import inspect
 import json
 
-
 class ConfigureCore(object):
     """
 

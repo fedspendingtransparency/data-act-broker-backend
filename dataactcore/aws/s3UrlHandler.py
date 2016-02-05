@@ -1,9 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import boto
 import os
 import inspect
 import json
-from boto import sts
 
 class s3UrlHandler:
     """

@@ -1,8 +1,6 @@
+from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type
-from sqlalchemy.orm import subqueryload, joinedload
-from dataactcore.utils.responseException import ResponseException
-from dataactcore.utils.statusCode import StatusCode
+from dataactcore.models.jobModels import JobStatus, JobDependency, Status
 
 class JobTrackerInterface(BaseInterface):
     """ Manages all interaction with the job tracker database

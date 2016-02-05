@@ -1,6 +1,5 @@
 """ These classes define the ORM models to be used by sqlalchemy for the error database """
 
-import sqlalchemy
 from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base

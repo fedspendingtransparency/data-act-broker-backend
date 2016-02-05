@@ -1,5 +1,6 @@
 from dataactcore.scripts.databaseSetup import runCommands
 from dataactcore.models.errorInterface import ErrorInterface
+
 def setupErrorDB( hardReset = False):
     """ Create the error database and all tables """
     hardResetSQL=[
