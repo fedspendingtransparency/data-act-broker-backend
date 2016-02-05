@@ -41,7 +41,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'validator = dataactvalidator.scripts.configure:baseScript',
+            'webbroker = dataactbroker.scripts.initialize:initialize',
         ],
     },
 )

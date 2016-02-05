@@ -4,7 +4,7 @@ import json
 import sys
 
 from dataactcore.scripts.databaseSetup import runCommands
-from dataactbroker.model.handlers.aws.session import SessionTable
+from dataactbroker.handlers.aws.session import SessionTable
 
 class ConfigureBroker(object):
     """
@@ -26,6 +26,7 @@ class ConfigureBroker(object):
         returnJson ["server_debug"] = debug
         returnJson ["orgins"] = orgins
         returnJson["local_dynamo"] = enableLocalDyanmo
+        returnJson["create_credentials"] = False #Local installs cant proform this action.
         return json.dumps(returnJson)
 
 
@@ -67,7 +68,7 @@ class ConfigureBroker(object):
                 enableLocalDynamo = True
 
             if(ConfigureBroker.questionPrompt("Would you like to create the dyanmo database table ? (y/n) : ")):
-                SessionTable.createTable()
+                SessionTable.createTable(enableLocalDynamo)
 
             json = ConfigureBroker.createBrokerJSON(port,traceMode,debugMode,orgin,enableLocalDynamo)
 

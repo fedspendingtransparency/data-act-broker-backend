@@ -1,6 +1,7 @@
 from uuid import uuid4
-from boto.dynamodb2.fields import HashKey
+from boto.dynamodb2.fields import HashKey, GlobalAllIndex, RangeKey
 from boto.dynamodb2.table import Table, exceptions
+from boto.dynamodb2.types import NUMBER
 from datetime import datetime, timedelta
 from flask.sessions import SessionInterface, SessionMixin
 from werkzeug.datastructures import CallbackDict
@@ -222,17 +223,36 @@ class SessionTable :
         return Table(SessionTable.TABLE_NAME)
 
     @staticmethod
-    def createTable():
+    def createTable(isLocal):
         """Used to create table for Dyanmo DB"""
-         Table.create(SessionTable.TABLE_NAME,schema=[HashKey(SessionTable.KEY_NAME)],connection=SessionTable.getLocalConnection())
 
+        secondaryIndex = [
+            GlobalAllIndex('experation-index',
+                parts=[
+                    HashKey('experation', data_type=NUMBER)
+                ],
+                throughput={'read': 5, 'write': 5}
+            )
+        ]
+        if(not isLocal) :
+            Table.create(
+                SessionTable.TABLE_NAME,
+                schema=[HashKey(SessionTable.KEY_NAME)],
+                global_indexes=secondaryIndex
+            )
+        else :
+            Table.create(
+                SessionTable.TABLE_NAME,
+                schema=[HashKey(SessionTable.KEY_NAME)],
+                global_indexes=secondaryIndex,
+                connection=SessionTable.getLocalConnection()
+            )
     @staticmethod
     def setup(app,isLocalHost):
         """
         Called when Flask starts to setup the connection infomation
         """
         SessionTable.isLocal = isLocalHost
-
 
     @staticmethod
     def doesSessionExist(uid) :

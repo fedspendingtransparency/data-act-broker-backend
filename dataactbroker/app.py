@@ -32,7 +32,7 @@ def runApp():
     # Create application
     app = Flask(__name__)
     app.config.from_object(__name__)
-    if(config["Origins"] ==  "*"):
+    if(config["origins"] ==  "*"):
         cors = CORS(app,supports_credentials=True)
     else:
         cors = CORS(app,supports_credentials=True,origins=config["origins"])
@@ -48,7 +48,7 @@ def runApp():
 
     # Add routes for modules here
     add_login_routes(app)
-    add_file_routes(app,config["CreateCredentials"])
+    add_file_routes(app,config["create_credentials"])
 
     SessionTable.setup(app, runLocal)
     app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port= config["port"])
