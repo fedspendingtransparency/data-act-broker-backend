@@ -7,8 +7,8 @@ import json
 
 from dataactbroker.handlers.aws.session import DynamoInterface, SessionTable, LoginSession
 from dataactbroker.handlers.managerProxy import ManagerProxy
-from fileRoutes import add_file_routes
-from loginRoutes import add_login_routes
+from dataactbroker.fileRoutes import add_file_routes
+from dataactbroker.loginRoutes import add_login_routes
 from dataactcore.utils.jsonResponse import JsonResponse
 
 def runApp():
@@ -24,10 +24,9 @@ def runApp():
 
     config = getAppConfiguration()
     # Set parameters
-    debugFlag = config["ServerDebug"]  # Should be false for prod
-    runLocal = config["LocalDynamo"]  # False for prod, when True this assumes that the Dynamo is on the same server
-    createTable = config["CreateDynamo"]  # Should be false for most runs, true for first run with DynamoDB
-    JsonResponse.debugMode = config["JSONDebug"]
+    debugFlag = config["server_debug"]  # Should be false for prod
+    runLocal = config["local_dynamo"]  # False for prod, when True this assumes that the Dynamo is on the same server
+    JsonResponse.debugMode = config["rest_trace"]
      #Allows for real Credentials to be created for S3 uploads
     # Get the project's root folder
     PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -38,7 +37,7 @@ def runApp():
     if(config["Origins"] ==  "*"):
         cors = CORS(app,supports_credentials=True)
     else:
-        cors = CORS(app,supports_credentials=True,origins=config["Origins"])
+        cors = CORS(app,supports_credentials=True,origins=config["origins"])
     #Enable AWS Sessions
     app.session_interface = DynamoInterface()
 
@@ -53,8 +52,8 @@ def runApp():
     add_login_routes(app)
     add_file_routes(app,config["CreateCredentials"])
 
-    SessionTable.setup(app, runLocal, createTable)
-    app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port= config["Port"])
+    SessionTable.setup(app, runLocal)
+    app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port= config["port"])
 
 if __name__ == '__main__':
     runApp()

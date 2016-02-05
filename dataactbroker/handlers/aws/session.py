@@ -221,15 +221,17 @@ class SessionTable :
             return Table(SessionTable.TABLE_NAME,connection=SessionTable.getLocalConnection())
         return Table(SessionTable.TABLE_NAME)
 
+    @staticmethod
+    def createTable():
+        """Used to create table for Dyanmo DB"""
+         Table.create(SessionTable.TABLE_NAME,schema=[HashKey(SessionTable.KEY_NAME)],connection=SessionTable.getLocalConnection())
 
     @staticmethod
-    def setup(app,isLocalHost,createTables):
+    def setup(app,isLocalHost):
         """
         Called when Flask starts to setup the connection infomation
         """
         SessionTable.isLocal = isLocalHost
-        if(createTables and isLocalHost) :
-            TableConnection = Table.create(SessionTable.TABLE_NAME,schema=[HashKey(SessionTable.KEY_NAME)],connection=SessionTable.getLocalConnection())
 
 
     @staticmethod
