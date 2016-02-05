@@ -1,6 +1,7 @@
 import csv
 
 from dataactvalidator.interfaces.validationInterface import ValidationInterface
+from fieldCleaner import FieldCleaner
 class SchemaLoader(object):
 
     """
@@ -28,6 +29,7 @@ class SchemaLoader(object):
         with open(schemaFileName) as csvfile:
             reader = csv.DictReader(csvfile)
             for record in reader:
+                record = FieldCleaner.cleanRecord(record)
                 if(SchemaLoader.checkRecord(record, ["fieldname","required","data_type"])) :
                     columnId = database.addColumnByFileType(fileTypeName,record["fieldname"].lower().replace(" ","_"),record["required"],record["data_type"])
                     if "field_length" in record:

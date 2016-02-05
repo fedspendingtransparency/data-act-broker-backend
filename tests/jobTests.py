@@ -27,15 +27,15 @@ class JobTests(unittest.TestCase):
     TABLE_POPULATED = False  # Gets set to true by the first test to populate the tables
     DROP_TABLES = False  # If true, staging tables are dropped after tests are run
     DROP_OLD_TABLES = False # If true, attempts to drop staging tables from previous runs
-    USE_THREADS = False
-    INCLUDE_LONG_TESTS = False
-    UPLOAD_FILES = True
-    CREATE_VALIDATION_RULES = True
+    USE_THREADS = True # If true, each route call launches a new thread
+    INCLUDE_LONG_TESTS = False # If true, includes tests with over a million errors, can take about half an hour to run
+    UPLOAD_FILES = True # Upload new csv files to S3, can set to False to skip reuploading same files on subsequent runs
+    CREATE_VALIDATION_RULES = True # If true, replaces validation rules currently in validation database
     JOB_ID_FILE = "jobId.json"
     LAST_CLEARED_FILE = "lastClearedId"
     jobIdDict = {}
     passed = False # Gets set to True by each test that passes
-    methodName = None
+    methodName = None # Used by each test to track which test is running
 
     def __init__(self, methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
