@@ -21,9 +21,7 @@ def add_file_routes(app,CreateCredentials):
             fileManager = FileHandler(request)
             return fileManager.submit(LoginSession.getName(session),CREATE_CREDENTIALS)
         except Exception as e:
-            exc = ResponseException(e.message)
-            exc.wrappedException = e
-            exc.status = StatusCode.INTERNAL_ERROR
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,str(type(e)))
             return JsonResponse.error(exc,exc.status,{})
 
 
@@ -34,9 +32,7 @@ def add_file_routes(app,CreateCredentials):
             fileManager = FileHandler(request)
             return fileManager.finalize()
         except Exception as e:
-            exc = ResponseException(e.message)
-            exc.wrappedException = e
-            exc.status = StatusCode.INTERNAL_ERROR
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,str(type(e)))
             return JsonResponse.error(exc,exc.status,{})
 
     @app.route("/v1/check_status/", methods = ["POST"])
@@ -46,9 +42,7 @@ def add_file_routes(app,CreateCredentials):
             fileManager = FileHandler(request)
             return fileManager.getStatus()
         except Exception as e:
-            exc = ResponseException(e.message)
-            exc.wrappedException = e
-            exc.status = StatusCode.INTERNAL_ERROR
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,str(type(e)))
             return JsonResponse.error(exc,exc.status,{})
 
     @app.route("/v1/submission_error_reports/", methods = ["POST"])
@@ -58,9 +52,7 @@ def add_file_routes(app,CreateCredentials):
             fileManager = FileHandler(request)
             return fileManager.getErrorReportURLsForSubmission()
         except Exception as e:
-            exc = ResponseException(e.message)
-            exc.wrappedException = e
-            exc.status = StatusCode.INTERNAL_ERROR
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,str(type(e)))
             return JsonResponse.error(exc,exc.status,{})
 
     @app.route("/v1/error_metrics/", methods = ["POST"])
@@ -70,7 +62,5 @@ def add_file_routes(app,CreateCredentials):
             fileManager = FileHandler(request)
             return fileManager.getErrorMetrics()
         except Exception as e:
-            exc = ResponseException(e.message)
-            exc.wrappedException = e
-            exc.status = StatusCode.INTERNAL_ERROR
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,str(type(e)))
             return JsonResponse.error(exc,exc.status,{})

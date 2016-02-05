@@ -143,9 +143,7 @@ class FileHandler:
                     raise MultipleResultsFound("Got more than one job dependent on upload job")
                 return JsonResponse.create(StatusCode.OK,responseDict)
             else:
-                exc = ResponseException("Wrong job type for finalize route")
-                exc.status = StatusCode.CLIENT_ERROR
-                raise exc
+                raise ResponseException("Wrong job type for finalize route",StatusCode.CLIENT_ERROR)
 
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
