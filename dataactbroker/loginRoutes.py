@@ -1,9 +1,8 @@
-from flask import Flask, request, make_response, session, g, redirect, url_for, \
-     abort, render_template, flash
-from dataactbroker.handlers.loginHandler import LoginHandler
-from dataactbroker.handlers.aws.session import LoginSession
+from flask import request, session
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
+from dataactbroker.handlers.loginHandler import LoginHandler
+from dataactbroker.handlers.aws.session import LoginSession
 
 def add_login_routes(app):
     @app.route("/v1/login/", methods = ["POST"])

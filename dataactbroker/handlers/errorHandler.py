@@ -1,6 +1,6 @@
-from dataactcore.models.errorModels import FileStatus, ErrorData, ErrorType, Status
+from sqlalchemy.orm import joinedload
+from dataactcore.models.errorModels import FileStatus, ErrorData, Status
 from dataactcore.models.errorInterface import ErrorInterface
-from sqlalchemy.orm import subqueryload, joinedload
 
 class ErrorHandler(ErrorInterface) :
     """ Manages communication with the error database """

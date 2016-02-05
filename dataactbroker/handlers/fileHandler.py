@@ -1,3 +1,4 @@
+from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -5,9 +6,6 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactbroker.handlers.managerProxy import ManagerProxy
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
-from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
-import os
-import inspect
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -42,8 +40,7 @@ class FileHandler:
             safeDictionary = RequestDictionary(self.request)
             submissionId = safeDictionary.getValue("submission_id")
             responseDict ={}
-            jobTracker = InterfaceHolder.JOB_TRACKER
-            for jobId in jobTracker.getJobsBySubmission(submissionId):
+            for jobId in self.jobManager.getJobsBySubmission(submissionId):
                 if(self.jobManager.getJobType(jobId) == "csv_record_validation"):
                     responseDict["job_"+str(jobId)+"_error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(jobId),"GET")
             return JsonResponse.create(StatusCode.OK,responseDict)
@@ -86,7 +83,6 @@ class FileHandler:
         try:
             responseDict= {}
             self.s3manager = s3UrlHandler(s3UrlHandler.getValueFromConfig("bucket"))
-            jobManager = InterfaceHolder.JOB_TRACKER
             fileNameMap = []
             safeDictionary = RequestDictionary(self.request)
             for fileName in FileHandler.FILE_TYPES :
@@ -95,7 +91,7 @@ class FileHandler:
                     responseDict[fileName+"_key"] = uploadName
                     fileNameMap.append((fileName,uploadName))
 
-            fileJobDict = jobManager.createJobs(fileNameMap)
+            fileJobDict = self.jobManager.createJobs(fileNameMap)
             for fileName in fileJobDict.keys():
                 if (not "submission_id" in fileName) :
                     responseDict[fileName+"_id"] = fileJobDict[fileName]
@@ -128,12 +124,11 @@ class FileHandler:
             inputDictionary = RequestDictionary(self.request)
             jobId = inputDictionary.getValue("upload_id")
             # Change job status to finished
-            jobManager = InterfaceHolder.JOB_TRACKER
-            if(jobManager.checkUploadType(jobId)):
-                jobManager.changeToFinished(jobId)
+            if(self.jobManager.checkUploadType(jobId)):
+                self.jobManager.changeToFinished(jobId)
                 responseDict["success"] = True
                 proxy =  ManagerProxy()
-                validationId = jobManager.getDependentJobs(jobId)
+                validationId = self.jobManager.getDependentJobs(jobId)
                 print("validationId is "+str(validationId))
                 if(len(validationId) == 1):
                     response = proxy.sendJobRequest(validationId[0])
@@ -160,22 +155,21 @@ class FileHandler:
             A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding description and status
         """
         try:
-            jobTracker = InterfaceHolder.JOB_TRACKER
             inputDictionary = RequestDictionary(self.request)
 
             submissionId = inputDictionary.getValue("submission_id")
             # Get jobs in this submission
 
-            jobs = jobTracker.getJobsBySubmission(submissionId)
+            jobs = self.jobManager.getJobsBySubmission(submissionId)
 
             # Build dictionary of submission info with info about each job
             submissionInfo = {}
             for job in jobs:
                 jobInfo = {}
-                jobInfo["status"] = jobTracker.getJobStatus(job)
-                jobInfo["job_type"] = jobTracker.getJobType(job)
+                jobInfo["status"] = self.jobManager.getJobStatus(job)
+                jobInfo["job_type"] = self.jobManager.getJobType(job)
                 try :
-                    jobInfo["file_type"] = jobTracker.getFileType(job)
+                    jobInfo["file_type"] = self.jobManager.getFileType(job)
                 except Exception as e:
                     jobInfo["file_type"]  = ''
                 submissionInfo[job] = jobInfo
@@ -199,8 +193,7 @@ class FileHandler:
             for currentId in jobIds :
                 if(self.jobManager.getJobType(currentId) == "csv_record_validation"):
                     fileName = self.jobManager.getFileType(currentId)
-                    errorHandler = InterfaceHolder.ERROR
-                    dataList = errorHandler.getErrorMetericsByJobId(currentId)
+                    dataList = InterfaceHolder.ERROR.getErrorMetericsByJobId(currentId)
                     returnDict[fileName]  = dataList
             return JsonResponse.create(StatusCode.OK,returnDict)
         except ( ValueError , TypeError ) as e:

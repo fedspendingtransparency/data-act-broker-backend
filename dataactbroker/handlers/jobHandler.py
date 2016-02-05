@@ -1,6 +1,6 @@
+from datetime import datetime
 from dataactcore.models.jobModels import JobStatus,JobDependency,Status,Type,Resource, Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
-from datetime import datetime
 
 class JobHandler(JobTrackerInterface):
     """ Responsible for all interaction with the job tracker database

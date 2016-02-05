@@ -1,5 +1,5 @@
-from dataactcore.models.userModel import User
 from sqlalchemy.orm.exc import MultipleResultsFound
+from dataactcore.models.userModel import User
 from dataactcore.models.userInterface import UserInterface
 
 class UserHandler(UserInterface):
