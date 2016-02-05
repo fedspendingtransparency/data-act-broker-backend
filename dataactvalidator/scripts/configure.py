@@ -4,8 +4,6 @@ import json
 import sys
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.tasLoader import TASLoader
-from dataactcore.scripts.databaseSetup import runCommands
-from dataactcore.models.validationInterface import ValidationInterface
 from dataactvalidator.scripts.setupTASIndexs import setupTASIndexs
 
 

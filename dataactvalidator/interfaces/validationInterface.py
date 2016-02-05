@@ -1,5 +1,5 @@
-from dataactcore.models import validationInterface
 from sqlalchemy.orm import subqueryload
+from dataactcore.models import validationInterface
 from dataactcore.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType
 
 class ValidationInterface(validationInterface.ValidationInterface) :

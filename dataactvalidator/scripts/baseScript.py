@@ -1,9 +1,8 @@
-from dataactcore.scripts.configure import ConfigureCore
-from dataactvalidator.scripts.configure import ConfigureValidator
-from dataactcore.utils.jsonResponse import JsonResponse
 import sys
 import os
 import argparse
+from dataactcore.scripts.configure import ConfigureCore
+from dataactvalidator.scripts.configure import ConfigureValidator
 
 def baseScript():
 	if ( os.getuid() != 0) :

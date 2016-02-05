@@ -3,7 +3,6 @@ import inspect
 import json
 from threading import Thread
 from flask import Flask, request, copy_current_request_context
-
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
@@ -44,8 +43,7 @@ def runApp():
         try :
             jobTracker = InterfaceHolder.JOB_TRACKER
         except ResponseException as e:
-            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,str(type(e)))
-            return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
+            return JsonResponse.error(e,e.status,{"table":"cannot connect to job database"})
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,str(type(e)))
             return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
@@ -53,9 +51,8 @@ def runApp():
         try:
             jobId = manager.getJobID(request)
         except ResponseException as e:
-            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,str(type(e)))
             manager.markJob(jobId,jobTracker,"invalid",manager.filename)
-            return JsonResponse.error(exc,exc.status,{"table":""})
+            return JsonResponse.error(e,e.status,{"table":""})
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,str(type(e)))
             manager.markJob(jobId,jobTracker,"invalid",manager.filename)
@@ -65,14 +62,11 @@ def runApp():
             manager.testJobID(jobId)
         except ResponseException as e:
             # Job is not ready to run according to job tracker, do not change status of job in job tracker
-            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,str(type(e)))
-            errorHandler = InterfaceHolder.ERROR
-            errorHandler.writeFileError(jobId,manager.filename,ValidationError.jobError)
-            return JsonResponse.error(exc,exc.status,{"table":""})
+            InterfaceHolder.ERROR.writeFileError(jobId,manager.filename,ValidationError.jobError)
+            return JsonResponse.error(e,e.status,{"table":""})
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,str(type(e)))
-            errorHandler = InterfaceHolder.ERROR
-            errorHandler.writeFileError(jobId,manager.filename,ValidationError.jobError)
+            InterfaceHolder.ERROR.writeFileError(jobId,manager.filename,ValidationError.jobError)
             return JsonResponse.error(exc,exc.status,{"table":""})
 
         thread = Thread(target=ThreadedFunction, args= (jobId,))

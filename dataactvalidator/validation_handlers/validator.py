@@ -1,9 +1,9 @@
 import re
-from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.models.validationModels import TASLookup
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactvalidator.validation_handlers.validationError import ValidationError
+from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
 class Validator(object):
     """
@@ -68,8 +68,7 @@ class Validator(object):
                     recordFailed = True
                     failedRules.append([fieldName, "Failed rule: " + str(currentRule.description), currentData])
         # Check all multi field rules for this file type
-        validationDb = InterfaceHolder.VALIDATION
-        multiFieldRules = validationDb.getMultiFieldRulesByFile(fileType)
+        multiFieldRules = InterfaceHolder.VALIDATION.getMultiFieldRulesByFile(fileType)
         for rule in multiFieldRules:
             if not Validator.evaluateMultiFieldRule(rule,record):
                 recordFailed = True
@@ -237,8 +236,7 @@ class Validator(object):
         Returns:
             True if TAS is in CARS, False otherwise
         """
-        validationDB = InterfaceHolder.VALIDATION
-        query = validationDB.session.query(TASLookup)
+        query = InterfaceHolder.VALIDATION.session.query(TASLookup)
         queryResult = query.all()
 
         for i in range(0,len(fieldsToCheck)):

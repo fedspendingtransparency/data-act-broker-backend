@@ -1,14 +1,11 @@
 import unittest
-from dataactvalidator.interfaces.stagingInterface import StagingInterface
-from dataactcore.models.jobModels import Status, Type
-from dataactcore.models import errorModels
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
-from dataactcore.scripts.databaseSetup import runCommands
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
-from sqlalchemy.exc import InvalidRequestError
 import json
-from jobTests import JobTests
-from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
+from sqlalchemy.exc import InvalidRequestError
+from dataactcore.models.jobModels import Status, Type
+from dataactcore.scripts.databaseSetup import runCommands
+from dataactvalidator.interfaces.stagingInterface import StagingInterface
+from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from testUtils import TestUtils
 
 class AppropTests(unittest.TestCase):
 
@@ -19,8 +16,7 @@ class AppropTests(unittest.TestCase):
     def __init__(self, methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(AppropTests, self).__init__(methodName=methodName)
-
-
+        self.methodName = methodName
 
         self.jobTracker = InterfaceHolder.JOB_TRACKER
 
@@ -36,16 +32,14 @@ class AppropTests(unittest.TestCase):
             user = 1
             # Upload needed files to S3
 
-            s3FileNameValid = JobTests.uploadFile("appropValid.csv", user)
-            s3FileNameMixed = JobTests.uploadFile("appropMixed.csv", user)
-            s3FileNameTas = JobTests.uploadFile("tasMixed.csv", user)
-
-            self.jobTracker = InterfaceHolder.JOB_TRACKER
+            s3FileNameValid = TestUtils.uploadFile("appropValid.csv", user)
+            s3FileNameMixed = TestUtils.uploadFile("appropMixed.csv", user)
+            s3FileNameTas = TestUtils.uploadFile("tasMixed.csv", user)
 
             # Create submissions and get IDs back
             submissionIDs = {}
             for i in range(1,4):
-                submissionIDs[i] = JobTests.insertSubmission(self.jobTracker)
+                submissionIDs[i] = TestUtils.insertSubmission(self.jobTracker)
 
             # Create jobs
             sqlStatements = ["INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[1])+", '" + s3FileNameValid + "',3) RETURNING job_id",
@@ -84,62 +78,28 @@ class AppropTests(unittest.TestCase):
     def test_approp_valid(self):
         """ Test valid job """
         jobId = self.jobIdDict["valid"]
-        self.response = JobTests.validateJob(jobId)
-        assert(self.response.status_code == 200)
-
-        JobTests.waitOnJob(self.jobTracker, jobId, "finished")
-
-        JobTests.assertHeader(self.response)
-        # Check that job is correctly marked as finished
-        assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) > 47)
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) < 57)
-
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 20)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 0)
+        self.passed = TestUtils.run_test(jobId,200,"finished",52,20,"complete",0,self)
 
     def test_approp_mixed(self):
         """ Test mixed job with 5 rows failing """
         jobId = self.jobIdDict["mixed"]
-        self.response = JobTests.validateJob(jobId)
-        assert(self.response.status_code == 200)
-
-        JobTests.waitOnJob(self.jobTracker, jobId, "finished")
-
-        JobTests.assertHeader(self.response)
-        # Check that job is correctly marked as finished
-        assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) > 5601)
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) < 5611)
-
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 15)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 47)
+        self.passed = TestUtils.run_test(jobId,200,"finished",5606,15,"complete",47,self)
 
     def test_tas_mixed(self):
         """ Test TAS validation """
         jobId = self.jobIdDict["tas"]
-        self.response = JobTests.validateJob(jobId)
-        assert(self.response.status_code == 200)
+        self.passed = TestUtils.run_test(jobId,200,"finished",1597,2,"complete",5,self)
 
-        JobTests.waitOnJob(self.jobTracker, jobId, "finished")
+    def setUp(self):
+        self.passed = False
 
-        JobTests.assertHeader(self.response)
-        # Check that job is correctly marked as finished
-        assert(self.jobTracker.getStatus(jobId) == Status.getStatus("finished"))
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) > 1592)
-        assert(s3UrlHandler.getFileSize("errors/"+self.jobTracker.getReportPath(jobId)) < 1602)
-
-        tableName = self.response.json()["table"]
-        assert(self.stagingDb.tableExists(tableName) == True)
-        assert(self.stagingDb.countRows(tableName) == 2)
-        errorInterface = InterfaceHolder.ERROR
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus("complete"))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == 5)
+    def tearDown(self):
+        if not self.passed:
+            print("Test failed: " + self.methodName)
+            # Runs only for tests that fail
+            print(self.response.status_code)
+            print(self.response.json()["errorType"])
+            print(self.response.json()["message"])
+            print(self.response.json()["trace"])
+            print(self.response.json()["wrappedType"])
+            print(self.response.json()["wrappedMessage"])

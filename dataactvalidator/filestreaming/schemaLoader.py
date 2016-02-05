@@ -1,7 +1,7 @@
 import csv
-
 from dataactvalidator.interfaces.validationInterface import ValidationInterface
 from fieldCleaner import FieldCleaner
+
 class SchemaLoader(object):
 
     """

@@ -1,5 +1,5 @@
-from dataactcore.models.stagingInterface import StagingInterface as BaseStagingInterface
 from sqlalchemy.exc import ResourceClosedError
+from dataactcore.models.stagingInterface import StagingInterface as BaseStagingInterface
 
 class StagingInterface(BaseStagingInterface):
     """ Manages all interaction with the staging database """

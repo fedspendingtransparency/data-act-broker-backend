@@ -1,6 +1,7 @@
 import unittest
+from dataactcore.models.validationModels import  FieldType,RuleType, FileColumn, Rule
 from dataactvalidator.validation_handlers.validator import Validator
-from dataactcore.models.validationModels import  FileType, FieldType,RuleType, FileColumn, Rule
+
 class ValidatorTests(unittest.TestCase) :
 
     def __init__(self,methodName):

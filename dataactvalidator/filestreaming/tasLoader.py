@@ -1,5 +1,6 @@
 import csv
 from dataactvalidator.interfaces.validationInterface import ValidationInterface
+
 class TASLoader(object):
     """ Loads valid TAS combinations from CARS file """
 

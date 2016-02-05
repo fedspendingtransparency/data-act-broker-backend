@@ -1,5 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import MetaData, Column, Integer, Text, Numeric, Boolean
+from sqlalchemy import Column, Integer, Text, Numeric, Boolean
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
 class StagingTable(object):
@@ -34,10 +34,8 @@ class StagingTable(object):
         #tableName = "data" + tableName.replace("/","").replace("\\","").replace(".","")
         # Write tableName to related job in job tracker
 
-        jobTracker = InterfaceHolder.JOB_TRACKER
-        jobTracker.addStagingTable(jobId,tableName)
-        validationDB = InterfaceHolder.VALIDATION
-        fields = validationDB.getFieldsByFile(fileType)
+        InterfaceHolder.JOB_TRACKER.addStagingTable(jobId,tableName)
+        fields = InterfaceHolder.VALIDATION.getFieldsByFile(fileType)
 
         """ Might not need sequence for ORM
         # Create sequence to be used for primary key

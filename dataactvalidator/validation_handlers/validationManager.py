@@ -1,12 +1,12 @@
+from csv import Error
+from dataactcore.aws.s3UrlHandler import s3UrlHandler
+from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactvalidator.filestreaming.csvReader import CsvReader
-from dataactvalidator.validation_handlers.validator import Validator
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
-from dataactcore.utils.responseException import ResponseException
-from csv import Error
 from dataactvalidator.filestreaming.csvWriter import CsvWriter
+from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactvalidator.interfaces.stagingTable import StagingTable
@@ -36,8 +36,7 @@ class ValidationManager:
         try :
             if(filename != None and (status == "invalid" or status == "failed")):
                 # Mark the file error that occurred
-                errorHandler = InterfaceHolder.ERROR
-                errorHandler.writeFileError(jobId,filename,fileError)
+                InterfaceHolder.ERROR.writeFileError(jobId,filename,fileError)
             jobTracker.markStatus(jobId,status)
         except ResponseException as e:
             # Could not get a unique job ID in the database, either a bad job ID was passed in or the record of that job was lost.
@@ -71,8 +70,7 @@ class ValidationManager:
         True if the job is ready, if the job is not ready an exception will be raised
         """
         tableName = "job"+str(jobId)
-        jobTracker = InterfaceHolder.JOB_TRACKER
-        if(not (jobTracker.runChecks(jobId))):
+        if(not (InterfaceHolder.JOB_TRACKER.runChecks(jobId))):
             raise ResponseException("Checks failed on Job ID",StatusCode.CLIENT_ERROR)
 
         return True
@@ -91,8 +89,7 @@ class ValidationManager:
         jobTracker = InterfaceHolder.JOB_TRACKER
         try:
             self.runValidation(jobId, jobTracker)
-            errorInterface = InterfaceHolder.ERROR
-            errorInterface.markFileComplete(jobId,self.filename)
+            InterfaceHolder.ERROR.markFileComplete(jobId,self.filename)
             return
         except ResponseException as e:
             self.markJob(jobId,jobTracker,"invalid",self.filename,e.errorType)
@@ -229,11 +226,10 @@ class ValidationManager:
         try:
             jobTracker.markStatus(jobId,"running")
             self.runValidation(jobId,jobTracker)
-            errorInterface = InterfaceHolder.ERROR
-            errorInterface.markFileComplete(jobId,self.filename)
+            InterfaceHolder.ERROR.markFileComplete(jobId,self.filename)
             return  JsonResponse.create(StatusCode.OK,{"table":tableName})
         except ResponseException as e:
-            self.markJob(jobId,jobTracker,"invalid",self.filename)
+            self.markJob(jobId,jobTracker,"invalid",self.filename,e.errorType)
             return JsonResponse.error(e,e.status,{"table":tableName})
         except ValueError as e:
             # Problem with CSV headers
