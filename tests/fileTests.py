@@ -1,19 +1,16 @@
 import json
 import unittest
-from dataactbroker.handlers.managerProxy import ManagerProxy
-from tests.baseTest import BaseTest
-from tests.testUtils import TestUtils
-from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
-from dataactcore.scripts.clearJobs import clearJobs
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
 import os
 import inspect
+import time
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
-from handlers.fileHandler import FileHandler
+from baseTest import BaseTest
+from testUtils import TestUtils
+from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.jobModels import Status
-import time
+from dataactbroker.handlers.fileHandler import FileHandler
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 
 class FileTests(BaseTest):
     """ Test file submission routes """

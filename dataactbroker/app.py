@@ -1,15 +1,13 @@
-
 import os
 import inspect
 from flask.ext.cors import CORS
 from flask import Flask
 import json
-
-from dataactbroker.handlers.aws.session import DynamoInterface, SessionTable, LoginSession
-from dataactbroker.handlers.managerProxy import ManagerProxy
-from dataactbroker.fileRoutes import add_file_routes
-from dataactbroker.loginRoutes import add_login_routes
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactbroker.handlers.aws.session import DynamoInterface, SessionTable
+from dataactbroker.fileRoutes import add_file_routes
+from dataactbroker.loginRoutes import add_login
+
 
 def runApp():
     """Set up the Application"""

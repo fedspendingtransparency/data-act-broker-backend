@@ -1,10 +1,10 @@
-from testUtils import TestUtils
-from loginTests import LoginTests
-from fileTests import FileTests
 import unittest
 import inspect
 from dataactcore.models.baseInterface import BaseInterface
 BaseInterface.IS_FLASK = False # Unit tests using interfaces are not enclosed in a Flask route
+from testUtils import TestUtils
+from loginTests import LoginTests
+from fileTests import FileTests
 
 utils = TestUtils()
 open(FileTests.TABLES_CLEARED_FILE,"w").write(str(False)) # Mark file tests as not having cleared tables
