@@ -21,7 +21,7 @@ def options():
 	if(len(sys.argv) > 1):
 		if args.initialize:
 			initialize()
-		if args.ConfigureBroker:
+		if args.configureBroker:
 			configValidator()
 		if args.configAWS:
 			configAWS()
@@ -30,7 +30,7 @@ def options():
 		if args.setupDB:
 			resetDB()
 		if args.start:
-			startValidator()
+			startBroker()
 	else:
 		print ("Please enter an argument.")
 
@@ -63,7 +63,7 @@ def resetDB():
 	dataactcore.scripts.setupStaging
 
 def startBroker():
-	from dataactvalidator.app import runApp
+	from dataactbroker.app import runApp
 	runApp()
 
 if __name__ == '__main__':

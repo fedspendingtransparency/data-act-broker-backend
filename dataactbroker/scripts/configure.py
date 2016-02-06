@@ -18,13 +18,13 @@ class ConfigureBroker(object):
         return os.path.split(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))[0]
 
     @staticmethod
-    def createBrokerJSON(port,trace,debug,orgins,enableLocalDyanmo,createTable):
+    def createBrokerJSON(port,trace,debug,origins,enableLocalDyanmo):
         """Creates the s3bucket.json File"""
         returnJson = {}
         returnJson ["port"] = port
         returnJson ["rest_trace"] = trace
         returnJson ["server_debug"] = debug
-        returnJson ["orgins"] = orgins
+        returnJson ["origins"] = origins
         returnJson["local_dynamo"] = enableLocalDyanmo
         returnJson["create_credentials"] = False #Local installs cant proform this action.
         return json.dumps(returnJson)
@@ -61,7 +61,7 @@ class ConfigureBroker(object):
             if(ConfigureBroker.questionPrompt("Would you like to enable debug traces on REST requests (y/n) : ")):
                 traceMode = True
 
-            orgin = raw_input("Enter the allowed orgin (website that will allow for CORS) :")
+            origins = raw_input("Enter the allowed orgin (website that will allow for CORS) :")
 
 
             if(ConfigureBroker.questionPrompt("Would you like to use a local dyanamo database ? (y/n) : ")):
@@ -70,7 +70,7 @@ class ConfigureBroker(object):
             if(ConfigureBroker.questionPrompt("Would you like to create the dyanmo database table ? (y/n) : ")):
                 SessionTable.createTable(enableLocalDynamo)
 
-            json = ConfigureBroker.createBrokerJSON(port,traceMode,debugMode,orgin,enableLocalDynamo)
+            json = ConfigureBroker.createBrokerJSON(port,traceMode,debugMode,origins,enableLocalDynamo)
 
             with open(ConfigureBroker.getDatacorePath()+"/web_api_configuration.json", 'wb') as configFile:
                 configFile.write(json)
@@ -78,8 +78,8 @@ class ConfigureBroker(object):
         if(ConfigureBroker.questionPrompt("Would you like to configure the connection to the DATA Act validator? (y/n) : ")):
 
             path = raw_input("Enter url (http://severurl:port) : ")
-            json = ConfigureValidator.createValidatorJSON(path)
-            with open(ConfigureValidator.getDatacorePath()+"/manager.json", 'wb') as configFile:
+            json = ConfigureBroker.createValidatorJSON(path)
+            with open(ConfigureBroker.getDatacorePath()+"/manager.json", 'wb') as configFile:
                 configFile.write(json)
 
 if __name__ == '__main__':

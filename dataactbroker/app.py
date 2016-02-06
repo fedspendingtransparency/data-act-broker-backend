@@ -6,7 +6,7 @@ import json
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactbroker.handlers.aws.session import DynamoInterface, SessionTable
 from dataactbroker.fileRoutes import add_file_routes
-from dataactbroker.loginRoutes import add_login
+from dataactbroker.loginRoutes import add_login_routes
 
 
 def runApp():
@@ -14,10 +14,7 @@ def runApp():
     def getAppConfiguration() :
         """gets the web_api_configuration JSON"""
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        lastBackSlash = path.rfind("\\",0,-1)
-        lastForwardSlash = path.rfind("/",0,-1)
-        lastSlash = max([lastBackSlash,lastForwardSlash])
-        configFile = path[0:lastSlash] + "/web_api_configuration.json"
+        configFile = path + "/web_api_configuration.json"
         return json.loads(open(configFile,"r").read())
 
     config = getAppConfiguration()
@@ -51,7 +48,7 @@ def runApp():
     add_file_routes(app,config["create_credentials"])
 
     SessionTable.setup(app, runLocal)
-    app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port= config["port"])
+    app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port= int(config["port"]))
 
 if __name__ == '__main__':
     runApp()

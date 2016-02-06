@@ -41,7 +41,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'webbroker = dataactbroker.scripts.initialize:initialize',
+            'webbroker = dataactbroker.scripts.initialize:options',
         ],
     },
 )
