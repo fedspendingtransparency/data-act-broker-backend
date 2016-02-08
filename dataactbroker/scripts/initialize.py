@@ -22,7 +22,7 @@ def options():
 		if args.initialize:
 			initialize()
 		if args.configureBroker:
-			configValidator()
+			configBroker()
 		if args.configAWS:
 			configAWS()
 		if args.configDB:
