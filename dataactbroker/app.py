@@ -46,7 +46,7 @@ def runApp():
     # Add routes for modules here
     add_login_routes(app)
     add_file_routes(app,config["create_credentials"])
-
+    SessionTable.localPort  = int( config["dynamo_port"])
     SessionTable.setup(app, runLocal)
     app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port= int(config["port"]))
 

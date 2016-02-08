@@ -195,6 +195,7 @@ class SessionTable :
     TIME_OUT_LIMIT = 1800
     TableConnection = ""
     isLocal = False
+    localPort =  8000
 
     @staticmethod
     def clearSessions() :
@@ -211,7 +212,7 @@ class SessionTable :
         """
         returns the Boto DynamoDB connection object
         """
-        return DynamoDBConnection(host='localhost',port=8000,aws_access_key_id='a',aws_secret_access_key='a',is_secure=False)
+        return DynamoDBConnection(host='localhost',port=localPort,aws_access_key_id='a',aws_secret_access_key='a',is_secure=False)
 
     @staticmethod
     def getTable() :
@@ -223,9 +224,9 @@ class SessionTable :
         return Table(SessionTable.TABLE_NAME)
 
     @staticmethod
-    def createTable(isLocal):
+    def createTable(isLocal,localPort):
         """Used to create table for Dyanmo DB"""
-
+        SessionTable.localPort =localPort
         secondaryIndex = [
             GlobalAllIndex('experation-index',
                 parts=[

@@ -29,10 +29,11 @@ class ConfigureBroker(object):
         return json.dumps(returnJson)
 
     @staticmethod
-    def createBrokerJSON(port,trace,debug,origins,enableLocalDyanmo):
+    def createBrokerJSON(port,trace,debug,origins,enableLocalDyanmo,localDynamoPort):
         """Creates the web_api_configuration.json File"""
         returnJson = {}
         returnJson ["port"] = port
+        returnJson ["dynamo_port"] = localDynamoPort
         returnJson ["rest_trace"] = trace
         returnJson ["server_debug"] = debug
         returnJson ["origins"] = origins
@@ -71,6 +72,11 @@ class ConfigureBroker(object):
         enableLocalDynamo = False
         if(ConfigureBroker.questionPrompt("Would you like to configure your broker web API? (y/n) : ")):
             port = raw_input("Enter broker API port :")
+            try:
+                int(port)
+            except ValueError:
+                print ("Invalid Port")
+                return
 
             if(ConfigureBroker.questionPrompt("Would you like to enable server side debuging (y/n) : ")):
                 debugMode = True
@@ -80,14 +86,20 @@ class ConfigureBroker(object):
 
             origins = raw_input("Enter the allowed orgin (website that will allow for CORS) :")
 
-
+            localPort  = 8000
             if(ConfigureBroker.questionPrompt("Would you like to use a local dyanamo database ? (y/n) : ")):
                 enableLocalDynamo = True
+                localPort = raw_input("Enter the port for the local DynamoDB : ")
+                try:
+                    localPort =  int(localPort)
+                except ValueError:
+                    print ("Invalid Port")
+                    return
 
             if(ConfigureBroker.questionPrompt("Would you like to create the dyanmo database table ? (y/n) : ")):
-                SessionTable.createTable(enableLocalDynamo)
+                SessionTable.createTable(enableLocalDynamo,localPort)
 
-            json = ConfigureBroker.createBrokerJSON(port,traceMode,debugMode,origins,enableLocalDynamo)
+            json = ConfigureBroker.createBrokerJSON(port,traceMode,debugMode,origins,enableLocalDynamo,localPort)
 
             ConfigureBroker.createFile("/web_api_configuration.json",json)
         if(ConfigureBroker.questionPrompt("Would you like to configure the connection to the DATA Act validator? (y/n) : ")):
