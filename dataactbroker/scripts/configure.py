@@ -37,7 +37,7 @@ class ConfigureBroker(object):
         returnJson ["server_debug"] = debug
         returnJson ["origins"] = origins
         returnJson["local_dynamo"] = enableLocalDyanmo
-        returnJson["create_credentials"] = False #Local installs cant proform this action.
+        returnJson["create_credentials"] = True
         return json.dumps(returnJson)
 
 
