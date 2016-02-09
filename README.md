@@ -88,30 +88,85 @@ These classes extend the database connection objects that are located in the Cor
 Extra query methods exist in these classes that are used exclusively by the Broker API.
 
 
-#Dyanmo Database
-The DATA Act Broker uses AWS Dynamo Database for session handling. This provides a fast and reliable methodology to check sessions in the cloud. Users can easily bounce between servers with impact to there session.
+#AWS Setup
+In order to use the DATA Act Broker, additional AWS permissions and configurations are
+required in addition to those listed in the DATA ACT Core README.
+
+##Dyanmo Database
+The DATA Act Broker uses AWS Dynamo Database for session handling. This provides a fast and reliable methodology to check sessions in the cloud. Users can easily bounce between servers with no impact to there session.
 
 The install script seen in the [Broker Install Guide](#install-guide)  provides an option to create the database automatically. This
 however assumes the machine has the proper AWS Credentials to preform the operation.
 
 If you wish to create the database manually, it needs to be setup to have the following attributes .
 
-| Setting  | Value |
-| ------------- | ------------- |
-| Table Name  | BrokerSession   |
-| primary index  | hashkey uid  |
-| secondary Index  | number experation-index  |
+| Setting  | Value | Type|
+| ------------- | ------------- |-------------|
+| Table Name  | BrokerSession   ||N/A|
+| Primary index  |  uid  |hashkey|
+| Secondary Index  |experation-index|number  |
 
+### Role Permissions
+The EC2 instance running the broker should be granted read/write permissions to the Dynamo Database.
+The following JSON can be added to the role to grant this access.
 
+```json
 
-## Route documentation for Flask server for
+```
+
+###Local Version
+
+It is possible to setup the Dynamo Database locally. This requires Java to
+be installed which can be done using the following command on Red Hat based systems.
+
+```bash
+$ su -c "yum install java-1.7.0-openjdk"
+```
+
+For Ubuntu based systems the `apt-get` can be used instead
+
+```bash
+   sudo apt-get install default-jre
+
+```
+
+Once Java is installed, you can download the Local Dynamo Database [here](http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.zip).instructions to launch the local version one downloaded can be found in (AWS's User Guide)[http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html].along with the various options.  Note that a local version of  Dynamo is *not* recommend for production.
+
+## Assuming Roles
+The DATA Act broker uses the assume role function to create temporarily AWS credentials for the web front end. To be able to run the broker locally the user must be added to the trust section of the s3 uploading role. Without adding this relationship, the assume role will fail the following Example shows what the JSON should look like.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::NUMBER:role/ec2rolename",
+          "arn:aws:iam::NUMBER:user/user1",
+          "arn:aws:iam::NUMBER:user/user2"
+        ],
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+
+```
+`NUMBER` in the json above is your AWS account number. Each user and role must be stated. This example grants the role `ec2rolename`, `user1` and `user2` the ability to assume a this role.
+
+# DATA Act Broker Route Documentation
+
+## Status Codes
 In general, status codes returned are as follows:
 * 200 if successful
 * 400 if request is malformed
 * 401 if username or password are incorrect, or session has expired
 * 500 for server-side errors
 
-#### GET "/"
+## GET "/"
 This route confirms that the broker is running
 
 Example input: None  
