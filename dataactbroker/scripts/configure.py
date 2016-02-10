@@ -79,18 +79,18 @@ class ConfigureBroker(object):
                 print ("Invalid Port")
                 return
 
-            if(ConfigureBroker.questionPrompt("Would you like to enable server side debuging (y/n) : ")):
+            if(ConfigureBroker.questionPrompt("Would you like to enable server side debugging (y/n) : ")):
                 debugMode = True
 
             if(ConfigureBroker.questionPrompt("Would you like to enable debug traces on REST requests (y/n) : ")):
                 traceMode = True
 
-            origins = raw_input("Enter the allowed orgin (website that will allow for CORS) :")
+            origins = raw_input("Enter the allowed origin (website that will allow for CORS) :")
 
             localPort  = 8000
-            if(ConfigureBroker.questionPrompt("Would you like to use a local dyanamo database ? (y/n) : ")):
+            if(ConfigureBroker.questionPrompt("Would you like to use a local dynamo database ? (y/n) : ")):
                 enableLocalDynamo = True
-                localPort = raw_input("Enter the port for the local DynamoDB : ")
+                localPort = raw_input("Enter the port for the local dynamo database : ")
                 try:
                     localPort =  int(localPort)
                 except ValueError:

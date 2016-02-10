@@ -1,7 +1,6 @@
 # The DATA Act Broker Repository
 
-The DATA Act Broker repository is the API that is used to communicate   
-to the web front end. It has two major directories: scripts and handlers.
+The DATA Act Broker repository is the API that is used to communicate to the web front end. The repository has two major directories: scripts and handlers.
 
 ```
 dataactbroker/
@@ -10,15 +9,11 @@ dataactbroker/
 ```
 
 ##Scipts
- The `/dataactbroker/scripts` folder contains the install scripts needed
- to setup the Broker for a local install.
+ The `/dataactbroker/scripts` folder contains the install scripts needed to setup the Broker for a local install.
 
- The `configure` script creates the various JSON files needed for
- running the broker. The following three JSON files are created : `manager.json`,
- `web_api_configuration.json` and `credentials.json`
+ The `configure` script creates the various JSON files needed for running the broker. The following three JSON files are created : `manager.json`, `web_api_configuration.json` and `credentials.json`.
 
- `manager.json` contains the web url where the DATA Act validator exists.
- It has the following format.
+ `manager.json` contains the web url where the DATA Act validator exists. It has the following format.
 
 ```json
 {
@@ -26,10 +21,7 @@ dataactbroker/
 }
 ```
 
-`credentials.json` contains users and passwords that the broker use's to
-authenticate sessions. This file will be removed in later versions of the broker
-when users are authenticated using a database. The file has the following
-format where any number of users can be added.
+`credentials.json` contains users and passwords that the broker use's to authenticate sessions. This file will be removed in later versions of the broker when users are authenticated using a database. The file has the following format where any number of users can be added.
 
 ```json
 {
@@ -39,7 +31,7 @@ format where any number of users can be added.
 ```
 
 
-`web_api_configureation.json` contains data used by the Data Broker Flask application
+`web_api_configurations.json` contains data used by the Data Broker Flask application
 for setting ports and debug options. It has the following format:
 
 ```json
@@ -54,7 +46,7 @@ for setting ports and debug options. It has the following format:
 }
 ```
 
- The following table describes each setting.
+ The following table describes each setting in the configurations file.
 
 | Setting  | Value |
 | ------------- | ------------- |
@@ -63,29 +55,26 @@ for setting ports and debug options. It has the following format:
 | local_dynamo  | sets if the dynamo database is on the local host or AWS|
 | dynamo_port  | the port used for the dynamo database|
 | create_credentials  | turns on the ability to create temporarily AWS credentials|
-| origins  | The url that CORS is enabled on|
+| origins  | The url that cross-origin HTTP requests are enabled on|
 
-The `initialize` script provides users with choices of the install process
-see the [Broker Install Guide](#install-guide) for more information.
+The `initialize` script provides users with choices of the install process see the [Broker Install Guide](#install-guide) for more information.
 
 ##Handlers
 The `dataactbroker\handlers` folder contains the logic to handle requests
-that are dispatched from the `loginRoutes.py` or `fileRoutes.py` files.
+that are dispatched from the `loginRoutes.py` or `fileRoutes.py` files. Routes
+defined in these files may include the `@permissions_check` tag to route definition.
+This tag add a wrapper that checks if there exists a session for the current user
+and if the user is logged in. If user is not logged in to the system, a 401 will be returned
+for the route. This tag is defined in `dataactbroker/permissions.py`.
 
-`LoginHandler.py` contains the functions to check logins and to log user
-out. Currently `credentials.json` defines which users exist within the system.
+`LoginHandler.py` contains the functions to check logins and to log user out. Currently `credentials.json` defines which users exist within the system. This file is automatically   
+created in the installation process.
 
-`FileHandler.py` contains functions for managing user file interaction.
-It creates call of the the jobs that are part of the user submission and has
-query methods to get the status of a submission. In addition, this
-class provide downloadable links to error reports created by the
-DATA Act validator.
-
+`FileHandler.py` contains functions for managing user file interaction. It creates all of the the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
 
 In addition to these helper objects, the following sub classes also exist
-within the directory: `UserHandler`, `LoginHandler`, `JobHandler`, and `ErrorHandler`.
-These classes extend the database connection objects that are located in the Core Repository.
-Extra query methods exist in these classes that are used exclusively by the Broker API.
+within the directory: `UserHandler`, `JobHandler`, and `ErrorHandler`. These classes extend the database connection objects that are located in the Core Repository. Extra query methods exist in these classes that are used exclusively by the Broker API.
+
 
 
 #AWS Setup
@@ -95,10 +84,7 @@ required in addition to those listed in the DATA ACT Core README.
 ##Dyanmo Database
 The DATA Act Broker uses AWS Dynamo Database for session handling. This provides a fast and reliable methodology to check sessions in the cloud. Users can easily bounce between servers with no impact to there session.
 
-The install script seen in the [Broker Install Guide](#install-guide)  provides an option to create the database automatically. This
-however assumes the machine has the proper AWS Credentials to preform the operation.
-
-If you wish to create the database manually, it needs to be setup to have the following attributes .
+The install script seen in the [Broker Install Guide](#install-guide)  provides an option to create the database automatically. This however, assumes the machine has the proper AWS Credentials to preform the operation. If you wish to create the database manually, it needs to be setup to have the following attributes .
 
 | Setting  | Value | Type|
 | ------------- | ------------- |-------------|
@@ -107,8 +93,7 @@ If you wish to create the database manually, it needs to be setup to have the fo
 | Secondary Index  |experation-index|number  |
 
 ### Role Permissions
-The EC2 instance running the broker should be granted read/write permissions to the Dynamo Database.
-The following JSON can be added to the role to grant this access.
+The EC2 instance running the broker should be granted read/write permissions to the Dynamo Database. The following JSON can be added to the role to grant this access.
 
 ```json
 
@@ -130,7 +115,7 @@ For Ubuntu based systems the `apt-get` can be used instead
 
 ```
 
-Once Java is installed, you can download the Local Dynamo Database [here](http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.zip).instructions to launch the local version one downloaded can be found in (AWS's User Guide)[http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html].along with the various options.  Note that a local version of  Dynamo is *not* recommend for production.
+Once Java is installed, you can download the Local Dynamo Database (here)[http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.zip]. Instructions to launch the local version one downloaded can be found in (AWS's User Guide)[http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html] along with the various options. Note that a local version of Dynamo is **not** recommend for production.
 
 ## Assuming Roles
 The DATA Act broker uses the assume role function to create temporarily AWS credentials for the web front end. To be able to run the broker locally the user must be added to the trust section of the s3 uploading role. Without adding this relationship, the assume role will fail the following Example shows what the JSON should look like.
@@ -310,4 +295,95 @@ Example output:
 }
 ```
 
+
+#### Test Cases
+Before running test cases, start the Flask app by running "python app.py" in the dataactbroker folder. Alternatively, if using pip install, you can uses the server start command `sudo webbroker -s` The current test suite for the validator may then be run by navigating to the `datatactbroker/tests folder` and running `python runTests.py`.
+
+
 #Install Guide
+
+## Requirements
+
+Data Act Broker is currently being built with Python 2.7.   Before installing the Validator, please install the Data Act Core by following the [Data Act Core Installation Guide](https://github.com/fedspendingtransparency/data-act-core/blob/configuration/README.md).
+
+## Install dependencies
+
+### Python 2.7, `pip`, and AWS CLI Tools
+
+Instructions for installing all three of these tools on your system can be found [here](https://docs.aws.amazon.com/cli/latest/userguide/installing.html#install-with-pip).
+
+### Homebrew (Mac OS X)
+
+We recommend using [homebrew](http://brew.sh) to install PostgreSQL for development on Mac OS X.
+
+### PostgreSQL
+
+[PostgreSQL](https://en.wikipedia.org/wiki/PostgreSQL) is an object-relational database management system (ORDBMS) with an emphasis on extensibility and standards-compliance, and is our database of choice for performing validations.
+
+```bash
+# Ubuntu/Linux 64-bit
+$ sudo apt-get install postgresql postgresql-contrib
+
+# Mac OS X
+$ brew install postgresql
+```
+
+Upon install, follow the provided instructions to start postgres locally.
+
+## Installing the Broker
+
+Install the Broker and its dependencies with 'pip':
+
+```bash
+$ sudo pip install --process-dependency-links git+git://github.com/fedspendingtransparency/data-act-broker.git@configuration_fetaure
+```
+
+Note: we recommend [virtualenv](https://virtualenv.readthedocs.org/en/latest/installation.html) and [virtualenvwrapper](https://virtualenvwrapper.readthedocs.org/en/latest/install.html) to manage Python environments.
+
+#### AWS CLI tools
+
+Then, configure AWS using the CLI tools you installed earlier:
+
+```bash
+$ aws configure
+// Enter your Access Key ID, Secret Access Key and region
+```
+
+#### Broker Configuration
+
+Initialize the Broker and follow the prompted steps:
+
+```bash
+$ sudo webbroker –i
+```
+
+This command will let you setup the following
+- S3 Configuration
+- Database Connect Configuration
+- Configure the Broker API
+- Creates all Database tables needed by the Broker
+
+The following table below show the prompts created by the setup and the expected
+entered values.
+
+| Prompt  | Value |
+| ------------- | ------------- |
+| Enter broker API port  | integer value, port 80  or 443 for Http or https  |
+| Would you like to enable server side debugging  | yes or no, turns on debug mode for the server, this should **not**  be used in production.|
+| Would you like to enable debug traces on REST requests  |yes or no, enables returning server error messages in the rest request. This should *not** be enabled in production|
+| Would you like to use a local dynamo database  | yes or no, enables use of local dynamo database,
+this should be yes only if you do not have access to an AWS account.|
+| Enter the allowed origin (website that will allow for CORS)  | this is the website url of the
+DATA Act Broker front end. * can be used in its place but this value should **not** be used
+in production|
+|Would you like to create the dynamo database table|yes or no. Creates a table on the Dynamo Database. This command you be used **exactly once** per AWS account |
+
+
+
+
+
+Finally, once the broker has been initialized, run the validator:
+
+```bash
+$ sudo webbroker -s
+```
