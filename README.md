@@ -1,7 +1,7 @@
 # The DATA Act Broker Repository
 
 The DATA Act Broker repository is the API that is used to communicate   
-to the web front end. It has two major directories scripts and handlers.
+to the web front end. It has two major directories: scripts and handlers.
 
 ```
 dataactbroker/
@@ -11,11 +11,11 @@ dataactbroker/
 
 ##Scipts
  The `/dataactbroker/scripts` folder contains the install scripts needed
- to setup the broker for a local install.
+ to setup the Broker for a local install.
 
  The `configure` script creates the various JSON files needed for
  running the broker. The following three JSON files are created : `manager.json`,
- `web_api_configureation.json` and `credentials.json`
+ `web_api_configuration.json` and `credentials.json`
 
  `manager.json` contains the web url where the DATA Act validator exists.
  It has the following format.
@@ -309,3 +309,5 @@ Example output:
   },      
 }
 ```
+
+#Install Guide

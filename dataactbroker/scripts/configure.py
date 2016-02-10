@@ -4,6 +4,7 @@ import json
 import sys
 
 from dataactcore.scripts.databaseSetup import runCommands
+from dataactcore.scripts.configure import ConfigureCore
 from dataactbroker.handlers.aws.session import SessionTable
 
 class ConfigureBroker(object):
