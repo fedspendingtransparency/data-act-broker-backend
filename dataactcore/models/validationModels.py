@@ -119,7 +119,13 @@ class FileColumn(Base):
     name = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
     required = Column(Boolean, nullable=True)
+    session = None
 
+    def populateFile(self):
+        if(self.session == None):
+            from dataactcore.models.validationInterface import ValidationInterface
+            self.session = ValidationInterface().getSession()
+        self.file = self.session.query(FileType).filter(FileType.file_id == self.file_id)[0]
 
 class Rule(Base):
     __tablename__ = "rule"

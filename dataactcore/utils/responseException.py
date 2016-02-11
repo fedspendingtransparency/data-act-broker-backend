@@ -7,4 +7,8 @@ class ResponseException(Exception):
         if(errorClass == None):
             self.wrappedException = None # Can be used to wrap another type of exception into a ResponseException
         else:
-            self.wrappedException = errorClass(message)
+            try:
+                self.wrappedException = errorClass(message)
+            except Exception as e:
+                # Some errors cannot be created with just a message, in that case create a string representation
+                self.wrappedException = str(errorClass) + str(message)

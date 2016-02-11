@@ -29,7 +29,7 @@ class Status(Base):
                 Status.STATUS_DICT[status.name] = status.status_id
             Status.session.close()
         if(not statusName in Status.STATUS_DICT):
-            open("errorLog","a").write("Not a valid file status: " + statusName + ", dict is: " + str(Status.STATUS_DICT))
+            open("statusError.log","a").write("Not a valid file status: " + statusName + ", dict is: " + str(Status.STATUS_DICT))
             raise ValueError("Not a valid file status: " + statusName + ", dict is: " + str(Status.STATUS_DICT))
         return Status.STATUS_DICT[statusName]
 

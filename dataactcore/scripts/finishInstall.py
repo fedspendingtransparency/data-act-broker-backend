@@ -4,7 +4,7 @@
  """
 
 def finishInstall():
-    print "Install Complete"
+    print("Install Complete")
 
 if __name__ == '__main__':
     finishInstall()

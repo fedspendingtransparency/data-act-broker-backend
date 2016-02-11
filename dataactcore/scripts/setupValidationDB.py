@@ -60,7 +60,7 @@ def setupValidationDB( hardReset = False):
 
         "INSERT INTO file_type (file_id,name, description) VALUES (1, 'award', 'award file'), (2, 'award_financial', 'award_financial file'), (3, 'appropriations', 'appropriations file'), (4, 'procurement','procurement file');",
         "INSERT INTO rule_type (rule_type_id, name,description) VALUES (1, 'TYPE', 'checks type'), (2, 'EQUAL', 'equals operatior '),(3, 'NOT EQUAL', 'not equals operator '), (4, 'LESS', 'less than operator '), (5, 'GREATER', 'greater than operator'), (6, 'LENGTH', 'string length'), (7, 'IN_SET', 'value must be in set');",
-        "INSERT INTO field_type (field_type_id ,name,description) VALUES (1, 'INT', 'integer type'), (2, 'DECIMAL', 'decimal type '),(3, 'BOOLEAN', 'yes/no'), (4, 'STRING', 'string type');",
+        "INSERT INTO field_type (field_type_id ,name,description) VALUES (1, 'INT', 'integer type'), (2, 'DECIMAL', 'decimal type '),(3, 'BOOLEAN', 'yes/no'), (4, 'STRING', 'string type'), (5, 'LONG', 'long integer');",
         "INSERT INTO multi_field_rule_type (multi_field_rule_type_id, name,description) VALUES (1, 'CAR_MATCH', 'Matching a set of fields against a CAR file');"
     ]
     if(hardReset) :
