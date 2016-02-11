@@ -45,7 +45,7 @@ def runApp():
         except ResponseException as e:
             return JsonResponse.error(e,e.status,{"table":"cannot connect to job database"})
         except Exception as e:
-            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,str(type(e)))
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
 
         try:
@@ -54,7 +54,7 @@ def runApp():
             manager.markJob(jobId,jobTracker,"invalid",manager.filename)
             return JsonResponse.error(e,e.status,{"table":""})
         except Exception as e:
-            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,str(type(e)))
+            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
             manager.markJob(jobId,jobTracker,"invalid",manager.filename)
             return JsonResponse.error(exc,exc.status,{"table":""})
 
@@ -65,7 +65,7 @@ def runApp():
             InterfaceHolder.ERROR.writeFileError(jobId,manager.filename,ValidationError.jobError)
             return JsonResponse.error(e,e.status,{"table":""})
         except Exception as e:
-            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,str(type(e)))
+            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
             InterfaceHolder.ERROR.writeFileError(jobId,manager.filename,ValidationError.jobError)
             return JsonResponse.error(exc,exc.status,{"table":""})
 
@@ -74,7 +74,7 @@ def runApp():
         try :
             jobTracker.markStatus(jobId,"running")
         except Exception as e:
-            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,str(type(e)))
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{"table":"could not start job"})
 
         thread.start()
@@ -89,7 +89,7 @@ def runApp():
         except Exception as e:
             # Something went wrong getting the flask request
             open("errorLog","a").write(str(e))
-            exc = ResponseException("Internal exception",StatusCode.INTERNAL_ERROR,str(type(e)))
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{"table":""})
 
 

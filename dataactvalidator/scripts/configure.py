@@ -43,17 +43,17 @@ class ConfigureValidator(object):
             try :
                 SchemaLoader.loadFields("appropriations",path)
             except IOError as e:
-                print "Cant open file"
+                print("Cant open file")
             except Exception as e:
-                  print "Unexpected error:", sys.exc_info()[0]
+                  print("Unexpected error:", sys.exc_info()[0])
             path = raw_input("Enter the full file path for your rules (appropriationsRules.csv) :  " ).strip()
 
             try :
                 SchemaLoader.loadRules("appropriations",path)
             except IOError as e:
-                print "Cant open file"
+                print("Cant open file")
             except Exception as e:
-                  print "Unexpected error:", sys.exc_info()[0]
+                  print("Unexpected error:", sys.exc_info()[0])
     @staticmethod
     def promptForTAS():
         if(ConfigureValidator.questionPrompt("Would you like to add a new TAS File? (y/n) : ")):
@@ -63,9 +63,9 @@ class ConfigureValidator(object):
                 TASLoader.loadFields(path)
                 setupTASIndexs()
             except IOError as e:
-                print "Cant open file"
+                print("Cant open file")
             except Exception as e:
-                 print "Unexpected error:", sys.exc_info()[0]
+                 print("Unexpected error:", sys.exc_info()[0])
     @staticmethod
     def promptWebservice():
         """Promts user validator web service"""

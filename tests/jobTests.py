@@ -75,7 +75,7 @@ class JobTests(unittest.TestCase):
                         "many":{"filename":"testMany.csv","status":"ready","type":"csv_record_validation","submissionLocalId":11,"fileType":3},
                         "odd_characters":{"filename":"testOddCharacters.csv","status":"ready","type":"csv_record_validation","submissionLocalId":14,"fileType":2},
                         "many_bad":{"filename":"testManyBadValues.csv","status":"ready","type":"csv_record_validation","submissionLocalId":11,"fileType":4},
-                        "rules":{"filename":"testRules.csv","status":"ready","type":"csv_record_validation","submissionLocalId":16,"fileType":1}}
+                        "rules":{"filename":"testRules.csv","status":"ready","type":"csv_record_validation","submissionLocalId":16,"fileType":3}}
 
             # Upload needed files to S3
             for key in csvFiles.keys():
@@ -165,14 +165,14 @@ class JobTests(unittest.TestCase):
         self.passed = TestUtils.run_test(jobId,200,"finished",52,1,"complete",0,self)
 
     def test_rules(self):
-        """ Test rules, should have one type failure and two value failures """
+        """ Test rules, should have one type failure and four value failures """
         jobId = self.jobIdDict["rules"]
         self.passed = TestUtils.run_test(jobId,200,"finished",350,1,"complete",5,self)
 
     def test_bad_values_job(self):
         # Test job with bad values
         jobId = self.jobIdDict["bad_values"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",5574,0,"complete",92,self)
+        self.passed = TestUtils.run_test(jobId,200,"finished",5474,0,"complete",90,self)
 
     def test_many_bad_values_job(self):
         # Test job with many bad values
@@ -237,7 +237,7 @@ class JobTests(unittest.TestCase):
     def test_odd_characters(self):
         """ Test potentially problematic characters """
         jobId = self.jobIdDict["odd_characters"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",165,5,"complete",2,self)
+        self.passed = TestUtils.run_test(jobId,200,"finished",99,6,"complete",1,self)
 
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """

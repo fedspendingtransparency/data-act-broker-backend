@@ -25,7 +25,9 @@ class ErrorInterface(errorInterface.ErrorInterface):
             int(jobId)
         except:
             raise ValueError("Bad jobId: " + str(jobId))
+
         fileError = FileStatus(job_id = jobId, filename = filename, status_id = Status.getStatus(ValidationError.getErrorTypeString(errorType)))
+
         self.session.add(fileError)
         self.session.commit()
         return True

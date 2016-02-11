@@ -32,7 +32,7 @@ class TASLoader(object):
                 counter = counter + 1
                 #Let the user know that the script is still running.
                 if(counter % 40000 == 0) :
-                    print "Loading ... " + str(counter)
+                    print("Loading ... " + str(counter))
                 #Pad Record
                 record["ATA"] = record["ATA"].zfill(3)
                 record["AID"] = record["AID"].zfill(3)
@@ -60,9 +60,9 @@ class TASLoader(object):
                     totalExistingTAS += 1
                 lastRecord  = record
         #Step 3 Report Metrics for debuging
-        print "Total TAS added : " + str(totalTASAdded)
-        print "Duplicate TAS in file :" + str(totalExistingTAS)
-        print "Total TAS in file : " + str(totalExistingTAS + totalTASAdded)
+        print("Total TAS added : " + str(totalTASAdded))
+        print("Duplicate TAS in file :" + str(totalExistingTAS))
+        print("Total TAS in file : " + str(totalExistingTAS + totalTASAdded))
 
 
     @staticmethod

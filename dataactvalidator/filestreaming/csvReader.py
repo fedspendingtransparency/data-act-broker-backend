@@ -74,6 +74,9 @@ class CsvReader(object):
             for cell in row :
                 if(current >= self.columnCount) :
                     raise ResponseException("Record contains too many fields",StatusCode.CLIENT_ERROR,ValueError,ValidationError.readError)
+                if(cell == ""):
+                    # Use None instead of empty strings for sqlalchemy
+                    cell = None
                 returnDict[self.headerDictionary[current]] = cell
                 current += 1
         return returnDict
@@ -91,7 +94,7 @@ class CsvReader(object):
         #for packet in self.s3File :
         while( self.packetCounter *  CsvReader.BUFFER_SIZE <=  self.s3File.size) :
             offsetCheck = self.packetCounter *  CsvReader.BUFFER_SIZE
-            header ={'Range' : 'bytes='+str(offsetCheck)+'-'+str(offsetCheck +CsvReader.BUFFER_SIZE) }
+            header ={'Range' : 'bytes='+str(offsetCheck)+'-'+str(offsetCheck +CsvReader.BUFFER_SIZE - 1) }
             try:
                 packet = self.s3File.get_contents_as_string(headers=header).decode('utf-8')
             except :

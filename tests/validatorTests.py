@@ -59,36 +59,48 @@ class ValidatorTests(unittest.TestCase) :
         column1.name= "test1"
         column1.required = True
         column1.field_type = stringType
+        column1.file_id = 1
+        column1.populateFile()
 
         column2 =  FileColumn()
         column2.file_column_id = 2
         column2.name= "test2"
         column2.required = True
         column2.field_type = floatType
+        column2.file_id = 1
+        column2.populateFile()
 
         column3 =  FileColumn()
         column3.file_column_id = 3
         column3.name= "test3"
         column3.required = True
         column3.field_type = booleanType
+        column3.file_id = 1
+        column3.populateFile()
 
         column4 =  FileColumn()
         column4.file_column_id = 3
         column4.name= "test4"
         column4.required = True
         column4.field_type =intType
+        column4.file_id = 1
+        column4.populateFile()
 
         column5 =  FileColumn()
         column5.file_column_id = 3
         column5.name= "test5"
         column5.required = False
         column5.field_type =intType
+        column5.file_id = 1
+        column5.populateFile()
 
         column6 =  FileColumn()
         column6.file_column_id = 6
         column6.name= "test6"
         column6.required = False
         column6.field_type =stringType
+        column6.file_id = 1
+        column6.populateFile()
 
         schema =  {
             "test1" :column1,
@@ -190,7 +202,7 @@ class ValidatorTests(unittest.TestCase) :
             "test5" :"1",
             "test6" :"X"
         }
-        assert( Validator.validate(record,rules,schema, None)[0]),"Values do not match rules"
+        assert(Validator.validate(record,rules,schema,"award")[0]),"Values do not match rules"
 
         record = {
             "test1" : "goodbye" ,
@@ -200,12 +212,12 @@ class ValidatorTests(unittest.TestCase) :
             "test5" :"1",
             "test6" :"Q"
         }
-        assert( not Validator.validate(record,[rule3],schema, None)[0]),"Rule for test1 passed"
-        assert( not Validator.validate(record,[rule4],schema, None)[0]),"Rule for test3 passed"
-        assert( not Validator.validate(record,[rule5],schema, None)[0]),"Rule for test4 passed"
-        assert( not Validator.validate(record,[rule6],schema, None)[0]),"Rule for test4 passed"
-        assert( not Validator.validate(record,[rule7],schema, None)[0]),"Rule for test2 passed"
-        assert( not Validator.validate(record,[rule8],schema, None)[0]),"Rule for test6 passed"
-        assert( not Validator.validate(record,rules,schema, None)[0]),"Rules passed"
+        assert( not Validator.validate(record,[rule3],schema,"award")[0]),"Rule for test1 passed"
+        assert( not Validator.validate(record,[rule4],schema,"award")[0]),"Rule for test3 passed"
+        assert( not Validator.validate(record,[rule5],schema,"award")[0]),"Rule for test4 passed"
+        assert( not Validator.validate(record,[rule6],schema,"award")[0]),"Rule for test4 passed"
+        assert( not Validator.validate(record,[rule7],schema,"award")[0]),"Rule for test2 passed"
+        assert( not Validator.validate(record,[rule8],schema,"award")[0]),"Rule for test6 passed"
+        assert( not Validator.validate(record,rules,schema,"award")[0]),"Rules passed"
 if __name__ == '__main__':
     unittest.main()

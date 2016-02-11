@@ -20,10 +20,12 @@ class Validator(object):
         record -- dict represenation of a single record of data
         rules -- list of rule Objects
         csvSchema -- dict of schema for the current file.
+        fileType -- name of file type to check against
+
         Returns:
         True if validation passed, False if failed, and list of failed rules, each with field, description of failure, and value that failed
         """
-
+        #print(str(record))
         recordFailed = False
         failedRules = []
         for fieldName in csvSchema :
@@ -31,16 +33,18 @@ class Validator(object):
                 return False, [[fieldName, ValidationError.requiredError, ""]]
 
         for fieldName in record :
-
             currentSchema =  csvSchema[fieldName]
-            ruleSubset = Validator.getRules(fieldName,rules)
-            currentData = record[fieldName].strip()
+            ruleSubset = Validator.getRules(fieldName, fileType, rules)
+            currentData = record[fieldName]
+            if(currentData != None):
+                currentData = currentData.strip()
 
-
-            if(len(currentData) == 0):
+            if(currentData == None or len(currentData) == 0):
                 if(currentSchema.required ):
                     # If empty and required return field name and error
-                    return False, [[fieldName, ValidationError.requiredError, ""]]
+                    recordFailed = True
+                    failedRules.append([fieldName, ValidationError.requiredError, ""])
+                    continue
                 else:
                     #if field is empty and not required its valid
                     continue
@@ -78,11 +82,12 @@ class Validator(object):
         return (not recordFailed), failedRules
 
     @staticmethod
-    def getRules(fieldName,rules) :
+    def getRules(fieldName, fileType,rules) :
         """ From a given set of rules, create a list of only the rules that apply to specified field
 
         Args:
             fieldName: Field to find rules for
+            fileType: Name of file to check against
             rules: Original set of rules
 
         Returns:
@@ -90,7 +95,7 @@ class Validator(object):
         """
         returnList =[]
         for rule in rules :
-            if( rule.file_column.name == fieldName) :
+            if(rule.file_column.name == fieldName and rule.file_column.file.name == fileType) :
                 returnList.append(rule)
         return returnList
 
@@ -117,6 +122,8 @@ class Validator(object):
             if (Validator.IS_DECIMAL.match(data) is None ) :
                 return Validator.IS_INTERGER.match(data) is not None
             return True
+        if(datatype == "LONG"):
+            return Validator.IS_INTERGER.match(data) is not None
         raise ValueError("Data Type Error, Type: " + datatype + ", Value: " + data)
 
     @staticmethod
@@ -141,6 +148,8 @@ class Validator(object):
             return float(data)
         if(datatype == "STRING" or datatype =="BOOLEAN") :
             return data
+        if(datatype == "LONG"):
+            return long(data)
         raise ValueError("Data Type Invalid")
 
     @staticmethod
@@ -221,7 +230,11 @@ class Validator(object):
         fields = Validator.cleanSplit(rule.rule_text_1)
         output = ""
         for field in fields:
-            output += field + ": " + record[field] + ", "
+            value = record[field]
+            if(value == None):
+                # For concatenating fields, represent None with an empty string
+                value = ""
+            output += field + ": " + value + ", "
         return output[0:len(output)-2]
 
     @staticmethod
@@ -241,6 +254,9 @@ class Validator(object):
 
         for i in range(0,len(fieldsToCheck)):
             data = record[str(fieldsToCheck[i])]
+            if(data == None):
+                # Set data to empty string so it can be padded with leading zeros
+                data = ""
             field = fieldsToCheck[i].lower()
             # Pad field with leading zeros
             if field in Validator.FIELD_LENGTH:

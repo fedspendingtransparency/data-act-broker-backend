@@ -85,9 +85,7 @@ class TestUtils(object):
             assert(stagingDb.tableExists(tableName) == True)
             assert(stagingDb.countRows(tableName) == stagingRows)
         errorInterface = InterfaceHolder.ERROR
-        if not (errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus(errorStatus)):
-            print("Status for job " + str(jobId) + " is " + str(errorInterface.checkStatusByJobId(jobId)) + ", but should actually be " + str(errorModels.Status.getStatus(errorStatus)))
-            assert(False)
+        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus(errorStatus))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == numErrors)
         return True
 

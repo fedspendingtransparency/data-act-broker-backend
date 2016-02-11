@@ -30,21 +30,17 @@ class FieldCleaner:
         """
 
         # Clean name, required, type, and length
-        try:
-            record['fieldname'] = FieldCleaner.cleanName(record['fieldname'])
-            record['required'] = FieldCleaner.cleanRequired(record['required'])
-            record['data_type'] = FieldCleaner.cleanType(record['data_type'])
-            record['field_length'] = FieldCleaner.cleanLength(record['field_length'])
-            return record
-        except Exception as e:
-            print("Exception occurred for field " + record['fieldname'])
-            raise e
-
+        record['fieldname'] = FieldCleaner.cleanName(record['fieldname'])
+        record['required'] = FieldCleaner.cleanRequired(record['required'])
+        record['data_type'] = FieldCleaner.cleanType(record['data_type'])
+        record['field_length'] = FieldCleaner.cleanLength(record['field_length'])
+        return record
 
     @staticmethod
     def cleanName(name):
         """ Remove whitespace from name and change to lowercase """
         # Convert to lowercase and remove whitespace on ends
+        originalName = name
         name = name.lower().strip()
         # Remove braces and parantheses
         name = name.replace("{","").replace("}","").replace("(","").replace(")","")
@@ -67,7 +63,6 @@ class FieldCleaner:
         elif(required == "false" or required == "" or required == "optional" or required == "required if relevant" or required == "required if modification"):
             return "false"
         else:
-            print("Required is " + str(required))
             raise ValueError("Unknown value for required")
 
     @staticmethod
@@ -86,8 +81,9 @@ class FieldCleaner:
             return "str"
         elif(type == "boolean" or type == "bool"):
             return "bool"
+        elif(type == "long"):
+            return "long"
         else:
-            print("Type is " + str(type))
             raise ValueError("Unknown type")
 
     @staticmethod
@@ -101,8 +97,6 @@ class FieldCleaner:
             int(length)
         except:
             # length cannot be cast as int
-            print("Length is type: " + str(type(length)))
-            print("Length is " + str(length))
             raise ValueError("Length must be an integer")
         if(length <= 0):
             raise ValueError("Length must be positive")

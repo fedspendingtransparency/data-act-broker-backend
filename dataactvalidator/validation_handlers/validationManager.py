@@ -219,7 +219,7 @@ class ValidationManager:
             return JsonResponse.error(e,e.status,{"table":tableName})
         except Exception as e:
             open("errorLog","a").write(str(e))
-            exc = ResponseException("Internal exception",StatusCode.INTERNAL_ERROR,str(type(e)))
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             self.markJob(jobId,jobTracker,"failed",self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,{"table":tableName})
 
@@ -233,16 +233,16 @@ class ValidationManager:
             return JsonResponse.error(e,e.status,{"table":tableName})
         except ValueError as e:
             # Problem with CSV headers
-            exc = ResponseException("Internal value error",StatusCode.CLIENT_ERROR,str(type(e)),ValidationError.unknownError)
+            exc = ResponseException("Internal value error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
             self.markJob(jobId,jobTracker,"invalid",self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Error as e:
             # CSV file not properly formatted (usually too much in one field)
-            exc = ResponseException("Internal error",StatusCode.CLIENT_ERROR,str(type(e)),ValidationError.unknownError)
+            exc = ResponseException("Internal error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
             self.markJob(jobId,jobTracker,"invalid",self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Exception as e:
             open("errorLog","a").write(str(e))
-            exc = ResponseException("Internal exception",StatusCode.INTERNAL_ERROR,str(type(e)),ValidationError.unknownError)
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e),ValidationError.unknownError)
             self.markJob(jobId,jobTracker,"failed",self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,{"table":tableName})

@@ -1,8 +1,8 @@
 import unittest, inspect
-from testUtils import TestUtils
+from testUtils import TestUtils # Importing this here to ensure correct interface setup for local
 from jobTests import JobTests
 from validatorTests import ValidatorTests
-from appropTests import AppropTests
+from fileTypeTests import FileTypeTests
 import cProfile
 import pstats
 
@@ -17,7 +17,7 @@ def runTests():
     jobMethods = JobTests.__dict__.keys()
 
     #validatorMethods = []
-    #jobMethods = [] #["test_valid_job"]
+    #jobMethods = ["test_rules"]
 
     for method in validatorMethods:
         # If test method, add to suite
@@ -45,18 +45,17 @@ def runTests():
     else:
         result = runner.run(suite)
 
-    appropSuite = unittest.TestSuite()
-    appropMethods = AppropTests.__dict__.keys()
-    #appropMethods = ["test_tas_mixed"]
+    fileSuite = unittest.TestSuite()
+    fileMethods = FileTypeTests.__dict__.keys()
+    #fileMethods = []
 
-    for method in appropMethods:
+    for method in fileMethods:
         # If test method, add to suite
         if(method[0:4] == "test"):
-            test =AppropTests(methodName=method)
-            appropSuite.addTest(test)
+            test =FileTypeTests(methodName=method)
+            fileSuite.addTest(test)
 
-    appropResult = runner.run(appropSuite)
-
+    fileResult = runner.run(fileSuite)
 
 if __name__ == '__main__':
     runTests()

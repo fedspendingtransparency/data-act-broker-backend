@@ -1,5 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, Text, Numeric, Boolean
+from sqlalchemy import Column, Integer, Text, Numeric, Boolean, BigInteger
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
 class StagingTable(object):
@@ -63,6 +63,8 @@ class StagingTable(object):
                 fieldTypeName = Numeric
             elif(fieldTypeName.lower() == "boolean"):
                 fieldTypeName = Boolean
+            elif(fieldTypeName.lower() == "long"):
+                fieldTypeName = BigInteger
             else:
                 raise ValueError("Bad field type")
             # Get extra parameters (primary key or not null)
