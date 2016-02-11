@@ -1,6 +1,6 @@
 # The DATA Act Broker Repository
 
-The DATA Act Broker repository is the API that is used to communicate to the web front end. The repository has two major directories: scripts and handlers.
+The DATA Act Broker repository is the API, which communicates to the web front end. The repository has two major directories: scripts and handlers.
 
 ```
 dataactbroker/
@@ -9,11 +9,10 @@ dataactbroker/
 ```
 
 ##Scipts
- The `/dataactbroker/scripts` folder contains the install scripts needed to setup the Broker for a local install.
+The `/dataactbroker/scripts` folder contains the install scripts needed to setup the Broker for a local install.  `configure.py` creates the various JSON files needed for running the Broker. The following three JSON files are created during
+the install process : `manager.json`, `web_api_configuration.json` and `credentials.json`.
 
- The `configure` script creates the various JSON files needed for running the broker. The following three JSON files are created : `manager.json`, `web_api_configuration.json` and `credentials.json`.
-
- `manager.json` contains the web url where the DATA Act validator exists. It has the following format.
+`manager.json` contains the web url where the DATA Act validator exists. It has the following format.
 
 ```json
 {
@@ -51,21 +50,18 @@ for setting ports and debug options. It has the following format:
 | Setting  | Value |
 | ------------- | ------------- |
 | rest_trace  | Provides debug output to rest responses   |
-| server_debug  | turns on debug mode for the Flask server  |
-| local_dynamo  | sets if the dynamo database is on the local host or AWS|
-| dynamo_port  | the port used for the dynamo database|
-| create_credentials  | turns on the ability to create temporarily AWS credentials|
+| server_debug  | Turns on debug mode for the Flask server  |
+| local_dynamo  | Sets if the dynamo database is on the local host or AWS|
+| dynamo_port  | The port used for the dynamo database|
+| create_credentials  | Turns on the ability to create temporarily AWS credentials|
 | origins  | The url that cross-origin HTTP requests are enabled on|
 
 The `initialize` script provides users with choices of the install process see the [Broker Install Guide](#install-guide) for more information.
 
 ##Handlers
-The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py` or `fileRoutes.py` files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag add a wrapper that checks if there exists a session for the current user
-and if the user is logged in. If user is not logged in to the system, a 401 will be returned for the route. This tag is defined in `dataactbroker/permissions.py`. Cookies are used to keep track of sessions for the end user. Only
-a uuid is stored in the cookie.
+The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py` or `fileRoutes.py` files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag add a wrapper that checks if there exists a session for the current user and if the user is logged in. If user is not logged in to the system, a 401 will be returned for the route. This tag is defined in `dataactbroker/permissions.py`. Cookies are used to keep track of sessions for the end user. Only a uuid is stored in the cookie.
 
-`LoginHandler.py` contains the functions to check logins and to log user out. Currently `credentials.json` defines which users exist within the system. This file is automatically   
-created in the installation process.
+`LoginHandler.py` contains the functions to check logins and to log users out. Currently `credentials.json` defines which users exist within the system. This file is automatically created in the installation process.
 
 `FileHandler.py` contains functions for managing user file interaction. It creates all of the the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
 
@@ -78,7 +74,7 @@ In order to use the DATA Act Broker, additional AWS permissions and configuratio
 required in addition to those listed in the DATA ACT Core README.
 
 ##Dyanmo Database
-The DATA Act Broker uses AWS Dynamo Database for session handling. This provides a fast and reliable methodology to check sessions in the cloud. Users can easily bounce between servers with no impact to there session.
+The DATA Act Broker uses AWS Dynamo Database for session handling. This provides a fast and reliable methodology to check sessions in the cloud. Users can easily bounce between servers with no impact to their session.
 
 The install script seen in the [Broker Install Guide](#install-guide)  provides an option to create the database automatically. This however, assumes the machine has the proper AWS Credentials to preform the operation. If you wish to create the database manually, it needs to be setup to have the following attributes .
 
@@ -92,8 +88,20 @@ The install script seen in the [Broker Install Guide](#install-guide)  provides 
 The EC2 instance running the broker should be granted read/write permissions to the Dynamo Database. The following JSON can be added to the role to grant this access.
 
 ```json
-
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "dynamodb:*"
+      ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:dynamodb:REGION:ACCOUNT_ID:table/BrokerSession"
+    }
+  ]
+}
 ```
+The `REGION` should be replaced with region of the AWS account and the `ACCOUNT_ID` should be replaced with the AWS account id.
 
 ###Local Version
 
@@ -359,12 +367,12 @@ This command will let you setup the following:
 - Configure the Broker API
 - Creates all Database tables needed by the Broker
 
-The following table below show the prompts created by the setup and there useage
+The following table below show the prompts created by the setup and there usage
 
 | Prompt  | Value |
 | ------------- | ------------- |
 | Enter broker API port  | integer value, port 80  or 443 for http or https  |
-| Would you like to enable server side debugging  | yes or no, turns on debug mode for the server, this should **not**  be used in production.|
+| Would you like to enable server side debugging  | yes or no, turns on debug mode for the server, this should **not** be used in production.|
 | Would you like to enable debug traces on REST requests  |yes or no, enables returning server error messages in the rest request. This should **not** be enabled in production|
 | Would you like to use a local dynamo database  | yes or no, enables use of local dynamo database,this should be yes only if you do not have access to an AWS account.|
 |Enter the port for the local dynamo database|interger, port 8000 is used by default. This prompt only appears when a local dynamo database is selected.|
@@ -372,6 +380,17 @@ The following table below show the prompts created by the setup and there useage
 |Would you like to create the dynamo database table|yes or no. Creates a table on the Dynamo Database. This command you be used **exactly once** per AWS account |
 |Would you like to include test case users | yes or no, this options adds test users. This option should **not** be selected for production|
 |Enter the admin user password| string, this is the user password needed to login into the API|
+
+
+Alternatively, if you do not need to configure everything, the following commands are also available.
+
+| Flag  | Description |
+| ------------- | ------------- |
+| -aws  | Configures AWS settings  |
+| -c    | Configures Broker settings,such as ports, debug flags and local dyanmo|
+| -db   |Creates the database schema|
+| -cdb   |Configures database connection|
+
 
 
 Finally, once the Broker has been initialized, run the Broker with the following command:
