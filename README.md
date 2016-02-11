@@ -60,12 +60,9 @@ for setting ports and debug options. It has the following format:
 The `initialize` script provides users with choices of the install process see the [Broker Install Guide](#install-guide) for more information.
 
 ##Handlers
-The `dataactbroker\handlers` folder contains the logic to handle requests
-that are dispatched from the `loginRoutes.py` or `fileRoutes.py` files. Routes
-defined in these files may include the `@permissions_check` tag to route definition.
-This tag add a wrapper that checks if there exists a session for the current user
-and if the user is logged in. If user is not logged in to the system, a 401 will be returned
-for the route. This tag is defined in `dataactbroker/permissions.py`.
+The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py` or `fileRoutes.py` files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag add a wrapper that checks if there exists a session for the current user
+and if the user is logged in. If user is not logged in to the system, a 401 will be returned for the route. This tag is defined in `dataactbroker/permissions.py`. Cookies are used to keep track of sessions for the end user. Only
+a uuid is stored in the cookie.
 
 `LoginHandler.py` contains the functions to check logins and to log user out. Currently `credentials.json` defines which users exist within the system. This file is automatically   
 created in the installation process.
@@ -74,7 +71,6 @@ created in the installation process.
 
 In addition to these helper objects, the following sub classes also exist
 within the directory: `UserHandler`, `JobHandler`, and `ErrorHandler`. These classes extend the database connection objects that are located in the Core Repository. Extra query methods exist in these classes that are used exclusively by the Broker API.
-
 
 
 #AWS Setup
@@ -88,7 +84,7 @@ The install script seen in the [Broker Install Guide](#install-guide)  provides 
 
 | Setting  | Value | Type|
 | ------------- | ------------- |-------------|
-| Table Name  | BrokerSession   ||N/A|
+| Table Name  | BrokerSession   |N/A|
 | Primary index  |  uid  |hashkey|
 | Secondary Index  |experation-index|number  |
 
@@ -297,7 +293,7 @@ Example output:
 
 
 #### Test Cases
-Before running test cases, start the Flask app by running "python app.py" in the dataactbroker folder. Alternatively, if using pip install, you can uses the server start command `sudo webbroker -s` The current test suite for the validator may then be run by navigating to the `datatactbroker/tests folder` and running `python runTests.py`.
+Before running test cases, start the Flask app by running "python app.py" in the `dataactbroker` folder. Alternatively, if using pip install, you can uses the server start command `sudo webbroker -s` The current test suite for the validator may then be run by navigating to the `datatactbroker/tests folder` and running `python runTests.py`.
 
 
 #Install Guide
@@ -357,32 +353,28 @@ Initialize the Broker and follow the prompted steps:
 $ sudo webbroker –i
 ```
 
-This command will let you setup the following
+This command will let you setup the following:
 - S3 Configuration
 - Database Connect Configuration
 - Configure the Broker API
 - Creates all Database tables needed by the Broker
 
-The following table below show the prompts created by the setup and the expected
-entered values.
+The following table below show the prompts created by the setup and there useage
 
 | Prompt  | Value |
 | ------------- | ------------- |
-| Enter broker API port  | integer value, port 80  or 443 for Http or https  |
+| Enter broker API port  | integer value, port 80  or 443 for http or https  |
 | Would you like to enable server side debugging  | yes or no, turns on debug mode for the server, this should **not**  be used in production.|
-| Would you like to enable debug traces on REST requests  |yes or no, enables returning server error messages in the rest request. This should *not** be enabled in production|
-| Would you like to use a local dynamo database  | yes or no, enables use of local dynamo database,
-this should be yes only if you do not have access to an AWS account.|
-| Enter the allowed origin (website that will allow for CORS)  | this is the website url of the
-DATA Act Broker front end. * can be used in its place but this value should **not** be used
-in production|
+| Would you like to enable debug traces on REST requests  |yes or no, enables returning server error messages in the rest request. This should **not** be enabled in production|
+| Would you like to use a local dynamo database  | yes or no, enables use of local dynamo database,this should be yes only if you do not have access to an AWS account.|
+|Enter the port for the local dynamo database|interger, port 8000 is used by default. This prompt only appears when a local dynamo database is selected.|
+| Enter the allowed origin (website that will allow for CORS)  | this is the website url of the DATA Act Broker front end. * can be used in its place but this value should **not** be used in production|
 |Would you like to create the dynamo database table|yes or no. Creates a table on the Dynamo Database. This command you be used **exactly once** per AWS account |
+|Would you like to include test case users | yes or no, this options adds test users. This option should **not** be selected for production|
+|Enter the admin user password| string, this is the user password needed to login into the API|
 
 
-
-
-
-Finally, once the broker has been initialized, run the validator:
+Finally, once the Broker has been initialized, run the Broker with the following command:
 
 ```bash
 $ sudo webbroker -s
