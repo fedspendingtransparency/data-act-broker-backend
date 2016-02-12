@@ -86,7 +86,7 @@ def runApp():
             return validationManager.validateJob(request)
         except Exception as e:
             # Something went wrong getting the flask request
-            open("errorLog","a").write(str(e))
+            open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{"table":""})
         finally:

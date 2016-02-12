@@ -32,6 +32,17 @@ class InterfaceHolder:
         if(interface == None):
             # No need to close a nonexistent connection
             return
-        interface.session.close()
-        interface.connection.close()
-        interface.engine.dispose()
+
+        # Try to close the session and connection, on error try a rollback
+        try:
+            interface.session.close()
+        except:
+            try:
+                interface.session.rollback()
+                interface.session.close()
+            except:
+                pass
+        try:
+            interface.connection.close()
+        except:
+            pass

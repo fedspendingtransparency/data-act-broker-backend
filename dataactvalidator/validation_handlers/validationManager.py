@@ -96,11 +96,14 @@ class ValidationManager:
             InterfaceHolder.ERROR.markFileComplete(jobId,self.filename)
             return
         except ResponseException as e:
+            open("errorLog","a").write(str(e) + "\n")
             self.markJob(jobId,jobTracker,"invalid",self.filename,e.errorType)
         except ValueError as e:
+            open("errorLog","a").write(str(e) + "\n")
             self.markJob(jobId,jobTracker,"invalid",self.filename,ValidationError.unknownError)
         except Exception as e:
             #Something unknown happened we may need to try again!
+            open("errorLog","a").write(str(e) + "\n")
             self.markJob(jobId,jobTracker,"failed",self.filename,ValidationError.unknownError)
         finally:
             InterfaceHolder.close()
@@ -218,13 +221,14 @@ class ValidationManager:
                 raise ResponseException("Checks failed on Job ID",StatusCode.CLIENT_ERROR)
 
         except ResponseException as e:
+            open("errorLog","a").write(str(e) + "\n")
             if(e.errorType == None):
                 # Error occurred while trying to get and check job ID
                 e.errorType = ValidationError.jobError
             InterfaceHolder.ERROR.writeFileError(jobId,self.filename,e.errorType)
             return JsonResponse.error(e,e.status,{"table":tableName})
         except Exception as e:
-            open("errorLog","a").write(str(e))
+            open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             self.markJob(jobId,jobTracker,"failed",self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,{"table":tableName})
@@ -235,20 +239,23 @@ class ValidationManager:
             InterfaceHolder.ERROR.markFileComplete(jobId,self.filename)
             return  JsonResponse.create(StatusCode.OK,{"table":tableName})
         except ResponseException as e:
+            open("errorLog","a").write(str(e) + "\n")
             self.markJob(jobId,jobTracker,"invalid",self.filename,e.errorType)
             return JsonResponse.error(e,e.status,{"table":tableName})
         except ValueError as e:
+            open("errorLog","a").write(str(e) + "\n")
             # Problem with CSV headers
             exc = ResponseException("Internal value error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
             self.markJob(jobId,jobTracker,"invalid",self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Error as e:
+            open("errorLog","a").write(str(e) + "\n")
             # CSV file not properly formatted (usually too much in one field)
             exc = ResponseException("Internal error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
             self.markJob(jobId,jobTracker,"invalid",self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,{"table":tableName})
         except Exception as e:
-            open("errorLog","a").write(str(e))
+            open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e),ValidationError.unknownError)
             self.markJob(jobId,jobTracker,"failed",self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,{"table":tableName})
