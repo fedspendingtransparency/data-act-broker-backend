@@ -3,6 +3,7 @@ import csv
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactvalidator.validation_handlers.validationError import ValidationError
+from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 class CsvReader(object):
     """
@@ -24,7 +25,7 @@ class CsvReader(object):
         possibleFields = {}
         currentFields = {}
         for schema in  csvSchema:
-                possibleFields[schema.name.lower().replace(" ","_")] = 0
+                possibleFields[FieldCleaner.cleanString(schema.name)] = 0
 
         self.s3File = s3Bucket.lookup(filename)
         if(self.s3File == None):
@@ -46,7 +47,7 @@ class CsvReader(object):
         #create the header
         for row in csv.reader([line],dialect='excel'):
             for cell in row :
-                headerValue = cell.strip().lower().replace(" ","_")
+                headerValue = FieldCleaner.cleanString(cell)
                 if( not headerValue in possibleFields) :
                     raise ResponseException(("Header : "+ headerValue + " not in CSV schema"), StatusCode.CLIENT_ERROR, ValueError,ValidationError.badHeaderError)
                 if(possibleFields[headerValue] == 1) :
@@ -57,7 +58,7 @@ class CsvReader(object):
         self.columnCount = current
         #Check that all required fields exists
         for schema in csvSchema :
-            if(schema.required and  possibleFields[schema.name.lower().replace(" ","_")] == 0) :
+            if(schema.required and  possibleFields[FieldCleaner.cleanString(schema.name)] == 0) :
                 raise ResponseException(("Header : "+ schema.name + " is required"), StatusCode.CLIENT_ERROR, ValueError,ValidationError.missingHeaderError)
 
     def getNextRecord(self):

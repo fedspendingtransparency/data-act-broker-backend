@@ -1,6 +1,7 @@
 from sqlalchemy.orm import subqueryload
 from dataactcore.models import validationInterface
 from dataactcore.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType
+from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 class ValidationInterface(validationInterface.ValidationInterface) :
     """ Manages all interaction with the validation database """
@@ -152,7 +153,7 @@ class ValidationInterface(validationInterface.ValidationInterface) :
             raise ValueError("Filetype does not exist")
         queryResult = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).all()
         for result in queryResult:
-            result.name = result.name.lower().replace(" ","_") # Standardize field names
+            result.name = FieldCleaner.cleanString(result.name) # Standardize field names
         return queryResult
 
     def getFieldsByFile(self, fileType):

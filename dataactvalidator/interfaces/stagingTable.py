@@ -1,6 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, Text, Numeric, Boolean, BigInteger
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 class StagingTable(object):
     """ Represents a staging table used for a single job """
@@ -53,29 +54,31 @@ class StagingTable(object):
         # Add each column
         for key in fields:
             # Build column statement for this key
+            # Create cleaned version of key
+            newKey = FieldCleaner.cleanString(key)
             # Get correct type name
-            fieldTypeName = fields[key].field_type.name
-            if(fieldTypeName.lower() == "string"):
+            fieldTypeName = FieldCleaner.cleanString(fields[key].field_type.name)
+            if(fieldTypeName == "string"):
                 fieldTypeName = Text
-            elif(fieldTypeName.lower() == "int"):
+            elif(fieldTypeName == "int"):
                 fieldTypeName = Integer
-            elif(fieldTypeName.lower() == "decimal"):
+            elif(fieldTypeName == "decimal"):
                 fieldTypeName = Numeric
-            elif(fieldTypeName.lower() == "boolean"):
+            elif(fieldTypeName == "boolean"):
                 fieldTypeName = Boolean
-            elif(fieldTypeName.lower() == "long"):
+            elif(fieldTypeName == "long"):
                 fieldTypeName = BigInteger
             else:
                 raise ValueError("Bad field type")
             # Get extra parameters (primary key or not null)
             extraParam = ""
-            if(fields[key].field_type.description == "PRIMARY_KEY"):
-                classFieldDict[key.replace(" ","_")] = Column(fieldTypeName, primary_key=True)
+            if(FieldCleaner.cleanString(fields[key].field_type.description) == "primary_key"):
+                classFieldDict[newKey] = Column(fieldTypeName, primary_key=True)
                 primaryAssigned = True
             elif(fields[key].required):
-                classFieldDict[key.replace(" ","_")] = Column(fieldTypeName, nullable=False)
+                classFieldDict[newKey] = Column(fieldTypeName, nullable=False)
             else:
-                classFieldDict[key.replace(" ","_")] = Column(fieldTypeName)
+                classFieldDict[newKey] = Column(fieldTypeName)
 
 
         if(not primaryAssigned):

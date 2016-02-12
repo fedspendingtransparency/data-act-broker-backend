@@ -5,8 +5,6 @@ import time
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
-from dataactcore.models.baseInterface import BaseInterface
-BaseInterface.IS_FLASK = False # Unit tests using interfaces are not enclosed in a Flask route, must be set before importing InterfaceHolder
 from dataactcore.models import errorModels
 from dataactcore.models.jobModels import Status
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder

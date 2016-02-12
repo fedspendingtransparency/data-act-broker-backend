@@ -1,5 +1,6 @@
 import unittest, inspect
-from testUtils import TestUtils # Importing this here to ensure correct interface setup for local
+from dataactcore.models.baseInterface import BaseInterface
+from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from jobTests import JobTests
 from validatorTests import ValidatorTests
 from fileTypeTests import FileTypeTests
@@ -8,6 +9,10 @@ import pstats
 
 def runTests():
     runMany = False # True to run the test suite multiple times
+
+    # Connect to databases
+    BaseInterface.IS_FLASK = False # Tests are not running within a flask app
+    InterfaceHolder.connect()
 
     # Create test suite
     suite = unittest.TestSuite()
@@ -56,6 +61,7 @@ def runTests():
             fileSuite.addTest(test)
 
     fileResult = runner.run(fileSuite)
+    InterfaceHolder.close()
 
 if __name__ == '__main__':
     runTests()

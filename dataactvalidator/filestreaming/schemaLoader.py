@@ -31,7 +31,7 @@ class SchemaLoader(object):
             for record in reader:
                 record = FieldCleaner.cleanRecord(record)
                 if(SchemaLoader.checkRecord(record, ["fieldname","required","data_type"])) :
-                    columnId = database.addColumnByFileType(fileTypeName,record["fieldname"].lower().replace(" ","_"),record["required"],record["data_type"])
+                    columnId = database.addColumnByFileType(fileTypeName,FieldCleaner.cleanString(record["fieldname"]),record["required"],record["data_type"])
                     if "field_length" in record:
                         # When a field length is specified, create a rule for it
                         length = record["field_length"].strip()
@@ -62,7 +62,7 @@ class SchemaLoader(object):
         ruleFile = open(filename)
         reader = csv.DictReader(ruleFile)
         for record in reader:
-            if(record["is_single_field"].lower() == "true"):
+            if(FieldCleaner.cleanString(record["is_single_field"]) == "true"):
                 # Find column ID based on field name
                 columnId = validationDb.getColumnId(record["field_name"],fileId)
                 # Write to rule table

@@ -37,17 +37,31 @@ class FieldCleaner:
         return record
 
     @staticmethod
+    def cleanString(data,removeSpaces = True):
+        """ Change to lowercase, trim whitespace on ends, and replace internal spaces with underscores if desired
+
+        Args:
+            data: String to be cleaned
+            removeSpaces: True if spaces should be replaced with underscores
+
+        Returns:
+            Cleaned version of string
+        """
+        result = data.lower().strip()
+        if(removeSpaces):
+            result = result.replace(" ","_")
+        return result
+
+    @staticmethod
     def cleanName(name):
         """ Remove whitespace from name and change to lowercase """
         # Convert to lowercase and remove whitespace on ends
         originalName = name
-        name = name.lower().strip()
+        name = FieldCleaner.cleanString(name)
         # Remove braces and parantheses
         name = name.replace("{","").replace("}","").replace("(","").replace(")","")
-        # Replace dashes with underscores
+        # Replace problematic characters with underscores
         name = name.replace(" - ","_").replace("-","_")
-        # Replace spaces with underscores
-        name = name.replace(" ","_")
         name = name.replace(",","_")
         name = name.replace("/","_")
         # Remove duplicate underscores
@@ -57,7 +71,7 @@ class FieldCleaner:
     @staticmethod
     def cleanRequired(required):
         """ Convert 'required' and '(required)' to True, "optional" and "required if relevant" if False, otherwise raises an exception """
-        required = required.lower().strip()
+        required = FieldCleaner.cleanString(required,False)
         if(required == "required" or required == "(required)" or required == "true"):
             return "true"
         elif(required == "false" or required == "" or required == "optional" or required == "required if relevant" or required == "required if modification"):
@@ -68,7 +82,7 @@ class FieldCleaner:
     @staticmethod
     def cleanType(type):
         """ Interprets all inputs as int, str, or bool.  For unexpected inputs, raises an exception. """
-        type = type.lower().strip()
+        type = FieldCleaner.cleanString(type,False)
         if(type == "integer" or type == "int"):
             return "int"
         elif(type == "numeric" or type == "float"):
@@ -89,7 +103,7 @@ class FieldCleaner:
     @staticmethod
     def cleanLength(length):
         """ Checks that input is a positive integer, otherwise raises an exception. """
-        length = length.strip()
+        length = FieldCleaner.cleanString(length,False)
         if(length == ""):
             # Empty length is fine, this means there is no length requirement
             return ""

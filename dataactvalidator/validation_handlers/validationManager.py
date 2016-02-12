@@ -85,6 +85,10 @@ class ValidationManager:
         job status being updated
 
         """
+
+        # As this is the start of a new thread, first generate new connections to the databases
+        InterfaceHolder.connect()
+
         self.filename = ""
         jobTracker = InterfaceHolder.JOB_TRACKER
         try:
@@ -98,6 +102,8 @@ class ValidationManager:
         except Exception as e:
             #Something unknown happened we may need to try again!
             self.markJob(jobId,jobTracker,"failed",self.filename,ValidationError.unknownError)
+        finally:
+            InterfaceHolder.close()
 
     def runValidation(self, jobId, jobTracker):
         """ Run validations for specified job

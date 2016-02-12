@@ -16,11 +16,6 @@ def runApp():
     app.config.from_object(__name__)
 
     validationManager = ValidationManager()
-    # Hold copy of interface objects to limit to a single session for each, this prevents them for being recreated each time
-    jobTracker = InterfaceHolder.JOB_TRACKER
-    errorDb = InterfaceHolder.ERROR
-    stagingDb = InterfaceHolder.STAGING
-    validationDb = InterfaceHolder.VALIDATION
 
     @app.route("/",methods=["GET"])
     def testApp():
@@ -37,16 +32,17 @@ def runApp():
                 threadedManager = ValidationManager()
                 threadedManager.threadedValidateJob(arg)
 
-        jobId = None
-        manager = ValidationManager()
-
         try :
+            InterfaceHolder.connect()
             jobTracker = InterfaceHolder.JOB_TRACKER
         except ResponseException as e:
             return JsonResponse.error(e,e.status,{"table":"cannot connect to job database"})
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
+
+        jobId = None
+        manager = ValidationManager()
 
         try:
             jobId = manager.getJobID(request)
@@ -77,6 +73,7 @@ def runApp():
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{"table":"could not start job"})
 
+        InterfaceHolder.close()
         thread.start()
 
         return JsonResponse.create(StatusCode.OK,{"table":"job"+str(jobId)})
@@ -85,12 +82,15 @@ def runApp():
     def validate():
         """Starts the validation process on the same threads"""
         try:
+            InterfaceHolder.connect() # Create interfaces for this route
             return validationManager.validateJob(request)
         except Exception as e:
             # Something went wrong getting the flask request
             open("errorLog","a").write(str(e))
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{"table":""})
+        finally:
+            InterfaceHolder.close()
 
 
     def getAppConfiguration():
