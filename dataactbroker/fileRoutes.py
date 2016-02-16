@@ -8,7 +8,7 @@ from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactbroker.permissions import permissions_check
 
 # Add the file submission route
-def add_file_routes(app,CreateCredentials,interfaces):
+def add_file_routes(app,CreateCredentials):
     """ Create routes related to file submission for flask app
 
     """

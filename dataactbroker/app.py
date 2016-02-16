@@ -18,6 +18,7 @@ def runApp():
 
     config = getAppConfiguration()
     # Set parameters
+    print("Config: " + str(config))
     debugFlag = config["server_debug"]  # Should be false for prod
     runLocal = config["local_dynamo"]  # False for prod, when True this assumes that the Dynamo is on the same server
     JsonResponse.debugMode = config["rest_trace"]
