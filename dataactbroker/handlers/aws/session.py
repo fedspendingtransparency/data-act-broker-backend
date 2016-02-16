@@ -212,7 +212,7 @@ class SessionTable :
         """
         returns the Boto DynamoDB connection object
         """
-        return DynamoDBConnection(host='localhost',port=localPort,aws_access_key_id='a',aws_secret_access_key='a',is_secure=False)
+        return DynamoDBConnection(host='localhost',port=SessionTable.localPort,aws_access_key_id='a',aws_secret_access_key='a',is_secure=False)
 
     @staticmethod
     def getTable() :
