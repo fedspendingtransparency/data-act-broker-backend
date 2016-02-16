@@ -36,8 +36,10 @@ def runApp():
             InterfaceHolder.connect()
             jobTracker = InterfaceHolder.JOB_TRACKER
         except ResponseException as e:
+            open("errorLog","a").write(str(e) + "\n")
             return JsonResponse.error(e,e.status,{"table":"cannot connect to job database"})
         except Exception as e:
+            open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
 
@@ -47,9 +49,11 @@ def runApp():
         try:
             jobId = manager.getJobID(request)
         except ResponseException as e:
+            open("errorLog","a").write(str(e) + "\n")
             manager.markJob(jobId,jobTracker,"invalid",manager.filename)
             return JsonResponse.error(e,e.status,{"table":""})
         except Exception as e:
+            open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
             manager.markJob(jobId,jobTracker,"invalid",manager.filename)
             return JsonResponse.error(exc,exc.status,{"table":""})
@@ -57,10 +61,12 @@ def runApp():
         try:
             manager.testJobID(jobId)
         except ResponseException as e:
+            open("errorLog","a").write(str(e) + "\n")
             # Job is not ready to run according to job tracker, do not change status of job in job tracker
             InterfaceHolder.ERROR.writeFileError(jobId,manager.filename,ValidationError.jobError)
             return JsonResponse.error(e,e.status,{"table":""})
         except Exception as e:
+            open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
             InterfaceHolder.ERROR.writeFileError(jobId,manager.filename,ValidationError.jobError)
             return JsonResponse.error(exc,exc.status,{"table":""})
@@ -70,6 +76,7 @@ def runApp():
         try :
             jobTracker.markStatus(jobId,"running")
         except Exception as e:
+            open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{"table":"could not start job"})
 
