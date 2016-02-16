@@ -28,7 +28,7 @@ class Status(Base):
                 Status.STATUS_DICT[status.name] = status.status_id
             Status.session.close()
         if(not statusName in Status.STATUS_DICT):
-            raise ValueError("Not a valid job status")
+            raise ValueError("Not a valid job status: " + statusName + ", not found in dict: " + Status.STATUS_DICT)
         return Status.STATUS_DICT[statusName]
 
 
