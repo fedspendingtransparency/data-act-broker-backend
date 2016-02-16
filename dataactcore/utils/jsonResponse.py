@@ -10,7 +10,7 @@ class JsonResponse :
     """ Used to create an http response object containing JSON """
     debugMode = True
     printDebug = False # Can cause errors when printing trace on ec2 if set to True
-    logDebug = False
+    logDebug = True
 
     @staticmethod
     def create(code,dictionaryData):
