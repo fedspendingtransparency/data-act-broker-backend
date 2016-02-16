@@ -23,17 +23,17 @@ class FileTests(BaseTest):
     tablesCleared = False # Set to true after first time setup is run
     submissionId = None
 
-    def __init__(self,methodName):
+    def __init__(self,methodName,interfaces):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(FileTests,self).__init__(methodName=methodName)
-        jobTracker = InterfaceHolder.JOB_TRACKER
+        jobTracker = interfaces.jobDb
         self.jobTracker = jobTracker
-        self.errorDatabase = InterfaceHolder.ERROR
+        self.errorDatabase = interfaces.errorDb
         try:
             self.tablesCleared = self.toBool(open(self.TABLES_CLEARED_FILE,"r").read())
         except Exception as e:
             # Could not read from file or cast as boolean
-            print(e.message)
+            print(str(e))
             self.tablesCleared = False
 
         if(not self.tablesCleared):
@@ -279,7 +279,7 @@ class FileTests(BaseTest):
             "INSERT INTO job_status (job_id,file_type_id, status_id, type_id, submission_id) VALUES (11,1,4,2,11),(12,2,4,2,11),(13,3,4,2,11),(15,4,4,2,11)"
         ]
 
-        jobTracker = InterfaceHolder.JOB_TRACKER
+        jobTracker = self.jobTracker
         for statement in sqlStatements:
             jobTracker.runStatement(statement)
 

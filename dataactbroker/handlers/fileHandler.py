@@ -21,15 +21,15 @@ class FileHandler:
     FILE_TYPES = ["appropriations","award_financial","award","procurement"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
-    def __init__(self,request):
+    def __init__(self,request,interfaces):
         """
 
         Arguments:
         request - HTTP request object for this route
         """
-        self.jobManager = InterfaceHolder.JOB_TRACKER
+        self.jobManager = interfaces.jobDb
         self.request = request
-
+        self.interfaces = interfaces
 
     def getErrorReportURLsForSubmission(self):
         """
@@ -193,7 +193,7 @@ class FileHandler:
             for currentId in jobIds :
                 if(self.jobManager.getJobType(currentId) == "csv_record_validation"):
                     fileName = self.jobManager.getFileType(currentId)
-                    dataList = InterfaceHolder.ERROR.getErrorMetericsByJobId(currentId)
+                    dataList = self.interfaces.errorDb.getErrorMetericsByJobId(currentId)
                     returnDict[fileName]  = dataList
             return JsonResponse.create(StatusCode.OK,returnDict)
         except ( ValueError , TypeError ) as e:

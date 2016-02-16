@@ -4,10 +4,11 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactbroker.handlers.fileHandler import FileHandler
 from dataactbroker.handlers.aws.session import LoginSession
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactbroker.permissions import permissions_check
 
 # Add the file submission route
-def add_file_routes(app,CreateCredentials):
+def add_file_routes(app,CreateCredentials,interfaces):
     """ Create routes related to file submission for flask app
 
     """
@@ -17,7 +18,8 @@ def add_file_routes(app,CreateCredentials):
     @permissions_check
     def submit_files():
         try:
-            fileManager = FileHandler(request)
+            interfaces = InterfaceHolder()
+            fileManager = FileHandler(request,interfaces)
             return fileManager.submit(LoginSession.getName(session),CREATE_CREDENTIALS)
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
@@ -28,7 +30,8 @@ def add_file_routes(app,CreateCredentials):
     @permissions_check
     def finalize_submission():
         try:
-            fileManager = FileHandler(request)
+            interfaces = InterfaceHolder()
+            fileManager = FileHandler(request,interfaces)
             return fileManager.finalize()
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
@@ -38,7 +41,8 @@ def add_file_routes(app,CreateCredentials):
     @permissions_check
     def check_status():
         try:
-            fileManager = FileHandler(request)
+            interfaces = InterfaceHolder()
+            fileManager = FileHandler(request,interfaces)
             return fileManager.getStatus()
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
@@ -48,7 +52,8 @@ def add_file_routes(app,CreateCredentials):
     @permissions_check
     def submission_error_reports():
         try:
-            fileManager = FileHandler(request)
+            interfaces = InterfaceHolder()
+            fileManager = FileHandler(request,interfaces)
             return fileManager.getErrorReportURLsForSubmission()
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
@@ -58,7 +63,8 @@ def add_file_routes(app,CreateCredentials):
     @permissions_check
     def submission_error_metrics():
         try:
-            fileManager = FileHandler(request)
+            interfaces = InterfaceHolder()
+            fileManager = FileHandler(request,interfaces)
             return fileManager.getErrorMetrics()
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))

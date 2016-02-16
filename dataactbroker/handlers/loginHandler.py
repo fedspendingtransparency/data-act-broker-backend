@@ -16,13 +16,14 @@ class LoginHandler:
 
     # Instance fields include request, response, logFlag, and logFile
 
-    def __init__(self,request):
+    def __init__(self,request,interfaces):
         """
 
         Creates the Login Handler
         """
-        self.userManager = InterfaceHolder.USER
+        self.userManager = interfaces.userDb
         self.request = request
+        self.interfaces = interfaces
 
     def login(self,session):
         """

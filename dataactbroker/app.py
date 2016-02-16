@@ -8,7 +8,6 @@ from dataactbroker.handlers.aws.session import DynamoInterface, SessionTable
 from dataactbroker.fileRoutes import add_file_routes
 from dataactbroker.loginRoutes import add_login_routes
 
-
 def runApp():
     """Set up the Application"""
     def getAppConfiguration() :
@@ -35,7 +34,6 @@ def runApp():
         cors = CORS(app,supports_credentials=True,origins=config["origins"])
     #Enable AWS Sessions
     app.session_interface = DynamoInterface()
-
 
     # Root will point to index.html
     @app.route("/", methods=["GET"])

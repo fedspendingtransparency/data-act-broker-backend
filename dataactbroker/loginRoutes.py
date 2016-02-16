@@ -4,16 +4,16 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactbroker.handlers.loginHandler import LoginHandler
 from dataactbroker.handlers.aws.session import LoginSession
 
-def add_login_routes(app):
+def add_login_routes(app,interfaces):
     @app.route("/v1/login/", methods = ["POST"])
     def login():
-        loginManager = LoginHandler(request)
+        loginManager = LoginHandler(request,interfaces)
         response = loginManager.login(session)
         return response
 
     @app.route("/v1/logout/", methods = ["POST"])
     def logout():
-        loginManager = LoginHandler(request)
+        loginManager = LoginHandler(request,interfaces)
         return loginManager.logout(session)
 
     @app.route("/v1/session/", methods = ["GET"])

@@ -229,7 +229,7 @@ class SessionTable :
         SessionTable.localPort =localPort
         secondaryIndex = [
             GlobalAllIndex('expiration-index',
-                parts=[expiration
+                parts=[
                     HashKey('expiration', data_type=NUMBER)
                 ],
                 throughput={'read': 5, 'write': 5}
