@@ -23,21 +23,22 @@ class JobTests(unittest.TestCase):
     jobIdDict = {}
     passed = False # Gets set to True by each test that passes
     methodName = None # Used by each test to track which test is running
-    jobTracker = InterfaceHolder.JOB_TRACKER
-    errorInterface = InterfaceHolder.ERROR
 
-    def __init__(self, methodName):
+    def __init__(self, methodName,interfaces):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(JobTests, self).__init__(methodName=methodName)
+        self.interfaces = interfaces
         self.methodName = methodName
+        self.jobTracker = interfaces.jobDb
+        self.errorInterface = interfaces.errorDb
 
         if not self.TABLE_POPULATED:
             # Create staging database
             runCommands(StagingInterface.getCredDict(), [], "staging")
-            self.stagingDb = InterfaceHolder.STAGING
+            self.stagingDb = interfaces.stagingDb
 
             setupValidationDB()
-            validationDB = InterfaceHolder.VALIDATION
+            validationDB = interfaces.validationDb
             if(self.CREATE_VALIDATION_RULES):
                 # Clear validation rules
                 for fileType in ["award","award_financial","appropriations","procurement"]:
@@ -52,7 +53,7 @@ class JobTests(unittest.TestCase):
             user = 1
 
             # Get interface for job tracker
-            self.jobTracker = InterfaceHolder.JOB_TRACKER
+            self.jobTracker = interfaces.jobDb
 
             # Create submissions and get IDs back
             submissionIDs = {}
@@ -152,7 +153,7 @@ class JobTests(unittest.TestCase):
                 open(self.LAST_CLEARED_FILE,"w").write(str(lastJob))
             JobTests.TABLE_POPULATED = True
         else:
-            self.stagingDb = InterfaceHolder.STAGING
+            self.stagingDb = interfaces.stagingDb
             # Read job ID dict from file
             self.jobIdDict = json.loads(open(self.JOB_ID_FILE,"r").read())
 
@@ -283,7 +284,7 @@ class JobTests(unittest.TestCase):
 
     def dropTables(self, table):
         if self.DROP_TABLES:
-            stagingDb = InterfaceHolder.STAGING
+            stagingDb = self.interfaces.stagingDb
             stagingDb.dropTable(table)
             return True
         else:

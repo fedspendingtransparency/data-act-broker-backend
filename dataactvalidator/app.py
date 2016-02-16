@@ -15,6 +15,13 @@ def runApp():
     app = Flask(__name__)
     app.config.from_object(__name__)
 
+    # Create interfaces and hold local copy to prevent them from being wiped
+    #InterfaceHolder.connect()
+    #jobDb = InterfaceHolder.JOB_TRACKER
+    #errorDb = InterfaceHolder.ERROR
+    #stagingDb = InterfaceHolder.STAGING
+    #validaitonDb = InterfaceHolder.VALIDATION
+
     validationManager = ValidationManager()
 
     @app.route("/",methods=["GET"])
@@ -33,8 +40,8 @@ def runApp():
                 threadedManager.threadedValidateJob(arg)
 
         try :
-            InterfaceHolder.connect()
-            jobTracker = InterfaceHolder.JOB_TRACKER
+            interfaces = InterfaceHolder()
+            jobTracker = interfaces.jobDb
         except ResponseException as e:
             open("errorLog","a").write(str(e) + "\n")
             return JsonResponse.error(e,e.status,{"table":"cannot connect to job database"})
@@ -50,25 +57,25 @@ def runApp():
             jobId = manager.getJobID(request)
         except ResponseException as e:
             open("errorLog","a").write(str(e) + "\n")
-            manager.markJob(jobId,jobTracker,"invalid",manager.filename)
+            manager.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,manager.filename)
             return JsonResponse.error(e,e.status,{"table":""})
         except Exception as e:
             open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
-            manager.markJob(jobId,jobTracker,"invalid",manager.filename)
+            manager.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,manager.filename)
             return JsonResponse.error(exc,exc.status,{"table":""})
 
         try:
-            manager.testJobID(jobId)
+            manager.testJobID(jobId,interfaces)
         except ResponseException as e:
             open("errorLog","a").write(str(e) + "\n")
             # Job is not ready to run according to job tracker, do not change status of job in job tracker
-            InterfaceHolder.ERROR.writeFileError(jobId,manager.filename,ValidationError.jobError)
+            interfaces.errorDb.writeFileError(jobId,manager.filename,ValidationError.jobError)
             return JsonResponse.error(e,e.status,{"table":""})
         except Exception as e:
             open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
-            InterfaceHolder.ERROR.writeFileError(jobId,manager.filename,ValidationError.jobError)
+            interfaces.errorDb.writeFileError(jobId,manager.filename,ValidationError.jobError)
             return JsonResponse.error(exc,exc.status,{"table":""})
 
         thread = Thread(target=ThreadedFunction, args= (jobId,))
@@ -80,7 +87,7 @@ def runApp():
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{"table":"could not start job"})
 
-        InterfaceHolder.close()
+        interfaces.close()
         thread.start()
 
         return JsonResponse.create(StatusCode.OK,{"table":"job"+str(jobId)})
@@ -88,16 +95,16 @@ def runApp():
     @app.route("/validate/",methods=["POST"])
     def validate():
         """Starts the validation process on the same threads"""
+        interfaces = InterfaceHolder() # Create sessions for this route
         try:
-            InterfaceHolder.connect() # Create interfaces for this route
-            return validationManager.validateJob(request)
+            return validationManager.validateJob(request,interfaces)
         except Exception as e:
             # Something went wrong getting the flask request
             open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{"table":""})
         finally:
-            InterfaceHolder.close()
+            interfaces.close()
 
 
     def getAppConfiguration():

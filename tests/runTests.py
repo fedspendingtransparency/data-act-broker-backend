@@ -12,7 +12,7 @@ def runTests():
 
     # Connect to databases
     BaseInterface.IS_FLASK = False # Tests are not running within a flask app
-    InterfaceHolder.connect()
+    interfaces = InterfaceHolder()
 
     # Create test suite
     suite = unittest.TestSuite()
@@ -33,7 +33,7 @@ def runTests():
     for method in jobMethods:
         # If test method, add to suite
         if(method[0:4] == "test"):
-            test =JobTests(methodName=method)
+            test =JobTests(methodName=method,interfaces=interfaces)
             suite.addTest(test)
 
 
@@ -57,11 +57,11 @@ def runTests():
     for method in fileMethods:
         # If test method, add to suite
         if(method[0:4] == "test"):
-            test =FileTypeTests(methodName=method)
+            test =FileTypeTests(methodName=method,interfaces=interfaces)
             fileSuite.addTest(test)
 
     fileResult = runner.run(fileSuite)
-    InterfaceHolder.close()
+    interfaces.close()
 
 if __name__ == '__main__':
     runTests()

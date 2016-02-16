@@ -18,13 +18,13 @@ class FileTypeTests(unittest.TestCase):
     JOB_ID_FILE = "appropJobIds.json"
     jobIdDict = {}
 
-    def __init__(self, methodName):
+    def __init__(self, methodName,interfaces):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(FileTypeTests, self).__init__(methodName=methodName)
         self.methodName = methodName
 
-        self.jobTracker = InterfaceHolder.JOB_TRACKER
-
+        self.jobTracker = interfaces.jobDb
+        self.interfaces = interfaces
         if not self.TABLE_POPULATED:
             print("Defining jobs")
             # Last job number
@@ -32,7 +32,7 @@ class FileTypeTests(unittest.TestCase):
 
             # Create staging database
             runCommands(StagingInterface.getCredDict(), [], "staging")
-            self.stagingDb = InterfaceHolder.STAGING
+            self.stagingDb = interfaces.stagingDb
 
             # Define user
             user = 1
@@ -82,7 +82,7 @@ class FileTypeTests(unittest.TestCase):
 
             # Load fields and rules
             print("Loading definitions")
-            self.load_definitions()
+            self.load_definitions(self.interfaces)
 
             # Remove existing tables from staging if they exist
             for jobId in self.jobIdDict.values():
@@ -90,18 +90,18 @@ class FileTypeTests(unittest.TestCase):
 
             FileTypeTests.TABLE_POPULATED = True
         else:
-            self.stagingDb = InterfaceHolder.STAGING
+            self.stagingDb = self.interfaces.stagingDb
             # Read job ID dict from file
             self.jobIdDict = json.loads(open(self.JOB_ID_FILE,"r").read())
 
     @staticmethod
-    def load_definitions():
+    def load_definitions(interfaces):
         SchemaLoader.loadFields("appropriations","appropriationsFields.csv")
         SchemaLoader.loadRules("appropriations","appropriationsRules.csv")
         SchemaLoader.loadFields("procurement","programActivityFields.csv")
         SchemaLoader.loadFields("award_financial","awardFinancialFields.csv")
         SchemaLoader.loadFields("award","awardFields.csv")
-        if(InterfaceHolder.VALIDATION.session.query(TASLookup).count() == 0 or FileTypeTests.FORCE_TAS_LOAD):
+        if(interfaces.validationDb.session.query(TASLookup).count() == 0 or FileTypeTests.FORCE_TAS_LOAD):
             # TAS table is empty, load it
             print("Loading TAS")
             loadTAS("all_tas_betc.csv")

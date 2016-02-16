@@ -4,27 +4,21 @@ from dataactvalidator.interfaces.stagingInterface import StagingInterface
 from dataactvalidator.interfaces.validationInterface import ValidationInterface
 
 class InterfaceHolder:
-    """ This class holds an interface to each database as a static variable, to allow reuse of connections throughout the project """
-    JOB_TRACKER = None
-    ERROR = None
-    STAGING = None
-    VALIDATION = None
+    """ This class holds an interface to each database, to allow reuse of connections throughout one thread """
 
-    @staticmethod
-    def connect():
+    def __init__(self):
         """ Create the interfaces """
-        InterfaceHolder.JOB_TRACKER = JobTrackerInterface()
-        InterfaceHolder.ERROR = ErrorInterface()
-        InterfaceHolder.STAGING = StagingInterface()
-        InterfaceHolder.VALIDATION = ValidationInterface()
+        self.jobDb = JobTrackerInterface()
+        self.errorDb = ErrorInterface()
+        self.stagingDb = StagingInterface()
+        self.validationDb = ValidationInterface()
 
-    @staticmethod
-    def close():
+    def close(self):
         """ Close all open connections """
-        InterfaceHolder.closeOne(InterfaceHolder.JOB_TRACKER)
-        InterfaceHolder.closeOne(InterfaceHolder.ERROR)
-        InterfaceHolder.closeOne(InterfaceHolder.STAGING)
-        InterfaceHolder.closeOne(InterfaceHolder.VALIDATION)
+        InterfaceHolder.closeOne(self.jobDb)
+        InterfaceHolder.closeOne(self.errorDb)
+        InterfaceHolder.closeOne(self.stagingDb)
+        InterfaceHolder.closeOne(self.validationDb)
 
     @staticmethod
     def closeOne(interface):

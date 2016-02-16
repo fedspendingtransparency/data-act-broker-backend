@@ -61,10 +61,11 @@ class TestUtils(object):
 
     @staticmethod
     def run_test(jobId, statusId,statusName,fileSize,stagingRows,errorStatus,numErrors,testCase):
+        interfaces = testCase.interfaces
         response = TestUtils.validateJob(jobId)
         testCase.response = response # Set the response in the calling test case for error display
-        jobTracker = InterfaceHolder.JOB_TRACKER
-        stagingDb = InterfaceHolder.STAGING
+        jobTracker = interfaces.jobDb
+        stagingDb = interfaces.stagingDb
         assert(response.status_code == statusId)
         if(statusName != False):
             TestUtils.waitOnJob(jobTracker, jobId, statusName)
@@ -82,7 +83,7 @@ class TestUtils(object):
         else:
             assert(stagingDb.tableExists(tableName) == True)
             assert(stagingDb.countRows(tableName) == stagingRows)
-        errorInterface = InterfaceHolder.ERROR
+        errorInterface = interfaces.errorDb
         assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus(errorStatus))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == numErrors)
         return True

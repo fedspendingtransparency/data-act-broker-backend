@@ -14,7 +14,7 @@ class Validator(object):
     FIELD_LENGTH = {"allocationtransferrecipientagencyid":3, "appropriationaccountresponsibleagencyid":3, "obligationavailabilityperiodstartfiscalyear":4, "obligationavailabilityperiodendfiscalyear":4,"appropriationmainaccountcode":4, "appropriationsubaccountcode":3, "obligationunlimitedavailabilityperiodindicator":1}
 
     @staticmethod
-    def validate(record,rules,csvSchema,fileType):
+    def validate(record,rules,csvSchema,fileType,interfaces):
         """
         Args:
         record -- dict represenation of a single record of data
@@ -72,9 +72,9 @@ class Validator(object):
                     recordFailed = True
                     failedRules.append([fieldName, "Failed rule: " + str(currentRule.description), currentData])
         # Check all multi field rules for this file type
-        multiFieldRules = InterfaceHolder.VALIDATION.getMultiFieldRulesByFile(fileType)
+        multiFieldRules = interfaces.validationDb.getMultiFieldRulesByFile(fileType)
         for rule in multiFieldRules:
-            if not Validator.evaluateMultiFieldRule(rule,record):
+            if not Validator.evaluateMultiFieldRule(rule,record,interfaces):
                 recordFailed = True
                 failedRules.append(["MultiField", "Failed rule: " + str(rule.description), Validator.getMultiValues(rule,record)])
 
@@ -187,7 +187,7 @@ class Validator(object):
         raise ValueError("Rule Type Invalid")
 
     @staticmethod
-    def evaluateMultiFieldRule(rule, record):
+    def evaluateMultiFieldRule(rule, record, interfaces):
         """ Check a rule involving more than one field of a record
 
         Args:
@@ -204,7 +204,7 @@ class Validator(object):
             tasFields = Validator.cleanSplit(rule.rule_text_2)
             if(len(fieldsToCheck) != len(tasFields)):
                 raise ResponseException("Number of fields to check does not match number of fields checked against",StatusCode.CLIENT_ERROR,ValueError)
-            return Validator.validateTAS(fieldsToCheck, tasFields, record)
+            return Validator.validateTAS(fieldsToCheck, tasFields, record, interfaces)
         else:
             raise ResponseException("Bad rule type for multi-field rule",StatusCode.INTERNAL_ERROR)
 
@@ -238,7 +238,7 @@ class Validator(object):
         return output[0:len(output)-2]
 
     @staticmethod
-    def validateTAS(fieldsToCheck, tasFields, record):
+    def validateTAS(fieldsToCheck, tasFields, record, interfaces):
         """ Check for presence of TAS for specified record in TASLookup table
 
         Args:
@@ -249,7 +249,7 @@ class Validator(object):
         Returns:
             True if TAS is in CARS, False otherwise
         """
-        query = InterfaceHolder.VALIDATION.session.query(TASLookup)
+        query = interfaces.validationDb.session.query(TASLookup)
         queryResult = query.all()
 
         for i in range(0,len(fieldsToCheck)):

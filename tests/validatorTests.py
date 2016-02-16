@@ -1,12 +1,14 @@
 import unittest
 from dataactcore.models.validationModels import  FieldType,RuleType, FileColumn, Rule
 from dataactvalidator.validation_handlers.validator import Validator
+from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
 class ValidatorTests(unittest.TestCase) :
 
     def __init__(self,methodName):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(ValidatorTests,self).__init__(methodName=methodName)
+        self.interfaces = InterfaceHolder()
 
     def test_types(self) :
         assert(Validator.checkType("1234Test","STRING")), "Invalid Type"
@@ -122,18 +124,18 @@ class ValidatorTests(unittest.TestCase) :
             "test4" :"1",
             "test5" :"1",
          }
-        assert( Validator.validate(record,[],schema, None)[0]),"Fields are not correct type"
+        assert( Validator.validate(record,[],schema, None,self.interfaces)[0]),"Fields are not correct type"
         record["test5"] = ""
 
 
-        assert( Validator.validate(record,[],schema, None)[0]),"Blank optional field is valid"
+        assert( Validator.validate(record,[],schema, None,self.interfaces)[0]),"Blank optional field is valid"
 
         record["test5"] = "s"
-        assert(not Validator.validate(record,[],schema, None)[0]),"Incorrect Field Type for optional field"
+        assert(not Validator.validate(record,[],schema, None,self.interfaces)[0]),"Incorrect Field Type for optional field"
 
         record["test5"] = ""
         record["test3"] = ""
-        assert(not Validator.validate(record,[],schema, None)[0]),"Incorrect Field Type for field"
+        assert(not Validator.validate(record,[],schema, None,self.interfaces)[0]),"Incorrect Field Type for field"
 
     def test_schema_rules(self):
         lessRule = RuleType()
@@ -202,7 +204,7 @@ class ValidatorTests(unittest.TestCase) :
             "test5" :"1",
             "test6" :"X"
         }
-        assert(Validator.validate(record,rules,schema,"award")[0]),"Values do not match rules"
+        assert(Validator.validate(record,rules,schema,"award",self.interfaces)[0]),"Values do not match rules"
 
         record = {
             "test1" : "goodbye" ,
@@ -212,12 +214,12 @@ class ValidatorTests(unittest.TestCase) :
             "test5" :"1",
             "test6" :"Q"
         }
-        assert( not Validator.validate(record,[rule3],schema,"award")[0]),"Rule for test1 passed"
-        assert( not Validator.validate(record,[rule4],schema,"award")[0]),"Rule for test3 passed"
-        assert( not Validator.validate(record,[rule5],schema,"award")[0]),"Rule for test4 passed"
-        assert( not Validator.validate(record,[rule6],schema,"award")[0]),"Rule for test4 passed"
-        assert( not Validator.validate(record,[rule7],schema,"award")[0]),"Rule for test2 passed"
-        assert( not Validator.validate(record,[rule8],schema,"award")[0]),"Rule for test6 passed"
-        assert( not Validator.validate(record,rules,schema,"award")[0]),"Rules passed"
+        assert( not Validator.validate(record,[rule3],schema,"award",self.interfaces)[0]),"Rule for test1 passed"
+        assert( not Validator.validate(record,[rule4],schema,"award",self.interfaces)[0]),"Rule for test3 passed"
+        assert( not Validator.validate(record,[rule5],schema,"award",self.interfaces)[0]),"Rule for test4 passed"
+        assert( not Validator.validate(record,[rule6],schema,"award",self.interfaces)[0]),"Rule for test4 passed"
+        assert( not Validator.validate(record,[rule7],schema,"award",self.interfaces)[0]),"Rule for test2 passed"
+        assert( not Validator.validate(record,[rule8],schema,"award",self.interfaces)[0]),"Rule for test6 passed"
+        assert( not Validator.validate(record,rules,schema,"award",self.interfaces)[0]),"Rules passed"
 if __name__ == '__main__':
     unittest.main()

@@ -10,10 +10,11 @@ class StagingTable(object):
     INSERT_BY_ORM = True
     BATCH_SIZE = 100
 
-    def __init__(self):
+    def __init__(self,interfaces):
         # Start first batch
         self.batch = []
-        self.interface = InterfaceHolder.STAGING
+        self.interface = interfaces.stagingDb
+        self.interfaces = interfaces
 
     def createTable(self, fileType, filename, jobId, tableName=None):
         """ Create staging table for new file
@@ -35,8 +36,8 @@ class StagingTable(object):
         #tableName = "data" + tableName.replace("/","").replace("\\","").replace(".","")
         # Write tableName to related job in job tracker
 
-        InterfaceHolder.JOB_TRACKER.addStagingTable(jobId,tableName)
-        fields = InterfaceHolder.VALIDATION.getFieldsByFile(fileType)
+        self.interfaces.jobDb.addStagingTable(jobId,tableName)
+        fields = self.interfaces.validationDb.getFieldsByFile(fileType)
 
         """ Might not need sequence for ORM
         # Create sequence to be used for primary key
