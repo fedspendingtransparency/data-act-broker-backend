@@ -34,7 +34,7 @@ setup(
     keywords='DATA Act Web API Setup',
     packages=find_packages(),
     install_requires=[
-      'dataactcore==0.0.1','Flask==0.10.1','Decorator==4.0.4','Requests==2.8.1','flask-cors==2.1.2',
+      'dataactcore==0.0.1','Flask==0.10.1','Decorator==4.0.4','Requests==2.8.1','flask-cors==2.1.2','future==0.15.2'
     ],
     dependency_links=[
       'git+https://git@github.com/fedspendingtransparency/data-act-core.git@configuration#egg=dataactcore-0.0.1',

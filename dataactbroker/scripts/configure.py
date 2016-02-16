@@ -2,7 +2,7 @@ import os
 import inspect
 import json
 import sys
-
+from builtins import input
 from dataactcore.scripts.databaseSetup import runCommands
 from dataactcore.scripts.configure import ConfigureCore
 from dataactbroker.handlers.aws.session import SessionTable
@@ -53,8 +53,8 @@ class ConfigureBroker(object):
 
     @staticmethod
     def questionPrompt(question):
-        "Creates a yes/no question propt"
-        response = raw_input(question)
+        "Creates a yes/no question prompt"
+        response = input(question)
         if(response.lower() =="y" or response.lower() =="yes" ):
             return True
         return False
@@ -72,7 +72,7 @@ class ConfigureBroker(object):
         traceMode = False
         enableLocalDynamo = False
         if(ConfigureBroker.questionPrompt("Would you like to configure your broker web API? (y/n) : ")):
-            port = raw_input("Enter broker API port :")
+            port = input("Enter broker API port :")
             try:
                 int(port)
             except ValueError:
@@ -85,12 +85,12 @@ class ConfigureBroker(object):
             if(ConfigureBroker.questionPrompt("Would you like to enable debug traces on REST requests (y/n) : ")):
                 traceMode = True
 
-            origins = raw_input("Enter the allowed origin (website that will allow for CORS) :")
+            origins = input("Enter the allowed origin (website that will allow for CORS) :")
 
             localPort  = 8000
             if(ConfigureBroker.questionPrompt("Would you like to use a local dynamo database ? (y/n) : ")):
                 enableLocalDynamo = True
-                localPort = raw_input("Enter the port for the local dynamo database : ")
+                localPort = input("Enter the port for the local dynamo database : ")
                 try:
                     localPort =  int(localPort)
                 except ValueError:
@@ -105,7 +105,7 @@ class ConfigureBroker(object):
             ConfigureBroker.createFile("/web_api_configuration.json",json)
         if(ConfigureBroker.questionPrompt("Would you like to configure the connection to the DATA Act validator? (y/n) : ")):
 
-            path = raw_input("Enter url (http://severurl:port) : ")
+            path = input("Enter url (http://severurl:port) : ")
             json = ConfigureBroker.createValidatorJSON(path)
 
             ConfigureBroker.createFile("/manager.json",json)
@@ -113,7 +113,7 @@ class ConfigureBroker(object):
             testCaseUsers = False
             if(ConfigureBroker.questionPrompt("Would you like to include test case users (y/n) : ")):
                 testCaseUsers = True
-            password = raw_input("Enter the admin user password:")
+            password = input("Enter the admin user password:")
             json = ConfigureBroker.createLoginJSON(password,testCaseUsers)
             ConfigureBroker.createFile("/credentials.json",json)
 
