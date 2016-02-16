@@ -10,7 +10,14 @@ dataactbroker/
 
 ##Scripts
 The `/dataactbroker/scripts` folder contains the install scripts needed to setup the Broker for a local install.  `configure.py` creates the various JSON files needed for running the Broker. The following three JSON files are created during
-the install process : `manager.json`, `web_api_configuration.json` and `credentials.json`.
+the install process : `manager.json`, `web_api_configuration.json` and `credentials.json`. This script is called
+by the `initialize` script. The script however, can be called by itself to setup the JSON.
+
+```bash
+
+sudo python configure.py
+
+```
 
 `manager.json` contains the web URL where the DATA Act validator exists. It has the following format.
 
@@ -20,7 +27,7 @@ the install process : `manager.json`, `web_api_configuration.json` and `credenti
 }
 ```
 
-`credentials.json` contains users and passwords that the Broker uses to authenticate sessions. This file will be removed in later versions of the broker when user authenticatation is done with a database. The file has the following format, where any number of users can be added.
+`credentials.json` contains users and passwords that the Broker uses to authenticate sessions. This file will be removed in later versions of the broker when user authentication is done with a database. The file has the following format, where any number of users can be added.
 
 ```json
 {
@@ -69,7 +76,7 @@ In addition to these helper objects, the following sub classes also exist within
 
 #AWS Setup
 In order to use the DATA Act Broker, additional AWS permissions and configurations are
-required in addition to those listed in the DATA ACT Core README.
+required in addition to those listed in the [DATA ACT Core README](https://github.com/fedspendingtransparency/data-act-core/blob/development/README.md).
 
 ##DynamoDB
 The DATA Act Broker uses AWS DynamoDB for session handling. This provides a fast and reliable methodology to check sessions in the cloud. Users can easily bounce between servers with no impact to their session.

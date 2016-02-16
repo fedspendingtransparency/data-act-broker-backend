@@ -228,9 +228,9 @@ class SessionTable :
         """Used to create table for Dyanmo DB"""
         SessionTable.localPort =localPort
         secondaryIndex = [
-            GlobalAllIndex('experation-index',
-                parts=[
-                    HashKey('experation', data_type=NUMBER)
+            GlobalAllIndex('expiration-index',
+                parts=[expiration
+                    HashKey('expiration', data_type=NUMBER)
                 ],
                 throughput={'read': 5, 'write': 5}
             )
