@@ -1,0 +1,1 @@
+{"rest_trace": true, "origins": "*", "local_dynamo": false, "dynamo_port": 8000, "server_debug": true, "port": "80", "create_credentials": true}
