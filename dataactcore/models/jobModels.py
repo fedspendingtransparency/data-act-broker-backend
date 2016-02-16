@@ -20,9 +20,9 @@ class Status(Base):
         if(Status.STATUS_DICT == None):
             Status.STATUS_DICT = {}
             # Pull status values out of DB
-            if(Status.session == None):
-                from dataactcore.models.jobTrackerInterface import JobTrackerInterface
-                Status.session = JobTrackerInterface().getSession()
+            # Create new session for this
+            from dataactcore.models.jobTrackerInterface import JobTrackerInterface
+            Status.session = JobTrackerInterface().Session() # Create new session
             queryResult = Status.session.query(Status).all()
             for status in queryResult:
                 Status.STATUS_DICT[status.name] = status.status_id
@@ -58,9 +58,9 @@ class Type(Base):
         Returns:
         type_id of the specified type
         """
-        if(Status.session == None):
-            from dataactcore.models.jobTrackerInterface import JobTrackerInterface
-            Status.session = JobTrackerInterface().getSession()
+        # Create new session for this
+        from dataactcore.models.jobTrackerInterface import JobTrackerInterface
+        Status.session = JobTrackerInterface().Session()
         queryResult = Status.session.query(Type.type_id).filter(Type.name==name).all()
         Status.session.close()
         if(len(queryResult) != 1):

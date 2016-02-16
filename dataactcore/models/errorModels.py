@@ -19,10 +19,9 @@ class Status(Base):
         if(Status.STATUS_DICT == None or (len(Status.STATUS_DICT)==0)):
             Status.STATUS_DICT = {}
             # Pull status values out of DB
-            if(Status.session == None):
-                from dataactcore.models.errorInterface import ErrorInterface
-                errorDB = ErrorInterface()
-                Status.session = errorDB.getSession()
+
+            from dataactcore.models.errorInterface import ErrorInterface
+            Status.session = ErrorInterface().Session()
             queryResult = Status.session.query(Status).all()
 
             for status in queryResult:
@@ -46,10 +45,9 @@ class ErrorType(Base):
     def getType(typeName):
         if(ErrorType.TYPE_DICT == None):
             ErrorType.TYPE_DICT = {}
-            # Pull status values out of DB
-            if(ErrorType.session == None):
-                from dataactcore.models.errorInterface import ErrorInterface
-                ErrorType.session = ErrorInterface().getSession()
+            # Pull status values out of DB:
+            from dataactcore.models.errorInterface import ErrorInterface
+            ErrorType.session = ErrorInterface().Session()
             queryResult = ErrorType.session.query(ErrorType).all()
 
             for type in queryResult:

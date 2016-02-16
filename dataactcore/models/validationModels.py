@@ -52,9 +52,9 @@ class RuleType(Base):
         Returns:
         type_id of the specified type
         """
-        if(RuleType.session == None):
-            from dataactcore.models.validationInterface import ValidationInterface
-            RuleType.session = ValidationInterface().getSession()
+        # Create new session
+        from dataactcore.models.validationInterface import ValidationInterface
+        RuleType.session = ValidationInterface().Session()
         queryResult = RuleType.session.query(RuleType.rule_type_id).filter(RuleType.name==name).all()
         RuleType.session.close()
         if(len(queryResult) != 1):
@@ -97,9 +97,9 @@ class MultiFieldRuleType(Base):
         Returns:
         type_id of the specified type
         """
-        if(MultiFieldRuleType.session == None):
-            from dataactcore.models.validationInterface import ValidationInterface
-            MultiFieldRuleType.session = ValidationInterface().getSession()
+        #Get new session
+        from dataactcore.models.validationInterface import ValidationInterface
+        MultiFieldRuleType.session = ValidationInterface().Session()
         queryResult = MultiFieldRuleType.session.query(MultiFieldRuleType.multi_field_rule_type_id).filter(MultiFieldRuleType.name==name).all()
         MultiFieldRuleType.session.close()
         if(len(queryResult) != 1):
@@ -122,10 +122,10 @@ class FileColumn(Base):
     session = None
 
     def populateFile(self):
-        if(self.session == None):
-            from dataactcore.models.validationInterface import ValidationInterface
-            self.session = ValidationInterface().getSession()
+        from dataactcore.models.validationInterface import ValidationInterface
+        self.session = ValidationInterface().Session()
         self.file = self.session.query(FileType).filter(FileType.file_id == self.file_id)[0]
+        self.session.close()
 
 class Rule(Base):
     __tablename__ = "rule"
