@@ -42,7 +42,3 @@ class InterfaceHolder:
                 interface.session.close()
             except:
                 pass
-        try:
-            interface.connection.close()
-        except:
-            pass
