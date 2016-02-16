@@ -8,23 +8,23 @@ dataactbroker/
 └── handlers/       (Route handlers)
 ```
 
-##Scipts
+##Scripts
 The `/dataactbroker/scripts` folder contains the install scripts needed to setup the Broker for a local install.  `configure.py` creates the various JSON files needed for running the Broker. The following three JSON files are created during
 the install process : `manager.json`, `web_api_configuration.json` and `credentials.json`.
 
-`manager.json` contains the web url where the DATA Act validator exists. It has the following format.
+`manager.json` contains the web URL where the DATA Act validator exists. It has the following format.
 
 ```json
 {
-  "URL":"http://server_url.com:5000"
+  "url":"http://server_url.com:5000"
 }
 ```
 
-`credentials.json` contains users and passwords that the Broker uses to authenticate sessions. This file will be removed in later versions of the broker when user authenticated is done database. The file has the following format where any number of users can be added.
+`credentials.json` contains users and passwords that the Broker uses to authenticate sessions. This file will be removed in later versions of the broker when user authenticatation is done with a database. The file has the following format, where any number of users can be added.
 
 ```json
 {
-   "user1":"password1",
+  "user1":"password1",
   "user2":"password2"
 }
 ```
@@ -34,35 +34,35 @@ the install process : `manager.json`, `web_api_configuration.json` and `credenti
 
 ```json
 {
-  "rest_trace":false,
-  "server_debug" : false,
+  "rest_trace": false,
+  "server_debug": false,
   "origins": "*",
   "port": 5000,
   "local_dynamo": false,
-  "dynamo_port" :5000,
+  "dynamo_port": 5000,
   "create_credentials": true
 }
 ```
 
- The following table describes each setting in the configurations file.
+ The following table describes each setting in the configurations file:
 
 | Setting  | Value |
 | ------------- | ------------- |
 | rest_trace  | Provides debug output to rest responses   |
 | server_debug  | Turns on debug mode for the Flask server  |
+| origins  | The URL that cross-origin HTTP requests are enabled on |
 | local_dynamo  | Sets if the dynamo database is on the localhost or AWS|
 | dynamo_port  | The port used for the dynamo database|
 | create_credentials  | Turns on the ability to create temporarily AWS credentials|
-| origins  | The url that cross-origin HTTP requests are enabled on|
 
-The `initialize` script provides users with choices of the install process see the [Broker Install Guide](#install-guide) for more information.
+The `initialize` script provides users with these choices during the install process. See the [Broker Install Guide](#install-guide) for more information.
 
 ##Handlers
-The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py` or `fileRoutes.py` files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag add a wrapper that checks if there exists a session for the current user and if the user is logged in. If user is not logged in to the system, a 401 Error will be returned. This tag is defined in `dataactbroker/permissions.py`. Cookies are used to keep track of sessions for the end user. Only a uuid is stored in the cookie.
+The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py` and `fileRoutes.py` files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in. If user is not logged in to the system, a 401 HTTP error will be returned. This tag is defined in `dataactbroker/permissions.py`. Cookies are used to keep track of sessions for the end user. Only a UUID is stored in the cookie.
 
-`LoginHandler.py` contains the functions to check logins and to log users out. Currently `credentials.json` defines which users exist within the system. This file is automatically created in the installation process.
+`LoginHandler.py` contains the functions to check logins and to log users out. Currently, `credentials.json` defines which users exist within the system. This file is automatically created during the installation process.
 
-`FileHandler.py` contains functions for managing user file interaction. It creates all of the the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
+`FileHandler.py` contains functions for managing user file interaction. It creates all of the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
 
 In addition to these helper objects, the following sub classes also exist within the directory: `UserHandler`, `JobHandler`, and `ErrorHandler`. These classes extend the database connection objects that are located in the Core Repository. Extra query methods exist in these classes that are used exclusively by the Broker API.
 
@@ -71,19 +71,19 @@ In addition to these helper objects, the following sub classes also exist within
 In order to use the DATA Act Broker, additional AWS permissions and configurations are
 required in addition to those listed in the DATA ACT Core README.
 
-##Dyanmo Database
-The DATA Act Broker uses AWS Dynamo Database for session handling. This provides a fast and reliable methodology to check sessions in the cloud. Users can easily bounce between servers with no impact to their session.
+##DynamoDB
+The DATA Act Broker uses AWS DynamoDB for session handling. This provides a fast and reliable methodology to check sessions in the cloud. Users can easily bounce between servers with no impact to their session.
 
-The install script seen in the [Broker Install Guide](#install-guide)  provides an option to create the database automatically. This however, assumes the user has the proper AWS Credentials to preform the operation. If you wish to create the database manually, it needs to be setup to have the following attributes .
+The install script seen in the [Broker Install Guide](#install-guide) provides an option to create the database automatically. This, however, assumes the user has the proper AWS Credentials to perform the operation. If you wish to create the database manually, it needs to be set up to have the following attributes:
 
 | Setting  | Value | Type|
 | ------------- | ------------- |-------------|
-| Table Name  | BrokerSession   |N/A|
-| Primary index  |  uid  |hashkey|
-| Secondary Index  |experation-index|number  |
+| Table Name | BrokerSession | N/A |
+| Primary index  |  uid  | hashkey |
+| Secondary Index | expiration-index | number |
 
 ### Role Permissions
-The EC2 instance running the broker should be granted read/write permissions to the Dynamo Database. The following JSON can be added to the role to grant this access.
+The EC2 instance running the broker should be granted read/write permissions to DynamoDB. The following JSON can be added to the role to grant this access:
 
 ```json
 {
@@ -99,11 +99,11 @@ The EC2 instance running the broker should be granted read/write permissions to 
   ]
 }
 ```
-The `REGION` should be replaced with region of the AWS account and the `ACCOUNT_ID` should be replaced with the AWS account id.
+The `REGION` should be replaced with region of the AWS account and the `ACCOUNT_ID` should be replaced with the AWS account ID.
 
 ###Local Version
 
-It is possible to setup the Dynamo Database locally. This requires Java JDK 6 or higher to be installed, which can be done using the following command on Red Hat based systems.
+It is possible to set up DynamoDB locally. This requires Java JDK 6 or higher to be installed, which can be done using the following command on Red Hat based systems:
 
 ```bash
 $ su -c "yum install java-1.7.0-openjdk"
@@ -112,15 +112,14 @@ $ su -c "yum install java-1.7.0-openjdk"
 For Ubuntu based systems the `apt-get` can be used instead
 
 ```bash
-   sudo apt-get install default-jre
-
+sudo apt-get install default-jre
 ```
 
-Once Java is installed, you can download the Local Dynamo Database (here)[http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.zip]. Instructions to launch the local version one downloaded can be found in (AWS's User Guide)[http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html] along with the various options. Note that a local version of Dynamo is **not** recommend for production.
+Once Java is installed, you can download the local DynamoDB [here](http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.zip). Instructions to launch the local version one downloaded can be found in [AWS's User Guide](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html) along with the various options. Note that a local version of DynamoDB is **not** recommend for production.
 
 
 ## Assuming Roles
-The DATA Act Broker uses the assume role function to create temporarily AWS credentials for the web front end. To be able to run the Broker locally, the user must be added to the trust section of the s3 uploading role. Without adding this relationship, the assume role function will fail. The following example shows what the JSON Trust Relationship should look like.
+The DATA Act Broker uses the Assume Role method to create temporarily AWS credentials for the web front end. To be able to run the Broker locally, the user must be added to the Trust section of the S3 uploading role. Without adding this relationship, the Assume Role method call will fail. The following example shows what the JSON Trust Relationship should look like:
 
 ```json
 {
@@ -142,15 +141,16 @@ The DATA Act Broker uses the assume role function to create temporarily AWS cred
 }
 
 ```
-`NUMBER` in the json above is your AWS account number. Each user and role must be stated. This example grants the role `ec2rolename`,  and the users `user1` and `user2` the ability to assume this role.
+`NUMBER` in the JSON above is your AWS account number. Each user and role must be stated. This example grants the role `ec2rolename`, as well as the users `user1` and `user2`.
 
 # DATA Act Broker Route Documentation
 
 ## Status Codes
 In general, status codes returned are as follows:
+
 * 200 if successful
-* 400 if request is malformed
-* 401 if username or password are incorrect, or session has expired
+* 400 if the request is malformed
+* 401 if the username or password are incorrect, or the session has expired
 * 500 for server-side errors
 
 ## GET "/"
@@ -158,7 +158,6 @@ This route confirms that the broker is running
 
 Example input: None  
 Example output: "Broker is running"
-
 
 ##Login Methods
 
@@ -169,13 +168,13 @@ Example input: {"username": "user", "password": "pass"}
 Example output: {"message": "Login successful"}
 
 #### POST "/v1/logout/"
-Logs the current user out, only the login route will be accessible until the next login.  If not logged in, just stays logged out.  Returns 200 in either case.
+Logs the current user out, only the login route will be accessible until the next login.  If not logged in, just stays logged out. Returns 200 in boths cases.
 
 Example input: None  
 Example output: {"message": "Logout successful"}
 
 #### GET "/v1/session/"
-Checks that the session is still valid.  Returns a 200, and a JSON with key "status" containing True if the session exists, and False if not.
+Checks that the session is still valid. Returns 200, and JSON with key "status" containing True if the session exists, and False if it doesn't.
 
 Example input: None  
 Example output: {"status": "True"}
@@ -184,15 +183,17 @@ Example output: {"status": "True"}
 ##File Methods
 
 #### POST "/v1/submit_files/"
-This route is used to retrieve S3 URLs to upload files.  Data should be either JSON or form-urlencoded with keys: ["appropriations","award_financial","award","procurement"] each with a filename as a value.  
-The Route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key_id containing the job id. A returning submission_id will also exist which acts as identifier for the submission.
+This route is used to retrieve S3 URLs to upload files. Data should be either JSON or form-urlencoded with keys: ["appropriations", "award\_financial", "award", "procurement"], each with a filename as a value.
 
-A credentials object is also part of the returning request. This object provides temporarily access to upload S3 Files using an AWS SDK. It contains the following :SecretAccessKey , SessionToken, Expiration, and AccessKeyId.
+This route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key\_id containing the job id. A returning submission\_id will also exist which acts as identifier for the submission.
+
+A credentials object is also part of the returning request. This object provides temporarily access to upload S3 Files using an AWS SDK. It contains the following: SecretAccessKey, SessionToken, Expiration, and AccessKeyId.
 It is important to note that the role used to create the credentials should be limited to just S3 access.
 
-When upload is complete, the finalize_submission route should be called with the job id.
+When upload is complete, the finalize\_submission route should be called with the job\_id.
 
 Example input:
+
 ```json
 {
   "appropriations":"appropriations.csv",
@@ -201,6 +202,7 @@ Example input:
   "procurement":"procurement.csv"
 
 }
+```
 
 Example output:
 
@@ -215,7 +217,6 @@ Example output:
 
   "appropriations_id": 101,
   "appropriations_key": "2/1453474324_appropriations.csv",
-
 
   "award_financial_id": 102,
   "award_financial_key": "2/1453474327_award_financial.csv",
@@ -233,7 +234,7 @@ Example output:
 ```
 
 #### POST "/v1/finalize_job/"
-A call to this route should have JSON or form_urlencoded with a key of "upload_id" and value of the job id received from the submit_files route.  This will change the status of the upload job to finished so that jobs dependent on it can be started.
+A call to this route should have JSON or form-urlencoded with a key of "upload\_id" and value of the job id received from the submit_files route. This will change the status of the upload job to finished so that dependent jobs can be started.
 
 Example input:
 
@@ -250,17 +251,19 @@ Example output:
   "success": true
 }
 ```
-#### POST "/v1/submission_error_reports/"
-A call to this route should have JSON or form_urlencoded with a key of "submission_id" and value of the submission id received from the submit_files route.  The response object will be JSON with keys of "job_X_error_url" for each job X that is part of the submission, and value will be a signed URL to the error report on S3.  Note that for failed jobs (i.e. file-level errors), no error reports will be created.
+#### POST "/v1/submission\_error_reports/"
+A call to this route should have JSON or form-urlencoded with a key of "submission\_id" and value of the submission id received from the submit\_files route.  The response object will be JSON with keys of "job\_X\_error\_url" for each job X that is part of the submission, and the value will be the signed URL of the error report on S3. Note that for failed jobs (i.e. file-level errors), no error reports will be created.
 
 Example input:
+
 ```json
 {
    "submission_id":1610
 }
 ```
 
-Example output:  
+Example output:
+
 ```json
 {
   "job_3012_error_url": "https...",
@@ -271,7 +274,7 @@ Example output:
 ```
 
 #### POST "/v1/check_status/"
-A call to this route will provide status information on all jobs associated with the specified submission.  The request should have JSON or form_urlencoded with a key "submission_id".  The response will contain a key for each job ID, with values being dictionaries detailing the status of that job (with keys "status", "job_type", and "file_type").  
+A call to this route will provide status information on all jobs associated with the specified submission.  The request should have JSON or form-urlencoded with a key "submission\_id".  The response will contain a key for each job ID, with values containing dictionaries which detail the status of that job (with keys "status", "job\_type", and "file\_type").  
 
 Example input:
 
@@ -282,6 +285,7 @@ Example input:
 ```
 
 Example output:  
+
 ```json
 {  
   "3005": {
@@ -299,7 +303,7 @@ Example output:
 
 
 #### Test Cases
-Before running test cases, start the Flask app by running "python app.py" in the `dataactbroker` folder. Alternatively, if using pip install, you can uses the server start command `sudo webbroker -s` The current test suite for the validator may then be run by navigating to the `datatactbroker/tests folder` and running `python runTests.py`.
+Before running test cases, start the Flask app by running `python app.py` in the `dataactbroker` folder. Alternatively, if using `pip install`, you can uses the server start command `sudo webbroker -s`. The current test suite for the validator may then be run by navigating to the `datatactbroker/tests folder` and running `python runTests.py`.
 
 
 #Install Guide
@@ -373,8 +377,8 @@ The following table below show the prompts created by the setup and there usage
 | Would you like to enable server side debugging  | yes or no, turns on debug mode for the server. This should **not** be used in production.|
 | Would you like to enable debug traces on REST requests  |yes or no, enables returning server error messages in the rest request. This should **not** be enabled in production|
 | Would you like to use a local dynamo database  | yes or no, enables use of local dynamo database. This should be yes only if you do not have access to an AWS account.|
-|Enter the port for the local dynamo database|interger, port 8000 is used by default. This prompt only appears when a local dynamo database is selected.|
-| Enter the allowed origin (website that will allow for CORS)  | this is the website url of the DATA Act Broker front end. * can be used in its place but this value should **not** be used in production|
+|Enter the port for the local dynamo database|integer, port 8000 is used by default. This prompt only appears when a local dynamo database is selected.|
+| Enter the allowed origin (website that will allow for CORS)  | this is the website URL of the DATA Act Broker front end. * can be used in its place but this value should **not** be used in production|
 |Would you like to create the dynamo database table|yes or no. Creates a table on the Dynamo Database. This command you be used **exactly once** per AWS account |
 |Would you like to include test case users | yes or no, this options adds test users. This option should **not** be selected for production|
 |Enter the admin user password| string, this is the user password needed to login into the API|
@@ -385,7 +389,7 @@ Alternatively, if you do not need to configure everything, the following command
 | Flag  | Description |
 | ------------- | ------------- |
 | -aws  | Configures AWS settings  |
-| -c    | Configures Broker settings,such as ports, debug flags and local dyanmo|
+| -c    | Configures Broker settings, such as ports, debug flags, and local dynamo|
 | -db   |Creates the database schema|
 | -cdb   |Configures database connection|
 
