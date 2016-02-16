@@ -6,8 +6,8 @@ from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 class StagingTable(object):
     """ Represents a staging table used for a single job """
 
-    BATCH_INSERT = True
-    INSERT_BY_ORM = False
+    BATCH_INSERT = False
+    INSERT_BY_ORM = True
     BATCH_SIZE = 100
 
     def __init__(self):
