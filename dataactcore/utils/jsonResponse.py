@@ -51,11 +51,11 @@ class JsonResponse :
             if(JsonResponse.printDebug):
                 print(str(type(exception)))
                 print(str(exception))
-                print(trace)
+                print(str(trace))
             if(JsonResponse.logDebug):
                 open("responseErrorLog","a").write(str(type(exception)))
                 open("responseErrorLog","a").write(str(exception))
-                open("responseErrorLog","a").write(trace)
+                open("responseErrorLog","a").write(str(trace))
             del exc_tb
             return JsonResponse.create(errorCode, responseDict)
         else:
