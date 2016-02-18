@@ -22,9 +22,10 @@ def runCommands(credDict, sqlCommands, dbName, connection = None):
     for statement in sqlCommands:
         #print("Execute statement: " + statement)
         try:
+            print("Running command: " + statement + "\n")
             connection.execute(statement)
         except (ProgrammingError, IntegrityError) as e:
             # Usually a table exists error, print and continue
-            #print(e.message)
+            print(e.message)
             pass
     connection.close()
