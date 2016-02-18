@@ -6,7 +6,6 @@ from dataactcore.models.jobModels import Status, Type
 from dataactcore.scripts.databaseSetup import runCommands
 from dataactcore.scripts.setupValidationDB import setupValidationDB
 from dataactcore.scripts.clearErrors import clearErrors
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactvalidator.interfaces.stagingInterface import StagingInterface
 
 class JobTests(unittest.TestCase):
