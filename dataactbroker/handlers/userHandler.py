@@ -1,5 +1,5 @@
 from sqlalchemy.orm.exc import MultipleResultsFound
-from dataactcore.models.userModel import User
+from dataactcore.models.userModel import User, UserStatus
 from dataactcore.models.userInterface import UserInterface
 
 class UserHandler(UserInterface):
@@ -37,3 +37,30 @@ class UserHandler(UserInterface):
         else:
             # Multiple entries for this user, server error
             raise MultipleResultsFound("Multiple entries for single username")
+
+    def getUserByEmail(self,email):
+        """ Return a User object that matches specified email """
+        result = self.session.query(User).filter(User.email == email).all()
+        # Raise exception if we did not find exactly one user
+        self.checkUnique(result,"No users with that email", "Multiple users with that email")
+        return result[0]
+
+    def addUserInfo(self,user,name,agency,title):
+        """ Called after registration, add all info to user. """
+        # Add info to user ORM
+        user.name = name
+        user.agency = agency
+        user.title = title
+        self.session.commit()
+
+    def changeStatus(self,user,statusName):
+        """ Change status for specified user """
+        user.user_status_id = UserStatus.getStatus(statusName)
+        self.session.commit()
+
+    def addUnconfirmedEmail(self,email):
+        """ Create user with specified email """
+        user = User(email = email)
+        self.changeStatus(user,"awaiting_confirmation")
+        self.session.add(user)
+        self.session.commit()

@@ -7,6 +7,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactbroker.handlers.aws.session import DynamoInterface, SessionTable
 from dataactbroker.fileRoutes import add_file_routes
 from dataactbroker.loginRoutes import add_login_routes
+from dataactbroker.userRoutes import add_user_routes
 
 def runApp():
     """Set up the Application"""
@@ -44,6 +45,7 @@ def runApp():
     # Add routes for modules here
     add_login_routes(app)
     add_file_routes(app,config["create_credentials"])
+    add_user_routes(app)
     SessionTable.localPort  = int( config["dynamo_port"])
     SessionTable.setup(app, runLocal)
     app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port= int(config["port"]))
