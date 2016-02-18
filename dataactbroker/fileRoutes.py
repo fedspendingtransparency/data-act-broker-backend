@@ -17,55 +17,64 @@ def add_file_routes(app,CreateCredentials):
     @app.route("/v1/submit_files/", methods = ["POST"])
     @permissions_check
     def submit_files():
+        interfaces = InterfaceHolder()
         try:
-            interfaces = InterfaceHolder()
             fileManager = FileHandler(request,interfaces)
             return fileManager.submit(LoginSession.getName(session),CREATE_CREDENTIALS)
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{})
-
+        finally:
+            interfaces.close()
 
     @app.route("/v1/finalize_job/", methods = ["POST"])
     @permissions_check
     def finalize_submission():
+        interfaces = InterfaceHolder()
         try:
-            interfaces = InterfaceHolder()
             fileManager = FileHandler(request,interfaces)
             return fileManager.finalize()
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{})
+        finally:
+            interfaces.close()
 
     @app.route("/v1/check_status/", methods = ["POST"])
     @permissions_check
     def check_status():
+        interfaces = InterfaceHolder()
         try:
-            interfaces = InterfaceHolder()
             fileManager = FileHandler(request,interfaces)
             return fileManager.getStatus()
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{})
+        finally:
+            interfaces.close()
 
     @app.route("/v1/submission_error_reports/", methods = ["POST"])
     @permissions_check
     def submission_error_reports():
+        interfaces = InterfaceHolder()
         try:
-            interfaces = InterfaceHolder()
             fileManager = FileHandler(request,interfaces)
             return fileManager.getErrorReportURLsForSubmission()
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{})
+        finally:
+            interfaces.close()
 
     @app.route("/v1/error_metrics/", methods = ["POST"])
     @permissions_check
     def submission_error_metrics():
+        interfaces = InterfaceHolder()
         try:
-            interfaces = InterfaceHolder()
             fileManager = FileHandler(request,interfaces)
             return fileManager.getErrorMetrics()
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{})
+        finally:
+            interfaces.close()

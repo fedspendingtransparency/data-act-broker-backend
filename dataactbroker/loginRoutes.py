@@ -11,12 +11,14 @@ def add_login_routes(app):
         interfaces = InterfaceHolder()
         loginManager = LoginHandler(request,interfaces)
         response = loginManager.login(session)
+        interfaces.close()
         return response
 
     @app.route("/v1/logout/", methods = ["POST"])
     def logout():
         interfaces = InterfaceHolder()
         loginManager = LoginHandler(request,interfaces)
+        interfaces.close()
         return loginManager.logout(session)
 
     @app.route("/v1/session/", methods = ["GET"])
