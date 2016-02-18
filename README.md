@@ -348,7 +348,7 @@ Upon install, follow the provided instructions to start postgres locally.
 Install the Broker and its dependencies with 'pip':
 
 ```bash
-$ sudo pip install --process-dependency-links git+git://github.com/fedspendingtransparency/data-act-broker.git@configuration_fetaure
+$ sudo pip install --process-dependency-links git+git://github.com/fedspendingtransparency/data-act-broker.git@configuration_feature
 ```
 
 Note: we recommend [virtualenv](https://virtualenv.readthedocs.org/en/latest/installation.html) and [virtualenvwrapper](https://virtualenvwrapper.readthedocs.org/en/latest/install.html) to manage Python environments.
