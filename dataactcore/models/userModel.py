@@ -46,6 +46,13 @@ class UserStatus(Base):
         else:
             return queryResult[0].user_status_id
 
+class PermissionType(Base):
+    __tablename__ = "permission_type"
+
+    permission_type_id = Column(Integer, primary_key=True)
+    name = Column(Text)
+    description = Column(Text)
+
 class User(Base):
     __tablename__ = 'users'
 
@@ -57,6 +64,7 @@ class User(Base):
     title = Column(Text)
     user_status_id = Column(Integer, ForeignKey("user_status.user_status_id"))
     status = relationship("UserStatus", uselist=False)
+    permissions = Column(Integer)
 
 class EmailTemplateType(Base):
     __tablename__ = 'email_template_type'

@@ -18,8 +18,9 @@ def setupUserDB(hardReset = False):
     sql = [
             "DROP SEQUENCE IF EXISTS userIdSerial",
             "CREATE TABLE user_status (user_status_id integer PRIMARY KEY, name text, description text)",
+            "CREATE TABLE permission_type (permission_type_id integer PRIMARY KEY, name text, description text)",
             "CREATE SEQUENCE userIdSerial START 1",
-            "CREATE TABLE users (user_id integer PRIMARY KEY DEFAULT nextval('userIdSerial'), username text, email text, password_hash text, name text, agency text, title text, user_status_id integer REFERENCES user_status)",
+            "CREATE TABLE users (user_id integer PRIMARY KEY DEFAULT nextval('userIdSerial'), username text, email text, password_hash text, name text, agency text, title text, user_status_id integer REFERENCES user_status, permissions integer)",
             "INSERT INTO user_status (user_status_id, name, description) VALUES (1, 'awaiting_confirmation', 'User has entered email but not confirmed'), (2, 'email_confirmed', 'User email has been confirmed'), (3, 'awaiting_approval', 'User has registered their information and is waiting for approval'), (4, 'approved', 'User has been approved'), (5, 'denied','User registration was denied')",
             "CREATE SEQUENCE emailTemplateSerial START 1",
             ("CREATE TABLE email_template("
@@ -36,7 +37,10 @@ def setupUserDB(hardReset = False):
                 "(2, 'account_creation', 'Email to notify admin of account request'),"
                 "(3, 'account_approved', 'Email to notify user of the successful account creation'),"
                 "(4, 'account_rejected', ' Email to notify user of the unsuccessful account creation'),"
-                "(5, 'reset_password', ' Email to notify allow users to reset the password')")
+                "(5, 'reset_password', ' Email to notify allow users to reset the password')"),
+            ("INSERT INTO permission_type (permission_type_id, name, description) VALUES"
+                "(1, 'agency_user', 'This user is allowed to upload data to be validated'),"
+                "(2, 'website_admin', 'This user is allowed to manage user accounts')")
            ]
     runCommands(UserInterface.getCredDict(),sql,"user_manager")
     database = UserInterface()

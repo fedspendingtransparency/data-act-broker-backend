@@ -44,15 +44,5 @@ def setupJobTrackerDB(connection = None, hardReset = False):
                 ]
     runCommands(JobTrackerInterface.getCredDict(),sql,"job_tracker",connection)
 
-    if(hardReset):
-        sql = ["DROP TABLE IF EXISTS users","DROP SEQUENCE IF EXISTS userIdSerial"]
-        runCommands(UserInterface.getCredDict(),sql,"user_manager")
-
-    sql = ["DROP SEQUENCE IF EXISTS userIdSerial",
-                "CREATE SEQUENCE userIdSerial START 1",
-                "CREATE TABLE users (user_id integer PRIMARY KEY DEFAULT nextval('userIdSerial'), username text)"]
-
-    runCommands(UserInterface.getCredDict(),sql,"user_manager")
-
 if __name__ == '__main__':
     setupJobTrackerDB(hardReset = True)
