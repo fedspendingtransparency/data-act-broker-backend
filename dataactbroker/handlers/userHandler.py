@@ -1,6 +1,8 @@
 from sqlalchemy.orm.exc import MultipleResultsFound
 from dataactcore.models.userModel import User, UserStatus, EmailToken
 from dataactcore.models.userInterface import UserInterface
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
 
 class UserHandler(UserInterface):
     """ Responsible for all interaction with the user database
@@ -67,7 +69,11 @@ class UserHandler(UserInterface):
 
     def changeStatus(self,user,statusName):
         """ Change status for specified user """
-        user.user_status_id = UserStatus.getStatus(statusName)
+        try:
+            user.user_status_id = UserStatus.getStatus(statusName)
+        except ValueError as e:
+            # In this case having a bad status name is a client error
+            raise ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
         self.session.commit()
 
     def addUnconfirmedEmail(self,email):
@@ -81,3 +87,8 @@ class UserHandler(UserInterface):
         self.changeStatus(user,"awaiting_confirmation")
         self.session.add(user)
         self.session.commit()
+
+    def getUsersByStatus(self,status):
+        """ Return list of all users with specified status """
+        statusId = UserStatus.getStatus(status)
+        return self.session.query(User).filter(User.user_status_id == statusId).all()

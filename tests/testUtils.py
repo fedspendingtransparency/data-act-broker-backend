@@ -45,3 +45,17 @@ class TestUtils(object):
     # Call logout route
     def logout(self):
         return self.postRequest("/v1/logout/",{})
+
+    def checkResponse(self,response,status,message = None):
+        # Check status is 200
+        assert(response.status_code == status)
+        # Check JSON content type header
+        assert("Content-Type" in response.headers), "No content type specified"
+        # Test content type is correct
+        assert(response.headers["Content-Type"]=="application/json"), "Content type is not json"
+        # Make sure json part of response exists and is a dict
+        json = response.json()
+        assert(str(type(json))=="<type 'dict'>"), "json component is not a dict"
+        # Test content of json
+        if(message != None):
+            assert(json["message"] == message), "Incorrect content in json string"

@@ -20,6 +20,10 @@ fileMethods = FileTests.__dict__.keys()
 userMethods = UserTests.__dict__.keys()
 #loginMethods = []
 #fileMethods = [["test_file_submission"]]
+
+# Set up sample users
+UserTests.setupUserList()
+
 for method in loginMethods:
     # If test method, add to suite
     if(method[0:4] == "test"):

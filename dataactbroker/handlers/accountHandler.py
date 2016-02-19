@@ -96,7 +96,7 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK,{"message":"Logout successful"})
 
     def register(self):
-        """ Save user's information into user database.  Associated request body should have keys for email, name, agency, and title """
+        """ Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', and 'title' """
         input = RequestDictionary(self.request)
         if(not (input.exists("email") and input.exists("name") and input.exists("agency") and input.exists("title"))):
             # Missing a required field, return 400
@@ -111,3 +111,37 @@ class AccountHandler:
         # Mark user as awaiting approval
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
+
+    def changeStatus(self):
+        """ Changes status for specified user.  Associated request body should have keys 'user_email' and 'new_status' """
+        input = RequestDictionary(self.request)
+        if(not (input.exists("user_email") and input.exists("new_status"))):
+            # Missing a required field, return 400
+            exc = ResponseException("Request body must include user_email and new_status", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc,exc.status,{})
+
+        # Find user that matches specified email
+        user = self.interfaces.userDb.getUserByEmail(input.getValue("user_email"))
+
+        # Change user's status
+        self.interfaces.userDb.changeStatus(user,input.getValue("new_status"))
+        return JsonResponse.create(StatusCode.OK,{"message":"Status change successful"})
+
+    def listUsersWithStatus(self):
+        """ List all users with the specified status.  Associated request body must have key 'status' """
+        input = RequestDictionary(self.request)
+        if(not (input.exists("status"))):
+            # Missing a required field, return 400
+            exc = ResponseException("Request body must include status", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc,exc.status)
+        try:
+            users = self.interfaces.userDb.getUsersByStatus(input.getValue("status"))
+        except ValueError as e:
+            # Client provided a bad status
+            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
+            return JsonResponse.error(exc,exc.status)
+        userInfo = []
+        for user in users:
+            thisInfo = {"name":user.name, "email":user.email, "agency":user.agency, "title":user.title}
+            userInfo.append(thisInfo)
+        return JsonResponse.create(StatusCode.OK,{"users":userInfo})
