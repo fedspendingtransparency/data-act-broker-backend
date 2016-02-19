@@ -23,18 +23,18 @@ class sesEmail(object):
 
 
     @staticmethod
-    def createToken(emailAddress,database) :
+    def createToken(emailAddress,database,token_type) :
         """Creates a token to be used and saves it with the salt in the database"""
         salt = uuid.uuid1().int
         ts = URLSafeTimedSerializer(sesEmail.SIGNING_KEY)
         token = ts.dumps(emailAddress, salt=str(salt))
         #saves the token and salt pair
-        database.saveToken(str(salt),str(token))
+        database.saveToken(str(salt)+token_type,str(token))
         Wait(2)
         return urllib.quote_plus(str(token))
 
     @staticmethod
-    def checkToken(token,database):
+    def checkToken(token,database,token_type):
         """Gets token's salt and decodes it"""
         saltValue = None
         try:
@@ -47,7 +47,7 @@ class sesEmail(object):
             return False,""
         ts = URLSafeTimedSerializer(sesEmail.SIGNING_KEY)
         try:
-            emailAddress = ts.loads(token, salt=saltValue[0], max_age=1)
+            emailAddress = ts.loads(token, salt=saltValue[0]+token_type, max_age=1)
             return True,emailAddress
         except BadSignature:
             #Token is malformed
