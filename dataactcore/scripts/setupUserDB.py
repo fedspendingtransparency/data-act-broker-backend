@@ -12,6 +12,7 @@ def setupUserDB(hardReset = False):
             "DROP TABLE IF EXISTS email_token",
             "DROP SEQUENCE IF EXISTS emailTemplateSerial",
             "DROP SEQUENCE IF EXISTS emailTokenSerial",
+            "DROP TABLE IF EXISTS permission_type"
             ]
         runCommands(UserInterface.getCredDict(),sql,"user_manager")
 
