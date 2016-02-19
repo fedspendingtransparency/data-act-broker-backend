@@ -13,7 +13,16 @@ class User(Base):
     name = Column(Text)
     agency = Column(Text)
     title = Column(Text)
+    permissions = Column(Integer)
     user_status_id = Column(Integer, ForeignKey("user_status.user_status_id"))
+
+class PermissionType(Base):
+    __tablename__ = "permission_type"
+
+    permission_type_id = Column(Integer, primary_key=True)
+    name = Column(Text)
+    description = Column(Text)
+
 
 class UserStatus(Base):
     __tablename__ = 'user_status'
