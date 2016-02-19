@@ -85,6 +85,7 @@ class UserHandler(UserInterface):
             raise ValueError("That email is already associated with a user")
         user = User(email = email)
         self.changeStatus(user,"awaiting_confirmation")
+        self.setPermission(user,0) # Users start with no permissions
         self.session.add(user)
         self.session.commit()
 
@@ -93,10 +94,10 @@ class UserHandler(UserInterface):
         statusId = UserStatus.getStatus(status)
         return self.session.query(User).filter(User.user_status_id == statusId).all()
 
-    def getUsersByType(self,type):
+    def getUsersByType(self,permissionName):
         """ Get all users that have the specified permission """
         userList = []
-        bitNumber = self.getPermissionId(type)
+        bitNumber = self.getPermissionId(permissionName)
         users = self.session.query(User).all()
         for user in users:
             if self.checkPermission(user,bitNumber):
@@ -107,6 +108,9 @@ class UserHandler(UserInterface):
     @staticmethod
     def checkPermission(user,bitNumber):
         """ Check whether user has the specified permission, determined by whether a binary representation of user's permissions has the specified bit set to 1 """
+        if(user.permissions == None):
+            # This user has no permissions
+            return False
         bitValue = 2 ** (bitNumber)
         lowEnd = user.permissions % (bitValue * 2) # This leaves the bit we care about as the highest remaining
         return (lowEnd >= bitValue) # If the number is still at least the bitValue, we have that permission
@@ -118,6 +122,9 @@ class UserHandler(UserInterface):
 
     def grantPermission(self,user,permissionName):
         """ Grant a user a permission specified by name """
+        if(user.permissions == None):
+            # Start users with zero permissions
+            user.permissions = 0
         bitNumber = self.getPermissionId(permissionName)
         if not self.checkPermission(user,bitNumber):
             # User does not have permission, grant it
@@ -126,6 +133,9 @@ class UserHandler(UserInterface):
 
     def removePermission(self,user,permissionName):
         """ Grant a user a permission specified by name """
+        if(user.permissions == None):
+            # Start users with zero permissions
+            user.permissions = 0
         bitNumber = self.getPermissionId(permissionName)
         if self.checkPermission(user,bitNumber):
             # User has permission, remove it

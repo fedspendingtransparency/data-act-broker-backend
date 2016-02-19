@@ -52,13 +52,15 @@ class UserTests(BaseTest):
         self.utils.checkResponse(response,400,"Not a valid user status")
 
     def test_get_users_by_type(self):
+        admins = self.interfaces.userDb.getUsersByType("website_admin")
+        assert(len(admins) == 3), "There should be three admins"
 
     @staticmethod
     def setupUserList():
         """ Clear user database and add a constant sample set """
         userEmails = ["user@agency.gov", "realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", "approved@agency.gov", "nefarious@agency.gov"]
         userStatus = ["awaiting_confirmation","email_confirmed","awaiting_approval","awaiting_approval","awaiting_approval","approved","denied"]
-        userPermissions = [0,2,1,1,1,2,2]
+        userPermissions = [0,2,1,1,1,3,3]
         # Clear users
         setupUserDB(True)
         userDb = UserHandler()
