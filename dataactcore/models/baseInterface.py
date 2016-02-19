@@ -73,7 +73,7 @@ class BaseInterface(object):
 
         elif(len(queryResult) > 1):
             # Multiple results for single job ID
-            raise ResponseException(multipleResultMessage,StatusCode.CLIENT_ERROR,MultipleResultsFound,10)
+            raise ResponseException(multipleResultMessage,StatusCode.INTERNAL_ERROR,MultipleResultsFound,10)
 
         return True
 

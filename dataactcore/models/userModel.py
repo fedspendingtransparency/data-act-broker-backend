@@ -58,3 +58,16 @@ class User(Base):
     user_status_id = Column(Integer, ForeignKey("user_status.user_status_id"))
     status = relationship("UserStatus", uselist=False)
 
+class EmailTemplateType(Base):
+    __tablename__ = 'email_template_type'
+    email_template_type_id = Column(Integer, primary_key=True)
+    name = Column(Text)
+    description = Column(Text)
+
+class EmailTemplate(Base):
+    __tablename__ = 'email_template'
+
+    email_template_id = Column(Integer, primary_key=True)
+    template_type_id = Column(Integer, ForeignKey("email_template_type.email_template_type_id"))
+    subject = Column(Text)
+    content = Column(Text)
