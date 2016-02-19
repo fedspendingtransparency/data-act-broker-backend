@@ -1,0 +1,28 @@
+<class 'dataactcore.utils.responseException.ResponseException'>: type object 'User' has no attribute 'email'
+[('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\userRoutes.py', 27, 'register_user', 'user = interfaces.userDb.getUserByEmail(input.getValue("email"))'), ('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\handlers\\userHandler.py', 43, 'getUserByEmail', 'result = self.session.query(User).filter(User.email == email).all()')]
+<class 'dataactcore.utils.responseException.ResponseException'>: type object 'User' has no attribute 'email'
+[('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\userRoutes.py', 27, 'register_user', 'user = interfaces.userDb.getUserByEmail(input.getValue("email"))'), ('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\handlers\\userHandler.py', 43, 'getUserByEmail', 'result = self.session.query(User).filter(User.email == email).all()')]
+<class 'dataactcore.utils.responseException.ResponseException'>: No users with that email
+[('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\userRoutes.py', 27, 'register_user', 'user = interfaces.userDb.getUserByEmail(input.getValue("email"))'), ('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\handlers\\userHandler.py', 45, 'getUserByEmail', 'self.checkUnique(result,"No users with that email", "Multiple users with that email")'), ('C:\\Users\\jworcest\\Documents\\dataactcore\\dataactcore\\models\\baseInterface.py', 72, 'checkUnique', 'raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound,10)')]
+<class 'dataactcore.utils.responseException.ResponseException'>: Multiple users with that email
+[('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\userRoutes.py', 27, 'register_user', 'user = interfaces.userDb.getUserByEmail(input.getValue("email"))'), ('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\handlers\\userHandler.py', 45, 'getUserByEmail', 'self.checkUnique(result,"No users with that email", "Multiple users with that email")'), ('C:\\Users\\jworcest\\Documents\\dataactcore\\dataactcore\\models\\baseInterface.py', 76, 'checkUnique', 'raise ResponseException(multipleResultMessage,StatusCode.CLIENT_ERROR,MultipleResultsFound,10)')]
+<class 'dataactcore.utils.responseException.ResponseException'>: Request body must include email, name, agency, and title
+[]
+<class 'dataactcore.utils.responseException.ResponseException'>: Request body must include email, name, agency, and title
+[]
+<class 'dataactcore.utils.responseException.ResponseException'>: Request body must include email, name, agency, and title
+[]
+<class 'dataactcore.utils.responseException.ResponseException'>: No users with that email
+[('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\userRoutes.py', 27, 'register_user', 'user = interfaces.userDb.getUserByEmail(input.getValue("email"))'), ('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\handlers\\userHandler.py', 45, 'getUserByEmail', 'self.checkUnique(result,"No users with that email", "Multiple users with that email")'), ('C:\\Users\\jworcest\\Documents\\dataactcore\\dataactcore\\models\\baseInterface.py', 72, 'checkUnique', 'raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound,10)')]
+<class 'dataactcore.utils.responseException.ResponseException'>: Request body must include email, name, agency, and title
+[]
+<class 'dataactcore.utils.responseException.ResponseException'>: No users with that email
+[('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\userRoutes.py', 27, 'register_user', 'user = interfaces.userDb.getUserByEmail(input.getValue("email"))'), ('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\handlers\\userHandler.py', 48, 'getUserByEmail', 'self.checkUnique(result,"No users with that email", "Multiple users with that email")'), ('C:\\Users\\jworcest\\Documents\\dataactcore\\dataactcore\\models\\baseInterface.py', 72, 'checkUnique', 'raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound,10)')]
+<class 'dataactcore.utils.responseException.ResponseException'>: Request body must include email, name, agency, and title
+[]
+<class 'dataactcore.utils.responseException.ResponseException'>: No users with that email
+[('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\userRoutes.py', 27, 'register_user', 'user = interfaces.userDb.getUserByEmail(input.getValue("email"))'), ('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\handlers\\userHandler.py', 47, 'getUserByEmail', 'self.checkUnique(result,"No users with that email", "Multiple users with that email")'), ('C:\\Users\\jworcest\\Documents\\dataactcore\\dataactcore\\models\\baseInterface.py', 72, 'checkUnique', 'raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound,10)')]
+<class 'dataactcore.utils.responseException.ResponseException'>: Request body must include email, name, agency, and title
+[]
+<class 'dataactcore.utils.responseException.ResponseException'>: No users with that email
+[('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\userRoutes.py', 27, 'register_user', 'user = interfaces.userDb.getUserByEmail(input.getValue("email"))'), ('C:\\Users\\jworcest\\Documents\\dataactbroker\\dataactbroker\\handlers\\userHandler.py', 47, 'getUserByEmail', 'self.checkUnique(result,"No users with that email", "Multiple users with that email")'), ('C:\\Users\\jworcest\\Documents\\dataactcore\\dataactcore\\models\\baseInterface.py', 72, 'checkUnique', 'raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound,10)')]

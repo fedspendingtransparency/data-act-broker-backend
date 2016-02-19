@@ -1,6 +1,8 @@
-from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.models.userModel import User, UserStatus
 from dataactcore.models.userInterface import UserInterface
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
 
 class UserHandler(UserInterface):
     """ Responsible for all interaction with the user database
@@ -60,6 +62,11 @@ class UserHandler(UserInterface):
 
     def addUnconfirmedEmail(self,email):
         """ Create user with specified email """
+        # Check for presence of email in database, raise exception if present
+        result = self.session.query(User).filter(User.email == email).all()
+        if(len(result) > 0):
+            # Email already in use
+            raise ValueError("That email is already associated with a user")
         user = User(email = email)
         self.changeStatus(user,"awaiting_confirmation")
         self.session.add(user)

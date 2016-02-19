@@ -32,9 +32,10 @@ def add_user_routes(app):
             # Mark user as awaiting approval
             interfaces.userDb.changeStatus(user,"awaiting_approval")
             return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
+        except ResponseException as e:
+            return JsonResponse.error(e,e.status,{})
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{})
         finally:
             interfaces.close()
-            
