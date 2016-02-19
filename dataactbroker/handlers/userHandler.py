@@ -28,9 +28,10 @@ class UserHandler(UserInterface):
         self.session.add(newToken)
         self.session.commit()
 
-    def getAdminEmailAddress(self):
-        self.session.query(User.email).filter(EmailToken.token == token).one()
-
+    def deleteToken(self,token):
+        oldToken = self.session.query(EmailToken).filter(EmailToken.token == token).one()
+        self.session.delete(oldToken)
+        self.session.commit()
 
     def getUserId(self, username):
         """ Find an id for specified username, creates a new entry for new usernames, raises an exception if multiple results found
@@ -61,6 +62,7 @@ class UserHandler(UserInterface):
         # Raise exception if we did not find exactly one user
         self.checkUnique(result,"No users with that email", "Multiple users with that email")
         return result[0]
+
 
     def addUserInfo(self,user,name,agency,title):
         """ Called after registration, add all info to user. """

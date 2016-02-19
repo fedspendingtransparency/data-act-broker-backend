@@ -136,6 +136,26 @@ class AccountHandler:
         newEmail.send()
         return JsonResponse.create(StatusCode.OK,{"message":"Email Sent"})
 
+    def checkEmailConfirmation(self,session):
+        """Creates user record and email"""
+        requestFields = RequestDictionary(self.request)
+        if(not requestFields.exists("token")):
+            exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc,exc.status,{})
+        token = requestFields.getValue("token")
+        success,message = sesEmail.checkToken(token,self.interfaces.userDb,"validate_email")
+        if(success):
+            #mark session that email can be filled out
+            LoginSession.register(session)
+            #remove token so it cant be used again
+            self.interfaces.userDb.deleteToken(token)
+            #set the status
+            self.interfaces.userDb.changeStatus(self.interfaces.userDb.getUserByEmail(message),"email_confirmed")
+            return JsonResponse.create(StatusCode.OK,{"message":"success"})
+        else:
+            #failure but alert UI of issue
+            return JsonResponse.create(StatusCode.OK,{"message":message})
+
     def changeStatus(self):
         """ Changes status for specified user.  Associated request body should have keys 'user_email' and 'new_status' """
         input = RequestDictionary(self.request)

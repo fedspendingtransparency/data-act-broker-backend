@@ -15,6 +15,7 @@ def add_user_routes(app,system_email):
     SYSTEM_EMAIL = system_email
 
     @app.route("/v1/register/", methods = ["POST"])
+    #check the session to make sure register is set to prevent any one from using route
     #@permissions_check
     def register_user():
         """ Expects request to have keys 'email', 'name', 'agency', and 'title' """
@@ -47,15 +48,29 @@ def add_user_routes(app,system_email):
             interfaces.close()
 
     @app.route("/v1/confirm_email/", methods = ["POST"])
-    #@permissions_check
     def confirm():
-        """ Expects request to have keys for email, name, agency, and title """
+        """ Expects request to have email  """
         interfaces = InterfaceHolder()
         try:
             accountManager = AccountHandler(request,interfaces)
             return accountManager.createEmailConfirmation(SYSTEM_EMAIL)
         except ResponseException as e:
-                    return JsonResponse.error(e,e.status,{})
+            return JsonResponse.error(e,e.status,{})
+        except Exception as e:
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
+            return JsonResponse.error(exc,exc.status,{})
+        finally:
+            interfaces.close()
+
+    @app.route("/v1/confirm_email_token/", methods = ["POST"])
+    def checkToke():
+        """ Expects request to have email  """
+        interfaces = InterfaceHolder()
+        try:
+            accountManager = AccountHandler(request,interfaces)
+            return accountManager.checkEmailConfirmation(session)
+        except ResponseException as e:
+            return JsonResponse.error(e,e.status,{})
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             return JsonResponse.error(exc,exc.status,{})

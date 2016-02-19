@@ -36,9 +36,9 @@ class sesEmail(object):
         """Creates a token to be used and saves it with the salt in the database"""
         salt = uuid.uuid1().int
         ts = URLSafeTimedSerializer(sesEmail.SIGNING_KEY)
-        token = ts.dumps(emailAddress, salt=str(salt))
+        token = ts.dumps(emailAddress, salt=str(salt)+token_type)
         #saves the token and salt pair
-        database.saveToken(str(salt)+token_type,str(token))
+        database.saveToken(str(salt),str(token))
         return urllib.quote_plus(str(token))
 
     @staticmethod
@@ -49,17 +49,17 @@ class sesEmail(object):
             saltValue = database.getTokenSalt(token)
         except MultipleResultsFound, e:
             #duplicate tokens
-            return False ,""
+            return False ,"Invalid Link"
         except NoResultFound, e:
-            #Token allready used or never existed in the first place
-            return False,""
+            #Token already used or never existed in the first place
+            return False,"Link already used"
         ts = URLSafeTimedSerializer(sesEmail.SIGNING_KEY)
         try:
-            emailAddress = ts.loads(token, salt=saltValue[0]+token_type, max_age=1)
+            emailAddress = ts.loads(token, salt=saltValue[0]+token_type, max_age=86400)
             return True,emailAddress
         except BadSignature:
             #Token is malformed
-            return False,""
+            return False,"Invalid Link"
         except SignatureExpired:
             #Token is to old
-            return False,""
+            return False,"Link Expired"
