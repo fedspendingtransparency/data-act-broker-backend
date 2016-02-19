@@ -4,10 +4,11 @@ import inspect
 from aws.session import LoginSession
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 
-class LoginHandler:
+class AccountHandler:
     """
     This class contains the login / logout  functions
     """
@@ -93,3 +94,20 @@ class LoginHandler:
         # Call session handler
         LoginSession.logout(session)
         return JsonResponse.create(StatusCode.OK,{"message":"Logout successful"})
+
+    def register(self):
+        """ Save user's information into user database.  Associated request body should have keys for email, name, agency, and title """
+        input = RequestDictionary(self.request)
+        if(not (input.exists("email") and input.exists("name") and input.exists("agency") and input.exists("title"))):
+            # Missing a required field, return 400
+            exc = ResponseException("Request body must include email, name, agency, and title", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc,exc.status,{})
+        # Find user that matches specified email
+        user = self.interfaces.userDb.getUserByEmail(input.getValue("email"))
+        # Add user info to database
+        self.interfaces.userDb.addUserInfo(user,input.getValue("name"),input.getValue("agency"),input.getValue("title"))
+        # Send email to approver
+        # TODO implement
+        # Mark user as awaiting approval
+        self.interfaces.userDb.changeStatus(user,"awaiting_approval")
+        return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})

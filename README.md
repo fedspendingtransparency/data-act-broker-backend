@@ -67,7 +67,7 @@ The `initialize` script provides users with these choices during the install pro
 ##Handlers
 The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py` and `fileRoutes.py` files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in. If user is not logged in to the system, a 401 HTTP error will be returned. This tag is defined in `dataactbroker/permissions.py`. Cookies are used to keep track of sessions for the end user. Only a UUID is stored in the cookie.
 
-`LoginHandler.py` contains the functions to check logins and to log users out. Currently, `credentials.json` defines which users exist within the system. This file is automatically created during the installation process.
+`AccountHandler.py` contains the functions to check logins and to log users out. Currently, `credentials.json` defines which users exist within the system. This file is automatically created during the installation process.
 
 `FileHandler.py` contains functions for managing user file interaction. It creates all of the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
 
