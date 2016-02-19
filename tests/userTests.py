@@ -1,6 +1,7 @@
 import unittest
 from baseTest import BaseTest
 from dataactbroker.handlers.userHandler import UserHandler
+from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.scripts.setupUserDB import setupUserDB
 
 class UserTests(BaseTest):
@@ -54,6 +55,28 @@ class UserTests(BaseTest):
     def test_get_users_by_type(self):
         admins = self.interfaces.userDb.getUsersByType("website_admin")
         assert(len(admins) == 3), "There should be three admins"
+
+    def test_send_email(self):
+        # Always use simulator to test emails!
+        json = '{"email":"success@simulator.amazonses.com"}'
+        response = self.utils.postRequest("/v1/confirm_email/",json)
+        self.utils.checkResponse(response,200)
+
+    def test_check_email_token_malformed(self):
+        json = '{"token":"12345678"}'
+        response = self.utils.postRequest("/v1/confirm_email_token/",json)
+        self.utils.checkResponse(response,200)
+        assert(response.json()["message"]== "Link already used")
+
+    def test_check_email_token(self):
+        userDb = UserHandler()
+        #make a token based on a user
+        token = sesEmail.createToken("user@agency.gov",userDb,"validate_email")
+        json = '{"token":"'+token+'"}'
+        response = self.utils.postRequest("/v1/confirm_email_token/",json)
+        self.utils.checkResponse(response,200)
+        assert(response.json()["message"]== "success")
+
 
     @staticmethod
     def setupUserList():

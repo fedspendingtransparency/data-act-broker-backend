@@ -63,7 +63,7 @@ def add_user_routes(app,system_email):
             interfaces.close()
 
     @app.route("/v1/confirm_email_token/", methods = ["POST"])
-    def checkToke():
+    def checkToken():
         """ Expects request to have email  """
         interfaces = InterfaceHolder()
         try:
