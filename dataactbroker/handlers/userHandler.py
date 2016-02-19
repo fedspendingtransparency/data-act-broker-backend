@@ -1,5 +1,5 @@
 from sqlalchemy.orm.exc import MultipleResultsFound
-from dataactcore.models.userModel import User, UserStatus, EmailToken
+from dataactcore.models.userModel import User, UserStatus, EmailToken, PermissionType
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -92,3 +92,47 @@ class UserHandler(UserInterface):
         """ Return list of all users with specified status """
         statusId = UserStatus.getStatus(status)
         return self.session.query(User).filter(User.user_status_id == statusId).all()
+
+    def getUsersByType(self,type):
+        """ Get all users that have the specified permission """
+        userList = []
+        bitNumber = self.getPermissionId(type)
+        users = self.session.query(User).all()
+        for user in users:
+            if self.checkPermission(user,bitNumber):
+                # This user has this permission, include them in list
+                userList.append(user)
+        return userList
+
+    @staticmethod
+    def checkPermission(user,bitNumber):
+        """ Check whether user has the specified permission, determined by whether a binary representation of user's permissions has the specified bit set to 1 """
+        bitValue = 2 ** (bitNumber)
+        lowEnd = user.permissions % (bitValue * 2) # This leaves the bit we care about as the highest remaining
+        return (lowEnd >= bitValue) # If the number is still at least the bitValue, we have that permission
+
+    def setPermission(self,user,permission):
+        """ Define a user's permission to set value """
+        user.permissions = permission
+        self.session.commit()
+
+    def grantPermission(self,user,permissionName):
+        """ Grant a user a permission specified by name """
+        bitNumber = self.getPermissionId(permissionName)
+        if not self.checkPermission(user,bitNumber):
+            # User does not have permission, grant it
+            user.permissions = user.permissions + (2 ** bitNumber)
+            self.session.commit()
+
+    def removePermission(self,user,permissionName):
+        """ Grant a user a permission specified by name """
+        bitNumber = self.getPermissionId(permissionName)
+        if self.checkPermission(user,bitNumber):
+            # User has permission, remove it
+            user.permissions = user.permissions - (2 ** bitNumber)
+            self.session.commit()
+
+    def getPermissionId(self,permissionName):
+        result = self.session.query(PermissionType).filter(PermissionType.name == permissionName).all()
+        self.checkUnique(result,"Not a valid user type","Multiple permission entries for that type")
+        return result[0].permission_type_id

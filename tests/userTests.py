@@ -51,11 +51,14 @@ class UserTests(BaseTest):
         response = self.utils.postRequest("/v1/list_users_with_status/",input)
         self.utils.checkResponse(response,400,"Not a valid user status")
 
+    def test_get_users_by_type(self):
+
     @staticmethod
     def setupUserList():
         """ Clear user database and add a constant sample set """
         userEmails = ["user@agency.gov", "realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", "approved@agency.gov", "nefarious@agency.gov"]
         userStatus = ["awaiting_confirmation","email_confirmed","awaiting_approval","awaiting_approval","awaiting_approval","approved","denied"]
+        userPermissions = [0,2,1,1,1,2,2]
         # Clear users
         setupUserDB(True)
         userDb = UserHandler()
@@ -65,3 +68,4 @@ class UserTests(BaseTest):
             userDb.addUnconfirmedEmail(email)
             user = userDb.getUserByEmail(email)
             userDb.changeStatus(user,userStatus[index])
+            userDb.setPermission(user,userPermissions[index])
