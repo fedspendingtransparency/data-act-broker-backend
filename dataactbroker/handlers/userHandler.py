@@ -1,5 +1,5 @@
 from sqlalchemy.orm.exc import MultipleResultsFound
-from dataactcore.models.userModel import User, UserStatus
+from dataactcore.models.userModel import User, UserStatus, EmailToken
 from dataactcore.models.userInterface import UserInterface
 
 class UserHandler(UserInterface):
@@ -14,6 +14,18 @@ class UserHandler(UserInterface):
     connection -- sqlalchemy connection to user database
     session - sqlalchemy session for ORM calls to user database
     """
+
+    def getTokenSalt(self,token):
+        """gets the salt from a given token so it can be decoded"""
+        return  self.session.query(EmailToken.salt).filter(EmailToken.token == token).one()
+
+    def saveToken(self,salt,token):
+        newToken = EmailToken()
+        newToken.salt = salt
+        newToken.token = token
+        self.session.add(newToken)
+        self.session.commit()
+
 
     def getUserId(self, username):
         """ Find an id for specified username, creates a new entry for new usernames, raises an exception if multiple results found
