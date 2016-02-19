@@ -9,7 +9,9 @@ def setupUserDB(hardReset = False):
             "DROP TABLE IF EXISTS user_status",
             "DROP TABLE IF EXISTS email_template",
             "DROP TABLE IF EXISTS email_template_type",
+            "DROP TABLE IF EXISTS email_token",
             "DROP SEQUENCE IF EXISTS emailTemplateSerial",
+            "DROP SEQUENCE IF EXISTS emailTokenSerial",
             ]
         runCommands(UserInterface.getCredDict(),sql,"user_manager")
 
@@ -26,6 +28,8 @@ def setupUserDB(hardReset = False):
                 "content text,"
                 "template_type_id integer NOT NULL"
             ")"),
+            "CREATE SEQUENCE emailTokenSerial START 1",
+            "CREATE TABLE email_token (email_token_id integer PRIMARY KEY DEFAULT nextval('emailTokenSerial'), token text, salt text)",
             "CREATE TABLE email_template_type (email_template_type_id integer PRIMARY KEY, name text, description text)",
             ("INSERT INTO email_template_type (email_template_type_id, name, description) VALUES"
                 "(1, 'validate_email', 'Email to confirm email address'),"
