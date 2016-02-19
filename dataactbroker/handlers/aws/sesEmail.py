@@ -11,11 +11,20 @@ class sesEmail(object):
     #TODO Make JSON
     SIGNING_KEY  ="12345"
 
-    def __init__(self,toAddress,fromAddress,content,subject):
+    def __init__(self,toAddress,fromAddress,content="",subject="",templateType=None,parameters=None, database=None):
         self.toAddress = toAddress
         self.fromAddress = fromAddress
-        self.content = content
-        self.subject = subject
+        if(templateType is None):
+            self.content = content
+            self.subject = subject
+        else:
+            template = database.getEmailTemplate(templateType)
+            self.subject = template.subject
+            self.content = template.content
+            #Replace values in template with values needed for this email
+            for key in parameters :
+                self.content = self.content.replace(key,parameters[key])
+
 
     def send(self):
         connection = boto.connect_ses()
@@ -30,7 +39,6 @@ class sesEmail(object):
         token = ts.dumps(emailAddress, salt=str(salt))
         #saves the token and salt pair
         database.saveToken(str(salt)+token_type,str(token))
-        Wait(2)
         return urllib.quote_plus(str(token))
 
     @staticmethod

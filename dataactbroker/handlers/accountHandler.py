@@ -1,12 +1,14 @@
 import json
 import os
 import inspect
-from aws.session import LoginSession
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.models.userModel import UserStatus
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
+from dataactbroker.handlers.aws.sesEmail import sesEmail
+from dataactbroker.handlers.aws.session import LoginSession
 
 class AccountHandler:
     """
@@ -111,3 +113,25 @@ class AccountHandler:
         # Mark user as awaiting approval
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
+
+    def createEmailConfirmation(self,system_email):
+        """Creates user record and email"""
+        requestFields = RequestDictionary(self.request)
+        if(not requestFields.exists("email")):
+            exc = ResponseException("Request body must include email", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc,exc.status,{})
+        email = requestFields.getValue("email")
+        try :
+            user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
+            if(not user.user_status_id == UserStatus.getStatus("awaiting_confirmation")) :
+                exc = ResponseException("Email already confirmed", StatusCode.CLIENT_ERROR)
+                return JsonResponse.error(exc,exc.status,{})
+        except ResponseException as e:
+            self.interfaces.userDb.addUnconfirmedEmail(email)
+        emailToken = sesEmail.createToken(email,self.interfaces.userDb,"validate_email")
+        #TODO set with JSON
+        link='<a href="https://www.data-act-broker.com/email_check?token='+emailToken+'">here</a>'
+        emailTemplate = {'[USER]': email, '[URL]':link}
+        newEmail = sesEmail(email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)
+        newEmail.send()
+        return JsonResponse.create(StatusCode.OK,{"message":"Email Sent"})
