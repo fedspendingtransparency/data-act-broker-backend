@@ -21,15 +21,21 @@ class AccountHandler:
 
     # Instance fields include request, response, logFlag, and logFile
 
-    def __init__(self,request,interfaces,bcrypt):
+    def __init__(self,request,interfaces = None, bcrypt = None):
         """
 
         Creates the Login Handler
         """
-        self.userManager = interfaces.userDb
         self.request = request
-        self.interfaces = interfaces
         self.bcrypt = bcrypt
+        if(interfaces != None):
+            self.interfaces = interfaces
+            self.userManager = interfaces.userDb
+
+    def addInterfaces(self,interfaces):
+        """ Add interfaces to an existing account handler """
+        self.interfaces = interfaces
+        self.userManager = interfaces.userDb
 
     def login(self,session):
         """
@@ -101,11 +107,11 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK,{"message":"Logout successful"})
 
     def register(self,system_email):
-        """ Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', and 'title' """
+        """ Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', 'title', and 'password' """
         requestFields = RequestDictionary(self.request)
         if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("agency") and requestFields.exists("title") and requestFields.exists("password"))):
             # Missing a required field, return 400
-            exc = ResponseException("Request body must include email, name, agency, and title", StatusCode.CLIENT_ERROR)
+            exc = ResponseException("Request body must include email, name, agency, title, and password", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status,{})
         # Find user that matches specified email
         user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
@@ -119,6 +125,7 @@ class AccountHandler:
             newEmail.send()
         # Mark user as awaiting approval
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
+        print("Completed registration, returning 200")
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
 
     def createEmailConfirmation(self,system_email):
@@ -130,11 +137,12 @@ class AccountHandler:
         email = requestFields.getValue("email")
         try :
             user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
-            if(not user.user_status_id == UserStatus.getStatus("awaiting_confirmation")) :
-                exc = ResponseException("Email already confirmed", StatusCode.CLIENT_ERROR)
-                return JsonResponse.error(exc,exc.status,{})
         except ResponseException as e:
             self.interfaces.userDb.addUnconfirmedEmail(email)
+        else:
+            if(not (user.user_status_id == UserStatus.getStatus("awaiting_confirmation") or user.user_status_id == UserStatus.getStatus("email_confirmed"))):
+                exc = ResponseException("User already registered", StatusCode.CLIENT_ERROR)
+                return JsonResponse.error(exc,exc.status,{})
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"validate_email")
         #TODO set with JSON
         link='<a href="https://www.data-act-broker.com/email_check?token='+emailToken+'">here</a>'
