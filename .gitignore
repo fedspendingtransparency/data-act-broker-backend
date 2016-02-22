@@ -17,6 +17,7 @@ dataactvalidator/filestreaming/programActivityRaw.csv
 dataactvalidator/filestreaming/awardFieldsRaw.csv
 dataactvalidator/filestreaming/awardFinFields.csv
 dataactvalidator/statusError.log
+dataactvalidator/responseErrorLog
 tests/awardFieldsRaw.csv
 tests/awardFinFields.csv
 tests/programActivityRaw.csv
