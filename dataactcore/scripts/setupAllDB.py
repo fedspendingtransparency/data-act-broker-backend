@@ -1,6 +1,7 @@
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.scripts.setupValidationDB import setupValidationDB
+from dataactcore.scripts.setupUserDB import setupUserDB
 import dataactcore.scripts.setupStaging
 
 def setupAllDB():
@@ -12,6 +13,8 @@ def setupAllDB():
     print ("Created validation database")
     setupErrorDB(True)
     print ("Created error database")
+    setupUserDB(True)
+    print("Created user database")
     dataactcore.scripts.setupStaging
     print ("Created staging database")
     
