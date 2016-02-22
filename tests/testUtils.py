@@ -39,9 +39,10 @@ class TestUtils(object):
         return responseData
 
     # Send login route call
-    def login(self):
-        userJson = '{"username":"user3","password":"123abc"}'
+    def login(self,username = "user3",password = "123abc"):
+        userJson = '{"username":"'+username+'","password":"'+password+'"}'
         return self.postRequest("/v1/login/",userJson)
+
     # Call logout route
     def logout(self):
         return self.postRequest("/v1/logout/",{})

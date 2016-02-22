@@ -1,6 +1,8 @@
 from datetime import datetime
 from dataactcore.models.jobModels import JobStatus,JobDependency,Status,Type,Resource, Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
 
 class JobHandler(JobTrackerInterface):
     """ Responsible for all interaction with the job tracker database
@@ -20,18 +22,33 @@ class JobHandler(JobTrackerInterface):
 
     # Available instance variables:  session, waitingStatus, runningStatus, fileUploadType, dbUploadType, validationType, externalValidationTYpe
 
-    def createJobs(self,filenames):
+    def getSubmissionById(self,submissionId):
+        """ Return submission object that matches ID """
+        result = self.session.query(Submission).filter(Submission.submission_id == submissionId).all()
+        self.checkUnique(result,"No submission with that ID","Multiple submissions with that ID")
+        return result[0]
+
+    def getSubmissionsByUserId(self,userId):
+        """ Returns all submissions associated with the specified user ID """
+        return self.session.query(Submission).filter(Submission.user_id == userId).all()
+
+    def getSubmissionsByUser(self,user):
+        """ Returns all submissions associated with the provided user object """
+        return self.getSubmissionsByUserId(user.user_id)
+
+    def createJobs(self,filenames,userId):
         """  Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
 
         Arguments:
         filenames -- List of filenames to be uploaded
+        userId -- User ID to be linked to submission
 
         Returns:
         Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
         """
         # Create submission entry
         submission = Submission(datetime_utc = str(datetime.utcnow()))
-
+        submission.user_id = userId
         self.session.add(submission)
         self.session.commit()
         # Calling submission_id to force query to load this
@@ -136,3 +153,24 @@ class JobHandler(JobTrackerInterface):
         jobToChange.status_id = Status.getStatus("finished")
         # Commit changes
         self.session.commit()
+
+    def getUserForSubmission(self,submission):
+        """ Takes a submission object and returns the user ID """
+        return submission.user_id
+
+    def getSubmissionForJob(self,job):
+        """ Takes a job about and returns the associated submission object """
+        result = self.session.query(Submission).filter(Submission.submission_id == job.submission_id)
+        try:
+            self.checkUnique(result,"This job has no attached submission", "Multiple submissions with conflicting ID")
+            return result[0]
+        except ResponseException as e:
+            # Either of these errors is a 500, jobs should not be created without being part of a submission
+            e.status = StatusCode.INTERNAL_ERROR
+            raise e
+
+    def getJobById(self,jobId):
+        """ Given a job ID, return the corresponding job """
+        result = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
+        self.checkUnique(result,"No job with that ID","Multiple jobs with conflicting ID")
+        return result[0]

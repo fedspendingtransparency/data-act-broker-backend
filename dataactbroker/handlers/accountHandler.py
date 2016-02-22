@@ -1,6 +1,7 @@
 import json
 import os
 import inspect
+from flask import session as flaskSession
 from aws.session import LoginSession
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -145,3 +146,12 @@ class AccountHandler:
             thisInfo = {"name":user.name, "email":user.email, "agency":user.agency, "title":user.title}
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
+
+    def listSubmissionsByCurrentUser(self):
+        """ List all submission IDs associated with the current user ID """
+        userId = LoginSession.getName(flaskSession)
+        submissions = self.interfaces.jobDb.getSubmissionsByUserId(userId)
+        submissionIdList = []
+        for submission in submissions:
+            submissionIdList.append(submission.submission_id)
+        return JsonResponse.create(StatusCode.OK,{"submission_id_list": submissionIdList})

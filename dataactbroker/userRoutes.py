@@ -60,3 +60,19 @@ def add_user_routes(app):
             return JsonResponse.error(exc,exc.status,{})
         finally:
             interfaces.close()
+
+    @app.route("/v1/list_submissions/", methods = ["GET"])
+    @permissions_check
+    def list_submissions():
+        """ List submission IDs associated with the current user """
+        interfaces = InterfaceHolder()
+        try:
+            accountManager = AccountHandler(request,interfaces)
+            return accountManager.listSubmissionsByCurrentUser()
+        except ResponseException as e:
+            return JsonResponse.error(e,e.status,{})
+        except Exception as e:
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
+            return JsonResponse.error(exc,exc.status,{})
+        finally:
+            interfaces.close()

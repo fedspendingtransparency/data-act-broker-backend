@@ -29,6 +29,7 @@ class FileTests(BaseTest):
         jobTracker = interfaces.jobDb
         self.jobTracker = jobTracker
         self.errorDatabase = interfaces.errorDb
+        self.interfaces = interfaces
         try:
             self.tablesCleared = self.toBool(open(self.TABLES_CLEARED_FILE,"r").read())
         except Exception as e:
@@ -42,7 +43,7 @@ class FileTests(BaseTest):
             self.tablesCleared = True
             open(self.TABLES_CLEARED_FILE,"w").write(str(True))
             # Create submission ID
-            submissionResponse = jobTracker.runStatement("INSERT INTO submission (datetime_utc) VALUES (0) RETURNING submission_id")
+            submissionResponse = jobTracker.runStatement("INSERT INTO submission (datetime_utc,user_id) VALUES (0,1) RETURNING submission_id")
             submissionId = submissionResponse.fetchone()[0]
             self.submissionId = submissionId
             # Create jobs
@@ -112,7 +113,14 @@ class FileTests(BaseTest):
                 int(responseDict[key])
             except:
                 self.fail("One of the job ids returned was not an integer")
-            # Call upload complete route for each id
+
+        # Test that correct user ID is on submission
+        submissionId = responseDict["submission_id"]
+        userId = self.interfaces.userDb.getUserId("user3")
+        submission = self.interfaces.jobDb.getSubmissionById(submissionId)
+        assert(submission.user_id == userId) # Check that submission got mapped to the correct user
+
+        # Call upload complete route for each id
         self.check_upload_complete(responseDict["appropriations_id"])
 
     @staticmethod
@@ -245,8 +253,8 @@ class FileTests(BaseTest):
 
     @staticmethod
     def insertSubmission(jobTracker):
-        """ Insert one submission into job tracker and get submission ID back """
-        stmt = "INSERT INTO submission (datetime_utc) VALUES (0) RETURNING submission_id"
+        """ Insert one submission into job tracker and get submission ID back, uses user_id 1 """
+        stmt = "INSERT INTO submission (datetime_utc, user_id) VALUES (0,1) RETURNING submission_id"
         response = jobTracker.runStatement(stmt)
         return response.fetchone()[0]
 

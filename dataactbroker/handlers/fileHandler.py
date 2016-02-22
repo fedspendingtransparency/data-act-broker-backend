@@ -1,3 +1,4 @@
+from flask import session
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -91,7 +92,7 @@ class FileHandler:
                     responseDict[fileName+"_key"] = uploadName
                     fileNameMap.append((fileName,uploadName))
 
-            fileJobDict = self.jobManager.createJobs(fileNameMap)
+            fileJobDict = self.jobManager.createJobs(fileNameMap,name)
             for fileName in fileJobDict.keys():
                 if (not "submission_id" in fileName) :
                     responseDict[fileName+"_id"] = fileJobDict[fileName]
@@ -123,6 +124,8 @@ class FileHandler:
         try:
             inputDictionary = RequestDictionary(self.request)
             jobId = inputDictionary.getValue("upload_id")
+            # Compare user ID with user who submitted job, if no match return 400
+
             # Change job status to finished
             if(self.jobManager.checkUploadType(jobId)):
                 self.jobManager.changeToFinished(jobId)
