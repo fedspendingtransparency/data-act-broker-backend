@@ -99,19 +99,22 @@ class AccountHandler:
         LoginSession.logout(session)
         return JsonResponse.create(StatusCode.OK,{"message":"Logout successful"})
 
-    def register(self):
+    def register(self,system_email):
         """ Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', and 'title' """
-        input = RequestDictionary(self.request)
-        if(not (input.exists("email") and input.exists("name") and input.exists("agency") and input.exists("title"))):
+        requestFields = RequestDictionary(self.request)
+        if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("agency") and requestFields.exists("title"))):
             # Missing a required field, return 400
             exc = ResponseException("Request body must include email, name, agency, and title", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status,{})
         # Find user that matches specified email
-        user = self.interfaces.userDb.getUserByEmail(input.getValue("email"))
+        user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
         # Add user info to database
-        self.interfaces.userDb.addUserInfo(user,input.getValue("name"),input.getValue("agency"),input.getValue("title"))
+        self.interfaces.userDb.addUserInfo(user,requestFields.getValue("name"),requestFields.getValue("agency"),requestFields.getValue("title"))
         # Send email to approver
-        # TODO implement
+        for user in self.interfaces.userDb.getUsersByType("website_admin") :
+            emailTemplate = {'[USER]': user.name, '[USER2]':requestFields.getValue("email")}
+            newEmail = sesEmail(user.email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)
+            newEmail.send()
         # Mark user as awaiting approval
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})

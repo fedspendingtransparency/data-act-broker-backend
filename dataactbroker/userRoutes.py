@@ -22,7 +22,7 @@ def add_user_routes(app,system_email):
         interfaces = InterfaceHolder()
         try:
             accountManager = AccountHandler(request,interfaces)
-            return accountManager.register()
+            return accountManager.register(SYSTEM_EMAIL)
         except ResponseException as e:
             return JsonResponse.error(e,e.status,{})
         except Exception as e:
