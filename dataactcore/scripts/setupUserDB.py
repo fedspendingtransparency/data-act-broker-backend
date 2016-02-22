@@ -63,8 +63,8 @@ def setupUserDB(hardReset = False):
     database.loadEmailTemplate("DATA Act Broker : Password Reset ",template,"reset_password")
 
     #Admin Email
-    template = "Hello  [USER],</br></br>The following user [USER2] has requested and account. Please login to reject or approve the user. </br></br>Thank you,</br></br>DATA Act Broker Admin Team"
-    database.loadEmailTemplate("DATA Act Broker : Account Pending Approval ",template,"register_notify")
+    template = "Hello  [USER],</br></br>The following user [USER2] has requested an account. Please login to reject or approve the user. </br></br>Thank you,</br></br>DATA Act Broker Admin Team"
+    database.loadEmailTemplate("DATA Act Broker : Account Pending Approval ",template,"account_creation")
 
 if __name__ == '__main__':
     setupUserDB(hardReset = True)
