@@ -103,7 +103,7 @@ class AccountHandler:
     def register(self,system_email):
         """ Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', and 'title' """
         requestFields = RequestDictionary(self.request)
-        if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("agency") and requestFields.exists("title"))):
+        if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("agency") and requestFields.exists("title") and requestFields.exists("password"))):
             # Missing a required field, return 400
             exc = ResponseException("Request body must include email, name, agency, and title", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status,{})
@@ -111,6 +111,7 @@ class AccountHandler:
         user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
         # Add user info to database
         self.interfaces.userDb.addUserInfo(user,requestFields.getValue("name"),requestFields.getValue("agency"),requestFields.getValue("title"))
+        self.interfaces.userDb.setPassword(user,requestFields.getValue("password"),self.bcrypt)
         # Send email to approver
         for user in self.interfaces.userDb.getUsersByType("website_admin") :
             emailTemplate = {'[USER]': user.name, '[USER2]':requestFields.getValue("email")}

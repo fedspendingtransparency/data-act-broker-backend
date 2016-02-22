@@ -7,6 +7,7 @@ from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.clearJobs import clearJobs
 from dataactcore.models.jobModels import Submission, JobStatus
+from dataactcore.models.userModel import AccountType
 from dataactcore.utils.statusCode import StatusCode
 
 class UserTests(BaseTest):
@@ -21,7 +22,7 @@ class UserTests(BaseTest):
         self.utils.login() # Log the user in for each test
 
     def test_registration(self):
-        input = '{"email":"user@agency.gov","name":"user","agency":"agency","title":"title"}'
+        input = '{"email":"user@agency.gov","name":"user","agency":"agency","title":"title","password":"userPass"}'
         response = self.utils.postRequest("/v1/register/",input)
         self.utils.checkResponse(response,StatusCode.OK,"Registration successful")
 
@@ -31,7 +32,7 @@ class UserTests(BaseTest):
         self.utils.checkResponse(response,StatusCode.CLIENT_ERROR,"Request body must include email, name, agency, and title")
 
     def test_registration_bad_email(self):
-        input = '{"email":"fake@notreal.faux","name":"user","agency":"agency","title":"title"}'
+        input = '{"email":"fake@notreal.faux","name":"user","agency":"agency","title":"title","password":"userPass"}'
         response = self.utils.postRequest("/v1/register/",input)
         self.utils.checkResponse(response,StatusCode.CLIENT_ERROR,"No users with that email")
 
@@ -63,13 +64,13 @@ class UserTests(BaseTest):
         self.utils.checkResponse(response,StatusCode.CLIENT_ERROR,"Not a valid user status")
 
     def test_get_users_by_type(self):
-        admins = self.interfaces.userDb.getUsersByType("website_admin")
+        admins = self.interfaces.userDb.getUsersByType("agency_user")
 
         emails = []
         for admin in admins:
             emails.append(admin.email)
-        assert(len(admins) == 3), "There should be three admins"
-        for email in ["realEmail@agency.gov", "approved@agency.gov", "nefarious@agency.gov"]:
+        assert(len(admins) == 6), "There should be six agency users"
+        for email in ["realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", "approved@agency.gov", "nefarious@agency.gov"]:
             assert(email in emails)
 
     def test_list_submissions(self):
@@ -115,7 +116,7 @@ class UserTests(BaseTest):
         """ Clear user and jobs database and add a constant sample set """
         userEmails = ["user@agency.gov", "realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", "approved@agency.gov", "nefarious@agency.gov"]
         userStatus = ["awaiting_confirmation","email_confirmed","awaiting_approval","awaiting_approval","awaiting_approval","approved","denied"]
-        userPermissions = [0,2,1,1,1,3,3]
+        userPermissions = [0,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.WEBSITE_ADMIN+AccountType.AGENCY_USER,AccountType.AGENCY_USER]
         # Clear users
         setupUserDB(True)
         clearJobs()
@@ -131,6 +132,7 @@ class UserTests(BaseTest):
         # Add submissions to one of the users
         user = userDb.getUserByEmail("approved@agency.gov")
         user.username = "approvedUser"
+        user.name = "Mr. Manager"
         userDb.session.commit()
         isFirstSub = True
         firstSub = None
