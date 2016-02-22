@@ -44,7 +44,7 @@ class UserStatus(Base):
                 UserStatus.STATUS_DICT[status.name] = status.user_status_id
             UserStatus.session.close()
         if(not statusName in UserStatus.STATUS_DICT):
-            raise ValueError("Not a valid User status: " + str(statusName) + ", not found in dict: " + str(UserStatus.STATUS_DICT))
+            raise ValueError("Not a valid user status") # : " + str(statusName) + ", not found in dict: " + str(UserStatus.STATUS_DICT))
         return UserStatus.STATUS_DICT[statusName]
 
 class EmailTemplateType(Base):
