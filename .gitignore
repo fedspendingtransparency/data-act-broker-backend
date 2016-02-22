@@ -13,6 +13,7 @@ dataactbroker/models/*.pyc
 dataactbroker/handlers/utils/*.pyc
 dataactbroker/venv
 dataactbroker/errorLog
+dataactbroker/responseErrorLog
 tests/*.pyc
 tests/jobId.json
 tests/submissionId

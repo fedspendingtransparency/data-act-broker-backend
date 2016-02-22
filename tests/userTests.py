@@ -1,11 +1,8 @@
 import unittest
 from baseTest import BaseTest
 from dataactbroker.handlers.userHandler import UserHandler
-<<<<<<< HEAD
 from dataactbroker.handlers.jobHandler import JobHandler
-=======
 from dataactbroker.handlers.aws.sesEmail import sesEmail
->>>>>>> eeda2b535d94ea1478ec95fdd9de06ae0673b3df
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.clearJobs import clearJobs
 from dataactcore.models.jobModels import Submission
