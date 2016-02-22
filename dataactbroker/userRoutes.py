@@ -8,7 +8,7 @@ from dataactbroker.handlers.accountHandler import AccountHandler
 from dataactbroker.permissions import permissions_check
 
 # Add the file submission route
-def add_user_routes(app,system_email):
+def add_user_routes(app,system_email,bcrypt):
     """ Create routes related to file submission for flask app
 
     """
@@ -21,13 +21,13 @@ def add_user_routes(app,system_email):
         """ Expects request to have keys 'email', 'name', 'agency', and 'title' """
         interfaces = InterfaceHolder()
         try:
-            accountManager = AccountHandler(request,interfaces)
+            accountManager = AccountHandler(request,interfaces,bcrypt)
             return accountManager.register()
         except ResponseException as e:
-            return JsonResponse.error(e,e.status,{})
+            return JsonResponse.error(e,e.status)
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-            return JsonResponse.error(exc,exc.status,{})
+            return JsonResponse.error(exc,exc.status)
         finally:
             interfaces.close()
 
@@ -37,13 +37,13 @@ def add_user_routes(app,system_email):
         """ Expects request to have keys 'user_email' and 'new_status' """
         interfaces = InterfaceHolder()
         try:
-            accountManager = AccountHandler(request,interfaces)
+            accountManager = AccountHandler(request,interfaces,bcrypt)
             return accountManager.changeStatus()
         except ResponseException as e:
-            return JsonResponse.error(e,e.status,{})
+            return JsonResponse.error(e,e.status)
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-            return JsonResponse.error(exc,exc.status,{})
+            return JsonResponse.error(exc,exc.status)
         finally:
             interfaces.close()
 
@@ -52,13 +52,13 @@ def add_user_routes(app,system_email):
         """ Expects request to have email  """
         interfaces = InterfaceHolder()
         try:
-            accountManager = AccountHandler(request,interfaces)
+            accountManager = AccountHandler(request,interfaces,bcrypt)
             return accountManager.createEmailConfirmation(SYSTEM_EMAIL)
         except ResponseException as e:
-            return JsonResponse.error(e,e.status,{})
+            return JsonResponse.error(e,e.status)
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-            return JsonResponse.error(exc,exc.status,{})
+            return JsonResponse.error(exc,exc.status)
         finally:
             interfaces.close()
 
@@ -67,13 +67,13 @@ def add_user_routes(app,system_email):
         """ Expects request to have email  """
         interfaces = InterfaceHolder()
         try:
-            accountManager = AccountHandler(request,interfaces)
+            accountManager = AccountHandler(request,interfaces,bcrypt)
             return accountManager.checkEmailConfirmation(session)
         except ResponseException as e:
-            return JsonResponse.error(e,e.status,{})
+            return JsonResponse.error(e,e.status)
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-            return JsonResponse.error(exc,exc.status,{})
+            return JsonResponse.error(exc,exc.status)
         finally:
             interfaces.close()
 
@@ -84,13 +84,13 @@ def add_user_routes(app,system_email):
         """ Expects request to have key 'status', will list all users with that status """
         interfaces = InterfaceHolder()
         try:
-            accountManager = AccountHandler(request,interfaces)
+            accountManager = AccountHandler(request,interfaces,bcrypt)
             return accountManager.listUsersWithStatus()
         except ResponseException as e:
-            return JsonResponse.error(e,e.status,{})
+            return JsonResponse.error(e,e.status)
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-            return JsonResponse.error(exc,exc.status,{})
+            return JsonResponse.error(exc,exc.status)
         finally:
             interfaces.close()
 
@@ -100,12 +100,28 @@ def add_user_routes(app,system_email):
         """ List submission IDs associated with the current user """
         interfaces = InterfaceHolder()
         try:
-            accountManager = AccountHandler(request,interfaces)
+            accountManager = AccountHandler(request,interfaces,bcrypt)
             return accountManager.listSubmissionsByCurrentUser()
         except ResponseException as e:
-            return JsonResponse.error(e,e.status,{})
+            return JsonResponse.error(e,e.status)
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-            return JsonResponse.error(exc,exc.status,{})
+            return JsonResponse.error(exc,exc.status)
+        finally:
+            interfaces.close()
+
+    @app.route("/v1/set_password/", methods=["POST"])
+    @permissions_check
+    def set_password():
+        """ Set a new password for specified user """
+        interfaces = InterfaceHolder()
+        try:
+            accountManager = AccountHandler(request,interfaces,bcrypt)
+            return accountManager.setNewPassword()
+        except ResponseException as e:
+            return JsonResponse.error(e,e.status)
+        except Exception as e:
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
+            return JsonResponse.error(exc,exc.status)
         finally:
             interfaces.close()

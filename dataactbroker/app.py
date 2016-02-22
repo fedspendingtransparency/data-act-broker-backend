@@ -1,6 +1,7 @@
 import os
 import inspect
 from flask.ext.cors import CORS
+from flask.ext.bcrypt import Bcrypt
 from flask import Flask
 import json
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -35,7 +36,8 @@ def runApp():
         cors = CORS(app,supports_credentials=True,origins=config["origins"])
     #Enable AWS Sessions
     app.session_interface = DynamoInterface()
-
+    # Set up bcrypt
+    bcrypt = Bcrypt(app)
     # Root will point to index.html
     @app.route("/", methods=["GET"])
     def root():
@@ -43,9 +45,9 @@ def runApp():
 
 
     # Add routes for modules here
-    add_login_routes(app)
+    add_login_routes(app,bcrypt)
     add_file_routes(app,config["create_credentials"])
-    add_user_routes(app,config["system_email"])
+    add_user_routes(app,config["system_email"],bcrypt)
     SessionTable.localPort  = int( config["dynamo_port"])
     SessionTable.setup(app, runLocal)
     app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port= int(config["port"]))

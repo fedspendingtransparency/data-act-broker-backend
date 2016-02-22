@@ -1,14 +1,17 @@
 import unittest
+import json
 from baseTest import BaseTest
 from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.jobHandler import JobHandler
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.clearJobs import clearJobs
-from dataactcore.models.jobModels import Submission
+from dataactcore.models.jobModels import Submission, JobStatus
+from dataactcore.utils.statusCode import StatusCode
 
 class UserTests(BaseTest):
     """ Test user registration and user specific functions """
+    uploadId = None # set in setup function, used for testing wrong user on finalize
 
     def __init__(self,methodName,interfaces):
         super(UserTests,self).__init__(methodName=methodName)
@@ -20,44 +23,44 @@ class UserTests(BaseTest):
     def test_registration(self):
         input = '{"email":"user@agency.gov","name":"user","agency":"agency","title":"title"}'
         response = self.utils.postRequest("/v1/register/",input)
-        self.utils.checkResponse(response,200,"Registration successful")
+        self.utils.checkResponse(response,StatusCode.OK,"Registration successful")
 
     def test_registration_empty(self):
         input = '{}'
         response = self.utils.postRequest("/v1/register/",input)
-        self.utils.checkResponse(response,400,"Request body must include email, name, agency, and title")
+        self.utils.checkResponse(response,StatusCode.CLIENT_ERROR,"Request body must include email, name, agency, and title")
 
     def test_registration_bad_email(self):
         input = '{"email":"fake@notreal.faux","name":"user","agency":"agency","title":"title"}'
         response = self.utils.postRequest("/v1/register/",input)
-        self.utils.checkResponse(response,400,"No users with that email")
+        self.utils.checkResponse(response,StatusCode.CLIENT_ERROR,"No users with that email")
 
     def test_status_change(self):
         input = '{"user_email":"user@agency.gov","new_status":"denied"}'
         response = self.utils.postRequest("/v1/change_status/",input)
-        self.utils.checkResponse(response,200,"Status change successful")
+        self.utils.checkResponse(response,StatusCode.OK,"Status change successful")
 
     def test_status_change_bad_email(self):
         input = '{"user_email":"fake@notreal.faux","new_status":"denied"}'
         response = self.utils.postRequest("/v1/change_status/",input)
-        self.utils.checkResponse(response,400,"No users with that email")
+        self.utils.checkResponse(response,StatusCode.CLIENT_ERROR,"No users with that email")
 
     def test_status_change_bad_status(self):
         input = '{"user_email":"user@agency.gov","new_status":"disoriented"}'
         response = self.utils.postRequest("/v1/change_status/",input)
-        self.utils.checkResponse(response,400,"Not a valid user status")
+        self.utils.checkResponse(response,StatusCode.CLIENT_ERROR,"Not a valid user status")
 
     def test_list_users(self):
         input = '{"status":"awaiting_approval"}'
         response = self.utils.postRequest("/v1/list_users_with_status/",input)
-        self.utils.checkResponse(response,200)
+        self.utils.checkResponse(response,StatusCode.OK)
         users = response.json()["users"]
         assert(len(users) == 3), "There should be three users awaiting approval"
 
     def test_list_users_bad_status(self):
         input = '{"status":"lost"}'
         response = self.utils.postRequest("/v1/list_users_with_status/",input)
-        self.utils.checkResponse(response,400,"Not a valid user status")
+        self.utils.checkResponse(response,StatusCode.CLIENT_ERROR,"Not a valid user status")
 
     def test_get_users_by_type(self):
         admins = self.interfaces.userDb.getUsersByType("website_admin")
@@ -74,21 +77,28 @@ class UserTests(BaseTest):
         self.utils.login("approvedUser","approvedPass")
         response = self.utils.postRequest("/v1/list_submissions/",{},method="GET")
         self.utils.logout()
-        self.utils.checkResponse(response,200)
+        self.utils.checkResponse(response,StatusCode.OK)
         responseDict = response.json()
         assert("submission_id_list" in responseDict)
         assert(len(responseDict["submission_id_list"]) == 5)
+
+    def test_finalize_wrong_user(self):
+        self.utils.logout()
+        self.utils.login("deniedUser","deniedPass")
+        response = self.utils.postRequest("/v1/finalize_job/",json.dumps({"upload_id":UserTests.uploadId}))
+        self.utils.logout()
+        self.utils.checkResponse(response,StatusCode.CLIENT_ERROR,"Cannot finalize a job created by a different user")
 
     def test_send_email(self):
         # Always use simulator to test emails!
         json = '{"email":"success@simulator.amazonses.com"}'
         response = self.utils.postRequest("/v1/confirm_email/",json)
-        self.utils.checkResponse(response,200)
+        self.utils.checkResponse(response,StatusCode.OK)
 
     def test_check_email_token_malformed(self):
         json = '{"token":"12345678"}'
         response = self.utils.postRequest("/v1/confirm_email_token/",json)
-        self.utils.checkResponse(response,200)
+        self.utils.checkResponse(response,StatusCode.OK)
         assert(response.json()["message"]== "Link already used")
 
     def test_check_email_token(self):
@@ -97,9 +107,8 @@ class UserTests(BaseTest):
         token = sesEmail.createToken("user@agency.gov",userDb,"validate_email")
         json = '{"token":"'+token+'"}'
         response = self.utils.postRequest("/v1/confirm_email_token/",json)
-        self.utils.checkResponse(response,200)
+        self.utils.checkResponse(response,StatusCode.OK)
         assert(response.json()["message"]== "success")
-
 
     @staticmethod
     def setupUserList():
@@ -123,8 +132,18 @@ class UserTests(BaseTest):
         user = userDb.getUserByEmail("approved@agency.gov")
         user.username = "approvedUser"
         userDb.session.commit()
+        isFirstSub = True
+        firstSub = None
         for i in range(0,5):
             sub = Submission(user_id = user.user_id)
+            if(isFirstSub):
+                firstSub = sub
+                isFirstSub = False
             jobDb.session.add(sub)
-        jobDb.session.commit()
 
+        jobDb.session.commit()
+        # Add job to first submission
+        job = JobStatus(submission_id = firstSub.submission_id,status_id = 3,type_id = 1, file_type_id = 1)
+        jobDb.session.add(job)
+        jobDb.session.commit()
+        UserTests.uploadId = job.job_id

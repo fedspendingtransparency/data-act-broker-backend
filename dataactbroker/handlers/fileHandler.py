@@ -7,6 +7,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactbroker.handlers.managerProxy import ManagerProxy
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
+from dataactbroker.handlers.aws.session import LoginSession
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -125,7 +126,11 @@ class FileHandler:
             inputDictionary = RequestDictionary(self.request)
             jobId = inputDictionary.getValue("upload_id")
             # Compare user ID with user who submitted job, if no match return 400
-
+            job = self.jobManager.getJobById(jobId)
+            submission = self.jobManager.getSubmissionForJob(job)
+            if(submission.user_id != LoginSession.getName(session)):
+                # This user cannot finalize this job
+                raise ResponseException("Cannot finalize a job created by a different user", StatusCode.CLIENT_ERROR)
             # Change job status to finished
             if(self.jobManager.checkUploadType(jobId)):
                 self.jobManager.changeToFinished(jobId)

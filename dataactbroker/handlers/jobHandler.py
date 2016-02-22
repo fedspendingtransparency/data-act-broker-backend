@@ -160,7 +160,7 @@ class JobHandler(JobTrackerInterface):
 
     def getSubmissionForJob(self,job):
         """ Takes a job about and returns the associated submission object """
-        result = self.session.query(Submission).filter(Submission.submission_id == job.submission_id)
+        result = self.session.query(Submission).filter(Submission.submission_id == job.submission_id).all()
         try:
             self.checkUnique(result,"This job has no attached submission", "Multiple submissions with conflicting ID")
             return result[0]
@@ -171,6 +171,6 @@ class JobHandler(JobTrackerInterface):
 
     def getJobById(self,jobId):
         """ Given a job ID, return the corresponding job """
-        result = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
+        result = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
         self.checkUnique(result,"No job with that ID","Multiple jobs with conflicting ID")
         return result[0]

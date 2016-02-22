@@ -21,7 +21,7 @@ class AccountHandler:
 
     # Instance fields include request, response, logFlag, and logFile
 
-    def __init__(self,request,interfaces):
+    def __init__(self,request,interfaces,bcrypt):
         """
 
         Creates the Login Handler
@@ -29,6 +29,7 @@ class AccountHandler:
         self.userManager = interfaces.userDb
         self.request = request
         self.interfaces = interfaces
+        self.bcrypt = bcrypt
 
     def login(self,session):
         """
@@ -200,3 +201,17 @@ class AccountHandler:
         for submission in submissions:
             submissionIdList.append(submission.submission_id)
         return JsonResponse.create(StatusCode.OK,{"submission_id_list": submissionIdList})
+
+    def setNewPassword(self):
+        """ Set a new password for a user, request should have keys "user_email" and "password" """
+        input = RequestDictionary(self.request)
+        if(not (input.exists("user_email") and input.exists("password"))):
+            # Don't have the keys we need in request
+            exc = ResponseException("Set password route requires keys user_email and password",StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc,exc.status)
+        # Get user from email
+        user = self.interfaces.userDb.getUserByEmail(input.getValue("user_email"))
+        # Set new password
+        self.interfaces.userDb.setPassword(user,input.getValue("password"))
+        # Return success message
+        return JsonResponse.create(StatusCode.OK,{"message":"Password successfully changed"})

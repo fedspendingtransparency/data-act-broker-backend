@@ -5,11 +5,11 @@ from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactbroker.handlers.accountHandler import AccountHandler
 from dataactbroker.handlers.aws.session import LoginSession
 
-def add_login_routes(app):
+def add_login_routes(app,bcrypt):
     @app.route("/v1/login/", methods = ["POST"])
     def login():
         interfaces = InterfaceHolder()
-        loginManager = AccountHandler(request, interfaces)
+        loginManager = AccountHandler(request, interfaces,bcrypt)
         response = loginManager.login(session)
         interfaces.close()
         return response
@@ -17,7 +17,7 @@ def add_login_routes(app):
     @app.route("/v1/logout/", methods = ["POST"])
     def logout():
         interfaces = InterfaceHolder()
-        loginManager = AccountHandler(request, interfaces)
+        loginManager = AccountHandler(request, interfaces,bcrypt)
         interfaces.close()
         return loginManager.logout(session)
 
