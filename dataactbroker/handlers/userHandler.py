@@ -1,5 +1,5 @@
 from sqlalchemy.orm.exc import MultipleResultsFound
-from dataactcore.models.userModel import User, UserStatus, EmailToken, PermissionType
+from dataactcore.models.userModel import User, UserStatus, EmailToken, EmailTemplateType , EmailTemplate, PermissionType
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -28,6 +28,10 @@ class UserHandler(UserInterface):
         self.session.add(newToken)
         self.session.commit()
 
+    def deleteToken(self,token):
+        oldToken = self.session.query(EmailToken).filter(EmailToken.token == token).one()
+        self.session.delete(oldToken)
+        self.session.commit()
 
     def getUserId(self, username):
         """ Find an id for specified username, creates a new entry for new usernames, raises an exception if multiple results found
@@ -59,6 +63,7 @@ class UserHandler(UserInterface):
         self.checkUnique(result,"No users with that email", "Multiple users with that email")
         return result[0]
 
+
     def addUserInfo(self,user,name,agency,title):
         """ Called after registration, add all info to user. """
         # Add info to user ORM
@@ -78,16 +83,15 @@ class UserHandler(UserInterface):
 
     def addUnconfirmedEmail(self,email):
         """ Create user with specified email """
-        # Check for presence of email in database, raise exception if present
-        result = self.session.query(User).filter(User.email == email).all()
-        if(len(result) > 0):
-            # Email already in use
-            raise ValueError("That email is already associated with a user")
         user = User(email = email)
         self.changeStatus(user,"awaiting_confirmation")
         self.setPermission(user,0) # Users start with no permissions
         self.session.add(user)
         self.session.commit()
+
+    def getEmailTemplate(self,emailType):
+        emailId = self.session.query(EmailTemplateType.email_template_type_id).filter(EmailTemplateType.name == emailType).one()
+        return self.session.query(EmailTemplate).filter(EmailTemplate.template_type_id == emailId).one()
 
     def getUsersByStatus(self,status):
         """ Return list of all users with specified status """

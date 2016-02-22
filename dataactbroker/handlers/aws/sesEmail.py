@@ -11,11 +11,20 @@ class sesEmail(object):
     #TODO Make JSON
     SIGNING_KEY  ="12345"
 
-    def __init__(self,toAddress,fromAddress,content,subject):
+    def __init__(self,toAddress,fromAddress,content="",subject="",templateType=None,parameters=None, database=None):
         self.toAddress = toAddress
         self.fromAddress = fromAddress
-        self.content = content
-        self.subject = subject
+        if(templateType is None):
+            self.content = content
+            self.subject = subject
+        else:
+            template = database.getEmailTemplate(templateType)
+            self.subject = template.subject
+            self.content = template.content
+            #Replace values in template with values needed for this email
+            for key in parameters :
+                self.content = self.content.replace(key,parameters[key])
+
 
     def send(self):
         connection = boto.connect_ses()
@@ -27,10 +36,9 @@ class sesEmail(object):
         """Creates a token to be used and saves it with the salt in the database"""
         salt = uuid.uuid1().int
         ts = URLSafeTimedSerializer(sesEmail.SIGNING_KEY)
-        token = ts.dumps(emailAddress, salt=str(salt))
+        token = ts.dumps(emailAddress, salt=str(salt)+token_type)
         #saves the token and salt pair
-        database.saveToken(str(salt)+token_type,str(token))
-        Wait(2)
+        database.saveToken(str(salt),str(token))
         return urllib.quote_plus(str(token))
 
     @staticmethod
@@ -41,17 +49,17 @@ class sesEmail(object):
             saltValue = database.getTokenSalt(token)
         except MultipleResultsFound, e:
             #duplicate tokens
-            return False ,""
+            return False ,"Invalid Link"
         except NoResultFound, e:
-            #Token allready used or never existed in the first place
-            return False,""
+            #Token already used or never existed in the first place
+            return False,"Link already used"
         ts = URLSafeTimedSerializer(sesEmail.SIGNING_KEY)
         try:
-            emailAddress = ts.loads(token, salt=saltValue[0]+token_type, max_age=1)
+            emailAddress = ts.loads(token, salt=saltValue[0]+token_type, max_age=86400)
             return True,emailAddress
         except BadSignature:
             #Token is malformed
-            return False,""
+            return False,"Invalid Link"
         except SignatureExpired:
             #Token is to old
-            return False,""
+            return False,"Link Expired"

@@ -30,7 +30,7 @@ class ConfigureBroker(object):
         return json.dumps(returnJson)
 
     @staticmethod
-    def createBrokerJSON(port,trace,debug,origins,enableLocalDyanmo,localDynamoPort):
+    def createBrokerJSON(port,trace,debug,origins,enableLocalDyanmo,localDynamoPort,emailAddress):
         """Creates the web_api_configuration.json File"""
         returnJson = {}
         returnJson ["port"] = port
@@ -40,6 +40,7 @@ class ConfigureBroker(object):
         returnJson ["origins"] = origins
         returnJson["local_dynamo"] = enableLocalDyanmo
         returnJson["create_credentials"] = True
+        returnJson["system_email"] = emailAddress
         return json.dumps(returnJson)
 
 
@@ -87,6 +88,8 @@ class ConfigureBroker(object):
 
             origins = input("Enter the allowed origin (website that will allow for CORS) :")
 
+            emailAddress = input("Enter System Email Address :")
+
             localPort  = 8000
             if(ConfigureBroker.questionPrompt("Would you like to use a local dynamo database ? (y/n) : ")):
                 enableLocalDynamo = True
@@ -100,7 +103,7 @@ class ConfigureBroker(object):
             if(ConfigureBroker.questionPrompt("Would you like to create the dyanmo database table ? (y/n) : ")):
                 SessionTable.createTable(enableLocalDynamo,localPort)
 
-            json = ConfigureBroker.createBrokerJSON(port,traceMode,debugMode,origins,enableLocalDynamo,localPort)
+            json = ConfigureBroker.createBrokerJSON(port,traceMode,debugMode,origins,enableLocalDynamo,localPort,emailAddress)
 
             ConfigureBroker.createFile("/web_api_configuration.json",json)
         if(ConfigureBroker.questionPrompt("Would you like to configure the connection to the DATA Act validator? (y/n) : ")):

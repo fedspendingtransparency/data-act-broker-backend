@@ -8,12 +8,14 @@ from dataactbroker.handlers.accountHandler import AccountHandler
 from dataactbroker.permissions import permissions_check
 
 # Add the file submission route
-def add_user_routes(app):
+def add_user_routes(app,system_email):
     """ Create routes related to file submission for flask app
 
     """
+    SYSTEM_EMAIL = system_email
 
     @app.route("/v1/register/", methods = ["POST"])
+    #check the session to make sure register is set to prevent any one from using route
     #@permissions_check
     def register_user():
         """ Expects request to have keys 'email', 'name', 'agency', and 'title' """
@@ -44,6 +46,37 @@ def add_user_routes(app):
             return JsonResponse.error(exc,exc.status,{})
         finally:
             interfaces.close()
+
+    @app.route("/v1/confirm_email/", methods = ["POST"])
+    def confirm():
+        """ Expects request to have email  """
+        interfaces = InterfaceHolder()
+        try:
+            accountManager = AccountHandler(request,interfaces)
+            return accountManager.createEmailConfirmation(SYSTEM_EMAIL)
+        except ResponseException as e:
+            return JsonResponse.error(e,e.status,{})
+        except Exception as e:
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
+            return JsonResponse.error(exc,exc.status,{})
+        finally:
+            interfaces.close()
+
+    @app.route("/v1/confirm_email_token/", methods = ["POST"])
+    def checkToken():
+        """ Expects request to have email  """
+        interfaces = InterfaceHolder()
+        try:
+            accountManager = AccountHandler(request,interfaces)
+            return accountManager.checkEmailConfirmation(session)
+        except ResponseException as e:
+            return JsonResponse.error(e,e.status,{})
+        except Exception as e:
+            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
+            return JsonResponse.error(exc,exc.status,{})
+        finally:
+            interfaces.close()
+
 
     @app.route("/v1/list_users_with_status/", methods = ["POST"])
     @permissions_check # TODO require admin

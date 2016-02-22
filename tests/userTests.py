@@ -1,7 +1,11 @@
 import unittest
 from baseTest import BaseTest
 from dataactbroker.handlers.userHandler import UserHandler
+<<<<<<< HEAD
 from dataactbroker.handlers.jobHandler import JobHandler
+=======
+from dataactbroker.handlers.aws.sesEmail import sesEmail
+>>>>>>> eeda2b535d94ea1478ec95fdd9de06ae0673b3df
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.clearJobs import clearJobs
 from dataactcore.models.jobModels import Submission
@@ -78,6 +82,28 @@ class UserTests(BaseTest):
         assert("submission_id_list" in responseDict)
         assert(len(responseDict["submission_id_list"]) == 5)
 
+    def test_send_email(self):
+        # Always use simulator to test emails!
+        json = '{"email":"success@simulator.amazonses.com"}'
+        response = self.utils.postRequest("/v1/confirm_email/",json)
+        self.utils.checkResponse(response,200)
+
+    def test_check_email_token_malformed(self):
+        json = '{"token":"12345678"}'
+        response = self.utils.postRequest("/v1/confirm_email_token/",json)
+        self.utils.checkResponse(response,200)
+        assert(response.json()["message"]== "Link already used")
+
+    def test_check_email_token(self):
+        userDb = UserHandler()
+        #make a token based on a user
+        token = sesEmail.createToken("user@agency.gov",userDb,"validate_email")
+        json = '{"token":"'+token+'"}'
+        response = self.utils.postRequest("/v1/confirm_email_token/",json)
+        self.utils.checkResponse(response,200)
+        assert(response.json()["message"]== "success")
+
+
     @staticmethod
     def setupUserList():
         """ Clear user and jobs database and add a constant sample set """
@@ -104,3 +130,4 @@ class UserTests(BaseTest):
             sub = Submission(user_id = user.user_id)
             jobDb.session.add(sub)
         jobDb.session.commit()
+

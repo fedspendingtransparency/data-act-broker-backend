@@ -54,6 +54,7 @@ class LoginSession():
 
         session.pop("login", None)
         session.pop("name", None)
+        session.pop("register", None)
 
     @staticmethod
     def login(session,username) :
@@ -69,7 +70,32 @@ class LoginSession():
         session["name"] =  username
         session["login"] = True
 
+    @staticmethod
+    def register(session):
+        """
+        arguments:
 
+        session -- (Session) the session object
+
+
+        Marks the session that it has a real email
+        address so it finish registering
+
+        """
+        session["register"] = True
+
+    @staticmethod
+    def isRegistering(session) :
+        """
+        arguments:
+
+        session -- (Session) the session object
+
+        returns (boolean) the status of the user session
+        """
+        if session.get('register') is not None :
+            return True
+        return False
 
 def toUnixTime(datetimeValue) :
     """
