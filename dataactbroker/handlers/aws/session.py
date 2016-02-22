@@ -7,7 +7,7 @@ from flask.sessions import SessionInterface, SessionMixin
 from werkzeug.datastructures import CallbackDict
 from boto.dynamodb2.layer1 import DynamoDBConnection
 from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
-
+from flask.ext.login import _create_identifier
 
 class LoginSession():
     """
@@ -55,6 +55,7 @@ class LoginSession():
         session.pop("login", None)
         session.pop("name", None)
         session.pop("register", None)
+        session.pop("reset", None)
 
     @staticmethod
     def login(session,username) :
@@ -69,6 +70,8 @@ class LoginSession():
         """
         session["name"] =  username
         session["login"] = True
+        session.pop("register", None)
+        session.pop("reset", None)
 
     @staticmethod
     def register(session):
@@ -84,6 +87,20 @@ class LoginSession():
         """
         session["register"] = True
 
+
+    @staticmethod
+    def resetPassword(session):
+        """
+        arguments:
+
+        session -- (Session) the session object
+
+        Marks the session that it has a real email
+        address so it finish reseting the password
+
+        """
+        session["reset"] = True
+
     @staticmethod
     def isRegistering(session) :
         """
@@ -96,6 +113,48 @@ class LoginSession():
         if session.get('register') is not None :
             return True
         return False
+
+    @staticmethod
+    def isResetingPassword(session) :
+        """
+        arguments:
+
+        session -- (Session) the session object
+
+        returns (boolean) the status of the user session
+        """
+        if session.get('reset') is not None :
+            return True
+        return False
+
+
+    @staticmethod
+    def resetID(session):
+        """
+        arguments:
+
+        session -- (Session) the session object
+
+        resets the _uid in cases that the session becomes invalid
+        """
+        session["_uid"] = _create_identifier()
+
+    @staticmethod
+    def isSessionSecure(session):
+        """
+        arguments:
+
+        session -- (Session) the session object
+
+        checks if the user is the one who created the session.
+
+        """
+        if( "_uid" in session):
+            if(not session["_uid"] ==  _create_identifier()):
+                return False
+            return True
+        else :
+            return False
 
 def toUnixTime(datetimeValue) :
     """
@@ -184,6 +243,8 @@ class DynamoInterface(SessionInterface):
             expiration = self.get_expiration_time(app, session)
         else:
             expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
+        if(not "_uid" in session):
+            session["_uid"] = _create_identifier()
         SessionTable.newSession(session.sid,session,expiration)
         DynamoInterface.CountLimit = DynamoInterface.CountLimit + 1
         if DynamoInterface.CountLimit % DynamoInterface.SESSSION_CLEAR_COUNT_LIMIT == 0 :

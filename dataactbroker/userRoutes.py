@@ -16,13 +16,13 @@ def add_user_routes(app,system_email,bcrypt):
 
     @app.route("/v1/register/", methods = ["POST"])
     #check the session to make sure register is set to prevent any one from using route
-    #@permissions_check
+    @permissions_check(permissionList=["check_email_token"])
     def register_user():
         """ Expects request to have keys 'email', 'name', 'agency', and 'title' """
         interfaces = InterfaceHolder()
         try:
             accountManager = AccountHandler(request,interfaces,bcrypt)
-            return accountManager.register(SYSTEM_EMAIL)
+            return accountManager.register(SYSTEM_EMAIL,session)
         except ResponseException as e:
             return JsonResponse.error(e,e.status)
         except Exception as e:

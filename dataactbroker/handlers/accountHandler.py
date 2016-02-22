@@ -100,7 +100,7 @@ class AccountHandler:
         LoginSession.logout(session)
         return JsonResponse.create(StatusCode.OK,{"message":"Logout successful"})
 
-    def register(self,system_email):
+    def register(self,system_email,session):
         """ Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', and 'title' """
         requestFields = RequestDictionary(self.request)
         if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("agency") and requestFields.exists("title") and requestFields.exists("password"))):
@@ -117,6 +117,7 @@ class AccountHandler:
             emailTemplate = {'[USER]': user.name, '[USER2]':requestFields.getValue("email")}
             newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=self.interfaces.userDb)
             newEmail.send()
+        LoginSession.logout(session)
         # Mark user as awaiting approval
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
