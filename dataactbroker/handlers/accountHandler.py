@@ -114,7 +114,7 @@ class AccountHandler:
         # Send email to approver
         for user in self.interfaces.userDb.getUsersByType("website_admin") :
             emailTemplate = {'[USER]': user.name, '[USER2]':requestFields.getValue("email")}
-            newEmail = sesEmail(user.email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)
+            newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=self.interfaces.userDb)
             newEmail.send()
         # Mark user as awaiting approval
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
