@@ -1,4 +1,5 @@
 from sqlalchemy.orm.exc import MultipleResultsFound
+from flask.ext.bcrypt import Bcrypt, generate_password_hash, check_password_hash
 from dataactcore.models.userModel import User, UserStatus, EmailToken, EmailTemplateType , EmailTemplate, PermissionType
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
@@ -16,6 +17,7 @@ class UserHandler(UserInterface):
     connection -- sqlalchemy connection to user database
     session - sqlalchemy session for ORM calls to user database
     """
+    HASH_ROUNDS = 12 # How many rounds to use for hashing passwords
 
     def getTokenSalt(self,token):
         """gets the salt from a given token so it can be decoded"""
@@ -98,6 +100,14 @@ class UserHandler(UserInterface):
         statusId = UserStatus.getStatus(status)
         return self.session.query(User).filter(User.user_status_id == statusId).all()
 
+    def getStatusOfUser(self,user):
+        """ Given a user object return their status as a string """
+        return user.status.name
+
+    def getStatusIdOfUser(self,user):
+        """ Given a user object return status ID """
+        return user.status_id
+
     def getUsersByType(self,permissionName):
         """ Get all users that have the specified permission """
         userList = []
@@ -150,3 +160,20 @@ class UserHandler(UserInterface):
         result = self.session.query(PermissionType).filter(PermissionType.name == permissionName).all()
         self.checkUnique(result,"Not a valid user type","Multiple permission entries for that type")
         return result[0].permission_type_id
+
+    def checkPassword(self,user,password,bcrypt):
+        """ Given a user object and a password, verify that the password is correct.  Returns True if valid password, False otherwise. """
+        # Check the password with bcrypt
+        return bcrypt.check_password_hash(user.password_hash,password)
+
+    def setPassword(self,user,password,bcrypt):
+        """ Given a user and a new password, changes the hashed value in the database to match new password.  Returns True if successful. """
+        # Generate hash with bcrypt and store it
+        user.password_hash = bcrypt.generate_password_hash(password,UserHandler.HASH_ROUNDS)
+        self.session.commit()
+        return True
+
+    def clearPassword(self,user):
+        """ Clear a user's password as part of reset process """
+        user.password_hash = None
+        self.session.commit()

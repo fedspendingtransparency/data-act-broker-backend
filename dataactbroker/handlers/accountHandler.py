@@ -21,7 +21,7 @@ class AccountHandler:
 
     # Instance fields include request, response, logFlag, and logFile
 
-    def __init__(self,request,interfaces):
+    def __init__(self,request,interfaces,bcrypt):
         """
 
         Creates the Login Handler
@@ -29,6 +29,7 @@ class AccountHandler:
         self.userManager = interfaces.userDb
         self.request = request
         self.interfaces = interfaces
+        self.bcrypt = bcrypt
 
     def login(self,session):
         """
@@ -163,28 +164,28 @@ class AccountHandler:
 
     def changeStatus(self):
         """ Changes status for specified user.  Associated request body should have keys 'user_email' and 'new_status' """
-        input = RequestDictionary(self.request)
-        if(not (input.exists("user_email") and input.exists("new_status"))):
+        requestDict = RequestDictionary(self.request)
+        if(not (requestDict.exists("user_email") and requestDict.exists("new_status"))):
             # Missing a required field, return 400
             exc = ResponseException("Request body must include user_email and new_status", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status,{})
 
         # Find user that matches specified email
-        user = self.interfaces.userDb.getUserByEmail(input.getValue("user_email"))
+        user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("user_email"))
 
         # Change user's status
-        self.interfaces.userDb.changeStatus(user,input.getValue("new_status"))
+        self.interfaces.userDb.changeStatus(user,requestDict.getValue("new_status"))
         return JsonResponse.create(StatusCode.OK,{"message":"Status change successful"})
 
     def listUsersWithStatus(self):
         """ List all users with the specified status.  Associated request body must have key 'status' """
-        input = RequestDictionary(self.request)
-        if(not (input.exists("status"))):
+        requestDict = RequestDictionary(self.request)
+        if(not (requestDict.exists("status"))):
             # Missing a required field, return 400
             exc = ResponseException("Request body must include status", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         try:
-            users = self.interfaces.userDb.getUsersByStatus(input.getValue("status"))
+            users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"))
         except ValueError as e:
             # Client provided a bad status
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
@@ -203,3 +204,17 @@ class AccountHandler:
         for submission in submissions:
             submissionIdList.append(submission.submission_id)
         return JsonResponse.create(StatusCode.OK,{"submission_id_list": submissionIdList})
+
+    def setNewPassword(self):
+        """ Set a new password for a user, request should have keys "user_email" and "password" """
+        requestDict = RequestDictionary(self.request)
+        if(not (requestDict.exists("user_email") and requestDict.exists("password"))):
+            # Don't have the keys we need in request
+            exc = ResponseException("Set password route requires keys user_email and password",StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc,exc.status)
+        # Get user from email
+        user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("user_email"))
+        # Set new password
+        self.interfaces.userDb.setPassword(user,requestDict.getValue("password"))
+        # Return success message
+        return JsonResponse.create(StatusCode.OK,{"message":"Password successfully changed"})
