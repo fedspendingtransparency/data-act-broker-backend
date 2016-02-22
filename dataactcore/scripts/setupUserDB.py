@@ -47,11 +47,11 @@ def setupUserDB(hardReset = False):
     database = UserInterface()
 
     #Confirm
-    template = "Hello  [USER],\n\tTo confirm your email address for the DATA Act Broker please click [URL]. The link will expire in 24 hours.\nThank you,\nDATA Act Broker Admin"
+    template = "Hello  [USER],</br></br>To confirm your email address for the DATA Act Broker please click [URL]. The link will expire in 24 hours.</br></br>Thank you,</br></br>DATA Act Broker Admin Team"
     database.loadEmailTemplate("DATA Act Broker : Account Email Confirmation ",template,"validate_email")
 
     #Approve
-    template = "Hello  [USER],\n\t You have been approved to use the DATA Act Broker which can be reached here [URL]. \nThank you,\nDATA Act Broker Admin"
+    template = "Hello  [USER],</br></br>You have been approved to use the DATA Act Broker which can be reached here [URL].</br></br>Thank you,\nDATA Act Broker Admin"
     database.loadEmailTemplate("DATA Act Broker : Account Approved ",template,"account_approved")
 
     #Reject
