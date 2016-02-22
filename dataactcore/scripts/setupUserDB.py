@@ -51,20 +51,20 @@ def setupUserDB(hardReset = False):
     database.loadEmailTemplate("DATA Act Broker : Account Email Confirmation ",template,"validate_email")
 
     #Approve
-    template = "Hello  [USER],</br></br>You have been approved to use the DATA Act Broker which can be reached here [URL].</br></br>Thank you,\nDATA Act Broker Admin"
+    template = "Hello  [USER],</br></br>You have been approved to use the DATA Act Broker which can be reached here [URL].</br></br>Thank you,</br></br>DATA Act Broker Admin Team"
     database.loadEmailTemplate("DATA Act Broker : Account Approved ",template,"account_approved")
 
     #Reject
-    template = "Hello  [USER],\n\t You have been disapproved to use the DATA Act Broker. The following reason was provided:[REASON] \nThank you,\nDATA Act Broker Admin"
+    template = "Hello  [USER],</br></br> You have been disapproved to use the DATA Act Broker. The following reason was provided:[REASON] </br></br>Thank you,</br></br>DATA Act Broker Admin"
     database.loadEmailTemplate("DATA Act Broker : Account Rejected ",template,"account_rejected")
 
     #Password Reset
-    template = "Hello  [USER],\n\t You have requested your password to be reset for your account. Please click the following link [URL] to start the processs.The link will expire in 24 hours \nThank you,\nDATA Act Broker Admin"
+    template = "Hello  [USER],</br></br> You have requested your password to be reset for your account. Please click the following link [URL] to start the processs.The link will expire in 24 hours </br></br>Thank you,</br></br>DATA Act Broker Admin"
     database.loadEmailTemplate("DATA Act Broker : Password Reset ",template,"reset_password")
 
     #Admin Email
-    template = "Hello  [USER],\n\t The following user [USER2] has requested and account. Please login to reject or approve the user.  \nThank you,\nDATA Act Broker System"
-    database.loadEmailTemplate("DATA Act Broker : Account Pending Approval ",template,"reset_password")
+    template = "Hello  [USER],</br></br>The following user [USER2] has requested and account. Please login to reject or approve the user. </br></br>Thank you,</br></br>DATA Act Broker Admin Team"
+    database.loadEmailTemplate("DATA Act Broker : Account Pending Approval ",template,"register_notify")
 
 if __name__ == '__main__':
     setupUserDB(hardReset = True)
