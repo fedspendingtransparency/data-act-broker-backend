@@ -84,6 +84,7 @@ class Submission(Base):
 
     submission_id = Column(Integer, primary_key=True)
     datetime_utc = Column(Text)
+    user_id = Column(Integer, nullable=False) # This refers to the users table in the User DB
     jobs = None
 
 class JobStatus(Base):

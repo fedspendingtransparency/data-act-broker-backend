@@ -30,7 +30,7 @@ def setupJobTrackerDB(connection = None, hardReset = False):
                 "CREATE TABLE resource_status (resource_status_id integer PRIMARY KEY, name text NOT NULL, description text NOT NULL)",
                 "CREATE TABLE resource (resource_id integer PRIMARY KEY DEFAULT nextval('resourceIdSerial'), IP text NOT NULL, status_id integer NOT NULL REFERENCES resource_status)",
                 "CREATE SEQUENCE submissionIdSerial START 1",
-                "CREATE TABLE submission (submission_id integer PRIMARY KEY DEFAULT nextval('submissionIdSerial'), datetime_utc text)",
+                "CREATE TABLE submission (submission_id integer PRIMARY KEY DEFAULT nextval('submissionIdSerial'), datetime_utc text, user_id integer NOT NULL)",
                 "CREATE SEQUENCE fileTypeSerial START 1",
                 "CREATE TABLE file_type (file_type_id integer PRIMARY KEY DEFAULT nextval('fileTypeSerial'), name text, description text)",
                 "CREATE SEQUENCE jobIdSerial START 1",

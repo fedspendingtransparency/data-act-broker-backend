@@ -40,8 +40,8 @@ def setupUserDB(hardReset = False):
                 "(4, 'account_rejected', ' Email to notify user of the unsuccessful account creation'),"
                 "(5, 'reset_password', ' Email to notify allow users to reset the password')"),
             ("INSERT INTO permission_type (permission_type_id, name, description) VALUES"
-                "(1, 'agency_user', 'This user is allowed to upload data to be validated'),"
-                "(2, 'website_admin', 'This user is allowed to manage user accounts')")
+                "(0, 'agency_user', 'This user is allowed to upload data to be validated'),"
+                "(1, 'website_admin', 'This user is allowed to manage user accounts')")
            ]
     runCommands(UserInterface.getCredDict(),sql,"user_manager")
     database = UserInterface()
