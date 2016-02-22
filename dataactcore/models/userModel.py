@@ -67,3 +67,7 @@ class EmailToken(Base):
     email_token_id = Column(Integer, primary_key=True)
     token = Column(Text)
     salt = Column(Text)
+
+class AccountType:
+    AGENCY_USER = 1
+    WEBSITE_ADMIN = 2
