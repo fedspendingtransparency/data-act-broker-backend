@@ -183,6 +183,7 @@ Example input:
     "username": "user",
     "password": "pass"
 }
+```
 
 Example output:
 
@@ -190,6 +191,7 @@ Example output:
 {
     "message": "Login successful"
 }
+```
 
 #### POST "/v1/logout/"
 Logs the current user out, only the login route will be accessible until the next login.  If not logged in, just stays logged out. Returns 200 in boths cases.
@@ -204,6 +206,7 @@ Example output:
 {
     "message": "Logout successful"
 }
+```
 
 #### GET "/v1/session/"
 Checks that the session is still valid. Returns 200, and JSON with key "status" containing True if the session exists, and False if it doesn't.
@@ -218,6 +221,7 @@ Example output:
 {
     "status": "True"
 }
+```
 
 #### POST "/v1/register/"
 Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.
@@ -315,7 +319,7 @@ Example output:
 
 ```json
 {
-  "users":[{"name":"user","email":"agency@user.gov","title":"User Title","agency":"Data Act Agency"},{"name":"user2",...},...]
+  "users":[{"name":"user","email":"agency@user.gov","title":"User Title","agency":"Data Act Agency"},{"name":"user2","email":"","title":"","agency":""}]
 }
 ```
 
@@ -330,7 +334,7 @@ Example output:
 
 ```json
 {
-  "submission_id_list":[1,2,3,...]
+  "submission_id_list":[1,2,3]
 }
 ```
 
