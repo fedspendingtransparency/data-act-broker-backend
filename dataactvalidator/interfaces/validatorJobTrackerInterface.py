@@ -4,7 +4,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
-class JobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
+class ValidatorJobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
     """ Manages all interaction with the job tracker database """
 
     def runChecks(self,jobId):

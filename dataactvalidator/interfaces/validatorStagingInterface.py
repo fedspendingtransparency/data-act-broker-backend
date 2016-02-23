@@ -1,7 +1,7 @@
 from sqlalchemy.exc import ResourceClosedError
 from dataactcore.models.stagingInterface import StagingInterface as BaseStagingInterface
 
-class StagingInterface(BaseStagingInterface):
+class ValidatorStagingInterface(BaseStagingInterface):
     """ Manages all interaction with the staging database """
 
     #@staticmethod
@@ -14,19 +14,8 @@ class StagingInterface(BaseStagingInterface):
         Returns:
             True if successful
         """
-        try:
-            self.runStatement("DROP TABLE "+table)
-        except Exception as e:
-            # Table was not found
-            pass
-
-        try:
-            self.session.close()
-        except ResourceClosedError:
-            # Connection already closed
-            pass
-        return True
-
+        self.runStatement("".join(["DROP TABLE ",table]))
+        self.session.commit()
 
     def tableExists(self,table):
         """ True if table exists, false otherwise """
@@ -35,7 +24,7 @@ class StagingInterface(BaseStagingInterface):
     def countRows(self,table):
         """ Returns number of rows in the specified table """
         if(self.tableExists(table)):
-            response =  (self.runStatement("SELECT COUNT(*) FROM "+table)).fetchone()[0]
+            response =  (self.runStatement("".join(["SELECT COUNT(*) FROM ",table]))).fetchone()[0]
             # Try to prevent blocking
             self.session.close()
             return response

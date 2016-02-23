@@ -1,17 +1,17 @@
-from dataactvalidator.interfaces.errorInterface import ErrorInterface
-from dataactvalidator.interfaces.jobTrackerInterface import JobTrackerInterface
-from dataactvalidator.interfaces.stagingInterface import StagingInterface
-from dataactvalidator.interfaces.validationInterface import ValidationInterface
+from dataactvalidator.interfaces.validatorErrorInterface import ValidatorErrorInterface
+from dataactvalidator.interfaces.validatorJobTrackerInterface import ValidatorJobTrackerInterface
+from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
+from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 
 class InterfaceHolder:
     """ This class holds an interface to each database, to allow reuse of connections throughout one thread """
 
     def __init__(self):
         """ Create the interfaces """
-        self.jobDb = JobTrackerInterface()
-        self.errorDb = ErrorInterface()
-        self.stagingDb = StagingInterface()
-        self.validationDb = ValidationInterface()
+        self.jobDb = ValidatorJobTrackerInterface()
+        self.errorDb = ValidatorErrorInterface()
+        self.stagingDb = ValidatorStagingInterface()
+        self.validationDb = ValidatorValidationInterface()
 
     def close(self):
         """ Close all open connections """

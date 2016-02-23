@@ -25,7 +25,7 @@ class StagingTable(object):
         tableName if created, exception otherwise
         """
         if(tableName == None):
-            tableName = "job"+str(jobId)
+            tableName = "".join(["job",str(jobId)])
         self.name = tableName
 
         if(self.interface.tableExists(tableName)):
@@ -84,7 +84,7 @@ class StagingTable(object):
 
         if(not primaryAssigned):
             # If no primary key assigned, add one based on table name
-            classFieldDict[tableName + "id"] = Column(Integer, primary_key = True)
+            classFieldDict["".join([tableName,"id"])] = Column(Integer, primary_key = True)
 
 
         # Create ORM class based on dict
@@ -153,7 +153,7 @@ class StagingTable(object):
 
                 # For each field, add value to ORM object
                 for key in record:
-                    attr = key.replace(" ","_")
+                    attr = FieldCleaner.cleanString(key) #key.replace(" ","_")
                     setattr(recordOrm,attr,record[key])
 
                 self.interface.session.add(recordOrm)

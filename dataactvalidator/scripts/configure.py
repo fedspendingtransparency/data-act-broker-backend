@@ -82,7 +82,7 @@ class ConfigureValidator(object):
 
             json = ConfigureValidator.createJSON(port,traceMode,debugMode)
 
-            with open(ConfigureValidator.getDatacorePath()+"/validator_configuration.json", 'wb') as bucketFile:
+            with open("".join([ConfigureValidator.getDatacorePath(),"/validator_configuration.json"]), 'wb') as bucketFile:
                 bucketFile.write(json)
 
 if __name__ == '__main__':

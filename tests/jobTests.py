@@ -6,7 +6,7 @@ from dataactcore.models.jobModels import Status, Type
 from dataactcore.scripts.databaseSetup import runCommands
 from dataactcore.scripts.setupValidationDB import setupValidationDB
 from dataactcore.scripts.clearErrors import clearErrors
-from dataactvalidator.interfaces.stagingInterface import StagingInterface
+from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
 
 class JobTests(unittest.TestCase):
 
@@ -33,7 +33,7 @@ class JobTests(unittest.TestCase):
 
         if not self.TABLE_POPULATED:
             # Create staging database
-            runCommands(StagingInterface.getCredDict(), [], "staging")
+            runCommands(ValidatorStagingInterface.getCredDict(), [], "staging")
             self.stagingDb = interfaces.stagingDb
 
             setupValidationDB()
@@ -147,7 +147,14 @@ class JobTests(unittest.TestCase):
                 print("Dropping staging tables from " + str(firstJob) + " to " + str(lastJob))
                 # Remove existing tables from staging if they exist
                 for jobId in range(int(firstJob)+1, lastJob+1):
-                    self.stagingDb.dropTable("job"+str(jobId))
+                    try:
+                        self.stagingDb.dropTable("job"+str(jobId))
+                    except Exception as e:
+                        # Could not drop table
+                        print(str(e))
+                        # Close and replace session
+                        self.stagingDb.session.close()
+                        self.stagingDb.session = self.stagingDb.Session()
 
                 open(self.LAST_CLEARED_FILE,"w").write(str(lastJob))
             JobTests.TABLE_POPULATED = True
@@ -284,7 +291,15 @@ class JobTests(unittest.TestCase):
     def dropTables(self, table):
         if self.DROP_TABLES:
             stagingDb = self.interfaces.stagingDb
-            stagingDb.dropTable(table)
-            return True
+            try:
+                stagingDb.dropTable(table)
+                return True
+            except Exception as e:
+                # Could not drop table
+                print(str(e))
+                # Close and replace session
+                stagingDb.session.close()
+                stagingDb.session = stagingDb.Session()
+                return False
         else:
             return False

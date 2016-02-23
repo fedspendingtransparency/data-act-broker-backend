@@ -4,8 +4,7 @@ from sqlalchemy.exc import InvalidRequestError
 from dataactcore.models.jobModels import Status, Type
 from dataactcore.models.validationModels import TASLookup
 from dataactcore.scripts.databaseSetup import runCommands
-from dataactvalidator.interfaces.stagingInterface import StagingInterface
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.tasSetup import loadTAS
 from testUtils import TestUtils
@@ -31,7 +30,7 @@ class FileTypeTests(unittest.TestCase):
             lastJob = 100
 
             # Create staging database
-            runCommands(StagingInterface.getCredDict(), [], "staging")
+            runCommands(ValidatorStagingInterface.getCredDict(), [], "staging")
             self.stagingDb = interfaces.stagingDb
 
             # Define user
@@ -86,7 +85,14 @@ class FileTypeTests(unittest.TestCase):
 
             # Remove existing tables from staging if they exist
             for jobId in self.jobIdDict.values():
-                self.stagingDb.dropTable("job"+str(jobId))
+                try:
+                    self.stagingDb.dropTable("job"+str(jobId))
+                except Exception as e:
+                    # Failed to drop table
+                    print(str(e))
+                    # Close and replace session
+                    self.stagingDb.session.close()
+                    self.stagingDb.session = self.stagingDb.Session()
 
             FileTypeTests.TABLE_POPULATED = True
         else:

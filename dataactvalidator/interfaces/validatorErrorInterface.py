@@ -2,13 +2,13 @@ from dataactcore.models.errorModels import FileStatus, ErrorData, ErrorType, Sta
 from dataactcore.models import errorInterface
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
-class ErrorInterface(errorInterface.ErrorInterface):
+class ValidatorErrorInterface(errorInterface.ErrorInterface):
     """ Manages communication with the error database """
 
     def __init__(self):
         """ Create empty row error dict """
         self.rowErrors = {}
-        super(ErrorInterface,self).__init__()
+        super(ValidatorErrorInterface, self).__init__()
 
     def writeFileError(self, jobId, filename, errorType):
         """ Write a file-level error to the file status table
@@ -24,7 +24,7 @@ class ErrorInterface(errorInterface.ErrorInterface):
         try:
             int(jobId)
         except:
-            raise ValueError("Bad jobId: " + str(jobId))
+            raise ValueError("".join(["Bad jobId: ",str(jobId)]))
 
         fileError = FileStatus(job_id = jobId, filename = filename, status_id = Status.getStatus(ValidationError.getErrorTypeString(errorType)))
 
@@ -60,7 +60,7 @@ class ErrorInterface(errorInterface.ErrorInterface):
         Returns:
             True if successful
         """
-        key = str(jobId)+" "+fieldName+" "+str(errorType)
+        key = "".join([str(jobId),fieldName,str(errorType)])
         if(key in self.rowErrors):
             self.rowErrors[key]["numErrors"] += 1
         else:

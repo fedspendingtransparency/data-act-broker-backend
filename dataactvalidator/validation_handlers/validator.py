@@ -70,13 +70,13 @@ class Validator(object):
             for currentRule in ruleSubset :
                 if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name)):
                     recordFailed = True
-                    failedRules.append([fieldName, "Failed rule: " + str(currentRule.description), currentData])
+                    failedRules.append([fieldName,"".join(["Failed rule: ",str(currentRule.description)]), currentData])
         # Check all multi field rules for this file type
         multiFieldRules = interfaces.validationDb.getMultiFieldRulesByFile(fileType)
         for rule in multiFieldRules:
             if not Validator.evaluateMultiFieldRule(rule,record,interfaces):
                 recordFailed = True
-                failedRules.append(["MultiField", "Failed rule: " + str(rule.description), Validator.getMultiValues(rule,record)])
+                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule,record)])
 
 
         return (not recordFailed), failedRules
@@ -124,7 +124,7 @@ class Validator(object):
             return True
         if(datatype == "LONG"):
             return Validator.IS_INTERGER.match(data) is not None
-        raise ValueError("Data Type Error, Type: " + datatype + ", Value: " + data)
+        raise ValueError("".join(["Data Type Error, Type: ",datatype,", Value: ",data]))
 
     @staticmethod
     def getIntFromString(data) :
@@ -234,7 +234,7 @@ class Validator(object):
             if(value == None):
                 # For concatenating fields, represent None with an empty string
                 value = ""
-            output += field + ": " + value + ", "
+            output = "".join([output,field,": ",value,", "])
         return output[0:len(output)-2]
 
     @staticmethod
@@ -265,8 +265,8 @@ class Validator(object):
                     numZeros = length - len(data)
                     zeroString = ""
                     for j in range(0,numZeros):
-                        zeroString += "0"
-                    data = zeroString + data
+                        zeroString = "".join([zeroString,"0"])
+                    data = "".join([zeroString,data])
             query = query.filter(TASLookup.__dict__[tasFields[i]] == data)
 
         queryResult = query.all()

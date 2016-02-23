@@ -29,7 +29,7 @@ class CsvReader(object):
 
         self.s3File = s3Bucket.lookup(filename)
         if(self.s3File == None):
-            raise ValueError("Filename provided not found on S3: " + str(filename))
+            raise ValueError("".join(["Filename provided not found on S3: ",str(filename)]))
         self.unprocessed = ''
         self.extraLine = False
         self.lines = []
@@ -42,16 +42,17 @@ class CsvReader(object):
         # make sure we have not finished reading the file
 
         if(self.isFinished) :
-             raise ResponseException("CSV file must have a header",StatusCode.CLIENT_ERROR,ValueError,ValidationError.singleRow)
+            print("".join(["File was empty, unprocessed is: ",self.unprocessed,"\nCurrent line is: ",line,"\nRest of lines are: ",str(self.lines)]))
+            raise ResponseException("CSV file must have a header",StatusCode.CLIENT_ERROR,ValueError,ValidationError.singleRow)
 
         #create the header
         for row in csv.reader([line],dialect='excel'):
             for cell in row :
                 headerValue = FieldCleaner.cleanString(cell)
                 if( not headerValue in possibleFields) :
-                    raise ResponseException(("Header : "+ headerValue + " not in CSV schema"), StatusCode.CLIENT_ERROR, ValueError,ValidationError.badHeaderError)
+                    raise ResponseException(("".join(["Header : ",headerValue," not in CSV schema"])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.badHeaderError)
                 if(possibleFields[headerValue] == 1) :
-                    raise ResponseException(("Header : "+ headerValue + " is duplicated"), StatusCode.CLIENT_ERROR, ValueError,ValidationError.duplicateError)
+                    raise ResponseException(("".join(["Header : ",headerValue," is duplicated"])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.duplicateError)
                 self.headerDictionary[(current)] = headerValue
                 possibleFields[headerValue]  = 1
                 current += 1
@@ -59,7 +60,7 @@ class CsvReader(object):
         #Check that all required fields exists
         for schema in csvSchema :
             if(schema.required and  possibleFields[FieldCleaner.cleanString(schema.name)] == 0) :
-                raise ResponseException(("Header : "+ schema.name + " is required"), StatusCode.CLIENT_ERROR, ValueError,ValidationError.missingHeaderError)
+                raise ResponseException(("".join(["Header : ",schema.name," is required"])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.missingHeaderError)
 
     def getNextRecord(self):
         """
@@ -67,19 +68,17 @@ class CsvReader(object):
         Returns:
             dictionary representing this record
         """
-        current = 0
         returnDict = {}
         line = self._getLine()
 
         for row in csv.reader([line],dialect='excel'):
-            for cell in row :
+            for current, cell in enumerate(row):
                 if(current >= self.columnCount) :
                     raise ResponseException("Record contains too many fields",StatusCode.CLIENT_ERROR,ValueError,ValidationError.readError)
                 if(cell == ""):
                     # Use None instead of empty strings for sqlalchemy
                     cell = None
                 returnDict[self.headerDictionary[current]] = cell
-                current += 1
         return returnDict
 
     def _getLine(self):
@@ -95,7 +94,8 @@ class CsvReader(object):
         #for packet in self.s3File :
         while( self.packetCounter *  CsvReader.BUFFER_SIZE <=  self.s3File.size) :
             offsetCheck = self.packetCounter *  CsvReader.BUFFER_SIZE
-            header ={'Range' : 'bytes='+str(offsetCheck)+'-'+str(offsetCheck +CsvReader.BUFFER_SIZE - 1) }
+            header ={'Range' : "".join(['bytes=',str(offsetCheck),'-',str(offsetCheck +CsvReader.BUFFER_SIZE - 1)])}
+            print("".join(["Header for s3 read is: ",str(header)]))
             try:
                 packet = self.s3File.get_contents_as_string(headers=header).decode('utf-8')
             except :
@@ -132,8 +132,7 @@ class CsvReader(object):
         ecapeMode =  False
         current = ""
 
-        index = 0
-        for  char in packet :
+        for  index,char in enumerate(packet):
             if(not ecapeMode) :
                 if(char =='\r' or char =='\n' or char =='\r\n') :
                     if (len(current) >0 ) :
@@ -144,14 +143,13 @@ class CsvReader(object):
                             linesToReturn.append("")
                     current = ""
                 else :
-                  current = current + char
+                  current = "".join([current,char])
                   if(char == '"') :
                         ecapeMode = True
             else :
                 if(char == '"') :
                     ecapeMode = False
-                current = current + char
-            index+=1
+                current = "".join([current,char]) #current.join([char])
         if (len(current)>0) :
             linesToReturn.append(current)
         return linesToReturn

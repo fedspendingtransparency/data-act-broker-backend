@@ -3,7 +3,7 @@ from dataactcore.models import validationInterface
 from dataactcore.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
-class ValidationInterface(validationInterface.ValidationInterface) :
+class ValidatorValidationInterface(validationInterface.ValidationInterface) :
     """ Manages all interaction with the validation database """
 
 
@@ -88,14 +88,14 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         if field_type in types :
             newColumn.field_types_id =  types[field_type]
         else :
-            raise ValueError("Type " +field_type + " is not vaild for  " + str(fieldName) )
+            raise ValueError("".join(["Type ",field_type," is not vaild for  ",str(fieldName)]))
         #Check Required
         required = required.upper()
         if( required in ["TRUE","FALSE"]) :
             if( required == "TRUE") :
                 newColumn.required = True
         else :
-            raise ValueError("Required is not boolean for " + str(fieldName) )
+            raise ValueError("".join(["Required is not boolean for ",str(fieldName)]))
         # Save
         self.session.add(newColumn)
         self.session.commit()
@@ -134,6 +134,10 @@ class ValidationInterface(validationInterface.ValidationInterface) :
         fileId = self.getFileId(fileType)
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
+        # Get set of file columns for this file
+        #columns = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).all()
+        # Delete all rules for those columns
+        #self.session.query(Rule).filter(Rule.file_column_id.in_(columns)).delete()
         self.session.execute("DELETE FROM rule where file_column_id in (SELECT file_column_id FROM file_columns WHERE file_id = :param)",{"param":fileId})
         self.session.execute("DELETE FROM multi_field_rule WHERE file_id = :param",{"param":fileId})
         self.session.commit()
