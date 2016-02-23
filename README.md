@@ -308,6 +308,139 @@ Example output:
 }
 ```
 
+#### POST "/v1/register/"
+Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.
+
+Example input:
+
+```json
+{
+   "email":"user@agency.gov",
+   "name":"user",
+   "agency":"Data Act Agency",
+   "title":"User Title",
+   "password":"pass"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Registration successful"
+}
+```
+
+#### POST "/v1/change_status/"
+Changes a user's status, used to approve or deny users.  This route requires an admin user to be logged in.  A call to this route should have JSON or form-urlencoded with keys "user_email" and "new_status".  For typical usage, "new_status" should be either "approved" or "denied".
+
+Example input:
+
+```json
+{
+   "user_email":"user@agency.gov",
+   "new_status":"approved"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Status change successful"
+}
+```
+
+#### POST "/v1/confirm_email/"
+Create a new user and sends a confirmation email to their email address.  A call to this route should have JSON or form-urlencoded with key "email".
+
+Example input:
+
+```json
+{
+   "email":"user@agency.gov"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Email Sent"
+}
+```
+
+#### POST "/v1/confirm_email_token/"
+Checks the token sent by email.  If successful, updates the user to email_confirmed.  A call to this route should have JSON or form-urlencoded with key "token".
+
+Example input:
+
+```json
+{
+   "token":"longRandomString"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"success"
+}
+```
+
+#### POST "/v1/list_users_with_status/"
+List all users with specified status, typically used to review users that have applied for an account.  Requires an admin login.  A call to this route should have JSON or form-urlencoded with key "status".
+
+Example input:
+
+```json
+{
+   "status":"awaiting_approval"
+}
+```
+
+Example output:
+
+```json
+{
+  "users":[{"name":"user","email":"agency@user.gov","title":"User Title","agency":"Data Act Agency"},{"name":"user2",...},...]
+}
+```
+
+#### POST "/v1/list_submissions/"
+List all submissions by currently logged in user.
+
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+  "submission_id_list":[1,2,3,...]
+}
+```
+
+#### POST "/v1/set_password/"
+Change specified user's password to new value.  User must have confirmed the token they received in same session to use this route.  A call to this route should have JSON or form-urlencoded with keys "user_email" and "password".
+
+Example input:
+
+```json
+{
+   "token":"longRandomString"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Password successfully changed"
+}
+```
 
 #### Test Cases
 Before running test cases, start the Flask app by running `python app.py` in the `dataactbroker` folder. Alternatively, if using `pip install`, you can uses the server start command `sudo webbroker -s`. The current test suite for the validator may then be run by navigating to the `datatactbroker/tests folder` and running `python runTests.py`.
