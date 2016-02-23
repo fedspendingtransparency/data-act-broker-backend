@@ -18,10 +18,10 @@ class AccountHandler:
     """
     # Handles login process, compares username and password provided
     credentialFile = "credentials.json"
-
+    FRONT_END = ""
     # Instance fields include request, response, logFlag, and logFile
 
-    def __init__(self,request,interfaces = None, bcrypt = None):
+    def __init__(self,request, interfaces = None, bcrypt = None):
         """
 
         Creates the Login Handler
@@ -133,7 +133,7 @@ class AccountHandler:
                 return JsonResponse.error(exc,exc.status,{})
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"validate_email")
         #TODO set with JSON
-        link='<a href="https://www.data-act-broker.com/email_check?token='+emailToken+'">here</a>'
+        link='<a href="'+AccountHandler.FRONT_END+'/email_check?token='+emailToken+'">here</a>'
         emailTemplate = {'[USER]': email, '[URL]':link}
         newEmail = sesEmail(email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()

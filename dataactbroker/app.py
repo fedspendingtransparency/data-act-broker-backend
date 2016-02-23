@@ -5,6 +5,8 @@ from flask.ext.bcrypt import Bcrypt
 from flask import Flask
 import json
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactbroker.handlers.aws.sesEmail import sesEmail
+from dataactbroker.handlers.accountHandler import AccountHandler
 from dataactbroker.handlers.aws.session import DynamoInterface, SessionTable
 from dataactbroker.fileRoutes import add_file_routes
 from dataactbroker.loginRoutes import add_login_routes
@@ -20,6 +22,8 @@ def runApp():
 
     config = getAppConfiguration()
     # Set parameters
+    AccountHandler.FRONT_END = config["frontend_url"]
+    sesEmail.SIGNING_KEY =  config["security_key"]
     debugFlag = config["server_debug"]  # Should be false for prod
     runLocal = config["local_dynamo"]  # False for prod, when True this assumes that the Dynamo is on the same server
     JsonResponse.debugMode = config["rest_trace"]

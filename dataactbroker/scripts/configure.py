@@ -30,7 +30,7 @@ class ConfigureBroker(object):
         return json.dumps(returnJson)
 
     @staticmethod
-    def createBrokerJSON(port,trace,debug,origins,enableLocalDyanmo,localDynamoPort,emailAddress):
+    def createBrokerJSON(port,trace,debug,origins,enableLocalDyanmo,localDynamoPort,emailAddress,frontendURL,key):
         """Creates the web_api_configuration.json File"""
         returnJson = {}
         returnJson ["port"] = port
@@ -41,6 +41,8 @@ class ConfigureBroker(object):
         returnJson["local_dynamo"] = enableLocalDyanmo
         returnJson["create_credentials"] = True
         returnJson["system_email"] = emailAddress
+        returnJson["frontend_url"] = frontendURL
+        returnJson["security_key"] = key
         return json.dumps(returnJson)
 
 
@@ -100,10 +102,14 @@ class ConfigureBroker(object):
                     print ("Invalid Port")
                     return
 
+            frontend = input("Enter the URL for the React application: ")
+
+            key = input("Enter application security Key: ")
+
             if(ConfigureBroker.questionPrompt("Would you like to create the dyanmo database table ? (y/n) : ")):
                 SessionTable.createTable(enableLocalDynamo,localPort)
 
-            json = ConfigureBroker.createBrokerJSON(port,traceMode,debugMode,origins,enableLocalDynamo,localPort,emailAddress)
+            json = ConfigureBroker.createBrokerJSON(port,traceMode,debugMode,origins,enableLocalDynamo,localPort,emailAddress,frontend,key)
 
             ConfigureBroker.createFile("/web_api_configuration.json",json)
         if(ConfigureBroker.questionPrompt("Would you like to configure the connection to the DATA Act validator? (y/n) : ")):

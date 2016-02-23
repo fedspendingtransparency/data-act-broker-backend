@@ -8,7 +8,6 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from dataactbroker.handlers.userHandler import UserHandler
 class sesEmail(object):
 
-    #TODO Make JSON
     SIGNING_KEY  ="12345"
 
     def __init__(self,toAddress,fromAddress,content="",subject="",templateType=None,parameters=None, database=None):
