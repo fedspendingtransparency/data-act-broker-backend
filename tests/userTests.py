@@ -136,7 +136,7 @@ class UserTests(BaseTest):
     def setupUserList():
         """ Clear user and jobs database and add a constant sample set """
         # Get admin email to send test to
-        testConfig = open("testConfig.json","r").read()
+        testConfig = open("test.json","r").read()
         configDict = json.loads(testConfig)
 
         userEmails = ["user@agency.gov", "realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", configDict["admin_email"],"approved@agency.gov", "nefarious@agency.gov"]

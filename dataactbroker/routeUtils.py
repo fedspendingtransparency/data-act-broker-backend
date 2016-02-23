@@ -16,7 +16,9 @@ class RouteUtils:
         interfaces = InterfaceHolder()
         try:
             accountManager.addInterfaces(interfaces)
-            if(getSystemEmail):
+            if(getSystemEmail and getSession):
+                return accountFunction(RouteUtils.SYSTEM_EMAIL,session)
+            elif(getSystemEmail):
                 return accountFunction(RouteUtils.SYSTEM_EMAIL)
             elif(getSession):
                 return accountFunction(session)

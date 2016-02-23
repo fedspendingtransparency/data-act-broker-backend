@@ -17,7 +17,8 @@ def add_user_routes(app,system_email,bcrypt):
     def register_user():
         """ Expects request to have keys 'email', 'name', 'agency', and 'title' """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.register, True)
+        return RouteUtils.run_instance_function(accountManager,accountManager.register, getSystemEmail = True, getSession = True)
+
 
     @app.route("/v1/change_status/", methods = ["POST"])
     @permissions_check # TODO require admin

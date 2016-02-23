@@ -56,27 +56,13 @@ class AccountHandler:
 
             password = safeDictionary.getValue('password')
 
-            # For now import credentials list from a JSON file
-            path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-            lastBackSlash = path.rfind("\\",0,-1)
-            lastForwardSlash = path.rfind("/",0,-1)
-            lastSlash = max([lastBackSlash,lastForwardSlash])
-            credFile = path[0:lastSlash] + "/" + self.credentialFile
-            credJson = open(credFile,"r").read()
-
-
-            credDict = json.loads(credJson)
-
-
-            # Check for valid username and password
-            if(not(username in credDict)):
-                raise ValueError("Not a recognized user")
-            elif(credDict[username] != password):
-                raise ValueError("Incorrect password")
-            else:
+            user  = self.interfaces.userDb.getUserByEmail(username)
+            if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
                 # We have a valid login
                 LoginSession.login(session,self.userManager.getUserId(username))
                 return JsonResponse.create(StatusCode.OK,{"message":"Login successful"})
+            else :
+                raise ValueError("user name and or password invalid")
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
@@ -106,8 +92,9 @@ class AccountHandler:
         LoginSession.logout(session)
         return JsonResponse.create(StatusCode.OK,{"message":"Logout successful"})
 
-    def register(self,system_email):
-        """ Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', 'title', and 'password' """
+
+    def register(self,system_email,session):
+        """ Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', and 'title' """
         requestFields = RequestDictionary(self.request)
         if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("agency") and requestFields.exists("title") and requestFields.exists("password"))):
             # Missing a required field, return 400
@@ -121,8 +108,9 @@ class AccountHandler:
         # Send email to approver
         for user in self.interfaces.userDb.getUsersByType("website_admin") :
             emailTemplate = {'[USER]': user.name, '[USER2]':requestFields.getValue("email")}
-            newEmail = sesEmail(user.email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)
+            newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=self.interfaces.userDb)
             newEmail.send()
+        LoginSession.logout(session)
         # Mark user as awaiting approval
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
         print("Completed registration, returning 200")
