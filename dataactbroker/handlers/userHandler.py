@@ -1,5 +1,6 @@
 import uuid
 from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy.orm import joinedload
 from flask.ext.bcrypt import Bcrypt, generate_password_hash, check_password_hash
 from dataactcore.models.userModel import User, UserStatus, EmailToken, EmailTemplateType , EmailTemplate, PermissionType
 from dataactcore.models.userInterface import UserInterface
@@ -37,32 +38,37 @@ class UserHandler(UserInterface):
         self.session.commit()
 
 
+
     def getUserByUID(self,uid):
-        """ Return a User object that matches specified email """
+        """ Return a User object that matches specified uid """
         result = self.session.query(User).filter(User.user_id == uid).all()
         # Raise exception if we did not find exactly one user
         self.checkUnique(result,"No users with that email", "Multiple users with that email")
         return result[0]
 
-    def getUserId(self, username):
-        """ Find an id for specified username, creates a new entry for new usernames, raises an exception if multiple results found
+
+    def createUser(self, username):
+        """ Creates a new entry for new usernames, if a user is found with this email that has not yet registered, just returns that user's ID.  Raises an exception if multiple results found, or if user has already registered.
 
         Arguments:
         username - username to find an id for
         Returns:
-        user_id to be used by session handler
+        user object
         """
         # Check if user exists
-        queryResult = self.session.query(User.user_id).filter(User.username == username).all()
+        queryResult = self.session.query(User.user_id).options(joinedload("user_status")).filter(User.username == username).all()
         if(len(queryResult) == 1):
-            # If so, return ID
-            return queryResult[0].user_id
+            # If so, check their status
+            user = queryResult[0]
+            if(user.status.name == "awaiting_confirmation" or user.status.name == "email_confirmed"):
+                # User has not yet registered, may restart process
+                return user
         elif(len(queryResult) == 0):
             # If not, add new user
             newUser = User(username = username)
             self.session.add(newUser)
             self.session.commit()
-            return newUser.user_id
+            return newUser
         else:
             # Multiple entries for this user, server error
             raise MultipleResultsFound("Multiple entries for single username")
@@ -181,6 +187,10 @@ class UserHandler(UserInterface):
 
     def checkPassword(self,user,password,bcrypt):
         """ Given a user object and a password, verify that the password is correct.  Returns True if valid password, False otherwise. """
+        if(password == None or password.strip()==""):
+            # If no password or empty password, reject
+            return False
+
         # Check the password with bcrypt
         return bcrypt.check_password_hash(user.password_hash,password+user.salt)
 

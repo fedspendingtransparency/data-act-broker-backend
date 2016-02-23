@@ -116,7 +116,7 @@ class FileTests(BaseTest):
 
         # Test that correct user ID is on submission
         submissionId = responseDict["submission_id"]
-        userId = self.interfaces.userDb.getUserId("user3")
+        userId = self.interfaces.userDb.createUser("user3").user_id
         submission = self.interfaces.jobDb.getSubmissionById(submissionId)
         assert(submission.user_id == userId) # Check that submission got mapped to the correct user
 

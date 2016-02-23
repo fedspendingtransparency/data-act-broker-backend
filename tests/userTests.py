@@ -13,6 +13,7 @@ from flask.ext.bcrypt import Bcrypt
 class UserTests(BaseTest):
     """ Test user registration and user specific functions """
     uploadId = None # set in setup function, used for testing wrong user on finalize
+    CONFIG = None # Will hold a dictionary of configuration options
 
     def __init__(self,methodName,interfaces):
         super(UserTests,self).__init__(methodName=methodName)
@@ -20,9 +21,7 @@ class UserTests(BaseTest):
         self.passed = False # Set to true if unit test passes
 
     def setUp(self):
-        testConfig = open("test.json","r").read()
-        configDict = json.loads(testConfig)
-        self.utils.login(configDict["admin_email"],"pass") # Log the user in for each test
+        self.utils.login(UserTests.CONFIG["admin_email"],"pass") # Log the user in for each test
 
     def setUpToken(self,email):
         userDb = UserHandler()
@@ -160,6 +159,12 @@ class UserTests(BaseTest):
         assert(self.response.json()["message"]== "success")
         self.passed = True
 
+    def test_password_reset(self):
+        email = UserTests.CONFIG["admin_email"]
+        json = '{"email":"'+email+'"}'
+        self.response = self.utils.postRequest("/v1/reset_password/",json)
+        self.utils.checkResponse(self.response,StatusCode.OK)
+
     def tearDown(self):
         if(not self.passed):
             print("Status is " + str(self.response.status_code))
@@ -170,9 +175,9 @@ class UserTests(BaseTest):
         """ Clear user and jobs database and add a constant sample set """
         # Get admin email to send test to
         testConfig = open("test.json","r").read()
-        configDict = json.loads(testConfig)
+        UserTests.CONFIG = json.loads(testConfig)
 
-        userEmails = ["user@agency.gov", "realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", configDict["admin_email"],"approved@agency.gov", "nefarious@agency.gov"]
+        userEmails = ["user@agency.gov", "realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", UserTests.CONFIG["admin_email"],"approved@agency.gov", "nefarious@agency.gov"]
         userStatus = ["awaiting_confirmation","email_confirmed","awaiting_approval","awaiting_approval","awaiting_approval","approved","approved","denied"]
         userPermissions = [0,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.WEBSITE_ADMIN+AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER]
         # Clear users
@@ -193,7 +198,7 @@ class UserTests(BaseTest):
         user = userDb.getUserByEmail("approved@agency.gov")
         user.username = "approvedUser"
         userDb.setPassword(user,"approvedPass",Bcrypt())
-        admin = userDb.getUserByEmail(configDict["admin_email"])
+        admin = userDb.getUserByEmail(UserTests.CONFIG["admin_email"])
         userDb.setPassword(admin,"pass",Bcrypt())
         admin.name = "Mr. Manager"
         userDb.session.commit()

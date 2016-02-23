@@ -163,31 +163,221 @@ In general, status codes returned are as follows:
 ## GET "/"
 This route confirms that the broker is running
 
-Example input: None  
-Example output: "Broker is running"
+Example input:
 
-##Login Methods
+None
+
+Example output:
+
+"Broker is running"
+
+##User Routes
 
 #### POST "/v1/login/"
 This route checks the username and password against a credentials file.  Accepts input as json or form-urlencoded, with keys "username" and "password".  
 
-Example input: {"username": "user", "password": "pass"}  
-Example output: {"message": "Login successful"}
+Example input:
+
+```json
+{
+    "username": "user",
+    "password": "pass"
+}
+```
+
+Example output:
+
+```json
+{
+    "message": "Login successful"
+}
+```
 
 #### POST "/v1/logout/"
 Logs the current user out, only the login route will be accessible until the next login.  If not logged in, just stays logged out. Returns 200 in boths cases.
 
-Example input: None  
-Example output: {"message": "Logout successful"}
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+    "message": "Logout successful"
+}
+```
 
 #### GET "/v1/session/"
 Checks that the session is still valid. Returns 200, and JSON with key "status" containing True if the session exists, and False if it doesn't.
 
-Example input: None  
-Example output: {"status": "True"}
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+    "status": "True"
+}
+```
+
+#### POST "/v1/register/"
+Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.
+
+Example input:
+
+```json
+{
+   "email":"user@agency.gov",
+   "name":"user",
+   "agency":"Data Act Agency",
+   "title":"User Title",
+   "password":"pass"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Registration successful"
+}
+```
+
+#### POST "/v1/change_status/"
+Changes a user's status, used to approve or deny users.  This route requires an admin user to be logged in.  A call to this route should have JSON or form-urlencoded with keys "user_email" and "new_status".  For typical usage, "new_status" should be either "approved" or "denied".
+
+Example input:
+
+```json
+{
+   "user_email":"user@agency.gov",
+   "new_status":"approved"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Status change successful"
+}
+```
+
+#### POST "/v1/confirm_email/"
+Create a new user and sends a confirmation email to their email address.  A call to this route should have JSON or form-urlencoded with key "email".
+
+Example input:
+
+```json
+{
+   "email":"user@agency.gov"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Email Sent"
+}
+```
+
+#### POST "/v1/confirm_email_token/"
+Checks the token sent by email.  If successful, updates the user to email_confirmed.  A call to this route should have JSON or form-urlencoded with key "token".
+
+Example input:
+
+```json
+{
+   "token":"longRandomString"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"success"
+}
+```
+
+#### POST "/v1/list_users_with_status/"
+List all users with specified status, typically used to review users that have applied for an account.  Requires an admin login.  A call to this route should have JSON or form-urlencoded with key "status".
+
+Example input:
+
+```json
+{
+   "status":"awaiting_approval"
+}
+```
+
+Example output:
+
+```json
+{
+  "users":[{"name":"user","email":"agency@user.gov","title":"User Title","agency":"Data Act Agency"},{"name":"user2","email":"","title":"","agency":""}]
+}
+```
+
+#### GET "/v1/list_submissions/"
+List all submissions by currently logged in user.
+
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+  "submission_id_list":[1,2,3]
+}
+```
+
+#### POST "/v1/set_password/"
+Change specified user's password to new value.  User must have confirmed the token they received in same session to use this route.  A call to this route should have JSON or form-urlencoded with keys "user_email" and "password".
+
+Example input:
+
+```json
+{
+   "token":"longRandomString"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Password successfully changed"
+}
+```
+
+#### POST "/v1/reset_password/"
+Remove current password and send password with token for reset.  A call to this route should have JSON or form-urlencoded with key "email".
+
+Example input:
+
+```json
+{
+   "email":"user@agency.gov"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Password reset"
+}
+```
 
 
-##File Methods
+##File Routes
 
 #### POST "/v1/submit_files/"
 This route is used to retrieve S3 URLs to upload files. Data should be either JSON or form-urlencoded with keys: ["appropriations", "award\_financial", "award", "procurement"], each with a filename as a value.
@@ -307,6 +497,7 @@ Example output:
   },      
 }
 ```
+
 
 
 #### Test Cases
