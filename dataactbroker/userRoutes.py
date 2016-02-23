@@ -13,7 +13,7 @@ def add_user_routes(app,system_email,bcrypt):
 
     @app.route("/v1/register/", methods = ["POST"])
     #check the session to make sure register is set to prevent any one from using route
-    #@permissions_check # TODO require token
+    @permissions_check(permissionList=["check_email_token"])
     def register_user():
         """ Expects request to have keys 'email', 'name', 'agency', and 'title' """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
@@ -21,7 +21,7 @@ def add_user_routes(app,system_email,bcrypt):
 
 
     @app.route("/v1/change_status/", methods = ["POST"])
-    @permissions_check # TODO require admin
+    @permissions_check(permissionList=["website_admin"])
     def change_status():
         """ Expects request to have keys 'user_email' and 'new_status' """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
@@ -34,14 +34,13 @@ def add_user_routes(app,system_email,bcrypt):
         return RouteUtils.run_instance_function(accountManager, accountManager.createEmailConfirmation, True)
 
     @app.route("/v1/confirm_email_token/", methods = ["POST"])
-    @permissions_check #TODO require token
     def checkToken():
         """ Expects request to have email  """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.checkEmailConfirmation, getSession = True)
 
     @app.route("/v1/list_users_with_status/", methods = ["POST"])
-    @permissions_check # TODO require admin
+    @permissions_check(permissionList=["website_admin"])
     def list_users_with_status():
         """ Expects request to have key 'status', will list all users with that status """
         accountManager = AccountHandler(request,bcrypt = bcrypt)

@@ -8,7 +8,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from dataactbroker.handlers.userHandler import UserHandler
 class sesEmail(object):
 
-    SIGNING_KEY  ="12345"
+    SIGNING_KEY  ="1234"
 
     def __init__(self,toAddress,fromAddress,content="",subject="",templateType=None,parameters=None, database=None):
         self.toAddress = toAddress

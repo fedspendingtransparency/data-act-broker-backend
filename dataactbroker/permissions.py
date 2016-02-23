@@ -4,8 +4,10 @@ import flask
 from flask import session
 
 from dataactbroker.handlers.aws.session import LoginSession
+from dataactbroker.handlers.userHandler import UserHandler
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 
-def permissions_check(f=None, permissionList=[]):
+def permissions_check(f=None,permissionList=[]):
     def actual_decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -18,7 +20,16 @@ def permissions_check(f=None, permissionList=[]):
                 errorMessage  = "Session Error"
             else :
                 if LoginSession.isLogin(session):
-                    return f(*args, **kwargs)
+                    userDb = UserHandler()
+                    user = userDb.getUserByUID(session["name"])
+                    validUser = True
+                    for permission in permissionList :
+                        if(not userDb.hasPermisson(user,permission) ) :
+                            validUser = False
+                    InterfaceHolder.closeOne(userDb)
+                    if(validUser) :
+                        return f(*args, **kwargs)
+                    errorMessage  = "Wrong User Type"
                 elif "check_email_token" in permissionList:
                     if(LoginSession.isRegistering(session)) :
                         return f(*args, **kwargs)
@@ -31,6 +42,7 @@ def permissions_check(f=None, permissionList=[]):
                         errorMessage  = "unauthorized"
 
             returnResponse = flask.Response()
+            returnResponse.headers["Content-Type"] = "application/json"
             returnResponse.status_code = 401 # Error code
             responseDict = {}
             responseDict["message"] = errorMessage

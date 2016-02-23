@@ -36,6 +36,14 @@ class UserHandler(UserInterface):
         self.session.delete(oldToken)
         self.session.commit()
 
+
+    def getUserByUID(self,uid):
+        """ Return a User object that matches specified email """
+        result = self.session.query(User).filter(User.user_id == uid).all()
+        # Raise exception if we did not find exactly one user
+        self.checkUnique(result,"No users with that email", "Multiple users with that email")
+        return result[0]
+
     def getUserId(self, username):
         """ Find an id for specified username, creates a new entry for new usernames, raises an exception if multiple results found
 
@@ -120,6 +128,15 @@ class UserHandler(UserInterface):
                 userList.append(user)
         return userList
 
+
+    def hasPermisson(self,user,permissionName):
+        """ Checks if user specified permission """
+        bitNumber = self.getPermissionId(permissionName)
+        if self.checkPermission(user,bitNumber):
+            return True
+        return False
+
+
     @staticmethod
     def checkPermission(user,bitNumber):
         """ Check whether user has the specified permission, determined by whether a binary representation of user's permissions has the specified bit set to 1 """
@@ -180,4 +197,16 @@ class UserHandler(UserInterface):
         """ Clear a user's password as part of reset process """
         user.salt = None
         user.password_hash = None
+        self.session.commit()
+
+    def createUser(self,email,password,bcrypt,admin=False):
+        """creates a valid user"""
+        user = User(email = email)
+        self.session.add(user)
+        self.setPassword(user,password,bcrypt)
+        self.changeStatus(user,"approved")
+        if(admin):
+            self.setPermission(user,2)
+        else:
+            self.setPermission(user,1)
         self.session.commit()

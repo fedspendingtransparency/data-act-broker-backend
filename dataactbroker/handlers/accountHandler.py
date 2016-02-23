@@ -59,7 +59,7 @@ class AccountHandler:
             user  = self.interfaces.userDb.getUserByEmail(username)
             if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
                 # We have a valid login
-                LoginSession.login(session,self.userManager.getUserId(username))
+                LoginSession.login(session,self.userManager.getUserByEmail(username).user_id)
                 return JsonResponse.create(StatusCode.OK,{"message":"Login successful"})
             else :
                 raise ValueError("user name and or password invalid")

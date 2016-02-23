@@ -9,7 +9,7 @@ from dataactcore.scripts.clearJobs import clearJobs
 from dataactcore.models.jobModels import Submission, JobStatus
 from dataactcore.models.userModel import AccountType
 from dataactcore.utils.statusCode import StatusCode
-
+from flask.ext.bcrypt import Bcrypt
 class UserTests(BaseTest):
     """ Test user registration and user specific functions """
     uploadId = None # set in setup function, used for testing wrong user on finalize
@@ -20,21 +20,43 @@ class UserTests(BaseTest):
         self.passed = False # Set to true if unit test passes
 
     def setUp(self):
-        self.utils.login() # Log the user in for each test
+        testConfig = open("test.json","r").read()
+        configDict = json.loads(testConfig)
+        self.utils.login(configDict["admin_email"],"pass") # Log the user in for each test
+
+    def setUpToken(self,email):
+        userDb = UserHandler()
+        token = sesEmail.createToken(email,userDb,"validate_email")
+        json = '{"token":"'+token+'"}'
+        self.utils.postRequest("/v1/confirm_email_token/",json)
+
+    def test_registration_no_token(self):
+        self.utils.logout()
+        input = '{"email":"user@agency.gov","name":"user","agency":"agency","title":"title","password":"userPass"}'
+        self.response = self.utils.postRequest("/v1/register/",input)
+        self.utils.checkResponse(self.response,StatusCode.LOGIN_REQUIRED)
+        self.passed = True
 
     def test_registration(self):
+        self.utils.logout()
+        self.setUpToken("user@agency.gov")
+
         input = '{"email":"user@agency.gov","name":"user","agency":"agency","title":"title","password":"userPass"}'
         self.response = self.utils.postRequest("/v1/register/",input)
         self.utils.checkResponse(self.response,StatusCode.OK,"Registration successful")
         self.passed = True
 
     def test_registration_empty(self):
+        self.utils.logout()
         input = '{}'
+        self.setUpToken("user@agency.gov")
         self.response = self.utils.postRequest("/v1/register/",input)
         self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"Request body must include email, name, agency, title, and password")
         self.passed = True
 
     def test_registration_bad_email(self):
+        self.utils.logout()
+        self.setUpToken("user@agency.gov")
         input = '{"email":"fake@notreal.faux","name":"user","agency":"agency","title":"title","password":"userPass"}'
         self.response = self.utils.postRequest("/v1/register/",input)
         self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"No users with that email")
@@ -63,7 +85,8 @@ class UserTests(BaseTest):
         self.response = self.utils.postRequest("/v1/list_users_with_status/",input)
         self.utils.checkResponse(self.response,StatusCode.OK)
         users = self.response.json()["users"]
-        assert(len(users) == 3), "There should be three users awaiting approval"
+
+        assert(len(users) == 4), "There should be four users awaiting approval"
         self.passed = True
 
     def test_list_users_bad_status(self):
@@ -78,14 +101,14 @@ class UserTests(BaseTest):
         emails = []
         for admin in admins:
             emails.append(admin.email)
-        assert(len(admins) == 7), "There should be seven agency users"
+        assert(len(admins) == 9), "There should be seven agency users"
         for email in ["realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", "approved@agency.gov", "nefarious@agency.gov"]:
             assert(email in emails)
         self.passed = True
 
     def test_list_submissions(self):
         self.utils.logout()
-        self.utils.login("approvedUser","approvedPass")
+        self.utils.login("approved@agency.gov","approvedPass")
         self.response = self.utils.postRequest("/v1/list_submissions/",{},method="GET")
         self.utils.logout()
         self.utils.checkResponse(self.response,StatusCode.OK)
@@ -94,9 +117,19 @@ class UserTests(BaseTest):
         assert(len(responseDict["submission_id_list"]) == 5)
         self.passed = True
 
+    def test_list_users_with_status_non_admin(self):
+        self.utils.login("user3","123abc")
+        input = '{"status":"awaiting_approval"}'
+        self.response = self.utils.postRequest("/v1/list_users_with_status/",input)
+        self.utils.logout()
+        self.utils.checkResponse(self.response,StatusCode.LOGIN_REQUIRED)
+        responseDict = self.response.json()
+        assert((responseDict["message"]) == 'Wrong User Type')
+        self.passed = True
+
     def test_finalize_wrong_user(self):
         self.utils.logout()
-        self.utils.login("deniedUser","deniedPass")
+        self.utils.login("user4","pass")
         self.response = self.utils.postRequest("/v1/finalize_job/",json.dumps({"upload_id":UserTests.uploadId}))
         self.utils.logout()
         self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"Cannot finalize a job created by a different user")
@@ -119,6 +152,7 @@ class UserTests(BaseTest):
     def test_check_email_token(self):
         userDb = UserHandler()
         #make a token based on a user
+
         token = sesEmail.createToken("user@agency.gov",userDb,"validate_email")
         json = '{"token":"'+token+'"}'
         self.response = self.utils.postRequest("/v1/confirm_email_token/",json)
@@ -128,7 +162,6 @@ class UserTests(BaseTest):
 
     def tearDown(self):
         if(not self.passed):
-            # If test failed, print response
             print("Status is " + str(self.response.status_code))
             print(str(self.response.json()))
 
@@ -146,6 +179,8 @@ class UserTests(BaseTest):
         setupUserDB(True)
         clearJobs()
         userDb = UserHandler()
+        userDb.createUser( "user3","123abc",Bcrypt())
+        userDb.createUser( "user4","pass",Bcrypt())
         jobDb = JobHandler()
         # Add new users and set some statuses
         for index in range(len(userEmails)):
@@ -157,7 +192,9 @@ class UserTests(BaseTest):
         # Add submissions to one of the users
         user = userDb.getUserByEmail("approved@agency.gov")
         user.username = "approvedUser"
+        userDb.setPassword(user,"approvedPass",Bcrypt())
         admin = userDb.getUserByEmail(configDict["admin_email"])
+        userDb.setPassword(admin,"pass",Bcrypt())
         admin.name = "Mr. Manager"
         userDb.session.commit()
         isFirstSub = True

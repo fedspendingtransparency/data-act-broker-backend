@@ -6,6 +6,8 @@ from builtins import input
 from dataactcore.scripts.databaseSetup import runCommands
 from dataactcore.scripts.configure import ConfigureCore
 from dataactbroker.handlers.aws.session import SessionTable
+from dataactbroker.handlers.userHandler import UserHandler
+from flask.ext.bcrypt import Bcrypt
 
 class ConfigureBroker(object):
     """
@@ -19,15 +21,15 @@ class ConfigureBroker(object):
         return os.path.split(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))[0]
 
     @staticmethod
-    def createLoginJSON(adminpass,enableTestUsers):
-        """Creates the credentials.json File"""
-        returnJson = {}
+    def createTestUsers(adminEmail,adminpass,enableTestUsers):
+        crypt = Bcrypt()
+        userDatabase = UserHandler()
         if(enableTestUsers):
-            returnJson ["user"] = "bestPassEver"
-            returnJson ["user2"] = "NotAPassword"
-            returnJson ["user3"] = "123abc"
-        returnJson["admin"] = adminpass
-        return json.dumps(returnJson)
+            userDatabase.createUser("user","bestPassEver" ,crypt)
+            userDatabase.createUser("user2","NotAPassword" ,crypt)
+            userDatabase.createUser("user3","123abc" ,crypt)
+        userDatabase.createUser(adminEmail,adminpass ,crypt,admin=True)
+
 
     @staticmethod
     def createBrokerJSON(port,trace,debug,origins,enableLocalDyanmo,localDynamoPort,emailAddress,frontendURL,key):
@@ -123,8 +125,12 @@ class ConfigureBroker(object):
             if(ConfigureBroker.questionPrompt("Would you like to include test case users (y/n) : ")):
                 testCaseUsers = True
             password = input("Enter the admin user password:")
-            json = ConfigureBroker.createLoginJSON(password,testCaseUsers)
-            ConfigureBroker.createFile("/credentials.json",json)
+            adminEmail = input("Enter the admin user email:")
+            ConfigureBroker.createTestUsers(adminEmail,password,testCaseUsers)
 
 if __name__ == '__main__':
-    promptBroker()
+    crypt = Bcrypt()
+    userDatabase = UserHandler()
+    userDatabase.createUser("user","bestPassEver" ,crypt)
+    userDatabase.createUser("user2","NotAPassword" ,crypt)
+    userDatabase.createUser("user3","123abc" ,crypt)
