@@ -215,3 +215,22 @@ class AccountHandler:
         self.interfaces.userDb.setPassword(user,requestDict.getValue("password"))
         # Return success message
         return JsonResponse.create(StatusCode.OK,{"message":"Password successfully changed"})
+
+    def resetPassword(self,system_email):
+        """ Remove old password and email user a token to set a new password.  Request should have key "email" """
+        requestDict = RequestDictionary(self.request)
+        if(not (requestDict.exists("email"))):
+            # Don't have the keys we need in request
+            exc = ResponseException("Reset password route requires key 'email'",StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc,exc.status)
+        # Get user object
+        user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("email"))
+        # Remove current password hash
+        user.password_hash = None
+        self.interfaces.userDb.session.commit()
+        # Send email with token
+        emailTemplate = {'[USER]': user.name}
+        newEmail = sesEmail(user.email, system_email,templateType="password_reset",parameters=emailTemplate,database=self.interfaces.userDb)
+        newEmail.send()
+        # Return success message
+        return JsonResponse.create(StatusCode.OK,{"message":"Password reset"})
