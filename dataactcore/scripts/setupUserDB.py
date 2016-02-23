@@ -21,7 +21,7 @@ def setupUserDB(hardReset = False):
             "CREATE TABLE user_status (user_status_id integer PRIMARY KEY, name text, description text)",
             "CREATE TABLE permission_type (permission_type_id integer PRIMARY KEY, name text, description text)",
             "CREATE SEQUENCE userIdSerial START 1",
-            "CREATE TABLE users (user_id integer PRIMARY KEY DEFAULT nextval('userIdSerial'), username text, email text, password_hash text, name text, agency text, title text, user_status_id integer REFERENCES user_status, permissions integer)",
+            "CREATE TABLE users (user_id integer PRIMARY KEY DEFAULT nextval('userIdSerial'),username text, email text, password_hash text, name text, agency text, title text, user_status_id integer REFERENCES user_status, permissions integer, salt text)",
             "INSERT INTO user_status (user_status_id, name, description) VALUES (1, 'awaiting_confirmation', 'User has entered email but not confirmed'), (2, 'email_confirmed', 'User email has been confirmed'), (3, 'awaiting_approval', 'User has registered their information and is waiting for approval'), (4, 'approved', 'User has been approved'), (5, 'denied','User registration was denied')",
             "CREATE SEQUENCE emailTemplateSerial START 1",
             ("CREATE TABLE email_template("
