@@ -132,14 +132,14 @@ class AccountHandler:
                 exc = ResponseException("User already registered", StatusCode.CLIENT_ERROR)
                 return JsonResponse.error(exc,exc.status,{})
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"validate_email")
-        #TODO set with JSON
-        link='<a href="'+AccountHandler.FRONT_END+'/email_check?token='+emailToken+'">here</a>'
+
+        link='<a href="'+AccountHandler.FRONT_END+'/check_email/'+emailToken+'">here</a>'
         emailTemplate = {'[USER]': email, '[URL]':link}
         newEmail = sesEmail(email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()
         return JsonResponse.create(StatusCode.OK,{"message":"Email Sent"})
 
-    def checkEmailConfirmation(self,session):
+    def checkEmailConfirmationToken(self,session):
         """Creates user record and email"""
         requestFields = RequestDictionary(self.request)
         if(not requestFields.exists("token")):
@@ -154,6 +154,24 @@ class AccountHandler:
             self.interfaces.userDb.deleteToken(token)
             #set the status
             self.interfaces.userDb.changeStatus(self.interfaces.userDb.getUserByEmail(message),"email_confirmed")
+            return JsonResponse.create(StatusCode.OK,{"message":"success"})
+        else:
+            #failure but alert UI of issue
+            return JsonResponse.create(StatusCode.OK,{"message":message})
+
+    def checkPasswordToken(self,session):
+        """"""
+        requestFields = RequestDictionary(self.request)
+        if(not requestFields.exists("token")):
+            exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc,exc.status,{})
+        token = requestFields.getValue("token")
+        success,message = sesEmail.checkToken(token,self.interfaces.userDb,"password_reset")
+        if(success):
+            #mark session that password can be filled out
+            LoginSession.resetPassword(session)
+            #remove token so it cant be used again
+            self.interfaces.userDb.deleteToken(token)
             return JsonResponse.create(StatusCode.OK,{"message":"success"})
         else:
             #failure but alert UI of issue
@@ -228,8 +246,12 @@ class AccountHandler:
         # Remove current password hash
         user.password_hash = None
         self.interfaces.userDb.session.commit()
+        email = requestDict.getValue("email")
         # Send email with token
-        emailTemplate = {'[USER]': user.name}
+        emailToken = sesEmail.createToken(email,self.interfaces.userDb,"password_reset")
+
+        link='<a href="'+AccountHandler.FRONT_END+'/passwordreset/'+emailToken+'">here</a>'
+        emailTemplate = {'[USER]': email, '[URL]':link}
         newEmail = sesEmail(user.email, system_email,templateType="reset_password",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()
         # Return success message

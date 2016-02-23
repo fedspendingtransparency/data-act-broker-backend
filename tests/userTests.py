@@ -159,11 +159,30 @@ class UserTests(BaseTest):
         assert(self.response.json()["message"]== "success")
         self.passed = True
 
-    def test_password_reset(self):
+    def test_password_reset_email(self):
         email = UserTests.CONFIG["admin_email"]
         json = '{"email":"'+email+'"}'
         self.response = self.utils.postRequest("/v1/reset_password/",json)
         self.utils.checkResponse(self.response,StatusCode.OK)
+        self.passed = True
+
+
+    def test_check_password_token(self):
+
+        userDb = UserHandler()
+        #make a token based on a user
+        token = sesEmail.createToken(UserTests.CONFIG["admin_email"],userDb,"password_reset")
+        json = '{"token":"'+token+'"}'
+        self.response = self.utils.postRequest("/v1/confirm_password_token/",json)
+        self.utils.checkResponse(self.response,StatusCode.OK)
+        assert(self.response.json()["message"]== "success")
+        self.passed = True
+
+    def test_check_bad_password_token(self):
+        self.response = self.utils.postRequest("/v1/confirm_password_token/",'{"token":"2345"}')
+        self.utils.checkResponse(self.response,StatusCode.OK)
+        assert(self.response.json()["message"]== "Link already used")
+        self.passed = True
 
     def tearDown(self):
         if(not self.passed):
