@@ -23,15 +23,20 @@ class FileHandler:
     FILE_TYPES = ["appropriations","award_financial","award","procurement"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
-    def __init__(self,request,interfaces):
+    def __init__(self,request,interfaces = None):
         """
 
         Arguments:
         request - HTTP request object for this route
         """
-        self.jobManager = interfaces.jobDb
         self.request = request
+        if(interfaces != None):
+            self.interfaces = interfaces
+            self.jobManager = interfaces.jobDb
+
+    def addInterfaces(self,interfaces):
         self.interfaces = interfaces
+        self.jobManager = interfaces.jobDb
 
     def getErrorReportURLsForSubmission(self):
         """
