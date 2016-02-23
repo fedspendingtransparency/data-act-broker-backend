@@ -56,27 +56,13 @@ class AccountHandler:
 
             password = safeDictionary.getValue('password')
 
-            # For now import credentials list from a JSON file
-            path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-            lastBackSlash = path.rfind("\\",0,-1)
-            lastForwardSlash = path.rfind("/",0,-1)
-            lastSlash = max([lastBackSlash,lastForwardSlash])
-            credFile = path[0:lastSlash] + "/" + self.credentialFile
-            credJson = open(credFile,"r").read()
-
-
-            credDict = json.loads(credJson)
-
-
-            # Check for valid username and password
-            if(not(username in credDict)):
-                raise ValueError("Not a recognized user")
-            elif(credDict[username] != password):
-                raise ValueError("Incorrect password")
-            else:
+            user  = self.interfaces.userDb.getUserByEmail(username)
+            if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
                 # We have a valid login
                 LoginSession.login(session,self.userManager.getUserId(username))
                 return JsonResponse.create(StatusCode.OK,{"message":"Login successful"})
+            else :
+                raise ValueError("user name and or password invalid")
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
