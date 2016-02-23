@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy.orm.exc import MultipleResultsFound
 from flask.ext.bcrypt import Bcrypt, generate_password_hash, check_password_hash
 from dataactcore.models.userModel import User, UserStatus, EmailToken, EmailTemplateType , EmailTemplate, PermissionType
@@ -164,16 +165,19 @@ class UserHandler(UserInterface):
     def checkPassword(self,user,password,bcrypt):
         """ Given a user object and a password, verify that the password is correct.  Returns True if valid password, False otherwise. """
         # Check the password with bcrypt
-        return bcrypt.check_password_hash(user.password_hash,password)
+        return bcrypt.check_password_hash(user.password_hash,password+user.salt)
 
     def setPassword(self,user,password,bcrypt):
         """ Given a user and a new password, changes the hashed value in the database to match new password.  Returns True if successful. """
         # Generate hash with bcrypt and store it
-        user.password_hash = bcrypt.generate_password_hash(password,UserHandler.HASH_ROUNDS)
+        newSalt =  uuid.uuid4().hex
+        user.salt = newSalt
+        user.password_hash = bcrypt.generate_password_hash(password+newSalt,UserHandler.HASH_ROUNDS)
         self.session.commit()
         return True
 
     def clearPassword(self,user):
         """ Clear a user's password as part of reset process """
+        user.salt = None
         user.password_hash = None
         self.session.commit()

@@ -19,6 +19,7 @@ tests/jobId.json
 tests/submissionId
 tests/tablesCleared
 tests/validatorResponse
+tests/testConfig.json
 dataactbroker/validatorResponse
 dataactbroker/manager.json
 web_api_configuration.json
