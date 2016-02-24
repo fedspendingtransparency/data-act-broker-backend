@@ -77,6 +77,16 @@ class BaseInterface(object):
 
         return True
 
+    @staticmethod
+    def runUniqueQuery(query, noResultMessage, multipleResultMessage):
+        """ Run query looking for one result, if it fails wrap it in a ResponseException with an appropriate message """
+        try:
+            return query.one()
+        except NoResultFound as e:
+            raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound,10)
+        except MultipleResultsFound as e:
+            raise ResponseException(multipleResultMessage,StatusCode.INTERNAL_ERROR,MultipleResultsFound,10)
+
     def runStatement(self,statement):
         """ Run specified statement on this database"""
         response =  self.session.execute(statement)
