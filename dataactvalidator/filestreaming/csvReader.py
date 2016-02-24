@@ -95,7 +95,6 @@ class CsvReader(object):
         while( self.packetCounter *  CsvReader.BUFFER_SIZE <=  self.s3File.size) :
             offsetCheck = self.packetCounter *  CsvReader.BUFFER_SIZE
             header ={'Range' : "".join(['bytes=',str(offsetCheck),'-',str(offsetCheck +CsvReader.BUFFER_SIZE - 1)])}
-            print("".join(["Header for s3 read is: ",str(header)]))
             try:
                 packet = self.s3File.get_contents_as_string(headers=header).decode('utf-8')
             except :

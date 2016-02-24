@@ -2,10 +2,10 @@ import os
 import inspect
 import json
 import sys
+from builtins import input
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.tasLoader import TASLoader
 from dataactvalidator.scripts.setupTASIndexs import setupTASIndexs
-
 
 class ConfigureValidator(object):
     """

@@ -25,7 +25,7 @@ class StagingTable(object):
         tableName if created, exception otherwise
         """
         if(tableName == None):
-            tableName = "".join(["job",str(jobId)])
+            tableName = self.interface.getTableName(jobId)
         self.name = tableName
 
         if(self.interface.tableExists(tableName)):

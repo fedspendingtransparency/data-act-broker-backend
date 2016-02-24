@@ -114,11 +114,8 @@ class ValidatorErrorInterface(errorInterface.ErrorInterface):
         Returns:
             Status ID of specified job
         """
-        queryResult = self.session.query(FileStatus.status_id).filter(FileStatus.job_id == jobId).all()
-        if(self.checkUnique(queryResult,"No file for that job ID","Multiple files for that job ID")):
-            return queryResult[0].status_id
-        else:
-            return False
+        query = self.session.query(FileStatus.status_id).filter(FileStatus.job_id == jobId)
+        return self.runUniqueQuery(query,"No file for that job ID","Multiple files for that job ID").status_id
 
     def checkNumberOfErrorsByJobId(self, jobId):
         """ Get the total number of errors for a specified job

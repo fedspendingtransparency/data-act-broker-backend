@@ -30,3 +30,8 @@ class ValidatorStagingInterface(BaseStagingInterface):
             return response
         else:
             return 0
+
+    @staticmethod
+    def getTableName(jobId):
+        """ Get the staging table name based on the job ID """
+        return "".join(["job",str(jobId)])

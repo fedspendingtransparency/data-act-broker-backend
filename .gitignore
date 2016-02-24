@@ -21,3 +21,4 @@ dataactvalidator/responseErrorLog
 tests/awardFieldsRaw.csv
 tests/awardFinFields.csv
 tests/programActivityRaw.csv
+dataactvalidator/scripts/clearRules.py

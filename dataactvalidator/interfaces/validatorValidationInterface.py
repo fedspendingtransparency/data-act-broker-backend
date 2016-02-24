@@ -1,4 +1,4 @@
-from sqlalchemy.orm import subqueryload
+from sqlalchemy.orm import subqueryload, joinedload
 from dataactcore.models import validationInterface
 from dataactcore.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
@@ -135,11 +135,17 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
         # Get set of file columns for this file
-        #columns = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).all()
+        columns = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).all()
+        print("".join(["First id is ",str(columns[0].file_column_id)]))
+        # Get list of ids for file columns
+        columnIds = []
+        for column in columns:
+            columnIds.append(column.file_column_id)
         # Delete all rules for those columns
-        #self.session.query(Rule).filter(Rule.file_column_id.in_(columns)).delete()
-        self.session.execute("DELETE FROM rule where file_column_id in (SELECT file_column_id FROM file_columns WHERE file_id = :param)",{"param":fileId})
-        self.session.execute("DELETE FROM multi_field_rule WHERE file_id = :param",{"param":fileId})
+        self.session.query(Rule).filter(Rule.file_column_id.in_(columnIds)).delete(synchronize_session="fetch")
+        # Delete multi field rules
+        self.session.query(MultiFieldRule).filter(MultiFieldRule.file_id == fileId).delete(synchronize_session="fetch")
+
         self.session.commit()
 
     def getFieldsByFileList(self, fileType):
@@ -175,7 +181,7 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
             raise ValueError("File type does not exist")
         queryResult = self.session.query(FileColumn).options(subqueryload("field_type")).filter(FileColumn.file_id == fileId).all()
         for column in queryResult :
-            returnDict[column.name.lower().replace(" ","_")]  = column
+            returnDict[FieldCleaner.cleanString(column.name)]  = column
         return returnDict
 
 
@@ -188,10 +194,8 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
         Returns:
             ID if file type found, or None if file type is not found
         """
-        queryResult = self.session.query(FileType).filter(FileType.name== filename).all()
-        if(len(queryResult) > 0) :
-            return queryResult[0].file_id
-        return None
+        query = self.session.query(FileType).filter(FileType.name== filename)
+        return self.runUniqueQuery(query,"No ID for specified file type","Conflicting IDs for specified file type").file_id
 
     def getRulesByFile(self, fileType) :
         """
@@ -202,7 +206,14 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
         fileId = self.getFileId(fileType)
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
-        return self.session.query(Rule).options(subqueryload("rule_type")).options(subqueryload("file_column")).filter(FileColumn.file_id == fileId).all()
+        rules = self.session.query(Rule).options(joinedload("rule_type")).options(joinedload("file_column")).filter(FileColumn.file_id == fileId).all()
+        for rule in rules:
+            if(rule.file_column == None):
+                print("Found a rule with no file column")
+                print(str(rule.file_column_id))
+                print(str(rule.rule_id))
+
+        return rules
 
     def addRule(self, columnId, ruleTypeText, ruleText, description):
         """
@@ -260,6 +271,5 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
         Returns:
             ID for file column if found, otherwise raises exception
         """
-        column = self.session.query(FileColumn).filter(FileColumn.name == fieldName.lower()).filter(FileColumn.file_id == fileId).all()
-        self.checkUnique(column,"No field found with that name for that file type", "Multiple fields with that name for that file type")
-        return column[0].file_column_id
+        column = self.session.query(FileColumn).filter(FileColumn.name == fieldName.lower()).filter(FileColumn.file_id == fileId)
+        self.runUniqueQuery(column,"No field found with that name for that file type", "Multiple fields with that name for that file type").file_column_id

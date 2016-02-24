@@ -69,7 +69,6 @@ class ValidationManager:
         returns the jobId
         True if the job is ready, if the job is not ready an exception will be raised
         """
-        tableName = "".join(["job",str(jobId)])
         if(not (interfaces.jobDb.runChecks(jobId))):
             raise ResponseException("Checks failed on Job ID",StatusCode.CLIENT_ERROR)
 
@@ -138,7 +137,7 @@ class ValidationManager:
         # Create staging table
         # While not done, pull one row and put it into staging if it passes
         # the Validator
-        tableName = "".join(["job",str(jobId)])
+        tableName = interfaces.stagingDb.getTableName(jobId)
         tableObject = StagingTable(interfaces)
         tableObject.createTable(fileType,fileName,jobId,tableName)
         errorInterface = interfaces.errorDb
@@ -214,7 +213,7 @@ class ValidationManager:
             requestDict = RequestDictionary(request)
             if(requestDict.exists("job_id")):
                 jobId = requestDict.getValue("job_id")
-                tableName = "".join(["job",str(jobId)])
+                tableName = interfaces.stagingDb.getTableName(jobId)
             else:
                 # Request does not have a job ID, can't validate
                 raise ResponseException("No job ID specified in request",StatusCode.CLIENT_ERROR)

@@ -18,6 +18,9 @@ def baseScript():
 	parser.add_argument("-s", "--start", action="store_true",help="Starts the validator" )
 	args = parser.parse_args()
 
+	print(str(type(args)))
+	print(str(args))
+	raise Exception("Checking args")
 	if(len(sys.argv) > 1):
 		if args.initialize:
 			initialize()

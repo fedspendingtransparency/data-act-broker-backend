@@ -9,8 +9,6 @@ class Validator(object):
     """
     Checks individual records against specified validation tests
     """
-    IS_INTERGER  = re.compile(r"^[-]?\d*$")
-    IS_DECIMAL  = re.compile(r"^[-]?((\d+(\.\d*)?)|(\.\d+))$")
     FIELD_LENGTH = {"allocationtransferrecipientagencyid":3, "appropriationaccountresponsibleagencyid":3, "obligationavailabilityperiodstartfiscalyear":4, "obligationavailabilityperiodendfiscalyear":4,"appropriationmainaccountcode":4, "appropriationsubaccountcode":3, "obligationunlimitedavailabilityperiodindicator":1}
 
     @staticmethod
@@ -34,7 +32,7 @@ class Validator(object):
 
         for fieldName in record :
             currentSchema =  csvSchema[fieldName]
-            ruleSubset = Validator.getRules(fieldName, fileType, rules)
+            ruleSubset = Validator.getRules(fieldName, fileType, rules,interfaces.validationDb)
             currentData = record[fieldName]
             if(currentData != None):
                 currentData = currentData.strip()
@@ -82,20 +80,22 @@ class Validator(object):
         return (not recordFailed), failedRules
 
     @staticmethod
-    def getRules(fieldName, fileType,rules) :
+    def getRules(fieldName, fileType,rules,validationInterface) :
         """ From a given set of rules, create a list of only the rules that apply to specified field
 
         Args:
             fieldName: Field to find rules for
             fileType: Name of file to check against
             rules: Original set of rules
+            validationInterface: interface for validation DB
 
         Returns:
             List of rules that apply to specified field
         """
+        fileId = validationInterface.getFileId(fileType)
         returnList =[]
         for rule in rules :
-            if(rule.file_column.name == fieldName and rule.file_column.file.name == fileType) :
+            if(rule.file_column.name == fieldName and rule.file_column.file_id == fileId) :
                 returnList.append(rule)
         return returnList
 
@@ -117,13 +117,23 @@ class Validator(object):
                 return True
             return False
         if(datatype == "INT") :
-            return Validator.IS_INTERGER.match(data) is not None
+            try:
+                int(data)
+                return True
+            except:
+                return False
         if(datatype == "DECIMAL") :
-            if (Validator.IS_DECIMAL.match(data) is None ) :
-                return Validator.IS_INTERGER.match(data) is not None
-            return True
+            try:
+                float(data)
+                return True
+            except:
+                return False
         if(datatype == "LONG"):
-            return Validator.IS_INTERGER.match(data) is not None
+            try:
+                long(data)
+                return True
+            except:
+                return False
         raise ValueError("".join(["Data Type Error, Type: ",datatype,", Value: ",data]))
 
     @staticmethod
