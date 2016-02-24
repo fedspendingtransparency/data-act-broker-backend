@@ -14,7 +14,7 @@ class UserTests(BaseTest):
     """ Test user registration and user specific functions """
     uploadId = None # set in setup function, used for testing wrong user on finalize
     CONFIG = None # Will hold a dictionary of configuration options
-
+    UID_FOR_STATUS_CHANGE = 0;
     def __init__(self,methodName,interfaces):
         super(UserTests,self).__init__(methodName=methodName)
         self.interfaces = interfaces
@@ -62,20 +62,38 @@ class UserTests(BaseTest):
         self.passed = True
 
     def test_status_change(self):
-        input = '{"user_email":"user@agency.gov","new_status":"denied"}'
-        self.response = self.utils.postRequest("/v1/change_status/",input)
+        deniedInput = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"denied"}'
+        approvedInput = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"approved"}'
+        awaitingInput = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"awaiting_approval"}'
+
+        self.response = self.utils.postRequest("/v1/change_status/",awaitingInput)
+        self.utils.checkResponse(self.response,StatusCode.OK,"Status change successful")
+
+
+        self.response = self.utils.postRequest("/v1/change_status/",approvedInput)
+        self.utils.checkResponse(self.response,StatusCode.OK,"Status change successful")
+
+
+        self.response = self.utils.postRequest("/v1/change_status/",awaitingInput)
+        self.utils.checkResponse(self.response,StatusCode.OK,"Status change successful")
+
+
+        self.response = self.utils.postRequest("/v1/change_status/",deniedInput)
         self.utils.checkResponse(self.response,StatusCode.OK,"Status change successful")
         self.passed = True
 
-    def test_status_change_bad_email(self):
-        input = '{"user_email":"fake@notreal.faux","new_status":"denied"}'
-        self.response = self.utils.postRequest("/v1/change_status/",input)
-        self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"No users with that email")
+
+    def test_status_change_bad_uid(self):
+        self.utils.logout()
+        self.utils.login(UserTests.CONFIG["admin_email"],"pass")
+        badUserId = '{"uid":-100,"new_status":"denied"}'
+        self.response = self.utils.postRequest("/v1/change_status/",badUserId)
+        self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"No users with that uid")
         self.passed = True
 
     def test_status_change_bad_status(self):
-        input = '{"user_email":"user@agency.gov","new_status":"disoriented"}'
-        self.response = self.utils.postRequest("/v1/change_status/",input)
+        badInput = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"badInput"}'
+        self.response = self.utils.postRequest("/v1/change_status/",badInput)
         self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"Not a valid user status")
         self.passed = True
 
@@ -100,7 +118,7 @@ class UserTests(BaseTest):
         emails = []
         for admin in admins:
             emails.append(admin.email)
-        assert(len(admins) == 9), "There should be seven agency users"
+        assert(len(admins) == 10), "There should be ten agency users"
         for email in ["realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", "approved@agency.gov", "nefarious@agency.gov"]:
             assert(email in emails)
         self.passed = True
@@ -160,12 +178,25 @@ class UserTests(BaseTest):
         self.passed = True
 
     def test_password_reset_email(self):
+        self.utils.logout()
         email = UserTests.CONFIG["admin_email"]
         json = '{"email":"'+email+'"}'
         self.response = self.utils.postRequest("/v1/reset_password/",json)
         self.utils.checkResponse(self.response,StatusCode.OK)
-        self.passed = True
 
+        userDb = UserHandler()
+        token = sesEmail.createToken(UserTests.CONFIG["admin_email"],userDb,"password_reset")
+        json = '{"token":"'+token+'"}'
+        self.response = self.utils.postRequest("/v1/confirm_password_token/",json)
+        self.utils.checkResponse(self.response,StatusCode.OK)
+        assert(self.response.json()["message"]== "success")
+
+        json = '{"user_email":"'+email+'","password":"pass"}'
+        self.response = self.utils.postRequest("/v1/set_password/",json)
+        self.utils.checkResponse(self.response,StatusCode.OK)
+        assert(self.response.json()["message"]== "Password successfully changed")
+
+        self.passed = True
 
     def test_check_password_token(self):
 
@@ -199,12 +230,15 @@ class UserTests(BaseTest):
         userEmails = ["user@agency.gov", "realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", UserTests.CONFIG["admin_email"],"approved@agency.gov", "nefarious@agency.gov"]
         userStatus = ["awaiting_confirmation","email_confirmed","awaiting_approval","awaiting_approval","awaiting_approval","approved","approved","denied"]
         userPermissions = [0,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.WEBSITE_ADMIN+AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER]
+
+
         # Clear users
         setupUserDB(True)
         clearJobs()
         userDb = UserHandler()
         userDb.createUser( "user3","123abc",Bcrypt())
         userDb.createUser( "user4","pass",Bcrypt())
+        userDb.createUser(UserTests.CONFIG["change_user_email"],"pass",Bcrypt())
         jobDb = JobHandler()
         # Add new users and set some statuses
         for index in range(len(userEmails)):
@@ -220,6 +254,11 @@ class UserTests(BaseTest):
         admin = userDb.getUserByEmail(UserTests.CONFIG["admin_email"])
         userDb.setPassword(admin,"pass",Bcrypt())
         admin.name = "Mr. Manager"
+        userDb.session.commit()
+        statusChangedUser = userDb.getUserByEmail(UserTests.CONFIG["change_user_email"])
+        admin.name = "Mr. Manager"
+        UserTests.UID_FOR_STATUS_CHANGE  = str(statusChangedUser.user_id)
+        statusChangedUser.name = "Test User"
         userDb.session.commit()
         isFirstSub = True
         firstSub = None

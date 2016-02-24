@@ -43,7 +43,7 @@ class UserHandler(UserInterface):
         """ Return a User object that matches specified uid """
         query = self.session.query(User).filter(User.user_id == uid)
         # Raise exception if we did not find exactly one user
-        result = self.runUniqueQuery(query,"No users with that email", "Multiple users with that email")
+        result = self.runUniqueQuery(query,"No users with that uid", "Multiple users with that uid")
         return result
 
 
@@ -97,6 +97,17 @@ class UserHandler(UserInterface):
             # In this case having a bad status name is a client error
             raise ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
         self.session.commit()
+
+    def checkStatus(self,user,statusName):
+        """ Change status for specified user """
+        try:
+            if(user.user_status_id == UserStatus.getStatus(statusName) ):
+                return True
+            else :
+                return False
+        except ValueError as e:
+            # In this case having a bad status name is a client error
+            raise ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
 
     def addUnconfirmedEmail(self,email):
         """ Create user with specified email """

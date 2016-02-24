@@ -116,7 +116,7 @@ class AccountHandler:
         print("Completed registration, returning 200")
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
 
-    def createEmailConfirmation(self,system_email):
+    def createEmailConfirmation(self,system_email,session):
         """Creates user record and email"""
         requestFields = RequestDictionary(self.request)
         if(not requestFields.exists("email")):
@@ -132,8 +132,8 @@ class AccountHandler:
                 exc = ResponseException("User already registered", StatusCode.CLIENT_ERROR)
                 return JsonResponse.error(exc,exc.status,{})
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"validate_email")
-
-        link='<a href="'+AccountHandler.FRONT_END+'/check_email/'+emailToken+'">here</a>'
+        LoginSession.logout(session)
+        link= "".join(['<a href="', AccountHandler.FRONT_END,'/checkemail/',emailToken ,'">here</a>' ])
         emailTemplate = {'[USER]': email, '[URL]':link}
         newEmail = sesEmail(email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()
@@ -177,17 +177,30 @@ class AccountHandler:
             #failure but alert UI of issue
             return JsonResponse.create(StatusCode.OK,{"message":message})
 
-    def changeStatus(self):
+
+    def changeStatus(self,system_email):
         """ Changes status for specified user.  Associated request body should have keys 'user_email' and 'new_status' """
         requestDict = RequestDictionary(self.request)
-        if(not (requestDict.exists("user_email") and requestDict.exists("new_status"))):
+        if(not (requestDict.exists("uid") and requestDict.exists("new_status"))):
             # Missing a required field, return 400
-            exc = ResponseException("Request body must include user_email and new_status", StatusCode.CLIENT_ERROR)
+            exc = ResponseException("Request body must include uid and new_status", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status,{})
 
-        # Find user that matches specified email
-        user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("user_email"))
+        # Find user that matches specified uid
+        print requestDict.getValue("uid")
+        user = self.interfaces.userDb.getUserByUID(int(requestDict.getValue("uid")))
 
+        #check if the user is waiting
+        if(self.interfaces.userDb.checkStatus(user,"awaiting_approval")):
+            if(requestDict.getValue("new_status") == "approved"):
+                link= "".join(['<a href="', AccountHandler.FRONT_END, '">here</a>' ])
+                emailTemplate = {'[USER]': user.name, '[URL]':link,'[EMAIL]':system_email}
+                newEmail = sesEmail(user.email, system_email,templateType="account_approved",parameters=emailTemplate,database=self.interfaces.userDb)
+                newEmail.send()
+            elif (requestDict.getValue("new_status") == "denied"):
+                emailTemplate = {'[USER]': user.name}
+                newEmail = sesEmail(user.email, system_email,templateType="account_rejected",parameters=emailTemplate,database=self.interfaces.userDb)
+                newEmail.send()
         # Change user's status
         self.interfaces.userDb.changeStatus(user,requestDict.getValue("new_status"))
         return JsonResponse.create(StatusCode.OK,{"message":"Status change successful"})
@@ -207,7 +220,7 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
         userInfo = []
         for user in users:
-            thisInfo = {"name":user.name, "email":user.email, "agency":user.agency, "title":user.title}
+            thisInfo = {"id":user.user_id,"name":user.name, "email":user.email, "agency":user.agency, "title":user.title}
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
@@ -230,11 +243,11 @@ class AccountHandler:
         # Get user from email
         user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("user_email"))
         # Set new password
-        self.interfaces.userDb.setPassword(user,requestDict.getValue("password"))
+        self.interfaces.userDb.setPassword(user,requestDict.getValue("password"),self.bcrypt)
         # Return success message
         return JsonResponse.create(StatusCode.OK,{"message":"Password successfully changed"})
 
-    def resetPassword(self,system_email):
+    def resetPassword(self,system_email,session):
         """ Remove old password and email user a token to set a new password.  Request should have key "email" """
         requestDict = RequestDictionary(self.request)
         if(not (requestDict.exists("email"))):
@@ -245,12 +258,12 @@ class AccountHandler:
         user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("email"))
         # Remove current password hash
         user.password_hash = None
+        LoginSession.logout(session)
         self.interfaces.userDb.session.commit()
         email = requestDict.getValue("email")
         # Send email with token
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"password_reset")
-
-        link='<a href="'+AccountHandler.FRONT_END+'/passwordreset/'+emailToken+'">here</a>'
+        link= "".join(['<a href="', AccountHandler.FRONT_END,'/passwordreset/',emailToken ,'">here</a>' ])
         emailTemplate = {'[USER]': email, '[URL]':link}
         newEmail = sesEmail(user.email, system_email,templateType="reset_password",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()

@@ -25,13 +25,13 @@ def add_user_routes(app,system_email,bcrypt):
     def change_status():
         """ Expects request to have keys 'user_email' and 'new_status' """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.changeStatus)
+        return RouteUtils.run_instance_function(accountManager, accountManager.changeStatus,getSystemEmail = True)
 
     @app.route("/v1/confirm_email/", methods = ["POST"])
     def confirm():
         """ Expects request to have email  """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.createEmailConfirmation, True)
+        return RouteUtils.run_instance_function(accountManager, accountManager.createEmailConfirmation, True,True)
 
     @app.route("/v1/confirm_email_token/", methods = ["POST"])
     def checkEmailToken():
@@ -72,4 +72,4 @@ def add_user_routes(app,system_email,bcrypt):
     def reset_password():
         """ Removes current password from DB and sends email with token for user to reset their password.  Expects "email" key in request body. """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.resetPassword, getSystemEmail=True)
+        return RouteUtils.run_instance_function(accountManager, accountManager.resetPassword, True,True)
