@@ -126,12 +126,12 @@ class JobHandler(JobTrackerInterface):
         Returns:
         True if file upload, False otherwise
         """
-        queryResult = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId).all()
-        if(self.checkJobUnique(queryResult)):
-            # Got single job, check type
-            if(queryResult[0].type_id == Type.getType("file_upload")):
-                # Correct type
-                return True
+        query = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId)
+        result = self.checkJobUnique(query)
+        # Got single job, check type
+        if(result.type_id == Type.getType("file_upload")):
+            # Correct type
+            return True
         # Did not confirm correct type
         return False
 
