@@ -24,9 +24,9 @@ class JobHandler(JobTrackerInterface):
 
     def getSubmissionById(self,submissionId):
         """ Return submission object that matches ID """
-        result = self.session.query(Submission).filter(Submission.submission_id == submissionId).all()
-        self.checkUnique(result,"No submission with that ID","Multiple submissions with that ID")
-        return result[0]
+        query = self.session.query(Submission).filter(Submission.submission_id == submissionId)
+        result = self.runUniqueQuery(query,"No submission with that ID","Multiple submissions with that ID")
+        return result
 
     def getSubmissionsByUserId(self,userId):
         """ Returns all submissions associated with the specified user ID """
@@ -95,9 +95,9 @@ class JobHandler(JobTrackerInterface):
 
 
         for fileType, filename in filenames:
-            fileTypeResult = self.session.query(FileType.file_type_id).filter(FileType.name == fileType).all()
-            self.checkUnique(fileTypeResult,"No matching file type", "Multiple matching file types")
-            fileTypeId = fileTypeResult[0].file_type_id
+            fileTypeQuery = self.session.query(FileType.file_type_id).filter(FileType.name == fileType)
+            fileTypeResult = self.runUniqueQuery(fileTypeQuery,"No matching file type", "Multiple matching file types")
+            fileTypeId = fileTypeResult.file_type_id
 
             # Create upload job, mark as running since frontend should be doing this upload
             fileJob = JobStatus(filename = filename, file_type_id = fileTypeId, status_id = Status.getStatus("running"), type_id = Type.getType("file_upload"), submission_id = submission.submission_id)
@@ -160,10 +160,10 @@ class JobHandler(JobTrackerInterface):
 
     def getSubmissionForJob(self,job):
         """ Takes a job about and returns the associated submission object """
-        result = self.session.query(Submission).filter(Submission.submission_id == job.submission_id).all()
+        query = self.session.query(Submission).filter(Submission.submission_id == job.submission_id)
         try:
-            self.checkUnique(result,"This job has no attached submission", "Multiple submissions with conflicting ID")
-            return result[0]
+            result = self.runUniqueQuery(query,"This job has no attached submission", "Multiple submissions with conflicting ID")
+            return result
         except ResponseException as e:
             # Either of these errors is a 500, jobs should not be created without being part of a submission
             e.status = StatusCode.INTERNAL_ERROR
@@ -171,6 +171,6 @@ class JobHandler(JobTrackerInterface):
 
     def getJobById(self,jobId):
         """ Given a job ID, return the corresponding job """
-        result = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
-        self.checkUnique(result,"No job with that ID","Multiple jobs with conflicting ID")
-        return result[0]
+        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
+        result = self.runUniqueQuery(query,"No job with that ID","Multiple jobs with conflicting ID")
+        return result

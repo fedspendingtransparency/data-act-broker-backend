@@ -41,10 +41,10 @@ class UserHandler(UserInterface):
 
     def getUserByUID(self,uid):
         """ Return a User object that matches specified uid """
-        result = self.session.query(User).filter(User.user_id == uid).all()
+        query = self.session.query(User).filter(User.user_id == uid)
         # Raise exception if we did not find exactly one user
-        self.checkUnique(result,"No users with that email", "Multiple users with that email")
-        return result[0]
+        result = self.runUniqueQuery(query,"No users with that email", "Multiple users with that email")
+        return result
 
 
     def createUser(self, username):
@@ -75,10 +75,10 @@ class UserHandler(UserInterface):
 
     def getUserByEmail(self,email):
         """ Return a User object that matches specified email """
-        result = self.session.query(User).filter(User.email == email).all()
+        query = self.session.query(User).filter(User.email == email)
         # Raise exception if we did not find exactly one user
-        self.checkUnique(result,"No users with that email", "Multiple users with that email")
-        return result[0]
+        result = self.runUniqueQuery(query,"No users with that email", "Multiple users with that email")
+        return result
 
 
     def addUserInfo(self,user,name,agency,title):
@@ -181,9 +181,9 @@ class UserHandler(UserInterface):
             self.session.commit()
 
     def getPermissionId(self,permissionName):
-        result = self.session.query(PermissionType).filter(PermissionType.name == permissionName).all()
-        self.checkUnique(result,"Not a valid user type","Multiple permission entries for that type")
-        return result[0].permission_type_id
+        query = self.session.query(PermissionType).filter(PermissionType.name == permissionName)
+        result = self.runUniqueQuery(query,"Not a valid user type","Multiple permission entries for that type")
+        return result.permission_type_id
 
     def checkPassword(self,user,password,bcrypt):
         """ Given a user object and a password, verify that the password is correct.  Returns True if valid password, False otherwise. """
