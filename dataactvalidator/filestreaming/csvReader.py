@@ -42,7 +42,6 @@ class CsvReader(object):
         # make sure we have not finished reading the file
 
         if(self.isFinished) :
-            print("".join(["File was empty, unprocessed is: ",self.unprocessed,"\nCurrent line is: ",line,"\nRest of lines are: ",str(self.lines)]))
             raise ResponseException("CSV file must have a header",StatusCode.CLIENT_ERROR,ValueError,ValidationError.singleRow)
 
         #create the header

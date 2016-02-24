@@ -110,6 +110,9 @@ class Validator(object):
         Returns:
             True if data is of specified type, False otherwise
         """
+        if(data.strip() == ""):
+            # An empty string matches all types
+            return True
         if(datatype == "STRING") :
             return(len(data) > 0)
         if(datatype == "BOOLEAN") :

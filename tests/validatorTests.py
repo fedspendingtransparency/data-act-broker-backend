@@ -16,10 +16,10 @@ class ValidatorTests(unittest.TestCase) :
         assert( not Validator.checkType("1234Test","DECIMAL")), "Invalid Type"
         assert(not Validator.checkType("1234Test","BOOLEAN")), "Invalid Type"
 
-        assert(not Validator.checkType("","STRING")), "Valid Type"
+        assert(Validator.checkType("","STRING")), "Valid Type"
         assert(Validator.checkType("","INT")), "Valid Type"
         assert(Validator.checkType("","DECIMAL")), "Valid Type"
-        assert(not Validator.checkType("","BOOLEAN")), "Valid Type"
+        assert(Validator.checkType("","BOOLEAN")), "Valid Type"
 
         assert( Validator.checkType("01234","STRING")), "Valid Type"
         assert( Validator.checkType("1234","INT")), "Valid Type"
@@ -124,18 +124,18 @@ class ValidatorTests(unittest.TestCase) :
             "test4" :"1",
             "test5" :"1",
          }
-        assert( Validator.validate(record,[],schema, None,self.interfaces)[0]),"Fields are not correct type"
+        assert( Validator.validate(record,[],schema, "award",self.interfaces)[0]),"Fields are not correct type"
         record["test5"] = ""
 
 
-        assert( Validator.validate(record,[],schema, None,self.interfaces)[0]),"Blank optional field is valid"
+        assert( Validator.validate(record,[],schema, "award",self.interfaces)[0]),"Blank optional field is valid"
 
         record["test5"] = "s"
-        assert(not Validator.validate(record,[],schema, None,self.interfaces)[0]),"Incorrect Field Type for optional field"
+        assert(not Validator.validate(record,[],schema, "award",self.interfaces)[0]),"Incorrect Field Type for optional field"
 
         record["test5"] = ""
         record["test3"] = ""
-        assert(not Validator.validate(record,[],schema, None,self.interfaces)[0]),"Incorrect Field Type for field"
+        assert(not Validator.validate(record,[],schema, "award",self.interfaces)[0]),"Incorrect Field Type for field"
 
     def test_schema_rules(self):
         lessRule = RuleType()

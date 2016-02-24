@@ -136,17 +136,18 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
             raise ValueError("Filetype does not exist")
         # Get set of file columns for this file
         columns = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).all()
-        print("".join(["First id is ",str(columns[0].file_column_id)]))
         # Get list of ids for file columns
         columnIds = []
         for column in columns:
             columnIds.append(column.file_column_id)
-        # Delete all rules for those columns
-        self.session.query(Rule).filter(Rule.file_column_id.in_(columnIds)).delete(synchronize_session="fetch")
-        # Delete multi field rules
-        self.session.query(MultiFieldRule).filter(MultiFieldRule.file_id == fileId).delete(synchronize_session="fetch")
+        if(len(columnIds) > 0):
+            # Delete all rules for those columns
+            self.session.query(Rule).filter(Rule.file_column_id.in_(columnIds)).delete(synchronize_session="fetch")
+            # Delete multi field rules
+            self.session.query(MultiFieldRule).filter(MultiFieldRule.file_id == fileId).delete(synchronize_session="fetch")
 
         self.session.commit()
+        #raise Exception("Check table, rules removed for file " + str(fileId))
 
     def getFieldsByFileList(self, fileType):
         """ Returns a list of valid field names that can appear in this type of file
@@ -195,7 +196,7 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
             ID if file type found, or None if file type is not found
         """
         query = self.session.query(FileType).filter(FileType.name== filename)
-        return self.runUniqueQuery(query,"No ID for specified file type","Conflicting IDs for specified file type").file_id
+        return self.runUniqueQuery(query,"No ID for specified file type "+str(filename),"Conflicting IDs for specified file type").file_id
 
     def getRulesByFile(self, fileType) :
         """
@@ -207,12 +208,6 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
         rules = self.session.query(Rule).options(joinedload("rule_type")).options(joinedload("file_column")).filter(FileColumn.file_id == fileId).all()
-        for rule in rules:
-            if(rule.file_column == None):
-                print("Found a rule with no file column")
-                print(str(rule.file_column_id))
-                print(str(rule.rule_id))
-
         return rules
 
     def addRule(self, columnId, ruleTypeText, ruleText, description):
@@ -272,4 +267,4 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
             ID for file column if found, otherwise raises exception
         """
         column = self.session.query(FileColumn).filter(FileColumn.name == fieldName.lower()).filter(FileColumn.file_id == fileId)
-        self.runUniqueQuery(column,"No field found with that name for that file type", "Multiple fields with that name for that file type").file_column_id
+        return self.runUniqueQuery(column,"No field found with that name for that file type", "Multiple fields with that name for that file type").file_column_id
