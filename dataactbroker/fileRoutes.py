@@ -14,7 +14,7 @@ def add_file_routes(app,CreateCredentials):
     @permissions_check
     def submit_files():
         fileManager = FileHandler(request)
-        return RouteUtils.run_instance_function(fileManager, fileManager.submit, True)
+        return RouteUtils.run_instance_function(fileManager, fileManager.submit, getUser=True,getCredentials=True)
 
     @app.route("/v1/finalize_job/", methods = ["POST"])
     @permissions_check
