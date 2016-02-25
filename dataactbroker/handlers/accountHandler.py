@@ -209,11 +209,11 @@ class AccountHandler:
         if(self.interfaces.userDb.checkStatus(user,"awaiting_approval")):
             if(requestDict.getValue("new_status") == "approved"):
                 link= "".join(['<a href="', AccountHandler.FRONT_END, '">here</a>' ])
-                emailTemplate = {'[USER]': user.name, '[URL]':link,'[EMAIL]':system_email}
+                emailTemplate = {'[USER]': user.username, '[URL]':link,'[EMAIL]':system_email}
                 newEmail = sesEmail(user.email, system_email,templateType="account_approved",parameters=emailTemplate,database=self.interfaces.userDb)
                 newEmail.send()
             elif (requestDict.getValue("new_status") == "denied"):
-                emailTemplate = {'[USER]': user.name}
+                emailTemplate = {'[USER]': user.username}
                 newEmail = sesEmail(user.email, system_email,templateType="account_rejected",parameters=emailTemplate,database=self.interfaces.userDb)
                 newEmail.send()
         # Change user's status
