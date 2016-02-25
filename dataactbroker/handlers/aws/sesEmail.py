@@ -20,10 +20,12 @@ class sesEmail(object):
             template = database.getEmailTemplate(templateType)
             self.subject = template.subject
             self.content = template.content
-            #Replace values in template with values needed for this email
-            for key in parameters :
-                self.content = self.content.replace(key,parameters[key])
 
+            for key in parameters :
+                if(not parameters[key] is None) :
+                    self.content = self.content.replace(key,parameters[key])
+                else :
+                    self.content = self.content.replace(key,"")
 
     def send(self):
         connection = boto.connect_ses()

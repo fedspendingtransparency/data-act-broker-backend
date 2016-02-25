@@ -270,7 +270,11 @@ class AccountHandler:
             exc = ResponseException("Reset password route requires key 'email'",StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         # Get user object
-        user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("email"))
+        try:
+            user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("email"))
+        except Exception as e:
+            raise ValueError("Unknown Error")
+
         # Remove current password hash
         user.password_hash = None
         LoginSession.logout(session)
