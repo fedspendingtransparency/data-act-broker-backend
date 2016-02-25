@@ -2,12 +2,13 @@ import json
 import os
 import inspect
 from flask import session as flaskSession
-from aws.session import LoginSession
+from threading import Thread
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.models.userModel import UserStatus
+from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactbroker.handlers.aws.session import LoginSession
@@ -56,7 +57,11 @@ class AccountHandler:
 
             password = safeDictionary.getValue('password')
 
-            user  = self.interfaces.userDb.getUserByEmail(username)
+            try:
+                user  = self.interfaces.userDb.getUserByEmail(username)
+            except Exception as e:
+                raise ValueError("user name and or password invalid")
+
             if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
                 # We have a valid login
                 LoginSession.login(session,self.userManager.getUserByEmail(username).user_id)
@@ -95,6 +100,16 @@ class AccountHandler:
 
     def register(self,system_email,session):
         """ Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', and 'title' """
+
+        def ThreadedFunction (from_email="",username="") :
+            """This inner function sends emails in a new thread as there could be lots of admins"""
+            threadedDatabase =  UserHandler()
+            for user in threadedDatabase.getUsersByType("website_admin") :
+                emailTemplate = {'[USER]': user.name, '[USER2]':username}
+                newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=self.interfaces.userDb)
+                newEmail.send()
+            InterfaceHolder.closeOne(threadedDatabase)
+
         requestFields = RequestDictionary(self.request)
         if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("agency") and requestFields.exists("title") and requestFields.exists("password"))):
             # Missing a required field, return 400
@@ -105,11 +120,11 @@ class AccountHandler:
         # Add user info to database
         self.interfaces.userDb.addUserInfo(user,requestFields.getValue("name"),requestFields.getValue("agency"),requestFields.getValue("title"))
         self.interfaces.userDb.setPassword(user,requestFields.getValue("password"),self.bcrypt)
-        # Send email to approver
-        for user in self.interfaces.userDb.getUsersByType("website_admin") :
-            emailTemplate = {'[USER]': user.name, '[USER2]':requestFields.getValue("email")}
-            newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=self.interfaces.userDb)
-            newEmail.send()
+
+        # Send email to approver list
+        emailThread = Thread(target=ThreadedFunction, kwargs=dict(from_email=system_email,username=user.name))
+        emailThread.start()
+
         LoginSession.logout(session)
         # Mark user as awaiting approval
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
@@ -154,13 +169,13 @@ class AccountHandler:
             self.interfaces.userDb.deleteToken(token)
             #set the status
             self.interfaces.userDb.changeStatus(self.interfaces.userDb.getUserByEmail(message),"email_confirmed")
-            return JsonResponse.create(StatusCode.OK,{"message":"success"})
+            return JsonResponse.create(StatusCode.OK,{"message":"success","email":message})
         else:
             #failure but alert UI of issue
             return JsonResponse.create(StatusCode.OK,{"message":message})
 
     def checkPasswordToken(self,session):
-        """"""
+        """Checks the password token if its valid"""
         requestFields = RequestDictionary(self.request)
         if(not requestFields.exists("token")):
             exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
@@ -172,7 +187,7 @@ class AccountHandler:
             LoginSession.resetPassword(session)
             #remove token so it cant be used again
             self.interfaces.userDb.deleteToken(token)
-            return JsonResponse.create(StatusCode.OK,{"message":"success"})
+            return JsonResponse.create(StatusCode.OK,{"message":"success","email":message})
         else:
             #failure but alert UI of issue
             return JsonResponse.create(StatusCode.OK,{"message":message})

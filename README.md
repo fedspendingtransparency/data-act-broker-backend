@@ -61,6 +61,9 @@ sudo python configure.py
 | local_dynamo  | Sets if the dynamo database is on the localhost or AWS|
 | dynamo_port  | The port used for the dynamo database|
 | create_credentials  | Turns on the ability to create temporarily AWS credentials|
+| frontend_url  | The URL for the React front end|
+| security_key  | The key used to make hashes by the application|
+| system_email  | The from email address  used by the system for automated emails|
 
 The `initialize` script provides users with these choices during the install process. See the [Broker Install Guide](#install-guide) for more information.
 
@@ -194,7 +197,7 @@ Example output:
 ```
 
 #### POST "/v1/logout/"
-Logs the current user out, only the login route will be accessible until the next login.  If not logged in, just stays logged out. Returns 200 in boths cases.
+Logs the current user out, only the login route will be accessible until the next login.  If not logged in, just stays logged out. Returns 200 in both cases.
 
 Example input:
 
@@ -224,7 +227,9 @@ Example output:
 ```
 
 #### POST "/v1/register/"
-Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.
+Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.  This route can only be called after the `confirm_email_token` route. After a successful submission this route will require
+`confirm_email_token` to be called again.
+
 
 Example input:
 
@@ -247,13 +252,13 @@ Example output:
 ```
 
 #### POST "/v1/change_status/"
-Changes a user's status, used to approve or deny users.  This route requires an admin user to be logged in.  A call to this route should have JSON or form-urlencoded with keys "user_email" and "new_status".  For typical usage, "new_status" should be either "approved" or "denied".
+Changes a user's status, used to approve or deny users.  This route requires an admin user to be logged in.  A call to this route should have JSON or form-urlencoded with keys "uid" and "new_status".  For typical usage, "new_status" should be either "approved" or "denied".
 
 Example input:
 
 ```json
 {
-   "user_email":"user@agency.gov",
+   "uid":"1234",
    "new_status":"approved"
 }
 ```
@@ -286,7 +291,7 @@ Example output:
 ```
 
 #### POST "/v1/confirm_email_token/"
-Checks the token sent by email.  If successful, updates the user to email_confirmed.  A call to this route should have JSON or form-urlencoded with key "token".
+Checks the token sent by email.  If successful, updates the user to email_confirmed.  A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned.
 
 Example input:
 
@@ -296,13 +301,24 @@ Example input:
 }
 ```
 
-Example output:
+Success Example output:
 
 ```json
 {
   "message":"success"
 }
 ```
+
+Failure Example output:
+
+```json
+{
+  "message":"Link already used"
+}
+```
+
+
+
 
 #### POST "/v1/list_users_with_status/"
 List all users with specified status, typically used to review users that have applied for an account.  Requires an admin login.  A call to this route should have JSON or form-urlencoded with key "status".
@@ -319,7 +335,7 @@ Example output:
 
 ```json
 {
-  "users":[{"name":"user","email":"agency@user.gov","title":"User Title","agency":"Data Act Agency"},{"name":"user2","email":"","title":"","agency":""}]
+  "users":[{uid:1,"name":"user","email":"agency@user.gov","title":"User Title","agency":"Data Act Agency"},{uid:2,"name":"user2","email":"","title":"","agency":""}]
 }
 ```
 
@@ -339,7 +355,7 @@ Example output:
 ```
 
 #### POST "/v1/set_password/"
-Change specified user's password to new value.  User must have confirmed the token they received in same session to use this route.  A call to this route should have JSON or form-urlencoded with keys "user_email" and "password".
+Change specified user's password to new value.  User must have confirmed the token they received in same session to use this route.  A call to this route should have JSON or form-urlencoded with keys "uid" and "password".
 
 Example input:
 
@@ -580,6 +596,11 @@ The following table below show the prompts created by the setup and there usage
 |Would you like to create the dynamo database table|yes or no. Creates a table on the Dynamo Database. This command you be used **exactly once** per AWS account |
 |Would you like to include test case users | yes or no, this options adds test users. This option should **not** be selected for production|
 |Enter the admin user password| string, this is the user password needed to login into the API|
+|Enter the admin user email| string, this is the user email address needed to login into the API|
+
+
+
+
 
 
 Alternatively, if you do not need to configure everything, the following commands are also available.
