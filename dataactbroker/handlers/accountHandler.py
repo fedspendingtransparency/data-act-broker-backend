@@ -62,12 +62,18 @@ class AccountHandler:
             except Exception as e:
                 raise ValueError("user name and or password invalid")
 
-            if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
-                # We have a valid login
-                LoginSession.login(session,self.userManager.getUserByEmail(username).user_id)
-                return JsonResponse.create(StatusCode.OK,{"message":"Login successful"})
-            else :
+            if(not self.interfaces.userDb.checkStatus(user,"approved")):
                 raise ValueError("user name and or password invalid")
+
+            try:
+                if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
+                    # We have a valid login
+                    LoginSession.login(session,self.userManager.getUserByEmail(username).user_id)
+                    return JsonResponse.create(StatusCode.OK,{"message":"Login successful"})
+                else :
+                    raise ValueError("user name and or password invalid")
+            except Exception as e:
+                    raise ValueError("user name and or password invalid")
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
@@ -148,7 +154,7 @@ class AccountHandler:
                 return JsonResponse.error(exc,exc.status,{})
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"validate_email")
         LoginSession.logout(session)
-        link= "".join(['<a href="', AccountHandler.FRONT_END,'/checkemail/',emailToken ,'">here</a>' ])
+        link= "".join(['<a href="', AccountHandler.FRONT_END,'/registration/',emailToken ,'">here</a>' ])
         emailTemplate = {'[USER]': email, '[URL]':link}
         newEmail = sesEmail(email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()
@@ -283,7 +289,7 @@ class AccountHandler:
         email = requestDict.getValue("email")
         # Send email with token
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"password_reset")
-        link= "".join(['<a href="', AccountHandler.FRONT_END,'/passwordreset/',emailToken ,'">here</a>' ])
+        link= "".join(['<a href="', AccountHandler.FRONT_END,'/forgotpassword/',emailToken ,'">here</a>' ])
         emailTemplate = {'[USER]': email, '[URL]':link}
         newEmail = sesEmail(user.email, system_email,templateType="reset_password",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()
