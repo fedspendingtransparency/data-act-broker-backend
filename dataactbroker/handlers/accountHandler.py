@@ -273,7 +273,8 @@ class AccountHandler:
         try:
             user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("email"))
         except Exception as e:
-            raise ValueError("Unknown Error")
+            exc = ResponseException("Unknown Error",StatusCode.CLIENT_ERROR,ValueError)
+            return JsonResponse.error(exc,exc.status)
 
         # Remove current password hash
         user.password_hash = None
