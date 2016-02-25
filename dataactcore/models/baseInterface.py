@@ -83,6 +83,9 @@ class BaseInterface(object):
         try:
             return query.one()
         except NoResultFound as e:
+            if(noResultMessage == False):
+                # Raise the exception as is, used for specific handling
+                raise e
             raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound,10)
         except MultipleResultsFound as e:
             raise ResponseException(multipleResultMessage,StatusCode.INTERNAL_ERROR,MultipleResultsFound,10)

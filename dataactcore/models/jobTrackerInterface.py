@@ -55,7 +55,7 @@ class JobTrackerInterface(BaseInterface):
 
     def getSubmissionId(self,jobId):
         """ Find submission that this job is part of """
-        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
+        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
         return self.checkJobUnique(query).submission_id
 
     def getReportPath(self,jobId):
