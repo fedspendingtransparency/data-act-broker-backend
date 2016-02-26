@@ -9,7 +9,10 @@ from dataactbroker.handlers.userHandler import UserHandler
 class sesEmail(object):
 
     SIGNING_KEY  ="1234"
-
+    INVALID_LINK  = 1
+    LINK_EXPIRED =  2
+    LINK_ALREADY_USED = 3
+    LINK_VALID  = 0
     def __init__(self,toAddress,fromAddress,content="",subject="",templateType=None,parameters=None, database=None):
         self.toAddress = toAddress
         self.fromAddress = fromAddress
@@ -50,17 +53,17 @@ class sesEmail(object):
             saltValue = database.getTokenSalt(token)
         except MultipleResultsFound, e:
             #duplicate tokens
-            return False ,"Invalid Link"
+            return False ,"Invalid Link", sesEmail.INVALID_LINK
         except NoResultFound, e:
             #Token already used or never existed in the first place
-            return False,"Link already used"
+            return False,"Link already used",sesEmail.LINK_ALREADY_USED
         ts = URLSafeTimedSerializer(sesEmail.SIGNING_KEY)
         try:
             emailAddress = ts.loads(token, salt=saltValue[0]+token_type, max_age=86400)
-            return True,emailAddress
+            return True,emailAddress,sesEmail.LINK_VALID
         except BadSignature:
             #Token is malformed
-            return False,"Invalid Link"
+            return False,"Invalid Link",sesEmail.INVALID_LINK
         except SignatureExpired:
             #Token is to old
-            return False,"Link Expired"
+            return False,"Link Expired",sesEmail.LINK_EXPIRED

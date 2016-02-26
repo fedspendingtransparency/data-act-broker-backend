@@ -167,7 +167,7 @@ class AccountHandler:
             exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status,{})
         token = requestFields.getValue("token")
-        success,message = sesEmail.checkToken(token,self.interfaces.userDb,"validate_email")
+        success,message,errorCode = sesEmail.checkToken(token,self.interfaces.userDb,"validate_email")
         if(success):
             #mark session that email can be filled out
             LoginSession.register(session)
@@ -175,10 +175,10 @@ class AccountHandler:
             self.interfaces.userDb.deleteToken(token)
             #set the status
             self.interfaces.userDb.changeStatus(self.interfaces.userDb.getUserByEmail(message),"email_confirmed")
-            return JsonResponse.create(StatusCode.OK,{"message":"success","email":message})
+            return JsonResponse.create(StatusCode.OK,{"email":message,"errorCode":errorCode,"message":"success"})
         else:
             #failure but alert UI of issue
-            return JsonResponse.create(StatusCode.OK,{"message":message})
+            return JsonResponse.create(StatusCode.OK,{"errorCode":errorCode,"message":message})
 
     def checkPasswordToken(self,session):
         """Checks the password token if its valid"""
@@ -187,16 +187,16 @@ class AccountHandler:
             exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status,{})
         token = requestFields.getValue("token")
-        success,message = sesEmail.checkToken(token,self.interfaces.userDb,"password_reset")
+        success,message,errorCode = sesEmail.checkToken(token,self.interfaces.userDb,"password_reset")
         if(success):
             #mark session that password can be filled out
             LoginSession.resetPassword(session)
             #remove token so it cant be used again
             self.interfaces.userDb.deleteToken(token)
-            return JsonResponse.create(StatusCode.OK,{"message":"success","email":message})
+            return JsonResponse.create(StatusCode.OK,{"email":message,"errorCode":errorCode,"message":"success"})
         else:
             #failure but alert UI of issue
-            return JsonResponse.create(StatusCode.OK,{"message":message})
+            return JsonResponse.create(StatusCode.OK,{"errorCode":errorCode,"message":message})
 
 
     def changeStatus(self,system_email):

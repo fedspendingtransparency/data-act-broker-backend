@@ -291,7 +291,7 @@ Example output:
 ```
 
 #### POST "/v1/confirm_email_token/"
-Checks the token sent by email.  If successful, updates the user to email_confirmed.  A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned.
+Checks the token sent by email.  If successful, updates the user to email_confirmed.  A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned along with the error code. The email address will also be returned upon success.
 
 Example input:
 
@@ -305,7 +305,9 @@ Success Example output:
 
 ```json
 {
-  "message":"success"
+  "errorCode":0,
+  "message":"success",
+  "email" : "emailAddress@email.com"
 }
 ```
 
@@ -316,6 +318,58 @@ Failure Example output:
   "message":"Link already used"
 }
 ```
+
+The following is a table with all of the messages and error code  
+
+| ErrorCode  | Value |Message |
+| ------------- ||-------------|------------- |
+|INVALID_LINK | 1| Invalid Link|
+| LINK_EXPIRED   |2| Link Expired|
+| LINK_ALREADY_USED  |3|Link already used|
+| LINK_VALID   |0|success|
+
+
+
+
+
+
+#### POST "/v1/confirm_password_token/"
+Checks the token sent by email for password reset. A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned along with the error code. The email address will also be returned upon success.
+
+Example input:
+
+```json
+{
+   "token":"longRandomString"
+}
+```
+
+Success Example output:
+
+```json
+{
+  "errorCode":0,
+  "message":"success",
+  "email" : "emailAddress@email.com"
+}
+```
+
+Failure Example output:
+
+```json
+{
+  "message":"Link already used"
+}
+```
+
+The following is a table with all of the messages and error code  
+
+| ErrorCode  | Value |Message |
+| ------------- ||-------------|------------- |
+|INVALID_LINK | 1| Invalid Link|
+| LINK_EXPIRED   |2| Link Expired|
+| LINK_ALREADY_USED  |3|Link already used|
+| LINK_VALID   |0|success|
 
 
 
@@ -335,7 +389,7 @@ Example output:
 
 ```json
 {
-  "users":[{uid:1,"name":"user","email":"agency@user.gov","title":"User Title","agency":"Data Act Agency"},{uid:2,"name":"user2","email":"","title":"","agency":""}]
+  "users":[{"uid":1,"name":"user","email":"agency@user.gov","title":"User Title","agency":"Data Act Agency"},{"uid":2,"name":"user2","email":"","title":"","agency":""}]
 }
 ```
 

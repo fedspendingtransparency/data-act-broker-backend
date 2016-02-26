@@ -28,15 +28,15 @@ for method in loginMethods:
     # If test method, add to suite
     if(method[0:4] == "test"):
         test =LoginTests(methodName=method)
-        test.addUtils(utils)
-        suite.addTest(test)
+        #test.addUtils(utils)
+        #suite.addTest(test)
 
 for method in fileMethods:
     # If test method, add to suite
     if(method[0:4] == "test"):
         test =FileTests(methodName=method,interfaces=interfaces)
-        test.addUtils(utils)
-        suite.addTest(test)
+        #test.addUtils(utils)
+        #suite.addTest(test)
 
 for method in userMethods:
     # If test method, add to suite
