@@ -226,6 +226,33 @@ Example output:
 }
 ```
 
+#### GET "/v1/current_user/"
+Gets the information of the current that is login to the system.
+
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+    "user_id": 42,
+    "name": "John",
+    "agency": "Department of Labor",
+    "permissions" : [0,1]
+}
+```
+
+Permissions for the DATA Act Broker are list based. Each integer in the list corresponds with a permission.
+
+
+| Permission Type  | Value |
+| ------------- |-------------|
+|User| 0|
+|Admin  |1|
+
+
 #### POST "/v1/register/"
 Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.  This route can only be called after the `confirm_email_token` route. After a successful submission this route will require
 `confirm_email_token` to be called again.

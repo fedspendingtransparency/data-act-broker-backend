@@ -215,11 +215,11 @@ class AccountHandler:
         if(self.interfaces.userDb.checkStatus(user,"awaiting_approval")):
             if(requestDict.getValue("new_status") == "approved"):
                 link= "".join(['<a href="', AccountHandler.FRONT_END, '">here</a>' ])
-                emailTemplate = {'[USER]': user.username, '[URL]':link,'[EMAIL]':system_email}
+                emailTemplate = {'[USER]': user.name, '[URL]':link,'[EMAIL]':system_email}
                 newEmail = sesEmail(user.email, system_email,templateType="account_approved",parameters=emailTemplate,database=self.interfaces.userDb)
                 newEmail.send()
             elif (requestDict.getValue("new_status") == "denied"):
-                emailTemplate = {'[USER]': user.username}
+                emailTemplate = {'[USER]': user.name}
                 newEmail = sesEmail(user.email, system_email,templateType="account_rejected",parameters=emailTemplate,database=self.interfaces.userDb)
                 newEmail.send()
         # Change user's status
@@ -295,3 +295,12 @@ class AccountHandler:
         newEmail.send()
         # Return success message
         return JsonResponse.create(StatusCode.OK,{"message":"Password reset"})
+
+    def getCurrentUser(self,session):
+        uid =  session["name"]
+        user =  self.interfaces.userDb.getUserByUID(uid)
+        permissionList = []
+        for permission in self.interfaces.userDb.getPermssionList():
+            if(self.interfaces.userDb.hasPermisson(user,permission.name)):
+                permissionList.append(permission.permission_type_id)
+        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency, "permissions" : permissionList})

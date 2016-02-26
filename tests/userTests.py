@@ -221,6 +221,13 @@ class UserTests(BaseTest):
         assert(self.response.json()["errorCode"]== sesEmail.LINK_ALREADY_USED)
         self.passed = True
 
+    def test_current_user(self):
+        self.response = self.utils.getRequest("/v1/current_user/")
+        self.utils.checkResponse(self.response,StatusCode.OK)
+        assert(self.response.json()["name"]== "Mr. Manager")
+        assert(self.response.json()["agency"]== "Unknown")
+        self.passed = True
+
     def tearDown(self):
         if(not self.passed):
             print("Status is " + str(self.response.status_code))
@@ -260,6 +267,7 @@ class UserTests(BaseTest):
         admin = userDb.getUserByEmail(UserTests.CONFIG["admin_email"])
         userDb.setPassword(admin,"pass",Bcrypt())
         admin.name = "Mr. Manager"
+        admin.agency = "Unknown"
         userDb.session.commit()
         statusChangedUser = userDb.getUserByEmail(UserTests.CONFIG["change_user_email"])
         admin.name = "Mr. Manager"

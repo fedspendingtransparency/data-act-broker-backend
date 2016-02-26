@@ -1,6 +1,7 @@
 import uuid
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 from flask.ext.bcrypt import Bcrypt, generate_password_hash, check_password_hash
 from dataactcore.models.userModel import User, UserStatus, EmailToken, EmailTemplateType , EmailTemplate, PermissionType
 from dataactcore.models.userInterface import UserInterface
@@ -26,6 +27,7 @@ class UserHandler(UserInterface):
         return  self.session.query(EmailToken.salt).filter(EmailToken.token == token).one()
 
     def saveToken(self,salt,token):
+        """saves token into database"""
         newToken = EmailToken()
         newToken.salt = salt
         newToken.token = token
@@ -33,6 +35,7 @@ class UserHandler(UserInterface):
         self.session.commit()
 
     def deleteToken(self,token):
+        """deletes old token"""
         oldToken = self.session.query(EmailToken).filter(EmailToken.token == token).one()
         self.session.delete(oldToken)
         self.session.commit()
@@ -75,7 +78,7 @@ class UserHandler(UserInterface):
 
     def getUserByEmail(self,email):
         """ Return a User object that matches specified email """
-        query = self.session.query(User).filter(User.email == email)
+        query = self.session.query(User).filter(func.lower(User.email) == func.lower(email))
         # Raise exception if we did not find exactly one user
         result = self.runUniqueQuery(query,"No users with that email", "Multiple users with that email")
         return result
@@ -219,6 +222,11 @@ class UserHandler(UserInterface):
         user.salt = None
         user.password_hash = None
         self.session.commit()
+
+    def getPermssionList(self):
+        "gets the permssion list"
+        queryResult = self.session.query(PermissionType).all()
+        return queryResult
 
     def createUser(self,email,password,bcrypt,admin=False):
         """creates a valid user"""
