@@ -1,11 +1,29 @@
 from sqlalchemy.orm import subqueryload, joinedload
-from dataactcore.models import validationInterface
-from dataactcore.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType
+from sqlalchemy.orm.exc import NoResultFound
+from dataactcore.models.baseInterface import BaseInterface
+from dataactvalidator.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
-class ValidatorValidationInterface(validationInterface.ValidationInterface) :
+class ValidatorValidationInterface(BaseInterface) :
     """ Manages all interaction with the validation database """
 
+    dbName = "validation"
+    credFileName = "dbCred.json"
+    Session = None
+    engine = None
+    session = None
+
+    def __init__(self):
+        self.dbConfigFile = self.getCredFilePath()
+        super(ValidatorValidationInterface,self).__init__()
+
+    @staticmethod
+    def getDbName():
+        """ Return database name"""
+        return ValidatorValidationInterface.dbName
+
+    def getSession(self):
+        return self.session
 
     def deleteTAS(self) :
         """
@@ -196,7 +214,7 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
             ID if file type found, or None if file type is not found
         """
         query = self.session.query(FileType).filter(FileType.name== filename)
-        return self.runUniqueQuery(query,"No ID for specified file type "+str(filename),"Conflicting IDs for specified file type").file_id
+        return self.runUniqueQuery(query,"No ID for specified file type","Conflicting IDs for specified file type").file_id
 
     def getRulesByFile(self, fileType) :
         """
@@ -221,7 +239,7 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
         Returns:
             True if successful
         """
-        newRule = Rule(file_column_id = columnId, rule_type_id = RuleType.getType(ruleTypeText), rule_text_1 = ruleText, description = description)
+        newRule = Rule(file_column_id = columnId, rule_type_id = self.getRuleType(ruleTypeText), rule_text_1 = ruleText, description = description)
         self.session.add(newRule)
         self.session.commit()
         return True
@@ -239,7 +257,7 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
         Returns:
             True if successful
         """
-        newRule = MultiFieldRule(file_id = fileId, multi_field_rule_type_id = MultiFieldRuleType.getType(ruleTypeText), rule_text_1 = ruleTextOne, rule_text_2 = ruleTextTwo, description = description)
+        newRule = MultiFieldRule(file_id = fileId, multi_field_rule_type_id = self.getMultiFieldRuleType(ruleTypeText), rule_text_1 = ruleTextOne, rule_text_2 = ruleTextTwo, description = description)
         self.session.add(newRule)
         self.session.commit()
         return True
@@ -256,7 +274,7 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
         fileId = self.getFileId(fileType)
         return self.session.query(MultiFieldRule).filter(MultiFieldRule.file_id == fileId).all()
 
-    def getColumnId(self, fieldName, fileId):
+    def getColumnId(self, fieldName, fileType):
         """ Find file column given field name and file type
 
         Args:
@@ -266,5 +284,67 @@ class ValidatorValidationInterface(validationInterface.ValidationInterface) :
         Returns:
             ID for file column if found, otherwise raises exception
         """
+        fileId = self.getFileId(fileType)
         column = self.session.query(FileColumn).filter(FileColumn.name == fieldName.lower()).filter(FileColumn.file_id == fileId)
         return self.runUniqueQuery(column,"No field found with that name for that file type", "Multiple fields with that name for that file type").file_column_id
+
+    def getColumnLength(self,fieldName, fileId):
+        """ If there is a length rule for this field, return the max length.  Otherwise, return None. """
+        columnId = self.getColumnId(fieldName,fileId)
+        # Get length rules for this column
+        query = self.session.query(Rule).filter(Rule.file_column_id == columnId).filter(Rule.rule_type_id == 6)
+        try:
+            rule = self.runUniqueQuery(query,False,"Multiple length rules for this column")
+        except NoResultFound as e:
+            # No length rule for this column
+            return None
+        return int(float(rule.rule_text_1)) # Going through float in case of decimal value
+
+    def getRuleType(self,typeName):
+        if(RuleType.TYPE_DICT == None):
+            RuleType.TYPE_DICT = {}
+            # Pull status values out of DB
+            for ruleType in RuleType.TYPE_LIST:
+                RuleType.TYPE_DICT[ruleType] = self.setRuleType(ruleType)
+        if(not typeName in RuleType.TYPE_DICT):
+            raise ValueError("Not a valid rule type")
+        return RuleType.TYPE_DICT[typeName]
+
+    def setRuleType(self,name):
+        """  Get an id for specified type, if not unique throw an exception
+
+        Arguments:
+        name -- Name of type to get an id for
+
+        Returns:
+        type_id of the specified type
+        """
+        queryResult = self.session.query(RuleType.rule_type_id).filter(RuleType.name==name).one()
+        return queryResult.rule_type_id
+
+    def getMultiFieldRuleType(self,typeName):
+        typeName = typeName.upper()
+        if(MultiFieldRuleType.TYPE_DICT == None):
+            MultiFieldRuleType.TYPE_DICT = {}
+            # Pull status values out of DB
+            for type in MultiFieldRuleType.TYPE_LIST:
+                MultiFieldRuleType.TYPE_DICT[type] = self.setMultiFieldRuleType(type)
+        if(not typeName in MultiFieldRuleType.TYPE_DICT):
+            print(typeName + " was not in " + str(MultiFieldRuleType.TYPE_DICT))
+            raise ValueError("Not a valid multi field rule type")
+        return MultiFieldRuleType.TYPE_DICT[typeName]
+
+    def setMultiFieldRuleType(self,name):
+        """  Get an id for specified type, if not unique throw an exception
+
+        Arguments:
+        name -- Name of type to get an id for
+
+        Returns:
+        type_id of the specified type
+        """
+        queryResult = self.session.query(MultiFieldRuleType.multi_field_rule_type_id).filter(MultiFieldRuleType.name==name).one()
+        return queryResult.multi_field_rule_type_id
+
+    def populateFile(self,column):
+        column.file = self.session.query(FileType).filter(FileType.file_id == column.file_id)[0]

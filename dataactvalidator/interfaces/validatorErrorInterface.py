@@ -1,8 +1,8 @@
-from dataactcore.models.errorModels import FileStatus, ErrorData, ErrorType, Status
-from dataactcore.models import errorInterface
+from dataactcore.models.errorModels import FileStatus, ErrorData
+from dataactcore.models.errorInterface import ErrorInterface
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
-class ValidatorErrorInterface(errorInterface.ErrorInterface):
+class ValidatorErrorInterface(ErrorInterface):
     """ Manages communication with the error database """
 
     def __init__(self):
@@ -26,7 +26,7 @@ class ValidatorErrorInterface(errorInterface.ErrorInterface):
         except:
             raise ValueError("".join(["Bad jobId: ",str(jobId)]))
 
-        fileError = FileStatus(job_id = jobId, filename = filename, status_id = Status.getStatus(ValidationError.getErrorTypeString(errorType)))
+        fileError = FileStatus(job_id = jobId, filename = filename, status_id = self.getStatusId(ValidationError.getErrorTypeString(errorType)))
 
         self.session.add(fileError)
         self.session.commit()
@@ -43,7 +43,7 @@ class ValidatorErrorInterface(errorInterface.ErrorInterface):
             True if successful
         """
 
-        fileComplete = FileStatus(job_id = jobId, filename = filename, status_id = Status.getStatus("complete"))
+        fileComplete = FileStatus(job_id = jobId, filename = filename, status_id = self.getStatusId("complete"))
         self.session.add(fileComplete)
         self.session.commit()
         return True
@@ -94,7 +94,7 @@ class ValidatorErrorInterface(errorInterface.ErrorInterface):
             else:
                 # This happens if cast to int was successful
                 errorString = ValidationError.getErrorTypeString(errorType)
-                errorId = ErrorType.getType(errorString)
+                errorId = self.getTypeId(errorString)
                 # Create error data
                 errorRow = ErrorData(job_id = thisJob, filename = errorDict["filename"], field_name = fieldName, error_type_id = errorId, occurrences = errorDict["numErrors"], first_row = errorDict["firstRow"])
 

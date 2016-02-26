@@ -1,10 +1,10 @@
-from dataactcore.models import jobTrackerInterface
-from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type, Resource
+from dataactcore.models.jobTrackerInterface import JobTrackerInterface
+from dataactcore.models.jobModels import JobStatus, JobDependency
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
-class ValidatorJobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
+class ValidatorJobTrackerInterface(JobTrackerInterface):
     """ Manages all interaction with the job tracker database """
 
     def runChecks(self,jobId):
@@ -32,7 +32,7 @@ class ValidatorJobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
         query = self.session.query(JobStatus.status_id).filter(JobStatus.job_id == jobId)
         result = self.checkJobUnique(query)
         # Found a unique job
-        if(result.status_id != Status.getStatus("ready")):
+        if(result.status_id != self.getStatusId("ready")):
             # Job is not ready
             # Job manager is not yet implemented, so for now doesn't have to be ready
             return True
@@ -57,7 +57,7 @@ class ValidatorJobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
             query = self.session.query(JobStatus).filter(JobStatus.job_id == prereq.prerequisite_id)
             result = self.checkJobUnique(query)
             # Found a unique job
-            if(result.status_id != Status.getStatus("finished")):
+            if(result.status_id != self.getStatusId("finished")):
                 # Prerequisite not complete
                 raise ResponseException("Prerequisites incomplete, job cannot be started",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
 
@@ -90,7 +90,7 @@ class ValidatorJobTrackerInterface(jobTrackerInterface.JobTrackerInterface):
         """
         query = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId)
         result = self.checkJobUnique(query)
-        if(result.type_id == Type.getType("csv_record_validation")):
+        if(result.type_id == self.getTypeId("csv_record_validation")):
             # Correct type
             return True
         else:

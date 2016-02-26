@@ -1,10 +1,24 @@
 from sqlalchemy.exc import ResourceClosedError
-from dataactcore.models.stagingInterface import StagingInterface as BaseStagingInterface
+from dataactcore.models.baseInterface import BaseInterface
 
-class ValidatorStagingInterface(BaseStagingInterface):
+class ValidatorStagingInterface(BaseInterface):
     """ Manages all interaction with the staging database """
 
-    #@staticmethod
+    dbName = "staging"
+    credFileName = "dbCred.json"
+    Session = None
+    engine = None
+    session = None
+
+    def __init__(self):
+        self.dbConfigFile = self.getCredFilePath()
+        super(ValidatorStagingInterface,self).__init__()
+
+    @staticmethod
+    def getDbName():
+        """ Return database name"""
+        return ValidatorStagingInterface.dbName
+
     def dropTable(self,table):
         """
 

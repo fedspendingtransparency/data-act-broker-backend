@@ -30,7 +30,7 @@ class ConfigureValidator(object):
     @staticmethod
     def questionPrompt(question):
         "Creates a yes/no question propt"
-        response = raw_input(question)
+        response = input(question)
         if(response.lower() =="y" or response.lower() =="yes" ):
             return True
         return False
@@ -38,30 +38,35 @@ class ConfigureValidator(object):
 
     @staticmethod
     def promptForAppropriations():
-        if(ConfigureValidator.questionPrompt("Would you like to configure your appropriations rules? (y/n) : ")):
-            path = raw_input("Enter the full file path for your schema (appropriationsFields.csv) : " ).strip()
+        validInput = False
+        while((not validInput) and ConfigureValidator.questionPrompt("Would you like to configure your appropriations rules? (y/n) : ")):
+            path = input("Enter the full file path for your schema (appropriationsFields.csv) : " ).strip()
             try :
                 SchemaLoader.loadFields("appropriations",path)
+                validInput = True
             except IOError as e:
                 print("Cant open file")
             except Exception as e:
                   print("Unexpected error:", sys.exc_info()[0])
-            path = raw_input("Enter the full file path for your rules (appropriationsRules.csv) :  " ).strip()
+            path = input("Enter the full file path for your rules (appropriationsRules.csv) :  " ).strip()
 
             try :
                 SchemaLoader.loadRules("appropriations",path)
+                validInput = True
             except IOError as e:
                 print("Cant open file")
             except Exception as e:
                   print("Unexpected error:", sys.exc_info()[0])
     @staticmethod
     def promptForTAS():
-        if(ConfigureValidator.questionPrompt("Would you like to add a new TAS File? (y/n) : ")):
+        validInput = False
+        while((not validInput) and ConfigureValidator.questionPrompt("Would you like to add a new TAS File? (y/n) : ")):
 
-            path = raw_input("Enter the full file path for your TAS data (all_tas_betc.csv) : " ).strip()
+            path = input("Enter the full file path for your TAS data (all_tas_betc.csv) : " ).strip()
             try :
                 TASLoader.loadFields(path)
                 setupTASIndexs()
+                validInput = True
             except IOError as e:
                 print("Cant open file")
             except Exception as e:
@@ -72,7 +77,7 @@ class ConfigureValidator(object):
         debugMode = False
         traceMode = False
         if(ConfigureValidator.questionPrompt("Would you like to configure your validator web service? (y/n) : ")):
-            port = raw_input("Enter web service port :")
+            port = input("Enter web service port :")
 
             if(ConfigureValidator.questionPrompt("Would you like to enable server side debuging (y/n) : ")):
                 debugMode = True

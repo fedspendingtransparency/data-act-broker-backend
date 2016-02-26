@@ -56,7 +56,7 @@ class SchemaLoader(object):
         for record in reader:
             if(FieldCleaner.cleanString(record["is_single_field"]) == "true"):
                 # Find column ID based on field name
-                columnId = validationDb.getColumnId(FieldCleaner.cleanString(record["field_name"]),fileId)
+                columnId = validationDb.getColumnId(FieldCleaner.cleanString(record["field_name"]),fileTypeName)
                 # Write to rule table
                 validationDb.addRule(columnId,record["rule_type"],record["rule_text_one"],record["description"])
             else:

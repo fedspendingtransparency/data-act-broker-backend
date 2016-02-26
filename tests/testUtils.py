@@ -18,13 +18,13 @@ class TestUtils(object):
     JSON_HEADER = {"Content-Type": "application/json"}
 
     @staticmethod
-    def createJobStatement(status, type, submission, s3Filename, fileType):
+    def createJobStatement(status, jobType, submission, s3Filename, fileType):
         """ Build SQL statement to create a job  """
-        return "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + status + "," + type + "," + submission + ", '" + s3Filename + "',"+ fileType +") RETURNING job_id"
+        return "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}') RETURNING job_id".format(status, jobType, submission, s3Filename, fileType)
 
     @staticmethod
     def createColumnStatement(file_id, field_type, columnName, description, required):
-        return "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES (" + str(file_id) + ", " + str(field_type) + ", '" + columnName + "', '" + description + "', " + str(required) + ") RETURNING file_column_id"
+        return "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}') RETURNING file_column_id".format(str(file_id), str(field_type), columnName, description, str(required))
 
     @staticmethod
     def insertSubmission(jobTracker):
@@ -69,7 +69,7 @@ class TestUtils(object):
         assert(response.status_code == statusId)
         if(statusName != False):
             TestUtils.waitOnJob(jobTracker, jobId, statusName)
-            assert(jobTracker.getStatus(jobId) == Status.getStatus(statusName))
+            assert(jobTracker.getStatus(jobId) == jobTracker.getStatusId(statusName))
 
         TestUtils.assertHeader(response)
 
@@ -84,7 +84,7 @@ class TestUtils(object):
             assert(stagingDb.tableExists(tableName) == True)
             assert(stagingDb.countRows(tableName) == stagingRows)
         errorInterface = interfaces.errorDb
-        assert(errorInterface.checkStatusByJobId(jobId) == errorModels.Status.getStatus(errorStatus))
+        assert(errorInterface.checkStatusByJobId(jobId) == errorInterface.getStatusId(errorStatus))
         assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == numErrors)
         return True
 
@@ -97,8 +97,8 @@ class TestUtils(object):
     @staticmethod
     def waitOnJob(jobTracker, jobId, status):
         """ Wait until job gets set to the correct status in job tracker, this is done to wait for validation to complete when running tests """
-        currentID = Status.getStatus("running")
-        targetStatus = Status.getStatus(status)
+        currentID = jobTracker.getStatusId("running")
+        targetStatus = jobTracker.getStatusId(status)
         if TestUtils.USE_THREADS:
             while jobTracker.getStatus(jobId) == currentID:
                 time.sleep(1)

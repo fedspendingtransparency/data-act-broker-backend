@@ -1,15 +1,14 @@
 import re
-from dataactcore.models.validationModels import TASLookup
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.models.validationModels import TASLookup
 
 class Validator(object):
     """
     Checks individual records against specified validation tests
     """
-    FIELD_LENGTH = {"allocationtransferrecipientagencyid":3, "appropriationaccountresponsibleagencyid":3, "obligationavailabilityperiodstartfiscalyear":4, "obligationavailabilityperiodendfiscalyear":4,"appropriationmainaccountcode":4, "appropriationsubaccountcode":3, "obligationunlimitedavailabilityperiodindicator":1}
+    BOOLEAN_VALUES = ["TRUE","FALSE","YES","NO","1","0"]
 
     @staticmethod
     def validate(record,rules,csvSchema,fileType,interfaces):
@@ -72,7 +71,7 @@ class Validator(object):
         # Check all multi field rules for this file type
         multiFieldRules = interfaces.validationDb.getMultiFieldRulesByFile(fileType)
         for rule in multiFieldRules:
-            if not Validator.evaluateMultiFieldRule(rule,record,interfaces):
+            if not Validator.evaluateMultiFieldRule(rule,record,interfaces,fileType):
                 recordFailed = True
                 failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule,record)])
 
@@ -116,7 +115,7 @@ class Validator(object):
         if(datatype == "STRING") :
             return(len(data) > 0)
         if(datatype == "BOOLEAN") :
-            if(data.upper() in ["TRUE","FALSE","YES","NO","1","0"]) :
+            if(data.upper() in Validator.BOOLEAN_VALUES) :
                 return True
             return False
         if(datatype == "INT") :
@@ -193,19 +192,18 @@ class Validator(object):
             # Type checks happen earlier, but type rule is still included in rule set, so skip it
             return True
         elif(currentRuleType == "IN_SET"):
-            setList = value1.split(",")
-            for i in range(0,len(setList)):
-                setList[i] = setList[i].strip()
+            setList = Validator.cleanSplit(value1,toLower = False)
             return (data in setList)
         raise ValueError("Rule Type Invalid")
 
     @staticmethod
-    def evaluateMultiFieldRule(rule, record, interfaces):
+    def evaluateMultiFieldRule(rule, record, interfaces, fileType):
         """ Check a rule involving more than one field of a record
 
         Args:
             rule: MultiFieldRule object to check against
             record: Record to be checked
+            fileType: File type being checked
 
         Returns:
             True if rule passes, False otherwise
@@ -217,17 +215,19 @@ class Validator(object):
             tasFields = Validator.cleanSplit(rule.rule_text_2)
             if(len(fieldsToCheck) != len(tasFields)):
                 raise ResponseException("Number of fields to check does not match number of fields checked against",StatusCode.CLIENT_ERROR,ValueError)
-            return Validator.validateTAS(fieldsToCheck, tasFields, record, interfaces)
+            return Validator.validateTAS(fieldsToCheck, tasFields, record, interfaces, fileType)
         else:
             raise ResponseException("Bad rule type for multi-field rule",StatusCode.INTERNAL_ERROR)
 
     @staticmethod
-    def cleanSplit(string):
+    def cleanSplit(string, toLower = True):
         """ Split string on commas and remove whitespace around each element"""
-        string = string.split(",")
-        for i in range(0,len(string)):
-            string[i] = string[i].lower().strip()
-        return string
+        stringList = string.split(",")
+        for i in range(0,len(stringList)):
+            stringList[i] = stringList[i].strip()
+            if(toLower):
+                stringList[i] = stringList[i].lower()
+        return stringList
 
     @staticmethod
     def getMultiValues(rule,record):
@@ -248,22 +248,22 @@ class Validator(object):
                 # For concatenating fields, represent None with an empty string
                 value = ""
             output = "".join([output,field,": ",value,", "])
-        return output[0:len(output)-2]
+        return output[:-2]
 
     @staticmethod
-    def validateTAS(fieldsToCheck, tasFields, record, interfaces):
+    def validateTAS(fieldsToCheck, tasFields, record, interfaces, fileType):
         """ Check for presence of TAS for specified record in TASLookup table
 
         Args:
             fieldsToCheck: Set of fields involved in TAS check
             tasFields: Corresponding field names in TASLookup table
             record: Record to check TAS for
+            fileType: File type being checked
 
         Returns:
             True if TAS is in CARS, False otherwise
         """
         query = interfaces.validationDb.session.query(TASLookup)
-        queryResult = query.all()
 
         for i in range(0,len(fieldsToCheck)):
             data = record[str(fieldsToCheck[i])]
@@ -272,14 +272,8 @@ class Validator(object):
                 data = ""
             field = fieldsToCheck[i].lower()
             # Pad field with leading zeros
-            if field in Validator.FIELD_LENGTH:
-                length = Validator.FIELD_LENGTH[field]
-                if len(data) < length:
-                    numZeros = length - len(data)
-                    zeroString = ""
-                    for j in range(0,numZeros):
-                        zeroString = "".join([zeroString,"0"])
-                    data = "".join([zeroString,data])
+            length = interfaces.validationDb.getColumnLength(field, fileType)
+            data = data.zfill(length)
             query = query.filter(TASLookup.__dict__[tasFields[i]] == data)
 
         queryResult = query.all()

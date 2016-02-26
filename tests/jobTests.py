@@ -2,11 +2,11 @@ import unittest
 import json
 from sqlalchemy.exc import InvalidRequestError
 from testUtils import TestUtils
-from dataactcore.models.jobModels import Status, Type
+from dataactcore.models.jobModels import Status
 from dataactcore.scripts.databaseSetup import runCommands
-from dataactcore.scripts.setupValidationDB import setupValidationDB
 from dataactcore.scripts.clearErrors import clearErrors
 from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
+from dataactvalidator.scripts.setupValidationDB import setupValidationDB
 
 class JobTests(unittest.TestCase):
 
@@ -78,21 +78,30 @@ class JobTests(unittest.TestCase):
                         "rules":{"filename":"testRules.csv","status":"ready","type":"csv_record_validation","submissionLocalId":16,"fileType":3}}
 
             # Upload needed files to S3
+            print("Uploading files")
             for key in csvFiles.keys():
                 csvFiles[key]["s3Filename"] = TestUtils.uploadFile(csvFiles[key]["filename"],user)
 
             self.jobIdDict = {}
 
             sqlStatements = []
+            print("Inserting jobs")
             for key in csvFiles.keys():
                 # Create SQL statement and add to list
-                statement = TestUtils.createJobStatement(str(Status.getStatus(csvFiles[key]["status"])), str(Type.getType(csvFiles[key]["type"])), str(submissionIDs[csvFiles[key]["submissionLocalId"]]), csvFiles[key]["s3Filename"], str(csvFiles[key]["fileType"]))
-                jobId = self.jobTracker.runStatement(statement)
+                statement = TestUtils.createJobStatement(str(self.jobTracker.getStatusId(csvFiles[key]["status"])), str(self.jobTracker.getTypeId(csvFiles[key]["type"])), str(submissionIDs[csvFiles[key]["submissionLocalId"]]), csvFiles[key]["s3Filename"], str(csvFiles[key]["fileType"]))
+                try:
+                    jobId = self.jobTracker.runStatement(statement)
+                except Exception as e:
+                    print("SQL statement failed")
+                    print(str(e))
+                    print("".join(["csvFile key: ",str(key),", entry: ",str(csvFiles[key])]))
+                    raise e
                 try:
                     self.jobIdDict[key] = jobId.fetchone()[0]
-                except InvalidRequestError:
+                except InvalidRequestError as e:
                     # Problem getting result back, may happen for dependency statements
-                    pass
+                    print("Problem getting job ID")
+                    print(str(e))
 
 
             print(str(self.jobIdDict))

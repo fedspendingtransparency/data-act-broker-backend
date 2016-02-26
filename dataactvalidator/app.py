@@ -44,11 +44,11 @@ def runApp():
             jobTracker = interfaces.jobDb
         except ResponseException as e:
             open("errorLog","a").write(str(e) + "\n")
-            return JsonResponse.error(e,e.status,{"table":"cannot connect to job database"})
+            return JsonResponse.error(e,e.status,table = "cannot connect to job database")
         except Exception as e:
             open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-            return JsonResponse.error(exc,exc.status,{"table":"cannot connect to job database"})
+            return JsonResponse.error(exc,exc.status,table= "cannot connect to job database")
 
         jobId = None
         manager = ValidationManager()
@@ -58,12 +58,12 @@ def runApp():
         except ResponseException as e:
             open("errorLog","a").write(str(e) + "\n")
             manager.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,manager.filename)
-            return JsonResponse.error(e,e.status,{"table":""})
+            return JsonResponse.error(e,e.status,table ="")
         except Exception as e:
             open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
             manager.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,manager.filename)
-            return JsonResponse.error(exc,exc.status,{"table":""})
+            return JsonResponse.error(exc,exc.status,table="")
 
         try:
             manager.testJobID(jobId,interfaces)
@@ -71,12 +71,12 @@ def runApp():
             open("errorLog","a").write(str(e) + "\n")
             # Job is not ready to run according to job tracker, do not change status of job in job tracker
             interfaces.errorDb.writeFileError(jobId,manager.filename,ValidationError.jobError)
-            return JsonResponse.error(e,e.status,{"table":""})
+            return JsonResponse.error(e,e.status,table="")
         except Exception as e:
             open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
             interfaces.errorDb.writeFileError(jobId,manager.filename,ValidationError.jobError)
-            return JsonResponse.error(exc,exc.status,{"table":""})
+            return JsonResponse.error(exc,exc.status,table="")
 
         thread = Thread(target=ThreadedFunction, args= (jobId,))
 
@@ -85,7 +85,7 @@ def runApp():
         except Exception as e:
             open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-            return JsonResponse.error(exc,exc.status,{"table":"could not start job"})
+            return JsonResponse.error(exc,exc.status,table="could not start job")
 
         interfaces.close()
         thread.start()
@@ -102,7 +102,7 @@ def runApp():
             # Something went wrong getting the flask request
             open("errorLog","a").write(str(e) + "\n")
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-            return JsonResponse.error(exc,exc.status,{"table":""})
+            return JsonResponse.error(exc,exc.status,table="")
         finally:
             interfaces.close()
 
