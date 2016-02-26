@@ -315,6 +315,7 @@ Failure Example output:
 
 ```json
 {
+  "errorCode":3,
   "message":"Link already used"
 }
 ```
@@ -358,6 +359,7 @@ Failure Example output:
 
 ```json
 {
+  "errorCode":3,
   "message":"Link already used"
 }
 ```
