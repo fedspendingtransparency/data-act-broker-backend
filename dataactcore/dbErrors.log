@@ -1,6 +1,0 @@
-Error exists on line 28, (<type 'exceptions.ValueError'>,)
-  File "C:/Users/jworcest/Documents/dataactcore/dataactcore/scripts/clearErrors.py", line 28, in clearErrors
-    raise ValueError("Error exists on line 28")
-Error exists on line 28, (<type 'exceptions.ValueError'>,)
-  File "C:/Users/jworcest/Documents/dataactcore/dataactcore/scripts/clearErrors.py", line 28, in clearErrors
-    raise ValueError("Error exists on line 28")
