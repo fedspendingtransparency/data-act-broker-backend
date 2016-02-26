@@ -120,7 +120,7 @@ class AccountHandler:
         if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("agency") and requestFields.exists("title") and requestFields.exists("password"))):
             # Missing a required field, return 400
             exc = ResponseException("Request body must include email, name, agency, title, and password", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status,{})
+            return JsonResponse.error(exc,exc.status)
         # Find user that matches specified email
         user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
         # Add user info to database
@@ -142,7 +142,7 @@ class AccountHandler:
         requestFields = RequestDictionary(self.request)
         if(not requestFields.exists("email")):
             exc = ResponseException("Request body must include email", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status,{})
+            return JsonResponse.error(exc,exc.status)
         email = requestFields.getValue("email")
         try :
             user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
@@ -151,7 +151,7 @@ class AccountHandler:
         else:
             if(not (user.user_status_id == UserStatus.getStatus("awaiting_confirmation") or user.user_status_id == UserStatus.getStatus("email_confirmed"))):
                 exc = ResponseException("User already registered", StatusCode.CLIENT_ERROR)
-                return JsonResponse.error(exc,exc.status,{})
+                return JsonResponse.error(exc,exc.status)
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"validate_email")
         LoginSession.logout(session)
         link= "".join(['<a href="', AccountHandler.FRONT_END,'/registration/',emailToken ,'">here</a>' ])
@@ -165,7 +165,7 @@ class AccountHandler:
         requestFields = RequestDictionary(self.request)
         if(not requestFields.exists("token")):
             exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status,{})
+            return JsonResponse.error(exc,exc.status)
         token = requestFields.getValue("token")
         success,message = sesEmail.checkToken(token,self.interfaces.userDb,"validate_email")
         if(success):
@@ -185,7 +185,7 @@ class AccountHandler:
         requestFields = RequestDictionary(self.request)
         if(not requestFields.exists("token")):
             exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status,{})
+            return JsonResponse.error(exc,exc.status)
         token = requestFields.getValue("token")
         success,message = sesEmail.checkToken(token,self.interfaces.userDb,"password_reset")
         if(success):
@@ -205,7 +205,7 @@ class AccountHandler:
         if(not (requestDict.exists("uid") and requestDict.exists("new_status"))):
             # Missing a required field, return 400
             exc = ResponseException("Request body must include uid and new_status", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status,{})
+            return JsonResponse.error(exc,exc.status)
 
         # Find user that matches specified uid
         print requestDict.getValue("uid")
