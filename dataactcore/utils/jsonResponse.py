@@ -25,20 +25,20 @@ class JsonResponse :
         return jsondata
 
     @staticmethod
-    def error(exception, errorCode, extraDict = {}):
+    def error(exception, errorCode, **kwargs):
         """ Create an http response object for specified error
 
         Args:
             exception: Exception to be represented by response object
             errorCode: Status code to be used in response
-            extraDict: Extra fields and values to be included in response
+            kwargs: Extra fields and values to be included in response
 
         Returns:
             Http response object containing specified error
         """
         responseDict = {}
-        for key in extraDict:
-            responseDict[key] = extraDict[key]
+        for key in kwargs:
+            responseDict[key] = kwargs[key]
         if(JsonResponse.debugMode):
             responseDict["message"] = str(exception)
             responseDict["errorType"] = str(type(exception))

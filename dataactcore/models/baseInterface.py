@@ -1,7 +1,9 @@
 import sqlalchemy
 import json
 import os
+import sys
 import inspect
+import traceback
 from flask import _app_ctx_stack
 from sqlalchemy.orm import sessionmaker , scoped_session
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
@@ -16,6 +18,7 @@ class BaseInterface(object):
     dbConfigFile = None # Should be overwritten by child classes
     dbName = None # Should be overwritten by child classes
     credFileName = None
+    logFileName = "dbErrors.log"
 
     def __init__(self):
         if(self.session != None):
@@ -63,6 +66,22 @@ class BaseInterface(object):
         lastForwardSlash = path.rfind("/",0,-1)
         lastSlash = max([lastBackSlash,lastForwardSlash])
         return path[0:lastSlash] + "/credentials/" + cls.credFileName
+
+    @staticmethod
+    def getLogFilePath():
+        """  Returns full path to credentials file """
+        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        lastBackSlash = path.rfind("\\",0,-1)
+        lastForwardSlash = path.rfind("/",0,-1)
+        lastSlash = max([lastBackSlash,lastForwardSlash])
+        return path[0:lastSlash] + "/" + BaseInterface.logFileName
+
+    @staticmethod
+    def logDbError(exc):
+        file = open(BaseInterface.getLogFilePath(),"a")
+        file.write(str(exc) + ", ")
+        file.write(str(sys.exc_info()[0:1]) + "\n")
+        traceback.print_tb(sys.exc_info()[2],file=file)
 
     @staticmethod
     def checkUnique(queryResult, noResultMessage, multipleResultMessage):

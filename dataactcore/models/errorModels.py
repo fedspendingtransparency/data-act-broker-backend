@@ -3,6 +3,7 @@
 from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from dataactcore.models import errorInterface
 
 Base = declarative_base()
 class Status(Base):
@@ -20,8 +21,7 @@ class Status(Base):
             Status.STATUS_DICT = {}
             # Pull status values out of DB
 
-            from dataactcore.models.errorInterface import ErrorInterface
-            Status.session = ErrorInterface().Session()
+            Status.session = errorInterface.ErrorInterface().Session()
             queryResult = Status.session.query(Status).all()
 
             for status in queryResult:
@@ -46,8 +46,7 @@ class ErrorType(Base):
         if(ErrorType.TYPE_DICT == None):
             ErrorType.TYPE_DICT = {}
             # Pull status values out of DB:
-            from dataactcore.models.errorInterface import ErrorInterface
-            ErrorType.session = ErrorInterface().Session()
+            ErrorType.session = errorInterface.ErrorInterface().Session()
             queryResult = ErrorType.session.query(ErrorType).all()
 
             for type in queryResult:

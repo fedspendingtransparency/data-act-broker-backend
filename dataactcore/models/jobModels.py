@@ -3,6 +3,7 @@
 from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from dataactcore.models import jobTrackerInterface
 
 Base = declarative_base()
 
@@ -21,8 +22,7 @@ class Status(Base):
             Status.STATUS_DICT = {}
             # Pull status values out of DB
             # Create new session for this
-            from dataactcore.models.jobTrackerInterface import JobTrackerInterface
-            Status.session = JobTrackerInterface().Session() # Create new session
+            Status.session = jobTrackerInterface.JobTrackerInterface().Session() # Create new session
             queryResult = Status.session.query(Status).all()
             for status in queryResult:
                 Status.STATUS_DICT[status.name] = status.status_id
@@ -42,8 +42,8 @@ class Type(Base):
         if(Type.TYPE_DICT == None):
             Type.TYPE_DICT = {}
             # Pull status values out of DB
-            for type in Type.TYPE_LIST:
-                Type.TYPE_DICT[type] = Type.setType(type)
+            for jobType in Type.TYPE_LIST:
+                Type.TYPE_DICT[jobType] = Type.setType(jobType)
         if(not typeName in Type.TYPE_DICT):
             raise ValueError("Not a valid job type")
         return Type.TYPE_DICT[typeName]
@@ -59,8 +59,7 @@ class Type(Base):
         type_id of the specified type
         """
         # Create new session for this
-        from dataactcore.models.jobTrackerInterface import JobTrackerInterface
-        Status.session = JobTrackerInterface().Session()
+        Status.session = jobTrackerInterface.JobTrackerInterface().Session()
         queryResult = Status.session.query(Type.type_id).filter(Type.name==name).all()
         Status.session.close()
         if(len(queryResult) != 1):

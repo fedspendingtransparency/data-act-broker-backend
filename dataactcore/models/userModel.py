@@ -2,6 +2,7 @@
 
 from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
+from dataactcore.models import userInterface
 
 Base = declarative_base()
 class User(Base):
@@ -39,8 +40,7 @@ class UserStatus(Base):
             UserStatus.STATUS_DICT = {}
             # Pull status values out of DB
             # Create new session for this
-            from dataactcore.models.userInterface import UserInterface
-            UserStatus.session = UserInterface().Session() # Create new session
+            UserStatus.session = userInterface.UserInterface().Session() # Create new session
             queryResult = UserStatus.session.query(UserStatus).all()
             for status in queryResult:
                 UserStatus.STATUS_DICT[status.name] = status.user_status_id

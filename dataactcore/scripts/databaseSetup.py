@@ -1,5 +1,6 @@
 import sqlalchemy
 from sqlalchemy.exc import ProgrammingError, IntegrityError
+from dataactcore.models.baseInterface import BaseInterface
 
 def runCommands(credDict, sqlCommands, dbName, connection = None):
     """ Apply commands to specified database """
@@ -14,8 +15,8 @@ def runCommands(credDict, sqlCommands, dbName, connection = None):
         connect.close()
     except ProgrammingError as e:
         # Happens if DB exists, just print and carry on
-        # print(e.message)
-        pass
+        BaseInterface.logDbError(e)
+
     if(connection == None):
         engine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+dbName)
         connection = engine.connect()
@@ -25,6 +26,5 @@ def runCommands(credDict, sqlCommands, dbName, connection = None):
             connection.execute(statement)
         except (ProgrammingError, IntegrityError) as e:
             # Usually a table exists error, print and continue
-            print(e.message)
-            pass
+            BaseInterface.logDbError(e)
     connection.close()
