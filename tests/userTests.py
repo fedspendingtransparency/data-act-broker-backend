@@ -164,6 +164,7 @@ class UserTests(BaseTest):
         self.response = self.utils.postRequest("/v1/confirm_email_token/",json)
         self.utils.checkResponse(self.response,StatusCode.OK)
         assert(self.response.json()["message"]== "Link already used")
+        assert(self.response.json()["errorCode"]== sesEmail.LINK_ALREADY_USED)
         self.passed = True
 
     def test_check_email_token(self):
@@ -175,6 +176,7 @@ class UserTests(BaseTest):
         self.response = self.utils.postRequest("/v1/confirm_email_token/",json)
         self.utils.checkResponse(self.response,StatusCode.OK)
         assert(self.response.json()["message"]== "success")
+        assert(self.response.json()["errorCode"]== sesEmail.LINK_VALID)
         self.passed = True
 
     def test_password_reset_email(self):
@@ -190,6 +192,7 @@ class UserTests(BaseTest):
         self.response = self.utils.postRequest("/v1/confirm_password_token/",json)
         self.utils.checkResponse(self.response,StatusCode.OK)
         assert(self.response.json()["message"]== "success")
+        assert(self.response.json()["errorCode"]== sesEmail.LINK_VALID)
 
         json = '{"user_email":"'+email+'","password":"pass"}'
         self.response = self.utils.postRequest("/v1/set_password/",json)
@@ -207,12 +210,15 @@ class UserTests(BaseTest):
         self.response = self.utils.postRequest("/v1/confirm_password_token/",json)
         self.utils.checkResponse(self.response,StatusCode.OK)
         assert(self.response.json()["message"]== "success")
+        assert(self.response.json()["errorCode"]== sesEmail.LINK_VALID)
+
         self.passed = True
 
     def test_check_bad_password_token(self):
         self.response = self.utils.postRequest("/v1/confirm_password_token/",'{"token":"2345"}')
         self.utils.checkResponse(self.response,StatusCode.OK)
         assert(self.response.json()["message"]== "Link already used")
+        assert(self.response.json()["errorCode"]== sesEmail.LINK_ALREADY_USED)
         self.passed = True
 
     def tearDown(self):

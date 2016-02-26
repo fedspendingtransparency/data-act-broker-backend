@@ -322,7 +322,7 @@ Failure Example output:
 The following is a table with all of the messages and error code  
 
 | ErrorCode  | Value |Message |
-| ------------- ||-------------|------------- |
+| ------------- |-------------|------------- |
 |INVALID_LINK | 1| Invalid Link|
 | LINK_EXPIRED   |2| Link Expired|
 | LINK_ALREADY_USED  |3|Link already used|
@@ -365,7 +365,7 @@ Failure Example output:
 The following is a table with all of the messages and error code  
 
 | ErrorCode  | Value |Message |
-| ------------- ||-------------|------------- |
+| ------------- |-------------|------------- |
 |INVALID_LINK | 1| Invalid Link|
 | LINK_EXPIRED   |2| Link Expired|
 | LINK_ALREADY_USED  |3|Link already used|
