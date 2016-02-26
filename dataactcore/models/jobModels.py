@@ -3,7 +3,6 @@
 from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from dataactcore.models import jobTrackerInterface
 
 Base = declarative_base()
 
@@ -14,59 +13,11 @@ class Status(Base):
     status_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
-    session = None
-
-    @staticmethod
-    def getStatus(statusName):
-        if(Status.STATUS_DICT == None):
-            Status.STATUS_DICT = {}
-            # Pull status values out of DB
-            # Create new session for this
-            Status.session = jobTrackerInterface.JobTrackerInterface().Session() # Create new session
-            queryResult = Status.session.query(Status).all()
-            for status in queryResult:
-                Status.STATUS_DICT[status.name] = status.status_id
-            Status.session.close()
-        if(not statusName in Status.STATUS_DICT):
-            raise ValueError("Not a valid job status: " + str(statusName) + ", not found in dict: " + str(Status.STATUS_DICT))
-        return Status.STATUS_DICT[statusName]
-
 
 class Type(Base):
     __tablename__ = "type"
     TYPE_DICT = None
     TYPE_LIST = ["file_upload", "csv_record_validation","db_transfer","validation","external_validation"]
-
-    @staticmethod
-    def getType(typeName):
-        if(Type.TYPE_DICT == None):
-            Type.TYPE_DICT = {}
-            # Pull status values out of DB
-            for jobType in Type.TYPE_LIST:
-                Type.TYPE_DICT[jobType] = Type.setType(jobType)
-        if(not typeName in Type.TYPE_DICT):
-            raise ValueError("Not a valid job type")
-        return Type.TYPE_DICT[typeName]
-
-    @staticmethod
-    def setType(name):
-        """  Get an id for specified type, if not unique throw an exception
-
-        Arguments:
-        name -- Name of type to get an id for
-
-        Returns:
-        type_id of the specified type
-        """
-        # Create new session for this
-        Status.session = jobTrackerInterface.JobTrackerInterface().Session()
-        queryResult = Status.session.query(Type.type_id).filter(Type.name==name).all()
-        Status.session.close()
-        if(len(queryResult) != 1):
-            # Did not get a unique result
-            raise ValueError("Database does not contain a unique ID for type "+name)
-        else:
-            return queryResult[0].type_id
 
     type_id = Column(Integer, primary_key=True)
     name = Column(Text)

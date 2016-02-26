@@ -1,6 +1,6 @@
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import JobStatus, JobDependency, Status
+from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type
 
 class JobTrackerInterface(BaseInterface):
     """ Manages all interaction with the job tracker database
@@ -123,7 +123,7 @@ class JobTrackerInterface(BaseInterface):
         query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
         result = self.checkJobUnique(query)
         # Mark it finished
-        result.status_id = Status.getStatus(statsType)
+        result.status_id = self.getStatusId(statsType)
         # Push
         self.session.commit()
 
@@ -142,3 +142,38 @@ class JobTrackerInterface(BaseInterface):
         status = result.status_id
         self.session.commit()
         return status
+
+    def getStatusId(self,statusName):
+        if(Status.STATUS_DICT == None):
+            Status.STATUS_DICT = {}
+            # Pull status values out of DB
+            # Create new session for this
+            queryResult = self.session.query(Status).all()
+            for status in queryResult:
+                Status.STATUS_DICT[status.name] = status.status_id
+        if(not statusName in Status.STATUS_DICT):
+            raise ValueError("Not a valid job status: " + str(statusName) + ", not found in dict: " + str(Status.STATUS_DICT))
+        return Status.STATUS_DICT[statusName]
+
+    def getTypeId(self,typeName):
+        if(Type.TYPE_DICT == None):
+            Type.TYPE_DICT = {}
+            # Pull status values out of DB
+            for jobType in Type.TYPE_LIST:
+                Type.TYPE_DICT[jobType] = self.setTypeId(jobType)
+        if(not typeName in Type.TYPE_DICT):
+            raise ValueError("Not a valid job type")
+        return Type.TYPE_DICT[typeName]
+
+    def setTypeId(self,name):
+        """  Get an id for specified type, if not unique throw an exception
+
+        Arguments:
+        name -- Name of type to get an id for
+
+        Returns:
+        type_id of the specified type
+        """
+        # Create new session for this
+        queryResult = self.session.query(Type.type_id).filter(Type.name==name).one()
+        return queryResult.type_id

@@ -2,7 +2,6 @@
 
 from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from dataactcore.models import userInterface
 
 Base = declarative_base()
 class User(Base):
@@ -34,20 +33,6 @@ class UserStatus(Base):
     user_status_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
-    @staticmethod
-    def getStatus(statusName):
-        if(UserStatus.STATUS_DICT == None):
-            UserStatus.STATUS_DICT = {}
-            # Pull status values out of DB
-            # Create new session for this
-            UserStatus.session = userInterface.UserInterface().Session() # Create new session
-            queryResult = UserStatus.session.query(UserStatus).all()
-            for status in queryResult:
-                UserStatus.STATUS_DICT[status.name] = status.user_status_id
-            UserStatus.session.close()
-        if(not statusName in UserStatus.STATUS_DICT):
-            raise ValueError("Not a valid user status") # : " + str(statusName) + ", not found in dict: " + str(UserStatus.STATUS_DICT))
-        return UserStatus.STATUS_DICT[statusName]
 
 class EmailTemplateType(Base):
     __tablename__ = 'email_template_type'
