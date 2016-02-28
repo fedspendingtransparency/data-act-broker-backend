@@ -1,8 +1,7 @@
 import uuid
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm import joinedload
-from flask.ext.bcrypt import Bcrypt, generate_password_hash, check_password_hash
-from dataactcore.models.userModel import User, UserStatus, EmailToken, EmailTemplateType , EmailTemplate, PermissionType
+from dataactcore.models.userModel import User, EmailToken, EmailTemplateType , EmailTemplate, PermissionType
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -56,11 +55,11 @@ class UserHandler(UserInterface):
         user object
         """
         # Check if user exists
-        queryResult = self.session.query(User.user_id).options(joinedload("user_status")).filter(User.username == username).all()
+        queryResult = self.session.query(User).options(joinedload("user_status")).filter(User.username == username).all()
         if(len(queryResult) == 1):
             # If so, check their status
             user = queryResult[0]
-            if(user.status.name == "awaiting_confirmation" or user.status.name == "email_confirmed"):
+            if(user.user_status.name == "awaiting_confirmation" or user.user_status.name == "email_confirmed"):
                 # User has not yet registered, may restart process
                 return user
         elif(len(queryResult) == 0):
@@ -92,7 +91,7 @@ class UserHandler(UserInterface):
     def changeStatus(self,user,statusName):
         """ Change status for specified user """
         try:
-            user.user_status_id = UserStatus.getStatus(statusName)
+            user.user_status_id = self.getUserStatusId(statusName)
         except ValueError as e:
             # In this case having a bad status name is a client error
             raise ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
@@ -101,7 +100,7 @@ class UserHandler(UserInterface):
     def checkStatus(self,user,statusName):
         """ Change status for specified user """
         try:
-            if(user.user_status_id == UserStatus.getStatus(statusName) ):
+            if(user.user_status_id == self.getUserStatusId(statusName) ):
                 return True
             else :
                 return False
@@ -123,7 +122,7 @@ class UserHandler(UserInterface):
 
     def getUsersByStatus(self,status):
         """ Return list of all users with specified status """
-        statusId = UserStatus.getStatus(status)
+        statusId = self.getUserStatusId(status)
         return self.session.query(User).filter(User.user_status_id == statusId).all()
 
     def getStatusOfUser(self,user):
@@ -220,8 +219,8 @@ class UserHandler(UserInterface):
         user.password_hash = None
         self.session.commit()
 
-    def createUser(self,email,password,bcrypt,admin=False):
-        """creates a valid user"""
+    def createUserWithPassword(self,email,password,bcrypt,admin=False):
+        """ This directly creates a valid user in the database with password and permissions set. """
         user = User(email = email)
         self.session.add(user)
         self.setPassword(user,password,bcrypt)

@@ -48,17 +48,17 @@ class sesEmail(object):
         saltValue = None
         try:
             saltValue = database.getTokenSalt(token)
-        except MultipleResultsFound, e:
+        except MultipleResultsFound as e:
             #duplicate tokens
             return False ,"Invalid Link"
-        except NoResultFound, e:
+        except NoResultFound as e:
             #Token already used or never existed in the first place
             return False,"Link already used"
         ts = URLSafeTimedSerializer(sesEmail.SIGNING_KEY)
         try:
             emailAddress = ts.loads(token, salt=saltValue[0]+token_type, max_age=86400)
             return True,emailAddress
-        except BadSignature:
+        except BadSignature as e:
             #Token is malformed
             return False,"Invalid Link"
         except SignatureExpired:

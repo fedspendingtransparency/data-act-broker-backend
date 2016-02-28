@@ -1,13 +1,9 @@
-import json
-import os
-import inspect
 from flask import session as flaskSession
 from threading import Thread
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.models.userModel import UserStatus
 from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactbroker.handlers.aws.sesEmail import sesEmail
@@ -149,7 +145,7 @@ class AccountHandler:
         except ResponseException as e:
             self.interfaces.userDb.addUnconfirmedEmail(email)
         else:
-            if(not (user.user_status_id == UserStatus.getStatus("awaiting_confirmation") or user.user_status_id == UserStatus.getStatus("email_confirmed"))):
+            if(not (user.user_status_id == self.interfaces.userDb.getUserStatusId("awaiting_confirmation") or user.user_status_id == self.interfaces.userDb.getUserStatusId("email_confirmed"))):
                 exc = ResponseException("User already registered", StatusCode.CLIENT_ERROR)
                 return JsonResponse.error(exc,exc.status)
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"validate_email")
