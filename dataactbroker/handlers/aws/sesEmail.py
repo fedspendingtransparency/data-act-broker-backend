@@ -1,11 +1,10 @@
 import boto
 import uuid
 import urllib
-from flask import url_for
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
-from dataactbroker.handlers.userHandler import UserHandler
+
 class sesEmail(object):
 
     SIGNING_KEY  ="1234"
@@ -51,17 +50,17 @@ class sesEmail(object):
         saltValue = None
         try:
             saltValue = database.getTokenSalt(token)
-        except MultipleResultsFound, e:
+        except MultipleResultsFound as e:
             #duplicate tokens
             return False ,"Invalid Link", sesEmail.INVALID_LINK
-        except NoResultFound, e:
+        except NoResultFound as e:
             #Token already used or never existed in the first place
             return False,"Link already used",sesEmail.LINK_ALREADY_USED
         ts = URLSafeTimedSerializer(sesEmail.SIGNING_KEY)
         try:
             emailAddress = ts.loads(token, salt=saltValue[0]+token_type, max_age=86400)
             return True,emailAddress,sesEmail.LINK_VALID
-        except BadSignature:
+        except BadSignature as e:
             #Token is malformed
             return False,"Invalid Link",sesEmail.INVALID_LINK
         except SignatureExpired:

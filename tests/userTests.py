@@ -1,4 +1,3 @@
-import unittest
 import json
 from baseTest import BaseTest
 from dataactbroker.handlers.userHandler import UserHandler
@@ -17,6 +16,7 @@ class UserTests(BaseTest):
     UID_FOR_STATUS_CHANGE = 0;
     def __init__(self,methodName,interfaces):
         super(UserTests,self).__init__(methodName=methodName)
+        self.methodName = methodName
         self.interfaces = interfaces
         self.passed = False # Set to true if unit test passes
 
@@ -113,12 +113,12 @@ class UserTests(BaseTest):
         self.passed = True
 
     def test_get_users_by_type(self):
-        admins = self.interfaces.userDb.getUsersByType("agency_user")
+        agencyUsers = self.interfaces.userDb.getUsersByType("agency_user")
 
         emails = []
-        for admin in admins:
+        for admin in agencyUsers:
             emails.append(admin.email)
-        assert(len(admins) == 10), "There should be ten agency users"
+        assert(len(agencyUsers) == 11), "There should be ten agency users"
         for email in ["realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", "approved@agency.gov", "nefarious@agency.gov"]:
             assert(email in emails)
         self.passed = True
@@ -181,13 +181,13 @@ class UserTests(BaseTest):
 
     def test_password_reset_email(self):
         self.utils.logout()
-        email = UserTests.CONFIG["admin_email"]
+        email = UserTests.CONFIG["password_reset_email"]
         json = '{"email":"'+email+'"}'
         self.response = self.utils.postRequest("/v1/reset_password/",json)
         self.utils.checkResponse(self.response,StatusCode.OK)
 
         userDb = UserHandler()
-        token = sesEmail.createToken(UserTests.CONFIG["admin_email"],userDb,"password_reset")
+        token = sesEmail.createToken(UserTests.CONFIG["password_reset_email"],userDb,"password_reset")
         json = '{"token":"'+token+'"}'
         self.response = self.utils.postRequest("/v1/confirm_password_token/",json)
         self.utils.checkResponse(self.response,StatusCode.OK)
@@ -230,6 +230,7 @@ class UserTests(BaseTest):
 
     def tearDown(self):
         if(not self.passed):
+            print("".join(["Test failed: ",self.methodName]))
             print("Status is " + str(self.response.status_code))
             print(str(self.response.json()))
 
@@ -249,9 +250,14 @@ class UserTests(BaseTest):
         setupUserDB(True)
         clearJobs()
         userDb = UserHandler()
-        userDb.createUser( "user3","123abc",Bcrypt())
-        userDb.createUser( "user4","pass",Bcrypt())
-        userDb.createUser(UserTests.CONFIG["change_user_email"],"pass",Bcrypt())
+        userDb.createUserWithPassword( "user3","123abc",Bcrypt())
+        userDb.createUserWithPassword( "user4","pass",Bcrypt())
+        try:
+            userDb.createUserWithPassword(UserTests.CONFIG["change_user_email"],"pass",Bcrypt())
+            userDb.createUserWithPassword(UserTests.CONFIG["password_reset_email"],"pass",Bcrypt())
+        except Exception as e:
+            print("Please ensure that your test.json file has 'admin_email','change_user_email',and 'password_reset_email'")
+            raise e
         jobDb = JobHandler()
         # Add new users and set some statuses
         for index in range(len(userEmails)):
@@ -269,6 +275,7 @@ class UserTests(BaseTest):
         admin.name = "Mr. Manager"
         admin.agency = "Unknown"
         userDb.session.commit()
+
         statusChangedUser = userDb.getUserByEmail(UserTests.CONFIG["change_user_email"])
         admin.name = "Mr. Manager"
         UserTests.UID_FOR_STATUS_CHANGE  = str(statusChangedUser.user_id)
