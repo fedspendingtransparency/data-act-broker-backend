@@ -2,6 +2,7 @@
 
 from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 class User(Base):
@@ -17,6 +18,7 @@ class User(Base):
     user_status_id = Column(Integer, ForeignKey("user_status.user_status_id"))
     password_hash = Column(Text)
     salt = Column(Text)
+    user_status = relationship("UserStatus", uselist=False)
 
 class PermissionType(Base):
     __tablename__ = "permission_type"
