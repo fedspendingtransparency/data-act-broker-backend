@@ -2,6 +2,11 @@ import sys
 import os
 import argparse
 from dataactcore.scripts.configure import ConfigureCore
+from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
+from dataactcore.scripts.setupErrorDB import setupErrorDB
+from dataactcore.scripts.setupUserDB import setupUserDB
+from dataactvalidator.scripts.setupValidationDB import setupValidationDB
+from dataactvalidator.scripts.setupStagingDB import setupStaging
 from dataactvalidator.scripts.configure import ConfigureValidator
 
 def baseScript():
@@ -17,26 +22,15 @@ def baseScript():
 	parser.add_argument("-db", "--setupDB", action="store_true",help="Creates the database schema" )
 	parser.add_argument("-s", "--start", action="store_true",help="Starts the validator" )
 	args = parser.parse_args()
+	optionsDict = vars(args)
 
-	print(str(type(args)))
-	print(str(args))
-	raise Exception("Checking args")
-	if(len(sys.argv) > 1):
-		if args.initialize:
-			initialize()
-		if args.configValidator:
-			configValidator()
-		if args.loadValidator:
-			loadValidator()
-		if args.configAWS:
-			configAWS()
-		if args.configDB:
-			configDB()
-		if args.setupDB:
-			resetDB()
-		if args.start:
-			startValidator()
-	else:
+	noArgs = True
+	for arg in optionsDict:
+		if(optionsDict[arg]):
+			noArgs = False
+			globals()[arg]()
+
+	if(noArgs):
 		print ("Please enter an argument.")
 
 
@@ -45,7 +39,7 @@ def initialize():
 	configAWS()
 	configDB()
 	configValidator()
-	resetDB()
+	setupDB()
 	loadValidator()
 	print ("The validator has been initialized. You may now run the validator with the -start argument.")
 
@@ -62,19 +56,16 @@ def configAWS():
 def configDB():
 	ConfigureCore.promptDatabase()
 
-def resetDB():
-	from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
-	from dataactcore.scripts.setupErrorDB import setupErrorDB
-	from dataactcore.scripts.setupValidationDB import setupValidationDB
-	import dataactcore.scripts.setupStaging
+def setupDB():
 	setupJobTrackerDB(hardReset=True)
 	setupValidationDB(True)
 	setupErrorDB(True)
-	dataactcore.scripts.setupStaging
+	setupUserDB(True)
+	setupStaging()
 
-def startValidator():
+def start():
 	from dataactvalidator.app import runApp
 	runApp()
 
 if __name__ == '__main__':
-    baseScript()
+	baseScript()

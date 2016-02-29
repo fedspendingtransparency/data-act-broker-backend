@@ -7,6 +7,7 @@ from dataactcore.scripts.databaseSetup import runCommands
 from dataactcore.scripts.clearErrors import clearErrors
 from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
 from dataactvalidator.scripts.setupValidationDB import setupValidationDB
+from dataactvalidator.scripts.setupStagingDB import setupStaging
 
 class JobTests(unittest.TestCase):
 
@@ -33,7 +34,7 @@ class JobTests(unittest.TestCase):
 
         if not self.TABLE_POPULATED:
             # Create staging database
-            runCommands(ValidatorStagingInterface.getCredDict(), [], "staging")
+            setupStaging()
             self.stagingDb = interfaces.stagingDb
 
             setupValidationDB()
