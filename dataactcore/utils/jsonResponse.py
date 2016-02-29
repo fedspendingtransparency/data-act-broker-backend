@@ -41,32 +41,17 @@ class JsonResponse :
         for key in kwargs:
             responseDict[key] = kwargs[key]
 
-        wrappedType =""
-        wrappedMessage =""
-        if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):
-            wrappedType = str(type(exception.wrappedException))
-            wrappedMessage= str(exception.wrappedException)
+
         exc_type, exc_obj, exc_tb = sys.exc_info()
         trace = traceback.extract_tb(exc_tb, 10)
-        responseDict["trace"] = trace
-        logging_helpers = {
-            'python_version': 'python version: ' + repr(sys.version_info),
-            'error_log_type': str(type(exception)),
-            'error_log_message': str(exception),
-            'error_log_wrapped_message': wrappedMessage,
-            'error_log_wrapped_type': wrappedType,
-            'error_log_trace': trace
-        }
-
-        CloudLogger.getLogger().error('Route ERROR: '+str(exception),extra=logging_helpers)
-
+        CloudLogger.logError('Route Error : ',exception,trace)
         if(JsonResponse.debugMode):
             responseDict["message"] = str(exception)
             responseDict["errorType"] = str(type(exception))
             if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):
                 responseDict["wrappedType"] = str(type(exception.wrappedException))
                 responseDict["wrappedMessage"] = str(exception.wrappedException)
-            responseDict["trace"]
+            responseDict["trace"] = trace
             if(JsonResponse.printDebug):
                 print(str(type(exception)))
                 print(str(exception))
@@ -79,4 +64,5 @@ class JsonResponse :
             return JsonResponse.create(errorCode, responseDict)
         else:
             responseDict["message"] = "An error has occurred"
+            del exc_tb
             return JsonResponse.create(errorCode, responseDict)

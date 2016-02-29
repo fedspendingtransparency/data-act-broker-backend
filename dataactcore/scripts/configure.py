@@ -69,8 +69,8 @@ class ConfigureCore(object):
         if (ConfigureCore.questionPrompt(
                 "Would you like to configure your Logging? (y/n) : ")):
             port = input("Enter Port :")
-            enterURL = input("Enter the logging URL :")
-            json = ConfigureCore.createLoggingJSON(bucket, role)
+            host = input("Enter the logging URL :")
+            json = ConfigureCore.createLoggingJSON(host, port)
             with open(ConfigureCore.getDatacorePath() + "/utils/logging.json",
                       'wb') as currentFile:
                 currentFile.write(json)
