@@ -73,6 +73,15 @@ This file is automatically created in the initialization step of the install pro
 * `StagingTable` - Used to create a new table for each job and manage writes to that table
 * `InterfaceHolder` - Container that holds one interface for each database as a static variable to ensure that redundant connections are not created
 
+##### Models
+* `validationModels` - Holds all the ORM objects for the validation database
+
+##### Scripts
+* `baseScript`, `configure` - Used during install process
+* `clearRules` - Deletes existing rules for four main file types
+* `loadTas`, `tasSetup`, `setupTASIndexs` - Used for loading valid TAS entries into database
+ * `setupStagingDB`,`setupValidationDB` - Used to create staging and validation databases
+
 #### Test Cases
 Before running test cases, start the Flask app by running "python app.py" in the dataactvalidator folder.  The current test suite for the validator may then be run by navigating to the tests folder and running "python runTests.py".
 
