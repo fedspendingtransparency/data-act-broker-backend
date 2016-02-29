@@ -23,7 +23,7 @@ class CloudLogger(object):
         if(CloudLogger.LOGGER == None):
             CloudLogger.LOGGER = logging.getLogger('python-logstash-logger')
             CloudLogger.LOGGER.setLevel(logging.INFO)
-            CloudLogger.LOGGER.addHandler(logstash.LogstashHandler(CloudLogger.getValueFromConfig("host"), CloudLogger.getValueFromConfig("port"), version=1))
+            CloudLogger.LOGGER.addHandler(logstash.LogstashHandler(CloudLogger.getValueFromConfig("host"), int(CloudLogger.getValueFromConfig("port")), version=1))
         return CloudLogger.LOGGER
 
     @staticmethod
