@@ -52,10 +52,9 @@ If needed, these scripts can be run manually to setup an environment.
 
 In addition to the JSON configuration scripts, database creation scripts are located in this folder. When run directly, the following scripts take no parameters and stand up all required tables within each database:
 
-- setupJobTrackerDB (Creates job_tracker and user Databases)
-- setupValidationDB (Creates validation databases)
+- setupJobTrackerDB (Creates job_tracker database)
 - setupErrorDB      (Creates the error database)
-- setupStagingDB    (Creates the staging database)
+- setupUserDB       (Creates the user database)
 - setupAllDB        (Creates all of the needed databases)
 
 The order of execution does not matter, as long as each of them are executed.
@@ -125,11 +124,14 @@ After creating the Postgres database and credentials file, several setup scripts
 ```bash
 $ python setupJobTrackerDB.py
 $ python setupErrorDB.py
+```
+
+Finally, to prepare the validator to run checks against a specified set of fields and rules, your `data-act-validator` installation will have a [scripts/](https://github.com/fedspendingtransparency/data-act-validator/tree/configuration/dataactvalidator/scripts) folder containing scripts to create the rule sets for testing, as well as the following database setup scripts that must be run.
+
+```bash
 $ python setupStaging.py
 $ python setupValidationDB.py
 ```
-
-Finally, to prepare the validator to run checks against a specified set of fields and rules, your `data-act-validator` installation will have a [scripts/](https://github.com/fedspendingtransparency/data-act-validator/tree/configuration/dataactvalidator/scripts) folder containing scripts to create the rule sets for testing.
 
 For example: `loadApprop.py` may be run to create the included rule set for testing an appropriations file, or you may replace `appropriationsFields.csv` and `appropriationsRules.csv` with custom versions to run a different set of rules.
 
