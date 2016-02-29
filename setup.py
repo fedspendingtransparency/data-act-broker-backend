@@ -32,5 +32,5 @@ setup(
     ],
     keywords='dataAct broker setup',
     packages=find_packages(),
-    install_requires=['boto==2.38.0', 'psycopg2==2.6.1', 'SQLAlchemy==1.0.9', 'Flask==0.10.1', 'awscli'],
+    install_requires=['boto==2.38.0', 'psycopg2==2.6.1', 'SQLAlchemy==1.0.9','python-logstash==0.4.6','Flask==0.10.1', 'awscli'],
 )

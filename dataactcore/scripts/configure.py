@@ -36,6 +36,14 @@ class ConfigureCore(object):
         return json.dumps(returnJson)
 
     @staticmethod
+    def createLoggingJSON(host, port):
+        """Creates the logging.json File"""
+        returnJson = {}
+        returnJson["host"] = host
+        returnJson["port"] = port
+        return json.dumps(returnJson)
+
+    @staticmethod
     def questionPrompt(question):
         """Creates a yes/no question prompt"""
         response = input(question)
@@ -54,6 +62,18 @@ class ConfigureCore(object):
             with open(ConfigureCore.getDatacorePath() + "/aws/s3bucket.json",
                       'wb') as bucketFile:
                 bucketFile.write(json)
+
+    @staticmethod
+    def promptLogging():
+        """Prompts user for input for S3 Setup"""
+        if (ConfigureCore.questionPrompt(
+                "Would you like to configure your Logging? (y/n) : ")):
+            port = input("Enter Port :")
+            enterURL = input("Enter the logging URL :")
+            json = ConfigureCore.createLoggingJSON(bucket, role)
+            with open(ConfigureCore.getDatacorePath() + "/utils/logging.json",
+                      'wb') as currentFile:
+                currentFile.write(json)
 
     @staticmethod
     def promptDatabase():
@@ -78,3 +98,4 @@ class ConfigureCore(object):
 if __name__ == '__main__':
     ConfigureCore.promptS3()
     ConfigureCore.promptDatabase()
+    ConfigureCore.promptLogging()

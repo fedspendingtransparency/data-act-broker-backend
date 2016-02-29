@@ -5,6 +5,7 @@ import traceback
 from flask import Flask, request, make_response, session, g, redirect, url_for, \
      abort, render_template, flash
 from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.cloudLogger import CloudLogger
 
 class JsonResponse :
     """ Used to create an http response object containing JSON """
@@ -39,15 +40,33 @@ class JsonResponse :
         responseDict = {}
         for key in kwargs:
             responseDict[key] = kwargs[key]
+
+        wrappedType =""
+        wrappedMessage =""
+        if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):
+            wrappedType = str(type(exception.wrappedException))
+            wrappedMessage= str(exception.wrappedException)
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        trace = traceback.extract_tb(exc_tb, 10)
+        responseDict["trace"] = trace
+        logging_helpers = {
+            'python_version': 'python version: ' + repr(sys.version_info),
+            'error_log_type': str(type(exception)),
+            'error_log_message': str(exception),
+            'error_log_wrapped_message': wrappedMessage,
+            'error_log_wrapped_type': wrappedType,
+            'error_log_trace': trace
+        }
+
+        CloudLogger.getLogger().test_logger.error('Route ERROR: '+str(exception),extra=logging_helpers)
+
         if(JsonResponse.debugMode):
             responseDict["message"] = str(exception)
             responseDict["errorType"] = str(type(exception))
             if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):
                 responseDict["wrappedType"] = str(type(exception.wrappedException))
                 responseDict["wrappedMessage"] = str(exception.wrappedException)
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            trace = traceback.extract_tb(exc_tb, 10)
-            responseDict["trace"] = trace
+            responseDict["trace"]
             if(JsonResponse.printDebug):
                 print(str(type(exception)))
                 print(str(exception))
