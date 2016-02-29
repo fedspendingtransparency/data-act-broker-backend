@@ -129,8 +129,4 @@ class ConfigureBroker(object):
             ConfigureBroker.createTestUsers(adminEmail,password,testCaseUsers)
 
 if __name__ == '__main__':
-    crypt = Bcrypt()
-    userDatabase = UserHandler()
-    userDatabase.createUser("user","bestPassEver" ,crypt)
-    userDatabase.createUser("user2","NotAPassword" ,crypt)
-    userDatabase.createUser("user3","123abc" ,crypt)
+    promptBroker()
