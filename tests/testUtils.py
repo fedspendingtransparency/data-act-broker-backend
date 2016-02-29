@@ -5,9 +5,8 @@ import time
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
-from dataactcore.models import errorModels
-from dataactcore.models.jobModels import Status
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.models.jobModels import JobStatus, Submission
+from dataactvalidator.models.validationModels import FileColumn
 
 class TestUtils(object):
     """ Basic functions used by validator tests """
@@ -18,20 +17,27 @@ class TestUtils(object):
     JSON_HEADER = {"Content-Type": "application/json"}
 
     @staticmethod
-    def createJobStatement(status, jobType, submission, s3Filename, fileType):
-        """ Build SQL statement to create a job  """
-        return "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}') RETURNING job_id".format(status, jobType, submission, s3Filename, fileType)
+    def addJob(status, jobType, submissionId, s3Filename, fileType, session):
+        """ Create a job model and add it to the session """
+        job = JobStatus(status_id = status, type_id = jobType, submission_id = submissionId, filename = s3Filename, file_type_id = fileType)
+        session.add(job)
+        session.commit() # Committing immediately so job ID is available
+        return job
 
     @staticmethod
-    def createColumnStatement(file_id, field_type, columnName, description, required):
-        return "INSERT INTO file_columns (file_id,field_types_id,name,description,required) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}') RETURNING file_column_id".format(str(file_id), str(field_type), columnName, description, str(required))
+    def addFileColumn(fileId, fieldTypeId, columnName, description, required, session):
+        column = FileColumn(file_id = fileId, field_types_id = fieldTypeId, name=columnName, description = description, required = required)
+        session.add(column)
+        session.commit()
+        return column
 
     @staticmethod
     def insertSubmission(jobTracker):
         """ Insert one submission into job tracker and get submission ID back, uses user_id 1 """
-        stmt = "INSERT INTO submission (datetime_utc,user_id) VALUES (0,1) RETURNING submission_id"
-        response = jobTracker.runStatement(stmt)
-        return response.fetchone()[0]
+        sub = Submission(datetime_utc = 0, user_id = 1)
+        jobTracker.session.add(sub)
+        jobTracker.session.commit()
+        return sub.submission_id
 
     @staticmethod
     def uploadFile(filename, user):
@@ -84,8 +90,9 @@ class TestUtils(object):
             assert(stagingDb.tableExists(tableName) == True)
             assert(stagingDb.countRows(tableName) == stagingRows)
         errorInterface = interfaces.errorDb
-        assert(errorInterface.checkStatusByJobId(jobId) == errorInterface.getStatusId(errorStatus))
-        assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == numErrors)
+        if(errorStatus is not False):
+            assert(errorInterface.checkStatusByJobId(jobId) == errorInterface.getStatusId(errorStatus))
+            assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == numErrors)
         return True
 
     @staticmethod
