@@ -58,7 +58,7 @@ class JsonResponse :
             'error_log_trace': trace
         }
 
-        CloudLogger.getLogger().test_logger.error('Route ERROR: '+str(exception),extra=logging_helpers)
+        CloudLogger.getLogger().error('Route ERROR: '+str(exception),extra=logging_helpers)
 
         if(JsonResponse.debugMode):
             responseDict["message"] = str(exception)
