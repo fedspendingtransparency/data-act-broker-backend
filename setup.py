@@ -7,12 +7,25 @@ from setuptools import setup, find_packages
 from setuptools.command.install import install
 # To use a consistent encoding
 from codecs import open
+import os
 from os import path
+import inspect
+from pip.req import parse_requirements
+from pip.download import PipSession
 
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
+
+# Get path from current file location
+dirPath = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+requirementsPath = os.path.join(dirPath,"requirements.txt")
+# parse_requirements() returns generator of pip.req.InstallRequirement objects
+install_reqs = parse_requirements(requirementsPath,session=PipSession())
+
+# Create the list of requirements
+reqs = [str(ir.req) for ir in install_reqs]
 
 setup(
     name='dataactcore',
@@ -32,5 +45,5 @@ setup(
     ],
     keywords='dataAct broker setup',
     packages=find_packages(),
-    install_requires=['boto==2.38.0', 'psycopg2==2.6.1', 'SQLAlchemy==1.0.9','python-logstash==0.4.6','Flask==0.10.1', 'awscli'],
+    install_requires=reqs,
 )
