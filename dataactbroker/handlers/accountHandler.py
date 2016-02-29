@@ -64,7 +64,7 @@ class AccountHandler:
             try:
                 if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
                     # We have a valid login
-                    LoginSession.login(session,self.userManager.getUserByEmail(username).user_id)
+                    LoginSession.login(session,user.user_id)
                     return JsonResponse.create(StatusCode.OK,{"message":"Login successful"})
                 else :
                     raise ValueError("user name and or password invalid")
@@ -196,7 +196,7 @@ class AccountHandler:
 
 
     def changeStatus(self,system_email):
-        """ Changes status for specified user.  Associated request body should have keys 'user_email' and 'new_status' """
+        """ Changes status for specified user.  Associated request body should have keys 'uid' and 'new_status' """
         requestDict = RequestDictionary(self.request)
         if(not (requestDict.exists("uid") and requestDict.exists("new_status"))):
             # Missing a required field, return 400
@@ -207,9 +207,14 @@ class AccountHandler:
         print requestDict.getValue("uid")
         user = self.interfaces.userDb.getUserByUID(int(requestDict.getValue("uid")))
 
+        if(user.email == None):
+            return JsonResponse.error(ResponseException("User does not have a defined email",StatusCode.INTERNAL_ERROR),StatusCode.INTERNAL_ERROR)
+
         #check if the user is waiting
         if(self.interfaces.userDb.checkStatus(user,"awaiting_approval")):
             if(requestDict.getValue("new_status") == "approved"):
+                # Grant agency_user permission to newly approved users
+                self.interfaces.userDb.grantPermission(user,"agency_user")
                 link= "".join(['<a href="', AccountHandler.FRONT_END, '">here</a>' ])
                 emailTemplate = {'[USER]': user.name, '[URL]':link,'[EMAIL]':system_email}
                 newEmail = sesEmail(user.email, system_email,templateType="account_approved",parameters=emailTemplate,database=self.interfaces.userDb)

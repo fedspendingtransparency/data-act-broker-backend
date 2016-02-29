@@ -206,7 +206,7 @@ class FileHandler:
             for currentId in jobIds :
                 if(self.jobManager.getJobType(currentId) == "csv_record_validation"):
                     fileName = self.jobManager.getFileType(currentId)
-                    dataList = self.interfaces.errorDb.getErrorMetericsByJobId(currentId)
+                    dataList = self.interfaces.errorDb.getErrorMetricsByJobId(currentId)
                     returnDict[fileName]  = dataList
             return JsonResponse.create(StatusCode.OK,returnDict)
         except ( ValueError , TypeError ) as e:

@@ -198,6 +198,8 @@ class UserTests(BaseTest):
         self.response = self.utils.postRequest("/v1/set_password/",json)
         self.utils.checkResponse(self.response,StatusCode.OK)
         assert(self.response.json()["message"]== "Password successfully changed")
+        user = userDb.getUserByEmail(email)
+        assert(user.password_hash is not None)
 
         self.passed = True
 
@@ -244,7 +246,6 @@ class UserTests(BaseTest):
         userEmails = ["user@agency.gov", "realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", UserTests.CONFIG["admin_email"],"approved@agency.gov", "nefarious@agency.gov"]
         userStatus = ["awaiting_confirmation","email_confirmed","awaiting_approval","awaiting_approval","awaiting_approval","approved","approved","denied"]
         userPermissions = [0,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.WEBSITE_ADMIN+AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER]
-
 
         # Clear users
         setupUserDB(True)

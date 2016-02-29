@@ -30,5 +30,5 @@ class InterfaceHolder:
             try:
                 interface.session.rollback()
                 interface.session.close()
-            except:
-                pass
+            except Exception as e:
+                interface.logDbError(e)
