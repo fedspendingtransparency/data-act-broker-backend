@@ -64,7 +64,7 @@ class AccountHandler:
             try:
                 if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
                     # We have a valid login
-                    LoginSession.login(session,self.userManager.getUserByEmail(username).user_id)
+                    LoginSession.login(session,user.user_id)
                     return JsonResponse.create(StatusCode.OK,{"message":"Login successful"})
                 else :
                     raise ValueError("user name and or password invalid")
@@ -213,6 +213,8 @@ class AccountHandler:
         #check if the user is waiting
         if(self.interfaces.userDb.checkStatus(user,"awaiting_approval")):
             if(requestDict.getValue("new_status") == "approved"):
+                # Grant agency_user permission to newly approved users
+                self.interfaces.userDb.grantPermission(user,"agency_user")
                 link= "".join(['<a href="', AccountHandler.FRONT_END, '">here</a>' ])
                 emailTemplate = {'[USER]': user.name, '[URL]':link,'[EMAIL]':system_email}
                 newEmail = sesEmail(user.email, system_email,templateType="account_approved",parameters=emailTemplate,database=self.interfaces.userDb)

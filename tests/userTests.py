@@ -198,6 +198,8 @@ class UserTests(BaseTest):
         self.response = self.utils.postRequest("/v1/set_password/",json)
         self.utils.checkResponse(self.response,StatusCode.OK)
         assert(self.response.json()["message"]== "Password successfully changed")
+        user = userDb.getUserByEmail(email)
+        assert(user.password_hash is not None)
 
         self.passed = True
 
