@@ -1,5 +1,5 @@
 from datetime import datetime
-from dataactcore.models.jobModels import JobStatus,JobDependency,Status,Type,Resource, Submission, FileType
+from dataactcore.models.jobModels import JobStatus,JobDependency,Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -56,12 +56,11 @@ class JobHandler(JobTrackerInterface):
 
         jobsRequired, uploadDict = self.addUploadJobs(filenames,submission)
 
-
         # Create validation job
-        validationJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("validation"), submission_id = submission.submission_id)
+        validationJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("validation"), submission_id = submission.submission_id)
         self.session.add(validationJob)
         # Create external validation job
-        externalJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("external_validation"), submission_id = submission.submission_id)
+        externalJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("external_validation"), submission_id = submission.submission_id)
         self.session.add(externalJob)
         self.session.flush()
         # Create dependencies for validation jobs
@@ -100,12 +99,12 @@ class JobHandler(JobTrackerInterface):
             fileTypeId = fileTypeResult.file_type_id
 
             # Create upload job, mark as running since frontend should be doing this upload
-            fileJob = JobStatus(filename = filename, file_type_id = fileTypeId, status_id = Status.getStatus("running"), type_id = Type.getType("file_upload"), submission_id = submission.submission_id)
+            fileJob = JobStatus(filename = filename, file_type_id = fileTypeId, status_id = self.getStatusId("running"), type_id = self.getTypeId("file_upload"), submission_id = submission.submission_id)
 
             self.session.add(fileJob)
 
             # Create parse into DB job
-            dbJob = JobStatus(filename = filename, file_type_id = fileTypeId, status_id = Status.getStatus("waiting"), type_id = Type.getType("csv_record_validation"), submission_id = submission.submission_id)
+            dbJob = JobStatus(filename = filename, file_type_id = fileTypeId, status_id = self.getStatusId("waiting"), type_id = self.getTypeId("csv_record_validation"), submission_id = submission.submission_id)
             self.session.add(dbJob)
             self.session.flush()
             # Add dependency between file upload and db upload
@@ -129,7 +128,7 @@ class JobHandler(JobTrackerInterface):
         query = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId)
         result = self.checkJobUnique(query)
         # Got single job, check type
-        if(result.type_id == Type.getType("file_upload")):
+        if(result.type_id == self.getTypeId("file_upload")):
             # Correct type
             return True
         # Did not confirm correct type
@@ -150,7 +149,7 @@ class JobHandler(JobTrackerInterface):
             raise ValueError("Job ID not found")
         jobToChange = queryResult[0]
         # Change status to finished
-        jobToChange.status_id = Status.getStatus("finished")
+        jobToChange.status_id = self.getStatusId("finished")
         # Commit changes
         self.session.commit()
 

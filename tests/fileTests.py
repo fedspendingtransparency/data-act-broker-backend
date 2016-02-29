@@ -8,9 +8,7 @@ from boto.s3.key import Key
 from baseTest import BaseTest
 from testUtils import TestUtils
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
-from dataactcore.models.jobModels import Status
 from dataactbroker.handlers.fileHandler import FileHandler
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 
 class FileTests(BaseTest):
     """ Test file submission routes """
@@ -116,7 +114,8 @@ class FileTests(BaseTest):
 
         # Test that correct user ID is on submission
         submissionId = responseDict["submission_id"]
-        userId = self.interfaces.userDb.createUser("user3").user_id
+        user = self.interfaces.userDb.getUserByEmail("user3")
+        userId = user.user_id
         submission = self.interfaces.jobDb.getSubmissionById(submissionId)
         assert(submission.user_id == userId) # Check that submission got mapped to the correct user
 
@@ -125,8 +124,8 @@ class FileTests(BaseTest):
 
     @staticmethod
     def waitOnJob(jobTracker, jobId, status):
-        currentID = Status.getStatus("running")
-        targetStatus = Status.getStatus(status)
+        currentID = jobTracker.getStatusId("running")
+        targetStatus = jobTracker.getStatusId(status)
         while jobTracker.getStatus(jobId) == currentID:
             time.sleep(1)
         assert(targetStatus == jobTracker.getStatus(jobId))

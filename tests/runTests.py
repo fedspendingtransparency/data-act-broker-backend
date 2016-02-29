@@ -19,7 +19,8 @@ loginMethods = LoginTests.__dict__.keys()
 fileMethods = FileTests.__dict__.keys()
 userMethods = UserTests.__dict__.keys()
 #loginMethods = []
-#fileMethods = [["test_file_submission"]]
+#fileMethods = [] #[["test_file_submission"]]
+#userMethods = ["test_check_email_token"]
 
 # Set up sample users
 UserTests.setupUserList()
