@@ -11,6 +11,7 @@ dataactbroker/handlers/*.pyc
 dataactbroker/handlers/aws/*.pyc
 dataactbroker/models/*.pyc
 dataactbroker/handlers/utils/*.pyc
+dataactbroker/scripts/*.pyc
 dataactbroker/venv
 dataactbroker/errorLog
 dataactbroker/responseErrorLog

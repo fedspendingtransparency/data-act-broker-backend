@@ -196,7 +196,7 @@ class AccountHandler:
 
 
     def changeStatus(self,system_email):
-        """ Changes status for specified user.  Associated request body should have keys 'user_email' and 'new_status' """
+        """ Changes status for specified user.  Associated request body should have keys 'uid' and 'new_status' """
         requestDict = RequestDictionary(self.request)
         if(not (requestDict.exists("uid") and requestDict.exists("new_status"))):
             # Missing a required field, return 400
@@ -206,6 +206,9 @@ class AccountHandler:
         # Find user that matches specified uid
         print requestDict.getValue("uid")
         user = self.interfaces.userDb.getUserByUID(int(requestDict.getValue("uid")))
+
+        if(user.email == None):
+            return JsonResponse.error(ResponseException("User does not have a defined email",StatusCode.INTERNAL_ERROR),StatusCode.INTERNAL_ERROR)
 
         #check if the user is waiting
         if(self.interfaces.userDb.checkStatus(user,"awaiting_approval")):
