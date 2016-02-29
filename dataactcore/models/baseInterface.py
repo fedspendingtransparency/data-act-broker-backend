@@ -62,19 +62,15 @@ class BaseInterface(object):
     def getCredFilePath(cls):
         """  Returns full path to credentials file """
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        lastBackSlash = path.rfind("\\",0,-1)
-        lastForwardSlash = path.rfind("/",0,-1)
-        lastSlash = max([lastBackSlash,lastForwardSlash])
-        return path[0:lastSlash] + "/credentials/" + cls.credFileName
+        dirName, filename = os.path.split(path)
+        return os.path.join(dirName, "credentials/", cls.credFileName)
 
     @staticmethod
     def getLogFilePath():
         """  Returns full path to credentials file """
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        lastBackSlash = path.rfind("\\",0,-1)
-        lastForwardSlash = path.rfind("/",0,-1)
-        lastSlash = max([lastBackSlash,lastForwardSlash])
-        return path[0:lastSlash] + "/" + BaseInterface.logFileName
+        dirName, filename = os.path.split(path)
+        return os.path.join(dirName, BaseInterface.logFileName)
 
     @staticmethod
     def logDbError(exc):

@@ -21,7 +21,7 @@ def clearErrors():
     session = Session()
 
     # Create tables
-    sqlStatements = ["DELETE FROM error_data", "DELETE FROM file_status"]
+    sqlStatements = ["DDELETE FROM error_data", "DDELETE FROM file_status"]
 
     for statement in sqlStatements:
         try:
