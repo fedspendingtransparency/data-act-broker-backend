@@ -5,7 +5,7 @@ from dataactcore.models.errorInterface import ErrorInterface
 class ErrorHandler(ErrorInterface) :
     """ Manages communication with the error database """
 
-    def getErrorMetericsByJobId (self,jobId) :
+    def getErrorMetricsByJobId (self,jobId) :
         """ Get error metrics for specified job, including number of errors for each field name and error type """
         resultList = []
 

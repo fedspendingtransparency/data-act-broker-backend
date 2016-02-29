@@ -245,7 +245,6 @@ class UserTests(BaseTest):
         userStatus = ["awaiting_confirmation","email_confirmed","awaiting_approval","awaiting_approval","awaiting_approval","approved","approved","denied"]
         userPermissions = [0,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.WEBSITE_ADMIN+AccountType.AGENCY_USER,AccountType.AGENCY_USER,AccountType.AGENCY_USER]
 
-
         # Clear users
         setupUserDB(True)
         clearJobs()

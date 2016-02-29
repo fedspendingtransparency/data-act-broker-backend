@@ -143,11 +143,9 @@ class JobHandler(JobTrackerInterface):
         """
 
         # Pull from job status table
-        queryResult = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
-        if(len(queryResult) != 1):
-            # Did not find a unique match to job ID
-            raise ValueError("Job ID not found")
-        jobToChange = queryResult[0]
+        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
+        jobToChange = self.runUniqueQuery(query,"Job ID not found","Multiple jobs with same ID")
+
         # Change status to finished
         jobToChange.status_id = self.getStatusId("finished")
         # Commit changes

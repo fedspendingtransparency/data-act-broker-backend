@@ -1,5 +1,6 @@
 import os
 import inspect
+import flask
 from flask.ext.cors import CORS
 from flask.ext.bcrypt import Bcrypt
 from flask import Flask
@@ -14,10 +15,13 @@ from dataactbroker.userRoutes import add_user_routes
 
 def runApp():
     """Set up the Application"""
+    # Create application
+    config_path = "".join([os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))),"/config"])
+    app = Flask(__name__,instance_path=config_path)
+
     def getAppConfiguration() :
         """gets the web_api_configuration JSON"""
-        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        configFile = path + "/web_api_configuration.json"
+        configFile = "".join([app.instance_path, "/web_api_configuration.json"])
         return json.loads(open(configFile,"r").read())
 
     config = getAppConfiguration()
@@ -27,12 +31,7 @@ def runApp():
     debugFlag = config["server_debug"]  # Should be false for prod
     runLocal = config["local_dynamo"]  # False for prod, when True this assumes that the Dynamo is on the same server
     JsonResponse.debugMode = config["rest_trace"]
-     #Allows for real Credentials to be created for S3 uploads
-    # Get the project's root folder
-    PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 
-    # Create application
-    app = Flask(__name__)
     app.config.from_object(__name__)
     if(config["origins"] ==  "*"):
         cors = CORS(app,supports_credentials=True)

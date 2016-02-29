@@ -20,10 +20,12 @@ class FileTests(BaseTest):
     TABLES_CLEARED_FILE = "tablesCleared" # Holds a boolean flag in a file so it can be checked before doing table setup
     tablesCleared = False # Set to true after first time setup is run
     submissionId = None
+    passed = False
 
     def __init__(self,methodName,interfaces):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(FileTests,self).__init__(methodName=methodName)
+        self.methodName = methodName
         jobTracker = interfaces.jobDb
         self.jobTracker = jobTracker
         self.errorDatabase = interfaces.errorDb
@@ -85,6 +87,7 @@ class FileTests(BaseTest):
     def test_file_submission(self):
         open(FileHandler.VALIDATOR_RESPONSE_FILE,"w").write(str(-1))
         self.call_file_submission()
+        self.response = self.fileResponse # Used for displaying failures
         # Test that status is 200
         assert(self.fileResponse.status_code==200)
         # Test Content-Type header
@@ -121,6 +124,7 @@ class FileTests(BaseTest):
 
         # Call upload complete route for each id
         self.check_upload_complete(responseDict["appropriations_id"])
+        self.passed = True
 
     @staticmethod
     def waitOnJob(jobTracker, jobId, status):
@@ -134,21 +138,22 @@ class FileTests(BaseTest):
         """ Check that test status route returns correct JSON"""
         utils = TestUtils()
         utils.login()
-        response = utils.postRequest("/v1/check_status/",'{"submission_id":'+str(self.submissionId)+'}')
+        self.response = utils.postRequest("/v1/check_status/",'{"submission_id":'+str(self.submissionId)+'}')
 
-        assert(response.status_code == 200)
-        assert(response.json()[str(self.jobIdDict["uploadFinished"])]["status"]=="finished")
-        assert(response.json()[str(self.jobIdDict["uploadFinished"])]["job_type"]=="file_upload")
-        assert(response.json()[str(self.jobIdDict["uploadFinished"])]["file_type"]=="award")
-        assert(response.json()[str(self.jobIdDict["recordRunning"])]["status"]=="running")
-        assert(response.json()[str(self.jobIdDict["recordRunning"])]["job_type"]=="csv_record_validation")
-        assert(response.json()[str(self.jobIdDict["recordRunning"])]["file_type"]=="award")
-        assert(response.json()[str(self.jobIdDict["externalWaiting"])]["status"]=="waiting")
-        assert(response.json()[str(self.jobIdDict["externalWaiting"])]["job_type"]=="external_validation")
-        assert(response.json()[str(self.jobIdDict["externalWaiting"])]["file_type"]=="award")
-        assert(response.json()[str(self.jobIdDict["appropriations"])]["status"]=="ready")
-        assert(response.json()[str(self.jobIdDict["appropriations"])]["job_type"]=="csv_record_validation")
-        assert(response.json()[str(self.jobIdDict["appropriations"])]["file_type"]=="appropriations")
+        assert(self.response.status_code == 200)
+        assert(self.response.json()[str(self.jobIdDict["uploadFinished"])]["status"]=="finished")
+        assert(self.response.json()[str(self.jobIdDict["uploadFinished"])]["job_type"]=="file_upload")
+        assert(self.response.json()[str(self.jobIdDict["uploadFinished"])]["file_type"]=="award")
+        assert(self.response.json()[str(self.jobIdDict["recordRunning"])]["status"]=="running")
+        assert(self.response.json()[str(self.jobIdDict["recordRunning"])]["job_type"]=="csv_record_validation")
+        assert(self.response.json()[str(self.jobIdDict["recordRunning"])]["file_type"]=="award")
+        assert(self.response.json()[str(self.jobIdDict["externalWaiting"])]["status"]=="waiting")
+        assert(self.response.json()[str(self.jobIdDict["externalWaiting"])]["job_type"]=="external_validation")
+        assert(self.response.json()[str(self.jobIdDict["externalWaiting"])]["file_type"]=="award")
+        assert(self.response.json()[str(self.jobIdDict["appropriations"])]["status"]=="ready")
+        assert(self.response.json()[str(self.jobIdDict["appropriations"])]["job_type"]=="csv_record_validation")
+        assert(self.response.json()[str(self.jobIdDict["appropriations"])]["file_type"]=="appropriations")
+        self.passed = True
 
     def check_error_route(self,jobId,submissonId) :
         jobJson = json.dumps({"upload_id":jobId})
@@ -209,15 +214,17 @@ class FileTests(BaseTest):
         # Will only pass if specific submission ID is entered after validator unit tests have been run to generate the error reports
         if not self.CHECK_ERROR_REPORTS:
             # Skip error report test
+            self.passed = True
             return
         utils = TestUtils()
         utils.login()
 
         self.setupJobsForReports()
-        response = utils.postRequest("/v1/submission_error_reports/",'{"submission_id":'+str(self.ERROR_REPORT_SUBMISSION_ID)+'}')
+        self.response = utils.postRequest("/v1/submission_error_reports/",'{"submission_id":'+str(self.ERROR_REPORT_SUBMISSION_ID)+'}')
         #clearJobs()  # Clear job DB again so sequence errors don't occur
-        assert(response.status_code == 200)
-        assert(len(response.json()) == 4)
+        assert(self.response.status_code == 200)
+        assert(len(self.response.json()) == 4)
+        self.passed = True
 
     @staticmethod
     def check_metrics(submissionId,exists,type_file) :
@@ -249,6 +256,7 @@ class FileTests(BaseTest):
         self.check_metrics(submissionId,False,"award")
         self.check_metrics(submissionId,True,"award_financial")
         self.check_metrics(submissionId,True,"appropriations")
+        self.passed = True
 
     @staticmethod
     def insertSubmission(jobTracker):
@@ -289,6 +297,12 @@ class FileTests(BaseTest):
         jobTracker = self.jobTracker
         for statement in sqlStatements:
             jobTracker.runStatement(statement)
+
+    def tearDown(self):
+        if(not self.passed):
+            print("".join(["Test failed: ",self.methodName]))
+            print("Status is " + str(self.response.status_code))
+            print(str(self.response.json()))
 
 if __name__ == '__main__':
     unittest.main()
