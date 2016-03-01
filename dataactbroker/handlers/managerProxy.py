@@ -12,7 +12,7 @@ class ManagerProxy(object):
         """ Get path to validator out of JSON file """
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         dirName, fileName = os.path.split(path)
-        credFile = os.path.join(dirName, ManagerProxy.MANAGER_FILE)
+        credFile = os.path.join(dirName, "config/", ManagerProxy.MANAGER_FILE)
         return json.loads(open(credFile,"r").read())["URL"]
 
     def jobJson(self,jobId):
