@@ -38,7 +38,8 @@ def setupUserDB(hardReset = False):
                 "(2, 'account_creation', 'Email to notify admin of account request'),"
                 "(3, 'account_approved', 'Email to notify user of the successful account creation'),"
                 "(4, 'account_rejected', ' Email to notify user of the unsuccessful account creation'),"
-                "(5, 'reset_password', ' Email to notify allow users to reset the password')"),
+                "(5, 'reset_password', ' Email to notify allow users to reset the password')",
+                "(6, 'account_creation_user', ' Email to notify allow users to reset the password')"),
             ("INSERT INTO permission_type (permission_type_id, name, description) VALUES"
                 "(0, 'agency_user', 'This user is allowed to upload data to be validated'),"
                 "(1, 'website_admin', 'This user is allowed to manage user accounts')")
@@ -47,28 +48,28 @@ def setupUserDB(hardReset = False):
     database = UserInterface()
 
     #Confirm
-    template = "Hello  [USER],<br /><br />To confirm your email address for the DATA Act Broker please click [URL]. The link will expire in 24 hours.<br /><br />Thank you,<br /><br />The DATA Act Implementation Team"
-    database.loadEmailTemplate("DATA Act Broker : Account Email Confirmation ",template,"validate_email")
+    template = "This email address was just used to create a user account with the USA Spending Data Broker.  To continue the registration process, please click [URL]. The link will expire in 24 hours. <br />  <br />  If you did not initiate this process, you may disregard this email.<br /><br />The DATA Act Implementation Team<br /><br />DATAPMO@fiscal.treasury.gov "
+    database.loadEmailTemplate("USA Spending Data Broker - Registration",template,"validate_email")
 
     #Approve
-    template = "Hello  [USER],<br /><br />Thank you for registering for a user account with the USA Spending Data Broker. Your request has been approved by your agency's administrator. You may now log into the Data Broker portal, using the password you created at registration, by clicking [URL]. If you have any questions, please contact your agency administrator at [EMAIL].<br /><br />Thank you,<br /><br />The DATA Act Implementation Team"
-    database.loadEmailTemplate("DATA Act Broker : Account Approved ",template,"account_approved")
+    template = "Thank you for registering for a user account with the USA Spending Data Broker. Your request has been approved by your agency's administrator. You may now log into the Data Broker portal, using the password you created at registration, by clicking [URL].<br /><br /> If you have any questions, please contact your agency administrator at [EMAIL].<br /><br />The DATA Act Implementation Team<br /><br />DATAPMO@fiscal.treasury.gov"
+    database.loadEmailTemplate("USA Spending Data Broker - Access Approved",template,"account_approved")
 
     #Reject
-    template = "Hello  [USER],<br /><br /> Thank you for requesting log-in credentials for the USA Spending Data Broker. Your attempt to register has been denied. If you believe this determination was made in error, please contact the USA Spending Project Management Office at DATAPMO@fiscal.treasury.gov. <br /><br />Thank you,<br /><br />The DATA Act Implementation Team"
-    database.loadEmailTemplate("DATA Act Broker : Account Rejected ",template,"account_rejected")
+    template = "Thank you for requesting log-in credentials for the USA Spending Data Broker. Your attempt to register has been denied. If you believe this determination was made in error, please contact the USA Spending Project Management Office at DATAPMO@fiscal.treasury.gov.<br /><br />The DATA Act Implementation Team<br /><br />DATAPMO@fiscal.treasury.gov"
+    database.loadEmailTemplate("USA Spending Data Broker - Access Denied",template,"account_rejected")
 
     #Password Reset
-    template = "Hello  [USER],<br /><br /> You have requested your password to be reset for your account. Please click the following link [URL] to start the processs.The link will expire in 24 hours <br /><br />Thank you,<br /><br />DATA Act Broker Admin"
-    database.loadEmailTemplate("DATA Act Broker : Password Reset ",template,"reset_password")
+    template = "You have requested your password to be reset for your account. Please click the following link [URL] to start the processs. The link will expire in 24 hours. <br /><br />The DATA Act Implementation Team <br /><br />DATAPMO@fiscal.treasury.gov"
+    database.loadEmailTemplate("USA Spending Data Broker - Password Reset",template,"reset_password")
 
     #Admin Email
-    template = "Hello  [USER],<br /><br />The following user [USER2] has requested an account. Please login to reject or approve the user. <br /><br />Thank you,<br /><br />The DATA Act Implementation Team"
-    database.loadEmailTemplate("DATA Act Broker : Account Pending Approval ",template,"account_creation")
+    template = "This email is to notify you that the following person has requested an account for the USA Spending Data Broker:<br /><br />Name: [REG_NAME]<br /><br />Title:  [REG_TITEL]<br /><br />Agency:  [REG_AGENCY]<br /><br />Email: [REG_EMAIL]<br /><br /><br /><br />To approve or deny this user for access to the Data Broker, please click here.<br /><br />This action must be taken within 24 hours. <br /><br />Thank you for your prompt attention.<br /><br />The DATA Act Implementation Team<br /><br />DATAPMO@fiscal.treasury.gov"
+    database.loadEmailTemplate("New Data Broker registration - Action Required",template,"account_creation")
 
-
-
-
+    #User Email When finished submitting
+    template = "Thank you for registering for a user account with the USA Spending Data Broker. Your information has been sent to your agency’s administrator at [EMAIL]. You will receive a response within 24 hours. <br /><br />The DATA Act Implementation Team <br /><br />DATAPMO@fiscal.treasury.gov "
+    database.loadEmailTemplate("USA Spending Data Broker - Registration",template,"account_creation_user")
 
 
 
