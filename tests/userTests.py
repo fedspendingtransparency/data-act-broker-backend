@@ -38,9 +38,10 @@ class UserTests(BaseTest):
 
     def test_registration(self):
         self.utils.logout()
-        self.setUpToken("user@agency.gov")
+        email = UserTests.CONFIG["change_user_email"]
+        self.setUpToken(email)
 
-        input = '{"email":"user@agency.gov","name":"user","agency":"agency","title":"title","password":"userPass"}'
+        input = '{"email":"'+email+'","name":"user","agency":"agency","title":"title","password":"userPass"}'
         self.response = self.utils.postRequest("/v1/register/",input)
         self.utils.checkResponse(self.response,StatusCode.OK,"Registration successful")
         self.passed = True
@@ -65,6 +66,7 @@ class UserTests(BaseTest):
         deniedInput = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"denied"}'
         approvedInput = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"approved"}'
         awaitingInput = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"awaiting_approval"}'
+        emailConfirmed = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"email_confirmed"}'
 
         self.response = self.utils.postRequest("/v1/change_status/",awaitingInput)
         self.utils.checkResponse(self.response,StatusCode.OK,"Status change successful")
@@ -79,6 +81,10 @@ class UserTests(BaseTest):
 
 
         self.response = self.utils.postRequest("/v1/change_status/",deniedInput)
+        self.utils.checkResponse(self.response,StatusCode.OK,"Status change successful")
+
+        # Set back to email_confirmed for register test
+        self.response = self.utils.postRequest("/v1/change_status/",emailConfirmed)
         self.utils.checkResponse(self.response,StatusCode.OK,"Status change successful")
         self.passed = True
 
@@ -281,6 +287,7 @@ class UserTests(BaseTest):
         admin.name = "Mr. Manager"
         UserTests.UID_FOR_STATUS_CHANGE  = str(statusChangedUser.user_id)
         statusChangedUser.name = "Test User"
+        statusChangedUser.user_status_id = userDb.getUserStatusId("email_confirmed")
         userDb.session.commit()
         isFirstSub = True
         firstSub = None
