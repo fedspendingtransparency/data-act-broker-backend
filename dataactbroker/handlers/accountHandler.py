@@ -106,11 +106,13 @@ class AccountHandler:
         def ThreadedFunction (from_email="",username="",title="",agency="",userEmail="" ,link="") :
             """This inner function sends emails in a new thread as there could be lots of admins"""
             threadedDatabase =  UserHandler()
-            for user in threadedDatabase.getUsersByType("website_admin") :
-                emailTemplate = {'[REG_NAME]': username, '[REG_TITEL]':title, '[REG_AGENCY]':agency,'[REG_EMAIL]' : userEmail,'[URL]':link}
-                newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=threadedDatabase)
-                newEmail.send()
-            InterfaceHolder.closeOne(threadedDatabase)
+            try:
+                for user in threadedDatabase.getUsersByType("website_admin") :
+                    emailTemplate = {'[REG_NAME]': username, '[REG_TITEL]':title, '[REG_AGENCY]':agency,'[REG_EMAIL]' : userEmail,'[URL]':link}
+                    newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=threadedDatabase)
+                    newEmail.send()
+            finally:
+                InterfaceHolder.closeOne(threadedDatabase)
 
         requestFields = RequestDictionary(self.request)
         if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("agency") and requestFields.exists("title") and requestFields.exists("password"))):

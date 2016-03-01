@@ -21,12 +21,14 @@ def permissions_check(f=None,permissionList=[]):
             else :
                 if LoginSession.isLogin(session):
                     userDb = UserHandler()
-                    user = userDb.getUserByUID(session["name"])
-                    validUser = True
-                    for permission in permissionList :
-                        if(not userDb.hasPermisson(user,permission) ) :
-                            validUser = False
-                    InterfaceHolder.closeOne(userDb)
+                    try:
+                        user = userDb.getUserByUID(session["name"])
+                        validUser = True
+                        for permission in permissionList :
+                            if(not userDb.hasPermisson(user,permission) ) :
+                                validUser = False
+                    finally:
+                        InterfaceHolder.closeOne(userDb)
                     if(validUser) :
                         return f(*args, **kwargs)
                     errorMessage  = "Wrong User Type"
