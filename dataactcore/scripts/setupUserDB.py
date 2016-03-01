@@ -68,7 +68,7 @@ def setupUserDB(hardReset = False):
     database.loadEmailTemplate("New Data Broker registration - Action Required",template,"account_creation")
 
     #User Email When finished submitting
-    template = "Thank you for registering for a user account with the USA Spending Data Broker. Your information has been sent to your agency’s administrator at [EMAIL]. You will receive a response within 24 hours. <br /><br />The DATA Act Implementation Team <br /><br />DATAPMO@fiscal.treasury.gov "
+    template = "Thank you for registering for a user account with the USA Spending Data Broker. Your information has been sent to your agency's administrator at [EMAIL]. You will receive a response within 24 hours. <br /><br />The DATA Act Implementation Team <br /><br />DATAPMO@fiscal.treasury.gov "
     database.loadEmailTemplate("USA Spending Data Broker - Registration",template,"account_creation_user")
 
 
