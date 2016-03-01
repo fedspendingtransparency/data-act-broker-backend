@@ -38,8 +38,8 @@ class CloudLogger(object):
         logging_helpers = {
             'error_log_type': str(type(exception)),
             'error_log_message': str(exception),
-            'error_log_wrapped_message': wrappedMessage,
-            'error_log_wrapped_type': wrappedType,
-            'error_log_trace': traceback
+            'error_log_wrapped_message': str(wrappedMessage),
+            'error_log_wrapped_type': str(wrappedType),
+            'error_log_trace': str(traceback)
         }
         CloudLogger.getLogger().error("".join([message,str(exception)]),extra=logging_helpers)
