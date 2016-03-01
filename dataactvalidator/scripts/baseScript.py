@@ -52,6 +52,7 @@ def loadValidator():
 
 def configAWS():
 	ConfigureCore.promptS3()
+	ConfigureCore.promptLogging()
 
 def configDB():
 	ConfigureCore.promptDatabase()
