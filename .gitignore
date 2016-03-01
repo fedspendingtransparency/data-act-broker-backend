@@ -23,3 +23,4 @@ tests/awardFinFields.csv
 tests/programActivityRaw.csv
 dataactvalidator/scripts/clearRules.py
 dataactvalidator/databaseErrors.log
+dataactvalidator/scripts/dropAll.py

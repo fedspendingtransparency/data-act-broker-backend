@@ -29,8 +29,8 @@ class StagingTable(object):
         self.name = tableName
 
         if(self.interface.tableExists(tableName)):
-            # Now an exception, could change the name here if desired
-            raise ValueError("Table already exists")
+            # Old table still present, drop table and replace
+            self.interface.dropTable(tableName)
 
         # Alternate way of naming tables
         #tableName = "data" + tableName.replace("/","").replace("\\","").replace(".","")
