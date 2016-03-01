@@ -1,5 +1,13 @@
 .idea/*
+*.pyc
 dataactcore/*.pyc
-dataactcore/model/*.pyc
-dataactcore/utils/*.pyc
 dataactcore/aws/*.pyc
+dataactcore/models/*.pyc
+dataactcore/utils/*.pyc
+dataactcore/models/jobTracker.conf
+dataactcore/credentials/dbCred.json
+dataactcore/credentials/dbCredAws.json
+dataactcore/credentials/dbCredLocal.json
+dataactcore/credentials/dbCredProd.json
+dataactcore/credentials/dbCredOther.json
+dataactcore/aws/s3bucket.json
