@@ -38,7 +38,7 @@ def setupUserDB(hardReset = False):
                 "(2, 'account_creation', 'Email to notify admin of account request'),"
                 "(3, 'account_approved', 'Email to notify user of the successful account creation'),"
                 "(4, 'account_rejected', ' Email to notify user of the unsuccessful account creation'),"
-                "(5, 'reset_password', ' Email to notify allow users to reset the password')",
+                "(5, 'reset_password', ' Email to notify allow users to reset the password'),"
                 "(6, 'account_creation_user', ' Email to notify allow users to reset the password')"),
             ("INSERT INTO permission_type (permission_type_id, name, description) VALUES"
                 "(0, 'agency_user', 'This user is allowed to upload data to be validated'),"
