@@ -175,9 +175,6 @@ class FileTests(BaseTest):
         jobJson = json.dumps({"upload_id":jobId})
         self.utils.login()
         finalizeResponse = self.utils.postRequest("/v1/finalize_job/",jobJson)
-        print("Finalize response:")
-        print(str(finalizeResponse.status_code))
-        print(str(finalizeResponse.json()))
         assert(finalizeResponse.status_code == 200)
 
     @staticmethod
