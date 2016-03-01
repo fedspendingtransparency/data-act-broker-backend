@@ -17,7 +17,6 @@ def setupUserDB(hardReset = False):
         runCommands(UserInterface.getCredDict(),sql,"user_manager")
 
     sql = [
-            "DROP SEQUENCE IF EXISTS userIdSerial",
             "CREATE TABLE user_status (user_status_id integer PRIMARY KEY, name text, description text)",
             "CREATE TABLE permission_type (permission_type_id integer PRIMARY KEY, name text, description text)",
             "CREATE SEQUENCE userIdSerial START 1",
