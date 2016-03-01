@@ -103,12 +103,12 @@ class AccountHandler:
     def register(self,system_email,session):
         """ Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', and 'title' """
 
-        def ThreadedFunction (from_email="",username="") :
+        def ThreadedFunction (from_email="",username="",title="",agency="",userEmail="") :
             """This inner function sends emails in a new thread as there could be lots of admins"""
             threadedDatabase =  UserHandler()
             for user in threadedDatabase.getUsersByType("website_admin") :
-                emailTemplate = {'[USER]': user.name, '[USER2]':username}
-                newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=self.interfaces.userDb)
+                emailTemplate = {'[REG_NAME]': username, '[REG_TITEL]':title, '[REG_AGENCY]':agency,'[REG_EMAIL]' : email}
+                newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=threadedDatabase)
                 newEmail.send()
             InterfaceHolder.closeOne(threadedDatabase)
 
@@ -124,8 +124,13 @@ class AccountHandler:
         self.interfaces.userDb.setPassword(user,requestFields.getValue("password"),self.bcrypt)
 
         # Send email to approver list
-        emailThread = Thread(target=ThreadedFunction, kwargs=dict(from_email=system_email,username=user.name))
+        emailThread = Thread(target=ThreadedFunction, kwargs=dict(from_email=system_email,username=user.name,title=user.title,agency=user.agency,userEmail=user.email))
         emailThread.start()
+
+        #email user
+        emailTemplate = {'[EMAIL]' : system_email}
+        newEmail = sesEmail(user.email, system_email,templateType="account_creation_user",parameters=emailTemplate,database=self.interfaces.userDb)
+        newEmail.send()
 
         LoginSession.logout(session)
         # Mark user as awaiting approval
@@ -216,11 +221,11 @@ class AccountHandler:
                 # Grant agency_user permission to newly approved users
                 self.interfaces.userDb.grantPermission(user,"agency_user")
                 link= "".join(['<a href="', AccountHandler.FRONT_END, '">here</a>' ])
-                emailTemplate = {'[USER]': user.name, '[URL]':link,'[EMAIL]':system_email}
+                emailTemplate = { '[URL]':link,'[EMAIL]':system_email}
                 newEmail = sesEmail(user.email, system_email,templateType="account_approved",parameters=emailTemplate,database=self.interfaces.userDb)
                 newEmail.send()
             elif (requestDict.getValue("new_status") == "denied"):
-                emailTemplate = {'[USER]': user.name}
+                emailTemplate = {}
                 newEmail = sesEmail(user.email, system_email,templateType="account_rejected",parameters=emailTemplate,database=self.interfaces.userDb)
                 newEmail.send()
         # Change user's status
@@ -291,7 +296,7 @@ class AccountHandler:
         # Send email with token
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"password_reset")
         link= "".join(['<a href="', AccountHandler.FRONT_END,'/forgotpassword/',emailToken ,'">here</a>' ])
-        emailTemplate = {'[USER]': email, '[URL]':link}
+        emailTemplate = { '[URL]':link}
         newEmail = sesEmail(user.email, system_email,templateType="reset_password",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()
         # Return success message

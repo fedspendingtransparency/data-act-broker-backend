@@ -16,8 +16,8 @@ class ConfigureBroker(object):
 
     """
     @staticmethod
-    def getDatacorePath():
-        """Returns the dataactcore path based on install location"""
+    def getDataBrokerPath():
+        """Returns the dataactbroker path based on install location"""
         return os.path.split(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))[0]
 
     @staticmethod
@@ -67,12 +67,16 @@ class ConfigureBroker(object):
     @staticmethod
     def createFile(filename,json):
         """"""
-        with open(ConfigureBroker.getDatacorePath()+filename, 'wb') as configFile:
+        with open(ConfigureBroker.getDataBrokerPath()+filename, 'wb') as configFile:
             configFile.write(json)
 
     @staticmethod
     def promptBroker():
         """Prompts user broker api"""
+        # Create the config directory
+        if (not os.path.exists("".join([ConfigureBroker.getDataBrokerPath(), "/config"]))):
+                os.makedirs("".join([ConfigureBroker.getDataBrokerPath(), "/config"]))
+
         debugMode = False
         traceMode = False
         enableLocalDynamo = False
@@ -113,13 +117,13 @@ class ConfigureBroker(object):
 
             json = ConfigureBroker.createBrokerJSON(port,traceMode,debugMode,origins,enableLocalDynamo,localPort,emailAddress,frontend,key)
 
-            ConfigureBroker.createFile("/web_api_configuration.json",json)
+            ConfigureBroker.createFile("/config/web_api_configuration.json",json)
         if(ConfigureBroker.questionPrompt("Would you like to configure the connection to the DATA Act validator? (y/n) : ")):
 
             path = input("Enter url (http://severurl:port) : ")
             json = ConfigureBroker.createValidatorJSON(path)
 
-            ConfigureBroker.createFile("/manager.json",json)
+            ConfigureBroker.createFile("/config/manager.json",json)
         if(ConfigureBroker.questionPrompt("Would you like to configure the users to the DATA Act web api? (y/n) : ")):
             testCaseUsers = False
             if(ConfigureBroker.questionPrompt("Would you like to include test case users (y/n) : ")):
@@ -129,8 +133,4 @@ class ConfigureBroker(object):
             ConfigureBroker.createTestUsers(adminEmail,password,testCaseUsers)
 
 if __name__ == '__main__':
-    crypt = Bcrypt()
-    userDatabase = UserHandler()
-    userDatabase.createUser("user","bestPassEver" ,crypt)
-    userDatabase.createUser("user2","NotAPassword" ,crypt)
-    userDatabase.createUser("user3","123abc" ,crypt)
+    ConfigureBroker.promptBroker()

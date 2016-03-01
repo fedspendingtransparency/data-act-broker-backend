@@ -24,4 +24,6 @@ tests/testConfig.json
 tests/test.json
 dataactbroker/validatorResponse
 dataactbroker/manager.json
+dataactbroker/config/manager.json
+dataactbroker/config/web_api_configuration.json
 web_api_configuration.json
