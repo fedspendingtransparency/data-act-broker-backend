@@ -1,10 +1,12 @@
 import os
+import sys
 import inspect
 import traceback
 import json
 from flask.ext.cors import CORS
 from flask.ext.bcrypt import Bcrypt
 from flask import Flask
+from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactbroker.handlers.accountHandler import AccountHandler
@@ -59,7 +61,7 @@ def runApp():
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         trace = traceback.extract_tb(exc_tb, 10)
-        CloudLogger.logError(exception,trace,'Broker App Level Error: ',trace)
+        CloudLogger.logError('Broker App Level Error: ',e,trace)
         del exc_tb
 if __name__ == '__main__':
     runApp()
