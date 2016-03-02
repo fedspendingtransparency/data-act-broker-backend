@@ -83,7 +83,7 @@ class AccountHandler:
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
         return self.response
 
-    #
+
     def logout(self,session):
         """
 
@@ -102,10 +102,30 @@ class AccountHandler:
 
 
     def register(self,system_email,session):
-        """ Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', and 'title' """
+        """
 
+        Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', and 'title'
+
+        arguments:
+
+        system_email  -- (string) email used to send messages
+        session  -- (Session) object from flask
+
+
+        Returns message that registration is successful or error message that fields are not valid
+
+        """
         def ThreadedFunction (from_email="",username="",title="",agency="",userEmail="" ,link="") :
-            """This inner function sends emails in a new thread as there could be lots of admins"""
+            """
+            This inner function sends emails in a new thread as there could be lots of admins
+
+            from_email -- (string) the from email address
+            username -- (string) the name of the  user
+            title  --   (string) the title of the  user
+            agency -- (string) the agency of the  user
+            userEmail -- (string) the email of the user
+            link  -- (string) the broker email link
+            """
             threadedDatabase =  UserHandler()
             try:
                 for user in threadedDatabase.getUsersByType("website_admin") :
@@ -144,7 +164,16 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
 
     def createEmailConfirmation(self,system_email,session):
-        """Creates user record and email"""
+        """
+
+        Creates user record and email
+
+        arguments:
+
+        system_email  -- (string) email used to send messages
+        session  -- (Session) object from flask
+
+        """
         requestFields = RequestDictionary(self.request)
         if(not requestFields.exists("email")):
             exc = ResponseException("Request body must include email", StatusCode.CLIENT_ERROR)
@@ -169,7 +198,17 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK,{"message":"Email Sent"})
 
     def checkEmailConfirmationToken(self,session):
-        """Creates user record and email"""
+        """
+
+        Creates user record and email
+
+        arguments:
+
+        session -- (Session) object from flask
+
+        return the reponse object with a error code and a message
+
+        """
         requestFields = RequestDictionary(self.request)
         if(not requestFields.exists("token")):
             exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
@@ -189,7 +228,17 @@ class AccountHandler:
             return JsonResponse.create(StatusCode.OK,{"errorCode":errorCode,"message":message})
 
     def checkPasswordToken(self,session):
-        """Checks the password token if its valid"""
+        """
+
+        Checks the password token if its valid
+
+        arguments:
+
+        session -- (Session) object from flask
+
+        return the reponse object with a error code and a message
+
+        """
         requestFields = RequestDictionary(self.request)
         if(not requestFields.exists("token")):
             exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
@@ -208,7 +257,17 @@ class AccountHandler:
 
 
     def changeStatus(self,system_email):
-        """ Changes status for specified user.  Associated request body should have keys 'uid' and 'new_status' """
+        """
+
+        Changes status for specified user.  Associated request body should have keys 'uid' and 'new_status'
+
+        arguments:
+
+        system_email  -- (string) the emaily to send emails from
+
+        return the reponse object with a success message
+
+        """
         requestDict = RequestDictionary(self.request)
         if(not (requestDict.exists("uid") and requestDict.exists("new_status"))):
             # Missing a required field, return 400
@@ -282,7 +341,16 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK,{"message":"Password successfully changed"})
 
     def resetPassword(self,system_email,session):
-        """ Remove old password and email user a token to set a new password.  Request should have key "email" """
+        """
+
+        Remove old password and email user a token to set a new password.  Request should have key "email"
+
+        arguments:
+
+        system_email  -- (string) email used to send messages
+        session  -- (Session) object from flask
+
+        """
         requestDict = RequestDictionary(self.request)
         if(not (requestDict.exists("email"))):
             # Don't have the keys we need in request
@@ -310,6 +378,17 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK,{"message":"Password reset"})
 
     def getCurrentUser(self,session):
+        """
+
+        Gets the current user information
+
+        arguments:
+
+        session  -- (Session) object from flask
+
+        return the reponse object with the current user information
+
+        """
         uid =  session["name"]
         user =  self.interfaces.userDb.getUserByUID(uid)
         permissionList = []
