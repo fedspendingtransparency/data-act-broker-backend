@@ -179,7 +179,7 @@ class AccountHandler:
             exc = ResponseException("Request body must include email", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         email = requestFields.getValue("email")
-        if( not re.match("[^@]+@[^@]+\.[^@]+")) :
+        if( not re.match("[^@]+@[^@]+\.[^@]+",email)) :
             return JsonResponse.error(ValueError("Invalid Email Format"),StatusCode.CLIENT_ERROR)
         try :
             user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
