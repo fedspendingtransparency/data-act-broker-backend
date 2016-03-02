@@ -1,5 +1,6 @@
 from flask import session as flaskSession
 from threading import Thread
+import re
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
@@ -149,6 +150,8 @@ class AccountHandler:
             exc = ResponseException("Request body must include email", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         email = requestFields.getValue("email")
+        if( not re.match("[^@]+@[^@]+\.[^@]+",email)) :
+            return JsonResponse.error(ValueError("Invalid Email Format"),StatusCode.CLIENT_ERROR)
         try :
             user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
         except ResponseException as e:
