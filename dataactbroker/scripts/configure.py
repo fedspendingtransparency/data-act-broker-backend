@@ -22,6 +22,7 @@ class ConfigureBroker(object):
 
     @staticmethod
     def createTestUsers(adminEmail,adminpass,enableTestUsers):
+        """Creates Tests Users"""
         crypt = Bcrypt()
         userDatabase = UserHandler()
         if(enableTestUsers):
@@ -66,7 +67,7 @@ class ConfigureBroker(object):
 
     @staticmethod
     def createFile(filename,json):
-        """"""
+        """Creates a file with the json and filename"""
         with open(ConfigureBroker.getDataBrokerPath()+filename, 'wb') as configFile:
             configFile.write(json)
 

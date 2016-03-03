@@ -66,10 +66,15 @@ class AccountHandler:
                 if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
                     # We have a valid login
                     LoginSession.login(session,user.user_id)
-                    return JsonResponse.create(StatusCode.OK,{"message":"Login successful"})
+                    permissionList = []
+                    for permission in self.interfaces.userDb.getPermssionList():
+                        if(self.interfaces.userDb.hasPermisson(user,permission.name)):
+                            permissionList.append(permission.permission_type_id)
+                    return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),"name":user.name,"title":user.title ,"agency":user.agency, "permissions" : permissionList})
                 else :
                     raise ValueError("user name and or password invalid")
             except Exception as e:
+                    LoginSession.logout(session)
                     raise ValueError("user name and or password invalid")
 
         except (TypeError, KeyError, NotImplementedError) as e:
@@ -395,4 +400,4 @@ class AccountHandler:
         for permission in self.interfaces.userDb.getPermssionList():
             if(self.interfaces.userDb.hasPermisson(user,permission.name)):
                 permissionList.append(permission.permission_type_id)
-        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency, "permissions" : permissionList})
+        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList})
