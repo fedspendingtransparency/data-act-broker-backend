@@ -35,6 +35,13 @@ class AccountHandler:
         self.interfaces = interfaces
         self.userManager = interfaces.userDb
 
+    def checkPassword(self,password):
+        """Checks to make sure the password is valid"""
+        if( re.search(r"[ !#$%&'()*+,-./[\\\]^_`{|}~"+r'"]', password) is None or len(password) < 8 or re.search(r"\d", password) is None or
+            re.search(r"[A-Z]", password) is None or re.search(r"[a-z]", password) is None) :
+            return False
+        return True
+
     def login(self,session):
         """
 
@@ -144,6 +151,10 @@ class AccountHandler:
         if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("agency") and requestFields.exists("title") and requestFields.exists("password"))):
             # Missing a required field, return 400
             exc = ResponseException("Request body must include email, name, agency, title, and password", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc,exc.status)
+
+        if(not self.checkPassword(requestFields.getValue("password"))):
+            exc = ResponseException("Invalid Password", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         # Find user that matches specified email
         user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
@@ -338,10 +349,15 @@ class AccountHandler:
             # Don't have the keys we need in request
             exc = ResponseException("Set password route requires keys user_email and password",StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
+
+        if(not self.checkPassword(requestDict.getValue("password"))):
+            exc = ResponseException("Invalid Password", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc,exc.status)
         # Get user from email
         user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("user_email"))
         # Set new password
         self.interfaces.userDb.setPassword(user,requestDict.getValue("password"),self.bcrypt)
+
         # Return success message
         return JsonResponse.create(StatusCode.OK,{"message":"Password successfully changed"})
 
