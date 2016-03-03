@@ -119,7 +119,7 @@ def runApp():
 
         config = getAppConfiguration()
         JsonResponse.debugMode = config["rest_trace"]
-        app.run(debug=config["server_debug"],threaded=True,host="0.0.0.0",port=int(config["port"]))
+        app.run(debug=config["server_debug"],threaded=True,host=config["host"],port=int(config["port"]))
     except Exception as e:
         trace = traceback.extract_tb(sys.exc_info()[2], 10)
         CloudLogger.logError('Validator App Level Error: ',e,trace)

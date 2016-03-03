@@ -301,6 +301,13 @@ class ValidatorValidationInterface(BaseInterface) :
         return int(float(rule.rule_text_1)) # Going through float in case of decimal value
 
     def getRuleType(self,typeName):
+        """ Get rule ID for specified rule type
+
+        Arguments:
+            typeName - name of rule type (string)
+        Returns:
+            ID for rule type (int)
+        """
         if(RuleType.TYPE_DICT == None):
             RuleType.TYPE_DICT = {}
             # Pull status values out of DB
@@ -323,6 +330,13 @@ class ValidatorValidationInterface(BaseInterface) :
         return queryResult.rule_type_id
 
     def getMultiFieldRuleType(self,typeName):
+        """ Get rule ID for specified multi-field rule type
+
+        Arguments:
+            typeName - name of rule type (string)
+        Returns:
+            ID for rule type (int)
+        """
         typeName = typeName.upper()
         if(MultiFieldRuleType.TYPE_DICT == None):
             MultiFieldRuleType.TYPE_DICT = {}
@@ -347,4 +361,9 @@ class ValidatorValidationInterface(BaseInterface) :
         return queryResult.multi_field_rule_type_id
 
     def populateFile(self,column):
+        """ Populate file object in the ORM for the specified FileColumn object
+
+        Arguments:
+            column - FileColumn object to get File object for
+        """
         column.file = self.session.query(FileType).filter(FileType.file_id == column.file_id)[0]
