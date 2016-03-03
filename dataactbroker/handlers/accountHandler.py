@@ -368,8 +368,6 @@ class AccountHandler:
             exc = ResponseException("Unknown Error",StatusCode.CLIENT_ERROR,ValueError)
             return JsonResponse.error(exc,exc.status)
 
-        # Remove current password hash
-        user.password_hash = None
         LoginSession.logout(session)
         self.interfaces.userDb.session.commit()
         email = requestDict.getValue("email")
