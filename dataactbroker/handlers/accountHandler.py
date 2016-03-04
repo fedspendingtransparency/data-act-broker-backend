@@ -37,7 +37,7 @@ class AccountHandler:
 
     def checkPassword(self,password):
         """Checks to make sure the password is valid"""
-        if( re.search(r"[ !#$%&'()*+,-./[\\\]^_`{|}~"+r'"]', password) is None or len(password) < 8 or re.search(r"\d", password) is None or
+        if( re.search(r"[\[\]\{\}~!@#$%^,.?;<>]", password) is None or len(password) < 8 or re.search(r"\d", password) is None or
             re.search(r"[A-Z]", password) is None or re.search(r"[a-z]", password) is None) :
             return False
         return True
