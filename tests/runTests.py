@@ -22,7 +22,7 @@ def runTests():
     jobMethods = JobTests.__dict__.keys()
 
     #validatorMethods = []
-    #jobMethods = ["test_rules"]
+    #jobMethods = [] #["test_rules"]
 
     for method in validatorMethods:
         # If test method, add to suite
@@ -52,7 +52,7 @@ def runTests():
 
     fileSuite = unittest.TestSuite()
     fileMethods = FileTypeTests.__dict__.keys()
-    #fileMethods = []
+    #fileMethods = ["test_approp_valid"]
 
     for method in fileMethods:
         # If test method, add to suite

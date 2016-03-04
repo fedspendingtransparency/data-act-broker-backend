@@ -6,15 +6,28 @@ Data Act Broker Validation Component Install
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 # To use a consistent encoding
-from codecs import open
+import os
 from os import path
+import inspect
+from codecs import open
+from pip.download import PipSession
+from pip.req import parse_requirements
+
+
 
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
+# Get path from current file location
+dirPath = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+requirementsPath = os.path.join(dirPath,"requirements.txt")
+# parse_requirements() returns generator of pip.req.InstallRequirement objects
+install_reqs = parse_requirements(requirementsPath,session=PipSession())
 
+# Create the list of requirements
+reqs = [str(ir.req) for ir in install_reqs]
 
 setup(
     name='dataactvalidator',
@@ -35,9 +48,7 @@ setup(
     ],
     keywords='dataAct validator setup',
     packages=find_packages(),
-    install_requires=[
-      'dataactcore==0.0.1','Flask==0.10.1','Decorator==4.0.4','Requests==2.8.1','flask-cors==2.1.2','smart-open==1.3.1',
-    ],
+    install_requires=reqs,
     dependency_links=[
       'git+https://git@github.com/fedspendingtransparency/data-act-core.git@configuration#egg=dataactcore-0.0.1',
     ],

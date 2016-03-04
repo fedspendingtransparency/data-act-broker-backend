@@ -2,11 +2,13 @@ import unittest
 import json
 from sqlalchemy.exc import InvalidRequestError
 from testUtils import TestUtils
-from dataactcore.models.jobModels import Status, Type
+from dataactcore.models.jobModels import Status, JobDependency
 from dataactcore.scripts.databaseSetup import runCommands
-from dataactcore.scripts.setupValidationDB import setupValidationDB
 from dataactcore.scripts.clearErrors import clearErrors
-from dataactvalidator.interfaces.stagingInterface import StagingInterface
+from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
+from dataactvalidator.scripts.setupValidationDB import setupValidationDB
+from dataactvalidator.scripts.setupStagingDB import setupStaging
+from dataactvalidator.models.validationModels import Rule
 
 class JobTests(unittest.TestCase):
 
@@ -33,7 +35,7 @@ class JobTests(unittest.TestCase):
 
         if not self.TABLE_POPULATED:
             # Create staging database
-            runCommands(StagingInterface.getCredDict(), [], "staging")
+            setupStaging()
             self.stagingDb = interfaces.stagingDb
 
             setupValidationDB()
@@ -78,22 +80,21 @@ class JobTests(unittest.TestCase):
                         "rules":{"filename":"testRules.csv","status":"ready","type":"csv_record_validation","submissionLocalId":16,"fileType":3}}
 
             # Upload needed files to S3
+            print("Uploading files")
             for key in csvFiles.keys():
                 csvFiles[key]["s3Filename"] = TestUtils.uploadFile(csvFiles[key]["filename"],user)
 
             self.jobIdDict = {}
 
             sqlStatements = []
+            print("Inserting jobs")
             for key in csvFiles.keys():
                 # Create SQL statement and add to list
-                statement = TestUtils.createJobStatement(str(Status.getStatus(csvFiles[key]["status"])), str(Type.getType(csvFiles[key]["type"])), str(submissionIDs[csvFiles[key]["submissionLocalId"]]), csvFiles[key]["s3Filename"], str(csvFiles[key]["fileType"]))
-                jobId = self.jobTracker.runStatement(statement)
-                try:
-                    self.jobIdDict[key] = jobId.fetchone()[0]
-                except InvalidRequestError:
-                    # Problem getting result back, may happen for dependency statements
-                    pass
-
+                job = TestUtils.addJob(str(self.jobTracker.getStatusId(csvFiles[key]["status"])), str(self.jobTracker.getTypeId(csvFiles[key]["type"])), str(submissionIDs[csvFiles[key]["submissionLocalId"]]), csvFiles[key]["s3Filename"], str(csvFiles[key]["fileType"]),self.jobTracker.session)
+                if(job.job_id == None):
+                    # Failed to commit job correctly
+                    raise Exception("".join(["Job for ", str(key), " did not get an id back"]))
+                self.jobIdDict[key] = job.job_id
 
             print(str(self.jobIdDict))
             # Last job number
@@ -104,12 +105,13 @@ class JobTests(unittest.TestCase):
             open(self.JOB_ID_FILE,"w").write(json.dumps(self.jobIdDict))
 
             # Create dependencies
-            depStatements = ["INSERT INTO job_dependency (job_id, prerequisite_id) VALUES ("+str(self.jobIdDict["bad_prereq"])+", "+str(self.jobIdDict["bad_upload"])+")",
-            "INSERT INTO job_dependency (job_id, prerequisite_id) VALUES ("+str(self.jobIdDict["valid_prereq"])+", "+str(self.jobIdDict["valid_upload"])+")"]
+            dependencies = [JobDependency(job_id = str(self.jobIdDict["bad_prereq"]), prerequisite_id = str(self.jobIdDict["bad_upload"])),
+                            JobDependency(job_id = str(self.jobIdDict["valid_prereq"]), prerequisite_id = str(self.jobIdDict["valid_upload"]))
+                            ]
 
-            for statement in depStatements:
-                self.jobTracker.runStatement(statement)
-
+            for dependency in dependencies:
+                self.jobTracker.session.add(dependency)
+            self.jobTracker.session.commit()
 
 
             if(self.CREATE_VALIDATION_RULES):
@@ -121,13 +123,21 @@ class JobTests(unittest.TestCase):
                         else:
                             fieldType = 4
                         columnName = "header_" + str(columnId)
-                        statement = TestUtils.createColumnStatement(fileId, fieldType, columnName, "", (columnId != 3))
-                        colId = validationDB.runStatement(statement)
-                        colIdDict["header_"+str(columnId)+"_file_type_"+str(fileId)] = colId.fetchone()[0]
+                        column = TestUtils.addFileColumn(fileId, fieldType, columnName, "", (columnId != 3), self.interfaces.validationDb.session)
+                        if(column.file_column_id is None):
+                            raise Exception("File column did not get an ID back")
+                        colIdDict["header_"+str(columnId)+"_file_type_"+str(fileId)] = column.file_column_id
 
-                ruleStatement = "INSERT INTO rule (file_column_id, rule_type_id, rule_text_1, description) VALUES ("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+", 5, 0, 'value 1 must be greater than zero'),("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+",3,13,'value 1 may not be 13'),("+str(colIdDict["header_"+str(5)+"_file_type_"+str(3)])+",1,'INT','value 5 must be an integer'),("+str(colIdDict["header_"+str(3)+"_file_type_"+str(3)])+",2,42,'value 3 must be equal to 42 if present'),("+str(colIdDict["header_"+str(1)+"_file_type_"+str(3)])+",4,100,'value 1 must be less than 100')"
+                rules = [Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 5, rule_text_1 = 0, description =  'value 1 must be greater than zero'),
+                         Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 3, rule_text_1 = 13, description =  'value 1 may not be 13'),
+                         Rule(file_column_id = str(colIdDict["".join(["header_",str(5),"_file_type_",str(3)])]),rule_type_id = 1, rule_text_1 = "INT", description =  'value 5 must be an integer'),
+                         Rule(file_column_id = str(colIdDict["".join(["header_",str(3),"_file_type_",str(3)])]),rule_type_id = 2, rule_text_1 = 42, description =  'value 3 must be equal to 42 if present'),
+                         Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 4, rule_text_1 = 100, description =  'value 1 must be less than 100')
+                         ]
 
-                validationDB.runStatement(ruleStatement)
+                for rule in rules:
+                    validationDB.session.add(rule)
+                validationDB.session.commit()
 
             if(self.DROP_OLD_TABLES):
                 try:
@@ -147,7 +157,15 @@ class JobTests(unittest.TestCase):
                 print("Dropping staging tables from " + str(firstJob) + " to " + str(lastJob))
                 # Remove existing tables from staging if they exist
                 for jobId in range(int(firstJob)+1, lastJob+1):
-                    self.stagingDb.dropTable("job"+str(jobId))
+                    try:
+                        print("Dropping table " + str(jobId))
+                        self.stagingDb.dropTable("job"+str(jobId))
+                    except Exception as e:
+                        # Could not drop table
+                        print(str(e))
+                        # Close and replace session
+                        self.stagingDb.session.close()
+                        self.stagingDb.session = self.stagingDb.Session()
 
                 open(self.LAST_CLEARED_FILE,"w").write(str(lastJob))
             JobTests.TABLE_POPULATED = True
@@ -242,7 +260,7 @@ class JobTests(unittest.TestCase):
     def test_bad_id_job(self):
         """ Test job ID not found in job status table """
         jobId = -1
-        self.passed = TestUtils.run_test(jobId,400,False,False,False,"job_error",0,self)
+        self.passed = TestUtils.run_test(jobId,400,False,False,False,False,0,self)
 
     def test_prereq_job(self):
         """ Test job with prerequisites finished """
@@ -284,7 +302,15 @@ class JobTests(unittest.TestCase):
     def dropTables(self, table):
         if self.DROP_TABLES:
             stagingDb = self.interfaces.stagingDb
-            stagingDb.dropTable(table)
-            return True
+            try:
+                stagingDb.dropTable(table)
+                return True
+            except Exception as e:
+                # Could not drop table
+                print(str(e))
+                # Close and replace session
+                stagingDb.session.close()
+                stagingDb.session = stagingDb.Session()
+                return False
         else:
             return False

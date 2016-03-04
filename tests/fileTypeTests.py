@@ -1,11 +1,9 @@
 import unittest
 import json
 from sqlalchemy.exc import InvalidRequestError
-from dataactcore.models.jobModels import Status, Type
-from dataactcore.models.validationModels import TASLookup
 from dataactcore.scripts.databaseSetup import runCommands
-from dataactvalidator.interfaces.stagingInterface import StagingInterface
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.models.validationModels import TASLookup
+from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.tasSetup import loadTAS
 from testUtils import TestUtils
@@ -15,6 +13,7 @@ class FileTypeTests(unittest.TestCase):
 
     TABLE_POPULATED = False
     FORCE_TAS_LOAD = False # If true, forces TAS to reload even when table is populated
+    DROP_TABLES = False # If true, tries to drop existing staging tables before running tests
     JOB_ID_FILE = "appropJobIds.json"
     jobIdDict = {}
 
@@ -31,8 +30,9 @@ class FileTypeTests(unittest.TestCase):
             lastJob = 100
 
             # Create staging database
-            runCommands(StagingInterface.getCredDict(), [], "staging")
+            runCommands(ValidatorStagingInterface.getCredDict(), [], "staging")
             self.stagingDb = interfaces.stagingDb
+            self.jobDb = interfaces.jobDb
 
             # Define user
             user = 1
@@ -54,27 +54,23 @@ class FileTypeTests(unittest.TestCase):
                 submissionIDs[i] = TestUtils.insertSubmission(self.jobTracker)
 
             # Create jobs
-            sqlStatements = ["INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[1])+", '" + s3FileNameValid + "',3) RETURNING job_id",
-                             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[2])+", '" + s3FileNameMixed + "',3) RETURNING job_id",
-                             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[3])+", '" + s3FileNameTas + "',3) RETURNING job_id",
-                             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[4])+", '" + s3FileNameProgramValid + "',4) RETURNING job_id",
-                             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[5])+", '" + s3FileNameProgramMixed + "',4) RETURNING job_id",
-                             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[6])+", '" + s3FileNameAwardFinValid + "',2) RETURNING job_id",
-                             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[7])+", '" + s3FileNameAwardFinMixed + "',2) RETURNING job_id",
-                             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[8])+", '" + s3FileNameAwardValid + "',1) RETURNING job_id",
-                             "INSERT INTO job_status (status_id, type_id, submission_id, filename, file_type_id) VALUES (" + str(Status.getStatus("ready")) + "," + str(Type.getType("csv_record_validation")) + ","+str(submissionIDs[9])+", '" + s3FileNameAwardMixed + "',1) RETURNING job_id"]
+            jobInfoList = {"valid":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[1]), s3FileNameValid, 3],
+                       "mixed":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[2]), s3FileNameMixed, 3],
+                       "tas":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[3]), s3FileNameTas, 3],
+                       "programValid":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[4]), s3FileNameProgramValid, 4],
+                       "programMixed":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[5]), s3FileNameProgramMixed, 4],
+                       "awardFinValid":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[6]), s3FileNameAwardFinValid, 2],
+                       "awardFinMixed":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[7]), s3FileNameAwardFinMixed, 2],
+                       "awardValid":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[8]), s3FileNameAwardValid, 1],
+                       "awardMixed":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[9]), s3FileNameAwardMixed, 1]}
 
             self.jobIdDict = {}
-            keyList = ["valid","mixed","tas","programValid","programMixed","awardFinValid","awardFinMixed","awardValid","awardMixed"]
-            index = 0
-            for statement in sqlStatements:
-                jobId = self.jobTracker.runStatement(statement)
-                try:
-                    self.jobIdDict[keyList[index]] = jobId.fetchone()[0]
-                except InvalidRequestError:
-                    # Problem getting result back, may happen for dependency statements
-                    pass
-                index += 1
+            for key in jobInfoList:
+                jobInfo = jobInfoList[key] # Done this way to be compatible with python 2 and 3
+                jobInfo.append(self.jobTracker.session)
+                job = TestUtils.addJob(*jobInfo)
+                jobId = job.job_id
+                self.jobIdDict[key] = jobId
 
             # Save jobIdDict to file
             print(self.jobIdDict)
@@ -84,9 +80,17 @@ class FileTypeTests(unittest.TestCase):
             print("Loading definitions")
             self.load_definitions(self.interfaces)
 
-            # Remove existing tables from staging if they exist
-            for jobId in self.jobIdDict.values():
-                self.stagingDb.dropTable("job"+str(jobId))
+            if(self.DROP_TABLES):
+                # Remove existing tables from staging if they exist
+                for jobId in self.jobIdDict.values():
+                    try:
+                        self.stagingDb.dropTable("job"+str(jobId))
+                    except Exception as e:
+                        # Failed to drop table
+                        print(str(e))
+                        # Close and replace session
+                        self.stagingDb.session.close()
+                        self.stagingDb.session = self.stagingDb.Session()
 
             FileTypeTests.TABLE_POPULATED = True
         else:

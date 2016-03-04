@@ -41,7 +41,7 @@ class ValidationManager:
         except ResponseException as e:
             # Could not get a unique job ID in the database, either a bad job ID was passed in or the record of that job was lost.
             # Either way, cannot mark status of a job that does not exist
-            open("databaseErrors.log","a").write("Could not mark status " + str(status) + " for job ID " + str(jobId) + "\n")
+            open("databaseErrors.log","a").write("".join(["Could not mark status ",str(status)," for job ID ",str(jobId),"\n"]))
 
     @staticmethod
     def getJobID(request):
@@ -69,7 +69,6 @@ class ValidationManager:
         returns the jobId
         True if the job is ready, if the job is not ready an exception will be raised
         """
-        tableName = "job"+str(jobId)
         if(not (interfaces.jobDb.runChecks(jobId))):
             raise ResponseException("Checks failed on Job ID",StatusCode.CLIENT_ERROR)
 
@@ -97,14 +96,14 @@ class ValidationManager:
             errorDb.markFileComplete(jobId,self.filename)
             return
         except ResponseException as e:
-            open("errorLog","a").write(str(e) + "\n")
+            open("errorLog","a").write("".join([str(e),"\n"]))
             self.markJob(jobId,jobTracker,"invalid",errorDb,self.filename,e.errorType)
         except ValueError as e:
-            open("errorLog","a").write(str(e) + "\n")
+            open("errorLog","a").write("".join([str(e),"\n"]))
             self.markJob(jobId,jobTracker,"invalid",errorDb,self.filename,ValidationError.unknownError)
         except Exception as e:
             #Something unknown happened we may need to try again!
-            open("errorLog","a").write(str(e) + "\n")
+            open("errorLog","a").write("".join([str(e),"\n"]))
             self.markJob(jobId,jobTracker,"failed",errorDb,self.filename,ValidationError.unknownError)
         finally:
             interfaces.close()
@@ -126,7 +125,7 @@ class ValidationManager:
         fileName = jobTracker.getFileName(jobId)
         self.filename = fileName
         bucketName = s3UrlHandler.getValueFromConfig("bucket")
-        errorFileName = "errors/"+jobTracker.getReportPath(jobId)
+        errorFileName = "".join(["errors/",jobTracker.getReportPath(jobId)])
 
         validationDB = interfaces.validationDb
         fieldList = validationDB.getFieldsByFileList(fileType)
@@ -138,7 +137,7 @@ class ValidationManager:
         # Create staging table
         # While not done, pull one row and put it into staging if it passes
         # the Validator
-        tableName = "job"+str(jobId)
+        tableName = interfaces.stagingDb.getTableName(jobId)
         tableObject = StagingTable(interfaces)
         tableObject.createTable(fileType,fileName,jobId,tableName)
         errorInterface = interfaces.errorDb
@@ -214,7 +213,7 @@ class ValidationManager:
             requestDict = RequestDictionary(request)
             if(requestDict.exists("job_id")):
                 jobId = requestDict.getValue("job_id")
-                tableName = "job"+str(jobId)
+                tableName = interfaces.stagingDb.getTableName(jobId)
             else:
                 # Request does not have a job ID, can't validate
                 raise ResponseException("No job ID specified in request",StatusCode.CLIENT_ERROR)
@@ -224,17 +223,17 @@ class ValidationManager:
                 raise ResponseException("Checks failed on Job ID",StatusCode.CLIENT_ERROR)
 
         except ResponseException as e:
-            open("errorLog","a").write(str(e) + "\n")
+            open("errorLog","a").write("".join([str(e),"\n"]))
             if(e.errorType == None):
                 # Error occurred while trying to get and check job ID
                 e.errorType = ValidationError.jobError
             interfaces.errorDb.writeFileError(jobId,self.filename,e.errorType)
-            return JsonResponse.error(e,e.status,{"table":tableName})
+            return JsonResponse.error(e,e.status,table=tableName)
         except Exception as e:
-            open("errorLog","a").write(str(e) + "\n")
+            open("errorLog","a").write("".join([str(e),"\n"]))
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
             self.markJob(jobId,jobTracker,"failed",interfaces.errorDb,self.filename,ValidationError.unknownError)
-            return JsonResponse.error(exc,exc.status,{"table":tableName})
+            return JsonResponse.error(exc,exc.status,table=tableName)
 
         try:
             jobTracker.markStatus(jobId,"running")
@@ -242,23 +241,23 @@ class ValidationManager:
             interfaces.errorDb.markFileComplete(jobId,self.filename)
             return  JsonResponse.create(StatusCode.OK,{"table":tableName})
         except ResponseException as e:
-            open("errorLog","a").write(str(e) + "\n")
+            open("errorLog","a").write("".join([str(e),"\n"]))
             self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,e.errorType)
-            return JsonResponse.error(e,e.status,{"table":tableName})
+            return JsonResponse.error(e,e.status,table=tableName)
         except ValueError as e:
-            open("errorLog","a").write(str(e) + "\n")
+            open("errorLog","a").write("".join([str(e),"\n"]))
             # Problem with CSV headers
             exc = ResponseException("Internal value error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
             self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,ValidationError.unknownError)
-            return JsonResponse.error(exc,exc.status,{"table":tableName})
+            return JsonResponse.error(exc,exc.status,table=tableName)
         except Error as e:
-            open("errorLog","a").write(str(e) + "\n")
+            open("errorLog","a").write("".join([str(e),"\n"]))
             # CSV file not properly formatted (usually too much in one field)
             exc = ResponseException("Internal error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
             self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,ValidationError.unknownError)
-            return JsonResponse.error(exc,exc.status,{"table":tableName})
+            return JsonResponse.error(exc,exc.status,table=tableName)
         except Exception as e:
-            open("errorLog","a").write(str(e) + "\n")
+            open("errorLog","a").write("".join([str(e),"\n"]))
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e),ValidationError.unknownError)
             self.markJob(jobId,jobTracker,"failed",interfaces.errorDb,self.filename,ValidationError.unknownError)
-            return JsonResponse.error(exc,exc.status,{"table":tableName})
+            return JsonResponse.error(exc,exc.status,table=tableName)

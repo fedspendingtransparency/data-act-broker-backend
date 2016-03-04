@@ -1,14 +1,14 @@
-from dataactcore.models.errorModels import FileStatus, ErrorData, ErrorType, Status
-from dataactcore.models import errorInterface
+from dataactcore.models.errorModels import FileStatus, ErrorData
+from dataactcore.models.errorInterface import ErrorInterface
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
-class ErrorInterface(errorInterface.ErrorInterface):
+class ValidatorErrorInterface(ErrorInterface):
     """ Manages communication with the error database """
 
     def __init__(self):
         """ Create empty row error dict """
         self.rowErrors = {}
-        super(ErrorInterface,self).__init__()
+        super(ValidatorErrorInterface, self).__init__()
 
     def writeFileError(self, jobId, filename, errorType):
         """ Write a file-level error to the file status table
@@ -24,9 +24,9 @@ class ErrorInterface(errorInterface.ErrorInterface):
         try:
             int(jobId)
         except:
-            raise ValueError("Bad jobId: " + str(jobId))
+            raise ValueError("".join(["Bad jobId: ",str(jobId)]))
 
-        fileError = FileStatus(job_id = jobId, filename = filename, status_id = Status.getStatus(ValidationError.getErrorTypeString(errorType)))
+        fileError = FileStatus(job_id = jobId, filename = filename, status_id = self.getStatusId(ValidationError.getErrorTypeString(errorType)))
 
         self.session.add(fileError)
         self.session.commit()
@@ -43,7 +43,7 @@ class ErrorInterface(errorInterface.ErrorInterface):
             True if successful
         """
 
-        fileComplete = FileStatus(job_id = jobId, filename = filename, status_id = Status.getStatus("complete"))
+        fileComplete = FileStatus(job_id = jobId, filename = filename, status_id = self.getStatusId("complete"))
         self.session.add(fileComplete)
         self.session.commit()
         return True
@@ -60,7 +60,7 @@ class ErrorInterface(errorInterface.ErrorInterface):
         Returns:
             True if successful
         """
-        key = str(jobId)+" "+fieldName+" "+str(errorType)
+        key = "".join([str(jobId),fieldName,str(errorType)])
         if(key in self.rowErrors):
             self.rowErrors[key]["numErrors"] += 1
         else:
@@ -94,7 +94,7 @@ class ErrorInterface(errorInterface.ErrorInterface):
             else:
                 # This happens if cast to int was successful
                 errorString = ValidationError.getErrorTypeString(errorType)
-                errorId = ErrorType.getType(errorString)
+                errorId = self.getTypeId(errorString)
                 # Create error data
                 errorRow = ErrorData(job_id = thisJob, filename = errorDict["filename"], field_name = fieldName, error_type_id = errorId, occurrences = errorDict["numErrors"], first_row = errorDict["firstRow"])
 
@@ -114,11 +114,8 @@ class ErrorInterface(errorInterface.ErrorInterface):
         Returns:
             Status ID of specified job
         """
-        queryResult = self.session.query(FileStatus.status_id).filter(FileStatus.job_id == jobId).all()
-        if(self.checkUnique(queryResult,"No file for that job ID","Multiple files for that job ID")):
-            return queryResult[0].status_id
-        else:
-            return False
+        query = self.session.query(FileStatus.status_id).filter(FileStatus.job_id == jobId)
+        return self.runUniqueQuery(query,"No file for that job ID","Multiple files for that job ID").status_id
 
     def checkNumberOfErrorsByJobId(self, jobId):
         """ Get the total number of errors for a specified job

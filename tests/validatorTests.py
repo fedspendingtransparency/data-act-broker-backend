@@ -1,5 +1,5 @@
 import unittest
-from dataactcore.models.validationModels import  FieldType,RuleType, FileColumn, Rule
+from dataactvalidator.models.validationModels import  FieldType,RuleType, FileColumn, Rule
 from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
@@ -16,10 +16,10 @@ class ValidatorTests(unittest.TestCase) :
         assert( not Validator.checkType("1234Test","DECIMAL")), "Invalid Type"
         assert(not Validator.checkType("1234Test","BOOLEAN")), "Invalid Type"
 
-        assert(not Validator.checkType("","STRING")), "Valid Type"
+        assert(Validator.checkType("","STRING")), "Valid Type"
         assert(Validator.checkType("","INT")), "Valid Type"
         assert(Validator.checkType("","DECIMAL")), "Valid Type"
-        assert(not Validator.checkType("","BOOLEAN")), "Valid Type"
+        assert(Validator.checkType("","BOOLEAN")), "Valid Type"
 
         assert( Validator.checkType("01234","STRING")), "Valid Type"
         assert( Validator.checkType("1234","INT")), "Valid Type"
@@ -62,7 +62,7 @@ class ValidatorTests(unittest.TestCase) :
         column1.required = True
         column1.field_type = stringType
         column1.file_id = 1
-        column1.populateFile()
+        self.interfaces.validationDb.populateFile(column1)
 
         column2 =  FileColumn()
         column2.file_column_id = 2
@@ -70,7 +70,7 @@ class ValidatorTests(unittest.TestCase) :
         column2.required = True
         column2.field_type = floatType
         column2.file_id = 1
-        column2.populateFile()
+        self.interfaces.validationDb.populateFile(column2)
 
         column3 =  FileColumn()
         column3.file_column_id = 3
@@ -78,7 +78,7 @@ class ValidatorTests(unittest.TestCase) :
         column3.required = True
         column3.field_type = booleanType
         column3.file_id = 1
-        column3.populateFile()
+        self.interfaces.validationDb.populateFile(column3)
 
         column4 =  FileColumn()
         column4.file_column_id = 3
@@ -86,7 +86,7 @@ class ValidatorTests(unittest.TestCase) :
         column4.required = True
         column4.field_type =intType
         column4.file_id = 1
-        column4.populateFile()
+        self.interfaces.validationDb.populateFile(column4)
 
         column5 =  FileColumn()
         column5.file_column_id = 3
@@ -94,7 +94,7 @@ class ValidatorTests(unittest.TestCase) :
         column5.required = False
         column5.field_type =intType
         column5.file_id = 1
-        column5.populateFile()
+        self.interfaces.validationDb.populateFile(column5)
 
         column6 =  FileColumn()
         column6.file_column_id = 6
@@ -102,7 +102,7 @@ class ValidatorTests(unittest.TestCase) :
         column6.required = False
         column6.field_type =stringType
         column6.file_id = 1
-        column6.populateFile()
+        self.interfaces.validationDb.populateFile(column6)
 
         schema =  {
             "test1" :column1,
@@ -124,18 +124,18 @@ class ValidatorTests(unittest.TestCase) :
             "test4" :"1",
             "test5" :"1",
          }
-        assert( Validator.validate(record,[],schema, None,self.interfaces)[0]),"Fields are not correct type"
+        assert( Validator.validate(record,[],schema, "award",self.interfaces)[0]),"Fields are not correct type"
         record["test5"] = ""
 
 
-        assert( Validator.validate(record,[],schema, None,self.interfaces)[0]),"Blank optional field is valid"
+        assert( Validator.validate(record,[],schema, "award",self.interfaces)[0]),"Blank optional field is valid"
 
         record["test5"] = "s"
-        assert(not Validator.validate(record,[],schema, None,self.interfaces)[0]),"Incorrect Field Type for optional field"
+        assert(not Validator.validate(record,[],schema, "award",self.interfaces)[0]),"Incorrect Field Type for optional field"
 
         record["test5"] = ""
         record["test3"] = ""
-        assert(not Validator.validate(record,[],schema, None,self.interfaces)[0]),"Incorrect Field Type for field"
+        assert(not Validator.validate(record,[],schema, "award",self.interfaces)[0]),"Incorrect Field Type for field"
 
     def test_schema_rules(self):
         lessRule = RuleType()
