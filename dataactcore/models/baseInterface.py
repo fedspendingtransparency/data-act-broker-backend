@@ -110,3 +110,17 @@ class BaseInterface(object):
         response =  self.session.execute(statement)
         self.session.commit()
         return response
+
+    def getIdFromDict(self,model, dictName, fieldName, fieldValue, idField):
+        dict = getattr(model, dictName)
+        if(dict == None):
+            dict = {}
+            # Pull status values out of DB
+            # Create new session for this
+            queryResult = self.session.query(model).all()
+            for result in queryResult:
+                dict[getattr(result,fieldName)] = getattr(result,idField)
+            setattr(model,dictName,dict)
+        if(not fieldValue in dict):
+            raise ValueError("Not a valid " + str(model) + ": " + str(fieldValue) + ", not found in dict: " + str(dict))
+        return dict[fieldValue]

@@ -144,36 +144,7 @@ class JobTrackerInterface(BaseInterface):
         return status
 
     def getStatusId(self,statusName):
-        if(Status.STATUS_DICT == None):
-            Status.STATUS_DICT = {}
-            # Pull status values out of DB
-            # Create new session for this
-            queryResult = self.session.query(Status).all()
-            for status in queryResult:
-                Status.STATUS_DICT[status.name] = status.status_id
-        if(not statusName in Status.STATUS_DICT):
-            raise ValueError("Not a valid job status: " + str(statusName) + ", not found in dict: " + str(Status.STATUS_DICT))
-        return Status.STATUS_DICT[statusName]
+        return self.getIdFromDict(Status,"STATUS_DICT","name",statusName,"status_id")
 
     def getTypeId(self,typeName):
-        if(Type.TYPE_DICT == None):
-            Type.TYPE_DICT = {}
-            # Pull status values out of DB
-            for jobType in Type.TYPE_LIST:
-                Type.TYPE_DICT[jobType] = self.setTypeId(jobType)
-        if(not typeName in Type.TYPE_DICT):
-            raise ValueError("Not a valid job type")
-        return Type.TYPE_DICT[typeName]
-
-    def setTypeId(self,name):
-        """  Get an id for specified type, if not unique throw an exception
-
-        Arguments:
-        name -- Name of type to get an id for
-
-        Returns:
-        type_id of the specified type
-        """
-        # Create new session for this
-        queryResult = self.session.query(Type.type_id).filter(Type.name==name).one()
-        return queryResult.type_id
+        return self.getIdFromDict(Type,"TYPE_DICT","name",typeName,"type_id")
