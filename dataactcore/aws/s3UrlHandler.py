@@ -85,10 +85,10 @@ class s3UrlHandler:
         s3connection = boto.connect_s3()
         bucket = s3connection.get_bucket(s3UrlHandler.getValueFromConfig("bucket"))
         key = bucket.get_key(filename)
-        if(key == None):
-            return False
-        else:
+        if key:
             return True
+        else:
+            return False
 
     def getTemporaryCredentials(self,user):
         """
