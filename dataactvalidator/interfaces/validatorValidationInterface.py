@@ -308,26 +308,7 @@ class ValidatorValidationInterface(BaseInterface) :
         Returns:
             ID for rule type (int)
         """
-        if(RuleType.TYPE_DICT == None):
-            RuleType.TYPE_DICT = {}
-            # Pull status values out of DB
-            for ruleType in RuleType.TYPE_LIST:
-                RuleType.TYPE_DICT[ruleType] = self.setRuleType(ruleType)
-        if(not typeName in RuleType.TYPE_DICT):
-            raise ValueError("Not a valid rule type")
-        return RuleType.TYPE_DICT[typeName]
-
-    def setRuleType(self,name):
-        """  Get an id for specified type, if not unique throw an exception
-
-        Arguments:
-        name -- Name of type to get an id for
-
-        Returns:
-        type_id of the specified type
-        """
-        queryResult = self.session.query(RuleType.rule_type_id).filter(RuleType.name==name).one()
-        return queryResult.rule_type_id
+        return self.getIdFromDict(RuleType,"TYPE_DICT","name",typeName.upper(),"rule_type_id")
 
     def getMultiFieldRuleType(self,typeName):
         """ Get rule ID for specified multi-field rule type
@@ -337,28 +318,7 @@ class ValidatorValidationInterface(BaseInterface) :
         Returns:
             ID for rule type (int)
         """
-        typeName = typeName.upper()
-        if(MultiFieldRuleType.TYPE_DICT == None):
-            MultiFieldRuleType.TYPE_DICT = {}
-            # Pull status values out of DB
-            for type in MultiFieldRuleType.TYPE_LIST:
-                MultiFieldRuleType.TYPE_DICT[type] = self.setMultiFieldRuleType(type)
-        if(not typeName in MultiFieldRuleType.TYPE_DICT):
-            print(typeName + " was not in " + str(MultiFieldRuleType.TYPE_DICT))
-            raise ValueError("Not a valid multi field rule type")
-        return MultiFieldRuleType.TYPE_DICT[typeName]
-
-    def setMultiFieldRuleType(self,name):
-        """  Get an id for specified type, if not unique throw an exception
-
-        Arguments:
-        name -- Name of type to get an id for
-
-        Returns:
-        type_id of the specified type
-        """
-        queryResult = self.session.query(MultiFieldRuleType.multi_field_rule_type_id).filter(MultiFieldRuleType.name==name).one()
-        return queryResult.multi_field_rule_type_id
+        return self.getIdFromDict(MultiFieldRuleType,"TYPE_DICT","name",typeName.upper(),"multi_field_rule_type_id")
 
     def populateFile(self,column):
         """ Populate file object in the ORM for the specified FileColumn object
