@@ -15,7 +15,6 @@ class AccountHandler:
     This class contains the login / logout  functions
     """
     # Handles login process, compares username and password provided
-    credentialFile = "credentials.json"
     FRONT_END = ""
     # Instance fields include request, response, logFlag, and logFile
 

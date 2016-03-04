@@ -9,8 +9,8 @@ dataactbroker/
 ```
 
 ##Scripts
-The `/dataactbroker/scripts` folder contains the install scripts needed to setup the Broker for a local install.  `configure.py` creates the various JSON files needed for running the Broker. The following three JSON files are created during
-the install process : `manager.json`, `web_api_configuration.json` and `credentials.json`. This script is called
+The `/dataactbroker/scripts` folder contains the install scripts needed to setup the Broker for a local install.  `configure.py` creates the various JSON files needed for running the Broker. The following JSON files are created during
+the install process : `manager.json` and `web_api_configuration.json`. The `configure.py` script is called
 by the `initialize` script. The script however, can be called by itself to setup the JSON.
 
 ```bash
@@ -26,16 +26,6 @@ sudo python configure.py
   "url":"http://server_url.com:5000"
 }
 ```
-
-`credentials.json` contains users and passwords that the Broker uses to authenticate sessions. This file will be removed in later versions of the broker when user authentication is done with a database. The file has the following format, where any number of users can be added.
-
-```json
-{
-  "user1":"password1",
-  "user2":"password2"
-}
-```
-
 
 `web_api_configurations.json` contains data used by the Data Broker Flask application for setting ports and debug options. It has the following format:
 
@@ -70,18 +60,18 @@ The `initialize` script provides users with these choices during the install pro
 ##Handlers
 The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py` and `fileRoutes.py` files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in. If user is not logged in to the system, a 401 HTTP error will be returned. This tag is defined in `dataactbroker/permissions.py`. Cookies are used to keep track of sessions for the end user. Only a UUID is stored in the cookie.
 
-`AccountHandler.py` contains the functions to check logins and to log users out. Currently, `credentials.json` defines which users exist within the system. This file is automatically created during the installation process.
+`AccountHandler.py` contains the functions to check logins and to log users out.
 
 `FileHandler.py` contains functions for managing user file interaction. It creates all of the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
 
 In addition to these helper objects, the following sub classes also exist within the directory: `UserHandler`, `JobHandler`, and `ErrorHandler`. These classes extend the database connection objects that are located in the Core Repository. Extra query methods exist in these classes that are used exclusively by the Broker API.
 
 
-#AWS Setup
+# AWS Setup
 In order to use the DATA Act Broker, additional AWS permissions and configurations are
 required in addition to those listed in the [DATA ACT Core README](https://github.com/fedspendingtransparency/data-act-core/blob/development/README.md).
 
-##DynamoDB
+## DynamoDB
 The DATA Act Broker uses AWS DynamoDB for session handling. This provides a fast and reliable methodology to check sessions in the cloud. Users can easily bounce between servers with no impact to their session.
 
 The install script seen in the [Broker Install Guide](#install-guide) provides an option to create the database automatically. This, however, assumes the user has the proper AWS Credentials to perform the operation. If you wish to create the database manually, it needs to be set up to have the following attributes:
@@ -111,7 +101,7 @@ The EC2 instance running the broker should be granted read/write permissions to 
 ```
 The `REGION` should be replaced with region of the AWS account and the `ACCOUNT_ID` should be replaced with the AWS account ID.
 
-###Local Version
+### Local Version
 
 It is possible to set up DynamoDB locally. This requires Java JDK 6 or higher to be installed, which can be done using the following command on Red Hat based systems:
 
@@ -476,7 +466,7 @@ Example output:
 ```
 
 
-##File Routes
+## File Routes
 
 #### POST "/v1/submit_files/"
 This route is used to retrieve S3 URLs to upload files. Data should be either JSON or form-urlencoded with keys: ["appropriations", "award\_financial", "award", "procurement"], each with a filename as a value.
@@ -603,7 +593,7 @@ Example output:
 Before running test cases, start the Flask app by running `python app.py` in the `dataactbroker` folder. Alternatively, if using `pip install`, you can uses the server start command `sudo webbroker -s`. The current test suite for the validator may then be run by navigating to the `datatactbroker/tests folder` and running `python runTests.py`.
 
 
-#Install Guide
+# Install Guide
 
 ## Requirements
 
