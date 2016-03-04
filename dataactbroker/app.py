@@ -15,19 +15,18 @@ from dataactbroker.fileRoutes import add_file_routes
 from dataactbroker.loginRoutes import add_login_routes
 from dataactbroker.userRoutes import add_user_routes
 
-def runApp():
+def getAppConfiguration(app) :
+    """gets the web_api_configuration JSON"""
+    configFile = "".join([app.instance_path, "/web_api_configuration.json"])
+    return json.loads(open(configFile,"r").read())
+
+def createApp():
+    """Set up the Application"""
     try :
-        """Set up the Application"""
         # Create application
         config_path = "".join([os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))),"/config"])
         app = Flask(__name__,instance_path=config_path)
-
-        def getAppConfiguration() :
-            """gets the web_api_configuration JSON"""
-            configFile = "".join([app.instance_path, "/web_api_configuration.json"])
-            return json.loads(open(configFile,"r").read())
-
-        config = getAppConfiguration()
+        config = getAppConfiguration(app)
         # Set parameters
         AccountHandler.FRONT_END = config["frontend_url"]
         sesEmail.SIGNING_KEY =  config["security_key"]
@@ -50,18 +49,28 @@ def runApp():
         def root():
             return "Broker is running"
 
-
         # Add routes for modules here
         add_login_routes(app,bcrypt)
         add_file_routes(app,config["create_credentials"])
         add_user_routes(app,config["system_email"],bcrypt)
         SessionTable.localPort  = int( config["dynamo_port"])
         SessionTable.setup(app, runLocal)
-        app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port= int(config["port"]))
+
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         trace = traceback.extract_tb(exc_tb, 10)
         CloudLogger.logError('Broker App Level Error: ',e,trace)
         del exc_tb
+
+    return app
+
+def runApp():
+    """runs the application"""
+
+    app = createApp()
+    config = getAppConfiguration(app)
+    debugFlag = config["server_debug"]
+    app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port= int(config["port"]))
+
 if __name__ == '__main__':
     runApp()
