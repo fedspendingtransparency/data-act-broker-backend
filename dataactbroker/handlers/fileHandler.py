@@ -142,7 +142,6 @@ class FileHandler:
                 responseDict["success"] = True
                 proxy =  ManagerProxy()
                 validationId = self.jobManager.getDependentJobs(jobId)
-                print("validationId is "+str(validationId))
                 if(len(validationId) == 1):
                     response = proxy.sendJobRequest(validationId[0])
                 elif(len(validationId) == 0):

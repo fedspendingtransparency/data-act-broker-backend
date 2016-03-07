@@ -160,7 +160,6 @@ class AccountHandler:
         LoginSession.logout(session)
         # Mark user as awaiting approval
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
-        print("Completed registration, returning 200")
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
 
     def createEmailConfirmation(self,system_email,session):
@@ -275,7 +274,6 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
 
         # Find user that matches specified uid
-        print requestDict.getValue("uid")
         user = self.interfaces.userDb.getUserByUID(int(requestDict.getValue("uid")))
 
         if(user.email == None):
