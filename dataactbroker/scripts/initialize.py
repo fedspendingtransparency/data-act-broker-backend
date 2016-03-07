@@ -1,5 +1,6 @@
 from dataactcore.scripts.configure import ConfigureCore
 from dataactbroker.scripts.configure import ConfigureBroker
+from dataactbroker.scripts.setupEmails import setupEmails
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
@@ -54,6 +55,7 @@ def setupDB():
 	setupJobTrackerDB(hardReset=True)
 	setupErrorDB(True)
 	setupUserDB(True)
+	setupEmails()
 
 def start():
 	from dataactbroker.app import runApp
