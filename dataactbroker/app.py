@@ -57,11 +57,13 @@ def runApp():
         add_user_routes(app,config["system_email"],bcrypt)
         SessionTable.localPort  = int( config["dynamo_port"])
         SessionTable.setup(app, runLocal)
-        app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port= int(config["port"]))
+        if __name__ == "__main__":
+            app.run(debug=debugFlag,threaded=True,host="0.0.0.0",port= int(config["port"]))
+        return app
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         trace = traceback.extract_tb(exc_tb, 10)
         CloudLogger.logError('Broker App Level Error: ',e,trace)
         del exc_tb
-if __name__ == '__main__':
-    runApp()
+if __name__ == '__main__' or __name__[0:5]=="uwsgi":
+    app = runApp()
