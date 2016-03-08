@@ -590,8 +590,11 @@ Example output:
 
 
 #### Test Cases
-Before running test cases, start the Flask app by running `python app.py` in the `dataactbroker` folder. Alternatively, if using `pip install`, you can uses the server start command `sudo webbroker -s`. The current test suite for the validator may then be run by navigating to the `datatactbroker/tests folder` and running `python runTests.py`.
+Before running test cases, start the Flask app by running `python app.py` in the `dataactbroker` folder. Alternatively, if using `pip install`, you can uses the server start command `sudo webbroker -s`. The current test suite for the validator may then be run by navigating to the `datatactbroker/tests` folder and running `python runTests.py`.
 
+To generate a test coverage report from the command line:
+1. Navigate to the  tests folder: `dataactbroker/tests`.
+2. Run the `coverage` command: `coverage run --source ../ runTests.py`.
 
 # Install Guide
 
