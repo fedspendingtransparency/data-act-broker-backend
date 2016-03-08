@@ -224,14 +224,14 @@ class UserHandler(UserInterface):
         bitNumber = self.getPermissionId(permissionName)
         users = self.session.query(User).all()
         for user in users:
-            if self.checkPermission(user,bitNumber):
+            if self.checkPermissionByBitNumber(user, bitNumber):
                 # This user has this permission, include them in list
                 userList.append(user)
         return userList
 
 
     def hasPermisson(self,user,permissionName):
-        """ Checks if user specified permission
+        """ Checks if user has specified permission
 
         Arguments:
             user - User object
@@ -239,15 +239,18 @@ class UserHandler(UserInterface):
         Returns:
             True if user has the specified permission, False otherwise
         """
+        # Get the bit number corresponding to this permission from the permission_types table
         bitNumber = self.getPermissionId(permissionName)
-        if self.checkPermission(user,bitNumber):
+        # Use that bit number to check whether user has the specified permission
+        if self.checkPermissionByBitNumber(user, bitNumber):
             return True
         return False
 
 
     @staticmethod
-    def checkPermission(user,bitNumber):
-        """ Check whether user has the specified permission, determined by whether a binary representation of user's permissions has the specified bit set to 1
+    def checkPermissionByBitNumber(user, bitNumber):
+        """ Check whether user has the specified permission, determined by whether a binary representation of user's
+        permissions has the specified bit set to 1.  Use hasPermission to check by permission name.
 
         Arguments:
             user - User object
@@ -288,7 +291,7 @@ class UserHandler(UserInterface):
             # Start users with zero permissions
             user.permissions = 0
         bitNumber = self.getPermissionId(permissionName)
-        if not self.checkPermission(user,bitNumber):
+        if not self.checkPermissionByBitNumber(user, bitNumber):
             # User does not have permission, grant it
             user.permissions = user.permissions + (2 ** bitNumber)
             self.session.commit()
@@ -304,7 +307,7 @@ class UserHandler(UserInterface):
             # Start users with zero permissions
             user.permissions = 0
         bitNumber = self.getPermissionId(permissionName)
-        if self.checkPermission(user,bitNumber):
+        if self.checkPermissionByBitNumber(user, bitNumber):
             # User has permission, remove it
             user.permissions = user.permissions - (2 ** bitNumber)
             self.session.commit()
