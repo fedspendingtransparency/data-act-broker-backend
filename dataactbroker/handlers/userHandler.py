@@ -258,9 +258,14 @@ class UserHandler(UserInterface):
         if(user.permissions == None):
             # This user has no permissions
             return False
+        # First get the value corresponding to the specified bit (i.e. 2^bitNumber)
         bitValue = 2 ** (bitNumber)
-        lowEnd = user.permissions % (bitValue * 2) # This leaves the bit we care about as the highest remaining
-        return (lowEnd >= bitValue) # If the number is still at least the bitValue, we have that permission
+        # Remove all bits above the target bit by modding with the value of the next higher bit
+        # This leaves the target bit and all lower bits as the remaining value, all higher bits are set to 0
+        lowEnd = user.permissions % (bitValue * 2)
+        # Now compare the remaining value to the value for the target bit to determine if that bit is 0 or 1
+        # If the remaining value is still at least the value of the target bit, that bit is 1, so we have that permission
+        return (lowEnd >= bitValue)
 
     def setPermission(self,user,permission):
         """ Define a user's permission to set value (overwrites all current permissions)
