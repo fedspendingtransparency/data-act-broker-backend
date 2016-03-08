@@ -10,3 +10,5 @@ flask-bcrypt==0.7.1
 flask-login==0.3.2
 logstash==0.1.dev0
 python-logstash==0.4.6
+WebTest==2.0.20
+coverage==4.0.3
