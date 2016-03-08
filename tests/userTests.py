@@ -18,233 +18,192 @@ class UserTests(BaseTest):
         super(UserTests,self).__init__(methodName=methodName)
         self.methodName = methodName
         self.interfaces = interfaces
-        self.passed = False # Set to true if unit test passes
 
     def setUp(self):
-        self.utils.login(UserTests.CONFIG["admin_email"],"pass") # Log the user in for each test
+        super(UserTests, self).setUp()
+        #TODO: make sure this logs in with the Mr. Manager account
+        self.login_admin()
 
     def setUpToken(self,email):
         userDb = UserHandler()
-        token = sesEmail.createToken(email,userDb,"validate_email")
-        json = '{"token":"'+token+'"}'
-        self.utils.postRequest("/v1/confirm_email_token/",json)
+        token = sesEmail.createToken(email, userDb, "validate_email")
+        postJson = {"token": token}
+        response = self.app.post_json("/v1/confirm_email_token/", postJson)
 
     def test_registration_no_token(self):
-        self.utils.logout()
-        input = '{"email":"user@agency.gov","name":"user","agency":"agency","title":"title","password":"userPass"}'
-        self.response = self.utils.postRequest("/v1/register/",input)
-        self.utils.checkResponse(self.response,StatusCode.LOGIN_REQUIRED)
-        self.passed = True
+        self.logout()
+        postJson = {"email": "user@agency.gov", "name": "user", "agency": "agency", "title": "title", "password": "userPass"}
+        response = self.app.post_json("/v1/check_status/", postJson)
+        self.check_response(response, StatusCode.LOGIN_REQUIRED)
 
     def test_registration(self):
-        self.utils.logout()
+        self.logout()
         email = UserTests.CONFIG["change_user_email"]
         self.setUpToken(email)
-
-        input = '{"email":"'+email+'","name":"user","agency":"agency","title":"title","password":"userPass"}'
-        self.response = self.utils.postRequest("/v1/register/",input)
-        self.utils.checkResponse(self.response,StatusCode.OK,"Registration successful")
-        self.passed = True
+        postJson = {"email": email, "name": "user", "agency": "agency", "title": "title", "password": "userPass"}
+        response = self.app.post_json("/v1/register/", postJson)
+        self.check_response(response, StatusCode.OK, "Registration successful")
 
     def test_registration_empty(self):
-        self.utils.logout()
-        input = '{}'
+        self.logout()
         self.setUpToken("user@agency.gov")
-        self.response = self.utils.postRequest("/v1/register/",input)
-        self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"Request body must include email, name, agency, title, and password")
-        self.passed = True
+        postJson = {}
+        response = self.app.post_json("/v1/register/", postJson)
+        self.check_response(response, StatusCode.CLIENT_ERROR,
+            "Request body must include email, name, agency, title, and password")
 
     def test_registration_bad_email(self):
-        self.utils.logout()
+        self.logout()
         self.setUpToken("user@agency.gov")
-        input = '{"email":"fake@notreal.faux","name":"user","agency":"agency","title":"title","password":"userPass"}'
-        self.response = self.utils.postRequest("/v1/register/",input)
-        self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"No users with that email")
-        self.passed = True
+        postJson = {"email": "fake@notreal.faux", "name": "user", "agency": "agency", "title":"title", "password": "userPass"}
+        response = self.app.post_json("/v1/register/", postJson)
+        self.check_response(response, StatusCode.CLIENT_ERROR, "No users with that email")
 
     def test_status_change(self):
-        deniedInput = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"denied"}'
-        approvedInput = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"approved"}'
-        awaitingInput = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"awaiting_approval"}'
-        emailConfirmed = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"email_confirmed"}'
+        deniedInput = {"uid": "UserTests.UID_FOR_STATUS_CHANGE", "new_status": "denied"}
+        approvedInput = {"uid": "UserTests.UID_FOR_STATUS_CHANGE", "new_status": "approved"}
+        awaitingInput = {"uid":"UserTests.UID_FOR_STATUS_CHANGE", "new_status": "awaiting_approval"}
+        emailConfirmed = {"uid" :"UserTests.UID_FOR_STATUS_CHANGE", "new_status": "email_confirmed"}
 
-        self.response = self.utils.postRequest("/v1/change_status/",awaitingInput)
-        self.utils.checkResponse(self.response,StatusCode.OK,"Status change successful")
-
-
-        self.response = self.utils.postRequest("/v1/change_status/",approvedInput)
-        self.utils.checkResponse(self.response,StatusCode.OK,"Status change successful")
-
-
-        self.response = self.utils.postRequest("/v1/change_status/",awaitingInput)
-        self.utils.checkResponse(self.response,StatusCode.OK,"Status change successful")
-
-
-        self.response = self.utils.postRequest("/v1/change_status/",deniedInput)
-        self.utils.checkResponse(self.response,StatusCode.OK,"Status change successful")
+        response = self.app.post_json("/v1/change_status/", awaitingInput)
+        self.check_response(response, StatusCode.OK, "Status change successful")
+        response = self.app.post_json("/v1/change_status/", approvedInput)
+        self.check_response(response, StatusCode.OK, "Status change successful")
+        response = self.app.post_json("/v1/change_status/", awaitingInput)
+        self.check_response(response, StatusCode.OK, "Status change successful")
+        response = self.app.post_json("/v1/change_status/", deniedInput)
+        self.check_response(response, StatusCode.OK, "Status change successful")
 
         # Set back to email_confirmed for register test
-        self.response = self.utils.postRequest("/v1/change_status/",emailConfirmed)
-        self.utils.checkResponse(self.response,StatusCode.OK,"Status change successful")
-        self.passed = True
-
+        response = self.app.post_json("/v1/change_status/", emailConfirmed)
+        self.check_response(response, StatusCode.OK, "Status change successful")
 
     def test_status_change_bad_uid(self):
-        self.utils.logout()
-        self.utils.login(UserTests.CONFIG["admin_email"],"pass")
-        badUserId = '{"uid":-100,"new_status":"denied"}'
-        self.response = self.utils.postRequest("/v1/change_status/",badUserId)
-        self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"No users with that uid")
-        self.passed = True
+        self.logout()
+        self.login_admin()
+        badUserId = {"uid": -100, "new_status": "denied"}
+        response = self.app.post_json("/v1/change_status/", badUserId)
+        self.check_response(response, StatusCode.CLIENT_ERROR, "No users with that uid")
 
     def test_status_change_bad_status(self):
-        badInput = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"badInput"}'
-        self.response = self.utils.postRequest("/v1/change_status/",badInput)
-        self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"Not a valid user status")
-        self.passed = True
+        badInput = {"uid": UserTests.UID_FOR_STATUS_CHANGE, "new_status": "badInput"}
+        response = self.app.post_json("/v1/change_status/", badInput)
+        self.check_response(response, StatusCode.CLIENT_ERROR, "Not a valid user status")
 
     def test_list_users(self):
-        input = '{"status":"awaiting_approval"}'
-        self.response = self.utils.postRequest("/v1/list_users_with_status/",input)
-        self.utils.checkResponse(self.response,StatusCode.OK)
-        users = self.response.json()["users"]
-
-        assert(len(users) == 4), "There should be four users awaiting approval"
-        self.passed = True
+        postJson = {"status": "awaiting_approval"}
+        response = self.app.post_json("/v1/list_users_with_status/", postJson)
+        self.check_response(response, StatusCode.OK)
+        users = response.json["users"]
+        self.assertEqual(len(users), 4)
 
     def test_list_users_bad_status(self):
-        input = '{"status":"lost"}'
-        self.response = self.utils.postRequest("/v1/list_users_with_status/",input)
-        self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"Not a valid user status")
-        self.passed = True
+        postJson = {"status": "lost"}
+        response = self.app.post_json("/v1/list_users_with_status/", postJson)
+        self.check_response(response, StatusCode.CLIENT_ERROR, "Not a valid user status")
 
     def test_get_users_by_type(self):
         agencyUsers = self.interfaces.userDb.getUsersByType("agency_user")
-
         emails = []
         for admin in agencyUsers:
             emails.append(admin.email)
-        assert(len(agencyUsers) == 11), "There should be ten agency users"
+        self.assertEqual(len(agencyUsers), 11)
         for email in ["realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", "approved@agency.gov", "nefarious@agency.gov"]:
-            assert(email in emails)
-        self.passed = True
+            self.assertIn(email, emails)
 
     def test_list_submissions(self):
-        self.utils.logout()
-        self.utils.login("approved@agency.gov","approvedPass")
-        self.response = self.utils.postRequest("/v1/list_submissions/",{},method="GET")
-        self.utils.logout()
-        self.utils.checkResponse(self.response,StatusCode.OK)
-        responseDict = self.response.json()
-        assert("submission_id_list" in responseDict)
-        assert(len(responseDict["submission_id_list"]) == 5)
-        self.passed = True
+        self.logout()
+        self.login_user("approved@agency.gov", "approvedPass")
+        response = self.app.get("/v1/list_submissions/")
+        self.check_response(response, StatusCode.OK)
+        self.assertIn("submission_id_list", response.json)
+        self.assertEqual(len(response.json["submission_id_list"]), 5)
+        self.logout()
 
     def test_list_users_with_status_non_admin(self):
-        self.utils.login("user3","123abc")
-        input = '{"status":"awaiting_approval"}'
-        self.response = self.utils.postRequest("/v1/list_users_with_status/",input)
-        self.utils.logout()
-        self.utils.checkResponse(self.response,StatusCode.LOGIN_REQUIRED)
-        responseDict = self.response.json()
-        assert((responseDict["message"]) == 'Wrong User Type')
-        self.passed = True
+        #TODO: make sure self.login() logs in an approved, non-admin agency user
+        self.login()
+        postJson = {"status": "awaiting_approval"}
+        response = self.app.post_json("/v1/list_users_with_status/", postJson)
+        self.check_response(response, StatusCode.LOGIN_REQUIRED, "Wrong User Type")
+        self.logout()
 
     def test_finalize_wrong_user(self):
-        self.utils.logout()
-        self.utils.login("user4","pass")
-        self.response = self.utils.postRequest("/v1/finalize_job/",json.dumps({"upload_id":UserTests.uploadId}))
-        self.utils.logout()
-        self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"Cannot finalize a job created by a different user")
-        self.passed = True
+        self.logout()
+        self.login_user("user4", "pass")
+        postJson = {"upload_id": UserTests.uploadId}
+        response = self.app.post_json("/v1/finalize_job/", postJson)
+        self.check_response(response, StatusCode.CLIENT_ERROR, "Cannot finalize a job created by a different user")
+        self.logout()
 
     def test_send_email(self):
         # Always use simulator to test emails!
-        json = '{"email":"success@simulator.amazonses.com"}'
-        self.response = self.utils.postRequest("/v1/confirm_email/",json)
-        self.utils.checkResponse(self.response,StatusCode.OK)
-        self.passed = True
+        postJson = {"email": "success@simulator.amazonses.com"}
+        response = self.app.post_json("/v1/confirm_email/", postJson)
+        self.check_response(response, StatusCode.OK)
 
     def test_check_email_token_malformed(self):
-        json = '{"token":"12345678"}'
-        self.response = self.utils.postRequest("/v1/confirm_email_token/",json)
-        self.utils.checkResponse(self.response,StatusCode.OK)
-        assert(self.response.json()["message"]== "Link already used")
-        assert(self.response.json()["errorCode"]== sesEmail.LINK_ALREADY_USED)
-        self.passed = True
+        postJson = {"token": "12345678"}
+        response = self.app.post_json("/v1/confirm_email_token/", postJson)
+        self.check_response(response, StatusCode.OK, "Link already used")
+        self.assertEqual(response.json["errorCode"], sesEmail.LINK_ALREADY_USED)
 
     def test_check_email_token(self):
         userDb = UserHandler()
         #make a token based on a user
-
-        token = sesEmail.createToken("user@agency.gov",userDb,"validate_email")
-        json = '{"token":"'+token+'"}'
-        self.response = self.utils.postRequest("/v1/confirm_email_token/",json)
-        self.utils.checkResponse(self.response,StatusCode.OK)
-        assert(self.response.json()["message"]== "success")
-        assert(self.response.json()["errorCode"]== sesEmail.LINK_VALID)
-        self.passed = True
+        token = sesEmail.createToken("user@agency.gov", userDb, "validate_email")
+        postJson = {"token": token}
+        response = self.app.post_json("/v1/confirm_email_token/", postJson)
+        self.check_response(response, StatusCode.OK, "success")
+        self.assertEqual(response.json["errorCode"], sesEmail.LINK_VALID)
 
     def test_password_reset_email(self):
-        self.utils.logout()
+        self.logout()
         email = UserTests.CONFIG["password_reset_email"]
-        json = '{"email":"'+email+'"}'
-        self.response = self.utils.postRequest("/v1/reset_password/",json)
-        self.utils.checkResponse(self.response,StatusCode.OK)
+        postJson = {"email": email}
+        response = self.app.post_json("/v1/reset_password/", postJson)
+        self.check_response(response, StatusCode.OK)
 
         userDb = UserHandler()
-        token = sesEmail.createToken(UserTests.CONFIG["password_reset_email"],userDb,"password_reset")
-        json = '{"token":"'+token+'"}'
-        self.response = self.utils.postRequest("/v1/confirm_password_token/",json)
-        self.utils.checkResponse(self.response,StatusCode.OK)
-        assert(self.response.json()["message"]== "success")
-        assert(self.response.json()["errorCode"]== sesEmail.LINK_VALID)
+        token = sesEmail.createToken(
+            UserTests.CONFIG["password_reset_email"], userDb, "password_reset")
+        postJson = {"token": token}
+        response = self.app.post_json("/v1/confirm_password_token/", postJson)
+        self.check_response(response, StatusCode.OK, "success")
+        self.assertEqual(response.json["errorCode"], sesEmail.LINK_VALID)
 
-        json = '{"user_email":"'+email+'","password":"pass"}'
-        self.response = self.utils.postRequest("/v1/set_password/",json)
-        self.utils.checkResponse(self.response,StatusCode.OK)
-        assert(self.response.json()["message"]== "Password successfully changed")
+        postJson = {"user_email": email,"password": "pass"}
+        response = self.app.post_json("/v1/set_password/", postJson)
+        self.check_response(response, StatusCode.OK, "Password successfully changed")
         user = userDb.getUserByEmail(email)
-        assert(user.password_hash is not None)
-
-        self.passed = True
+        self.assertTrue(user.password_hash)
 
     def test_check_password_token(self):
-
         userDb = UserHandler()
         #make a token based on a user
-        token = sesEmail.createToken(UserTests.CONFIG["admin_email"],userDb,"password_reset")
-        json = '{"token":"'+token+'"}'
-        self.response = self.utils.postRequest("/v1/confirm_password_token/",json)
-        self.utils.checkResponse(self.response,StatusCode.OK)
-        assert(self.response.json()["message"]== "success")
-        assert(self.response.json()["errorCode"]== sesEmail.LINK_VALID)
-
-        self.passed = True
+        token = sesEmail.createToken(
+            UserTests.CONFIG["admin_email"], userDb, "password_reset")
+        postJson = {"token": token}
+        response = self.app.post_json("/v1/confirm_password_token/", postJson)
+        self.check_response(response, StatusCode, "success")
+        self.assertEqual(response.json["errorCode"], sesEmail.LINK_VALID)
 
     def test_check_bad_password_token(self):
-        self.response = self.utils.postRequest("/v1/confirm_password_token/",'{"token":"2345"}')
-        self.utils.checkResponse(self.response,StatusCode.OK)
-        assert(self.response.json()["message"]== "Link already used")
-        assert(self.response.json()["errorCode"]== sesEmail.LINK_ALREADY_USED)
-        self.passed = True
+        badToken = {"token": "2345"}
+        response = self.app.post_json("/v1/confirm_password_token/", badToken)
+        self.check_response(response, StatusCode.OK, "Link already used")
+        self.assertEqual(response.json["errorCode"], sesEmail.LINK_ALREADY_USED)
 
     def test_current_user(self):
-        self.response = self.utils.getRequest("/v1/current_user/")
-        self.utils.checkResponse(self.response,StatusCode.OK)
-        assert(self.response.json()["name"]== "Mr. Manager")
-        assert(self.response.json()["agency"]== "Unknown")
-        self.passed = True
-
-    def tearDown(self):
-        if(not self.passed):
-            print("".join(["Test failed: ",self.methodName]))
-            print("Status is " + str(self.response.status_code))
-            print(str(self.response.json()))
+        response = self.app.get("/v1/current_user/")
+        self.check_response(response, StatusCode.OK)
+        self.assertEqual(response.json["name"], "Mr. Manager")
+        self.assertEqual(response.json["agency"], "Unknown")
 
     @staticmethod
     def setupUserList():
         """ Clear user and jobs database and add a constant sample set """
+        #TODO: use this code to create a pytest fixture
         # Get admin email to send test to
         testConfig = open("test.json","r").read()
         UserTests.CONFIG = json.loads(testConfig)
