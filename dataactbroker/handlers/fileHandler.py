@@ -1,3 +1,4 @@
+from flask import session
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -6,6 +7,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactbroker.handlers.managerProxy import ManagerProxy
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
+from dataactbroker.handlers.aws.session import LoginSession
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -21,15 +23,20 @@ class FileHandler:
     FILE_TYPES = ["appropriations","award_financial","award","procurement"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
-    def __init__(self,request,interfaces):
+    def __init__(self,request,interfaces = None):
         """
 
         Arguments:
         request - HTTP request object for this route
         """
-        self.jobManager = interfaces.jobDb
         self.request = request
+        if(interfaces != None):
+            self.interfaces = interfaces
+            self.jobManager = interfaces.jobDb
+
+    def addInterfaces(self,interfaces):
         self.interfaces = interfaces
+        self.jobManager = interfaces.jobDb
 
     def getErrorReportURLsForSubmission(self):
         """
@@ -91,7 +98,7 @@ class FileHandler:
                     responseDict[fileName+"_key"] = uploadName
                     fileNameMap.append((fileName,uploadName))
 
-            fileJobDict = self.jobManager.createJobs(fileNameMap)
+            fileJobDict = self.jobManager.createJobs(fileNameMap,name)
             for fileName in fileJobDict.keys():
                 if (not "submission_id" in fileName) :
                     responseDict[fileName+"_id"] = fileJobDict[fileName]
@@ -123,13 +130,18 @@ class FileHandler:
         try:
             inputDictionary = RequestDictionary(self.request)
             jobId = inputDictionary.getValue("upload_id")
+            # Compare user ID with user who submitted job, if no match return 400
+            job = self.jobManager.getJobById(jobId)
+            submission = self.jobManager.getSubmissionForJob(job)
+            if(submission.user_id != LoginSession.getName(session)):
+                # This user cannot finalize this job
+                raise ResponseException("Cannot finalize a job created by a different user", StatusCode.CLIENT_ERROR)
             # Change job status to finished
             if(self.jobManager.checkUploadType(jobId)):
                 self.jobManager.changeToFinished(jobId)
                 responseDict["success"] = True
                 proxy =  ManagerProxy()
                 validationId = self.jobManager.getDependentJobs(jobId)
-                print("validationId is "+str(validationId))
                 if(len(validationId) == 1):
                     response = proxy.sendJobRequest(validationId[0])
                 elif(len(validationId) == 0):
@@ -193,7 +205,7 @@ class FileHandler:
             for currentId in jobIds :
                 if(self.jobManager.getJobType(currentId) == "csv_record_validation"):
                     fileName = self.jobManager.getFileType(currentId)
-                    dataList = self.interfaces.errorDb.getErrorMetericsByJobId(currentId)
+                    dataList = self.interfaces.errorDb.getErrorMetricsByJobId(currentId)
                     returnDict[fileName]  = dataList
             return JsonResponse.create(StatusCode.OK,returnDict)
         except ( ValueError , TypeError ) as e:

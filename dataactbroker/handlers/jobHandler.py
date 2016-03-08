@@ -1,6 +1,8 @@
 from datetime import datetime
-from dataactcore.models.jobModels import JobStatus,JobDependency,Status,Type,Resource, Submission, FileType
+from dataactcore.models.jobModels import JobStatus,JobDependency,Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
 
 class JobHandler(JobTrackerInterface):
     """ Responsible for all interaction with the job tracker database
@@ -20,18 +22,33 @@ class JobHandler(JobTrackerInterface):
 
     # Available instance variables:  session, waitingStatus, runningStatus, fileUploadType, dbUploadType, validationType, externalValidationTYpe
 
-    def createJobs(self,filenames):
+    def getSubmissionById(self,submissionId):
+        """ Return submission object that matches ID """
+        query = self.session.query(Submission).filter(Submission.submission_id == submissionId)
+        result = self.runUniqueQuery(query,"No submission with that ID","Multiple submissions with that ID")
+        return result
+
+    def getSubmissionsByUserId(self,userId):
+        """ Returns all submissions associated with the specified user ID """
+        return self.session.query(Submission).filter(Submission.user_id == userId).all()
+
+    def getSubmissionsByUser(self,user):
+        """ Returns all submissions associated with the provided user object """
+        return self.getSubmissionsByUserId(user.user_id)
+
+    def createJobs(self,filenames,userId):
         """  Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
 
         Arguments:
         filenames -- List of filenames to be uploaded
+        userId -- User ID to be linked to submission
 
         Returns:
         Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
         """
         # Create submission entry
         submission = Submission(datetime_utc = str(datetime.utcnow()))
-
+        submission.user_id = userId
         self.session.add(submission)
         self.session.commit()
         # Calling submission_id to force query to load this
@@ -39,12 +56,11 @@ class JobHandler(JobTrackerInterface):
 
         jobsRequired, uploadDict = self.addUploadJobs(filenames,submission)
 
-
         # Create validation job
-        validationJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("validation"), submission_id = submission.submission_id)
+        validationJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("validation"), submission_id = submission.submission_id)
         self.session.add(validationJob)
         # Create external validation job
-        externalJob = JobStatus(status_id = Status.getStatus("waiting"), type_id = Type.getType("external_validation"), submission_id = submission.submission_id)
+        externalJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("external_validation"), submission_id = submission.submission_id)
         self.session.add(externalJob)
         self.session.flush()
         # Create dependencies for validation jobs
@@ -78,17 +94,17 @@ class JobHandler(JobTrackerInterface):
 
 
         for fileType, filename in filenames:
-            fileTypeResult = self.session.query(FileType.file_type_id).filter(FileType.name == fileType).all()
-            self.checkUnique(fileTypeResult,"No matching file type", "Multiple matching file types")
-            fileTypeId = fileTypeResult[0].file_type_id
+            fileTypeQuery = self.session.query(FileType.file_type_id).filter(FileType.name == fileType)
+            fileTypeResult = self.runUniqueQuery(fileTypeQuery,"No matching file type", "Multiple matching file types")
+            fileTypeId = fileTypeResult.file_type_id
 
             # Create upload job, mark as running since frontend should be doing this upload
-            fileJob = JobStatus(filename = filename, file_type_id = fileTypeId, status_id = Status.getStatus("running"), type_id = Type.getType("file_upload"), submission_id = submission.submission_id)
+            fileJob = JobStatus(filename = filename, file_type_id = fileTypeId, status_id = self.getStatusId("running"), type_id = self.getTypeId("file_upload"), submission_id = submission.submission_id)
 
             self.session.add(fileJob)
 
             # Create parse into DB job
-            dbJob = JobStatus(filename = filename, file_type_id = fileTypeId, status_id = Status.getStatus("waiting"), type_id = Type.getType("csv_record_validation"), submission_id = submission.submission_id)
+            dbJob = JobStatus(filename = filename, file_type_id = fileTypeId, status_id = self.getStatusId("waiting"), type_id = self.getTypeId("csv_record_validation"), submission_id = submission.submission_id)
             self.session.add(dbJob)
             self.session.flush()
             # Add dependency between file upload and db upload
@@ -109,12 +125,12 @@ class JobHandler(JobTrackerInterface):
         Returns:
         True if file upload, False otherwise
         """
-        queryResult = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId).all()
-        if(self.checkJobUnique(queryResult)):
-            # Got single job, check type
-            if(queryResult[0].type_id == Type.getType("file_upload")):
-                # Correct type
-                return True
+        query = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId)
+        result = self.checkJobUnique(query)
+        # Got single job, check type
+        if(result.type_id == self.getTypeId("file_upload")):
+            # Correct type
+            return True
         # Did not confirm correct type
         return False
 
@@ -127,12 +143,31 @@ class JobHandler(JobTrackerInterface):
         """
 
         # Pull from job status table
-        queryResult = self.session.query(JobStatus).filter(JobStatus.job_id == jobId).all()
-        if(len(queryResult) != 1):
-            # Did not find a unique match to job ID
-            raise ValueError("Job ID not found")
-        jobToChange = queryResult[0]
+        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
+        jobToChange = self.runUniqueQuery(query,"Job ID not found","Multiple jobs with same ID")
+
         # Change status to finished
-        jobToChange.status_id = Status.getStatus("finished")
+        jobToChange.status_id = self.getStatusId("finished")
         # Commit changes
         self.session.commit()
+
+    def getUserForSubmission(self,submission):
+        """ Takes a submission object and returns the user ID """
+        return submission.user_id
+
+    def getSubmissionForJob(self,job):
+        """ Takes a job about and returns the associated submission object """
+        query = self.session.query(Submission).filter(Submission.submission_id == job.submission_id)
+        try:
+            result = self.runUniqueQuery(query,"This job has no attached submission", "Multiple submissions with conflicting ID")
+            return result
+        except ResponseException as e:
+            # Either of these errors is a 500, jobs should not be created without being part of a submission
+            e.status = StatusCode.INTERNAL_ERROR
+            raise e
+
+    def getJobById(self,jobId):
+        """ Given a job ID, return the corresponding job """
+        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
+        result = self.runUniqueQuery(query,"No job with that ID","Multiple jobs with conflicting ID")
+        return result

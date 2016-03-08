@@ -8,9 +8,9 @@ from boto.s3.key import Key
 from baseTest import BaseTest
 from testUtils import TestUtils
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
-from dataactcore.models.jobModels import Status
+from dataactcore.models.jobModels import Submission, JobStatus
+from dataactcore.models.errorModels import ErrorData, FileStatus
 from dataactbroker.handlers.fileHandler import FileHandler
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 
 class FileTests(BaseTest):
     """ Test file submission routes """
@@ -22,13 +22,17 @@ class FileTests(BaseTest):
     TABLES_CLEARED_FILE = "tablesCleared" # Holds a boolean flag in a file so it can be checked before doing table setup
     tablesCleared = False # Set to true after first time setup is run
     submissionId = None
+    passed = False
+    finalizePassed = True
 
     def __init__(self,methodName,interfaces):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(FileTests,self).__init__(methodName=methodName)
+        self.methodName = methodName
         jobTracker = interfaces.jobDb
         self.jobTracker = jobTracker
         self.errorDatabase = interfaces.errorDb
+        self.interfaces = interfaces
         try:
             self.tablesCleared = self.toBool(open(self.TABLES_CLEARED_FILE,"r").read())
         except Exception as e:
@@ -42,26 +46,33 @@ class FileTests(BaseTest):
             self.tablesCleared = True
             open(self.TABLES_CLEARED_FILE,"w").write(str(True))
             # Create submission ID
-            submissionResponse = jobTracker.runStatement("INSERT INTO submission (datetime_utc) VALUES (0) RETURNING submission_id")
-            submissionId = submissionResponse.fetchone()[0]
-            self.submissionId = submissionId
-            # Create jobs
-            sqlStatements = ["INSERT INTO job_status (file_type_id, status_id, type_id, submission_id) VALUES (1,4,1,"+str(submissionId)+") RETURNING job_id",
-                             "INSERT INTO job_status (file_type_id, status_id, type_id, submission_id) VALUES (1,3,2,"+str(submissionId)+") RETURNING job_id",
-                             "INSERT INTO job_status (file_type_id, status_id, type_id, submission_id) VALUES (1,1,5,"+str(submissionId)+") RETURNING job_id",
-                             "INSERT INTO job_status (file_type_id, status_id, type_id, submission_id) VALUES (2,2,2,"+str(submissionId)+") RETURNING job_id",
-                             "INSERT INTO job_status (file_type_id, status_id, type_id, submission_id) VALUES (3,2,2,"+str(submissionId)+") RETURNING job_id",
-                             "INSERT INTO job_status (file_type_id, status_id, type_id, submission_id) VALUES (4,2,2,"+str(submissionId)+") RETURNING job_id"]
 
-            jobKeyList = ["uploadFinished","recordRunning","externalWaiting","awardFin","appropriations","procurement"]
-            index = 0
+            self.submissionId = self.insertSubmission(self.jobTracker)
+
+            # Create jobs
+            jobValues = {}
+            jobValues["uploadFinished"] = [1,4,1]
+            jobValues["recordRunning"] = [1,3,2]
+            jobValues["externalWaiting"] = [1,1,5]
+            jobValues["awardFin"] = [2,2,2]
+            jobValues["appropriations"] = [3,2,2]
+            jobValues["procurement"] = [4,2,2]
             self.jobIdDict = {}
-            for statement in sqlStatements:
-                self.jobIdDict[jobKeyList[index]] = jobTracker.runStatement(statement).fetchone()[0]
-                index += 1
+
+            for jobKey, values in jobValues.items():
+                job_id = self.insertJob(
+                    self.jobTracker,
+                    filetype = values[0],
+                    status = values[1],
+                    type_id = values[2],
+                    submission = self.submissionId
+                )
+                self.jobIdDict[jobKey] = job_id
+
             # Save jobIdDict to file
             open(self.JOB_ID_FILE,"w").write(json.dumps(self.jobIdDict))
-            open(self.SUBMISSION_ID_FILE,"w").write(str(submissionId))
+            open(self.SUBMISSION_ID_FILE,"w").write(str(self.submissionId))
+
         else:
             # Read job ID dict from file
             self.jobIdDict = json.loads(open(self.JOB_ID_FILE,"r").read())
@@ -86,6 +97,7 @@ class FileTests(BaseTest):
     def test_file_submission(self):
         open(FileHandler.VALIDATOR_RESPONSE_FILE,"w").write(str(-1))
         self.call_file_submission()
+        self.response = self.fileResponse # Used for displaying failures
         # Test that status is 200
         assert(self.fileResponse.status_code==200)
         # Test Content-Type header
@@ -112,13 +124,22 @@ class FileTests(BaseTest):
                 int(responseDict[key])
             except:
                 self.fail("One of the job ids returned was not an integer")
-            # Call upload complete route for each id
+
+        # Test that correct user ID is on submission
+        submissionId = responseDict["submission_id"]
+        user = self.interfaces.userDb.getUserByEmail("user3")
+        userId = user.user_id
+        submission = self.interfaces.jobDb.getSubmissionById(submissionId)
+        assert(submission.user_id == userId) # Check that submission got mapped to the correct user
+
+        # Call upload complete route for each id
         self.check_upload_complete(responseDict["appropriations_id"])
+        self.passed = True
 
     @staticmethod
     def waitOnJob(jobTracker, jobId, status):
-        currentID = Status.getStatus("running")
-        targetStatus = Status.getStatus(status)
+        currentID = jobTracker.getStatusId("running")
+        targetStatus = jobTracker.getStatusId(status)
         while jobTracker.getStatus(jobId) == currentID:
             time.sleep(1)
         assert(targetStatus == jobTracker.getStatus(jobId))
@@ -127,21 +148,22 @@ class FileTests(BaseTest):
         """ Check that test status route returns correct JSON"""
         utils = TestUtils()
         utils.login()
-        response = utils.postRequest("/v1/check_status/",'{"submission_id":'+str(self.submissionId)+'}')
+        self.response = utils.postRequest("/v1/check_status/",'{"submission_id":'+str(self.submissionId)+'}')
 
-        assert(response.status_code == 200)
-        assert(response.json()[str(self.jobIdDict["uploadFinished"])]["status"]=="finished")
-        assert(response.json()[str(self.jobIdDict["uploadFinished"])]["job_type"]=="file_upload")
-        assert(response.json()[str(self.jobIdDict["uploadFinished"])]["file_type"]=="award")
-        assert(response.json()[str(self.jobIdDict["recordRunning"])]["status"]=="running")
-        assert(response.json()[str(self.jobIdDict["recordRunning"])]["job_type"]=="csv_record_validation")
-        assert(response.json()[str(self.jobIdDict["recordRunning"])]["file_type"]=="award")
-        assert(response.json()[str(self.jobIdDict["externalWaiting"])]["status"]=="waiting")
-        assert(response.json()[str(self.jobIdDict["externalWaiting"])]["job_type"]=="external_validation")
-        assert(response.json()[str(self.jobIdDict["externalWaiting"])]["file_type"]=="award")
-        assert(response.json()[str(self.jobIdDict["appropriations"])]["status"]=="ready")
-        assert(response.json()[str(self.jobIdDict["appropriations"])]["job_type"]=="csv_record_validation")
-        assert(response.json()[str(self.jobIdDict["appropriations"])]["file_type"]=="appropriations")
+        assert(self.response.status_code == 200)
+        assert(self.response.json()[str(self.jobIdDict["uploadFinished"])]["status"]=="finished")
+        assert(self.response.json()[str(self.jobIdDict["uploadFinished"])]["job_type"]=="file_upload")
+        assert(self.response.json()[str(self.jobIdDict["uploadFinished"])]["file_type"]=="award")
+        assert(self.response.json()[str(self.jobIdDict["recordRunning"])]["status"]=="running")
+        assert(self.response.json()[str(self.jobIdDict["recordRunning"])]["job_type"]=="csv_record_validation")
+        assert(self.response.json()[str(self.jobIdDict["recordRunning"])]["file_type"]=="award")
+        assert(self.response.json()[str(self.jobIdDict["externalWaiting"])]["status"]=="waiting")
+        assert(self.response.json()[str(self.jobIdDict["externalWaiting"])]["job_type"]=="external_validation")
+        assert(self.response.json()[str(self.jobIdDict["externalWaiting"])]["file_type"]=="award")
+        assert(self.response.json()[str(self.jobIdDict["appropriations"])]["status"]=="ready")
+        assert(self.response.json()[str(self.jobIdDict["appropriations"])]["job_type"]=="csv_record_validation")
+        assert(self.response.json()[str(self.jobIdDict["appropriations"])]["file_type"]=="appropriations")
+        self.passed = True
 
     def check_error_route(self,jobId,submissonId) :
         jobJson = json.dumps({"upload_id":jobId})
@@ -153,8 +175,10 @@ class FileTests(BaseTest):
     def check_upload_complete(self, jobId):
         jobJson = json.dumps({"upload_id":jobId})
         self.utils.login()
-        finalizeResponse = self.utils.postRequest("/v1/finalize_job/",jobJson)
-        assert(finalizeResponse.status_code == 200)
+        self.finalizePassed = False
+        self.finalizeResponse = self.utils.postRequest("/v1/finalize_job/",jobJson)
+        assert(self.finalizeResponse.status_code == 200)
+        self.finalizePassed = True
 
     @staticmethod
     def uploadFileByURL(s3FileName,filename):
@@ -202,15 +226,17 @@ class FileTests(BaseTest):
         # Will only pass if specific submission ID is entered after validator unit tests have been run to generate the error reports
         if not self.CHECK_ERROR_REPORTS:
             # Skip error report test
+            self.passed = True
             return
         utils = TestUtils()
         utils.login()
 
         self.setupJobsForReports()
-        response = utils.postRequest("/v1/submission_error_reports/",'{"submission_id":'+str(self.ERROR_REPORT_SUBMISSION_ID)+'}')
+        self.response = utils.postRequest("/v1/submission_error_reports/",'{"submission_id":'+str(self.ERROR_REPORT_SUBMISSION_ID)+'}')
         #clearJobs()  # Clear job DB again so sequence errors don't occur
-        assert(response.status_code == 200)
-        assert(len(response.json()) == 4)
+        assert(self.response.status_code == 200)
+        assert(len(self.response.json()) == 4)
+        self.passed = True
 
     @staticmethod
     def check_metrics(submissionId,exists,type_file) :
@@ -228,13 +254,31 @@ class FileTests(BaseTest):
         #setup the database for the route test
         submissionId = str(self.insertSubmission(self.jobTracker))
 
-        job = self.insertJob(self.jobTracker,"1","2","2",submissionId)
+        job = self.insertJob(
+            self.jobTracker,
+            filetype = "1",
+            status = "2",
+            type_id = "2",
+            submission = submissionId
+        )
         self.insertFileStatus(self.errorDatabase,str(job),"1") # Everything Is Fine
 
-        job = self.insertJob(self.jobTracker,"2","2","2",submissionId)
+        job = self.insertJob(
+            self.jobTracker,
+            filetype = "2",
+            status = "2",
+            type_id = "2",
+            submission = submissionId
+        )
         self.insertFileStatus(self.errorDatabase,str(job),"3") #Bad Header
 
-        job = self.insertJob(self.jobTracker,"3","2","2",submissionId)
+        job = self.insertJob(
+            self.jobTracker,
+            filetype = "3",
+            status = "2",
+            type_id = "2",
+            submission = submissionId
+        )
         self.insertFileStatus(self.errorDatabase,str(job),"1") # Validation level Errors
         self.insertRowLevelError(self.errorDatabase,str(job))
 
@@ -242,46 +286,87 @@ class FileTests(BaseTest):
         self.check_metrics(submissionId,False,"award")
         self.check_metrics(submissionId,True,"award_financial")
         self.check_metrics(submissionId,True,"appropriations")
+        self.passed = True
 
     @staticmethod
-    def insertSubmission(jobTracker):
+
+    def insertSubmission(jobTracker, submission = None):
         """ Insert one submission into job tracker and get submission ID back """
-        stmt = "INSERT INTO submission (datetime_utc) VALUES (0) RETURNING submission_id"
-        response = jobTracker.runStatement(stmt)
-        return response.fetchone()[0]
+        if submission:
+            sub = Submission(submission_id = submission, datetime_utc = 0, user_id = 1)
+        else:
+            sub = Submission(datetime_utc = 0, user_id = 1)
+        jobTracker.session.add(sub)
+        jobTracker.session.commit()
+        return sub.submission_id
 
     @staticmethod
-    def insertJob(jobTracker,filetype,status,type_id,submission):
+    def insertJob(jobTracker,filetype,status,type_id,submission, job_id = None):
         """ Insert one job into job tracker and get ID back """
-        stmt = "INSERT INTO job_status (file_type_id, status_id, type_id, submission_id)VALUES("+filetype+","+status+","+type_id+","+submission+") RETURNING job_id"
-        results = jobTracker.runStatement(stmt)
-        return results.fetchone()[0]
+        job = JobStatus(
+            file_type_id = filetype,
+            status_id = status,
+            type_id = type_id,
+            submission_id = submission
+        )
+        if job_id:
+            job.job_id = job_id
+        jobTracker.session.add(job)
+        jobTracker.session.commit()
+        return job.job_id
 
     @staticmethod
     def insertFileStatus(errorDB,job,status):
         """ Insert one file status into error database and get ID back """
-        stmt = "INSERT INTO file_status(job_id, filename, status_id) VALUES("+job+",' ',"+status+") RETURNING status_id"
-        response = errorDB.runStatement(stmt)
-        return response.fetchone()[0]
+        fs = FileStatus(
+            job_id = job,
+            filename = ' ',
+            status_id = status
+        )
+        errorDB.session.add(fs)
+        errorDB.session.commit()
+        return fs.file_id
 
     @staticmethod
     def insertRowLevelError(errorDB,job):
         """ Insert one error into error database """
-        stmt = "INSERT INTO error_data(job_id, filename, field_name, error_type_id, occurrences,first_row, rule_failed) VALUES ("+job+ ", 'test.csv', 'header 1', 1, 100, 123, 'Type Check' );"
-        errorDB.runStatement(stmt)
+        ed = ErrorData(
+            job_id = job,
+            filename = 'test.csv',
+            field_name = 'header 1',
+            error_type_id = 1,
+            occurrences = 100,
+            first_row = 123,
+            rule_failed = 'Type Check'
+        )
+        errorDB.session.add(ed)
+        errorDB.session.commit()
+        return ed.error_data_id
 
     def setupJobsForReports(self):
         """ Setting Jobs table to correct state for checking error reports from validator unit tests """
         #clearJobs()
-        self.tablesCleared = False
-        sqlStatements = [
-            "INSERT INTO submission (submission_id,datetime_utc) VALUES (11,0)",
-            "INSERT INTO job_status (job_id,file_type_id, status_id, type_id, submission_id) VALUES (11,1,4,2,11),(12,2,4,2,11),(13,3,4,2,11),(15,4,4,2,11)"
-        ]
-
         jobTracker = self.jobTracker
-        for statement in sqlStatements:
-            jobTracker.runStatement(statement)
+        self.tablesCleared = False
+        self.insertSubmission(jobTracker, 11)
+        self.insertJob(jobTracker,job_id = 11, filetype = 1,
+            status = 4, type_id = 2, submission = 11)
+        self.insertJob(jobTracker, job_id = 12, filetype = 2,
+            status = 4, type_id = 2, submission = 11)
+        self.insertJob(jobTracker, job_id = 13, filetype = 3,
+            status = 4, type_id = 2, submission = 11)
+        self.insertJob(jobTracker, job_id = 15, filetype = 4,
+            status = 4, type_id = 2, submission = 11)
+
+    def tearDown(self):
+        if(not self.passed):
+            print("".join(["Test failed: ",self.methodName]))
+            print("Status is " + str(self.response.status_code))
+            print(str(self.response.json()))
+        if(not self.finalizePassed):
+            print("".join(["Test failed: ",self.methodName]))
+            print("Status is " + str(self.finalizeResponse.status_code))
+            print(str(self.finalizeResponse.json()))
 
 if __name__ == '__main__':
     unittest.main()

@@ -61,13 +61,16 @@ sudo python configure.py
 | local_dynamo  | Sets if the dynamo database is on the localhost or AWS|
 | dynamo_port  | The port used for the dynamo database|
 | create_credentials  | Turns on the ability to create temporarily AWS credentials|
+| frontend_url  | The URL for the React front end|
+| security_key  | The key used to make hashes by the application|
+| system_email  | The from email address  used by the system for automated emails|
 
 The `initialize` script provides users with these choices during the install process. See the [Broker Install Guide](#install-guide) for more information.
 
 ##Handlers
 The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py` and `fileRoutes.py` files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in. If user is not logged in to the system, a 401 HTTP error will be returned. This tag is defined in `dataactbroker/permissions.py`. Cookies are used to keep track of sessions for the end user. Only a UUID is stored in the cookie.
 
-`LoginHandler.py` contains the functions to check logins and to log users out. Currently, `credentials.json` defines which users exist within the system. This file is automatically created during the installation process.
+`AccountHandler.py` contains the functions to check logins and to log users out. Currently, `credentials.json` defines which users exist within the system. This file is automatically created during the installation process.
 
 `FileHandler.py` contains functions for managing user file interaction. It creates all of the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
 
@@ -163,31 +166,317 @@ In general, status codes returned are as follows:
 ## GET "/"
 This route confirms that the broker is running
 
-Example input: None  
-Example output: "Broker is running"
+Example input:
 
-##Login Methods
+None
+
+Example output:
+
+"Broker is running"
+
+##User Routes
 
 #### POST "/v1/login/"
 This route checks the username and password against a credentials file.  Accepts input as json or form-urlencoded, with keys "username" and "password".  
 
-Example input: {"username": "user", "password": "pass"}  
-Example output: {"message": "Login successful"}
+Example input:
+
+```json
+{
+    "username": "user",
+    "password": "pass"
+}
+```
+
+Example output:
+
+```json
+{
+    "message": "Login successful"
+}
+```
 
 #### POST "/v1/logout/"
-Logs the current user out, only the login route will be accessible until the next login.  If not logged in, just stays logged out. Returns 200 in boths cases.
+Logs the current user out, only the login route will be accessible until the next login.  If not logged in, just stays logged out. Returns 200 in both cases.
 
-Example input: None  
-Example output: {"message": "Logout successful"}
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+    "message": "Logout successful"
+}
+```
 
 #### GET "/v1/session/"
 Checks that the session is still valid. Returns 200, and JSON with key "status" containing True if the session exists, and False if it doesn't.
 
-Example input: None  
-Example output: {"status": "True"}
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+    "status": "True"
+}
+```
+
+#### GET "/v1/current_user/"
+Gets the information of the current that is login to the system.
+
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+    "user_id": 42,
+    "name": "John",
+    "agency": "Department of Labor",
+    "permissions" : [0,1]
+}
+```
+
+Permissions for the DATA Act Broker are list based. Each integer in the list corresponds with a permission.
 
 
-##File Methods
+| Permission Type  | Value |
+| ------------- |-------------|
+|User| 0|
+|Admin  |1|
+
+
+#### POST "/v1/register/"
+Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.  This route can only be called after the `confirm_email_token` route. After a successful submission this route will require
+`confirm_email_token` to be called again.
+
+
+Example input:
+
+```json
+{
+   "email":"user@agency.gov",
+   "name":"user",
+   "agency":"Data Act Agency",
+   "title":"User Title",
+   "password":"pass"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Registration successful"
+}
+```
+
+#### POST "/v1/change_status/"
+Changes a user's status, used to approve or deny users.  This route requires an admin user to be logged in.  A call to this route should have JSON or form-urlencoded with keys "uid" and "new_status".  For typical usage, "new_status" should be either "approved" or "denied".
+
+Example input:
+
+```json
+{
+   "uid":"1234",
+   "new_status":"approved"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Status change successful"
+}
+```
+
+#### POST "/v1/confirm_email/"
+Create a new user and sends a confirmation email to their email address.  A call to this route should have JSON or form-urlencoded with key "email".
+
+Example input:
+
+```json
+{
+   "email":"user@agency.gov"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Email Sent"
+}
+```
+
+#### POST "/v1/confirm_email_token/"
+Checks the token sent by email.  If successful, updates the user to email_confirmed.  A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned along with the error code. The email address will also be returned upon success.
+
+Example input:
+
+```json
+{
+   "token":"longRandomString"
+}
+```
+
+Success Example output:
+
+```json
+{
+  "errorCode":0,
+  "message":"success",
+  "email" : "emailAddress@email.com"
+}
+```
+
+Failure Example output:
+
+```json
+{
+  "errorCode":3,
+  "message":"Link already used"
+}
+```
+
+The following is a table with all of the messages and error code  
+
+| ErrorCode  | Value |Message |
+| ------------- |-------------|------------- |
+|INVALID_LINK | 1| Invalid Link|
+| LINK_EXPIRED   |2| Link Expired|
+| LINK_ALREADY_USED  |3|Link already used|
+| LINK_VALID   |0|success|
+
+
+
+
+
+
+#### POST "/v1/confirm_password_token/"
+Checks the token sent by email for password reset. A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned along with the error code. The email address will also be returned upon success.
+
+Example input:
+
+```json
+{
+   "token":"longRandomString"
+}
+```
+
+Success Example output:
+
+```json
+{
+  "errorCode":0,
+  "message":"success",
+  "email" : "emailAddress@email.com"
+}
+```
+
+Failure Example output:
+
+```json
+{
+  "errorCode":3,
+  "message":"Link already used"
+}
+```
+
+The following is a table with all of the messages and error code  
+
+| ErrorCode  | Value |Message |
+| ------------- |-------------|------------- |
+|INVALID_LINK | 1| Invalid Link|
+| LINK_EXPIRED   |2| Link Expired|
+| LINK_ALREADY_USED  |3|Link already used|
+| LINK_VALID   |0|success|
+
+
+
+
+#### POST "/v1/list_users_with_status/"
+List all users with specified status, typically used to review users that have applied for an account.  Requires an admin login.  A call to this route should have JSON or form-urlencoded with key "status".
+
+Example input:
+
+```json
+{
+   "status":"awaiting_approval"
+}
+```
+
+Example output:
+
+```json
+{
+  "users":[{"uid":1,"name":"user","email":"agency@user.gov","title":"User Title","agency":"Data Act Agency"},{"uid":2,"name":"user2","email":"","title":"","agency":""}]
+}
+```
+
+#### GET "/v1/list_submissions/"
+List all submissions by currently logged in user.
+
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+  "submission_id_list":[1,2,3]
+}
+```
+
+#### POST "/v1/set_password/"
+Change specified user's password to new value.  User must have confirmed the token they received in same session to use this route.  A call to this route should have JSON or form-urlencoded with keys "uid" and "password".
+
+Example input:
+
+```json
+{
+   "token":"longRandomString"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Password successfully changed"
+}
+```
+
+#### POST "/v1/reset_password/"
+Remove current password and send password with token for reset.  A call to this route should have JSON or form-urlencoded with key "email".
+
+Example input:
+
+```json
+{
+   "email":"user@agency.gov"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Password reset"
+}
+```
+
+
+##File Routes
 
 #### POST "/v1/submit_files/"
 This route is used to retrieve S3 URLs to upload files. Data should be either JSON or form-urlencoded with keys: ["appropriations", "award\_financial", "award", "procurement"], each with a filename as a value.
@@ -309,6 +598,7 @@ Example output:
 ```
 
 
+
 #### Test Cases
 Before running test cases, start the Flask app by running `python app.py` in the `dataactbroker` folder. Alternatively, if using `pip install`, you can uses the server start command `sudo webbroker -s`. The current test suite for the validator may then be run by navigating to the `datatactbroker/tests folder` and running `python runTests.py`.
 
@@ -389,6 +679,11 @@ The following table below show the prompts created by the setup and there usage
 |Would you like to create the dynamo database table|yes or no. Creates a table on the Dynamo Database. This command you be used **exactly once** per AWS account |
 |Would you like to include test case users | yes or no, this options adds test users. This option should **not** be selected for production|
 |Enter the admin user password| string, this is the user password needed to login into the API|
+|Enter the admin user email| string, this is the user email address needed to login into the API|
+
+
+
+
 
 
 Alternatively, if you do not need to configure everything, the following commands are also available.

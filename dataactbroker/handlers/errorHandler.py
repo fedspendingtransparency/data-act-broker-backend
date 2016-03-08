@@ -1,18 +1,19 @@
 from sqlalchemy.orm import joinedload
-from dataactcore.models.errorModels import FileStatus, ErrorData, Status
+from dataactcore.models.errorModels import FileStatus, ErrorData
 from dataactcore.models.errorInterface import ErrorInterface
 
 class ErrorHandler(ErrorInterface) :
     """ Manages communication with the error database """
 
-    def getErrorMetericsByJobId (self,jobId) :
+    def getErrorMetricsByJobId (self,jobId) :
         """ Get error metrics for specified job, including number of errors for each field name and error type """
         resultList = []
 
-        queryResult = self.session.query(FileStatus).options(joinedload("status")).filter(FileStatus.job_id == jobId).all()
-        if(self.checkUnique(queryResult,"","")) :
-            if(not queryResult[0].status.status_id == Status.getStatus("complete")) :
-                return [["File Level Error",str(queryResult[0].status.description),1]]
+        query = self.session.query(FileStatus).options(joinedload("status")).filter(FileStatus.job_id == jobId)
+        queryResult = self.runUniqueQuery(query,"No file status for this job", "Conflicting file statuses for this job")
+
+        if(not queryResult.status.status_id == self.getStatusId("complete")) :
+            return [["File Level Error",str(queryResult.status.description),1]]
 
         queryResult = self.session.query(ErrorData).options(joinedload("error_type")).filter(ErrorData.job_id == jobId).all()
         for result in queryResult:
