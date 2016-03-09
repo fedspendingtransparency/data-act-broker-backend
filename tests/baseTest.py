@@ -16,15 +16,15 @@ class BaseTest(unittest.TestCase):
         #TODO: delete jobs and submissions from db
 
     def login(self):
-        """Log user into broker."""
+        """Log an agency user (non-admin) into broker."""
         #TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": "user3", "password": "abc123"}
+        user = {"username": "approved@agency.gov", "password": "approvedPass"}
         return self.app.post_json("/v1/login/", user)
 
     def login_admin(self):
         """Log an admin user into broker."""
         #TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": "admin_email", "password": "admin_password"}
+        user = {"username": "data.act.tester.1@gmail.com", "password": "pass"}
         response = self.app.post_json("/v1/login/", user)
         return response
 
