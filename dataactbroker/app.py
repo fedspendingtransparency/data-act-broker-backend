@@ -55,7 +55,7 @@ def runApp():
 
         # Add routes for modules here
         add_login_routes(app,bcrypt)
-        add_file_routes(app,config["create_credentials"])
+        add_file_routes(app,config["create_credentials"],config["local"])
         add_user_routes(app,config["system_email"],bcrypt)
         SessionTable.localPort  = int( config["dynamo_port"])
         SessionTable.setup(app, runLocal)

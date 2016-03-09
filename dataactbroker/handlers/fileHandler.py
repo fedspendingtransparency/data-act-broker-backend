@@ -23,7 +23,7 @@ class FileHandler:
     FILE_TYPES = ["appropriations","award_financial","award","procurement"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
-    def __init__(self,request,interfaces = None):
+    def __init__(self,request,interfaces = None,isLocal= False):
         """
 
         Arguments:
@@ -33,6 +33,7 @@ class FileHandler:
         if(interfaces != None):
             self.interfaces = interfaces
             self.jobManager = interfaces.jobDb
+        self.isLocal = isLocal
 
     def addInterfaces(self,interfaces):
         self.interfaces = interfaces
@@ -49,7 +50,10 @@ class FileHandler:
             responseDict ={}
             for jobId in self.jobManager.getJobsBySubmission(submissionId):
                 if(self.jobManager.getJobType(jobId) == "csv_record_validation"):
-                    responseDict["job_"+str(jobId)+"_error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(jobId),"GET")
+                    if(not self.isLocal):
+                        responseDict["job_"+str(jobId)+"_error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(jobId),"GET")
+                    else:
+                        responseDict["job_"+str(jobId)+"_error_url"] = self.jobManager.getReportPath(jobId)
             return JsonResponse.create(StatusCode.OK,responseDict)
         except ResponseException as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
@@ -57,21 +61,6 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-    def getErrorReportURL(self):
-        """
-        Gets the Signed URL for download based on the jobId
-        """
-        try :
-            self.s3manager = s3UrlHandler(s3UrlHandler.getBucketNameFromConfig())
-            safeDictionary = RequestDictionary(self.request)
-            responseDict ={}
-            responseDict["error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(safeDictionary.getValue("upload_id")),"GET")
-            return JsonResponse.create(StatusCode.OK,responseDict)
-        except ResponseException as e:
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
-        except Exception as e:
-            # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
     # Submit set of files
     def submit(self,name,CreateCredentials):
@@ -94,15 +83,18 @@ class FileHandler:
             safeDictionary = RequestDictionary(self.request)
             for fileName in FileHandler.FILE_TYPES :
                 if( safeDictionary.exists(fileName)) :
-                    uploadName =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(safeDictionary.getValue(fileName))
-                    responseDict[fileName+"_key"] = uploadName
+                    if(not self.isLocal):
+                        uploadName =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(safeDictionary.getValue(fileName))
+                    else:
+                        uploadName = fileName
+                    responseDict[fileName+"_key"] = safeDictionary.getValue(fileName)
                     fileNameMap.append((fileName,uploadName))
 
             fileJobDict = self.jobManager.createJobs(fileNameMap,name)
             for fileName in fileJobDict.keys():
                 if (not "submission_id" in fileName) :
                     responseDict[fileName+"_id"] = fileJobDict[fileName]
-            if(CreateCredentials) :
+            if(CreateCredentials and not self.isLocal) :
                 responseDict["credentials"] = self.s3manager.getTemporaryCredentials(name)
             else :
                 responseDict["credentials"] ={"AccessKeyId" : "local","SecretAccessKey" :"local","SessionToken":"local" ,"Expiration" :"local"}
