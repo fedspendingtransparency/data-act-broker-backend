@@ -150,13 +150,13 @@ class AccountHandler:
         self.interfaces.userDb.addUserInfo(user,requestFields.getValue("name"),requestFields.getValue("agency"),requestFields.getValue("title"))
         self.interfaces.userDb.setPassword(user,requestFields.getValue("password"),self.bcrypt)
 
-        userLink= "".join(['<a href="', AccountHandler.FRONT_END, '">here</a>' ])
+        userLink= AccountHandler.FRONT_END
         # Send email to approver list
         emailThread = Thread(target=ThreadedFunction, kwargs=dict(from_email=system_email,username=user.name,title=user.title,agency=user.agency,userEmail=user.email,link=userLink))
         emailThread.start()
 
         #email user
-        link= "".join(['<a href="', AccountHandler.FRONT_END, '">here</a>' ])
+        link= AccountHandler.FRONT_END
         emailTemplate = {'[EMAIL]' : system_email}
         newEmail = sesEmail(user.email, system_email,templateType="account_creation_user",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()
@@ -164,7 +164,6 @@ class AccountHandler:
         LoginSession.logout(session)
         # Mark user as awaiting approval
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
-        print("Completed registration, returning 200")
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
 
     def createEmailConfirmation(self,system_email,session):
@@ -195,7 +194,7 @@ class AccountHandler:
                 return JsonResponse.error(exc,exc.status)
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"validate_email")
         LoginSession.logout(session)
-        link= "".join(['<a href="', AccountHandler.FRONT_END,'/registration/',emailToken ,'">here</a>' ])
+        link= "".join([AccountHandler.FRONT_END,'/registration/',emailToken])
         emailTemplate = {'[USER]': email, '[URL]':link}
         newEmail = sesEmail(email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()
@@ -279,7 +278,6 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
 
         # Find user that matches specified uid
-        print requestDict.getValue("uid")
         user = self.interfaces.userDb.getUserByUID(int(requestDict.getValue("uid")))
 
         if(user.email == None):
@@ -290,7 +288,7 @@ class AccountHandler:
             if(requestDict.getValue("new_status") == "approved"):
                 # Grant agency_user permission to newly approved users
                 self.interfaces.userDb.grantPermission(user,"agency_user")
-                link= "".join(['<a href="', AccountHandler.FRONT_END, '">here</a>' ])
+                link=  AccountHandler.FRONT_END
                 emailTemplate = { '[URL]':link,'[EMAIL]':system_email}
                 newEmail = sesEmail(user.email, system_email,templateType="account_approved",parameters=emailTemplate,database=self.interfaces.userDb)
                 newEmail.send()
@@ -372,7 +370,7 @@ class AccountHandler:
         email = requestDict.getValue("email")
         # Send email with token
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"password_reset")
-        link= "".join(['<a href="', AccountHandler.FRONT_END,'/forgotpassword/',emailToken ,'">here</a>' ])
+        link= "".join([ AccountHandler.FRONT_END,'/forgotpassword/',emailToken])
         emailTemplate = { '[URL]':link}
         newEmail = sesEmail(user.email, system_email,templateType="reset_password",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()

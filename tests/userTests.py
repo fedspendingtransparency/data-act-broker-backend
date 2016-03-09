@@ -3,6 +3,7 @@ from baseTest import BaseTest
 from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.jobHandler import JobHandler
 from dataactbroker.handlers.aws.sesEmail import sesEmail
+from dataactbroker.scripts.setupEmails import setupEmails
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.clearJobs import clearJobs
 from dataactcore.models.jobModels import Submission, JobStatus
@@ -214,6 +215,7 @@ class UserTests(BaseTest):
 
         # Clear users
         setupUserDB(True)
+        setupEmails()
         clearJobs()
         userDb = UserHandler()
         userDb.createUserWithPassword( "user3","123abc",Bcrypt())
