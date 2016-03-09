@@ -1,6 +1,7 @@
 import boto
 import uuid
 import urllib
+import datetime
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -12,6 +13,8 @@ class sesEmail(object):
     LINK_EXPIRED =  2
     LINK_ALREADY_USED = 3
     LINK_VALID  = 0
+    isLocal = False
+    emailLog = "Email.log"
     def __init__(self,toAddress,fromAddress,content="",subject="",templateType=None,parameters=None, database=None):
         self.toAddress = toAddress
         self.fromAddress = fromAddress
@@ -30,8 +33,12 @@ class sesEmail(object):
                     self.content = self.content.replace(key,"")
 
     def send(self):
-        connection = boto.connect_ses()
-        return connection.send_email(self.fromAddress, self.subject,self.content,self.toAddress,format='html')
+        if(not sesEmail.isLocal):
+            connection = boto.connect_ses()
+            return connection.send_email(self.fromAddress, self.subject,self.content,self.toAddress,format='html')
+        else:
+            newEmailText = "\n\n".join(["","Time",str(datetime.datetime.now()),"Subject",self.subject,"From",self.fromAddress,"To",self.toAddress,"Content",self.content])
+            open (sesEmail.emailLog,"a").write(newEmailText)
 
 
     @staticmethod

@@ -31,6 +31,8 @@ def runApp():
         # Set parameters
         AccountHandler.FRONT_END = config["frontend_url"]
         sesEmail.SIGNING_KEY =  config["security_key"]
+        sesEmail.isLocal = config["local"]
+        sesEmail.emailLog = "".join([config["local_folder"],"/email.log"])
         debugFlag = config["server_debug"]  # Should be false for prod
         runLocal = config["local_dynamo"]  # False for prod, when True this assumes that the Dynamo is on the same server
         JsonResponse.debugMode = config["rest_trace"]
