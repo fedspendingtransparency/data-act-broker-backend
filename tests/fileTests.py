@@ -23,6 +23,7 @@ class FileTests(BaseTest):
     tablesCleared = False # Set to true after first time setup is run
     submissionId = None
     passed = False
+    finalizePassed = True
 
     def __init__(self,methodName,interfaces):
         """ Run scripts to clear the job tables and populate with a defined test set """
@@ -174,8 +175,10 @@ class FileTests(BaseTest):
     def check_upload_complete(self, jobId):
         jobJson = json.dumps({"upload_id":jobId})
         self.utils.login()
-        finalizeResponse = self.utils.postRequest("/v1/finalize_job/",jobJson)
-        assert(finalizeResponse.status_code == 200)
+        self.finalizePassed = False
+        self.finalizeResponse = self.utils.postRequest("/v1/finalize_job/",jobJson)
+        assert(self.finalizeResponse.status_code == 200)
+        self.finalizePassed = True
 
     @staticmethod
     def uploadFileByURL(s3FileName,filename):
@@ -360,6 +363,10 @@ class FileTests(BaseTest):
             print("".join(["Test failed: ",self.methodName]))
             print("Status is " + str(self.response.status_code))
             print(str(self.response.json()))
+        if(not self.finalizePassed):
+            print("".join(["Test failed: ",self.methodName]))
+            print("Status is " + str(self.finalizeResponse.status_code))
+            print(str(self.finalizeResponse.json()))
 
 if __name__ == '__main__':
     unittest.main()

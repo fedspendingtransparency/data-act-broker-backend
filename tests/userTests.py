@@ -3,6 +3,7 @@ from baseTest import BaseTest
 from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.jobHandler import JobHandler
 from dataactbroker.handlers.aws.sesEmail import sesEmail
+from dataactbroker.scripts.setupEmails import setupEmails
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.clearJobs import clearJobs
 from dataactcore.models.jobModels import Submission, JobStatus
@@ -100,7 +101,7 @@ class UserTests(BaseTest):
     def test_status_change_bad_status(self):
         badInput = '{"uid":"'+UserTests.UID_FOR_STATUS_CHANGE+'","new_status":"badInput"}'
         self.response = self.utils.postRequest("/v1/change_status/",badInput)
-        self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"Not a valid user status")
+        self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR)
         self.passed = True
 
     def test_list_users(self):
@@ -115,7 +116,7 @@ class UserTests(BaseTest):
     def test_list_users_bad_status(self):
         input = '{"status":"lost"}'
         self.response = self.utils.postRequest("/v1/list_users_with_status/",input)
-        self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"Not a valid user status")
+        self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR)
         self.passed = True
 
     def test_get_users_by_type(self):
@@ -255,6 +256,7 @@ class UserTests(BaseTest):
 
         # Clear users
         setupUserDB(True)
+        setupEmails()
         clearJobs()
         userDb = UserHandler()
         userDb.createUserWithPassword( "user3","123abc",Bcrypt())
