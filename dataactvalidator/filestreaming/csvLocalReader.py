@@ -11,10 +11,11 @@ class CsvLocalReader(CsvAbstractReader):
 
 
     def openFile(self,bucket,filename,csvSchema):
+        self.filename = filename
         try:
             self.file = open(filename,"r")
         except :
-            raise ValueError("".join(["Filename provided not found : ",str(filename)]))
+            raise ValueError("".join(["Filename provided not found : ",str(self.filename)]))
         super(CsvLocalReader,self).openFile(bucket,filename,csvSchema)
 
     def close(self):
@@ -24,7 +25,7 @@ class CsvLocalReader(CsvAbstractReader):
         """
         Gets the size of the file
         """
-        return os.path.getsize(filename)
+        return os.path.getsize(self.filename)
 
     def _getNextPacket(self):
         """
