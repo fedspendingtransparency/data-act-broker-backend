@@ -3,10 +3,11 @@ import csv
 import os
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
+from dataactvalidator.filestreaming.csvAbstractReader import CsvAbstractReader
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
-class CsvS3Reader(object):
+class CsvS3Reader(CsvAbstractReader):
     """
     Reads data from S3 CSV file
     """

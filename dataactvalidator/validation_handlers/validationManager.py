@@ -113,7 +113,7 @@ class ValidationManager:
     def getReader(self):
         if(self.isLocal):
             return CsvLocalReader()
-        return csvS3Reader()
+        return CsvS3Reader()
 
     def runValidation(self, jobId, interfaces):
         """ Run validations for specified job
@@ -139,10 +139,9 @@ class ValidationManager:
         csvSchema  = validationDB.getFieldsByFile(fileType)
         rules = validationDB.getRulesByFile(fileType)
 
-
+        reader = self.getReader()
         try:
             # Pull file
-            reader = self.getReader()
             reader.openFile(bucketName, fileName,fieldList)
             # Create staging table
             # While not done, pull one row and put it into staging if it passes
