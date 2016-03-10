@@ -110,7 +110,6 @@ class CsvAbstractReader(object):
         while( self.packetCounter *  CsvAbstractReader.BUFFER_SIZE <=  self._getFileSize()) :
 
             success,packet =  self._getNextPacket()
-            offsetCheck = self.packetCounter *  CsvReader.BUFFER_SIZE
             if(not success) :
                 break
             self.packetCounter +=1

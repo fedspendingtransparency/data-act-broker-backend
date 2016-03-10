@@ -15,7 +15,7 @@ class CsvLocalReader(CsvAbstractReader):
             self.file = open(filename,"r")
         except :
             raise ValueError("".join(["Filename provided not found : ",str(filename)]))
-        super(CsvLocalReader,self).openFile(self,bucket,filename,csvSchema)
+        super(CsvLocalReader,self).openFile(bucket,filename,csvSchema)
 
     def close(self):
         self.file.close()

@@ -25,7 +25,7 @@ class CsvS3Reader(CsvAbstractReader):
         if(self.s3File == None):
             raise ValueError("".join(["Filename provided not found on S3: ",str(filename)]))
 
-        super(CsvS3Reader,self).openFile(self,bucket,filename,csvSchema)
+        super(CsvS3Reader,self).openFile(bucket,filename,csvSchema)
 
     def _getFileSize(self):
         """
@@ -37,7 +37,7 @@ class CsvS3Reader(CsvAbstractReader):
         """
         Gets the next packet from the file returns true if successful
         """
-        offsetCheck = self.packetCounter *  CsvReader.BUFFER_SIZE
+        offsetCheck = self.packetCounter *  CsvAbstractReader.BUFFER_SIZE 
         header ={'Range' : "".join(['bytes=',str(offsetCheck),'-',str(offsetCheck +CsvAbstractReader.BUFFER_SIZE - 1)])}
         try:
             packet = self.s3File.get_contents_as_string(headers=header).decode('utf-8')
