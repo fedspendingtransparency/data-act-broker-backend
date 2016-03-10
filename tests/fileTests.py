@@ -10,29 +10,24 @@ from dataactcore.models.errorModels import ErrorData, FileStatus
 
 class FileTests(BaseTest):
     """Test file submission routes."""
-    submissionId = None
 
-    def __init__(self, methodName, interfaces):
-        """Run scripts to clear the job tables and populate with a defined test set."""
-        super(FileTests, self).__init__(methodName=methodName)
-        self.methodName = methodName
-        jobTracker = interfaces.jobDb
-        self.jobTracker = jobTracker
-        self.errorDatabase = interfaces.errorDb
-        self.interfaces = interfaces
-
-        #TODO: put user data in pytest fixture; put credentials in config file
-        # Get user ID
-        self.user = "user3"
-        self.password = "123abc"
-        user = self.interfaces.userDb.getUserByEmail(self.user)
-        self.user_id = user.user_id
+    @classmethod
+    def setUpClass(cls):
+        """Set up class-wide resources like submissions and jobs."""
+        super(FileTests, cls).setUpClass()
+        #TODO: refactor into a pytest fixture
+        submission_user = cls.userDb.getUserByEmail(
+            cls.test_users['submission_email'])
+        cls.submission_user_id = submission_user.user_id
 
         # Create submission ID
-        self.submissionId = self.insertSubmission(self.jobTracker)
+        sub = Submission(datetime_utc=0, user_id=cls.submission_user_id)
+        cls.jobTracker.session.add(sub)
+        cls.jobTracker.session.commit()
+        cls.submissionId = sub.submission_id
 
         # Create jobs
-        # TODO: remove hard-coded surrogate keys (put in pytest fixture?)
+        # TODO: remove hard-coded surrogate keys
         jobValues = {}
         jobValues["uploadFinished"] = [1, 4, 1]
         jobValues["recordRunning"] = [1, 3, 2]
@@ -40,22 +35,22 @@ class FileTests(BaseTest):
         jobValues["awardFin"] = [2, 2, 2]
         jobValues["appropriations"] = [3, 2, 2]
         jobValues["procurement"] = [4, 2, 2]
-        self.jobIdDict = {}
+        cls.jobIdDict = {}
 
         for jobKey, values in jobValues.items():
-            job_id = self.insertJob(
-                self.jobTracker,
+            job_id = cls.insertJob(
+                cls.jobTracker,
                 filetype=values[0],
                 status=values[1],
                 type_id=values[2],
-                submission=self.submissionId
+                submission=cls.submissionId
             )
-            self.jobIdDict[jobKey] = job_id
+            cls.jobIdDict[jobKey] = job_id
 
     def call_file_submission(self):
         """Call the broker file submission route."""
         fileJson = {"appropriations":"test1.csv", "award_financial":"test2.csv", "award":"test3.csv", "procurement":"test4.csv"}
-        self.login()
+        self.login_approved_user()
         return self.app.post_json("/v1/submit_files/", fileJson)
 
     def test_file_submission(self):
@@ -93,7 +88,7 @@ class FileTests(BaseTest):
         # check that submission got mapped to the correct user
         submissionId = responseDict["submission_id"]
         submission = self.interfaces.jobDb.getSubmissionById(submissionId)
-        self.assertEquals(submission.user_id, self.user_id)
+        self.assertEquals(submission.user_id, self.submission_user_id)
 
         # Call upload complete route for each id
         finalizeResponse = self.check_upload_complete(responseDict["appropriations_id"])
@@ -101,7 +96,7 @@ class FileTests(BaseTest):
 
     def test_check_status(self):
         """Test broker status route response."""
-        self.login()
+        self.login_approved_user()
         postJson = {"submission_id": self.submissionId}
         response = self.app.post_json("/v1/check_status/", postJson)
 
@@ -127,7 +122,7 @@ class FileTests(BaseTest):
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
         postJson = {"upload_id": jobId}
-        self.login()
+        self.login_approved_user()
         return self.app.post_json("/v1/finalize_job/", postJson)
 
     @staticmethod
@@ -148,8 +143,11 @@ class FileTests(BaseTest):
 
     def test_error_report(self):
         """Test broker csv_validation error report."""
-        self.login()
-        error_report_submission_id = self.setupJobsForReports()
+        self.login_approved_user()
+        #create new submission to use for error reports
+        error_report_submission_id = self.insertSubmission(
+            self.jobTracker, self.submission_user_id)
+        self.setupJobsForReports(error_report_submission_id)
         postJson = {"submission_id": error_report_submission_id}
         response = self.app.post_json(
             "/v1/submission_error_reports/", postJson)
@@ -160,7 +158,7 @@ class FileTests(BaseTest):
 
     def check_metrics(self, submissionId, exists,type_file) :
         """Get error metrics for specified submission."""
-        self.login()
+        self.login_approved_user()
         postJson = {"submission_id": submissionId}
         response = self.app.post_json("/v1/error_metrics/", postJson)
 
@@ -175,7 +173,8 @@ class FileTests(BaseTest):
     def test_metrics(self):
         """Test broker status record handling."""
         #setup the database for the route test
-        submissionId = self.insertSubmission(self.jobTracker)
+        submissionId = self.insertSubmission(
+            self.jobTracker, self.submission_user_id)
 
         # TODO: remove hard-coded surrogate keys (put in pytest fixture?)
         job = self.insertJob(
@@ -211,13 +210,13 @@ class FileTests(BaseTest):
         self.check_metrics(submissionId, True, "award_financial")
         self.check_metrics(submissionId, True, "appropriations")
 
-    def insertSubmission(self, jobTracker, submission=None):
+    def insertSubmission(self, jobTracker, submission_user_id, submission=None):
         """Insert one submission into job tracker and get submission ID back."""
         if submission:
             sub = Submission(submission_id=submission,
-                datetime_utc=0, user_id=self.user_id)
+                datetime_utc=0, user_id=submission_user_id)
         else:
-            sub = Submission(datetime_utc=0, user_id=self.user_id)
+            sub = Submission(datetime_utc=0, user_id=submission_user_id)
         jobTracker.session.add(sub)
         jobTracker.session.commit()
         return sub.submission_id
@@ -266,10 +265,9 @@ class FileTests(BaseTest):
         errorDB.session.commit()
         return ed.error_data_id
 
-    def setupJobsForReports(self):
+    def setupJobsForReports(self, error_report_submission_id):
         """Setup jobs table for checking validator unit test error reports."""
         jobTracker = self.jobTracker
-        error_report_submission_id = self.insertSubmission(jobTracker)
         self.insertJob(jobTracker, filetype=1, status=4, type_id=2,
             submission=error_report_submission_id)
         self.insertJob(jobTracker, filetype=2, status=4, type_id=2,

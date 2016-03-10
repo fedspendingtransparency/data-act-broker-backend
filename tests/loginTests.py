@@ -6,7 +6,7 @@ class LoginTests(BaseTest):
 
     def test_login(self):
         """Test broker login."""
-        response = self.login()
+        response = self.login_approved_user()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "application/json")
         try:
@@ -46,7 +46,7 @@ class LoginTests(BaseTest):
     def test_session_logout2(self):
         """Test session after broker login."""
         self.logout()
-        self.login()
+        self.login_approved_user()
         response = self.session_route()
         try:
             self.assertIsInstance(response.json, dict)
@@ -57,7 +57,7 @@ class LoginTests(BaseTest):
     def test_session_logout3(self):
         """Test session after broker logout/login/logout."""
         self.logout()
-        self.login()
+        self.login_approved_user()
         self.logout()
         response = self.session_route()
         try:
