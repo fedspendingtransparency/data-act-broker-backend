@@ -122,6 +122,7 @@ def runApp():
         app.run(debug=config["server_debug"],threaded=True,host=config["host"],port=int(config["port"]))
     except Exception as e:
         trace = traceback.extract_tb(sys.exc_info()[2], 10)
+        print trace
         CloudLogger.logError('Validator App Level Error: ',e,trace)
 
 if __name__ == '__main__':

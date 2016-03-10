@@ -19,12 +19,13 @@ class ConfigureValidator(object):
         return os.path.split(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))[0]
 
     @staticmethod
-    def createJSON(port,trace,debug):
+    def createJSON(port,trace,debug,host):
         """Creates the s3bucket.json File"""
         returnJson = {}
         returnJson ["port"] = port
         returnJson ["rest_trace"] = trace
         returnJson ["server_debug"] = debug
+        returnJson ["host"] = host
         return json.dumps(returnJson)
 
     @staticmethod
@@ -79,13 +80,15 @@ class ConfigureValidator(object):
         if(ConfigureValidator.questionPrompt("Would you like to configure your validator web service? (y/n) : ")):
             port = input("Enter web service port :")
 
+            host = input("Enter the host : ")
+
             if(ConfigureValidator.questionPrompt("Would you like to enable server side debuging (y/n) : ")):
                 debugMode = True
 
             if(ConfigureValidator.questionPrompt("Would you like to enable debug traces on REST requests (y/n) : ")):
                 traceMode = True
 
-            json = ConfigureValidator.createJSON(port,traceMode,debugMode)
+            json = ConfigureValidator.createJSON(port,traceMode,debugMode,host)
 
             with open("".join([ConfigureValidator.getDatacorePath(),"/validator_configuration.json"]), 'wb') as bucketFile:
                 bucketFile.write(json)

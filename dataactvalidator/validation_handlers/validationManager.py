@@ -4,8 +4,8 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
-from dataactvalidator.filestreaming.csvS3Reader import csvS3Reader
-from dataactvalidator.filestreaming.csvLocalReader import csvLocalReader
+from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
+from dataactvalidator.filestreaming.csvLocalReader import CsvLocalReader
 from dataactvalidator.filestreaming.csvWriter import CsvWriter
 from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
