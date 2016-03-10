@@ -47,7 +47,8 @@ class UserTests(BaseTest):
         """Test without token."""
         self.logout()
         postJson = {"email": "user@agency.gov", "name": "user", "agency": "agency", "title": "title", "password": "userPass"}
-        response = self.app.post_json("/v1/check_status/", postJson)
+        response = self.app.post_json("/v1/check_status/",
+            postJson, expect_errors=True)
         self.check_response(response, StatusCode.LOGIN_REQUIRED)
 
     def test_registration(self):
@@ -64,7 +65,8 @@ class UserTests(BaseTest):
         self.logout()
         self.setUpToken("user@agency.gov")
         postJson = {}
-        response = self.app.post_json("/v1/register/", postJson)
+        response = self.app.post_json("/v1/register/",
+            postJson, expect_errors=True)
         self.check_response(response, StatusCode.CLIENT_ERROR,
             "Request body must include email, name, agency, title, and password")
 
@@ -73,7 +75,7 @@ class UserTests(BaseTest):
         self.logout()
         self.setUpToken("user@agency.gov")
         postJson = {"email": "fake@notreal.faux", "name": "user", "agency": "agency", "title":"title", "password": "userPass"}
-        response = self.app.post_json("/v1/register/", postJson)
+        response = self.app.post_json("/v1/register/", postJson, expect_errors=True)
         self.check_response(response, StatusCode.CLIENT_ERROR, "No users with that email")
 
     def test_status_change(self):
@@ -102,13 +104,15 @@ class UserTests(BaseTest):
         self.logout()
         self.login_admin_user()
         badUserId = {"uid": -100, "new_status": "denied"}
-        response = self.app.post_json("/v1/change_status/", badUserId)
+        response = self.app.post_json("/v1/change_status/",
+            badUserId, expect_errors=True)
         self.check_response(response, StatusCode.CLIENT_ERROR, "No users with that uid")
 
     def test_status_change_bad_status(self):
         """Test user status change with invalid status."""
         badInput = {"uid": self.status_change_user_id, "new_status": "badInput"}
-        response = self.app.post_json("/v1/change_status/", badInput)
+        response = self.app.post_json("/v1/change_status/",
+            badInput, expect_errors=True)
         self.check_response(response, StatusCode.CLIENT_ERROR, "Not a valid user status")
 
     def test_list_users(self):
@@ -122,7 +126,8 @@ class UserTests(BaseTest):
     def test_list_users_bad_status(self):
         """Test getting user list with invalid status."""
         postJson = {"status": "lost"}
-        response = self.app.post_json("/v1/list_users_with_status/", postJson)
+        response = self.app.post_json("/v1/list_users_with_status/",
+            postJson, expect_errors=True)
         self.check_response(response, StatusCode.CLIENT_ERROR, "Not a valid user status")
 
     def test_get_users_by_type(self):
@@ -149,7 +154,8 @@ class UserTests(BaseTest):
         """Test requesting user list from a non-admin account."""
         self.login_approved_user()
         postJson = {"status": "awaiting_approval"}
-        response = self.app.post_json("/v1/list_users_with_status/", postJson)
+        response = self.app.post_json("/v1/list_users_with_status/",
+            postJson, expect_errors=True)
         self.check_response(response, StatusCode.LOGIN_REQUIRED, "Wrong User Type")
         self.logout()
 
@@ -158,7 +164,8 @@ class UserTests(BaseTest):
         self.logout()
         self.login_approved_user()
         postJson = {"upload_id": self.uploadId}
-        response = self.app.post_json("/v1/finalize_job/", postJson)
+        response = self.app.post_json("/v1/finalize_job/",
+            postJson, expect_errors=True)
         self.check_response(response, StatusCode.CLIENT_ERROR, "Cannot finalize a job created by a different user")
         self.logout()
 
@@ -172,7 +179,8 @@ class UserTests(BaseTest):
     def test_check_email_token_malformed(self):
         """Test bad e-mail token."""
         postJson = {"token": "12345678"}
-        response = self.app.post_json("/v1/confirm_email_token/", postJson)
+        response = self.app.post_json("/v1/confirm_email_token/",
+            postJson, expect_errors=True)
         self.check_response(response, StatusCode.OK, "Link already used")
         self.assertEqual(response.json["errorCode"], sesEmail.LINK_ALREADY_USED)
 
@@ -222,7 +230,8 @@ class UserTests(BaseTest):
     def test_check_bad_password_token(self):
         """Test password reset with invalid token."""
         badToken = {"token": "2345"}
-        response = self.app.post_json("/v1/confirm_password_token/", badToken)
+        response = self.app.post_json("/v1/confirm_password_token/",
+            badToken, expect_errors=True)
         self.check_response(response, StatusCode.OK, "Link already used")
         self.assertEqual(response.json["errorCode"], sesEmail.LINK_ALREADY_USED)
 
