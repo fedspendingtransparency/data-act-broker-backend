@@ -15,6 +15,7 @@ class TestUtils(object):
     BASE_URL = "http://127.0.0.1:80"
     #BASE_URL = "http://52.90.92.100:80"
     JSON_HEADER = {"Content-Type": "application/json"}
+    LOCAL = True # True if testing a local installation of the broker
 
     @staticmethod
     def addJob(status, jobType, submissionId, s3Filename, fileType, session):
@@ -45,25 +46,28 @@ class TestUtils(object):
         if(len(filename.strip())==0):
             # Empty filename, just return empty
             return ""
-
-        # Get bucket name
-        bucketName = s3UrlHandler.getValueFromConfig("bucket")
-
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         fullPath = path + "/" + filename
 
-        # Create file names for S3
-        s3FileName = str(user) + "/" + filename
+        if TestUtils.LOCAL:
+            # Local version just stores full path in job tracker
+            return fullPath
+        else:
+            # Get bucket name
+            bucketName = s3UrlHandler.getValueFromConfig("bucket")
 
-        if(TestUtils.UPLOAD_FILES) :
-            # Use boto to put files on S3
-            s3conn = S3Connection()
-            key = Key(s3conn.get_bucket(bucketName))
-            key.key = s3FileName
-            bytesWritten = key.set_contents_from_filename(fullPath)
+            # Create file names for S3
+            s3FileName = str(user) + "/" + filename
 
-            assert(bytesWritten > 0)
-        return s3FileName
+            if(TestUtils.UPLOAD_FILES) :
+                # Use boto to put files on S3
+                s3conn = S3Connection()
+                key = Key(s3conn.get_bucket(bucketName))
+                key.key = s3FileName
+                bytesWritten = key.set_contents_from_filename(fullPath)
+
+                assert(bytesWritten > 0)
+            return s3FileName
 
     @staticmethod
     def run_test(jobId, statusId,statusName,fileSize,stagingRows,errorStatus,numErrors,testCase):
@@ -80,8 +84,12 @@ class TestUtils(object):
         TestUtils.assertHeader(response)
 
         if(fileSize != False):
-            assert(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)) > fileSize - 5)
-            assert(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)) < fileSize + 5)
+            if TestUtils.LOCAL:
+                assert(os.path.getsize(jobTracker.getFileName(jobId)) > fileSize - 5)
+                assert(os.path.getsize(jobTracker.getFileName(jobId)) < fileSize + 5)
+            else:
+                assert(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)) > fileSize - 5)
+                assert(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)) < fileSize + 5)
 
         tableName = response.json()["table"]
         if(type(stagingRows) == type(False) and not stagingRows):
