@@ -1,5 +1,4 @@
 from baseTest import BaseTest
-from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.models.jobModels import Submission, JobStatus
 from dataactcore.utils.statusCode import StatusCode
@@ -15,18 +14,15 @@ class UserTests(BaseTest):
         # Add submissions to one of the users
         jobDb = cls.jobTracker
 
-        isFirstSub = True
-        firstSub = None
         for i in range(0,5):
             sub = Submission(user_id = cls.approved_user_id)
-            if(isFirstSub):
-                firstSub = sub
-                isFirstSub = False
             jobDb.session.add(sub)
-        jobDb.session.commit()
+            jobDb.session.commit()
+            if i == 0:
+                cls.submission_id = sub.submission_id
 
         # Add job to first submission
-        job = JobStatus(submission_id = firstSub.submission_id,status_id = 3,type_id = 1, file_type_id = 1)
+        job = JobStatus(submission_id = cls.submission_id,status_id = 3,type_id = 1, file_type_id = 1)
         jobDb.session.add(job)
         jobDb.session.commit()
         cls.uploadId = job.job_id
@@ -38,10 +34,10 @@ class UserTests(BaseTest):
 
     def setUpToken(self,email):
         """Test e-mail token."""
-        userDb = UserHandler()
+        userDb = self.userDb
         token = sesEmail.createToken(email, userDb, "validate_email")
         postJson = {"token": token}
-        response = self.app.post_json("/v1/confirm_email_token/", postJson)
+        return self.app.post_json("/v1/confirm_email_token/", postJson)
 
     def test_registration_no_token(self):
         """Test without token."""
@@ -113,7 +109,7 @@ class UserTests(BaseTest):
         badInput = {"uid": self.status_change_user_id, "new_status": "badInput"}
         response = self.app.post_json("/v1/change_status/",
             badInput, expect_errors=True)
-        self.check_response(response, StatusCode.CLIENT_ERROR, "Not a valid user status")
+        self.check_response(response, StatusCode.CLIENT_ERROR)
 
     def test_list_users(self):
         """Test getting user list by status."""
@@ -128,7 +124,7 @@ class UserTests(BaseTest):
         postJson = {"status": "lost"}
         response = self.app.post_json("/v1/list_users_with_status/",
             postJson, expect_errors=True)
-        self.check_response(response, StatusCode.CLIENT_ERROR, "Not a valid user status")
+        self.check_response(response, StatusCode.CLIENT_ERROR)
 
     def test_get_users_by_type(self):
         """Test getting user list by type."""
@@ -136,14 +132,17 @@ class UserTests(BaseTest):
         emails = []
         for admin in agencyUsers:
             emails.append(admin.email)
-        self.assertEqual(len(agencyUsers), 11)
-        for email in ["realEmail@agency.gov", "waiting@agency.gov", "impatient@agency.gov", "watchingPaintDry@agency.gov", "approved@agency.gov", "nefarious@agency.gov"]:
+        self.assertEqual(len(agencyUsers), 10)
+        for email in ["realEmail@agency.gov", "waiting@agency.gov",
+            "impatient@agency.gov", "watchingPaintDry@agency.gov",
+            "approved@agency.gov", "nefarious@agency.gov",]:
             self.assertIn(email, emails)
+        self.assertNotIn('user@agency.gov', emails)
 
     def test_list_submissions(self):
         """Test listing user's submissions."""
         self.logout()
-        self.login_admin_user()
+        self.login_approved_user()
         response = self.app.get("/v1/list_submissions/")
         self.check_response(response, StatusCode.OK)
         self.assertIn("submission_id_list", response.json)
@@ -161,8 +160,8 @@ class UserTests(BaseTest):
 
     def test_finalize_wrong_user(self):
         """Test finalizing a job as the wrong user."""
-        self.logout()
-        self.login_approved_user()
+        # Jobs were submitted with the id for "approved user," so lookup
+        # as "admin user" should fail.
         postJson = {"upload_id": self.uploadId}
         response = self.app.post_json("/v1/finalize_job/",
             postJson, expect_errors=True)
@@ -186,7 +185,7 @@ class UserTests(BaseTest):
 
     def test_check_email_token(self):
         """Test valid e-mail token."""
-        userDb = UserHandler()
+        userDb = self.userDb
         #make a token based on a user
         token = sesEmail.createToken(self.test_users["password_reset_email"], userDb, "validate_email")
         postJson = {"token": token}
@@ -202,7 +201,7 @@ class UserTests(BaseTest):
         response = self.app.post_json("/v1/reset_password/", postJson)
         self.check_response(response, StatusCode.OK)
 
-        userDb = UserHandler()
+        userDb = self.userDb
         token = sesEmail.createToken(
             self.test_users["password_reset_email"], userDb, "password_reset")
         postJson = {"token": token}
@@ -218,13 +217,13 @@ class UserTests(BaseTest):
 
     def test_check_password_token(self):
         """Test password reset with valid token."""
-        userDb = UserHandler()
+        userDb = self.userDb
         #make a token based on a user
         token = sesEmail.createToken(
             self.test_users["admin_email"], userDb, "password_reset")
         postJson = {"token": token}
         response = self.app.post_json("/v1/confirm_password_token/", postJson)
-        self.check_response(response, StatusCode, "success")
+        self.check_response(response, StatusCode.OK, "success")
         self.assertEqual(response.json["errorCode"], sesEmail.LINK_VALID)
 
     def test_check_bad_password_token(self):
@@ -241,4 +240,3 @@ class UserTests(BaseTest):
         self.check_response(response, StatusCode.OK)
         self.assertEqual(response.json["name"], "Mr. Manager")
         self.assertEqual(response.json["agency"], "Unknown")
-
