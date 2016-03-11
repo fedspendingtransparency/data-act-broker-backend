@@ -27,3 +27,4 @@ dataactbroker/manager.json
 dataactbroker/config/manager.json
 dataactbroker/config/web_api_configuration.json
 web_api_configuration.json
+dataactbroker/config/web_api_configuration_old.json
