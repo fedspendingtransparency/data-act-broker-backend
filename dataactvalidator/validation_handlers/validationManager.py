@@ -6,7 +6,8 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
 from dataactvalidator.filestreaming.csvLocalReader import CsvLocalReader
-from dataactvalidator.filestreaming.csvWriter import CsvWriter
+from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
+from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
@@ -20,7 +21,7 @@ class ValidationManager:
     """
     reportHeaders = ["Field name", "Error message", "Row number", "Value provided"]
 
-    def __init__(self,isLocal =False):
+    def __init__(self,isLocal =True):
         # Initialize instance variables
         self.filename = ""
         self.isLocal = isLocal
@@ -111,9 +112,25 @@ class ValidationManager:
             interfaces.close()
 
     def getReader(self):
+        """
+        Gets the reader type based on if its local install or not.
+        """
         if(self.isLocal):
             return CsvLocalReader()
         return CsvS3Reader()
+
+    def getWriter(self,bucketName,fileName,header):
+        """
+        Gets the write type based on if its a local install or not.
+        """
+        if(self.isLocal):
+            return CsvLocalWriter(fileName,header)
+        return CsvLocalWriter(bucketName,fileName,header)
+
+    def getFileName(self,path):
+        if(self.isLocal):
+            return "".join(["/Users/martinpress/server/",path])
+        return "".join(["errors/",path])
 
     def runValidation(self, jobId, interfaces):
         """ Run validations for specified job
@@ -132,7 +149,7 @@ class ValidationManager:
         fileName = jobTracker.getFileName(jobId)
         self.filename = fileName
         bucketName = s3UrlHandler.getValueFromConfig("bucket")
-        errorFileName = "".join(["errors/",jobTracker.getReportPath(jobId)])
+        errorFileName = self.getFileName(jobTracker.getReportPath(jobId))
 
         validationDB = interfaces.validationDb
         fieldList = validationDB.getFieldsByFileList(fileType)
@@ -151,7 +168,7 @@ class ValidationManager:
             tableObject.createTable(fileType,fileName,jobId,tableName)
             errorInterface = interfaces.errorDb
 
-            with CsvWriter(bucketName, errorFileName, self.reportHeaders) as writer:
+            with self.getWriter(bucketName, errorFileName, self.reportHeaders) as writer:
                 while(not reader.isFinished):
                     rowNumber += 1
                     #if (rowNumber % 1000) == 0:

@@ -15,6 +15,7 @@ class TestUtils(object):
     BASE_URL = "http://127.0.0.1:80"
     #BASE_URL = "http://52.90.92.100:80"
     JSON_HEADER = {"Content-Type": "application/json"}
+    LOCAL_FILE_DIRECTORY = "" #This needs to be set to the local dirctory for error reports
     LOCAL = True # True if testing a local installation of the broker
 
     @staticmethod
@@ -86,9 +87,9 @@ class TestUtils(object):
         if(fileSize != False):
             if TestUtils.LOCAL:
                 # TODO: check size of local error reports
-                #assert(os.path.getsize(jobTracker.getFileName(jobId)) > fileSize - 5)
-                #assert(os.path.getsize(jobTracker.getFileName(jobId)) < fileSize + 5)
-                pass
+                path = "".join([TestUtils.LOCAL_FILE_DIRECTORY,jobTracker.getReportPath(jobId)])
+                assert(os.path.getsize(path) > fileSize - 5 )
+                assert(os.path.getsize(path) < fileSize + 5 )
             else:
                 assert(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)) > fileSize - 5)
                 assert(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)) < fileSize + 5)
