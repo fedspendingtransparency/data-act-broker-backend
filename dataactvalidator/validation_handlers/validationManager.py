@@ -21,10 +21,11 @@ class ValidationManager:
     """
     reportHeaders = ["Field name", "Error message", "Row number", "Value provided"]
 
-    def __init__(self,isLocal =True):
+    def __init__(self,isLocal =True,directory=""):
         # Initialize instance variables
         self.filename = ""
         self.isLocal = isLocal
+        self.directory = directory
 
     @staticmethod
     def markJob(jobId,jobTracker,status,errorDb,filename = None, fileError = ValidationError.unknownError) :
@@ -125,11 +126,11 @@ class ValidationManager:
         """
         if(self.isLocal):
             return CsvLocalWriter(fileName,header)
-        return CsvLocalWriter(bucketName,fileName,header)
+        return CsvS3Writer(bucketName,fileName,header)
 
     def getFileName(self,path):
         if(self.isLocal):
-            return "".join(["/Users/martinpress/server/",path])
+            return "".join([self.directory,path])
         return "".join(["errors/",path])
 
     def runValidation(self, jobId, interfaces):
