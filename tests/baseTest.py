@@ -17,6 +17,13 @@ class BaseTest(unittest.TestCase):
         """Set up resources to be shared within a test class"""
         #TODO: refactor into a pytest class fixtures and inject as necessary
 
+        # line below drops and re-creates user tables
+        setupUserDB(True)
+        # load e-mail templates
+        setupEmails()
+        # line below deletes everything from job_dependency, job_status, submission
+        clearJobs()
+
         #get test users
         try:
             with open('test.json') as test_users_file:
@@ -49,15 +56,6 @@ class BaseTest(unittest.TestCase):
             AccountType.AGENCY_USER,
             AccountType.WEBSITE_ADMIN+AccountType.AGENCY_USER,
             AccountType.AGENCY_USER,AccountType.AGENCY_USER]
-
-        # line below drops and re-creates user tables
-        #TODO: does it make sense to create records here & then delete in tearDown?
-        setupUserDB(True)
-        # load e-mail templates
-        setupEmails()
-        # line below deletes everything from job_dependency, job_status, submission
-        #TODO: does it make sense to create records here & then delete in tearDown?
-        #clearJobs()
 
         # Add new users
         userDb = UserHandler()
@@ -115,11 +113,10 @@ class BaseTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """Tear down class-level resources."""
-        #TODO: Do interfaces and other resources need cleaned up?
+        cls.interfaces.close()
 
     def tearDown(self):
         """Tear down broker unit tests."""
-        #TODO: delete jobs and submissions from db
 
     def login_approved_user(self):
         """Log an agency user (non-admin) into broker."""
@@ -131,6 +128,12 @@ class BaseTest(unittest.TestCase):
         """Log an admin user into broker."""
         #TODO: put user data in pytest fixture; put credentials in config file
         user = {"username": self.test_users['admin_email'], "password": self.admin_password}
+        response = self.app.post_json("/v1/login/", user)
+        return response
+
+    def login_other_user(self, username, password):
+        """Log a specific user into broker."""
+        user = {"username": username, "password": password}
         response = self.app.post_json("/v1/login/", user)
         return response
 
