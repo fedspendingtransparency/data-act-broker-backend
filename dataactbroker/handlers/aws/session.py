@@ -279,7 +279,7 @@ class SessionTable :
     KEY_NAME = "uid"
     DATA_FIELD = "data"
     DATE_FIELD = "expiration"
-    TIME_OUT_LIMIT = 1800
+    TIME_OUT_LIMIT = 604800
     TableConnection = ""
     isLocal = False
     localPort =  8000
