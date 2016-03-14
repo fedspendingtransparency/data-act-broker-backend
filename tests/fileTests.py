@@ -56,7 +56,7 @@ class FileTests(BaseTest):
             jobValues["externalWaiting"] = [1,1,5]
             jobValues["awardFin"] = [2,2,2]
             jobValues["appropriations"] = [3,2,2]
-            jobValues["procurement"] = [4,2,2]
+            jobValues["program_activity"] = [4,2,2]
             self.jobIdDict = {}
 
             for jobKey, values in jobValues.items():
@@ -117,7 +117,7 @@ class FileTests(BaseTest):
         self.uploadFileByURL("/"+self.fileResponse.json()["appropriations_key"],"test1.csv")
         # Test that job ids are returned
         responseDict = self.fileResponse.json()
-        idKeys = ["procurement_id", "award_id", "award_financial_id", "appropriations_id"]
+        idKeys = ["program_activity_id", "award_id", "award_financial_id", "appropriations_id"]
         for key in idKeys:
             assert(key in responseDict)
             try:
@@ -168,7 +168,7 @@ class FileTests(BaseTest):
     def check_error_route(self,jobId,submissonId) :
         jobJson = json.dumps({"upload_id":jobId})
         urlData = self.utils.postRequest("/v1/job_error_report/",jobJson)
-        assert("submission_"+str(submissonId)+"_procurement_error_report" in urlData.json()["error_url"] )
+        assert("submission_"+str(submissonId)+"_program_activity_error_report" in urlData.json()["error_url"] )
         assert("?Signature" in urlData.json()["error_url"] )
         assert("&AWSAccessKeyId" in urlData.json()["error_url"])
 
