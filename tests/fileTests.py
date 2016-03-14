@@ -89,7 +89,7 @@ class FileTests(BaseTest):
 
     def call_file_submission(self):
         # If fileResponse doesn't exist, send the request
-        fileJson = '{"appropriations":"test1.csv","award_financial":"test2.csv","award":"test3.csv","procurement":"test4.csv"}'
+        fileJson = '{"appropriations":"test1.csv","award_financial":"test2.csv","award":"test3.csv","program_activity":"test4.csv"}'
         if(self.fileResponse == None):
             self.utils.login()
             self.fileResponse = self.utils.postRequest("/v1/submit_files/",fileJson)
@@ -107,7 +107,7 @@ class FileTests(BaseTest):
         assert("_test1.csv" in self.fileResponse.json()["appropriations_key"] )
         assert("_test2.csv" in self.fileResponse.json()["award_financial_key"])
         assert("_test3.csv" in self.fileResponse.json()["award_key"])
-        assert("_test4.csv" in self.fileResponse.json()["procurement_key"])
+        assert("_test4.csv" in self.fileResponse.json()["program_activity_key"])
 
         for requiredField in ["AccessKeyId","SecretAccessKey","SessionToken","SessionToken"] :
             assert(len(self.fileResponse.json()["credentials"][requiredField]) > 0)
