@@ -1,7 +1,9 @@
 import sqlalchemy
 import json
 import os
+import sys
 import inspect
+import traceback
 from flask import _app_ctx_stack
 from sqlalchemy.orm import sessionmaker , scoped_session
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
@@ -16,6 +18,7 @@ class BaseInterface(object):
     dbConfigFile = None # Should be overwritten by child classes
     dbName = None # Should be overwritten by child classes
     credFileName = None
+    logFileName = "dbErrors.log"
 
     def __init__(self):
         if(self.session != None):
@@ -59,10 +62,22 @@ class BaseInterface(object):
     def getCredFilePath(cls):
         """  Returns full path to credentials file """
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        lastBackSlash = path.rfind("\\",0,-1)
-        lastForwardSlash = path.rfind("/",0,-1)
-        lastSlash = max([lastBackSlash,lastForwardSlash])
-        return path[0:lastSlash] + "/credentials/" + cls.credFileName
+        dirName, filename = os.path.split(path)
+        return os.path.join(dirName, "credentials/", cls.credFileName)
+
+    @staticmethod
+    def getLogFilePath():
+        """  Returns full path to credentials file """
+        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        dirName, filename = os.path.split(path)
+        return os.path.join(dirName, BaseInterface.logFileName)
+
+    @staticmethod
+    def logDbError(exc):
+        file = open(BaseInterface.getLogFilePath(),"a")
+        file.write(str(exc) + ", ")
+        file.write(str(sys.exc_info()[0:1]) + "\n")
+        traceback.print_tb(sys.exc_info()[2],file=file)
 
     @staticmethod
     def checkUnique(queryResult, noResultMessage, multipleResultMessage):
@@ -73,12 +88,39 @@ class BaseInterface(object):
 
         elif(len(queryResult) > 1):
             # Multiple results for single job ID
-            raise ResponseException(multipleResultMessage,StatusCode.CLIENT_ERROR,MultipleResultsFound,10)
+            raise ResponseException(multipleResultMessage,StatusCode.INTERNAL_ERROR,MultipleResultsFound,10)
 
         return True
+
+    @staticmethod
+    def runUniqueQuery(query, noResultMessage, multipleResultMessage):
+        """ Run query looking for one result, if it fails wrap it in a ResponseException with an appropriate message """
+        try:
+            return query.one()
+        except NoResultFound as e:
+            if(noResultMessage == False):
+                # Raise the exception as is, used for specific handling
+                raise e
+            raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound,10)
+        except MultipleResultsFound as e:
+            raise ResponseException(multipleResultMessage,StatusCode.INTERNAL_ERROR,MultipleResultsFound,10)
 
     def runStatement(self,statement):
         """ Run specified statement on this database"""
         response =  self.session.execute(statement)
         self.session.commit()
         return response
+
+    def getIdFromDict(self,model, dictName, fieldName, fieldValue, idField):
+        dict = getattr(model, dictName)
+        if(dict == None):
+            dict = {}
+            # Pull status values out of DB
+            # Create new session for this
+            queryResult = self.session.query(model).all()
+            for result in queryResult:
+                dict[getattr(result,fieldName)] = getattr(result,idField)
+            setattr(model,dictName,dict)
+        if(not fieldValue in dict):
+            raise ValueError("Not a valid " + str(model) + ": " + str(fieldValue) + ", not found in dict: " + str(dict))
+        return dict[fieldValue]

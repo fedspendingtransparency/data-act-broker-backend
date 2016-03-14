@@ -1,6 +1,7 @@
 import os
 import inspect
 import json
+from builtins import input
 
 class ConfigureCore(object):
     """
@@ -35,9 +36,17 @@ class ConfigureCore(object):
         return json.dumps(returnJson)
 
     @staticmethod
+    def createLoggingJSON(host, port):
+        """Creates the logging.json File"""
+        returnJson = {}
+        returnJson["host"] = host
+        returnJson["port"] = port
+        return json.dumps(returnJson)
+
+    @staticmethod
     def questionPrompt(question):
         """Creates a yes/no question prompt"""
-        response = raw_input(question)
+        response = input(question)
         if (response.lower() == "y" or response.lower() == "yes"):
             return True
         return False
@@ -47,23 +56,35 @@ class ConfigureCore(object):
         """Prompts user for input for S3 Setup"""
         if (ConfigureCore.questionPrompt(
                 "Would you like to configure your S3 connection? (y/n) : ")):
-            bucket = raw_input("Enter your bucket name :")
-            role = raw_input("Enter your S3 Role :")
+            bucket = input("Enter your bucket name :")
+            role = input("Enter your S3 Role :")
             json = ConfigureCore.createS3JSON(bucket, role)
             with open(ConfigureCore.getDatacorePath() + "/aws/s3bucket.json",
                       'wb') as bucketFile:
                 bucketFile.write(json)
 
     @staticmethod
+    def promptLogging():
+        """Prompts user for input for S3 Setup"""
+        if (ConfigureCore.questionPrompt(
+                "Would you like to configure your Logging? (y/n) : ")):
+            port = input("Enter Port :")
+            host = input("Enter the logging URL :")
+            json = ConfigureCore.createLoggingJSON(host, port)
+            with open(ConfigureCore.getDatacorePath() + "/utils/logging.json",
+                      'wb') as currentFile:
+                currentFile.write(json)
+
+    @staticmethod
     def promptDatabase():
         """Prompts user for database setup"""
         if (ConfigureCore.questionPrompt(
                 "Would you like to configure your database connection? (y/n) : ")):
-            host = raw_input("Enter your database address :")
-            port = raw_input("Enter your database port : ")
-            username = raw_input("Enter your database username : ")
-            password = raw_input("Enter your database password : ")
-            databaseName = raw_input("Enter your default database name : ")
+            host = input("Enter your database address :")
+            port = input("Enter your database port : ")
+            username = input("Enter your database username : ")
+            password = input("Enter your database password : ")
+            databaseName = input("Enter your default database name : ")
             json = ConfigureCore.createDatabaseJSON(username, password, host,
                                                     port, databaseName)
             if (not os.path.exists(ConfigureCore.getDatacorePath() +
@@ -77,3 +98,4 @@ class ConfigureCore(object):
 if __name__ == '__main__':
     ConfigureCore.promptS3()
     ConfigureCore.promptDatabase()
+    ConfigureCore.promptLogging()

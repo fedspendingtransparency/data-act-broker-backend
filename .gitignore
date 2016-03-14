@@ -11,3 +11,6 @@ dataactcore/credentials/dbCredLocal.json
 dataactcore/credentials/dbCredProd.json
 dataactcore/credentials/dbCredOther.json
 dataactcore/aws/s3bucket.json
+dataactcore/dbErrors.log
+dataactcore/utils/logging.json
+dataactcore/credentials/dbCredStaging.json
