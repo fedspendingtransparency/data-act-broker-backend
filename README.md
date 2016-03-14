@@ -182,7 +182,12 @@ Example output:
 
 ```json
 {
-    "message": "Login successful"
+    "message": "Login successful",
+    "user_id": 42,
+    "name": "John",
+    "title":"Developer",
+    "agency": "Department of Labor",
+    "permissions" : [0,1]
 }
 ```
 
@@ -229,6 +234,7 @@ Example output:
 {
     "user_id": 42,
     "name": "John",
+    "title":"Developer",
     "agency": "Department of Labor",
     "permissions" : [0,1]
 }
@@ -467,6 +473,16 @@ Example output:
 
 
 ## File Routes
+
+
+#### POST "/v1/local_upload/"
+Input for this route should be a form with the key of `file` where the uploaded file is located. This route **only** will
+return a success for local installs for security reasons. Upon successful upload, file path will be returned.
+
+```json    
+{
+   "path": "/User/localuser/server/1234_filename.csv"
+}
 
 #### POST "/v1/submit_files/"
 This route is used to retrieve S3 URLs to upload files. Data should be either JSON or form-urlencoded with keys: ["appropriations", "award\_financial", "award", "procurement"], each with a filename as a value.
