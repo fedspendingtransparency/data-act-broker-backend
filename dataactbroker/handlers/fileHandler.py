@@ -1,4 +1,7 @@
-from flask import session
+import os
+from flask import session ,request
+from datetime import datetime, timedelta
+from werkzeug import secure_filename
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -23,7 +26,7 @@ class FileHandler:
     FILE_TYPES = ["appropriations","award_financial","award","procurement"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
-    def __init__(self,request,interfaces = None,isLocal= False):
+    def __init__(self,request,interfaces = None,isLocal= False,serverPath =""):
         """
 
         Arguments:
@@ -34,6 +37,7 @@ class FileHandler:
             self.interfaces = interfaces
             self.jobManager = interfaces.jobDb
         self.isLocal = isLocal
+        self.serverPath = serverPath
 
     def addInterfaces(self,interfaces):
         self.interfaces = interfaces
@@ -200,6 +204,31 @@ class FileHandler:
                     dataList = self.interfaces.errorDb.getErrorMetricsByJobId(currentId)
                     returnDict[fileName]  = dataList
             return JsonResponse.create(StatusCode.OK,returnDict)
+        except ( ValueError , TypeError ) as e:
+            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+        except ResponseException as e:
+            return JsonResponse.error(e,e.status)
+        except Exception as e:
+            # Unexpected exception, this is a 500 server error
+            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+    def uploadFile(self):
+        """saves a file and returns the saved path"""
+        try:
+            if(self.isLocal):
+                uploadedFile = request.files['file']
+                if(uploadedFile):
+                    seconds = int((datetime.utcnow()-datetime(1970,1,1)).total_seconds())
+                    filename = "".join([str(seconds),"_", secure_filename(uploadedFile.filename)])
+                    path = os.path.join(self.serverPath, filename)
+                    uploadedFile.save(path)
+                    returnDict = {"path":path}
+                    return JsonResponse.create(StatusCode.OK,returnDict)
+                else:
+                    exc = ResponseException("Failure to read file", StatusCode.CLIENT_ERROR)
+                    return JsonResponse.error(exc,exc.status)
+            else :
+                exc = ResponseException("Route Only Valid For Local Installs", StatusCode.CLIENT_ERROR)
+                return JsonResponse.error(exc,exc.status)
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:

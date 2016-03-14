@@ -22,12 +22,17 @@ def runApp():
         config_path = "".join([os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))),"/config"])
         app = Flask(__name__,instance_path=config_path)
 
+
         def getAppConfiguration() :
             """gets the web_api_configuration JSON"""
             configFile = "".join([app.instance_path, "/web_api_configuration.json"])
             return json.loads(open(configFile,"r").read())
 
         config = getAppConfiguration()
+        if(config["local"]) :
+            app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024 # Up to 1 GB can be uploaded for local
+
+
         # Set parameters
         AccountHandler.FRONT_END = config["frontend_url"]
         sesEmail.SIGNING_KEY =  config["security_key"]
@@ -55,7 +60,7 @@ def runApp():
 
         # Add routes for modules here
         add_login_routes(app,bcrypt)
-        add_file_routes(app,config["create_credentials"],config["local"])
+        add_file_routes(app,config["create_credentials"],config["local"],config["local_folder"])
         add_user_routes(app,config["system_email"],bcrypt)
         SessionTable.localPort  = int( config["dynamo_port"])
         SessionTable.setup(app, runLocal)
@@ -64,6 +69,7 @@ def runApp():
         exc_type, exc_obj, exc_tb = sys.exc_info()
         trace = traceback.extract_tb(exc_tb, 10)
         CloudLogger.logError('Broker App Level Error: ',e,trace)
+
         del exc_tb
 if __name__ == '__main__':
     runApp()
