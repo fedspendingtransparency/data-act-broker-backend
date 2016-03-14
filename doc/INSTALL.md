@@ -161,8 +161,11 @@ You will now answer a series of questions to guide you through broker configurat
 * `Would you like to enable debug traces on REST requests`: `y`
 * `Enter the allowed origin (website that will allow for CORS)`: `*`
 * `url` for the DATA Act validator: the url where you will be running the validator service
-* `Enter system e-mail address`: **TODO:** what is this?
-* `Would you like to use a local dynamo database`: `n`
+* `Enter system e-mail address`: any e-mail address
+* `Would you like to use a local dynamo database`: `n` if you're using an S3 bucket, `y` otherwise
+
+    `Enter port for the local dynamo database`: `8000`
+
 * `Enter the URL for the React application`: the URL where you'll be running the broker website
 * `Enter application security key`: the key to use when creating e-mail tokens
 * `Would you like to create the dynamo database table`: `n`
