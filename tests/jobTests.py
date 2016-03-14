@@ -42,7 +42,7 @@ class JobTests(unittest.TestCase):
             validationDB = interfaces.validationDb
             if(self.CREATE_VALIDATION_RULES):
                 # Clear validation rules
-                for fileType in ["award","award_financial","appropriations","procurement"]:
+                for fileType in ["award","award_financial","appropriations","program_activity"]:
                     validationDB.removeRulesByFileType(fileType)
                     validationDB.removeColumnsByFileType(fileType)
 

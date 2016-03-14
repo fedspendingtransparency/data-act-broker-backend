@@ -102,7 +102,7 @@ class FileTypeTests(unittest.TestCase):
     def load_definitions(interfaces):
         SchemaLoader.loadFields("appropriations","appropriationsFields.csv")
         SchemaLoader.loadRules("appropriations","appropriationsRules.csv")
-        SchemaLoader.loadFields("procurement","programActivityFields.csv")
+        SchemaLoader.loadFields("program_activity","programActivityFields.csv")
         SchemaLoader.loadFields("award_financial","awardFinancialFields.csv")
         SchemaLoader.loadFields("award","awardFields.csv")
         if(interfaces.validationDb.session.query(TASLookup).count() == 0 or FileTypeTests.FORCE_TAS_LOAD):
