@@ -11,6 +11,7 @@ class CsvLocalReader(CsvAbstractReader):
 
 
     def openFile(self,bucket,filename,csvSchema):
+        """open file if it exists"""
         self.filename = filename
         try:
             self.file = open(filename,"r")
@@ -19,7 +20,9 @@ class CsvLocalReader(CsvAbstractReader):
         super(CsvLocalReader,self).openFile(bucket,filename,csvSchema)
 
     def close(self):
-        self.file.close()
+        """Closes file if it exists """
+        if(self.file != None) :
+            self.file.close()
 
     def _getFileSize(self):
         """
