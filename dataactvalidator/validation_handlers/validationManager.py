@@ -1,3 +1,4 @@
+import os
 from csv import Error
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.responseException import ResponseException
@@ -146,6 +147,9 @@ class ValidationManager:
         jobTracker = interfaces.jobDb
         rowNumber = 1
         fileType = jobTracker.getFileType(jobId)
+        # If local, make the error report directory
+        if(self.isLocal and not os.path.exists(self.directory)):
+            os.makedirs(self.directory)
         # Get bucket name and file name
         fileName = jobTracker.getFileName(jobId)
         self.filename = fileName

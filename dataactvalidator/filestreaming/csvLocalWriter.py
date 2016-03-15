@@ -19,7 +19,7 @@ class CsvLocalWriter(CsvAbstractWriter):
         header - list of strings for the header
 
         """
-        self.stream = open(filename,"w")
+        self.stream = open(filename,"wb")
         super(CsvLocalWriter,self).__init__(filename,header)
 
 
