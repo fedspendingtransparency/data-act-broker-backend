@@ -23,7 +23,7 @@ class FileHandler:
     s3manager -- instance of s3UrlHandler, manages calls to S3
     """
 
-    FILE_TYPES = ["appropriations","award_financial","award","procurement"]
+    FILE_TYPES = ["appropriations","award_financial","award","program_activity"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
     def __init__(self,request,interfaces = None,isLocal= False,serverPath =""):

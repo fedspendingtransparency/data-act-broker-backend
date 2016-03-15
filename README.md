@@ -485,7 +485,7 @@ return a success for local installs for security reasons. Upon successful upload
 }
 ```
 #### POST "/v1/submit_files/"
-This route is used to retrieve S3 URLs to upload files. Data should be either JSON or form-urlencoded with keys: ["appropriations", "award\_financial", "award", "procurement"], each with a filename as a value.
+This route is used to retrieve S3 URLs to upload files. Data should be either JSON or form-urlencoded with keys: ["appropriations", "award\_financial", "award", "program\_activity"], each with a filename as a value.
 
 This route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key\_id containing the job id. A returning submission\_id will also exist which acts as identifier for the submission.
 
@@ -501,7 +501,7 @@ Example input:
   "appropriations":"appropriations.csv",
   "award_financial":"award_financial.csv",
   "award":"award.csv",
-  "procurement":"procurement.csv"
+  "program_activity":"program_activity.csv"
 
 }
 ```
@@ -523,8 +523,8 @@ Example output:
   "award_financial_id": 102,
   "award_financial_key": "2/1453474327_award_financial.csv",
 
-  "procurement_id": 103,
-  "procurement_key": "2/1453474333_procurement.csv",
+  "program_activity_id": 103,
+  "program_activity_key": "2/1453474333_program_activity.csv",
 
   "credentials": {
     "SecretAccessKey": "ABCDEFG",

@@ -326,7 +326,7 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
         userInfo = []
         for user in users:
-            thisInfo = {"id":user.user_id,"name":user.name, "email":user.email, "agency":user.agency, "title":user.title}
+            thisInfo = {"name":user.name, "title":user.title,  "agency":user.agency, "email":user.email, "id":user.user_id }
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
