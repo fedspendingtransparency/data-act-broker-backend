@@ -5,7 +5,7 @@ import traceback
 import json
 from flask.ext.cors import CORS
 from flask.ext.bcrypt import Bcrypt
-from flask import Flask
+from flask import Flask ,send_from_directory
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactbroker.handlers.aws.sesEmail import sesEmail
@@ -60,6 +60,13 @@ def runApp():
         def root():
             return "Broker is running"
 
+
+        localFiles =  "".join([config["local_folder"],"/<path:filename>"])
+
+        @app.route(localFiles)
+        def sendFile(filename):
+            if(config["local"]) :
+                return send_from_directory(config["local_folder"],filename)
 
         # Add routes for modules here
         add_login_routes(app,bcrypt)
