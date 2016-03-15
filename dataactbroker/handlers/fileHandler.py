@@ -90,7 +90,7 @@ class FileHandler:
                     if(not self.isLocal):
                         uploadName =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(safeDictionary.getValue(fileName))
                     else:
-                        uploadName = fileName
+                        uploadName = safeDictionary.getValue(fileName)
                     responseDict[fileName+"_key"] = safeDictionary.getValue(fileName)
                     fileNameMap.append((fileName,uploadName))
 
