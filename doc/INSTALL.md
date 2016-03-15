@@ -1,7 +1,5 @@
 # DATA Act Broker Installation and Setup
 
-**TODO:** Test this on Windows
-
 If you want to install and run a local DATA Act broker at your agency, the instructions below are for you. Because we designed the broker's components to be used together, the installation and setup directions for the DATA Act core, broker API, validator, and broker website are consolidated here.
 
 **Note:** If you're a developer who wants to contribute to this code or modify it for use at your agency, your setup instructions are a little different. See the [developer-specific install guide](DEVELOPMENT.md "DATA Act broker developer install") for more details.
@@ -30,8 +28,9 @@ The broker's backend components currently run on Python 2.7 (with the intention 
 We highly recommend creating a [Python virtual environment](https://virtualenv.readthedocs.org/en/latest/installation.html "Python virtualenv") to house the DATA Act broker components. A virtual environment (aka *virtualenv*) will isolate the broker software and its libraries from the libraries running on your local system and prevent potential conflicts. In addition, we recommend using [virtualenvwrapper](https://virtualenvwrapper.readthedocs.org/en/latest/install.html "Python virtualenvwrapper documentation") to manage your Python environments.
 
 1. Use pip to install virtualenv: `pip install virtualenv`
-2. Use pip to install virtualenvwrapper: `pip install virtualenvwrapper` (*Windows users* should run `pip install virtualenvwrapper-win` instead).
-3. **TODO:** instructions for setting WORKON_HOME, PROJECT_HOME and other dotfile junk you have to set up for virtualenvwrapper.
+2. Use pip to install virtualenvwrapper: `pip install virtualenvwrapper`
+3. If you're using Windows, also do `pip install virtualenvwrapper-powershell`.
+3. Tell virtualenvwrapper where on your machine to create virtual environments and add it to your profile. This is a one-time virtualenvwrapper setup step, and the process varies by operating system. [This tutorial](http://newcoder.io/begin/setup-your-machine/ "Python: setting up your computer") covers setting up virtualenvwrapper on OSX, Linux, and Windows.
 4. Create a virtual environment for the DATA Act software. In this example we've named the environment *data-act*, but you can call it anything: `mkvirtualenv data-act`.
 
     **Note:** If you're running multiple versions of Python on your machine, you can make sure your data act environment is running the correct Python version by pointed to a specific library: `mkvirtualenv --python=[path to installed Python 2.7 executable] data-act`
@@ -50,18 +49,48 @@ We highly recommend creating a [Python virtual environment](https://virtualenv.r
 
 6. This new environment will be active until you run the `deactivate` command. You can re-activate the environment again at any time by typing `workon data-act`.
 
+## Create an S3 Bucket
 
-## Create and Configure Amazon Web Services (Optional)
+**Optional**
 
-You can optionally configure the DATA Act broker to upload files to an Amazon Web Services (AWS) S3 bucket. If you're planning to run the broker without using an S3 bucket, skip the sections below and go right to [Installing Broker Backend Applications](INSTALL.md#install-broker-backend-applications "Installing the broker backend apps").
+The DATA Act broker can upload file submissions to an AWS S3 bucket if you so choose. If you're planning to store file submissions locally instead of using S3, skip to the [next section](#create-a-local-dynamodb "Create DynamoDB").
 
-**TODO:** Are there additional instructions needed for people running w/o an S3 bucket?**
+Assuming that you already have an AWS account, [create an AWS S3 bucket](http://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html "Create a bucket") that will receive file submissions from the broker.
 
-The instructions below assume that you already have an AWS account and have created an S3 bucket to use for DATA Act submissions.
+## Create a Local DynamoDB
+
+**Optional**
+
+The broker tracks sessions in an Amazon DynamoDB table. If you'd like to use DynamoDB in the cloud with your AWS account, you can skip this section.
+
+**TODO:** There are no OSX/Windows instructions for this. Have we tested the local DynamoDB option on those OSs? Is there a good link for install instructions?
+
+Otherwise, you'll need to set up a local version of DynamoDB. This requires Java JDK 6 or higher to be installed, which can be done using the following command on Red Hat based systems:
+
+
+```bash
+$ su -c "yum install java-1.7.0-openjdk"
+```
+
+For Ubuntu based systems the `apt-get` can be used instead
+
+```bash
+sudo apt-get install default-jre
+```
+
+Once Java is installed, you can download the local DynamoDB [here](http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.zip). Instructions to launch the local version once downloaded can be found in [AWS's User Guide](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html) along with the various options. Note that a local version of DynamoDB is **not** recommend for production.
+
+Don't worry about creating tables in DynamoDB: the broker's [initialization process](#initialize-broker-backend-applications "initialize broker") handles that.
+
+## Set Up AWS Permissions and Credentials
 
 ### Create S3 Only Role
 
-The DATA Act broker supports the creation of Security Token Service (STS) tokens that only limit a user's permissions to file uploads. To set this up, create an IAM Role on the targeted AWS account. This role should have the following permission JSON, where the `s3-bucket-name` is the name of the S3 bucket:
+**TODO:** Does the paragraph below make sense in a world where users looking to install the broker within their agencies might not be running the broker on an EC2 instance? Can we strike the paragraph? Throughout this section, can we replace _EC2 instance_ with more universal wording (_i.e._ that applies to people using their own web server or machine to run the broker)?
+
+For the cloud environment, it is a best practice to use AWS roles for any EC2 instance running the DATA Act broker. AWS roles provide a safe, automated key management mechanism to access and use AWS resources. At a minimum, the EC2 role should be granted Full S3 access permissions.
+
+The DATA Act broker supports the creation of Security Token Service (STS) tokens that only limit a user's permissions to file uploads. To set this up, create an IAM Role on the targeted AWS account. This role should have the following permission JSON, where the `s3-bucket-name` is the name of the S3 bucket created above.
 
 ```json
 {
@@ -82,18 +111,29 @@ The DATA Act broker supports the creation of Security Token Service (STS) tokens
 }
 ```
 
-In addition to the permission JSON, a create a Trust Relationship for the target role, allowing the EC2 instance to assume the S3 uploading role during token creation.
+In addition to the permission JSON, create a Trust Relationship for the IAM role, allowing the EC2 instance to assume the S3 uploading role during token creation.
 
+The EC2 instance running the broker should also be granted read/write permissions to DynamoDB. The following JSON can be added to the role to grant this access:
 
-### AWS Credentials
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "dynamodb:*"
+      ],
+      "Effect": "Allow",
+      "Resource": "arn:aws:dynamodb:REGION:ACCOUNT_ID:table/BrokerSession"
+    }
+  ]
+}
+```
+The `REGION` should be replaced with region of the AWS account and the `ACCOUNT_ID` should be replaced with the AWS account ID.
 
-For the cloud environment, it is a best practice to use AWS roles for any EC2 instance running the DATA Act broker. AWS roles provide a safe, automated key management mechanism to access and use AWS resources. At a minimum, the EC2 role should be granted Full S3 access permissions. Other repositories that use the core may need additional permissions.
+### AWS Command Line Interface (CLI) Tools
 
-**TODO:** will fully local broker installs need the AWS CLI tools as stated below?
-
-For local broker installations, credentials should be managed by the AWS CLI. This process is part of the install guide, which will walk users through the process.
-
-### Setup AWS Command Line Interface (CLI) Tools
+AWS credentials should be managed by the AWS CLI.
 
 Install the Python version of AWS Command Line Interface (CLI) tools following [these directions](https://docs.aws.amazon.com/cli/latest/userguide/installing.html#install-the-aws-cli-using-pip "install AWS CLI").
 
@@ -101,14 +141,12 @@ After you've installed the AWS CLI tools, configure them:
 
         $ aws configure
 
-When prompted, enter:
+As prompted, enter the following information about your AWS account. Specify `json` as the default output format.
 
-**TODO: fill these in**
-
-* xxxxx for the `AWS Access Key ID`
-* xxxxx for the `AWS Secret Access Key`
-* xxxxx for the `Default regionn name [us-east-1]`
-* xxxxx for the `Default output format [json]`
+* `AWS Access Key ID`
+* `AWS Secret Access Key`
+* `Default region name [us-east-1]`
+* `Default output format [json]`
 
 ## Install Broker Backend Applications
 
@@ -141,6 +179,7 @@ You will now answer a series of questions to guide you through broker configurat
     * `Enter your S3 role`: the [AWS role you created](https://github.com/fedspendingtransparency/data-act-core#creating-s3-only-role "Creating S3-only role") for uploading files to the broker
 
 * `Would you like to configure your logging`: `y` if you want to use the broker's cloud logging feature, `n` if you'd prefer to handle logging locally
+**TODO:** What guidance can we provide about cloud logging and when a user would want to do that?
 
     * `Enter port`: logging service port
     * `Enter the logging URL`: logging service URL
@@ -154,21 +193,21 @@ You will now answer a series of questions to guide you through broker configurat
     * `Default database name`: `postgres`
 
 * `Would you like to configure your broker web API:` `y`
+* `Would you like to install the broker locally`: `y`
+    * `Enter the local folder used by the broker`: **TODO:** What does this mean from a user perspective? Is it where a local broker will store file submissions?
+    * `Enter broker API port`: the local port you'll be running the broker on
 
-    * `Broker API port`: the port you'll be running the broker on
-
-* `Would you like to enable server side debugging`: `y`
-* `Would you like to enable debug traces on REST requests`: `y`
-* `Enter the allowed origin (website that will allow for CORS)`: `*`
+* `Would you like to enable server side debugging`: `y` to turn on debug mode for the Flask server
+* `Would you like to enable debug traces on REST requests`: `y` to provide debug output for REST responses
+* `Enter the allowed origin (website that will allow for CORS)`: the URL that cross-origin HTTP requests are enabled on.
+**TODO:** Is there advice we can give to a new user that isn't `*`?
 * `url` for the DATA Act validator: the url where you will be running the validator service
-* `Enter system e-mail address`: any e-mail address
-* `Would you like to use a local dynamo database`: `n` if you're using an S3 bucket, `y` otherwise
-
-    `Enter port for the local dynamo database`: `8000`
-
+* `Enter system e-mail address`: the e-mail used by the broker for automated e-mails
+* `Enter the port for the local dynamo database`: the local port used for your dynamo database (e.g., `8000`)
 * `Enter the URL for the React application`: the URL where you'll be running the broker website
-* `Enter application security key`: the key to use when creating e-mail tokens
-* `Would you like to create the dynamo database table`: `n`
+* `Enter application security key`: the key used to make hashes by the application
+**TODO:** Is there a more user-friendly way to explain this and/or provide a good default?
+* `Would you like to create the dynamo database table`: `y` if you're using AWS DynamoDB, `n` if you're running a local DynamoDB
 * `Would you like to configure the connection to the DATA Act validator`: `y`
 
     * `Enter url`: the full URL used for accessing the validator service (e.g., `http://locahost:3334`)
@@ -246,5 +285,3 @@ Run the following commands to install the website's dependencies and run the sit
         $ gulp
 
 Your browser will open to the broker webiste's login page. Log in with the admin account you created during the initialization process.
-
-**TODO:** Test this
