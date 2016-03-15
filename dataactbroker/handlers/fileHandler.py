@@ -91,7 +91,7 @@ class FileHandler:
                         uploadName =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(safeDictionary.getValue(fileName))
                     else:
                         uploadName = safeDictionary.getValue(fileName)
-                    responseDict[fileName+"_key"] = safeDictionary.getValue(fileName)
+                    responseDict[fileName+"_key"] = uploadName
                     fileNameMap.append((fileName,uploadName))
 
             fileJobDict = self.jobManager.createJobs(fileNameMap,name)
