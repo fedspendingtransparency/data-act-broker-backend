@@ -38,6 +38,9 @@ def runApp():
         sesEmail.SIGNING_KEY =  config["security_key"]
         sesEmail.isLocal = config["local"]
         sesEmail.emailLog = "".join([config["local_folder"],"/email.log"])
+        # If local, make the email directory if needed
+        if(config["local"] and not os.path.exists(config["local_folder"])):
+            os.makedirs(config["local_folder"])
         debugFlag = config["server_debug"]  # Should be false for prod
         runLocal = config["local_dynamo"]  # False for prod, when True this assumes that the Dynamo is on the same server
         JsonResponse.debugMode = config["rest_trace"]
