@@ -57,7 +57,8 @@ class FileHandler:
                     if(not self.isLocal):
                         responseDict["job_"+str(jobId)+"_error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(jobId),"GET")
                     else:
-                        responseDict["job_"+str(jobId)+"_error_url"] = self.jobManager.getReportPath(jobId)
+                        path = os.path.join(self.serverPath, self.jobManager.getReportPath(jobId))
+                        responseDict["job_"+str(jobId)+"_error_url"] = path
             return JsonResponse.create(StatusCode.OK,responseDict)
         except ResponseException as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
