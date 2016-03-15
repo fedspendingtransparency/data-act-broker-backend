@@ -24,3 +24,4 @@ tests/programActivityRaw.csv
 dataactvalidator/scripts/clearRules.py
 dataactvalidator/databaseErrors.log
 dataactvalidator/scripts/dropAll.py
+dataactvalidator/validator_configuration.json
