@@ -78,7 +78,7 @@ class ConfigureCore(object):
 
             if (ConfigureCore.questionPrompt(
                 "Would you like to log locally (y/n) : ")):
-                path = input("Enter the Path for the log :")
+                path = input("Enter the path for the log :")
 
             else :
                 port = input("Enter Port :")

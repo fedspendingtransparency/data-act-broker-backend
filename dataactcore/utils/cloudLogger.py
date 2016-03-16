@@ -45,4 +45,4 @@ class CloudLogger(object):
             CloudLogger.getLogger().error("".join([message,str(exception)]),extra=logging_helpers)
         else:
             localPath = os.path.join(CloudLogger.getValueFromConfig("local_log"),"error.log")
-            open (localPath,"a").write(json.dumps(logging_helpers))
+            open (localPath,"a").write("\n\n".join(["\n\n",message,str(exception),json.dumps(logging_helpers)]))
