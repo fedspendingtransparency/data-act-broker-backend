@@ -36,11 +36,13 @@ class ConfigureCore(object):
         return json.dumps(returnJson)
 
     @staticmethod
-    def createLoggingJSON(host, port):
+    def createLoggingJSON(host, port, local, path):
         """Creates the logging.json File"""
         returnJson = {}
         returnJson["host"] = host
         returnJson["port"] = port
+        returnJson["local"] = local
+        returnJson["local_log"] = path
         return json.dumps(returnJson)
 
     @staticmethod
@@ -66,11 +68,22 @@ class ConfigureCore(object):
     @staticmethod
     def promptLogging():
         """Prompts user for input for S3 Setup"""
+        local = False
+        port = 0
+        host = ""
+        path = ""
+
         if (ConfigureCore.questionPrompt(
                 "Would you like to configure your Logging? (y/n) : ")):
-            port = input("Enter Port :")
-            host = input("Enter the logging URL :")
-            json = ConfigureCore.createLoggingJSON(host, port)
+
+            if (ConfigureCore.questionPrompt(
+                "Would you like to log locally (y/n) : ")):
+                path = input("Enter the Path for the log :")
+
+            else :
+                port = input("Enter Port :")
+                host = input("Enter the logging URL :")
+            json = ConfigureCore.createLoggingJSON(host, port,local,path)
             with open(ConfigureCore.getDatacorePath() + "/utils/logging.json",
                       'wb') as currentFile:
                 currentFile.write(json)
