@@ -5,13 +5,11 @@ from alembic import context
 from dataactcore.models import errorModels
 from dataactcore.models import jobModels
 from dataactcore.models import userModel
-from dataactcore.models import validationModels
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
 import logging
 import re
 import json
-from pprint import pprint
 
 USE_TWOPHASE = False
 
@@ -44,8 +42,7 @@ db_names = config.get_main_option('databases')
 target_metadata = {
     'error_data':errorModels.Base.metadata,
     'job_tracker':jobModels.Base.metadata,
-    'user_manager':userModel.Base.metadata,
-    'validation':validationModels.Base.metadata
+    'user_manager':userModel.Base.metadata
 }
 
 # Set up database URLs based on credentials file
