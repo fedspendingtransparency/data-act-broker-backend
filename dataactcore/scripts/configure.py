@@ -79,7 +79,7 @@ class ConfigureCore(object):
             if (ConfigureCore.questionPrompt(
                 "Would you like to log locally (y/n) : ")):
                 path = input("Enter the path for the log :")
-
+                local = True
             else :
                 port = input("Enter Port :")
                 host = input("Enter the logging URL :")

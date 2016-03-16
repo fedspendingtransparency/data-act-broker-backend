@@ -41,7 +41,7 @@ class CloudLogger(object):
             'error_log_wrapped_type': str(wrappedType),
             'error_log_trace': str(traceback)
         }
-        if( CloudLogger.getValueFromConfig("local")):
+        if( not CloudLogger.getValueFromConfig("local")):
             CloudLogger.getLogger().error("".join([message,str(exception)]),extra=logging_helpers)
         else:
             localPath = os.path.join(CloudLogger.getValueFromConfig("local_log"),"error.log")
