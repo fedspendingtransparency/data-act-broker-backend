@@ -195,7 +195,7 @@ The DATA Act Core repository allows for the creation of Security Token Service (
 In addition to the permission JSON, a Trust Relationship needs to be created for the target role, allowing the EC2 instance to assume the S3 uploading role during token creation.
 
 ### Error Logging
-All exceptions thrown by the application are logged ether to a local file or sent to a logstash server. Error logging settings are set using the `logging.json` which is created by the `configure.py` setup script. It has the following format.
+All exceptions thrown by the application are logged either to a local file or sent to a logstash server. Error logging settings are set using the `logging.json` which is created by the `configure.py` setup script. It has the following format.
 
 ```json
 {
