@@ -88,9 +88,9 @@ Don't worry about creating tables in DynamoDB: the broker's [initialization proc
 
 **TODO:** Does the paragraph below make sense in a world where users looking to install the broker within their agencies might not be running the broker on an EC2 instance? Can we strike the paragraph? Throughout this section, can we replace _EC2 instance_ with more universal wording (_i.e._ that applies to people using their own web server or machine to run the broker)?
 
-For the cloud environment, it is a best practice to use AWS roles for any EC2 instance running the DATA Act broker. AWS roles provide a safe, automated key management mechanism to access and use AWS resources. At a minimum, the EC2 role should be granted Full S3 access permissions.
+When storing files on S3, it is a best practice to use AWS roles with the DATA Act broker. AWS roles provide a safe, automated key management mechanism to access and use AWS resources. At a minimum, this role should be granted Full S3 access permissions.
 
-The DATA Act broker supports the creation of Security Token Service (STS) tokens that only limit a user's permissions to file uploads. To set this up, create an IAM Role on the targeted AWS account. This role should have the following permission JSON, where the `s3-bucket-name` is the name of the S3 bucket created above.
+The DATA Act broker supports the creation of Security Token Service (STS) tokens that limit a user's permissions to only file uploads. To set this up, create an IAM Role on the targeted AWS account. This role should have the following permission JSON, where the `s3-bucket-name` is the name of the S3 bucket created above.
 
 ```json
 {
@@ -111,9 +111,9 @@ The DATA Act broker supports the creation of Security Token Service (STS) tokens
 }
 ```
 
-In addition to the permission JSON, create a Trust Relationship for the IAM role, allowing the EC2 instance to assume the S3 uploading role during token creation.
+In addition to the permission JSON, create a Trust Relationship for the IAM role, allowing the broker to assume the S3 uploading role during token creation.
 
-The EC2 instance running the broker should also be granted read/write permissions to DynamoDB. The following JSON can be added to the role to grant this access:
+If not using a local Dynamo, the broker should also be granted read/write permissions to DynamoDB. The following JSON can be added to the role to grant this access:
 
 ```json
 {
