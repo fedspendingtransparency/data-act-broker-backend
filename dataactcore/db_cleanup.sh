@@ -1,5 +1,0 @@
-psql -U postgres -d nipun_test -c 'drop schema public cascade; create schema public;'
-psql -U postgres -d error_data -c 'drop schema public cascade; create schema public;'
-psql -U postgres -d job_tracker -c 'drop schema public cascade; create schema public;'
-psql -U postgres -d user_manager -c 'drop schema public cascade; create schema public;'
-psql -U postgres -d validation -c 'drop schema public cascade; create schema public;'
