@@ -37,7 +37,9 @@ sudo python configure.py
   "port": 5000,
   "local_dynamo": false,
   "dynamo_port": 5000,
-  "create_credentials": true
+  "create_credentials": true,
+  "local" : false,
+  "local_folder": ""
 }
 ```
 
@@ -54,6 +56,8 @@ sudo python configure.py
 | frontend_url  | The URL for the React front end|
 | security_key  | The key used to make hashes by the application|
 | system_email  | The from email address  used by the system for automated emails|
+| local | If a local install is being used |
+|local_folder| the path for system created files for local installs only|
 
 The `initialize` script provides users with these choices during the install process. See the [Broker Install Guide](#install-guide) for more information.
 
@@ -474,16 +478,24 @@ Example output:
 
 ## File Routes
 
+#### GET "/"
+This path will return files located in the local folder. This path is only accessible for local installs due
+to security reasons.
+
+Example Route `/Users/serverdata/test.csv`  for example will return the `test.csv` if the local folder points
+to `/Users/serverdata`.
 
 #### POST "/v1/local_upload/"
-Input for this route should be a form with the key of `file` where the uploaded file is located. This route **only** will
+Input for this route should be a post form with the key of `file` where the uploaded file is located. This route **only** will
 return a success for local installs for security reasons. Upon successful upload, file path will be returned.
 
+Example Output:
 ```json    
 {
    "path": "/User/localuser/server/1234_filename.csv"
 }
 ```
+
 #### POST "/v1/submit_files/"
 This route is used to retrieve S3 URLs to upload files. Data should be either JSON or form-urlencoded with keys: ["appropriations", "award\_financial", "award", "program\_activity"], each with a filename as a value.
 
