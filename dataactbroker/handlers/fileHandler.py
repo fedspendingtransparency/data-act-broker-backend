@@ -1,4 +1,7 @@
-from flask import session
+import os
+from flask import session ,request
+from datetime import datetime, timedelta
+from werkzeug import secure_filename
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -20,10 +23,10 @@ class FileHandler:
     s3manager -- instance of s3UrlHandler, manages calls to S3
     """
 
-    FILE_TYPES = ["appropriations","award_financial","award","procurement"]
+    FILE_TYPES = ["appropriations","award_financial","award","program_activity"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
-    def __init__(self,request,interfaces = None):
+    def __init__(self,request,interfaces = None,isLocal= False,serverPath =""):
         """
 
         Arguments:
@@ -33,6 +36,8 @@ class FileHandler:
         if(interfaces != None):
             self.interfaces = interfaces
             self.jobManager = interfaces.jobDb
+        self.isLocal = isLocal
+        self.serverPath = serverPath
 
     def addInterfaces(self,interfaces):
         self.interfaces = interfaces
@@ -49,7 +54,11 @@ class FileHandler:
             responseDict ={}
             for jobId in self.jobManager.getJobsBySubmission(submissionId):
                 if(self.jobManager.getJobType(jobId) == "csv_record_validation"):
-                    responseDict["job_"+str(jobId)+"_error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(jobId),"GET")
+                    if(not self.isLocal):
+                        responseDict["job_"+str(jobId)+"_error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(jobId),"GET")
+                    else:
+                        path = os.path.join(self.serverPath, self.jobManager.getReportPath(jobId))
+                        responseDict["job_"+str(jobId)+"_error_url"] = path
             return JsonResponse.create(StatusCode.OK,responseDict)
         except ResponseException as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
@@ -57,21 +66,6 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-    def getErrorReportURL(self):
-        """
-        Gets the Signed URL for download based on the jobId
-        """
-        try :
-            self.s3manager = s3UrlHandler(s3UrlHandler.getBucketNameFromConfig())
-            safeDictionary = RequestDictionary(self.request)
-            responseDict ={}
-            responseDict["error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(safeDictionary.getValue("upload_id")),"GET")
-            return JsonResponse.create(StatusCode.OK,responseDict)
-        except ResponseException as e:
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
-        except Exception as e:
-            # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
     # Submit set of files
     def submit(self,name,CreateCredentials):
@@ -94,7 +88,10 @@ class FileHandler:
             safeDictionary = RequestDictionary(self.request)
             for fileName in FileHandler.FILE_TYPES :
                 if( safeDictionary.exists(fileName)) :
-                    uploadName =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(safeDictionary.getValue(fileName))
+                    if(not self.isLocal):
+                        uploadName =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(safeDictionary.getValue(fileName))
+                    else:
+                        uploadName = safeDictionary.getValue(fileName)
                     responseDict[fileName+"_key"] = uploadName
                     fileNameMap.append((fileName,uploadName))
 
@@ -102,7 +99,7 @@ class FileHandler:
             for fileName in fileJobDict.keys():
                 if (not "submission_id" in fileName) :
                     responseDict[fileName+"_id"] = fileJobDict[fileName]
-            if(CreateCredentials) :
+            if(CreateCredentials and not self.isLocal) :
                 responseDict["credentials"] = self.s3manager.getTemporaryCredentials(name)
             else :
                 responseDict["credentials"] ={"AccessKeyId" : "local","SecretAccessKey" :"local","SessionToken":"local" ,"Expiration" :"local"}
@@ -208,6 +205,31 @@ class FileHandler:
                     dataList = self.interfaces.errorDb.getErrorMetricsByJobId(currentId)
                     returnDict[fileName]  = dataList
             return JsonResponse.create(StatusCode.OK,returnDict)
+        except ( ValueError , TypeError ) as e:
+            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+        except ResponseException as e:
+            return JsonResponse.error(e,e.status)
+        except Exception as e:
+            # Unexpected exception, this is a 500 server error
+            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+    def uploadFile(self):
+        """saves a file and returns the saved path"""
+        try:
+            if(self.isLocal):
+                uploadedFile = request.files['file']
+                if(uploadedFile):
+                    seconds = int((datetime.utcnow()-datetime(1970,1,1)).total_seconds())
+                    filename = "".join([str(seconds),"_", secure_filename(uploadedFile.filename)])
+                    path = os.path.join(self.serverPath, filename)
+                    uploadedFile.save(path)
+                    returnDict = {"path":path}
+                    return JsonResponse.create(StatusCode.OK,returnDict)
+                else:
+                    exc = ResponseException("Failure to read file", StatusCode.CLIENT_ERROR)
+                    return JsonResponse.error(exc,exc.status)
+            else :
+                exc = ResponseException("Route Only Valid For Local Installs", StatusCode.CLIENT_ERROR)
+                return JsonResponse.error(exc,exc.status)
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:
