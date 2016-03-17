@@ -201,7 +201,7 @@ All exceptions thrown by the application are logged ether to a local file or sen
 {
   "host": "",
   "local_log": "/server",
-  "local": True,
+  "local": true,
   "port": 0
 }
 
