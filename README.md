@@ -194,6 +194,21 @@ The DATA Act Core repository allows for the creation of Security Token Service (
 
 In addition to the permission JSON, a Trust Relationship needs to be created for the target role, allowing the EC2 instance to assume the S3 uploading role during token creation.
 
+### Error Logging
+All exceptions thrown by the application are logged ether to a local file or sent to a logstash server. Error logging settings are set using the `logging.json` which is created by the `configure.py` setup script. It has the following format.
+
+```json
+{
+  "host": "",
+  "local_log": "/Users/martinpress/server",
+  "local": True,
+  "port": 0
+}
+
+```
+If local is set to true then the `local_log` path needs to be set, otherwise the `host` and `port` fields need to be set to
+point at a logstash server.  
+
 #### Credentials
 For the cloud environment, it is a best practice to use AWS roles for any EC2 instance running the Core. AWS roles provide a safe, automated key management mechanism to access and utilize AWS resources. At a minimum, the EC2 role should be granted Full S3 access permissions. Other repositories that use the core may have additional permissions required.
 
