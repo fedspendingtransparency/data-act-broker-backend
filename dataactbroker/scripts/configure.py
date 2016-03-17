@@ -22,6 +22,7 @@ class ConfigureBroker(object):
 
     @staticmethod
     def createTestUsers(adminEmail,adminpass,enableTestUsers):
+        """Creates Tests Users"""
         crypt = Bcrypt()
         userDatabase = UserHandler()
         if(enableTestUsers):
@@ -32,9 +33,11 @@ class ConfigureBroker(object):
 
 
     @staticmethod
-    def createBrokerJSON(port,trace,debug,origins,enableLocalDyanmo,localDynamoPort,emailAddress,frontendURL,key):
+    def createBrokerJSON(localInstall,localFolder,port,trace,debug,origins,enableLocalDyanmo,localDynamoPort,emailAddress,frontendURL,key):
         """Creates the web_api_configuration.json File"""
         returnJson = {}
+        returnJson ["local"] = localInstall
+        returnJson ["local_folder"] = localFolder
         returnJson ["port"] = port
         returnJson ["dynamo_port"] = localDynamoPort
         returnJson ["rest_trace"] = trace
@@ -66,7 +69,7 @@ class ConfigureBroker(object):
 
     @staticmethod
     def createFile(filename,json):
-        """"""
+        """Creates a file with the json and filename"""
         with open(ConfigureBroker.getDataBrokerPath()+filename, 'wb') as configFile:
             configFile.write(json)
 
@@ -77,10 +80,19 @@ class ConfigureBroker(object):
         if (not os.path.exists("".join([ConfigureBroker.getDataBrokerPath(), "/config"]))):
                 os.makedirs("".join([ConfigureBroker.getDataBrokerPath(), "/config"]))
 
-        debugMode = False
-        traceMode = False
-        enableLocalDynamo = False
+
         if(ConfigureBroker.questionPrompt("Would you like to configure your broker web API? (y/n) : ")):
+            localFolder = ""
+            localInstall =  ConfigureBroker.questionPrompt("Would you like to install the broker locally? (y/n): ")
+
+            if(localInstall):
+                localFolder =  input("Enter the local folder used by the broker : ")
+
+            debugMode = False
+            traceMode = False
+            enableLocalDynamo = False
+
+
             port = input("Enter broker API port :")
             try:
                 int(port)
@@ -99,7 +111,7 @@ class ConfigureBroker(object):
             emailAddress = input("Enter System Email Address :")
 
             localPort  = 8000
-            if(ConfigureBroker.questionPrompt("Would you like to use a local dynamo database ? (y/n) : ")):
+            if( localInstall or ConfigureBroker.questionPrompt("Would you like to use a local dynamo database ? (y/n) : ")):
                 enableLocalDynamo = True
                 localPort = input("Enter the port for the local dynamo database : ")
                 try:
@@ -115,7 +127,7 @@ class ConfigureBroker(object):
             if(ConfigureBroker.questionPrompt("Would you like to create the dyanmo database table ? (y/n) : ")):
                 SessionTable.createTable(enableLocalDynamo,localPort)
 
-            json = ConfigureBroker.createBrokerJSON(port,traceMode,debugMode,origins,enableLocalDynamo,localPort,emailAddress,frontend,key)
+            json = ConfigureBroker.createBrokerJSON(localInstall,localFolder,port,traceMode,debugMode,origins,enableLocalDynamo,localPort,emailAddress,frontend,key)
 
             ConfigureBroker.createFile("/config/web_api_configuration.json",json)
         if(ConfigureBroker.questionPrompt("Would you like to configure the connection to the DATA Act validator? (y/n) : ")):
