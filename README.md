@@ -479,6 +479,12 @@ Example output:
 ## File Routes
 
 #### GET "/"
+This route confirms that the broker is running
+
+Example input: None
+Example output: "Broker is running"
+
+#### GET "/<filename>"
 This path will return files located in the local folder. This path is only accessible for local installs due
 to security reasons.
 
