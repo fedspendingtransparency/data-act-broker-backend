@@ -17,7 +17,7 @@ The broker comprises:
 
 ## What Do I Need to Know?
 
-If you're from a federal agency that will use Treasury's hosted DATA Act broker, you can probably stop reading here. Instead, refer to **TODO:** [link to the user how-to for using the broker website].
+If you're from a federal agency that will use Treasury's hosted DATA Act broker, you can probably stop reading here. Instead, visit the [broker's website](http://dev-data-act-web-app.s3-website-us-east-1.amazonaws.com/ "DATA Act broker website").
 
 If you want to install and run the broker locally, read the [installation and setup directions](doc/INSTALL.md "DATA Act broker installation and setup").
 

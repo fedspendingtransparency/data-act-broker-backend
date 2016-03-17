@@ -11,6 +11,7 @@ The core, the broker API, and the validator compose the backend of the DATA Act 
 To run the backend DATA Act broker applications, you'll need to have the following up and running on your machine:
 
 * PostgreSQL
+* DynamoDB
 * Python
 
 ### PostgreSQL
@@ -20,6 +21,21 @@ To run the backend DATA Act broker applications, you'll need to have the followi
 You can find PostgreSQL installers on [EnterpriseDB](http://www.enterprisedb.com/products-services-training/pgdownload). Download and run the correct installer for your operating system (we recommend PostgreSQL 9.4.x.). As you proceed through the installation process, note your choices for port number, username, and password. You will need those when setting up the broker. For other PostgreSQL installation options, more complete documentation is available on the PostgreSQL [wiki](https://wiki.postgresql.org/wiki/Detailed_installation_guides).
 
 **Note:** If you're setting up the broker on Mac OSX, we recommend using [homebrew](http://brew.sh) to install PostgreSQL.
+
+## Create a Local DynamoDB
+
+**Optional**
+
+Note: If you'd prefer to use an Amazon-hosted version of DynamoDB, you can skip this section for installing DynamoDB on your machine.
+
+Otherwise, you'll need to set up a local version of DynamoDB. DynamoDB local is a Java executable that runs on Windows, Mac, and Linux systems and is compatible with version 7 of the Java Runtime Environment, which you will have to install as a first step: [http://java.com/en/](http://java.com/en/ "download Java").
+
+
+After installing Java, [download the local DynamoDB files](http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.zip "download local DynamoDB") and follow [Amazon's instructions](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html "running DynamoDB on your computer") to run it.
+
+Note that a local version of DynamoDB is **not** recommend for production.
+
+Don't worry about creating tables in DynamoDB: the broker's [initialization process](#initialize-broker-backend-applications "initialize broker") handles that.
 
 ### Python and Virtualenv
 
@@ -156,9 +172,9 @@ Make sure that your Python virtual environment is activated (replace *data-act* 
 
 Use Python's pip installer to install each broker back-end application:
 
-        $ pip install git+git://github.com/fedspendingtransparency/data-act-core.git@development
-        $ pip install git+git://github.com/fedspendingtransparency/data-act-broker.git@dev
-        $ pip install git+git://github.com/fedspendingtransparency/data-act-validator.git@development
+        $ pip install git+git://github.com/fedspendingtransparency/data-act-core.git
+        $ pip install git+git://github.com/fedspendingtransparency/data-act-broker.git
+        $ pip install git+git://github.com/fedspendingtransparency/data-act-validator.git
 
 ## Initialize Broker Backend Applications
 
@@ -178,11 +194,9 @@ You will now answer a series of questions to guide you through broker configurat
     * `Enter you bucket name`: the name of the S3 bucket you're using for broker file submission
     * `Enter your S3 role`: the [AWS role you created](https://github.com/fedspendingtransparency/data-act-core#creating-s3-only-role "Creating S3-only role") for uploading files to the broker
 
-* `Would you like to configure your logging`: `y` if you want to use the broker's cloud logging feature, `n` if you'd prefer to handle logging locally
-**TODO:** What guidance can we provide about cloud logging and when a user would want to do that?
+* `Would you like to configure your logging`: `y`
 
-    * `Enter port`: logging service port
-    * `Enter the logging URL`: logging service URL
+    * `Would you like to log locally?`: '`y` (specify path when prompted)
 
 * `Would you like to configure your database connection`: `y` if this is your first time running the initialization script or if you need re-create the broker databases for a version change, `n` otherwise (saying yes will delete any exising broker data)
 
@@ -194,7 +208,7 @@ You will now answer a series of questions to guide you through broker configurat
 
 * `Would you like to configure your broker web API:` `y`
 * `Would you like to install the broker locally`: `y`
-    * `Enter the local folder used by the broker`: **TODO:** What does this mean from a user perspective? Is it where a local broker will store file submissions?
+    * `Enter the local folder used by the broker`: a path to the folder that will house "e-mails" sent by locally-installed versions of the broker
     * `Enter broker API port`: the local port you'll be running the broker on
 
 * `Would you like to enable server side debugging`: `y` to turn on debug mode for the Flask server
@@ -205,8 +219,7 @@ You will now answer a series of questions to guide you through broker configurat
 * `Enter system e-mail address`: the e-mail used by the broker for automated e-mails
 * `Enter the port for the local dynamo database`: the local port used for your dynamo database (e.g., `8000`)
 * `Enter the URL for the React application`: the URL where you'll be running the broker website
-* `Enter application security key`: the key used to make hashes by the application
-**TODO:** Is there a more user-friendly way to explain this and/or provide a good default?
+* `Enter application security key`: the key used to hash user passwords (should be a randomly-generated string)
 * `Would you like to create the dynamo database table`: `y` if you're using AWS DynamoDB, `n` if you're running a local DynamoDB
 * `Would you like to configure the connection to the DATA Act validator`: `y`
 
@@ -260,7 +273,7 @@ Make sure the validator is working by visiting the URL and port you specified wh
 
 ## Install Website Tools and Code
 
-To the broker's website up and running, you'll need to install *Node.js* and a task runner called *Gulp.js*.
+To get the broker's website up and running, you'll need to install *Node.js* and a task runner called *Gulp.js*.
 
 1. Download and run the Node.js installer for your operating system.
 2. Use *npm*, Node's package manager to install the latest version of gulp (you'll need the latest version to ensure it can run the project's babel version of the `gulpfile`.):

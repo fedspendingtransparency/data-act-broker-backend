@@ -16,8 +16,6 @@ Before starting, make sure that your Python virtual environment is activated:
 
         $ workon your-virtual-environment
 
-**TODO:** are we recommending specific branches/tags?
-
 ### DATA Act Core
 
 Navigate to wherever you install code on your machine (*e.g.*, ~/Dev/). From the command line, clone the DATA Act Core repository from GitHub to your local environment:
@@ -99,7 +97,7 @@ Make sure the validator is working by visiting the URL and port you specified wh
 
 ## Setup and Run Broker Website
 
-Navigate back to your code directory. From the command line, clone the DATA Act Validator repository from GitHub to your local environment:
+Navigate back to your code directory. From the command line, clone the DATA Act web app repository from GitHub to your local environment:
 
         $ git clone git@github.com:fedspendingtransparency/data-act-broker-web-app.git
 
