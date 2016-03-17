@@ -200,7 +200,7 @@ All exceptions thrown by the application are logged ether to a local file or sen
 ```json
 {
   "host": "",
-  "local_log": "/Users/martinpress/server",
+  "local_log": "/server",
   "local": True,
   "port": 0
 }
