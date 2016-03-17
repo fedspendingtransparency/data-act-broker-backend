@@ -56,7 +56,7 @@ class StagingTable(object):
         for key in fields:
             # Build column statement for this key
             # Create cleaned version of key
-            newKey = FieldCleaner.cleanString(key)
+            newKey = str(fields[key].file_column_id)
             # Get correct type name
             fieldTypeName = FieldCleaner.cleanString(fields[key].field_type.name)
             if(fieldTypeName == "string"):
@@ -121,20 +121,26 @@ class StagingTable(object):
                 success = False
         return success
 
-    def insert(self, record):
+    def insert(self, record, fileType):
         """ Write single record to this table
         Args:
-        record -- dict with column names as keys
+        record: dict with column names as keys
+        fileType: Type of file record is in
 
         Returns:
         True if successful
         """
 
+        # Need to translate the provided record to use column IDs instead of field names for keys
+        idRecord = {}
+        for key in record:
+            idRecord[str(self.interfaces.validationDb.getColumnId(key,fileType))] = record[key]
+
         if(self.BATCH_INSERT):
             if(self.INSERT_BY_ORM):
                 raise NotImplementedError("Have not implemented ORM method for batch insert")
             else:
-                self.batch.append(record)
+                self.batch.append(idRecord)
                 if(len(self.batch)>self.BATCH_SIZE):
                     # Time to write the batch
                     self.interface.connection.execute(self.orm.__table__.insert(),self.batch)
@@ -152,9 +158,9 @@ class StagingTable(object):
                 attributes = self.getPublicMembers(recordOrm)
 
                 # For each field, add value to ORM object
-                for key in record:
+                for key in idRecord:
                     attr = FieldCleaner.cleanString(key) #key.replace(" ","_")
-                    setattr(recordOrm,attr,record[key])
+                    setattr(recordOrm,attr,idRecord[key])
 
                 self.interface.session.add(recordOrm)
                 self.interface.session.commit()
