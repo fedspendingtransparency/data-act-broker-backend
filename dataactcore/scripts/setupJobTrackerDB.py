@@ -40,7 +40,7 @@ def setupJobTrackerDB(connection = None, hardReset = False):
                 "INSERT INTO resource_status (resource_status_id, name, description) VALUES (1,'ready','available for new jobs'), (2,'running','currently working on a job'), (3,'unresponsive','resource seems to be unresponsive')",
                 "INSERT INTO status (status_id,name, description) VALUES (1, 'waiting', 'check dependency table'), (2, 'ready', 'can be assigned'), (3, 'running', 'job is currently in progress'), (4, 'finished', 'job is complete'),(5, 'invalid', 'job is invalid'),(6, 'failed', 'job failed to complete')",
                 "INSERT INTO type (type_id,name,description) VALUES (1, 'file_upload', 'file must be uploaded to S3'), (2, 'csv_record_validation', 'do record level validation and add to staging DB'), (3, 'db_transfer', 'information must be moved from production DB to staging DB'), (4, 'validation', 'new information must be validated'), (5, 'external_validation', 'new information must be validated against external sources')",
-                "INSERT INTO file_type (file_type_id, name, description) VALUES (1, 'award', ''), (2, 'award_financial', ''), (3, 'appropriations', ''), (4, 'procurement', '')",
+                "INSERT INTO file_type (file_type_id, name, description) VALUES (1, 'award', ''), (2, 'award_financial', ''), (3, 'appropriations', ''), (4, 'program_activity', '')",
                 ]
     runCommands(JobTrackerInterface.getCredDict(),sql,"job_tracker",connection)
 

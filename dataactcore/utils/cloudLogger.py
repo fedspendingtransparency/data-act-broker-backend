@@ -34,7 +34,6 @@ class CloudLogger(object):
         if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):
             wrappedType = str(type(exception.wrappedException))
             wrappedMessage= str(exception.wrappedException)
-
         logging_helpers = {
             'error_log_type': str(type(exception)),
             'error_log_message': str(exception),
@@ -42,4 +41,8 @@ class CloudLogger(object):
             'error_log_wrapped_type': str(wrappedType),
             'error_log_trace': str(traceback)
         }
-        CloudLogger.getLogger().error("".join([message,str(exception)]),extra=logging_helpers)
+        if( not CloudLogger.getValueFromConfig("local")):
+            CloudLogger.getLogger().error("".join([message,str(exception)]),extra=logging_helpers)
+        else:
+            localPath = os.path.join(CloudLogger.getValueFromConfig("local_log"),"error.log")
+            open (localPath,"a").write("\n\n".join(["\n\n",message,str(exception),json.dumps(logging_helpers)]))

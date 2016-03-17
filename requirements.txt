@@ -6,3 +6,4 @@ future==0.15.2
 python-logstash==0.4.6
 logstash==0.1.dev0
 alembic==0.8.5
+awscli==1.10.10
