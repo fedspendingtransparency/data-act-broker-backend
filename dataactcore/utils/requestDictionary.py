@@ -8,7 +8,8 @@ class RequestDictionary() :
         if(not ("Content-Type" in request.headers)):
             raise ValueError("Must include Content-Type header")
 
-        if(request.headers["Content-Type"] == "application/json"):
+        # Allowing extra content after application/json for firefox compatibility
+        if("application/json" in request.headers["Content-Type"]):
                 self.requestDict = request.get_json()
         elif(request.headers["Content-Type"] == "application/x-www-form-urlencoded"):
                 self.requestDict = request.form

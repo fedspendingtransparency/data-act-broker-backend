@@ -5,3 +5,4 @@ Flask==0.10.1
 future==0.15.2
 python-logstash==0.4.6
 logstash==0.1.dev0
+awscli==1.10.10
