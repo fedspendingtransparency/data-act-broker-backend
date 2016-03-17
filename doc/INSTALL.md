@@ -2,7 +2,7 @@
 
 If you want to install and run a local DATA Act broker at your agency, the instructions below are for you. Because we designed the broker's components to be used together, the installation and setup directions for the DATA Act core, broker API, validator, and broker website are consolidated here.
 
-**Note:** If you're a developer who wants to contribute to this code or modify it for use at your agency, your setup instructions are a little different. See the [developer-specific install guide](DEVELOPMENT.md "DATA Act broker developer install") for more details.
+**Note:** If you're a developer who wants to contribute to this code or modify it for use at your agency, your setup instructions are a little different. See the [contributing guide](CONTRIBUTING.md "DATA Act broker developer install") for more details.
 
 ## Install Backend Prerequisites
 
