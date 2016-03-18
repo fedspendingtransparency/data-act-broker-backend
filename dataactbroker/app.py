@@ -75,8 +75,10 @@ def createApp():
         add_file_routes(app, config["create_credentials"],
             config["local"], config["local_folder"])
         add_user_routes(app, config["system_email"], bcrypt)
-        SessionTable.localPort  = int( config["dynamo_port"])
+        SessionTable.localPort = int(config["dynamo_port"])
         SessionTable.setup(app, runLocal)
+
+        return app
 
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -84,8 +86,7 @@ def createApp():
         CloudLogger.logError('Broker App Level Error: ', e, trace)
 
         del exc_tb
-
-    return app
+        raise
 
 
 def runApp():
