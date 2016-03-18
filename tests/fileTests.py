@@ -49,7 +49,7 @@ class FileTests(BaseTest):
         """Call the broker file submission route."""
         fileJson = {"appropriations":"test1.csv",
             "award_financial":"test2.csv", "award":"test3.csv",
-            "procurement":"test4.csv"}
+            "program_activity":"test4.csv"}
         return self.app.post_json("/v1/submit_files/", fileJson)
 
     def test_file_submission(self):
@@ -62,7 +62,7 @@ class FileTests(BaseTest):
         self.assertIn("_test1.csv", json["appropriations_key"])
         self.assertIn("_test2.csv", json["award_financial_key"])
         self.assertIn("_test3.csv", json["award_key"])
-        self.assertIn("_test4.csv", json["procurement_key"])
+        self.assertIn("_test4.csv", json["program_activity_key"])
         self.assertIn("credentials", json)
 
         credentials = json["credentials"]
@@ -81,7 +81,7 @@ class FileTests(BaseTest):
 
         # Test that job ids are returned
         responseDict = json
-        idKeys = ["procurement_id", "award_id", "award_financial_id",
+        idKeys = ["program_activity_id", "award_id", "award_financial_id",
             "appropriations_id"]
         for key in idKeys:
             self.assertIn(key, responseDict)
@@ -245,7 +245,7 @@ class FileTests(BaseTest):
         jobValues["externalWaiting"] = [1, 1, 5]
         jobValues["awardFin"] = [2, 2, 2]
         jobValues["appropriations"] = [3, 2, 2]
-        jobValues["procurement"] = [4, 2, 2]
+        jobValues["program_activity"] = [4, 2, 2]
         jobIdDict = {}
 
         for jobKey, values in jobValues.items():
