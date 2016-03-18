@@ -52,7 +52,7 @@ class UserTests(BaseTest):
         self.logout()
         email = self.test_users["change_user_email"]
         self.setUpToken(email)
-        postJson = {"email": email, "name": "user", "agency": "agency", "title": "title", "password": "userPass"}
+        postJson = {"email": email, "name": "user", "agency": "agency", "title": "title", "password": self.user_password}
         response = self.app.post_json("/v1/register/", postJson)
         self.check_response(response, StatusCode.OK, "Registration successful")
 
@@ -70,9 +70,13 @@ class UserTests(BaseTest):
         """Test user registration with invalid email."""
         self.logout()
         self.setUpToken("user@agency.gov")
-        postJson = {"email": "fake@notreal.faux", "name": "user", "agency": "agency", "title":"title", "password": "userPass"}
-        response = self.app.post_json("/v1/register/", postJson, expect_errors=True)
-        self.check_response(response, StatusCode.CLIENT_ERROR, "No users with that email")
+        postJson = {"email": "fake@notreal.faux",
+                "name": "user", "agency": "agency",
+                "title":"title", "password": self.user_password}
+        response = self.app.post_json("/v1/register/",
+            postJson, expect_errors=True)
+        self.check_response(
+            response, StatusCode.CLIENT_ERROR, "No users with that email")
 
     def test_status_change(self):
         """Test user status change."""
@@ -113,11 +117,11 @@ class UserTests(BaseTest):
 
     def test_list_users(self):
         """Test getting user list by status."""
-        postJson = {"status": "awaiting_approval"}
+        postJson = {"status": "denied"}
         response = self.app.post_json("/v1/list_users_with_status/", postJson)
         self.check_response(response, StatusCode.OK)
         users = response.json["users"]
-        self.assertEqual(len(users), 4)
+        self.assertEqual(len(users), 1)
 
     def test_list_users_bad_status(self):
         """Test getting user list with invalid status."""
@@ -209,7 +213,7 @@ class UserTests(BaseTest):
         self.check_response(response, StatusCode.OK, "success")
         self.assertEqual(response.json["errorCode"], sesEmail.LINK_VALID)
 
-        postJson = {"user_email": email,"password": "pass"}
+        postJson = {"user_email": email, "password": self.user_password}
         response = self.app.post_json("/v1/set_password/", postJson)
         self.check_response(response, StatusCode.OK, "Password successfully changed")
         user = userDb.getUserByEmail(email)

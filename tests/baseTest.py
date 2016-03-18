@@ -39,8 +39,8 @@ class BaseTest(unittest.TestCase):
             test_users['approved_email'] = 'approved@agency.gov'
         if 'submission_email' not in test_users:
             test_users['submission_email'] = 'submission_test@agency.gov'
-        user_password = 'pass'
-        admin_password = 'approvedPass'
+        user_password = '!passw0rdUp!'
+        admin_password = '@pprovedPassw0rdy'
 
         #setup test users
         userEmails = ["user@agency.gov", "realEmail@agency.gov",
@@ -48,14 +48,14 @@ class BaseTest(unittest.TestCase):
             "watchingPaintDry@agency.gov", test_users["admin_email"],
             test_users["approved_email"], "nefarious@agency.gov"]
         userStatus = ["awaiting_confirmation",
-            "email_confirmed","awaiting_approval",
-            "awaiting_approval","awaiting_approval",
-            "approved","approved","denied"]
-        userPermissions = [0,AccountType.AGENCY_USER,
-            AccountType.AGENCY_USER,AccountType.AGENCY_USER,
+            "email_confirmed", "awaiting_approval",
+            "awaiting_approval", "awaiting_approval",
+            "approved", "approved", "denied"]
+        userPermissions = [0, AccountType.AGENCY_USER,
+            AccountType.AGENCY_USER, AccountType.AGENCY_USER,
             AccountType.AGENCY_USER,
             AccountType.WEBSITE_ADMIN+AccountType.AGENCY_USER,
-            AccountType.AGENCY_USER,AccountType.AGENCY_USER]
+            AccountType.AGENCY_USER, AccountType.AGENCY_USER]
 
         # Add new users
         userDb = UserHandler()
@@ -67,18 +67,17 @@ class BaseTest(unittest.TestCase):
             test_users["password_reset_email"], user_password, Bcrypt())
 
         # Create users for status testing
-        #TODO: remove hard-coded surrogate keys
         for index in range(len(userEmails)):
             email = userEmails[index]
             userDb.addUnconfirmedEmail(email)
             user = userDb.getUserByEmail(email)
-            userDb.changeStatus(user,userStatus[index])
-            userDb.setPermission(user,userPermissions[index])
+            userDb.changeStatus(user, userStatus[index])
+            userDb.setPermission(user, userPermissions[index])
 
         #set up approved user
         user = userDb.getUserByEmail(test_users['approved_email'])
         user.username = "approvedUser"
-        userDb.setPassword(user, user_password ,Bcrypt())
+        userDb.setPassword(user, user_password, Bcrypt())
         cls.approved_user_id = user.user_id
 
         #set up admin user
