@@ -624,7 +624,7 @@ Example output:
 
 
 #### Test Cases
-Before running test cases, start the Flask app by running `python app.py` in the `dataactbroker` folder. Alternatively, if using `pip install`, you can uses the server start command `sudo webbroker -s`. The current test suite for the validator may then be run by navigating to the `datatactbroker/tests` folder and running `python runTests.py`.
+Before running test cases, [make sure the validator is running](https://github.com/fedspendingtransparency/data-act-core/blob/master/doc/INSTALL.md#run-broker-backend-applications "run the DATA Act broker backend apps").
 
 To generate a test coverage report from the command line:
 
