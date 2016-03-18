@@ -49,7 +49,7 @@ We highly recommend creating a [Python virtual environment](https://virtualenv.r
 3. Tell virtualenvwrapper where on your machine to create virtual environments and add it to your profile. This is a one-time virtualenvwrapper setup step, and the process varies by operating system. [This tutorial](http://newcoder.io/begin/setup-your-machine/ "Python: setting up your computer") covers setting up virtualenvwrapper on OSX, Linux, and Windows.
 4. Create a virtual environment for the DATA Act software. In this example we've named the environment *data-act*, but you can call it anything: `mkvirtualenv data-act`.
 
-    **Note:** If you're running multiple versions of Python on your machine, you can make sure your data act environment is running the correct Python version by pointed to a specific library: `mkvirtualenv --python=[path to installed Python 2.7 executable] data-act`
+    **Note:** If you're running multiple versions of Python on your machine, you can make sure your data act environment is running the correct Python version by pointing to a specific binary: `mkvirtualenv --python=[path to installed Python 2.7 executable] data-act`
 
 5. You should see some output that looks similar to the example below. Essentially, this command creates and activates a new virtualenv named `data-act` with its own set of Python libraries.  Anything you pip install from this point forward will be installed into the *data-act* environment rather than your machine's global Python environment. Your command line prompt indicates which (if any) virtualenv is active.
 
