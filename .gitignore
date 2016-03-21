@@ -18,5 +18,5 @@ dataactbroker/validatorResponse
 dataactbroker/manager.json
 dataactbroker/config/*.json
 !*example*.json
-
+.coverage
 
