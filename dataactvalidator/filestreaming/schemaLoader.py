@@ -26,7 +26,7 @@ class SchemaLoader(object):
         database.removeRulesByFileType(fileTypeName)
         database.removeColumnsByFileType(fileTypeName)
         #Step 2 add the new fields
-        with open(schemaFileName) as csvfile:
+        with open(schemaFileName, 'rU') as csvfile:
             reader = csv.DictReader(csvfile)
             for record in reader:
                 record = FieldCleaner.cleanRecord(record)
