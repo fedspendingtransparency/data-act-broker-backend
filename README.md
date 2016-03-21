@@ -213,3 +213,33 @@ point at a logstash server.
 For the cloud environment, it is a best practice to use AWS roles for any EC2 instance running the Core. AWS roles provide a safe, automated key management mechanism to access and utilize AWS resources. At a minimum, the EC2 role should be granted Full S3 access permissions. Other repositories that use the core may have additional permissions required.
 
 For local installations, credentials should be managed by the AWS CLI. This process is part of the install guide, which will walk users through the process.
+
+# Database Migrations
+
+### Requirements
+1. credentials/dbCred.json is present and configured
+2. Alembic is installed
+
+Run the following to install all required packages:
+```bash
+$ pip install -r /path/to/requirements.txt
+```
+
+### Running Migrations
+After making updates to the models, run the following in ```dataactcore/``` to autogenerate the migration script:
+```bash
+$ alembic revision --autogenerate -m [file name]
+```
+[file name] should correspond to the changes made to the models, e.g., "create users table" or "add email column to users table". You will now see that a new file called ```[revision #]_[file name].py``` in ```dataactcore/migrations/versions/``` which contains the generated code for the database schema changes.
+
+Verify that the new revision file is making the intended alterations. Then run the following command in order to implement all new revisions:
+```bash
+$ alembic upgrade head
+```
+
+This will consequently update the table ```alembic_version``` with the latest revision number.
+
+In order to revert to a specific revision run the following, where [revision] corresponds to the revision to revert to:
+```bash
+$ alembic downgrade [revision]
+```
