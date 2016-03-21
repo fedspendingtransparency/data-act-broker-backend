@@ -79,7 +79,6 @@ class FileTypeTests(BaseTest):
         # TODO: introduce flexibility re: test file location
         SchemaLoader.loadFields("appropriations", "appropriationsFields.csv")
         SchemaLoader.loadRules("appropriations", "appropriationsRules.csv")
-        SchemaLoader.loadRules("appropriations", "appropriationsRules.csv")
         SchemaLoader.loadFields("program_activity", "programActivityFields.csv")
         SchemaLoader.loadFields("award_financial", "awardFinancialFields.csv")
         SchemaLoader.loadFields("award", "awardFields.csv")
