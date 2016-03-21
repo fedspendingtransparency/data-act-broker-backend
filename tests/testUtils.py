@@ -84,6 +84,17 @@ class TestUtils(object):
 
         TestUtils.assertHeader(response)
 
+        tableName = response.json()["table"]
+        if(type(stagingRows) == type(False) and not stagingRows):
+            assert(stagingDb.tableExists(tableName) == False)
+        else:
+            assert(stagingDb.tableExists(tableName) == True)
+            assert(stagingDb.countRows(tableName) == stagingRows), "".join(["numRows: ", str(stagingDb.countRows(tableName))])
+        errorInterface = interfaces.errorDb
+        if(errorStatus is not False):
+            assert(errorInterface.checkStatusByJobId(jobId) == errorInterface.getStatusId(errorStatus))
+            assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == numErrors), "".join(["numErrors: ", str(errorInterface.checkNumberOfErrorsByJobId(jobId))])
+
         if(fileSize != False):
             if TestUtils.LOCAL:
                 # TODO: check size of local error reports
@@ -91,19 +102,8 @@ class TestUtils(object):
                 assert(os.path.getsize(path) > fileSize - 5 )
                 assert(os.path.getsize(path) < fileSize + 5 )
             else:
-                assert(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)) > fileSize - 5)
-                assert(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)) < fileSize + 5)
-
-        tableName = response.json()["table"]
-        if(type(stagingRows) == type(False) and not stagingRows):
-            assert(stagingDb.tableExists(tableName) == False)
-        else:
-            assert(stagingDb.tableExists(tableName) == True)
-            assert(stagingDb.countRows(tableName) == stagingRows)
-        errorInterface = interfaces.errorDb
-        if(errorStatus is not False):
-            assert(errorInterface.checkStatusByJobId(jobId) == errorInterface.getStatusId(errorStatus))
-            assert(errorInterface.checkNumberOfErrorsByJobId(jobId) == numErrors)
+                assert(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)) > fileSize - 5), "".join(["filesize: ",str(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)))])
+                assert(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)) < fileSize + 5), "".join(["filesize: ",str(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)))])
         return True
 
     @staticmethod

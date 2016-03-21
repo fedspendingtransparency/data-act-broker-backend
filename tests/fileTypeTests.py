@@ -40,7 +40,6 @@ class FileTypeTests(unittest.TestCase):
 
             s3FileNameValid = TestUtils.uploadFile("appropValid.csv", user)
             s3FileNameMixed = TestUtils.uploadFile("appropMixed.csv", user)
-            s3FileNameTas = TestUtils.uploadFile("tasMixed.csv", user)
             s3FileNameProgramValid = TestUtils.uploadFile("programActivityValid.csv", user)
             s3FileNameProgramMixed = TestUtils.uploadFile("programActivityMixed.csv", user)
             s3FileNameAwardFinValid = TestUtils.uploadFile("awardFinancialValid.csv", user)
@@ -56,7 +55,6 @@ class FileTypeTests(unittest.TestCase):
             # Create jobs
             jobInfoList = {"valid":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[1]), s3FileNameValid, 3],
                        "mixed":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[2]), s3FileNameMixed, 3],
-                       "tas":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[3]), s3FileNameTas, 3],
                        "programValid":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[4]), s3FileNameProgramValid, 4],
                        "programMixed":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[5]), s3FileNameProgramMixed, 4],
                        "awardFinValid":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[6]), s3FileNameAwardFinValid, 2],
@@ -71,6 +69,7 @@ class FileTypeTests(unittest.TestCase):
                 job = TestUtils.addJob(*jobInfo)
                 jobId = job.job_id
                 self.jobIdDict[key] = jobId
+                self.jobIdDict["".join([key,"_sub"])] = self.jobTracker.getSubmissionId(jobId)
 
             # Save jobIdDict to file
             print(self.jobIdDict)
@@ -101,10 +100,12 @@ class FileTypeTests(unittest.TestCase):
     @staticmethod
     def load_definitions(interfaces):
         SchemaLoader.loadFields("appropriations","../dataactvalidator/config/appropFields.csv")
-        SchemaLoader.loadRules("appropriations","../dataactvalidator/config/appropRules.csv")
         SchemaLoader.loadFields("program_activity","../dataactvalidator/config/programActivityFields.csv")
         SchemaLoader.loadFields("award_financial","../dataactvalidator/config/awardFinancialFields.csv")
         SchemaLoader.loadFields("award","../dataactvalidator/config/awardFields.csv")
+        SchemaLoader.loadRules("appropriations","../dataactvalidator/config/appropRules.csv")
+        SchemaLoader.loadRules("program_activity","../dataactvalidator/config/programActivityRules.csv")
+        SchemaLoader.loadRules("award_financial","../dataactvalidator/config/awardFinancialRules.csv")
         if(interfaces.validationDb.session.query(TASLookup).count() == 0 or FileTypeTests.FORCE_TAS_LOAD):
             # TAS table is empty, load it
             print("Loading TAS")
@@ -113,47 +114,42 @@ class FileTypeTests(unittest.TestCase):
     def test_approp_valid(self):
         """ Test valid job """
         jobId = self.jobIdDict["valid"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",52,20,"complete",0,self)
+        self.passed = TestUtils.run_test(jobId,200,"finished",52,10,"complete",0,self)
 
     def test_approp_mixed(self):
         """ Test mixed job with some rows failing """
         jobId = self.jobIdDict["mixed"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",5606,15,"complete",47,self)
-
-    def test_tas_mixed(self):
-        """ Test TAS validation """
-        jobId = self.jobIdDict["tas"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",1597,2,"complete",5,self)
+        self.passed = TestUtils.run_test(jobId,200,"finished",5510,4,"complete",57,self)
 
     def test_program_valid(self):
         """ Test valid job """
         jobId = self.jobIdDict["programValid"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",52,29,"complete",0,self)
+        self.passed = TestUtils.run_test(jobId,200,"finished",52,10,"complete",0,self)
 
     def test_program_mixed(self):
         """ Test mixed job with some rows failing """
         jobId = self.jobIdDict["programMixed"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",14016,12,"complete",121,self)
+        self.passed = TestUtils.run_test(jobId,200,"finished",7712,4,"complete",77,self)
 
     def test_award_fin_valid(self):
         """ Test valid job """
         jobId = self.jobIdDict["awardFinValid"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",52,29,"complete",0,self)
+        self.passed = TestUtils.run_test(jobId,200,"finished",52,10,"complete",0,self)
 
     def test_award_fin_mixed(self):
         """ Test mixed job with some rows failing """
         jobId = self.jobIdDict["awardFinMixed"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",22571,15,"complete",178,self)
+        self.passed = TestUtils.run_test(jobId,200,"finished",7173,4,"complete",71,self)
 
     def test_award_valid(self):
         """ Test valid job """
         jobId = self.jobIdDict["awardValid"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",52,29,"complete",0,self)
+        self.passed = TestUtils.run_test(jobId,200,"finished",52,10,"complete",0,self)
 
     def test_award_mixed(self):
         """ Test mixed job with some rows failing """
         jobId = self.jobIdDict["awardMixed"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",38706,14,"complete",384,self)
+        self.passed = TestUtils.run_test(jobId,200,"finished",3185,7,"complete",44,self)
 
 
     def setUp(self):
