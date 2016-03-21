@@ -19,6 +19,11 @@ class LoginTests(BaseTest):
         assert(str(type(json))=="<type 'dict'>"), "json component is not a dict"
         # Test content of json
         assert(json["message"] == "Login successful"), "Incorrect content in json string"
+        assert("user_id" in json), "Mising User Id"
+        assert("title" in  json) , "Missing title"
+        assert("name" in json),  "Missing Name"
+        assert("agency"  in json), "Missing agency"
+        assert("permissions"  in json), "Missing permission"
 
     # Send login route call
     def session_route(self):

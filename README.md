@@ -9,8 +9,8 @@ dataactbroker/
 ```
 
 ##Scripts
-The `/dataactbroker/scripts` folder contains the install scripts needed to setup the Broker for a local install.  `configure.py` creates the various JSON files needed for running the Broker. The following three JSON files are created during
-the install process : `manager.json`, `web_api_configuration.json` and `credentials.json`. This script is called
+The `/dataactbroker/scripts` folder contains the install scripts needed to setup the Broker for a local install.  `configure.py` creates the various JSON files needed for running the Broker. The following JSON files are created during
+the install process : `manager.json` and `web_api_configuration.json`. The `configure.py` script is called
 by the `initialize` script. The script however, can be called by itself to setup the JSON.
 
 ```bash
@@ -27,16 +27,6 @@ sudo python configure.py
 }
 ```
 
-`credentials.json` contains users and passwords that the Broker uses to authenticate sessions. This file will be removed in later versions of the broker when user authentication is done with a database. The file has the following format, where any number of users can be added.
-
-```json
-{
-  "user1":"password1",
-  "user2":"password2"
-}
-```
-
-
 `web_api_configurations.json` contains data used by the Data Broker Flask application for setting ports and debug options. It has the following format:
 
 ```json
@@ -47,7 +37,9 @@ sudo python configure.py
   "port": 5000,
   "local_dynamo": false,
   "dynamo_port": 5000,
-  "create_credentials": true
+  "create_credentials": true,
+  "local" : false,
+  "local_folder": ""
 }
 ```
 
@@ -64,24 +56,26 @@ sudo python configure.py
 | frontend_url  | The URL for the React front end|
 | security_key  | The key used to make hashes by the application|
 | system_email  | The from email address  used by the system for automated emails|
+| local | If a local install is being used |
+|local_folder| the path for system created files for local installs only|
 
 The `initialize` script provides users with these choices during the install process. See the [Broker Install Guide](#install-guide) for more information.
 
 ##Handlers
 The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py` and `fileRoutes.py` files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in. If user is not logged in to the system, a 401 HTTP error will be returned. This tag is defined in `dataactbroker/permissions.py`. Cookies are used to keep track of sessions for the end user. Only a UUID is stored in the cookie.
 
-`AccountHandler.py` contains the functions to check logins and to log users out. Currently, `credentials.json` defines which users exist within the system. This file is automatically created during the installation process.
+`AccountHandler.py` contains the functions to check logins and to log users out.
 
 `FileHandler.py` contains functions for managing user file interaction. It creates all of the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
 
 In addition to these helper objects, the following sub classes also exist within the directory: `UserHandler`, `JobHandler`, and `ErrorHandler`. These classes extend the database connection objects that are located in the Core Repository. Extra query methods exist in these classes that are used exclusively by the Broker API.
 
 
-#AWS Setup
+# AWS Setup
 In order to use the DATA Act Broker, additional AWS permissions and configurations are
 required in addition to those listed in the [DATA ACT Core README](https://github.com/fedspendingtransparency/data-act-core/blob/development/README.md).
 
-##DynamoDB
+## DynamoDB
 The DATA Act Broker uses AWS DynamoDB for session handling. This provides a fast and reliable methodology to check sessions in the cloud. Users can easily bounce between servers with no impact to their session.
 
 The install script seen in the [Broker Install Guide](#install-guide) provides an option to create the database automatically. This, however, assumes the user has the proper AWS Credentials to perform the operation. If you wish to create the database manually, it needs to be set up to have the following attributes:
@@ -111,7 +105,7 @@ The EC2 instance running the broker should be granted read/write permissions to 
 ```
 The `REGION` should be replaced with region of the AWS account and the `ACCOUNT_ID` should be replaced with the AWS account ID.
 
-###Local Version
+### Local Version
 
 It is possible to set up DynamoDB locally. This requires Java JDK 6 or higher to be installed, which can be done using the following command on Red Hat based systems:
 
@@ -192,7 +186,12 @@ Example output:
 
 ```json
 {
-    "message": "Login successful"
+    "message": "Login successful",
+    "user_id": 42,
+    "name": "John",
+    "title":"Developer",
+    "agency": "Department of Labor",
+    "permissions" : [0,1]
 }
 ```
 
@@ -239,6 +238,7 @@ Example output:
 {
     "user_id": 42,
     "name": "John",
+    "title":"Developer",
     "agency": "Department of Labor",
     "permissions" : [0,1]
 }
@@ -476,10 +476,34 @@ Example output:
 ```
 
 
-##File Routes
+## File Routes
+
+#### GET "/"
+This route confirms that the broker is running
+
+Example input: None
+Example output: "Broker is running"
+
+#### GET "/<filename>"
+This path will return files located in the local folder. This path is only accessible for local installs due
+to security reasons.
+
+Example Route `/Users/serverdata/test.csv`  for example will return the `test.csv` if the local folder points
+to `/Users/serverdata`.
+
+#### POST "/v1/local_upload/"
+Input for this route should be a post form with the key of `file` where the uploaded file is located. This route **only** will
+return a success for local installs for security reasons. Upon successful upload, file path will be returned.
+
+Example Output:
+```json    
+{
+   "path": "/User/localuser/server/1234_filename.csv"
+}
+```
 
 #### POST "/v1/submit_files/"
-This route is used to retrieve S3 URLs to upload files. Data should be either JSON or form-urlencoded with keys: ["appropriations", "award\_financial", "award", "procurement"], each with a filename as a value.
+This route is used to retrieve S3 URLs to upload files. Data should be either JSON or form-urlencoded with keys: ["appropriations", "award\_financial", "award", "program\_activity"], each with a filename as a value.
 
 This route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key\_id containing the job id. A returning submission\_id will also exist which acts as identifier for the submission.
 
@@ -495,7 +519,7 @@ Example input:
   "appropriations":"appropriations.csv",
   "award_financial":"award_financial.csv",
   "award":"award.csv",
-  "procurement":"procurement.csv"
+  "program_activity":"program_activity.csv"
 
 }
 ```
@@ -517,8 +541,8 @@ Example output:
   "award_financial_id": 102,
   "award_financial_key": "2/1453474327_award_financial.csv",
 
-  "procurement_id": 103,
-  "procurement_key": "2/1453474333_procurement.csv",
+  "program_activity_id": 103,
+  "program_activity_key": "2/1453474333_program_activity.csv",
 
   "credentials": {
     "SecretAccessKey": "ABCDEFG",
@@ -603,7 +627,7 @@ Example output:
 Before running test cases, start the Flask app by running `python app.py` in the `dataactbroker` folder. Alternatively, if using `pip install`, you can uses the server start command `sudo webbroker -s`. The current test suite for the validator may then be run by navigating to the `datatactbroker/tests folder` and running `python runTests.py`.
 
 
-#Install Guide
+# Install Guide
 
 ## Requirements
 

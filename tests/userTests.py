@@ -42,7 +42,7 @@ class UserTests(BaseTest):
         email = UserTests.CONFIG["change_user_email"]
         self.setUpToken(email)
 
-        input = '{"email":"'+email+'","name":"user","agency":"agency","title":"title","password":"userPass"}'
+        input = '{"email":"'+email+'","name":"user","agency":"agency","title":"title","password":"user1Pass!"}'
         self.response = self.utils.postRequest("/v1/register/",input)
         self.utils.checkResponse(self.response,StatusCode.OK,"Registration successful")
         self.passed = True
@@ -58,7 +58,7 @@ class UserTests(BaseTest):
     def test_registration_bad_email(self):
         self.utils.logout()
         self.setUpToken("user@agency.gov")
-        input = '{"email":"fake@notreal.faux","name":"user","agency":"agency","title":"title","password":"userPass"}'
+        input = '{"email":"fake@notreal.faux","name":"user","agency":"agency","title":"title","password":"user1Pass!"}'
         self.response = self.utils.postRequest("/v1/register/",input)
         self.utils.checkResponse(self.response,StatusCode.CLIENT_ERROR,"No users with that email")
         self.passed = True
@@ -201,7 +201,7 @@ class UserTests(BaseTest):
         assert(self.response.json()["message"]== "success")
         assert(self.response.json()["errorCode"]== sesEmail.LINK_VALID)
 
-        json = '{"user_email":"'+email+'","password":"pass"}'
+        json = '{"user_email":"'+email+'","password":"passPass1!"}'
         self.response = self.utils.postRequest("/v1/set_password/",json)
         self.utils.checkResponse(self.response,StatusCode.OK)
         assert(self.response.json()["message"]== "Password successfully changed")

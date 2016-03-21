@@ -24,7 +24,7 @@ class FileTests(BaseTest):
     submissionId = None
     passed = False
     finalizePassed = True
-
+    IS_LOCAL = True
     def __init__(self,methodName,interfaces):
         """ Run scripts to clear the job tables and populate with a defined test set """
         super(FileTests,self).__init__(methodName=methodName)
@@ -56,7 +56,7 @@ class FileTests(BaseTest):
             jobValues["externalWaiting"] = [1,1,5]
             jobValues["awardFin"] = [2,2,2]
             jobValues["appropriations"] = [3,2,2]
-            jobValues["procurement"] = [4,2,2]
+            jobValues["program_activity"] = [4,2,2]
             self.jobIdDict = {}
 
             for jobKey, values in jobValues.items():
@@ -89,7 +89,7 @@ class FileTests(BaseTest):
 
     def call_file_submission(self):
         # If fileResponse doesn't exist, send the request
-        fileJson = '{"appropriations":"test1.csv","award_financial":"test2.csv","award":"test3.csv","procurement":"test4.csv"}'
+        fileJson = '{"appropriations":"test1.csv","award_financial":"test2.csv","award":"test3.csv","program_activity":"test4.csv"}'
         if(self.fileResponse == None):
             self.utils.login()
             self.fileResponse = self.utils.postRequest("/v1/submit_files/",fileJson)
@@ -104,20 +104,29 @@ class FileTests(BaseTest):
         assert("Content-Type" in self.fileResponse.headers)
         assert(self.fileResponse.headers["Content-Type"]=="application/json")
         # Test message parts for urls
-        assert("_test1.csv" in self.fileResponse.json()["appropriations_key"] )
-        assert("_test2.csv" in self.fileResponse.json()["award_financial_key"])
-        assert("_test3.csv" in self.fileResponse.json()["award_key"])
-        assert("_test4.csv" in self.fileResponse.json()["procurement_key"])
+
+        if(not self.IS_LOCAL):
+            assert("_test1.csv" in self.fileResponse.json()["appropriations_key"] )
+            assert("_test2.csv" in self.fileResponse.json()["award_financial_key"])
+            assert("_test3.csv" in self.fileResponse.json()["award_key"])
+            assert("_test4.csv" in self.fileResponse.json()["program_activity_key"])
+        else:
+            assert("test1.csv" in self.fileResponse.json()["appropriations_key"] )
+            assert("test2.csv" in self.fileResponse.json()["award_financial_key"])
+            assert("test3.csv" in self.fileResponse.json()["award_key"])
+            assert("test4.csv" in self.fileResponse.json()["program_activity_key"])
 
         for requiredField in ["AccessKeyId","SecretAccessKey","SessionToken","SessionToken"] :
             assert(len(self.fileResponse.json()["credentials"][requiredField]) > 0)
 
         assert(len(self.fileResponse.json()["bucket_name"]) > 0)
 
-        self.uploadFileByURL("/"+self.fileResponse.json()["appropriations_key"],"test1.csv")
+        if(not self.IS_LOCAL):
+            self.uploadFileByURL("/"+self.fileResponse.json()["appropriations_key"],"test1.csv")
+
         # Test that job ids are returned
         responseDict = self.fileResponse.json()
-        idKeys = ["procurement_id", "award_id", "award_financial_id", "appropriations_id"]
+        idKeys = ["program_activity_id", "award_id", "award_financial_id", "appropriations_id"]
         for key in idKeys:
             assert(key in responseDict)
             try:
@@ -168,7 +177,7 @@ class FileTests(BaseTest):
     def check_error_route(self,jobId,submissonId) :
         jobJson = json.dumps({"upload_id":jobId})
         urlData = self.utils.postRequest("/v1/job_error_report/",jobJson)
-        assert("submission_"+str(submissonId)+"_procurement_error_report" in urlData.json()["error_url"] )
+        assert("submission_"+str(submissonId)+"_program_activity_error_report" in urlData.json()["error_url"] )
         assert("?Signature" in urlData.json()["error_url"] )
         assert("&AWSAccessKeyId" in urlData.json()["error_url"])
 
@@ -198,29 +207,6 @@ class FileTests(BaseTest):
         assert(bytesWritten > 0)
         return s3FileName
 
-
-    @staticmethod
-    def uploadFile(filename, user, s3FileName = None):
-        """ Upload file to S3 and return S3 filename"""
-        # Get bucket name
-        bucketName =  s3UrlHandler.getValueFromConfig("bucket")
-
-        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        fullPath = path + "/" + filename
-
-        if(s3FileName == None):
-            # Create file names for S3
-            s3FileName = str(user) + "/" + filename
-
-
-        # Use boto to put files on S3
-        s3conn = S3Connection()
-        key = Key(s3conn.get_bucket(bucketName))
-        key.key = s3FileName
-        bytesWritten = key.set_contents_from_filename(fullPath)
-
-        assert(bytesWritten > 0)
-        return s3FileName
 
     def test_error_report(self):
         # Will only pass if specific submission ID is entered after validator unit tests have been run to generate the error reports
