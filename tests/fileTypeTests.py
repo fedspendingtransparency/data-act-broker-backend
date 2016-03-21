@@ -63,16 +63,17 @@ class FileTypeTests(unittest.TestCase):
                        "awardMixed":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[9]), s3FileNameAwardMixed, 1]}
 
             self.jobIdDict = {}
+            self.subIdDict = {}
             for key in jobInfoList:
                 jobInfo = jobInfoList[key] # Done this way to be compatible with python 2 and 3
                 jobInfo.append(self.jobTracker.session)
                 job = TestUtils.addJob(*jobInfo)
                 jobId = job.job_id
                 self.jobIdDict[key] = jobId
-                self.jobIdDict["".join([key,"_sub"])] = self.jobTracker.getSubmissionId(jobId)
+                self.subIdDict[key] = self.jobTracker.getSubmissionId(jobId)
 
             # Save jobIdDict to file
-            print(self.jobIdDict)
+            print(self.subIdDict)
             open(self.JOB_ID_FILE,"w").write(json.dumps(self.jobIdDict))
 
             # Load fields and rules

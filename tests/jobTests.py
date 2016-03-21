@@ -85,6 +85,7 @@ class JobTests(unittest.TestCase):
                 csvFiles[key]["s3Filename"] = TestUtils.uploadFile(csvFiles[key]["filename"],user)
 
             self.jobIdDict = {}
+            self.subIdDict = {}
 
             sqlStatements = []
             print("Inserting jobs")
@@ -95,8 +96,9 @@ class JobTests(unittest.TestCase):
                     # Failed to commit job correctly
                     raise Exception("".join(["Job for ", str(key), " did not get an id back"]))
                 self.jobIdDict[key] = job.job_id
+                self.subIdDict[key] = self.jobTracker.getSubmissionId(job.job_id)
 
-            print(str(self.jobIdDict))
+            print(str(self.subIdDict))
             # Last job number
             minJob = min(self.jobIdDict.values())
             lastJob = max(self.jobIdDict.values())
@@ -231,16 +233,10 @@ class JobTests(unittest.TestCase):
 
 
     def test_bad_header(self):
-        """ Test bad header value in first row """
+        """ Test bad header value in first row, should now just be ignored """
         jobId = self.jobIdDict["bad_header"]
-        if TestUtils.USE_THREADS:
-            status = 200
-        else:
-            status = 400
-        self.passed = TestUtils.run_test(jobId,status,"invalid",False,False,"bad_header_error",0,self)
-
-        if not TestUtils.USE_THREADS:
-            assert(self.response.json()["message"] == "Header : walrus not in CSV schema")
+        status = 200
+        self.passed = TestUtils.run_test(jobId,status,"finished",52,1,"complete",0,self)
 
     def test_many_rows(self):
         """ Test many rows """

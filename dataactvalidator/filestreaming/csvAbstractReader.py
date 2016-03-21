@@ -46,12 +46,15 @@ class CsvAbstractReader(object):
             for cell in row :
                 headerValue = FieldCleaner.cleanString(cell)
                 if( not headerValue in possibleFields) :
-                    raise ResponseException(("".join(["Header : ",headerValue," not in CSV schema"])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.badHeaderError)
-                if(possibleFields[headerValue] == 1) :
+                    # Allow unexpected headers, just mark the header as None so we skip it when reading
+                    self.headerDictionary[(current)] = None
+                    current += 1
+                elif(possibleFields[headerValue] == 1) :
                     raise ResponseException(("".join(["Header : ",headerValue," is duplicated"])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.duplicateError)
-                self.headerDictionary[(current)] = headerValue
-                possibleFields[headerValue]  = 1
-                current += 1
+                else:
+                    self.headerDictionary[(current)] = headerValue
+                    possibleFields[headerValue]  = 1
+                    current += 1
         self.columnCount = current
         #Check that all required fields exists
         for schema in csvSchema :
@@ -74,7 +77,11 @@ class CsvAbstractReader(object):
                 if(cell == ""):
                     # Use None instead of empty strings for sqlalchemy
                     cell = None
-                returnDict[self.headerDictionary[current]] = cell
+                if self.headerDictionary[current] is None:
+                    # Skip this column as it is unknown
+                    continue
+                else:
+                    returnDict[self.headerDictionary[current]] = cell
         return returnDict
 
     def close(self):
