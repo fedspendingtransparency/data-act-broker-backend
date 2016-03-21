@@ -8,7 +8,7 @@ dataactbroker/
 └── handlers/       (Route handlers)
 ```
 
-##Scripts
+## Scripts
 The `/dataactbroker/scripts` folder contains the install scripts needed to setup the Broker for a local install.  `configure.py` creates the various JSON files needed for running the Broker. The following JSON files are created during
 the install process : `manager.json` and `web_api_configuration.json`. The `configure.py` script is called
 by the `initialize` script. The script however, can be called by itself to setup the JSON.
@@ -624,8 +624,13 @@ Example output:
 
 
 #### Test Cases
-Before running test cases, start the Flask app by running `python app.py` in the `dataactbroker` folder. Alternatively, if using `pip install`, you can uses the server start command `sudo webbroker -s`. The current test suite for the validator may then be run by navigating to the `datatactbroker/tests folder` and running `python runTests.py`.
+Before running test cases, [make sure the validator is running](https://github.com/fedspendingtransparency/data-act-core/blob/master/doc/INSTALL.md#run-broker-backend-applications "run the DATA Act broker backend apps").
 
+To generate a test coverage report from the command line:
+
+1. Make sure you're in the main project folder (`data-act-broker`).
+2. Run the tests using the `coverage` command: `coverage run tests/runTests.py`.
+3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
 
 # Install Guide
 
