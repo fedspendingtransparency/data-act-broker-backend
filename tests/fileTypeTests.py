@@ -100,11 +100,11 @@ class FileTypeTests(unittest.TestCase):
 
     @staticmethod
     def load_definitions(interfaces):
-        SchemaLoader.loadFields("appropriations","appropriationsFields.csv")
-        SchemaLoader.loadRules("appropriations","appropriationsRules.csv")
-        SchemaLoader.loadFields("program_activity","programActivityFields.csv")
-        SchemaLoader.loadFields("award_financial","awardFinancialFields.csv")
-        SchemaLoader.loadFields("award","awardFields.csv")
+        SchemaLoader.loadFields("appropriations","../dataactvalidator/config/appropFields.csv")
+        SchemaLoader.loadRules("appropriations","../dataactvalidator/config/appropRules.csv")
+        SchemaLoader.loadFields("program_activity","../dataactvalidator/config/programActivityFields.csv")
+        SchemaLoader.loadFields("award_financial","../dataactvalidator/config/awardFinancialFields.csv")
+        SchemaLoader.loadFields("award","../dataactvalidator/config/awardFields.csv")
         if(interfaces.validationDb.session.query(TASLookup).count() == 0 or FileTypeTests.FORCE_TAS_LOAD):
             # TAS table is empty, load it
             print("Loading TAS")

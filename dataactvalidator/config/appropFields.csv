@@ -1,0 +1,28 @@
+fieldname,required,data_type,field_length,rule_labels
+allocationtransferagencyidentifier,false,str,3,A1
+agencyidentifier,true,str,3,A1
+beginningperiodofavailability,false,str,4,A1
+endingperiodofavailability,false,str,4,A1
+availabilitytypecode,false,str,1,A1
+mainaccountcode,true,str,4,A1
+subaccountcode,true,str,3,A1
+budgetauthorityavailableamounttotal_fyb,true,float,100,A6
+budgetauthorityavailableamounttotal_cpe,true,float,100,"A2, A7"
+budgetauthorityunobligatedbalancebroughtforward_fyb,true,float,100,A8
+budgetauthorityunobligatedbalancebroughtforward_cpe,true,float,100,"A2, A9"
+budgetauthorityappropriatedamount_fyb,true,float,100,A10
+budgetauthorityappropriatedamount_cpe,true,float,100,"A2, A11"
+otherbudgetaryresourcesamount_fyb,true,float,100,
+otherbudgetaryresourcesamount_cpe,true,float,100,"A2, A3"
+contractauthorityamounttotal_fyb,true,float,100,A12
+contractauthorityamounttotal_cpe,true,float,100,"A3, A13"
+borrowingauthorityamounttotal_fyb,true,float,100,A14
+borrowingauthorityamounttotal_cpe,true,float,100,"A3, A15"
+spendingauthorityfromoffsettingcollectionsamounttotal_fyb,true,float,100,A16
+spendingauthorityfromoffsettingcollectionsamounttotal_cpe,true,float,100,"A3, A17"
+budgetauthorityadjustmentstotal_cpe,true,float,100,"A2, A18"
+availableforobligationamounttotal_cpe,true,float,100,A4
+obligationsincurredtotal_cpe,true,float,100,"A4, A5"
+unpaidobligationsbytas_cpe,true,float,100,"A5, B1, A20"
+outlayamountbytas_cpe,true,float,100,"A5, B5, A21"
+unobligatedbalance_cpe,true,float,100,"A4, A22"

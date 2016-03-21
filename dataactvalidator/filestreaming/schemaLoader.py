@@ -25,6 +25,7 @@ class SchemaLoader(object):
         database = ValidatorValidationInterface()
         database.removeRulesByFileType(fileTypeName)
         database.removeColumnsByFileType(fileTypeName)
+
         #Step 2 add the new fields
         with open(schemaFileName) as csvfile:
             reader = csv.DictReader(csvfile)
@@ -56,9 +57,21 @@ class SchemaLoader(object):
         for record in reader:
             if(FieldCleaner.cleanString(record["is_single_field"]) == "true"):
                 # Find column ID based on field name
-                columnId = validationDb.getColumnId(FieldCleaner.cleanString(record["field_name"]),fileTypeName)
+                try:
+                    columnId = validationDb.getColumnId(FieldCleaner.cleanString(record["field_name"]),fileTypeName)
+                except Exception as e:
+                    print("Failed on field " + FieldCleaner.cleanString(record["field_name"]) + " and file " + fileTypeName)
+                    raise e
                 # Write to rule table
                 validationDb.addRule(columnId,record["rule_type"],record["rule_text_one"],record["description"])
             else:
                 # Write to multi_field_rule table
                 validationDb.addMultiFieldRule(fileId,record["rule_type"],record["rule_text_one"],record["rule_text_two"],record["description"])
+
+if __name__ == '__main__':
+    # Load field definitions and rules into validation DB
+    SchemaLoader.loadFields("appropriations","../config/appropFields.csv")
+    SchemaLoader.loadFields("award","../config/awardFields.csv")
+    SchemaLoader.loadFields("award_financial","../config/awardFinancialFields.csv")
+    SchemaLoader.loadFields("program_activity","../config/programActivityFields.csv")
+    # TODO load rules files

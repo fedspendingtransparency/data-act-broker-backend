@@ -25,3 +25,8 @@ dataactvalidator/scripts/clearRules.py
 dataactvalidator/databaseErrors.log
 dataactvalidator/scripts/dropAll.py
 dataactvalidator/validator_configuration.json
+dataactvalidator/scripts/appropFieldsRaw.csv
+dataactvalidator/scripts/awardFieldsRaw.csv
+dataactvalidator/scripts/awardFinancialFieldsRaw.csv
+dataactvalidator/scripts/programActivityFieldsRaw.csv
+tests/appropFieldsRaw.csv
