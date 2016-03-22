@@ -17,7 +17,7 @@ class BaseInterface(object):
     IS_FLASK = True
     dbConfigFile = None # Should be overwritten by child classes
     dbName = None # Should be overwritten by child classes
-    credFileName = None
+    credFileName = "dbCred.json"
     logFileName = "dbErrors.log"
 
     def __init__(self):
