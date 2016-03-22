@@ -12,3 +12,4 @@ logstash==0.1.dev0
 uwsgi==2.0.12
 awscli==1.10.10
 supervisor==3.2.2
+alembic==0.8.5
