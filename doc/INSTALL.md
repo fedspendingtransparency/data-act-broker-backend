@@ -79,8 +79,6 @@ Assuming that you already have an AWS account, [create an AWS S3 bucket](http://
 
 The broker tracks sessions in an Amazon DynamoDB table. If you'd like to use DynamoDB in the cloud with your AWS account, you can skip this section.
 
-**TODO:** There are no OSX/Windows instructions for this. Have we tested the local DynamoDB option on those OSs? Is there a good link for install instructions?
-
 Otherwise, you'll need to set up a local version of DynamoDB. This requires Java JDK 6 or higher to be installed, which can be done using the following command on Red Hat based systems:
 
 
@@ -101,8 +99,6 @@ Don't worry about creating tables in DynamoDB: the broker's [initialization proc
 ## Set Up AWS Permissions and Credentials
 
 ### Create S3 Only Role
-
-**TODO:** Does the paragraph below make sense in a world where users looking to install the broker within their agencies might not be running the broker on an EC2 instance? Can we strike the paragraph? Throughout this section, can we replace _EC2 instance_ with more universal wording (_i.e._ that applies to people using their own web server or machine to run the broker)?
 
 When storing files on S3, it is a best practice to use AWS roles with the DATA Act broker. AWS roles provide a safe, automated key management mechanism to access and use AWS resources. At a minimum, this role should be granted Full S3 access permissions.
 
@@ -214,7 +210,6 @@ You will now answer a series of questions to guide you through broker configurat
 * `Would you like to enable server side debugging`: `y` to turn on debug mode for the Flask server
 * `Would you like to enable debug traces on REST requests`: `y` to provide debug output for REST responses
 * `Enter the allowed origin (website that will allow for CORS)`: the URL that cross-origin HTTP requests are enabled on.
-**TODO:** Is there advice we can give to a new user that isn't `*`?
 * `url` for the DATA Act validator: the url where you will be running the validator service
 * `Enter system e-mail address`: the e-mail used by the broker for automated e-mails
 * `Enter the port for the local dynamo database`: the local port used for your dynamo database (e.g., `8000`)
