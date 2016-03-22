@@ -1,11 +1,14 @@
+import os
 from csv import Error
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
-from dataactvalidator.filestreaming.csvReader import CsvReader
-from dataactvalidator.filestreaming.csvWriter import CsvWriter
+from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
+from dataactvalidator.filestreaming.csvLocalReader import CsvLocalReader
+from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
+from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
@@ -19,9 +22,11 @@ class ValidationManager:
     """
     reportHeaders = ["Field name", "Error message", "Row number", "Value provided"]
 
-    def __init__(self):
+    def __init__(self,isLocal =True,directory=""):
         # Initialize instance variables
         self.filename = ""
+        self.isLocal = isLocal
+        self.directory = directory
 
     @staticmethod
     def markJob(jobId,jobTracker,status,errorDb,filename = None, fileError = ValidationError.unknownError) :
@@ -108,6 +113,27 @@ class ValidationManager:
         finally:
             interfaces.close()
 
+    def getReader(self):
+        """
+        Gets the reader type based on if its local install or not.
+        """
+        if(self.isLocal):
+            return CsvLocalReader()
+        return CsvS3Reader()
+
+    def getWriter(self,bucketName,fileName,header):
+        """
+        Gets the write type based on if its a local install or not.
+        """
+        if(self.isLocal):
+            return CsvLocalWriter(fileName,header)
+        return CsvS3Writer(bucketName,fileName,header)
+
+    def getFileName(self,path):
+        if(self.isLocal):
+            return "".join([self.directory,path])
+        return "".join(["errors/",path])
+
     def runValidation(self, jobId, interfaces):
         """ Run validations for specified job
 
@@ -121,76 +147,84 @@ class ValidationManager:
         jobTracker = interfaces.jobDb
         rowNumber = 1
         fileType = jobTracker.getFileType(jobId)
+        # If local, make the error report directory
+        if(self.isLocal and not os.path.exists(self.directory)):
+            os.makedirs(self.directory)
         # Get bucket name and file name
         fileName = jobTracker.getFileName(jobId)
         self.filename = fileName
         bucketName = s3UrlHandler.getValueFromConfig("bucket")
-        errorFileName = "".join(["errors/",jobTracker.getReportPath(jobId)])
+        errorFileName = self.getFileName(jobTracker.getReportPath(jobId))
 
         validationDB = interfaces.validationDb
         fieldList = validationDB.getFieldsByFileList(fileType)
         csvSchema  = validationDB.getFieldsByFile(fileType)
         rules = validationDB.getRulesByFile(fileType)
-        # Pull file from S3
-        reader = CsvReader()
-        reader.openFile(bucketName, fileName,fieldList)
-        # Create staging table
-        # While not done, pull one row and put it into staging if it passes
-        # the Validator
-        tableName = interfaces.stagingDb.getTableName(jobId)
-        tableObject = StagingTable(interfaces)
-        tableObject.createTable(fileType,fileName,jobId,tableName)
-        errorInterface = interfaces.errorDb
 
-        with CsvWriter(bucketName, errorFileName, self.reportHeaders) as writer:
-            while(not reader.isFinished):
-                rowNumber += 1
-                #if (rowNumber % 1000) == 0:
-                #    print("Validating row " + str(rowNumber))
-                try :
-                    record = reader.getNextRecord()
-                    if(reader.isFinished and len(record) < 2):
-                        # This is the last line and is empty, don't record an error
-                        break
-                except ResponseException as e:
-                    if(not (reader.isFinished and reader.extraLine) ) :
-                        #Last line may be blank dont throw an error
-                        writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber), ""])
-                        errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
-                    continue
-                valid, failures = Validator.validate(record,rules,csvSchema,fileType,interfaces)
-                if(valid) :
-                    try:
-                        tableObject.insert(record)
+        reader = self.getReader()
+        try:
+            # Pull file
+            reader.openFile(bucketName, fileName,fieldList)
+            # Create staging table
+            # While not done, pull one row and put it into staging if it passes
+            # the Validator
+            tableName = interfaces.stagingDb.getTableName(jobId)
+            tableObject = StagingTable(interfaces)
+            tableObject.createTable(fileType,fileName,jobId,tableName)
+            errorInterface = interfaces.errorDb
+
+            with self.getWriter(bucketName, errorFileName, self.reportHeaders) as writer:
+                while(not reader.isFinished):
+                    rowNumber += 1
+                    #if (rowNumber % 1000) == 0:
+                    #    print("Validating row " + str(rowNumber))
+                    try :
+                        record = reader.getNextRecord()
+                        if(reader.isFinished and len(record) < 2):
+                            # This is the last line and is empty, don't record an error
+                            break
                     except ResponseException as e:
-                        # Write failed, move to next record
-                        writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber),""])
-                        errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.writeError,rowNumber)
+                        if(not (reader.isFinished and reader.extraLine) ) :
+                            #Last line may be blank dont throw an error
+                            writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber), ""])
+                            errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
                         continue
-
-                else:
-                    # For each failure, record it in error report and metadata
-                    for failure in failures:
-                        fieldName = failure[0]
-                        error = failure[1]
-                        failedValue = failure[2]
+                    valid, failures = Validator.validate(record,rules,csvSchema,fileType,interfaces)
+                    if(valid) :
                         try:
-                            # If error is an int, it's one of our prestored messages
-                            errorType = int(error)
-                            errorMsg = ValidationError.getErrorMessage(errorType)
-                        except ValueError:
-                            # If not, treat it literally
-                            errorMsg = error
-                        writer.write([fieldName,errorMsg,str(rowNumber),failedValue])
-                        errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber)
-            # Write unfinished batch
-            writer.finishBatch()
+                            tableObject.insert(record)
+                        except ResponseException as e:
+                            # Write failed, move to next record
+                            writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber),""])
+                            errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.writeError,rowNumber)
+                            continue
 
-        # Write leftover records
-        tableObject.endBatch()
-        # Mark validation as finished in job tracker
-        jobTracker.markStatus(jobId,"finished")
-        errorInterface.writeAllRowErrors(jobId)
+                    else:
+                        # For each failure, record it in error report and metadata
+                        for failure in failures:
+                            fieldName = failure[0]
+                            error = failure[1]
+                            failedValue = failure[2]
+                            try:
+                                # If error is an int, it's one of our prestored messages
+                                errorType = int(error)
+                                errorMsg = ValidationError.getErrorMessage(errorType)
+                            except ValueError:
+                                # If not, treat it literally
+                                errorMsg = error
+                            writer.write([fieldName,errorMsg,str(rowNumber),failedValue])
+                            errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber)
+                # Write unfinished batch
+                writer.finishBatch()
+
+            # Write leftover records
+            tableObject.endBatch()
+            # Mark validation as finished in job tracker
+            jobTracker.markStatus(jobId,"finished")
+            errorInterface.writeAllRowErrors(jobId)
+        finally:
+            #ensure the file always closes
+            reader.close()
         return True
 
     def validateJob(self, request,interfaces):

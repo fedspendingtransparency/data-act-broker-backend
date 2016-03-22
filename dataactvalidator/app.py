@@ -26,7 +26,15 @@ def runApp():
         #stagingDb = InterfaceHolder.STAGING
         #validaitonDb = InterfaceHolder.VALIDATION
 
-        validationManager = ValidationManager()
+        def getAppConfiguration():
+            """Gets the JSON for configuring the validator """
+            path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+            configFile = path + "/validator_configuration.json"
+            return json.loads(open(configFile,"r").read())
+
+        config = getAppConfiguration()
+        
+        validationManager = ValidationManager(config["local"],config["server_directory"])
 
         @app.route("/",methods=["GET"])
         def testApp():
@@ -40,7 +48,7 @@ def runApp():
             @copy_current_request_context
             def ThreadedFunction (arg) :
                     """The new thread"""
-                    threadedManager = ValidationManager()
+                    threadedManager = ValidationManager(config["local"],config["server_directory"])
                     threadedManager.threadedValidateJob(arg)
 
             try :
@@ -55,7 +63,7 @@ def runApp():
                 return JsonResponse.error(exc,exc.status,table= "cannot connect to job database")
 
             jobId = None
-            manager = ValidationManager()
+            manager = ValidationManager(config["local"],config["server_directory"])
 
             try:
                 jobId = manager.getJobID(request)
@@ -111,18 +119,16 @@ def runApp():
                 interfaces.close()
 
 
-        def getAppConfiguration():
-            """Gets the JSON for configuring the validator """
-            path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-            configFile = path + "/validator_configuration.json"
-            return json.loads(open(configFile,"r").read())
 
-        config = getAppConfiguration()
+
         JsonResponse.debugMode = config["rest_trace"]
-        app.run(debug=config["server_debug"],threaded=True,host=config["host"],port=int(config["port"]))
+        if __name__ == "__main__":
+            app.run(debug=config["server_debug"],threaded=True,host=config["host"],port=int(config["port"]))
+        return app
     except Exception as e:
         trace = traceback.extract_tb(sys.exc_info()[2], 10)
+        print trace
         CloudLogger.logError('Validator App Level Error: ',e,trace)
 
-if __name__ == '__main__':
-    runApp()
+if __name__ == "__main__" or __name__[0:5] == "uwsgi":
+    app = runApp()
