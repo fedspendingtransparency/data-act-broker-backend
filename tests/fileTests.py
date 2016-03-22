@@ -59,10 +59,10 @@ class FileTests(BaseTest):
         self.assertEqual(response.headers.get("Content-Type"), "application/json")
 
         json = response.json
-        self.assertIn("_test1.csv", json["appropriations_key"])
-        self.assertIn("_test2.csv", json["award_financial_key"])
-        self.assertIn("_test3.csv", json["award_key"])
-        self.assertIn("_test4.csv", json["program_activity_key"])
+        self.assertIn("test1.csv", json["appropriations_key"])
+        self.assertIn("test2.csv", json["award_financial_key"])
+        self.assertIn("test3.csv", json["award_key"])
+        self.assertIn("test4.csv", json["program_activity_key"])
         self.assertIn("credentials", json)
 
         credentials = json["credentials"]
