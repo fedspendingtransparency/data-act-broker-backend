@@ -126,8 +126,9 @@ def runApp():
             app.run(debug=config["server_debug"],threaded=True,host=config["host"],port=int(config["port"]))
         return app
     except Exception as e:
+        print(str(e))
         trace = traceback.extract_tb(sys.exc_info()[2], 10)
-        print trace
+        print(str(trace))
         CloudLogger.logError('Validator App Level Error: ',e,trace)
 
 if __name__ == "__main__" or __name__[0:5] == "uwsgi":
