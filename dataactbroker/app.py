@@ -78,6 +78,8 @@ def createApp():
         SessionTable.localPort = int(config["dynamo_port"])
         SessionTable.setup(app, runLocal)
 
+        return app
+
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         trace = traceback.extract_tb(exc_tb, 10)
