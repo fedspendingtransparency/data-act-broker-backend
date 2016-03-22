@@ -61,11 +61,10 @@ class BaseTest(unittest.TestCase):
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
 
-        # TODO: revisit this as an integration test
-        # if(fileSize != False):
-        #     s3FileSize = s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId))
-        #     self.assertGreater(s3FileSize, fileSize - 5)
-        #     self.assertLess(s3FileSize, fileSize + 5)
+        if(fileSize != False):
+            s3FileSize = s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId))
+            self.assertGreater(s3FileSize, fileSize - 5)
+            self.assertLess(s3FileSize, fileSize + 5)
 
         tableName = response.json["table"]
         if(type(stagingRows) == type(False) and not stagingRows):
