@@ -164,8 +164,12 @@ class FileTypeTests(unittest.TestCase):
             print("Test failed: " + self.methodName)
             # Runs only for tests that fail
             print(self.response.status_code)
-            print(self.response.json()["errorType"])
-            print(self.response.json()["message"])
-            print(self.response.json()["trace"])
-            print(self.response.json()["wrappedType"])
-            print(self.response.json()["wrappedMessage"])
+            try:
+                print(self.response.json()["errorType"])
+                print(self.response.json()["message"])
+                print(self.response.json()["trace"])
+                print(self.response.json()["wrappedType"])
+                print(self.response.json()["wrappedMessage"])
+            except Exception as e:
+                # Some of the fields were missing from the response json, just skip the rest of the prints
+                pass

@@ -192,7 +192,7 @@ class ValidationManager:
                     valid, failures = Validator.validate(record,rules,csvSchema,fileType,interfaces)
                     if(valid) :
                         try:
-                            tableObject.insert(record)
+                            tableObject.insert(record,fileType)
                         except ResponseException as e:
                             # Write failed, move to next record
                             writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber),""])
