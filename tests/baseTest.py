@@ -25,9 +25,10 @@ class BaseTest(unittest.TestCase):
         app.config['TESTING'] = True
         cls.app = TestApp(app)
 
+        # Allow us to augment default test failure msg w/ more detail
+        cls.longMessage = True
         # Flag for each route call to launch a new thread
-        cls.useThreads = True
-        # TODO: how to handle file uploads for local broker? do something based on local config settings?
+        cls.useThreads = False
         # Upload files to S3 (False = skip re-uploading on subsequent runs)
         cls.uploadFiles = True
         cls.interfaces = InterfaceHolder()
@@ -53,28 +54,29 @@ class BaseTest(unittest.TestCase):
         response = self.validateJob(jobId, self.useThreads)
         jobTracker = self.jobTracker
         stagingDb = self.stagingDb
-        self.assertEqual(response.status_code, statusId)
-        if(statusName != False):
+        self.assertEqual(response.status_code, statusId,
+            msg="{}".format(self.getResponseInfo(response)))
+        if statusName != False:
             self.waitOnJob(jobTracker, jobId, statusName, self.useThreads)
             self.assertEqual(jobTracker.getStatus(jobId), jobTracker.getStatusId(statusName))
 
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
 
-        if(fileSize != False):
+        if fileSize != False:
             s3FileSize = s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId))
             self.assertGreater(s3FileSize, fileSize - 5)
             self.assertLess(s3FileSize, fileSize + 5)
 
         tableName = response.json["table"]
-        if(type(stagingRows) == type(False) and not stagingRows):
+        if type(stagingRows) == type(False) and not stagingRows:
             self.assertFalse(stagingDb.tableExists(tableName))
         else:
             self.assertTrue(stagingDb.tableExists(tableName))
             self.assertEqual(stagingDb.countRows(tableName), stagingRows)
 
         errorInterface = self.errorInterface
-        if(errorStatus is not False):
+        if errorStatus is not False:
             self.assertEqual(errorInterface.checkStatusByJobId(jobId), errorInterface.getStatusId(errorStatus))
             self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId), numErrors)
         return response
@@ -92,7 +94,8 @@ class BaseTest(unittest.TestCase):
     @staticmethod
     def addJob(status, jobType, submissionId, s3Filename, fileType, session):
         """ Create a job model and add it to the session """
-        job = JobStatus(status_id = status, type_id = jobType, submission_id = submissionId, filename = s3Filename, file_type_id = fileType)
+        job = JobStatus(status_id=status, type_id=jobType,
+            submission_id=submissionId, filename=s3Filename, file_type_id=fileType)
         session.add(job)
         session.commit()
         return job
@@ -142,3 +145,21 @@ class BaseTest(unittest.TestCase):
         session.add(column)
         session.commit()
         return column
+
+    def getResponseInfo(self, response):
+        info = 'status_code: {}'.format(response.status_code)
+        if response.content_type.endswith(('+json', '/json')):
+            json = response.json
+            if 'errorType' in json:
+                info = '{}{}errorType: {}'.format(info, os.linesep, json['errorType'])
+            if 'message' in json:
+                info = '{}{}message: {}'.format(info, os.linesep, json['message'])
+            if 'trace' in json:
+                info = '{}{}trace: {}'.format(info, os.linesep, json['trace'])
+            if 'wrappedType' in json:
+                info = '{}{}wrappedType: {}'.format(info, os.linesep, json['wrappedType'])
+            if 'wrappedMessage' in json:
+                info = '{}{}wrappedMessage: {}'.format(info, os.linesep, json['wrappedMessage'])
+        else:
+            info = '{}{}{}'.format(info, os.linesep, response.body)
+        return info
