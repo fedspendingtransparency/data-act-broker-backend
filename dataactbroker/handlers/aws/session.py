@@ -232,13 +232,14 @@ class DynamoInterface(SessionInterface):
         session -- (Session)  the session object
 
         implements the save_session method that saves the session or clears it
-        based on the timeout limit
+        based on the timeout limit, this function also extends the expiration time of the current session
 
         """
         domain = self.get_cookie_domain(app)
         if not session:
             response.delete_cookie(app.session_cookie_name, domain=domain)
             return
+        # Extend the expiration based on either the time out limit set here or the permanent_session_lifetime property of the app
         if self.get_expiration_time(app, session):
             expiration = self.get_expiration_time(app, session)
         else:
