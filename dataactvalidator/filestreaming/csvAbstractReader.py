@@ -57,9 +57,14 @@ class CsvAbstractReader(object):
                     current += 1
         self.columnCount = current
         #Check that all required fields exists
+        missingHeaders = []
         for schema in csvSchema :
             if(schema.required and  possibleFields[FieldCleaner.cleanString(schema.name)] == 0) :
-                raise ResponseException(("".join(["Header : ",schema.name," is required"])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.missingHeaderError)
+                missingHeaders.append(schema.name)
+        if(len(missingHeaders) > 0):
+            # Add missing headers to exception, to be stored in file_status table
+            missingHeaderString = ", ".join(missingHeaders)
+            raise ResponseException(("".join(["Missing required headers: ", missingHeaderString])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.missingHeaderError,extraInfo=missingHeaderString)
 
     def getNextRecord(self):
         """

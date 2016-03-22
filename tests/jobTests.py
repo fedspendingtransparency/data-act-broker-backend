@@ -98,7 +98,7 @@ class JobTests(unittest.TestCase):
                 self.jobIdDict[key] = job.job_id
                 self.subIdDict[key] = self.jobTracker.getSubmissionId(job.job_id)
 
-            print(str(self.subIdDict))
+            print(str(self.jobIdDict))
             # Last job number
             minJob = min(self.jobIdDict.values())
             lastJob = max(self.jobIdDict.values())
@@ -229,7 +229,7 @@ class JobTests(unittest.TestCase):
         self.passed = TestUtils.run_test(jobId,status,"invalid",False,False,"missing_header_error",0,self)
 
         if not TestUtils.USE_THREADS:
-            assert(self.response.json()["message"] == "Header : header_5 is required")
+            assert(self.response.json()["message"] == "Missing required headers: header_4, header_5")
 
 
     def test_bad_header(self):
@@ -284,20 +284,20 @@ class JobTests(unittest.TestCase):
             print("Test failed: " + self.methodName)
             # Runs only for tests that fail
             print(self.response.status_code)
-        try:
-            print(self.response.json()["errorType"])
-            print(self.response.json()["message"])
-            print(self.response.json()["trace"])
-            print(self.response.json()["wrappedType"])
-            print(self.response.json()["wrappedMessage"])
-        except Exception as e:
-            # Some of the fields were missing from the response json, just skip the rest of the prints
-            pass
-        try:
-            self.dropTables(self.response.json()["table"])
-        except AttributeError:
-            # Table not specified, generally this means the job didn't run
-            pass
+            try:
+                print(self.response.json()["errorType"])
+                print(self.response.json()["message"])
+                print(self.response.json()["trace"])
+                print(self.response.json()["wrappedType"])
+                print(self.response.json()["wrappedMessage"])
+            except Exception as e:
+                # Some of the fields were missing from the response json, just skip the rest of the prints
+                pass
+            try:
+                self.dropTables(self.response.json()["table"])
+            except AttributeError:
+                # Table not specified, generally this means the job didn't run
+                pass
 
     def dropTables(self, table):
         if self.DROP_TABLES:
