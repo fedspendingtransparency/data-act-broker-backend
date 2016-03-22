@@ -89,17 +89,16 @@ def createApp():
 
 def runApp():
     """runs the application"""
-
     app = createApp()
     config = getAppConfiguration(app)
     debugFlag = config["server_debug"]
-    if __name__ == "__main__":
-        app.run(
-            debug=debugFlag,
-            threaded=True,
-            host="0.0.0.0",
-            port=int(config["port"]))
-    return app
+    app.run(
+        debug=debugFlag,
+        threaded=True,
+        host="0.0.0.0",
+        port=int(config["port"]))
 
-if __name__ == '__main__' or __name__[0:5]=="uwsgi":
-    app = runApp()
+if __name__ == '__main__':
+    runApp()
+elif __name__[0:5]=="uwsgi":
+    app = createApp()
