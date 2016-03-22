@@ -136,3 +136,38 @@ Navigate to the web app's main project directory:
         $ cd data-act-broker-web-app
 
 To run the broker website, [follow the steps in the main broker install guide](INSTALL.md#start-data-act-broker-website "start the broker website").
+
+## Database Migrations
+
+If part of your DATA Act broker development involves changing the database models,
+use the following process for generating database migration files.
+
+### Requirements
+
+1. credentials/dbCred.json is present and configured
+2. Alembic is installed
+
+Run the following to install all required packages:
+```bash
+$ pip install -r /path/to/requirements.txt
+```
+
+### Running Migrations
+
+After making updates to the models, run the following in ```dataactcore/``` to autogenerate the migration script:
+```bash
+$ alembic revision --autogenerate -m [file name]
+```
+[file name] should correspond to the changes made to the models, e.g., "create users table" or "add email column to users table". You will now see that a new file called ```[revision #]_[file name].py``` in ```dataactcore/migrations/versions/``` which contains the generated code for the database schema changes.
+
+Verify that the new revision file is making the intended alterations. Then run the following command in order to implement all new revisions:
+```bash
+$ alembic upgrade head
+```
+
+This will consequently update the table ```alembic_version``` with the latest revision number.
+
+In order to revert to a specific revision run the following, where [revision] corresponds to the revision to revert to:
+```bash
+$ alembic downgrade [revision]
+```
