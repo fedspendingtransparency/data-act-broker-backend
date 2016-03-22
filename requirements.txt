@@ -10,5 +10,5 @@ git+git://github.com/fedspendingtransparency/data-act-core.git@configuration
 future==0.15.2
 logstash==0.1.dev0
 python-logstash==0.4.6
-coverage
-webtest
+WebTest==2.0.20
+coverage==4.0.3
