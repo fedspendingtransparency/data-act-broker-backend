@@ -86,19 +86,20 @@ class FileHandler:
             self.s3manager = s3UrlHandler(s3UrlHandler.getValueFromConfig("bucket"))
             fileNameMap = []
             safeDictionary = RequestDictionary(self.request)
-            for fileName in FileHandler.FILE_TYPES :
-                if( safeDictionary.exists(fileName)) :
+            for fileType in FileHandler.FILE_TYPES :
+                filename = safeDictionary.getValue(fileType)
+                if( safeDictionary.exists(fileType)) :
                     if(not self.isLocal):
-                        uploadName =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(safeDictionary.getValue(fileName))
+                        uploadName =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(filename)
                     else:
-                        uploadName = safeDictionary.getValue(fileName)
-                    responseDict[fileName+"_key"] = uploadName
-                    fileNameMap.append((fileName,uploadName))
+                        uploadName = filename
+                    responseDict[fileType+"_key"] = uploadName
+                    fileNameMap.append((fileType,uploadName,filename))
 
             fileJobDict = self.jobManager.createJobs(fileNameMap,name)
-            for fileName in fileJobDict.keys():
-                if (not "submission_id" in fileName) :
-                    responseDict[fileName+"_id"] = fileJobDict[fileName]
+            for fileType in fileJobDict.keys():
+                if (not "submission_id" in fileType) :
+                    responseDict[fileType+"_id"] = fileJobDict[fileType]
             if(CreateCredentials and not self.isLocal) :
                 responseDict["credentials"] = self.s3manager.getTemporaryCredentials(name)
             else :

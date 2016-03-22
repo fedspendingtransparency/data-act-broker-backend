@@ -47,10 +47,10 @@ class FileTests(BaseTest):
 
     def call_file_submission(self):
         """Call the broker file submission route."""
-        fileJson = {"appropriations":"test1.csv",
+        self.filenames = {"appropriations":"test1.csv",
             "award_financial":"test2.csv", "award":"test3.csv",
             "program_activity":"test4.csv"}
-        return self.app.post_json("/v1/submit_files/", fileJson)
+        return self.app.post_json("/v1/submit_files/", self.filenames)
 
     def test_file_submission(self):
         """Test broker file submission and response."""
@@ -81,17 +81,23 @@ class FileTests(BaseTest):
 
         # Test that job ids are returned
         responseDict = json
-        idKeys = ["program_activity_id", "award_id", "award_financial_id",
-            "appropriations_id"]
-        for key in idKeys:
-            self.assertIn(key, responseDict)
-            self.assertIsInstance(responseDict[key], int)
-
+        fileKeys = ["program_activity", "award", "award_financial",
+            "appropriations"]
+        for key in fileKeys:
+            idKey = "".join([key,"_id"])
+            self.assertIn(idKey, responseDict)
+            jobId = responseDict[idKey]
+            self.assertIsInstance(jobId, int)
+            # Check that original filenames were stored in DB
+            originalFilename = self.interfaces.jobDb.getOriginalFilenameById(jobId)
+            self.assertEquals(originalFilename,self.filenames[key])
         # check that submission got mapped to the correct user
         submissionId = responseDict["submission_id"]
         self.file_submission_id = submissionId
         submission = self.interfaces.jobDb.getSubmissionById(submissionId)
         self.assertEquals(submission.user_id, self.submission_user_id)
+
+
 
         # Call upload complete route
         finalizeResponse = self.check_upload_complete(
