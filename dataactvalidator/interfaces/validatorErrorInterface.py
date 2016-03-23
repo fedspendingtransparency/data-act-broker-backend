@@ -107,34 +107,6 @@ class ValidatorErrorInterface(ErrorInterface):
         # Clear the dictionary
         self.rowErrors = {}
 
-    def checkStatusByJobId(self, jobId):
-        """ Query status for specified job
-
-        Args:
-            jobId: job to check status for
-
-        Returns:
-            Status ID of specified job
-        """
-        query = self.session.query(FileStatus.status_id).filter(FileStatus.job_id == jobId)
-        return self.runUniqueQuery(query,"No file for that job ID","Multiple files for that job ID").status_id
-
-    def checkNumberOfErrorsByJobId(self, jobId):
-        """ Get the total number of errors for a specified job
-
-        Args:
-            jobId: job to get errors for
-
-        Returns:
-            Number of errors for specified job
-        """
-        queryResult = self.session.query(ErrorData).filter(ErrorData.job_id == jobId).all()
-        numErrors = 0
-        for result in queryResult:
-            # For each row that matches jobId, add the number of that type of error
-	        numErrors += result.occurrences
-        return numErrors
-
     def writeMissingHeaders(self, jobId, missingHeaders):
         """ Write list of missing headers into headers_missing field
 
@@ -147,15 +119,3 @@ class ValidatorErrorInterface(ErrorInterface):
         # Create single string out of missing header list
         fileStatus.headers_missing = ", ".join(missingHeaders)
         self.session.commit()
-
-    def getFileStatusByJobId(self, jobId):
-        """ Get the File Status object with the specified job ID
-
-        Args:
-            jobId: job to get file status for
-
-        Returns:
-            A File Status model object
-        """
-        query = self.session.query(FileStatus).filter(FileStatus.job_id == jobId)
-        return self.runUniqueQuery(query,"No file for that job ID", "Multiple files have been associated with that job ID")
