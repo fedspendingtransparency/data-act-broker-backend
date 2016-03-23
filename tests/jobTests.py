@@ -149,7 +149,7 @@ class JobTests(BaseTest):
             jobId, 200, "finished", 350, 1, "complete", 5)
 
     def test_bad_values_job(self):
-        """Test a a job with bad values."""
+        """Test a job with bad values."""
         jobId = self.jobIdDict["bad_values"]
         response = self.run_test(
             jobId, 200, "finished", 5474, 0, "complete", 90)
@@ -184,7 +184,7 @@ class JobTests(BaseTest):
                 response.json["message"], "CSV file must have a header")
 
     def test_missing_header(self):
-        """.Test missing header in first row."""
+        """Test missing header in first row."""
         jobId = self.jobIdDict["missing_header"]
         if self.useThreads:
             status = 200
