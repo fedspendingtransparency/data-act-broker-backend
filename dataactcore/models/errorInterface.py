@@ -1,3 +1,4 @@
+from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.errorModels import Status, ErrorType, FileStatus, ErrorData
 
@@ -54,6 +55,18 @@ class ErrorInterface(BaseInterface):
         """
         return self.getFileStatusByJobId(jobId).status_id
 
+    def getStatusLabelByJobId(self, jobId):
+        """ Query status label for specified job
+
+        Args:
+            jobId: job to check status for
+
+        Returns:
+            Status label of specified job (string)
+        """
+        query = self.session.query(FileStatus).options(joinedload("status")).filter(FileStatus.job_id == jobId)
+        return self.runUniqueQuery(query,"No file for that job ID", "Multiple files have been associated with that job ID").status.name
+
     def checkNumberOfErrorsByJobId(self, jobId):
         """ Get the total number of errors for a specified job
 
@@ -72,3 +85,6 @@ class ErrorInterface(BaseInterface):
 
     def getMissingHeadersByJobId(self, jobId):
         return self.getFileStatusByJobId(jobId).headers_missing
+
+    def getDuplicatedHeadersByJobId(self, jobId):
+        return self.getFileStatusByJobId(jobId).headers_duplicated
