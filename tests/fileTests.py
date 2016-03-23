@@ -128,6 +128,7 @@ class FileTests(BaseTest):
         self.assertEqual(json[jobIdDict["appropriations"]]["status"],"ready")
         self.assertEqual(json[jobIdDict["appropriations"]]["job_type"],"csv_record_validation")
         self.assertEqual(json[jobIdDict["appropriations"]]["file_type"],"appropriations")
+        self.assertEqual(json[jobIdDict["appropriations"]]["filename"],"approp.csv")
 
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
@@ -197,13 +198,14 @@ class FileTests(BaseTest):
         return sub.submission_id
 
     @staticmethod
-    def insertJob(jobTracker, filetype, status, type_id, submission, job_id=None):
+    def insertJob(jobTracker, filetype, status, type_id, submission, job_id=None, filename = None):
         """Insert one job into job tracker and get ID back."""
         job = JobStatus(
             file_type_id=filetype,
             status_id=status,
             type_id=type_id,
-            submission_id=submission
+            submission_id=submission,
+            original_filename=filename
         )
         if job_id:
             job.job_id = job_id
@@ -246,12 +248,12 @@ class FileTests(BaseTest):
 
         # TODO: remove hard-coded surrogate keys
         jobValues = {}
-        jobValues["uploadFinished"] = [1, 4, 1]
-        jobValues["recordRunning"] = [1, 3, 2]
-        jobValues["externalWaiting"] = [1, 1, 5]
-        jobValues["awardFin"] = [2, 2, 2]
-        jobValues["appropriations"] = [3, 2, 2]
-        jobValues["program_activity"] = [4, 2, 2]
+        jobValues["uploadFinished"] = [1, 4, 1, None]
+        jobValues["recordRunning"] = [1, 3, 2, None]
+        jobValues["externalWaiting"] = [1, 1, 5, None]
+        jobValues["awardFin"] = [2, 2, 2, "awardFin.csv"]
+        jobValues["appropriations"] = [3, 2, 2, "approp.csv"]
+        jobValues["program_activity"] = [4, 2, 2, "programActivity.csv"]
         jobIdDict = {}
 
         for jobKey, values in jobValues.items():
@@ -260,7 +262,8 @@ class FileTests(BaseTest):
                 filetype=values[0],
                 status=values[1],
                 type_id=values[2],
-                submission=submission_id
+                submission=submission_id,
+                filename=values[3]
             )
             jobIdDict[jobKey] = job_id
 

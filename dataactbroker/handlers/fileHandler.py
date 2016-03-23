@@ -162,7 +162,7 @@ class FileHandler:
         """ Get description and status of all jobs in the submission specified in request object
 
         Returns:
-            A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding description and status
+            A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding file_type, job_type, status, and filename
         """
         try:
             inputDictionary = RequestDictionary(self.request)
@@ -176,8 +176,11 @@ class FileHandler:
             submissionInfo = {}
             for job in jobs:
                 jobInfo = {}
-                jobInfo["status"] = self.jobManager.getJobStatus(job)
+                jobInfo["job_status"] = self.jobManager.getJobStatus(job)
                 jobInfo["job_type"] = self.jobManager.getJobType(job)
+                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job)
+                jobInfo["file_status"] = self.interfaces.errorDb.checkStatusByJobId(job)
+                jobInfo["missing_headers"] = self.interfaces.errorDb.getMissingHeadersByJobId(job)
                 try :
                     jobInfo["file_type"] = self.jobManager.getFileType(job)
                 except Exception as e:
