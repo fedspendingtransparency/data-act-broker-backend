@@ -91,7 +91,6 @@ def createApp():
 
 def runApp():
     """runs the application"""
-
     app = createApp()
     config = getAppConfiguration(app)
     debugFlag = config["server_debug"]
@@ -103,3 +102,5 @@ def runApp():
 
 if __name__ == '__main__':
     runApp()
+elif __name__[0:5]=="uwsgi":
+    app = createApp()
