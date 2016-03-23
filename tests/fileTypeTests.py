@@ -4,7 +4,7 @@ from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagi
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.tasSetup import loadTAS
 from baseTest import BaseTest
-
+import unittest
 
 class FileTypeTests(BaseTest):
 
@@ -146,3 +146,6 @@ class FileTypeTests(BaseTest):
         """Tear down class-wide resources."""
         super(FileTypeTests, cls).tearDownClass()
         # TODO: clean up databases
+
+if __name__ == '__main__':
+    unittest.main()

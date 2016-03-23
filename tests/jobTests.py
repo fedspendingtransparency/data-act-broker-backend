@@ -5,6 +5,7 @@ from dataactvalidator.scripts.setupValidationDB import setupValidationDB
 from dataactvalidator.scripts.setupStagingDB import setupStaging
 from dataactvalidator.models.validationModels import Rule
 from baseTest import BaseTest
+import unittest
 
 class JobTests(BaseTest):
 
@@ -258,3 +259,6 @@ class JobTests(BaseTest):
     def tearDown(self):
         super(JobTests, self).tearDown()
         # TODO: drop tables, etc.
+
+if __name__ == '__main__':
+    unittest.main()
