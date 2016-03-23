@@ -30,6 +30,7 @@ class FileStatus(Base):
     status_id = Column(Integer, ForeignKey("status.status_id"))
     status = relationship("Status", uselist=False)
     headers_missing = Column(Text, nullable=True)
+    headers_duplicated = Column(Text, nullable=True)
 
 class ErrorData(Base):
     __tablename__ = "error_data"
