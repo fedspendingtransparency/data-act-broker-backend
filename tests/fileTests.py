@@ -25,7 +25,7 @@ class FileTests(BaseTest):
         # setup submission/jobs data for test_check_status
         cls.status_check_submission_id = cls.insertSubmission(
             cls.jobTracker, cls.submission_user_id)
-        cls.jobIdDict = cls.setupJobsForStatusCheck(cls.jobTracker,
+        cls.jobIdDict = cls.setupJobsForStatusCheck(cls.interfaces,
             cls.status_check_submission_id)
 
         # setup submission/jobs data for test_error_report
@@ -109,26 +109,28 @@ class FileTests(BaseTest):
         postJson = {"submission_id": self.status_check_submission_id}
         response = self.app.post_json("/v1/check_status/", postJson)
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, msg=str(response.json))
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
         json = response.json
-
         # response ids are coming back as string, so patch the jobIdDict
         jobIdDict = {k: str(self.jobIdDict[k]) for k in self.jobIdDict.keys()}
-        self.assertEqual(json[jobIdDict["uploadFinished"]]["status"],"finished")
+        self.assertEqual(json[jobIdDict["uploadFinished"]]["job_status"],"finished")
         self.assertEqual(json[jobIdDict["uploadFinished"]]["job_type"],"file_upload")
         self.assertEqual(json[jobIdDict["uploadFinished"]]["file_type"],"award")
-        self.assertEqual(json[jobIdDict["recordRunning"]]["status"],"running")
+        self.assertEqual(json[jobIdDict["recordRunning"]]["job_status"],"running")
         self.assertEqual(json[jobIdDict["recordRunning"]]["job_type"],"csv_record_validation")
         self.assertEqual(json[jobIdDict["recordRunning"]]["file_type"],"award")
-        self.assertEqual(json[jobIdDict["externalWaiting"]]["status"],"waiting")
+        self.assertEqual(json[jobIdDict["externalWaiting"]]["job_status"],"waiting")
         self.assertEqual(json[jobIdDict["externalWaiting"]]["job_type"],"external_validation")
         self.assertEqual(json[jobIdDict["externalWaiting"]]["file_type"],"award")
-        self.assertEqual(json[jobIdDict["appropriations"]]["status"],"ready")
+        self.assertEqual(json[jobIdDict["appropriations"]]["job_status"],"ready")
         self.assertEqual(json[jobIdDict["appropriations"]]["job_type"],"csv_record_validation")
         self.assertEqual(json[jobIdDict["appropriations"]]["file_type"],"appropriations")
         self.assertEqual(json[jobIdDict["appropriations"]]["filename"],"approp.csv")
+        self.assertEqual(json[jobIdDict["appropriations"]]["file_status"],"complete")
+        self.assertEqual(json[jobIdDict["appropriations"]]["missing_headers"],"missing_header_one, missing_header_two")
+        self.assertEqual(json[jobIdDict["appropriations"]]["duplicated_headers"],"duplicated_header_one, duplicated_header_two")
 
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
@@ -243,7 +245,7 @@ class FileTests(BaseTest):
         return ed.error_data_id
 
     @staticmethod
-    def setupJobsForStatusCheck(jobTracker, submission_id):
+    def setupJobsForStatusCheck(interfaces, submission_id):
         """Set up test jobs for job status test."""
 
         # TODO: remove hard-coded surrogate keys
@@ -258,7 +260,7 @@ class FileTests(BaseTest):
 
         for jobKey, values in jobValues.items():
             job_id = FileTests.insertJob(
-                jobTracker,
+                interfaces.jobDb,
                 filetype=values[0],
                 status=values[1],
                 type_id=values[2],
@@ -267,6 +269,10 @@ class FileTests(BaseTest):
             )
             jobIdDict[jobKey] = job_id
 
+        # For appropriations job, create an entry in file_status for this job
+        fileStatus = FileStatus(job_id = jobIdDict["appropriations"],filename = "approp.csv", status_id = interfaces.errorDb.getStatusId("complete"), headers_missing = "missing_header_one, missing_header_two", headers_duplicated = "duplicated_header_one, duplicated_header_two")
+        interfaces.errorDb.session.add(fileStatus)
+        interfaces.errorDb.session.commit()
         return jobIdDict
 
     @staticmethod

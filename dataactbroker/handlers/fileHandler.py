@@ -179,11 +179,19 @@ class FileHandler:
                 jobInfo["job_status"] = self.jobManager.getJobStatus(job)
                 jobInfo["job_type"] = self.jobManager.getJobType(job)
                 jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job)
-                jobInfo["file_status"] = self.interfaces.errorDb.checkStatusByJobId(job)
-                jobInfo["missing_headers"] = self.interfaces.errorDb.getMissingHeadersByJobId(job)
+                try:
+                    jobInfo["file_status"] = self.interfaces.errorDb.getStatusLabelByJobId(job)
+                except ResponseException as e:
+                    # Job ID not in error database, probably did not make it to validation, or has not yet been validated
+                    jobInfo["file_status"] = ""
+                    jobInfo["missing_headers"] = ""
+                else:
+                    # If job ID was found in file_status, we should be able to get header error lists
+                    jobInfo["missing_headers"] = self.interfaces.errorDb.getMissingHeadersByJobId(job)
+                    jobInfo["duplicated_headers"] = self.interfaces.errorDb.getDuplicatedHeadersByJobId(job)
                 try :
                     jobInfo["file_type"] = self.jobManager.getFileType(job)
-                except Exception as e:
+                except ResponseException as e:
                     jobInfo["file_type"]  = ''
                 submissionInfo[job] = jobInfo
 
