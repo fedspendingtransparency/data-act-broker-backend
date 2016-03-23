@@ -22,3 +22,4 @@ dataactvalidator/scripts/clearRules.py
 dataactvalidator/databaseErrors.log
 dataactvalidator/scripts/dropAll.py
 .coverage
+dataactvalidator/validator_configuration.json

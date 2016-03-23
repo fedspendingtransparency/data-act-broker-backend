@@ -80,7 +80,32 @@ This file is automatically created in the initialization step of the install pro
 * `baseScript`, `configure` - Used during install process
 * `clearRules` - Deletes existing rules for four main file types
 * `loadTas`, `tasSetup`, `setupTASIndexs` - Used for loading valid TAS entries into database
- * `setupStagingDB`,`setupValidationDB` - Used to create staging and validation databases
+* `setupStagingDB`,`setupValidationDB` - Used to create staging and validation databases
+
+
+The following configuration json file is used by the validator and is created by `baseScript.py`.
+```Json
+{
+    "rest_trace": true,
+    "server_directory": "/server/",
+    "host": "0.0.0.0",
+    "server_debug": true,
+    "local": true,
+    "port": "80"
+}
+```
+The following table describes each setting in the configurations file:
+
+| Setting  | Value |
+| ------------- | ------------- |
+| rest_trace  | Provides debug output to rest responses   |
+| server_debug  | Turns on debug mode for the Flask server  |
+| local | If a local install is being used |
+|server_directory| the path for system created files for local installs only|
+|port | the port of the server |
+|host | the host address of the server |
+
+
 
 #### Test Cases
 To run the validator unit tests, navigate to the main project folder (`data-act-validator`):

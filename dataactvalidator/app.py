@@ -13,17 +13,21 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
+
 def getAppConfiguration():
     """Get the JSON for configuring the validator."""
     path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     configFile = path + "/validator_configuration.json"
-    return json.loads(open(configFile,"r").read())
+    return json.loads(open(configFile, "r").read())
+
 
 def createApp():
+    """Create the Flask app."""
     try:
         app = Flask(__name__)
         app.config.from_object(__name__)
-        validationManager = ValidationManager()
+        config = getAppConfiguration()
+        validationManager = ValidationManager(config["local"],config["server_directory"])
 
         @app.route("/",methods=["GET"])
         def testApp():
@@ -34,9 +38,9 @@ def createApp():
         def validate_threaded():
             """Start the validation process on a new thread."""
             @copy_current_request_context
-            def ThreadedFunction (arg) :
-                # the new thread
-                threadedManager = ValidationManager()
+            def ThreadedFunction(arg):
+                """The new thread."""
+                threadedManager = ValidationManager(config["local"], config["server_directory"])
                 threadedManager.threadedValidateJob(arg)
 
             try:
@@ -51,7 +55,7 @@ def createApp():
                 return JsonResponse.error(exc,exc.status,table= "cannot connect to job database")
 
             jobId = None
-            manager = ValidationManager()
+            manager = ValidationManager(config["local"],config["server_directory"])
 
             try:
                 jobId = manager.getJobID(request)
@@ -112,9 +116,12 @@ def createApp():
         return app
 
     except Exception as e:
+        print(str(e))
         trace = traceback.extract_tb(sys.exc_info()[2], 10)
+        print(str(trace))
         CloudLogger.logError('Validator App Level Error: ', e, trace)
         raise
+
 
 def runApp():
     """Run the application."""
@@ -127,5 +134,5 @@ def runApp():
         port=int(config["port"])
     )
 
-if __name__ == '__main__':
+if __name__ == "__main__" or __name__[0:5] == "uwsgi":
     runApp()
