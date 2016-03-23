@@ -134,5 +134,7 @@ def runApp():
         port=int(config["port"])
     )
 
-if __name__ == "__main__" or __name__[0:5] == "uwsgi":
+if __name__ == "__main__":
     runApp()
+elif __name__[0:5] == "uwsgi":
+    app = createApp()
