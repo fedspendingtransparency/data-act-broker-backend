@@ -13,45 +13,37 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
-def runApp():
+
+def getAppConfiguration():
+    """Get the JSON for configuring the validator."""
+    path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+    configFile = path + "/validator_configuration.json"
+    return json.loads(open(configFile, "r").read())
+
+
+def createApp():
+    """Create the Flask app."""
     try:
-        # Create application
         app = Flask(__name__)
         app.config.from_object(__name__)
-
-        # Create interfaces and hold local copy to prevent them from being wiped
-        #InterfaceHolder.connect()
-        #jobDb = InterfaceHolder.JOB_TRACKER
-        #errorDb = InterfaceHolder.ERROR
-        #stagingDb = InterfaceHolder.STAGING
-        #validaitonDb = InterfaceHolder.VALIDATION
-
-        def getAppConfiguration():
-            """Gets the JSON for configuring the validator """
-            path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-            configFile = path + "/validator_configuration.json"
-            return json.loads(open(configFile,"r").read())
-
         config = getAppConfiguration()
-        
         validationManager = ValidationManager(config["local"],config["server_directory"])
 
         @app.route("/",methods=["GET"])
         def testApp():
-            """Confirm server running"""
-            # Confirm server running
+            """Confirm server running."""
             return "Validator is running"
 
         @app.route("/validate_threaded/",methods=["POST"])
         def validate_threaded():
-            """Starts the validation process on a new thread"""
+            """Start the validation process on a new thread."""
             @copy_current_request_context
-            def ThreadedFunction (arg) :
-                    """The new thread"""
-                    threadedManager = ValidationManager(config["local"],config["server_directory"])
-                    threadedManager.threadedValidateJob(arg)
+            def ThreadedFunction(arg):
+                """The new thread."""
+                threadedManager = ValidationManager(config["local"], config["server_directory"])
+                threadedManager.threadedValidateJob(arg)
 
-            try :
+            try:
                 interfaces = InterfaceHolder()
                 jobTracker = interfaces.jobDb
             except ResponseException as e:
@@ -106,7 +98,7 @@ def runApp():
 
         @app.route("/validate/",methods=["POST"])
         def validate():
-            """Starts the validation process on the same threads"""
+            """Start the validation process on the same threads."""
             interfaces = InterfaceHolder() # Create sessions for this route
             try:
                 return validationManager.validateJob(request,interfaces)
@@ -118,18 +110,31 @@ def runApp():
             finally:
                 interfaces.close()
 
-
-
-
+        config = getAppConfiguration()
         JsonResponse.debugMode = config["rest_trace"]
-        if __name__ == "__main__":
-            app.run(debug=config["server_debug"],threaded=True,host=config["host"],port=int(config["port"]))
+
         return app
+
     except Exception as e:
         print(str(e))
         trace = traceback.extract_tb(sys.exc_info()[2], 10)
         print(str(trace))
-        CloudLogger.logError('Validator App Level Error: ',e,trace)
+        CloudLogger.logError('Validator App Level Error: ', e, trace)
+        raise
 
-if __name__ == "__main__" or __name__[0:5] == "uwsgi":
-    app = runApp()
+
+def runApp():
+    """Run the application."""
+    app = createApp()
+    config = getAppConfiguration()
+    app.run(
+        debug=config["server_debug"],
+        threaded=True,
+        host=config["host"],
+        port=int(config["port"])
+    )
+
+if __name__ == "__main__":
+    runApp()
+elif __name__[0:5] == "uwsgi":
+    app = createApp()

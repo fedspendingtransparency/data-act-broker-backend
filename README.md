@@ -108,7 +108,15 @@ The following table describes each setting in the configurations file:
 
 
 #### Test Cases
-Before running test cases, start the Flask app by running "python app.py" in the dataactvalidator folder.  The current test suite for the validator may then be run by navigating to the tests folder and running "python runTests.py".
+To run the validator unit tests, navigate to the main project folder (`data-act-validator`):
+
+        $ python tests/runTests.py
+
+To generate a test coverage report from the command line:
+
+1. Make sure you're in the tests folder (`data-act-validator/tests`).
+2. Run the tests using the `coverage` command: `coverage run runTests.py`.
+3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
 
 # Installation
 

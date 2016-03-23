@@ -1,175 +1,151 @@
-import unittest
-import json
-from sqlalchemy.exc import InvalidRequestError
 from dataactcore.scripts.databaseSetup import runCommands
 from dataactvalidator.models.validationModels import TASLookup
 from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.tasSetup import loadTAS
-from testUtils import TestUtils
+from baseTest import BaseTest
+import unittest
 
+class FileTypeTests(BaseTest):
 
-class FileTypeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        """Set up class-wide resources."""
+        super(FileTypeTests, cls).setUpClass()
+        #TODO: refactor into a pytest fixture
 
-    TABLE_POPULATED = False
-    FORCE_TAS_LOAD = False # If true, forces TAS to reload even when table is populated
-    DROP_TABLES = False # If true, tries to drop existing staging tables before running tests
-    JOB_ID_FILE = "appropJobIds.json"
-    jobIdDict = {}
+        user = cls.userId
+        # TODO: get rid of this flag once we're using a tempdb for test fixtures
+        force_tas_load = False
 
-    def __init__(self, methodName,interfaces):
-        """ Run scripts to clear the job tables and populate with a defined test set """
-        super(FileTypeTests, self).__init__(methodName=methodName)
-        self.methodName = methodName
+        # Create staging database
+        runCommands(ValidatorStagingInterface.getCredDict(), [], "staging")
 
-        self.jobTracker = interfaces.jobDb
-        self.interfaces = interfaces
-        if not self.TABLE_POPULATED:
-            print("Defining jobs")
-            # Last job number
-            lastJob = 100
+        # Upload needed files to S3
+        s3FileNameValid = cls.uploadFile("appropValid.csv", user)
+        s3FileNameMixed = cls.uploadFile("appropMixed.csv", user)
+        s3FileNameTas = cls.uploadFile("tasMixed.csv", user)
+        s3FileNameProgramValid = cls.uploadFile("programActivityValid.csv", user)
+        s3FileNameProgramMixed = cls.uploadFile("programActivityMixed.csv", user)
+        s3FileNameAwardFinValid = cls.uploadFile("awardFinancialValid.csv", user)
+        s3FileNameAwardFinMixed = cls.uploadFile("awardFinancialMixed.csv", user)
+        s3FileNameAwardValid = cls.uploadFile("awardValid.csv", user)
+        s3FileNameAwardMixed = cls.uploadFile("awardMixed.csv", user)
 
-            # Create staging database
-            runCommands(ValidatorStagingInterface.getCredDict(), [], "staging")
-            self.stagingDb = interfaces.stagingDb
-            self.jobDb = interfaces.jobDb
+        # Create submissions and get IDs back
+        submissionIDs = {}
+        for i in range(0, 10):
+            submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
 
-            # Define user
-            user = 1
-            # Upload needed files to S3
+        # Create jobs
+        jobDb = cls.jobTracker
+        jobInfoList = {
+            "valid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[1]), s3FileNameValid, 3],
+            "mixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[2]), s3FileNameMixed, 3],
+            "tas": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[3]), s3FileNameTas, 3],
+            "programValid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[4]), s3FileNameProgramValid, 4],
+            "programMixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[5]), s3FileNameProgramMixed, 4],
+            "awardFinValid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[6]), s3FileNameAwardFinValid, 2],
+            "awardFinMixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[7]), s3FileNameAwardFinMixed, 2],
+            "awardValid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[8]), s3FileNameAwardValid, 1],
+            "awardMixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[9]), s3FileNameAwardMixed, 1]
+        }
 
-            s3FileNameValid = TestUtils.uploadFile("appropValid.csv", user)
-            s3FileNameMixed = TestUtils.uploadFile("appropMixed.csv", user)
-            s3FileNameTas = TestUtils.uploadFile("tasMixed.csv", user)
-            s3FileNameProgramValid = TestUtils.uploadFile("programActivityValid.csv", user)
-            s3FileNameProgramMixed = TestUtils.uploadFile("programActivityMixed.csv", user)
-            s3FileNameAwardFinValid = TestUtils.uploadFile("awardFinancialValid.csv", user)
-            s3FileNameAwardFinMixed = TestUtils.uploadFile("awardFinancialMixed.csv", user)
-            s3FileNameAwardValid = TestUtils.uploadFile("awardValid.csv", user)
-            s3FileNameAwardMixed = TestUtils.uploadFile("awardMixed.csv", user)
+        jobIdDict = {}
+        for key in jobInfoList:
+            jobInfo = jobInfoList[key]  # Done this way to be compatible with python 2 and 3
+            jobInfo.append(jobDb.session)
+            job = cls.addJob(*jobInfo)
+            jobId = job.job_id
+            jobIdDict[key] = jobId
 
-            # Create submissions and get IDs back
-            submissionIDs = {}
-            for i in range(1,10):
-                submissionIDs[i] = TestUtils.insertSubmission(self.jobTracker)
+        # Load fields and rules
+        FileTypeTests.load_definitions(cls.interfaces, force_tas_load)
 
-            # Create jobs
-            jobInfoList = {"valid":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[1]), s3FileNameValid, 3],
-                       "mixed":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[2]), s3FileNameMixed, 3],
-                       "tas":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[3]), s3FileNameTas, 3],
-                       "programValid":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[4]), s3FileNameProgramValid, 4],
-                       "programMixed":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[5]), s3FileNameProgramMixed, 4],
-                       "awardFinValid":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[6]), s3FileNameAwardFinValid, 2],
-                       "awardFinMixed":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[7]), s3FileNameAwardFinMixed, 2],
-                       "awardValid":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[8]), s3FileNameAwardValid, 1],
-                       "awardMixed":[str(self.jobDb.getStatusId("ready")), str(self.jobDb.getTypeId("csv_record_validation")), str(submissionIDs[9]), s3FileNameAwardMixed, 1]}
+        # Remove existing tables from staging if they exist
+        for jobId in jobIdDict.values():
+            try:
+                cls.stagingDb.dropTable("job{}".format(jobId))
+            except Exception as e:
+                # Close and replace session
+                cls.stagingDb.session.close()
+                cls.stagingDb.session = cls.stagingDb.Session()
 
-            self.jobIdDict = {}
-            for key in jobInfoList:
-                jobInfo = jobInfoList[key] # Done this way to be compatible with python 2 and 3
-                jobInfo.append(self.jobTracker.session)
-                job = TestUtils.addJob(*jobInfo)
-                jobId = job.job_id
-                self.jobIdDict[key] = jobId
-
-            # Save jobIdDict to file
-            print(self.jobIdDict)
-            open(self.JOB_ID_FILE,"w").write(json.dumps(self.jobIdDict))
-
-            # Load fields and rules
-            print("Loading definitions")
-            self.load_definitions(self.interfaces)
-
-            if(self.DROP_TABLES):
-                # Remove existing tables from staging if they exist
-                for jobId in self.jobIdDict.values():
-                    try:
-                        self.stagingDb.dropTable("job"+str(jobId))
-                    except Exception as e:
-                        # Failed to drop table
-                        print(str(e))
-                        # Close and replace session
-                        self.stagingDb.session.close()
-                        self.stagingDb.session = self.stagingDb.Session()
-
-            FileTypeTests.TABLE_POPULATED = True
-        else:
-            self.stagingDb = self.interfaces.stagingDb
-            # Read job ID dict from file
-            self.jobIdDict = json.loads(open(self.JOB_ID_FILE,"r").read())
+        cls.jobIdDict = jobIdDict
 
     @staticmethod
-    def load_definitions(interfaces):
-        SchemaLoader.loadFields("appropriations","appropriationsFields.csv")
-        SchemaLoader.loadRules("appropriations","appropriationsRules.csv")
-        SchemaLoader.loadFields("program_activity","programActivityFields.csv")
-        SchemaLoader.loadFields("award_financial","awardFinancialFields.csv")
-        SchemaLoader.loadFields("award","awardFields.csv")
-        if(interfaces.validationDb.session.query(TASLookup).count() == 0 or FileTypeTests.FORCE_TAS_LOAD):
+    def load_definitions(interfaces, force_tas_load):
+        """Load file definitions."""
+        # TODO: introduce flexibility re: test file location
+        SchemaLoader.loadFields("appropriations", "appropriationsFields.csv")
+        SchemaLoader.loadRules("appropriations", "appropriationsRules.csv")
+        SchemaLoader.loadFields("program_activity", "programActivityFields.csv")
+        SchemaLoader.loadFields("award_financial", "awardFinancialFields.csv")
+        SchemaLoader.loadFields("award", "awardFields.csv")
+        if (interfaces.validationDb.session.query(TASLookup).count() == 0
+                or force_tas_load):
             # TAS table is empty, load it
-            print("Loading TAS")
             loadTAS("all_tas_betc.csv")
 
     def test_approp_valid(self):
-        """ Test valid job """
+        """Test valid job."""
         jobId = self.jobIdDict["valid"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",52,20,"complete",0,self)
+        self.passed = self.run_test(
+            jobId, 200, "finished", 52, 20, "complete", 0)
 
     def test_approp_mixed(self):
-        """ Test mixed job with some rows failing """
+        """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",5606,15,"complete",47,self)
+        self.passed = self.run_test(
+            jobId, 200, "finished", 5606, 15, "complete", 47)
 
     def test_tas_mixed(self):
-        """ Test TAS validation """
+        """Test TAS validation."""
         jobId = self.jobIdDict["tas"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",1597,2,"complete",5,self)
+        self.passed = self.run_test(
+            jobId, 200, "finished", 1597, 2, "complete", 5)
 
     def test_program_valid(self):
-        """ Test valid job """
+        """Test valid job."""
         jobId = self.jobIdDict["programValid"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",52,29,"complete",0,self)
+        self.passed = self.run_test(
+            jobId, 200, "finished", 52, 29, "complete", 0)
 
     def test_program_mixed(self):
-        """ Test mixed job with some rows failing """
+        """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",14016,12,"complete",121,self)
+        self.passed = self.run_test(
+            jobId, 200, "finished", 14016, 12, "complete", 121)
 
     def test_award_fin_valid(self):
-        """ Test valid job """
+        """Test valid job."""
         jobId = self.jobIdDict["awardFinValid"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",52,29,"complete",0,self)
+        self.passed = self.run_test(
+            jobId, 200, "finished", 52, 29, "complete", 0)
 
     def test_award_fin_mixed(self):
-        """ Test mixed job with some rows failing """
+        """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",22571,15,"complete",178,self)
+        self.passed = self.run_test(
+            jobId, 200, "finished", 22571, 15, "complete", 178)
 
     def test_award_valid(self):
-        """ Test valid job """
+        """Test valid job."""
         jobId = self.jobIdDict["awardValid"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",52,29,"complete",0,self)
+        self.passed = self.run_test(
+            jobId, 200, "finished", 52, 29, "complete", 0)
 
     def test_award_mixed(self):
-        """ Test mixed job with some rows failing """
+        """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardMixed"]
-        self.passed = TestUtils.run_test(jobId,200,"finished",38706,14,"complete",384,self)
+        self.passed = self.run_test(
+            jobId, 200, "finished", 38706, 14, "complete", 384)
 
+    @classmethod
+    def tearDownClass(cls):
+        """Tear down class-wide resources."""
+        super(FileTypeTests, cls).tearDownClass()
+        # TODO: clean up databases
 
-    def setUp(self):
-        self.passed = False
-
-    def tearDown(self):
-        if not self.passed:
-            print("Test failed: " + self.methodName)
-            # Runs only for tests that fail
-            print(self.response.status_code)
-            try:
-                print(self.response.json()["errorType"])
-                print(self.response.json()["message"])
-                print(self.response.json()["trace"])
-                print(self.response.json()["wrappedType"])
-                print(self.response.json()["wrappedMessage"])
-            except Exception as e:
-                # Some of the fields were missing from the response json, just skip the rest of the prints
-                pass
+if __name__ == '__main__':
+    unittest.main()

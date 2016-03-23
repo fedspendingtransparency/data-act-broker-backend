@@ -1,8 +1,5 @@
 .idea/*
 *.pyc
-fileReaders/*.pyc
-handlers/*.pyc
-interfaces/*.pyc
 jobTracker.conf
 handlers/s3bucket.json
 errorLog
@@ -24,4 +21,5 @@ tests/programActivityRaw.csv
 dataactvalidator/scripts/clearRules.py
 dataactvalidator/databaseErrors.log
 dataactvalidator/scripts/dropAll.py
+.coverage
 dataactvalidator/validator_configuration.json
