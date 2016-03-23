@@ -226,17 +226,23 @@ class JobTests(unittest.TestCase):
             status = 200
         else:
             status = 400
-        self.passed = TestUtils.run_test(jobId,status,"invalid",False,False,"missing_header_error",0,self)
+        self.passed = TestUtils.run_test(jobId,status,"invalid",False,False,"header_error",0,self)
 
         if not TestUtils.USE_THREADS:
-            assert(self.response.json()["message"] == "Missing required headers: header_4, header_5")
+            assert(self.response.json()["message"] == "Errors in header row")
 
 
     def test_bad_header(self):
-        """ Test bad header value in first row, should now just be ignored """
+        """ Ignore bad header value in first row, then fail on a duplicate header """
         jobId = self.jobIdDict["bad_header"]
-        status = 200
-        self.passed = TestUtils.run_test(jobId,status,"finished",52,1,"complete",0,self)
+        if TestUtils.USE_THREADS:
+            status = 200
+        else:
+            status = 400
+        self.passed = TestUtils.run_test(jobId,status,"invalid",False,False,"header_error",0,self)
+
+        if not TestUtils.USE_THREADS:
+            assert(self.response.json()["message"] == "Errors in header row")
 
     def test_many_rows(self):
         """ Test many rows """

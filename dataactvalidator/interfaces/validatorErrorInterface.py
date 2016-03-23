@@ -26,9 +26,13 @@ class ValidatorErrorInterface(ErrorInterface):
         except:
             raise ValueError("".join(["Bad jobId: ",str(jobId)]))
 
+
         fileError = FileStatus(job_id = jobId, filename = filename, status_id = self.getStatusId(ValidationError.getErrorTypeString(errorType)))
-        if(ValidationError.getErrorTypeString(errorType) == "missing_header_error"):
-            fileError.headers_missing = extraInfo
+        if extraInfo is not None:
+            if "missing_headers" in extraInfo:
+                fileError.headers_missing = extraInfo["missing_headers"]
+            if "duplicated_headers" in extraInfo:
+                fileError.headers_duplicated = extraInfo["duplicated_headers"]
 
         self.session.add(fileError)
         self.session.commit()
@@ -118,4 +122,17 @@ class ValidatorErrorInterface(ErrorInterface):
         fileStatus = self.getFileStatusByJobId(jobId)
         # Create single string out of missing header list
         fileStatus.headers_missing = ", ".join(missingHeaders)
+        self.session.commit()
+
+    def writeDuplicatedHeaders(self, jobId, duplicatedHeaders):
+        """ Write list of duplicated headers into headers_missing field
+
+        Args:
+            jobId: Job to write error for
+            duplicatedHeaders: List of duplicated headers
+
+        """
+        fileStatus = self.getFileStatusByJobId(jobId)
+        # Create single string out of duplicated header list
+        fileStatus.headers_duplicated = ", ".join(duplicatedHeaders)
         self.session.commit()

@@ -41,6 +41,7 @@ class CsvAbstractReader(object):
         if(self.isFinished) :
             raise ResponseException("CSV file must have a header",StatusCode.CLIENT_ERROR,ValueError,ValidationError.singleRow)
 
+        duplicatedHeaders = []
         #create the header
         for row in csv.reader([line],dialect='excel'):
             for cell in row :
@@ -50,7 +51,8 @@ class CsvAbstractReader(object):
                     self.headerDictionary[(current)] = None
                     current += 1
                 elif(possibleFields[headerValue] == 1) :
-                    raise ResponseException(("".join(["Header : ",headerValue," is duplicated"])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.duplicateError)
+                    # Add to duplicated header list
+                    duplicatedHeaders.append(headerValue)
                 else:
                     self.headerDictionary[(current)] = headerValue
                     possibleFields[headerValue]  = 1
@@ -61,10 +63,14 @@ class CsvAbstractReader(object):
         for schema in csvSchema :
             if(schema.required and  possibleFields[FieldCleaner.cleanString(schema.name)] == 0) :
                 missingHeaders.append(schema.name)
-        if(len(missingHeaders) > 0):
-            # Add missing headers to exception, to be stored in file_status table
-            missingHeaderString = ", ".join(missingHeaders)
-            raise ResponseException(("".join(["Missing required headers: ", missingHeaderString])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.missingHeaderError,extraInfo=missingHeaderString)
+        if(len(missingHeaders) > 0 or len(duplicatedHeaders) > 0):
+            # Raise a header_error exception
+            extraInfo = {}
+            if(len(duplicatedHeaders) > 0):
+                extraInfo["duplicated_headers"] = ", ".join(duplicatedHeaders)
+            if(len(missingHeaders) > 0):
+                extraInfo["missing_headers"] = ", ".join(missingHeaders)
+            raise ResponseException("Errors in header row", StatusCode.CLIENT_ERROR, ValueError,ValidationError.headerError,**extraInfo)
 
     def getNextRecord(self):
         """
