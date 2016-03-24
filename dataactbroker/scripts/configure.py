@@ -26,10 +26,10 @@ class ConfigureBroker(object):
         crypt = Bcrypt()
         userDatabase = UserHandler()
         if(enableTestUsers):
-            userDatabase.createUser("user","bestPassEver" ,crypt)
-            userDatabase.createUser("user2","NotAPassword" ,crypt)
-            userDatabase.createUser("user3","123abc" ,crypt)
-        userDatabase.createUser(adminEmail,adminpass ,crypt,admin=True)
+            userDatabase.createUserWithPassword("user","bestPassEver" ,crypt)
+            userDatabase.createUserWithPassword("user2","NotAPassword" ,crypt)
+            userDatabase.createUserWithPassword("user3","123abc" ,crypt)
+        userDatabase.createUserWithPassword(adminEmail,adminpass ,crypt,admin=True)
 
 
     @staticmethod
