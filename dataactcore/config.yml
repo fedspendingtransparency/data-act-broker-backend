@@ -1,6 +1,6 @@
 broker:
     full_url: http://localhost:3000 #formerly frontend_url
-    security_key: "1234" # can we use a better example to prevent the number/string ambiguity?
+    email_token_key: "1234" # can we use a better example to prevent the number/string ambiguity?
     # e-mail used as reply-to address on e-mail sent by the broker
     reply_to_email: rebecca.sweger@gsa.gov #renamed from system_email
     # e-mail for broker admin user
@@ -10,9 +10,9 @@ broker:
     admin_password: adminpassword
     # The path where the broker will store submitted files, error reports,
     # and other data. This should be an absolute path.
-    # Ignore if AWS is set to true.
+    # Ignored if use_aws is true.
     # (replaces deprecated server_directory and local_folder)
-    broker_files: /Users/rebeccasweger/Dev/data-act-test/data-act-broker #make sure code that reads this can grok windows/osx/unix path stuff
+    broker_files: /Users/rebeccasweger/Dev/data-act-test/data-act-broker
     # Set to true and fill in all aws_ settings
     # to use an AWS S3 bucket for broker files
     use_aws: false
@@ -32,9 +32,11 @@ services:
     rest_trace: true
     server_debug: true
     #origins: "*" #renamed to cross_origin_url
-    # URL/IP hosting the back-end services (assumes services are hosted together)
-    host: 0.0.0.0
+    # URL/IP hosting the broker API (assumes services are hosted together)
+    broker_api_host: 0.0.0.0
     broker_api_port: 3333 #make sure things work if no port specificed
+    # URL/IP hosting the validator API (assumes services are hosted together)
+    validator_host: 0.0.0.0
     validator_port: 3334 #make sure things work if no port specified
     cross_origin_url: '*' #renamed from origins
     error_report_path:
@@ -53,12 +55,22 @@ db:
     staging_db_name: staging
     validator_db_name: validation
     error_db_name: error_data
+    # The broker uses DynamoDb for session management. If
+    # use_aws is true above, the broker will use a
+    # Dynamo instance on your AWS account. Otherwise,
+    # provide a dynamo host and port below.
+    dynamo_host: 0.0.0.0
     dynamo_port: 8000
-    local_dynamo: false
 
 logging:
+    # The path where broker still store log files.
+    # Ignored if use_logstash is true.
+    log_files: /Users/rebeccasweger/Dev/data-act-test/
+    # Set to true and fill in all logstash_ settings
+    # to use logstash for logging
+    use_logstash: true
+    # Logstash EC2 host. Ignored if use_logstash is false.
     logstash_host: ec2-52-73-52-11.compute-1.amazonaws.com
+    # Logstash EC2 port. Ignore if use_logstash is false.
     logstash_port: 514
-    local: true
-    local_log: /Users/rebeccasweger/Dev/data-act-test/
 
