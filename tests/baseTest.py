@@ -16,6 +16,7 @@ from dataactvalidator.models.validationModels import FileColumn
 class BaseTest(unittest.TestCase):
     """ Test login, logout, and session handling """
 
+
     @classmethod
     def setUpClass(cls):
         """Set up resources to be shared within a test class"""
@@ -33,14 +34,16 @@ class BaseTest(unittest.TestCase):
         cls.uploadFiles = True
         # Run tests for local broker or not
         cls.local = False
-        # Set directory where local error reports are stored
-        cls.local_file_directory = "" #This needs to be set to the local dirctory for error reports
+        # This needs to be set to the local dirctory for error reports if local is True
+        cls.local_file_directory = ""
+
         cls.interfaces = InterfaceHolder()
         cls.jobTracker = cls.interfaces.jobDb
         cls.stagingDb = cls.interfaces.stagingDb
         cls.errorInterface = cls.interfaces.errorDb
         cls.validationDb = cls.interfaces.validationDb
         cls.userId = 1
+
 
     def setUp(self):
         """Set up broker unit tests."""
@@ -131,8 +134,8 @@ class BaseTest(unittest.TestCase):
         jobTracker.session.commit()
         return sub.submission_id
 
-    @staticmethod
-    def uploadFile(filename, user):
+    @classmethod
+    def uploadFile(cls,filename, user):
         """ Upload file to S3 and return S3 filename"""
         if len(filename.strip()) == 0:
             return ""
@@ -141,7 +144,7 @@ class BaseTest(unittest.TestCase):
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         fullPath = path + "/" + filename
 
-        if BaseTest.local:
+        if cls.local:
             # Local version just stores full path in job tracker
             return fullPath
         else:
@@ -151,7 +154,7 @@ class BaseTest(unittest.TestCase):
             # Create file names for S3
             s3FileName = str(user) + "/" + filename
 
-            if(BaseTest.uploadFiles) :
+            if(cls.uploadFiles) :
                 # Use boto to put files on S3
                 s3conn = S3Connection()
                 key = Key(s3conn.get_bucket(bucketName))
