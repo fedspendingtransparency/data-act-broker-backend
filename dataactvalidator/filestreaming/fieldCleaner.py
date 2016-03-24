@@ -8,7 +8,7 @@ class FieldCleaner:
         """ Clean input file line by line and create output file """
         done = False
         # Open CSV file for reading each record as a dictionary
-        reader = csv.DictReader(open(fileIn,"r"))
+        reader = csv.DictReader(open(fileIn,"rU"))
         fieldnames = ["fieldname","required","data_type","field_length","rule_labels"]
         writer = csv.DictWriter(open(fileOut,"w"),fieldnames=fieldnames,lineterminator='\n')
         writer.writeheader()
