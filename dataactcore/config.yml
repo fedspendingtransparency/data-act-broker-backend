@@ -1,0 +1,64 @@
+broker:
+    full_url: http://localhost:3000 #formerly frontend_url
+    security_key: "1234" # can we use a better example to prevent the number/string ambiguity?
+    # e-mail used as reply-to address on e-mail sent by the broker
+    reply_to_email: rebecca.sweger@gsa.gov #renamed from system_email
+    # e-mail for broker admin user
+    # (will also server as username for logging into the broker website)
+    admin_email: rebecca.sweger@gsa.gov
+    # password for broker admin user
+    admin_password: adminpassword
+    # The path where the broker will store submitted files, error reports,
+    # and other data. This should be an absolute path.
+    # Ignore if AWS is set to true.
+    # (replaces deprecated server_directory and local_folder)
+    broker_files: /Users/rebeccasweger/Dev/data-act-test/data-act-broker #make sure code that reads this can grok windows/osx/unix path stuff
+    # Set to true and fill in all aws_ settings
+    # to use an AWS S3 bucket for broker files
+    use_aws: false
+    # Name of AWS S3 bucket for uploaded broker files. Ignored if use_aws
+    # is false.
+    aws_bucket: dev-data-act-submission
+    # Name of the AWS role you're using to upload broker files. Ignored if
+    # use_aws is false.
+    aws_role: arn:aws:iam::515495268755:role/s3Uploader
+    # Set the following to true to allow the broker to create temporary
+    # AWS credentials for uploading files. Ignore if use_aws is false.
+    aws_create_temp_credentials: true #renamed from create_credentials
+    # local: deprecated--b/c code still references this, will be set
+    # programmatically when config file is imported
+
+services:
+    rest_trace: true
+    server_debug: true
+    #origins: "*" #renamed to cross_origin_url
+    # URL/IP hosting the back-end services (assumes services are hosted together)
+    host: 0.0.0.0
+    broker_api_port: 3333 #make sure things work if no port specificed
+    validator_port: 3334 #make sure things work if no port specified
+    cross_origin_url: "*" #renamed from origins
+    error_report_path:
+    #server_directory: replace with broker.broker_Files
+    #local_folder: replace with broker.broker_files
+
+db:
+    engine: postgres
+    host: localhost
+    port: 5432
+    username: rebeccasweger
+    password: yourpasswordhere
+    db_base_name: postgres #renamed from dbBaseName
+    db_user: user_manager
+    db_job: job_tracker
+    db_staging: staging
+    db_validator: validation
+    db_error: error_data
+    dynamo_port: 8000
+    local_dynamo: false
+
+logging:
+    logstash_host: ec2-52-73-52-11.compute-1.amazonaws.com
+    logstash_port: 514
+    local: true
+    local_log: /Users/rebeccasweger/Dev/data-act-test/
+
