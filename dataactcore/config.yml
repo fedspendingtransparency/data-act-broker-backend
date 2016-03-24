@@ -36,7 +36,7 @@ services:
     host: 0.0.0.0
     broker_api_port: 3333 #make sure things work if no port specificed
     validator_port: 3334 #make sure things work if no port specified
-    cross_origin_url: "*" #renamed from origins
+    cross_origin_url: '*' #renamed from origins
     error_report_path:
     #server_directory: replace with broker.broker_Files
     #local_folder: replace with broker.broker_files
@@ -47,12 +47,12 @@ db:
     port: 5432
     username: rebeccasweger
     password: yourpasswordhere
-    db_base_name: postgres #renamed from dbBaseName
-    db_user: user_manager
-    db_job: job_tracker
-    db_staging: staging
-    db_validator: validation
-    db_error: error_data
+    base_db_name: postgres
+    user_db_name: user_manager
+    job_db_name: job_tracker
+    staging_db_name: staging
+    validator_db_name: validation
+    error_db_name: error_data
     dynamo_port: 8000
     local_dynamo: false
 

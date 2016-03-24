@@ -8,6 +8,5 @@ with open(CONFIG) as c:
     configs = yaml.load(c)
 CONFIG_BROKER = configs['broker']
 CONFIG_SERVICES = configs['services']
-CONFIG_UPLOADS = configs['uploads']
 CONFIG_DB = configs['db']
 CONFIG_LOGGING = configs['logging']
