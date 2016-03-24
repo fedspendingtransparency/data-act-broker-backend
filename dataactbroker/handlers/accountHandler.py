@@ -161,7 +161,7 @@ class AccountHandler:
         self.interfaces.userDb.addUserInfo(user,requestFields.getValue("name"),requestFields.getValue("agency"),requestFields.getValue("title"))
         self.interfaces.userDb.setPassword(user,requestFields.getValue("password"),self.bcrypt)
 
-        userLink= AccountHandler.FRONT_END
+        userLink= "".join([AccountHandler.FRONT_END, '/login?redirect=/admin'])
         # Send email to approver list
         emailThread = Thread(target=ThreadedFunction, kwargs=dict(from_email=system_email,username=user.name,title=user.title,agency=user.agency,userEmail=user.email,link=userLink))
         emailThread.start()
