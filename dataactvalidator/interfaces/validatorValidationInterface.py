@@ -1,7 +1,7 @@
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.baseInterface import BaseInterface
-from dataactvalidator.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType
+from dataactvalidator.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType, RuleTiming
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 class ValidatorValidationInterface(BaseInterface) :
@@ -327,3 +327,13 @@ class ValidatorValidationInterface(BaseInterface) :
             column - FileColumn object to get File object for
         """
         column.file = self.session.query(FileType).filter(FileType.file_id == column.file_id)[0]
+
+    def getRuleTimingIdByName(self,timingName):
+        """ Get rule ID for specified multi-field rule type
+
+        Arguments:
+            typeName - name of rule type (string)
+        Returns:
+            ID for rule type (int)
+        """
+        return self.getIdFromDict(RuleTiming,"TIMING_DICT","name",timingName.lower(),"rule_timing_id")

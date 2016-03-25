@@ -80,7 +80,7 @@ class Validator(object):
 
     @staticmethod
     def getRules(fieldName, fileType,rules,validationInterface) :
-        """ From a given set of rules, create a list of only the rules that apply to specified field
+        """ From a given set of rules, create a list of only the rules that apply to specified field during file validation
 
         Args:
             fieldName: Field to find rules for
@@ -94,7 +94,7 @@ class Validator(object):
         fileId = validationInterface.getFileId(fileType)
         returnList =[]
         for rule in rules :
-            if(rule.file_column.name == fieldName and rule.file_column.file_id == fileId) :
+            if(rule.file_column.name == fieldName and rule.file_column.file_id == fileId and rule.rule_timing_id == validationInterface.getRuleTimingIdByName("file_validation")) :
                 returnList.append(rule)
         return returnList
 

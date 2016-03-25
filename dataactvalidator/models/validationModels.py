@@ -64,6 +64,16 @@ class Rule(Base):
     description = Column(Text, nullable=True)
     rule_type = relationship("RuleType", uselist=False)
     file_column = relationship("FileColumn", uselist=False)
+    rule_timing_id = Column(Integer, ForeignKey("rule_timing.rule_timing_id"), nullable=False, default=1)
+    rule_timing = relationship("RuleTiming", uselist=False)
+
+class RuleTiming(Base):
+    __tablename__ = "rule_timing"
+    rule_timing_id = Column(Integer, primary_key=True)
+    name = Column(Text,nullable=False)
+    description = Column(Text, nullable=False)
+
+    TIMING_DICT = None
 
 class MultiFieldRule(Base):
     __tablename__ = "multi_field_rule"

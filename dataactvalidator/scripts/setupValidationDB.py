@@ -52,8 +52,12 @@ def setupValidationDB( hardReset = False):
         "CREATE SEQUENCE fileColumnSerial START 1;",
         "CREATE TABLE file_columns (file_column_id integer PRIMARY KEY DEFAULT nextval('fileColumnSerial'), file_id integer REFERENCES file_type,field_types_id integer REFERENCES field_type , name text ,description text , required  boolean);",
 
+        "CREATE TABLE rule_timing (rule_timing_id integer PRIMARY KEY, name text NOT NULL, description text NOT NULL)",
+
+        "INSERT INTO rule_timing (rule_timing_id, name, description) VALUES (1,'file_validation','Run during pre-load validation of a file'), (2,'prerequisite','Run only when referenced by another rule')",
+
         "CREATE SEQUENCE ruleIdSerial START 1;",
-        "CREATE TABLE rule (rule_id integer PRIMARY KEY DEFAULT nextval('ruleIdSerial'), file_column_id integer REFERENCES file_columns, rule_type_id integer REFERENCES rule_type,rule_text_1 text,rule_text_2 text,description text);",
+        "CREATE TABLE rule (rule_id integer PRIMARY KEY DEFAULT nextval('ruleIdSerial'), file_column_id integer REFERENCES file_columns, rule_type_id integer REFERENCES rule_type,rule_text_1 text,rule_text_2 text,description text, rule_timing_id integer REFERENCES rule_timing NOT NULL DEFAULT 1);",
 
         "CREATE SEQUENCE multiFieldRuleIdSerial START 1;",
         "CREATE TABLE multi_field_rule (multi_field_rule_id integer PRIMARY KEY DEFAULT nextval('multiFieldRuleIdSerial'), file_id integer REFERENCES file_type, multi_field_rule_type_id integer REFERENCES multi_field_rule_type,rule_text_1 text,rule_text_2 text,description text);",

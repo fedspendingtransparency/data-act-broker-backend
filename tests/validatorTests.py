@@ -178,41 +178,49 @@ class ValidatorTests(BaseTest):
         rule1.rule_type = equalRule
         rule1.file_column = schema["test1"]
         rule1.rule_text_1 = "hello"
+        rule1.rule_timing_id = 1
 
         rule2 = Rule()
         rule2.rule_type = notRule
         rule2.file_column = schema["test1"]
         rule2.rule_text_1 = "bye"
+        rule2.rule_timing_id = 1
 
         rule3 = Rule()
         rule3.rule_type = lengthRule
         rule3.file_column = schema["test1"]
         rule3.rule_text_1 = "6"
+        rule3.rule_timing_id = 1
 
         rule4 = Rule()
         rule4.rule_type = equalRule
         rule4.file_column = schema["test3"]
         rule4.rule_text_1 = "YES"
+        rule4.rule_timing_id = 1
 
         rule5 = Rule()
         rule5.rule_type = equalRule
         rule5.file_column = schema["test4"]
         rule5.rule_text_1 = "44"
+        rule5.rule_timing_id = 1
 
         rule6 = Rule()
         rule6.rule_type = lessRule
         rule6.file_column = schema["test4"]
         rule6.rule_text_1 = "45"
+        rule6.rule_timing_id = 1
 
         rule7 = Rule()
         rule7.rule_type = greaterRule
         rule7.file_column = schema["test2"]
         rule7.rule_text_1 = ".5"
+        rule7.rule_timing_id = 1
 
         rule8 = Rule()
         rule8.rule_type = setRule
         rule8.file_column = schema["test6"]
         rule8.rule_text_1 = "X, F, A"
+        rule8.rule_timing_id = 1
 
         rules = [rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8]
         record = {
