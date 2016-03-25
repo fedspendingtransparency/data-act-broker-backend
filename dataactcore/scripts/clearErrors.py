@@ -4,6 +4,7 @@ import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import ProgrammingError
 from dataactcore.models.errorInterface import ErrorInterface
+from dataactcore.models.baseInterface import BaseInterface
 
 def clearErrors():
     credentialsFile = ErrorInterface.getCredFilePath()
@@ -20,15 +21,14 @@ def clearErrors():
     session = Session()
 
     # Create tables
-    sqlStatements = ["DELETE FROM error_data", "DELETE FROM file_status"]
+    sqlStatements = ["DDELETE FROM error_data", "DDELETE FROM file_status"]
 
     for statement in sqlStatements:
         try:
             connection.execute(statement)
         except ProgrammingError as e:
             # Usually a table exists error, print and continue
-            #print(e.message)
-            pass
+            BaseInterface.logDbError(e)
 
 if __name__ == '__main__':
     clearErrors()

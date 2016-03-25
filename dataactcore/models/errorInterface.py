@@ -1,4 +1,5 @@
 from dataactcore.models.baseInterface import BaseInterface
+from dataactcore.models.errorModels import Status, ErrorType
 
 class ErrorInterface(BaseInterface):
     """ Manages communication with error database """
@@ -22,3 +23,10 @@ class ErrorInterface(BaseInterface):
 
     def getSession(self):
         return self.session
+
+    def getStatusId(self,statusName):
+        """ Get status ID for given name """
+        return self.getIdFromDict(Status,"STATUS_DICT","name",statusName,"status_id")
+
+    def getTypeId(self,typeName):
+        return self.getIdFromDict(ErrorType,"TYPE_DICT","name",typeName,"error_type_id")

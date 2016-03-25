@@ -2,3 +2,8 @@ boto==2.38.0
 psycopg2==2.6.1
 SQLAlchemy==1.0.9
 Flask==0.10.1
+future==0.15.2
+python-logstash==0.4.6
+logstash==0.1.dev0
+alembic==0.8.5
+awscli==1.10.10

@@ -30,7 +30,7 @@ def setupJobTrackerDB(connection = None, hardReset = False):
                 "CREATE TABLE resource_status (resource_status_id integer PRIMARY KEY, name text NOT NULL, description text NOT NULL)",
                 "CREATE TABLE resource (resource_id integer PRIMARY KEY DEFAULT nextval('resourceIdSerial'), IP text NOT NULL, status_id integer NOT NULL REFERENCES resource_status)",
                 "CREATE SEQUENCE submissionIdSerial START 1",
-                "CREATE TABLE submission (submission_id integer PRIMARY KEY DEFAULT nextval('submissionIdSerial'), datetime_utc text)",
+                "CREATE TABLE submission (submission_id integer PRIMARY KEY DEFAULT nextval('submissionIdSerial'), datetime_utc text, user_id integer NOT NULL)",
                 "CREATE SEQUENCE fileTypeSerial START 1",
                 "CREATE TABLE file_type (file_type_id integer PRIMARY KEY DEFAULT nextval('fileTypeSerial'), name text, description text)",
                 "CREATE SEQUENCE jobIdSerial START 1",
@@ -40,19 +40,9 @@ def setupJobTrackerDB(connection = None, hardReset = False):
                 "INSERT INTO resource_status (resource_status_id, name, description) VALUES (1,'ready','available for new jobs'), (2,'running','currently working on a job'), (3,'unresponsive','resource seems to be unresponsive')",
                 "INSERT INTO status (status_id,name, description) VALUES (1, 'waiting', 'check dependency table'), (2, 'ready', 'can be assigned'), (3, 'running', 'job is currently in progress'), (4, 'finished', 'job is complete'),(5, 'invalid', 'job is invalid'),(6, 'failed', 'job failed to complete')",
                 "INSERT INTO type (type_id,name,description) VALUES (1, 'file_upload', 'file must be uploaded to S3'), (2, 'csv_record_validation', 'do record level validation and add to staging DB'), (3, 'db_transfer', 'information must be moved from production DB to staging DB'), (4, 'validation', 'new information must be validated'), (5, 'external_validation', 'new information must be validated against external sources')",
-                "INSERT INTO file_type (file_type_id, name, description) VALUES (1, 'award', ''), (2, 'award_financial', ''), (3, 'appropriations', ''), (4, 'procurement', '')",
+                "INSERT INTO file_type (file_type_id, name, description) VALUES (1, 'award', ''), (2, 'award_financial', ''), (3, 'appropriations', ''), (4, 'program_activity', '')",
                 ]
     runCommands(JobTrackerInterface.getCredDict(),sql,"job_tracker",connection)
-
-    if(hardReset):
-        sql = ["DROP TABLE IF EXISTS users","DROP SEQUENCE IF EXISTS userIdSerial"]
-        runCommands(UserInterface.getCredDict(),sql,"user_manager")
-
-    sql = ["DROP SEQUENCE IF EXISTS userIdSerial",
-                "CREATE SEQUENCE userIdSerial START 1",
-                "CREATE TABLE users (user_id integer PRIMARY KEY DEFAULT nextval('userIdSerial'), username text)"]
-
-    runCommands(UserInterface.getCredDict(),sql,"user_manager")
 
 if __name__ == '__main__':
     setupJobTrackerDB(hardReset = True)
