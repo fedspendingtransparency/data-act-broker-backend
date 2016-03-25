@@ -75,22 +75,24 @@ class BaseTest(unittest.TestCase):
             self.assertFalse(stagingDb.tableExists(tableName))
         else:
             self.assertTrue(stagingDb.tableExists(tableName))
-            self.assertEqual(stagingDb.countRows(tableName), stagingRows), "".join(["numRows: ", str(stagingDb.countRows(tableName))])
+            self.assertEqual(stagingDb.countRows(tableName), stagingRows)
 
         errorInterface = self.errorInterface
         if errorStatus is not False:
             self.assertEqual(errorInterface.checkStatusByJobId(jobId), errorInterface.getStatusId(errorStatus))
-            self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId), numErrors), "".join(["numErrors: ", str(errorInterface.checkNumberOfErrorsByJobId(jobId))])
+            self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId), numErrors)
 
         if(fileSize != False):
             if self.local:
-                # TODO: check size of local error reports
-                path = "".join([self.local_file_directory,jobTracker.getReportPath(jobId)])
-                assert(os.path.getsize(path) > fileSize - 5 )
-                assert(os.path.getsize(path) < fileSize + 5 )
+                path = "".join(
+                    [self.local_file_directory,jobTracker.getReportPath(jobId)])
+                self.assertGreater(os.path.getsize(path), fileSize - 5)
+                self.assertLess(os.path.getsize(path), fileSize + 5)
             else:
-                assert(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)) > fileSize - 5), "".join(["filesize: ",str(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)))])
-                assert(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)) < fileSize + 5), "".join(["filesize: ",str(s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)))])
+                self.assertGreater(s3UrlHandler.getFileSize(
+                    "errors/"+jobTracker.getReportPath(jobId)), fileSize - 5)
+                self.assertLess(s3UrlHandler.getFileSize(
+                    "errors/"+jobTracker.getReportPath(jobId)), fileSize + 5)
 
 
         return response
