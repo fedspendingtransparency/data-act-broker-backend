@@ -379,7 +379,8 @@ class UserHandler(UserInterface):
         return queryResult
 
     def createUserWithPassword(self,email,password,bcrypt,admin=False):
-        """ This directly creates a valid user in the database with password and permissions set.
+        """ This directly creates a valid user in the database with password and permissions set.  Not used during normal
+        behavior of the app, but useful for configuration and testing.
 
         Arguments:
             email - Email for new user

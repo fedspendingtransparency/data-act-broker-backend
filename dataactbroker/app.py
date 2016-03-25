@@ -30,10 +30,6 @@ def createApp():
             inspect.getfile(inspect.currentframe()))), "/config"])
         app = Flask(__name__, instance_path=config_path)
         config = getAppConfiguration(app)
-        if(config["local"]) :
-            # Up to 1 GB can be uploaded for local
-            app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024
-
         # Set parameters
         AccountHandler.FRONT_END = config["frontend_url"]
         sesEmail.SIGNING_KEY =  config["security_key"]
@@ -75,7 +71,7 @@ def createApp():
         add_file_routes(app, config["create_credentials"],
             config["local"], config["local_folder"])
         add_user_routes(app, config["system_email"], bcrypt)
-        SessionTable.localPort = int(config["dynamo_port"])
+        SessionTable.LOCAL_PORT = int(config["dynamo_port"])
         SessionTable.setup(app, runLocal)
 
         return app
