@@ -194,6 +194,8 @@ class Validator(object):
         elif(currentRuleType == "IN_SET"):
             setList = Validator.cleanSplit(value1,toLower = False)
             return (data in setList)
+        elif(currentRuleType == "MIN LENGTH"):
+            return len(data.strip()) >= Validator.getIntFromString(value1)
         raise ValueError("Rule Type Invalid")
 
     @staticmethod
