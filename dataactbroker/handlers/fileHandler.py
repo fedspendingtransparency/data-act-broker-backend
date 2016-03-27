@@ -187,8 +187,10 @@ class FileHandler:
                     jobInfo["missing_headers"] = ""
                 else:
                     # If job ID was found in file_status, we should be able to get header error lists
-                    jobInfo["missing_headers"] = self.interfaces.errorDb.getMissingHeadersByJobId(job)
-                    jobInfo["duplicated_headers"] = self.interfaces.errorDb.getDuplicatedHeadersByJobId(job)
+                    missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(job)
+                    jobInfo["missing_headers"] = missingHeaderString.split(",")
+                    duplicatedHeaderString = self.interfaces.errorDb.getDuplicatedHeadersByJobId(job)
+                    jobInfo["duplicated_headers"] = duplicatedHeaderString.split(",")
                 try :
                     jobInfo["file_type"] = self.jobManager.getFileType(job)
                 except ResponseException as e:
