@@ -10,6 +10,7 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.jobModels import JobStatus, Submission
+from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.models.validationModels import FileColumn
 
 
@@ -126,7 +127,7 @@ class BaseTest(unittest.TestCase):
         if len(filename.strip()) == 0:
             return ""
 
-        bucketName = s3UrlHandler.getValueFromConfig("bucket")
+        bucketName = CONFIG_BROKER['aws_bucket']
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         fullPath = path + "/" + filename
         s3FileName = str(user) + "/" + filename
