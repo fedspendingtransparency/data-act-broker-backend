@@ -1,23 +1,20 @@
 import sqlalchemy
-import json
-import os
+import os.path
 import sys
-import inspect
 import traceback
 from flask import _app_ctx_stack
 from sqlalchemy.orm import sessionmaker , scoped_session
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.config import CONFIG_DB, CONFIG_LOGGING
 
 class BaseInterface(object):
     """ Abstract base interface to be inherited by interfaces for specific databases
     """
     #For Flask Apps use the context for locals
     IS_FLASK = True
-    dbConfigFile = None # Should be overwritten by child classes
     dbName = None # Should be overwritten by child classes
-    credFileName = None
     logFileName = "dbErrors.log"
 
     def __init__(self):
@@ -25,14 +22,16 @@ class BaseInterface(object):
             # session is already set up for this DB
             return
 
-        if(self.dbConfigFile == None or self.dbName == None):
+        if not self.dbName:
             # Child class needs to set these before calling base constructor
-            raise ValueError("Need dbConfigFile and dbName defined")
-        # Load config info
-        confDict = json.loads(open(self.dbConfigFile,"r").read())
+            raise ValueError("Need dbName defined")
 
         # Create sqlalchemy connection and session
-        self.engine = sqlalchemy.create_engine("postgresql://" + confDict["username"] + ":" + confDict["password"] + "@" + confDict["host"] + ":" + confDict["port"] + "/" + self.dbName,pool_size=100,max_overflow=50)
+        self.engine = sqlalchemy.create_engine(
+            "postgresql://{}:{}@{}:{}/{}".format(CONFIG_DB["username"],
+            CONFIG_DB["password"], CONFIG_DB["host"], CONFIG_DB["port"],
+            self.dbName), pool_size=100,max_overflow=50)
+            #"postgresql://" + CONFIG_DB['username'] + ":" + CONFIG_DB['password'] + "@" + CONFIG_DB['host'] + ":" + CONFIG_DB['port'] + "/" + self.dbName,pool_size=100,max_overflow=50)
         self.connection = self.engine.connect()
         if(self.Session == None):
             if(BaseInterface.IS_FLASK) :
@@ -53,31 +52,15 @@ class BaseInterface(object):
             # KeyError will occur in Python 3 on engine dispose
             pass
 
-    @classmethod
-    def getCredDict(cls):
-        """ Gets credentials dictionary """
-        return json.loads(open(cls.getCredFilePath(),"r").read())
-
-    @classmethod
-    def getCredFilePath(cls):
-        """  Returns full path to credentials file """
-        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        dirName, filename = os.path.split(path)
-        return os.path.join(dirName, "credentials/", cls.credFileName)
-
-    @staticmethod
-    def getLogFilePath():
-        """  Returns full path to credentials file """
-        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        dirName, filename = os.path.split(path)
-        return os.path.join(dirName, BaseInterface.logFileName)
-
     @staticmethod
     def logDbError(exc):
-        file = open(BaseInterface.getLogFilePath(),"a")
-        file.write(str(exc) + ", ")
-        file.write(str(sys.exc_info()[0:1]) + "\n")
-        traceback.print_tb(sys.exc_info()[2],file=file)
+        logFile = os.path.join(
+            CONFIG_LOGGING['log_files'], BaseInterface.logFileName)
+        with open(logFile, "a") as file:
+        #file = open(BaseInterface.getLogFilePath(),"a")
+            file.write(str(exc) + ", ")
+            file.write(str(sys.exc_info()[0:1]) + "\n")
+            traceback.print_tb(sys.exc_info()[2], file=file)
 
     @staticmethod
     def checkUnique(queryResult, noResultMessage, multipleResultMessage):
