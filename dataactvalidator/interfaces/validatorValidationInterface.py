@@ -3,18 +3,18 @@ from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.baseInterface import BaseInterface
 from dataactvalidator.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
+from dataactcore.config import CONFIG_DB
+
 
 class ValidatorValidationInterface(BaseInterface) :
     """ Manages all interaction with the validation database """
 
-    dbName = "validation"
-    credFileName = "dbCred.json"
+    dbName = CONFIG_DB['validator_db_name']
     Session = None
     engine = None
     session = None
 
     def __init__(self):
-        self.dbConfigFile = self.getCredFilePath()
         super(ValidatorValidationInterface,self).__init__()
 
     @staticmethod
