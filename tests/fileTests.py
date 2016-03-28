@@ -4,9 +4,9 @@ import inspect
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from baseTest import BaseTest
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.jobModels import Submission, JobStatus
 from dataactcore.models.errorModels import ErrorData, FileStatus
+from dataactcore.config import CONFIG_BROKER
 
 class FileTests(BaseTest):
     """Test file submission routes."""
@@ -132,7 +132,7 @@ class FileTests(BaseTest):
     def uploadFileByURL(s3FileName,filename):
         """Upload file to S3 and return S3 filename."""
         # Get bucket name
-        bucketName = s3UrlHandler.getValueFromConfig("bucket")
+        bucketName = CONFIG_BROKER['aws_bucket']
 
         path = os.path.dirname(
             os.path.abspath(inspect.getfile(inspect.currentframe())))
