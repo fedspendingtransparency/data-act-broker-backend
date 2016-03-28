@@ -1,10 +1,10 @@
-""" Create the staging database """
+from dataactcore.scripts.databaseSetup import createDatabase
+from dataactcore.config import CONFIG_DB
 
-from dataactcore.scripts.databaseSetup import runCommands
-from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
 
-def setupStaging():
-    runCommands(ValidatorStagingInterface.getCredDict(),[],"staging")
+def setupStagingDB():
+    """Create the staging database."""
+    createDatabase(CONFIG_DB['staging_db_name'])
 
 if __name__ == '__main__':
-    setupStaging()
+    setupStagingDB()
