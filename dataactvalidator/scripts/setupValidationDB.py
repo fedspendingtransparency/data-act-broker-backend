@@ -2,7 +2,7 @@ from dataactcore.scripts.databaseSetup import createDatabase
 from dataactcore.config import CONFIG_DB
 from dataactvalidator.models import validationModels
 from dataactvalidator.models.validationModels import FileType, RuleType, FieldType, MultiFieldRuleType
-from dataactvalidator.interfaces.validatorValidationInterface import  ValidatorValidationInterface
+from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 
 def setupValidationDB(hardReset = False):
     """Create validation tables from model metadata and do initial inserts."""
