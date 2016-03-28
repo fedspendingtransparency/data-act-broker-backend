@@ -14,7 +14,7 @@ CONFIG_SERVICES = CONFIG_ALL['services']
 CONFIG_DB = CONFIG_ALL['db']
 CONFIG_LOGGING = CONFIG_ALL['logging']
 
-# for backward-compatibility
+# for backward-compatibility, differentiate between local runs and AWS
 if CONFIG_BROKER['use_aws'] or CONFIG_BROKER['use_aws'] == "true":
     CONFIG_BROKER['local'] = False
     CONFIG_BROKER['broker_files'] = None
@@ -23,6 +23,9 @@ else:
     CONFIG_BROKER['aws_bucket'] = None
     CONFIG_BROKER['aws_role'] = None
     CONFIG_BROKER['aws_create_temp_credentials'] = None
+
+    # if not using AWS and no broker file path specified,
+    # default to `data_act_broker` in user's home dir
     broker_files = CONFIG_BROKER['broker_files']
     if not broker_files:
         broker_files = os.path.join(expanduser('~'), 'data_act_broker')
@@ -35,6 +38,20 @@ else:
         broker_files = os.path.split(broker_files)[0]
     normpath(broker_files)
     CONFIG_BROKER['broker_files'] = broker_files
+
+    # if not using AWS and no error report path specified,
+    # default to `data_act_broker` in user's home dir
+    error_report_path = CONFIG_SERVICES['error_report_path']
+    if not error_report_path:
+        error_report_path = os.path.join(expanduser('~'), 'data_act_broker')
+        msg = 'No broker file path set in config file. Broker will '\
+                      'use the default location: {}'.format(error_report_path)
+        warnings.warn(msg)
+    normpath(error_report_path)
+    CONFIG_SERVICES['error_report_path'] = error_report_path
+
+    # if not using AWS and no DynamoDB settings specified, default
+    # to localhost and port 8000
     if not CONFIG_DB['dynamo_host']:
         # TODO: dynamo host doesn't actually do anything...code assumes localhost
         CONFIG_DB['dynamo_host'] = '0.0.0.0'
