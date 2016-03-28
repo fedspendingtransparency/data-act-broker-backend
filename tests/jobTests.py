@@ -62,6 +62,7 @@ class JobTests(BaseTest):
             csvFiles[key]["s3Filename"] = cls.uploadFile(
                 csvFiles[key]["filename"], cls.userId)
         jobIdDict = {}
+        subIdDict = {}
 
         for key in csvFiles.keys():
             file = csvFiles[key]
@@ -78,7 +79,10 @@ class JobTests(BaseTest):
                 raise Exception(
                     "".join(["Job for ", str(key), " did not get an id back"]))
             jobIdDict[key] = job.job_id
+            subIdDict[key] = jobTracker.getSubmissionId(job.job_id)
 
+        # Display submission IDs so error reports can be checked directly if unit tests fail
+        print(str(subIdDict))
         # Create dependencies
         dependencies = [
             JobDependency(
@@ -190,26 +194,28 @@ class JobTests(BaseTest):
             status = 200
         else:
             status = 400
+
         response = self.run_test(
-            jobId, status, "invalid", False, False, "missing_header_error", 0)
+            jobId, status, "invalid", False, False, "header_error", 0)
 
         if not self.useThreads:
             self.assertEqual(
-                response.json["message"], "Header : header_5 is required")
+                response.json["message"], "Errors in header row")
 
     def test_bad_header(self):
-        """Test bad header value in first row."""
+        """ Ignore bad header value in first row, then fail on a duplicate header """
         jobId = self.jobIdDict["bad_header"]
         if self.useThreads:
             status = 200
         else:
             status = 400
+
         response = self.run_test(
-            jobId, status, "invalid", False, False, "bad_header_error", 0)
+            jobId, status, "invalid", False, False, "header_error", 0)
 
         if not self.useThreads:
             self.assertEqual(
-                response.json["message"], "Header : walrus not in CSV schema")
+                response.json["message"], "Errors in header row")
 
     def test_many_rows(self):
         """Test many rows."""
