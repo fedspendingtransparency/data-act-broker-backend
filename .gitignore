@@ -1,4 +1,5 @@
 .idea/*
 *.pyc
 dataactcore/dbErrors.log
+config.yml
 

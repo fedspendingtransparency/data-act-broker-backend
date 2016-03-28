@@ -6,8 +6,13 @@ import re
 # set the location of the DATA Act broker config file
 CONFIG_PATH = os.path.join(dirname(__file__), 'config.yml')
 
-with open(CONFIG_PATH) as c:
-    CONFIG_ALL = yaml.load(c)
+try:
+    with open(CONFIG_PATH) as c:
+        CONFIG_ALL = yaml.load(c)
+except IOError:
+    raise IOError('Error reading the config file. Please make sure this file exists'
+           ' before starting the DATA Act broker: {}'.format(CONFIG_PATH))
+
 CONFIG_BROKER = CONFIG_ALL['broker']
 CONFIG_SERVICES = CONFIG_ALL['services']
 CONFIG_DB = CONFIG_ALL['db']
