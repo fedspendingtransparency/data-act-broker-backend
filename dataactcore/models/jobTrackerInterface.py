@@ -1,6 +1,11 @@
+import traceback
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type
+from dataactcore.utils.statusCode import StatusCode
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.cloudLogger import CloudLogger
+from dataactcore.utils import jobQueue
 
 class JobTrackerInterface(BaseInterface):
     """ Manages all interaction with the job tracker database
@@ -87,6 +92,7 @@ class JobTrackerInterface(BaseInterface):
             status of specified job
         """
         query = self.session.query(JobStatus).options(joinedload("status")).filter(JobStatus.job_id == jobId)
+        print "DEBUG: Job status query status name => " + str(self.checkJobUnique(query).status.name)
         return self.checkJobUnique(query).status.name
 
     def getJobType(self, jobId):
@@ -117,15 +123,23 @@ class JobTrackerInterface(BaseInterface):
             dependents.append(result.job_id)
         return dependents
 
-    def markStatus(self,jobId,statsType):
+    def markStatus(self,jobId,statusName):
         # Pull JobStatus for jobId
+        print "DEBUG: Marking status as " + statusName
+        prevStatus = self.getJobStatus(jobId)
 
         query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
         result = self.checkJobUnique(query)
         # Mark it finished
-        result.status_id = self.getStatusId(statsType)
+        result.status_id = self.getStatusId(statusName)
+        print "DEBUG: Status marked with status id " + str(self.getStatusId(statusName))
         # Push
         self.session.commit()
+
+        # If status is changed to finished for the first time, check dependencies
+        # and add to the job queue as necessary
+        if prevStatus != 'finished' and statusName == 'finished':
+            self.checkJobDependencies(jobId)
 
     def getStatus(self,jobId):
         """ Get status for specified job
@@ -148,3 +162,46 @@ class JobTrackerInterface(BaseInterface):
 
     def getTypeId(self,typeName):
         return self.getIdFromDict(Type,"TYPE_DICT","name",typeName,"type_id")
+
+    def getPrerequisiteJobs(self, jobId):
+        """
+
+        Args:
+            jobId: job to get dependent jobs of
+        Returns:
+            list of prerequisite jobs for the specified job
+        """
+        prerequisiteJobs = []
+        queryResult = self.session.query(JobDependency.prerequisite_id).filter(JobDependency.job_id == jobId).all()
+        for result in queryResult:
+            prerequisiteJobs.append(result.prerequisite_id)
+        return prerequisiteJobs
+
+    def checkJobDependencies(self,jobId):
+        # raise exception if current job is not actually finished
+        if self.getStatus(jobId) != self.getStatusId('finished'):
+            raise ValueError('Current job not finished, unable to check dependencies')
+
+        # check if dependent jobs are finished
+        for depJobId in self.getDependentJobs(jobId):
+            print "DEBUG: Processing dep id => " + str(depJobId)
+            isReady = True
+            if not (self.getStatus(depJobId) == self.getStatusId('waiting')):
+                CloudLogger.logError("Job dependency is not in a 'waiting' state",
+                                     ResponseException("Job dependency is not in a 'waiting' state",StatusCode.CLIENT_ERROR, ValueError),
+                                     traceback.extract_stack())
+                continue
+            # if dependent jobs are finished, then check the jobs of which the current job is a dependent
+            for preReqJobId in self.getPrerequisiteJobs(depJobId):
+                print "DEBUG: Processing prereq job id => " + str(preReqJobId)
+                if not (self.getStatus(preReqJobId) == self.getStatusId('finished')):
+                    # Do nothing
+                    isReady = False
+                    break
+            if isReady:
+                # mark job as ready
+                self.markStatus(depJobId, 'ready')
+                # add to the job queue
+                print("DEBUG: Enqueueing JOB ID => " + str(depJobId))
+                x = jobQueue.enqueue.delay(depJobId)
+                print "DEBUG: async job result => " + str(x.result)
