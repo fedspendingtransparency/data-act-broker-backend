@@ -176,6 +176,8 @@ class FileHandler:
             submissionInfo = {}
             for job in jobs:
                 jobInfo = {}
+                #if(self.jobManager.getJobType(job)!=2):
+                #    continue
                 jobInfo["job_status"] = self.jobManager.getJobStatus(job)
                 jobInfo["job_type"] = self.jobManager.getJobType(job)
                 jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job)
@@ -191,6 +193,10 @@ class FileHandler:
                     jobInfo["missing_headers"] = missingHeaderString.split(",")
                     duplicatedHeaderString = self.interfaces.errorDb.getDuplicatedHeadersByJobId(job)
                     jobInfo["duplicated_headers"] = duplicatedHeaderString.split(",")
+                    for i in range(0,len(jobInfo["missing_headers"])):
+                        jobInfo["missing_headers"][i] = jobInfo["missing_headers"][i].strip()
+                    for i in range(0,len(jobInfo["duplicated_headers"])):
+                        jobInfo["duplicated_headers"][i] = jobInfo["duplicated_headers"][i].strip()
                 try :
                     jobInfo["file_type"] = self.jobManager.getFileType(job)
                 except ResponseException as e:
