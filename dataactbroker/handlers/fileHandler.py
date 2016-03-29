@@ -101,12 +101,16 @@ class FileHandler:
                 if (not "submission_id" in fileType) :
                     responseDict[fileType+"_id"] = fileJobDict[fileType]
             if(CreateCredentials and not self.isLocal) :
+                self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
                 responseDict["credentials"] = self.s3manager.getTemporaryCredentials(name)
             else :
                 responseDict["credentials"] ={"AccessKeyId" : "local","SecretAccessKey" :"local","SessionToken":"local" ,"Expiration" :"local"}
 
             responseDict["submission_id"] = fileJobDict["submission_id"]
-            responseDict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
+            if self.isLocal:
+                responseDict["bucket_name"] = CONFIG_BROKER["broker_files"]
+            else:
+                responseDict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
             return JsonResponse.create(StatusCode.OK,responseDict)
         except (ValueError , TypeError, NotImplementedError) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
