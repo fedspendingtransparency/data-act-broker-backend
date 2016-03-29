@@ -176,7 +176,7 @@ class FileHandler:
             submissionInfo = {}
             for job in jobs:
                 jobInfo = {}
-                if(self.jobManager.getJobType(job)!=2):
+                if(self.jobManager.getJobType(job) != "csv_record_validation"):
                     continue
                 jobInfo["job_status"] = self.jobManager.getJobStatus(job)
                 jobInfo["job_type"] = self.jobManager.getJobType(job)
