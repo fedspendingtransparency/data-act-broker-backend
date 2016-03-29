@@ -11,40 +11,43 @@ def setupJobTrackerDB(hardReset = False):
     jobDb = JobTrackerInterface()
     if hardReset:
         jobModels.Base.metadata.drop_all(jobDb.engine)
-    jobModels.Base.metadata.create_all(jobDb.engine)
+        jobModels.Base.metadata.create_all(jobDb.engine)
 
-    # TODO: define these codes as enums in the data model?
+        # TODO: define these codes as enums in the data model?
 
-    # insert status types
-    statusList = [(1, 'waiting', 'check dependency table'),
-        (2, 'ready', 'can be assigned'),
-        (3, 'running', 'job is currently in progress'),
-        (4, 'finished', 'job is complete'),
-        (5, 'invalid', 'job is invalid'),
-        (6, 'failed', 'job failed to complete')]
-    for s in statusList:
-        status = Status(status_id=s[0], name=s[1], description=s[2])
-        jobDb.session.add(status)
+        # insert status types
+        statusList = [(1, 'waiting', 'check dependency table'),
+            (2, 'ready', 'can be assigned'),
+            (3, 'running', 'job is currently in progress'),
+            (4, 'finished', 'job is complete'),
+            (5, 'invalid', 'job is invalid'),
+            (6, 'failed', 'job failed to complete')]
+        for s in statusList:
+            status = Status(status_id=s[0], name=s[1], description=s[2])
+            jobDb.session.add(status)
 
-    typeList = [(1, 'file_upload', 'file must be uploaded to S3'),
-        (2, 'csv_record_validation', 'do record level validation and add to staging DB'),
-        (3, 'db_transfer', 'information must be moved from production DB to staging DB'),
-        (4, 'validation', 'new information must be validated'),
-        (5, 'external_validation', 'new information must be validated against external sources')]
-    for t in typeList:
-        type = Type(type_id=t[0],name=t[1], description=t[2])
-        jobDb.session.add(type)
+        typeList = [(1, 'file_upload', 'file must be uploaded to S3'),
+            (2, 'csv_record_validation', 'do record level validation and add to staging DB'),
+            (3, 'db_transfer', 'information must be moved from production DB to staging DB'),
+            (4, 'validation', 'new information must be validated'),
+            (5, 'external_validation', 'new information must be validated against external sources')]
+        for t in typeList:
+            type = Type(type_id=t[0],name=t[1], description=t[2])
+            jobDb.session.add(type)
 
-    fileTypeList = [(1, 'award', ''),
-        (2, 'award_financial', ''),
-        (3, 'appropriations', ''),
-        (4, 'program_activity', '')]
-    for ft in fileTypeList:
-        fileType = FileType(file_type_id=ft[0], name=ft[1], description=ft[2])
-        jobDb.session.add(fileType)
+        fileTypeList = [(1, 'award', ''),
+            (2, 'award_financial', ''),
+            (3, 'appropriations', ''),
+            (4, 'program_activity', '')]
+        for ft in fileTypeList:
+            fileType = FileType(file_type_id=ft[0], name=ft[1], description=ft[2])
+            jobDb.session.add(fileType)
+
+    else:
+        jobModels.Base.metadata.create_all(jobDb.engine)
 
     jobDb.session.commit()
     jobDb.session.close()
 
 if __name__ == '__main__':
-    setupJobTrackerDB(hardReset = True)
+    setupJobTrackerDB(hardReset=True)
