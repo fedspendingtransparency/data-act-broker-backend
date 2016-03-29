@@ -57,13 +57,13 @@ def setupValidationDB( hardReset = False):
         "INSERT INTO rule_timing (rule_timing_id, name, description) VALUES (1,'file_validation','Run during pre-load validation of a file'), (2,'prerequisite','Run only when referenced by another rule')",
 
         "CREATE SEQUENCE ruleIdSerial START 1;",
-        "CREATE TABLE rule (rule_id integer PRIMARY KEY DEFAULT nextval('ruleIdSerial'), file_column_id integer REFERENCES file_columns, rule_type_id integer REFERENCES rule_type,rule_text_1 text,rule_text_2 text,description text, rule_timing_id integer REFERENCES rule_timing NOT NULL DEFAULT 1);",
+        "CREATE TABLE rule (rule_id integer PRIMARY KEY DEFAULT nextval('ruleIdSerial'), file_column_id integer REFERENCES file_columns, rule_type_id integer REFERENCES rule_type,rule_text_1 text,rule_text_2 text,description text, rule_timing_id integer REFERENCES rule_timing NOT NULL DEFAULT 1, rule_label text);",
 
         "CREATE SEQUENCE multiFieldRuleIdSerial START 1;",
         "CREATE TABLE multi_field_rule (multi_field_rule_id integer PRIMARY KEY DEFAULT nextval('multiFieldRuleIdSerial'), file_id integer REFERENCES file_type, multi_field_rule_type_id integer REFERENCES multi_field_rule_type,rule_text_1 text,rule_text_2 text,description text);",
 
         "INSERT INTO file_type (file_id,name, description) VALUES (1, 'award', 'award file'), (2, 'award_financial', 'award_financial file'), (3, 'appropriations', 'appropriations file'), (4, 'program_activity','program activity and object class file');",
-        "INSERT INTO rule_type (rule_type_id, name,description) VALUES (1, 'TYPE', 'data must be of specified type'), (2, 'EQUAL', 'data must be equal to reference value'),(3, 'NOT EQUAL', 'data must not be equal to reference value'), (4, 'LESS', 'data must be less than reference value'), (5, 'GREATER', 'data must be greater than reference value'), (6, 'LENGTH', 'length of data may not exceed reference value'), (7, 'IN_SET', 'data must be in reference set'), (8, 'MIN LENGTH', 'length of data must be at least reference value');",
+        "INSERT INTO rule_type (rule_type_id, name,description) VALUES (1, 'TYPE', 'data must be of specified type'), (2, 'EQUAL', 'data must be equal to reference value'),(3, 'NOT EQUAL', 'data must not be equal to reference value'), (4, 'LESS', 'data must be less than reference value'), (5, 'GREATER', 'data must be greater than reference value'), (6, 'LENGTH', 'length of data may not exceed reference value'), (7, 'IN_SET', 'data must be in reference set'), (8, 'MIN LENGTH', 'length of data must be at least reference value'), (9, 'REQUIRED_CONDITIONAL', 'field is required if secondary rule passes')"";",
         "INSERT INTO field_type (field_type_id ,name,description) VALUES (1, 'INT', 'integer type'), (2, 'DECIMAL', 'decimal type '),(3, 'BOOLEAN', 'yes/no'), (4, 'STRING', 'string type'), (5, 'LONG', 'long integer');",
         "INSERT INTO multi_field_rule_type (multi_field_rule_type_id, name,description) VALUES (1, 'CAR_MATCH', 'Matching a set of fields against a CAR file');"
     ]

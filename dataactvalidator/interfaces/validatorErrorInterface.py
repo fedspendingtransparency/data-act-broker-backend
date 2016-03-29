@@ -121,7 +121,7 @@ class ValidatorErrorInterface(ErrorInterface):
         """
         fileStatus = self.getFileStatusByJobId(jobId)
         # Create single string out of missing header list
-        fileStatus.headers_missing = ", ".join(missingHeaders)
+        fileStatus.headers_missing = ",".join(missingHeaders)
         self.session.commit()
 
     def writeDuplicatedHeaders(self, jobId, duplicatedHeaders):
@@ -134,5 +134,5 @@ class ValidatorErrorInterface(ErrorInterface):
         """
         fileStatus = self.getFileStatusByJobId(jobId)
         # Create single string out of duplicated header list
-        fileStatus.headers_duplicated = ", ".join(duplicatedHeaders)
+        fileStatus.headers_duplicated = ",".join(duplicatedHeaders)
         self.session.commit()

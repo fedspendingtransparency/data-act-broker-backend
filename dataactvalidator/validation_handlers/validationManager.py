@@ -163,16 +163,18 @@ class ValidationManager:
 
         reader = self.getReader()
         try:
+
             # Pull file
-            reader.openFile(bucketName, fileName,fieldList)
-            # Create staging table
-            # While not done, pull one row and put it into staging if it passes
-            # the Validator
+            reader.openFile(bucketName, fileName,fieldList,bucketName,errorFileName)
+
             tableName = interfaces.stagingDb.getTableName(jobId)
+            # Create staging table
             tableObject = StagingTable(interfaces)
             tableObject.createTable(fileType,fileName,jobId,tableName)
             errorInterface = interfaces.errorDb
 
+            # While not done, pull one row and put it into staging if it passes
+            # the Validator
             with self.getWriter(bucketName, errorFileName, self.reportHeaders) as writer:
                 while(not reader.isFinished):
                     rowNumber += 1
@@ -281,7 +283,7 @@ class ValidationManager:
         except ValueError as e:
             open("errorLog","a").write("".join([str(e),"\n"]))
             # Problem with CSV headers
-            exc = ResponseException("Internal value error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
+            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError) #"Internal value error"
             self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,table=tableName)
         except Error as e:

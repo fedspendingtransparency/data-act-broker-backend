@@ -228,7 +228,7 @@ class ValidatorValidationInterface(BaseInterface) :
         rules = self.session.query(Rule).options(joinedload("rule_type")).options(joinedload("file_column")).filter(FileColumn.file_id == fileId).all()
         return rules
 
-    def addRule(self, columnId, ruleTypeText, ruleText, description):
+    def addRule(self, columnId, ruleTypeText, ruleText, description, rule_timing = 1, rule_label = None):
         """
 
         Args:
@@ -239,7 +239,10 @@ class ValidatorValidationInterface(BaseInterface) :
         Returns:
             True if successful
         """
-        newRule = Rule(file_column_id = columnId, rule_type_id = self.getRuleType(ruleTypeText), rule_text_1 = ruleText, description = description)
+        if rule_timing is None or rule_timing == "":
+            # Use default value if timing is unspecified
+            rule_timing = 1
+        newRule = Rule(file_column_id = columnId, rule_type_id = self.getRuleType(ruleTypeText), rule_text_1 = ruleText, description = description, rule_timing_id = rule_timing, rule_label = rule_label)
         self.session.add(newRule)
         self.session.commit()
         return True
@@ -337,3 +340,10 @@ class ValidatorValidationInterface(BaseInterface) :
             ID for rule type (int)
         """
         return self.getIdFromDict(RuleTiming,"TIMING_DICT","name",timingName.lower(),"rule_timing_id")
+
+    def getRuleByLabel(self,label):
+        query = self.session.query(Rule).options(joinedload("file_column")).filter(Rule.rule_label == label)
+        return self.runUniqueQuery(query,"No rule with that label","Multiple rules have that label")
+
+    def getFieldTypeById(self, id):
+        return self.getNameFromDict(FieldType,"TYPE_DICT","name",id,"field_type_id")

@@ -27,7 +27,7 @@ class FileTypeTests(BaseTest):
         s3FileNameProgramValid = cls.uploadFile("programActivityValid.csv", user)
         s3FileNameProgramMixed = cls.uploadFile("programActivityMixed.csv", user)
         s3FileNameAwardFinValid = cls.uploadFile("awardFinancialValid.csv", user)
-        s3FileNameAwardFinMixed = cls.uploadFile("awardFinancialMixed.csv", user)
+        s3FileNameAwardFinMixed = cls.uploadFile("awardFinancialMixed2.csv", user)
         s3FileNameAwardValid = cls.uploadFile("awardValid.csv", user)
         s3FileNameAwardMixed = cls.uploadFile("awardMixed.csv", user)
 
