@@ -27,7 +27,7 @@ class FileTypeTests(BaseTest):
         s3FileNameProgramValid = cls.uploadFile("programActivityValid.csv", user)
         s3FileNameProgramMixed = cls.uploadFile("programActivityMixed.csv", user)
         s3FileNameAwardFinValid = cls.uploadFile("awardFinancialValid.csv", user)
-        s3FileNameAwardFinMixed = cls.uploadFile("awardFinancialMixed2.csv", user)
+        s3FileNameAwardFinMixed = cls.uploadFile("awardFinancialMixed.csv", user)
         s3FileNameAwardValid = cls.uploadFile("awardValid.csv", user)
         s3FileNameAwardMixed = cls.uploadFile("awardMixed.csv", user)
 
@@ -125,7 +125,7 @@ class FileTypeTests(BaseTest):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 7173, 4, "complete", 71)
+            jobId, 200, "finished", 7480, 7, "complete", 76)
 
     def test_award_valid(self):
         """Test valid job."""

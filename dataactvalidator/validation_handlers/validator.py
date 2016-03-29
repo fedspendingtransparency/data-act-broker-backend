@@ -69,7 +69,7 @@ class Validator(object):
                 continue
             #Field must pass all rules
             for currentRule in ruleSubset :
-                if(checkRequiredOnly and currentRule.rule_type != interfaces.validationDb.getRuleType("REQUIRED_CONDITIONAL")):
+                if(checkRequiredOnly and currentRule.rule_type_id != interfaces.validationDb.getRuleType("REQUIRED_CONDITIONAL")):
                     # If data is empty, only check conditional required rules
                     continue
                 if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name,interfaces,record)):
@@ -183,6 +183,9 @@ class Validator(object):
         Returns:
             True if rule passed, False otherwise
         """
+        if data is None:
+            # Treat blank as an empty string
+            data = ""
         value1 = rule.rule_text_1
         currentRuleType = rule.rule_type.name
         if(currentRuleType =="LENGTH") :
@@ -211,20 +214,15 @@ class Validator(object):
     def conditionalRequired(data,rule,datatype,interfaces,record):
         """ If conditional rule passes, data must not be empty """
         # Get rule object for conditional rule
-        print("Called conditional required")
         conditionalRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
         conditionalTypeId = conditionalRule.file_column.field_types_id
         conditionalDataType = interfaces.validationDb.getFieldTypeById(conditionalTypeId)
         # If conditional rule passes, check that data is not empty
         if Validator.evaluateRule(record[conditionalRule.file_column.name],conditionalRule,conditionalDataType,interfaces,record):
-            print("Passed conditional rule based on " + str(rule.rule_text_1))
-            print("Checking if data is populated, data: " + str(data))
             result = not (data is None or data == "")
-            print("Required result: " + str(result))
             return result
         else:
             # If conditional rule fails, this field is not required, so the condtional requirement passes
-            print("Failed conditional rule based on " +  str(rule.rule_text_1))
             return True
 
     @staticmethod
