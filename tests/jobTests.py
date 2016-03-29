@@ -81,7 +81,7 @@ class JobTests(BaseTest):
             jobIdDict[key] = job.job_id
             subIdDict[key] = jobTracker.getSubmissionId(job.job_id)
 
-        # Display submission IDs so error reports can be checked
+        # Display submission IDs so error reports can be checked directly if unit tests fail
         print(str(subIdDict))
         # Create dependencies
         dependencies = [

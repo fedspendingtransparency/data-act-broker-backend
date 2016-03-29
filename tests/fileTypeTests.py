@@ -32,6 +32,7 @@ class FileTypeTests(BaseTest):
         s3FileNameAwardMixed = cls.uploadFile("awardMixed.csv", user)
 
         # Create submissions and get IDs back
+
         submissionIDs = {}
         for i in range(0, 10):
             submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
@@ -59,7 +60,7 @@ class FileTypeTests(BaseTest):
             jobIdDict[key] = jobId
             subIdDict[key] = cls.jobTracker.getSubmissionId(jobId)
 
-        # Display submission numbers so error reports can be checked
+        # Display submission numbers so error reports can be checked directly if unit tests fail
         print(str(subIdDict))
         # Load fields and rules
         FileTypeTests.load_definitions(cls.interfaces, force_tas_load)
