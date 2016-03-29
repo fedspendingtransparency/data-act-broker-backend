@@ -17,10 +17,10 @@ def setupErrorDB(hardReset = False):
 
         # insert status types
         statusList = [(1, 'complete', 'File has been processed'),
-            (2, 'missing_header_error', 'The file has errors in the header row'),
+            (2, 'header_error', 'The file has errors in the header row'),
             (3, 'unknown_error', 'An unknown error has occurred with this file'),
-            (4,'single_row_error', 'CSV file must have a header row and at least one record'),
-            (5,'job_error', 'Error occurred in job manager')]
+            (4, 'single_row_error', 'CSV file must have a header row and at least one record'),
+            (5, 'job_error', 'Error occurred in job manager')]
         for s in statusList:
             status = Status(status_id=s[0], name=s[1], description=s[2])
             errorDb.session.add(status)
