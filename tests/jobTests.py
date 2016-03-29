@@ -2,7 +2,7 @@ import json
 from dataactcore.models.jobModels import Status, JobDependency
 from dataactcore.scripts.clearErrors import clearErrors
 from dataactvalidator.scripts.setupValidationDB import setupValidationDB
-from dataactvalidator.scripts.setupStagingDB import setupStaging
+from dataactvalidator.scripts.setupStagingDB import setupStagingDB
 from dataactvalidator.models.validationModels import Rule
 from baseTest import BaseTest
 import unittest
@@ -19,8 +19,8 @@ class JobTests(BaseTest):
         cls.includeLongTests = False
 
         # Prep databases
-        setupStaging()
-        setupValidationDB()
+        setupStagingDB()
+        setupValidationDB(True)
         validationDb = cls.validationDb
         jobTracker = cls.jobTracker
 
