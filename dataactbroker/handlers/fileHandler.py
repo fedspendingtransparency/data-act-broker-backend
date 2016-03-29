@@ -176,8 +176,8 @@ class FileHandler:
             submissionInfo = {}
             for job in jobs:
                 jobInfo = {}
-                #if(self.jobManager.getJobType(job)!=2):
-                #    continue
+                if(self.jobManager.getJobType(job)!=2):
+                    continue
                 jobInfo["job_status"] = self.jobManager.getJobStatus(job)
                 jobInfo["job_type"] = self.jobManager.getJobType(job)
                 jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job)
@@ -205,7 +205,7 @@ class FileHandler:
                         jobInfo["duplicated_headers"] = []
                 try :
                     jobInfo["file_type"] = self.jobManager.getFileType(job)
-                except ResponseException as e:
+                except Exception as e:
                     jobInfo["file_type"]  = ''
                 submissionInfo[job] = jobInfo
 
