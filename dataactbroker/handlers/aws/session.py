@@ -280,9 +280,9 @@ class SessionTable :
     DATA_FIELD = "data"
     DATE_FIELD = "expiration"
     TIME_OUT_LIMIT = 604800
+    LOCAL_PORT =  8000 # This is overwritten by the dynamo_port value taken from the configuration file
     TableConnection = ""
     isLocal = False
-    localPort =  8000
 
     @staticmethod
     def clearSessions() :
@@ -299,7 +299,7 @@ class SessionTable :
         """
         returns the Boto DynamoDB connection object
         """
-        return DynamoDBConnection(host='localhost',port=SessionTable.localPort,aws_access_key_id='a',aws_secret_access_key='a',is_secure=False)
+        return DynamoDBConnection(host='localhost', port=SessionTable.LOCAL_PORT, aws_access_key_id='a', aws_secret_access_key='a', is_secure=False)
 
     @staticmethod
     def getTable() :
@@ -313,7 +313,7 @@ class SessionTable :
     @staticmethod
     def createTable(isLocal,localPort):
         """Used to create table for Dyanmo DB"""
-        SessionTable.localPort =localPort
+        SessionTable.LOCAL_PORT =localPort
         secondaryIndex = [
             GlobalAllIndex('expiration-index',
                 parts=[

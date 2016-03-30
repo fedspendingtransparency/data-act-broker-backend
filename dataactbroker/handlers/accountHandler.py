@@ -140,7 +140,7 @@ class AccountHandler:
             threadedDatabase =  UserHandler()
             try:
                 for user in threadedDatabase.getUsersByType("website_admin") :
-                    emailTemplate = {'[REG_NAME]': username, '[REG_TITEL]':title, '[REG_AGENCY]':agency,'[REG_EMAIL]' : userEmail,'[URL]':link}
+                    emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY]':agency,'[REG_EMAIL]' : userEmail,'[URL]':link}
                     newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=threadedDatabase)
                     newEmail.send()
             finally:
@@ -204,7 +204,6 @@ class AccountHandler:
                 exc = ResponseException("User already registered", StatusCode.CLIENT_ERROR)
                 return JsonResponse.error(exc,exc.status)
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"validate_email")
-        LoginSession.logout(session)
         link= "".join([AccountHandler.FRONT_END,'/registration/',emailToken])
         emailTemplate = {'[USER]': email, '[URL]':link}
         newEmail = sesEmail(email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)

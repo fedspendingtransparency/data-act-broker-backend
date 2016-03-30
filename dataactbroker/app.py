@@ -70,7 +70,7 @@ def createApp():
             local, broker_file_path)
         add_user_routes(app, app.config['SYSTEM_EMAIL'], bcrypt)
 
-        SessionTable.localPort = CONFIG_DB['dynamo_port']
+        SessionTable.LOCAL_PORT = CONFIG_DB['dynamo_port']
         SessionTable.setup(app, local)
 
         return app
