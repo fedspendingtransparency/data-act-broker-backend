@@ -48,10 +48,13 @@ class JobTrackerInterface(BaseInterface):
         """ Return session object"""
         return self.session
 
+    def getJobById(self,jobId):
+        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
+        return self.checkJobUnique(query)
+
     def getFileName(self,jobId):
         """ Get filename listed in database for this job """
-        query = self.session.query(JobStatus.filename).filter(JobStatus.job_id == jobId)
-        return self.checkJobUnique(query).filename
+        return self.getJobById(jobId).filename
 
     def getFileType(self,jobId):
         """ Get type of file associated with this job """
@@ -60,8 +63,7 @@ class JobTrackerInterface(BaseInterface):
 
     def getSubmissionId(self,jobId):
         """ Find submission that this job is part of """
-        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
-        return self.checkJobUnique(query).submission_id
+        return self.getJobById(jobId).submission_id
 
     def getReportPath(self,jobId):
         """ Return the filename for the error report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
@@ -162,6 +164,9 @@ class JobTrackerInterface(BaseInterface):
 
     def getTypeId(self,typeName):
         return self.getIdFromDict(Type,"TYPE_DICT","name",typeName,"type_id")
+
+    def getOriginalFilenameById(self,jobId):
+        return self.getJobById(jobId).original_filename
 
     def getPrerequisiteJobs(self, jobId):
         """

@@ -53,6 +53,7 @@ class JobStatus(Base):
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"), nullable=True)
     file_type = relationship("FileType", uselist=False)
     staging_table = Column(Text, nullable=True)
+    original_filename = Column(Text, nullable=True)
 
 class JobDependency(Base):
     __tablename__ = "job_dependency"

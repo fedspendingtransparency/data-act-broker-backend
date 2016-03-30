@@ -154,6 +154,12 @@ $ pip install -r /path/to/requirements.txt
 
 ### Running Migrations
 
+Before doing your first migration, drop all tables and run
+```bash
+$ alembic upgrade head
+```
+This will create the alembic_version table needed for the migration process
+
 After making updates to the models, run the following in ```dataactcore/``` to autogenerate the migration script:
 ```bash
 $ alembic revision --autogenerate -m [file name]
