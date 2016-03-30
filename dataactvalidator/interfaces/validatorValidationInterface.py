@@ -17,6 +17,18 @@ class ValidatorValidationInterface(BaseInterface) :
     def __init__(self):
         super(ValidatorValidationInterface,self).__init__()
 
+    @classmethod
+    def getCredDict(cls):
+        """ Return db credentials. """
+        credDict = {
+            'username': CONFIG_DB['username'],
+            'password': CONFIG_DB['password'],
+            'host': CONFIG_DB['host'],
+            'port': CONFIG_DB['port'],
+            'dbBaseName': CONFIG_DB['base_db_name']
+        }
+        return credDict
+
     @staticmethod
     def getDbName():
         """ Return database name"""
