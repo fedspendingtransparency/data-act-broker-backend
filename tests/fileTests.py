@@ -129,8 +129,10 @@ class FileTests(BaseTest):
         self.assertEqual(json[jobIdDict["appropriations"]]["file_type"],"appropriations")
         self.assertEqual(json[jobIdDict["appropriations"]]["filename"],"approp.csv")
         self.assertEqual(json[jobIdDict["appropriations"]]["file_status"],"complete")
-        self.assertItemsEqual(json[jobIdDict["appropriations"]]["missing_headers"],["missing_header_one", "missing_header_two"])
-        self.assertItemsEqual(json[jobIdDict["appropriations"]]["duplicated_headers"],["duplicated_header_one", "duplicated_header_two"])
+        self.assertIn("missing_header_one", json[jobIdDict["appropriations"]]["missing_headers"])
+        self.assertIn("missing_header_two", json[jobIdDict["appropriations"]]["missing_headers"])
+        self.assertIn("duplicated_header_one", json[jobIdDict["appropriations"]]["duplicated_headers"])
+        self.assertIn("duplicated_header_two", json[jobIdDict["appropriations"]]["duplicated_headers"])
 
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
