@@ -59,9 +59,9 @@ class SchemaLoader(object):
                 if(FieldCleaner.cleanString(record["is_single_field"]) == "true"):
                     # Find column ID based on field name
                     try:
-                        columnId = validationDb.getColumnId(FieldCleaner.cleanString(record["field_name"]),fileTypeName)
+                        columnId = validationDb.getColumnId(FieldCleaner.cleanName(record["field_name"]),fileTypeName)
                     except Exception as e:
-                        print("Failed on field " + FieldCleaner.cleanString(record["field_name"]) + " and file " + fileTypeName)
+                        print("Failed on field " + FieldCleaner.cleanName(record["field_name"]) + " and file " + fileTypeName)
                         raise e
                     # Write to rule table
                     if "rule_timing" in record and "rule_label" in record:
