@@ -5,9 +5,6 @@ tests/errorLog
 tests/stats
 scripts/all_tas_betc.csv
 pathLog
-dataactvalidator/filestreaming/programActivityRaw.csv
-dataactvalidator/filestreaming/awardFieldsRaw.csv
-dataactvalidator/filestreaming/awardFinFields.csv
 dataactvalidator/statusError.log
 dataactvalidator/responseErrorLog
 tests/awardFieldsRaw.csv
@@ -17,8 +14,4 @@ dataactvalidator/scripts/clearRules.py
 dataactvalidator/databaseErrors.log
 dataactvalidator/scripts/dropAll.py
 .coverage
-dataactvalidator/scripts/appropFieldsRaw.csv
-dataactvalidator/scripts/awardFieldsRaw.csv
-dataactvalidator/scripts/awardFinancialFieldsRaw.csv
-dataactvalidator/scripts/programActivityFieldsRaw.csv
 tests/appropFieldsRaw.csv
