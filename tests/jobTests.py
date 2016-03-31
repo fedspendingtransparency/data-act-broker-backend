@@ -1,3 +1,4 @@
+from __future__ import print_function
 import json
 from dataactcore.models.jobModels import Status, JobDependency
 from dataactcore.scripts.clearErrors import clearErrors
@@ -79,6 +80,7 @@ class JobTests(BaseTest):
                 raise Exception(
                     "".join(["Job for ", str(key), " did not get an id back"]))
             jobIdDict[key] = job.job_id
+            print("".join([key,": ",jobTracker.getSubmissionId(job.job_id)]), end = "")
             subIdDict[key] = jobTracker.getSubmissionId(job.job_id)
 
         # Display submission IDs so error reports can be checked directly if unit tests fail
