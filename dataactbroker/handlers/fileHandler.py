@@ -174,10 +174,12 @@ class FileHandler:
 
             # Build dictionary of submission info with info about each job
             submissionInfo = {}
+            submissionInfo["jobs"] = []
             for job in jobs:
                 jobInfo = {}
                 if(self.jobManager.getJobType(job) != "csv_record_validation"):
                     continue
+                jobInfo["job_id"] = job
                 jobInfo["job_status"] = self.jobManager.getJobStatus(job)
                 jobInfo["job_type"] = self.jobManager.getJobType(job)
                 jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job)
@@ -186,12 +188,16 @@ class FileHandler:
                 except ResponseException as e:
                     # Job ID not in error database, probably did not make it to validation, or has not yet been validated
                     jobInfo["file_status"] = ""
-                    jobInfo["missing_headers"] = ""
+                    jobInfo["missing_headers"] = []
+                    jobInfo["duplicated_headers"] = []
                 else:
                     # If job ID was found in file_status, we should be able to get header error lists
                     missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(job)
                     if missingHeaderString is not None:
                         jobInfo["missing_headers"] = missingHeaderString.split(",")
+                        if(len(jobInfo["missing_headers"]) == 1 and jobInfo["missing_headers"][0] == ""):
+                            # Split can return a single empty string when we'd prefer an empty list
+                            jobInfo["missing_headers"] = []
                         for i in range(0,len(jobInfo["missing_headers"])):
                             jobInfo["missing_headers"][i] = jobInfo["missing_headers"][i].strip()
                     else:
@@ -199,6 +205,8 @@ class FileHandler:
                     duplicatedHeaderString = self.interfaces.errorDb.getDuplicatedHeadersByJobId(job)
                     if duplicatedHeaderString is not None:
                         jobInfo["duplicated_headers"] = duplicatedHeaderString.split(",")
+                        if(len(jobInfo["duplicated_headers"]) == 1 and jobInfo["duplicated_headers"][0] == ""):
+                            jobInfo["duplicated_headers"] = []
                         for i in range(0,len(jobInfo["duplicated_headers"])):
                             jobInfo["duplicated_headers"][i] = jobInfo["duplicated_headers"][i].strip()
                     else:
@@ -207,7 +215,7 @@ class FileHandler:
                     jobInfo["file_type"] = self.jobManager.getFileType(job)
                 except Exception as e:
                     jobInfo["file_type"]  = ''
-                submissionInfo[job] = jobInfo
+                submissionInfo = submissionInfo["jobs"].append(jobInfo)
 
             # Build response object holding dictionary
             return JsonResponse.create(StatusCode.OK,submissionInfo)
