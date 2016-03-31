@@ -8,5 +8,5 @@ REQUIRED_CONDITIONAL,TRUE,piid,C13,,Required if C13 passes,1,
 REQUIRED_CONDITIONAL,TRUE,parentawardid,C13,,Required if C13 passes,1,
 REQUIRED_CONDITIONAL,TRUE,ParentAwardAwardingAgencyCodeNIST,C13,,Required if C13 passes,1,
 EQUAL,TRUE,awardidfieldtype,FA,,Checks if award id is FA,2,C14
-REQUIRED_CONDITIONAL,TRUE,FainAwardNumber,C14,,Required if C13 passes,1,
-REQUIRED_CONDITIONAL,TRUE,URI,C14,,Required if C13 passes,1,
+REQUIRED_CONDITIONAL,TRUE,FainAwardNumber,C14,,Required if C14 passes,1,
+REQUIRED_CONDITIONAL,TRUE,URI,C14,,Required if C14 passes,1,
