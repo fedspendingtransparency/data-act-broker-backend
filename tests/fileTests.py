@@ -115,15 +115,6 @@ class FileTests(BaseTest):
         json = response.json
         # response ids are coming back as string, so patch the jobIdDict
         jobIdDict = {k: str(self.jobIdDict[k]) for k in self.jobIdDict.keys()}
-        self.assertEqual(json[jobIdDict["uploadFinished"]]["job_status"],"finished")
-        self.assertEqual(json[jobIdDict["uploadFinished"]]["job_type"],"file_upload")
-        self.assertEqual(json[jobIdDict["uploadFinished"]]["file_type"],"award")
-        self.assertEqual(json[jobIdDict["recordRunning"]]["job_status"],"running")
-        self.assertEqual(json[jobIdDict["recordRunning"]]["job_type"],"csv_record_validation")
-        self.assertEqual(json[jobIdDict["recordRunning"]]["file_type"],"award")
-        self.assertEqual(json[jobIdDict["externalWaiting"]]["job_status"],"waiting")
-        self.assertEqual(json[jobIdDict["externalWaiting"]]["job_type"],"external_validation")
-        self.assertEqual(json[jobIdDict["externalWaiting"]]["file_type"],"award")
         self.assertEqual(json[jobIdDict["appropriations"]]["job_status"],"ready")
         self.assertEqual(json[jobIdDict["appropriations"]]["job_type"],"csv_record_validation")
         self.assertEqual(json[jobIdDict["appropriations"]]["file_type"],"appropriations")
