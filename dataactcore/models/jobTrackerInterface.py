@@ -94,7 +94,6 @@ class JobTrackerInterface(BaseInterface):
             status of specified job
         """
         query = self.session.query(JobStatus).options(joinedload("status")).filter(JobStatus.job_id == jobId)
-        print "DEBUG: Job status query status name => " + str(self.checkJobUnique(query).status.name)
         return self.checkJobUnique(query).status.name
 
     def getJobType(self, jobId):
@@ -127,14 +126,12 @@ class JobTrackerInterface(BaseInterface):
 
     def markStatus(self,jobId,statusName):
         # Pull JobStatus for jobId
-        print "DEBUG: Marking status as " + statusName
         prevStatus = self.getJobStatus(jobId)
 
         query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
         result = self.checkJobUnique(query)
         # Mark it finished
         result.status_id = self.getStatusId(statusName)
-        print "DEBUG: Status marked with status id " + str(self.getStatusId(statusName))
         # Push
         self.session.commit()
 
