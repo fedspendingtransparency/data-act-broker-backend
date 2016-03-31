@@ -189,7 +189,6 @@ class JobTrackerInterface(BaseInterface):
 
         # check if dependent jobs are finished
         for depJobId in self.getDependentJobs(jobId):
-            print "DEBUG: Processing dep id => " + str(depJobId)
             isReady = True
             if not (self.getStatus(depJobId) == self.getStatusId('waiting')):
                 CloudLogger.logError("Job dependency is not in a 'waiting' state",
@@ -198,15 +197,12 @@ class JobTrackerInterface(BaseInterface):
                 continue
             # if dependent jobs are finished, then check the jobs of which the current job is a dependent
             for preReqJobId in self.getPrerequisiteJobs(depJobId):
-                print "DEBUG: Processing prereq job id => " + str(preReqJobId)
                 if not (self.getStatus(preReqJobId) == self.getStatusId('finished')):
                     # Do nothing
                     isReady = False
                     break
-            if isReady:
+            if isReady and self.getJobType(depJobId) == 'csv_record_validation':
                 # mark job as ready
                 self.markStatus(depJobId, 'ready')
                 # add to the job queue
-                print("DEBUG: Enqueueing JOB ID => " + str(depJobId))
                 x = jobQueue.enqueue.delay(depJobId)
-                print "DEBUG: async job result => " + str(x.result)
