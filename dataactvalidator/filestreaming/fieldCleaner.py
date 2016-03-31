@@ -120,7 +120,7 @@ class FieldCleaner:
 if __name__ == '__main__':
     #FieldCleaner.cleanFile("programActivityRaw.csv","programActivityFields.csv")
     #FieldCleaner.cleanFile("awardFinFields.csv","awardFinancialFields.csv")
-    FieldCleaner.cleanFile("../scripts/appropFieldsRaw.csv","../config/appropFields.csv")
-    FieldCleaner.cleanFile("../scripts/awardFinancialFieldsRaw.csv","../config/awardFinancialFields.csv")
-    FieldCleaner.cleanFile("../scripts/programActivityFieldsRaw.csv","../config/programActivityFields.csv")
-    FieldCleaner.cleanFile("../scripts/awardFieldsRaw.csv","../config/awardFields.csv")
+    FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")
+    FieldCleaner.cleanFile("../config/awardFinancialFieldsRaw.csv","../config/awardFinancialFields.csv")
+    FieldCleaner.cleanFile("../config/programActivityFieldsRaw.csv","../config/programActivityFields.csv")
+    FieldCleaner.cleanFile("../config/awardFieldsRaw.csv","../config/awardFields.csv")
