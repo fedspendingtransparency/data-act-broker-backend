@@ -16,6 +16,7 @@ from dataactvalidator.models.validationModels import FileColumn
 class BaseTest(unittest.TestCase):
     """ Test login, logout, and session handling """
 
+
     @classmethod
     def setUpClass(cls):
         """Set up resources to be shared within a test class"""
@@ -31,12 +32,18 @@ class BaseTest(unittest.TestCase):
         cls.useThreads = False
         # Upload files to S3 (False = skip re-uploading on subsequent runs)
         cls.uploadFiles = True
+        # Run tests for local broker or not
+        cls.local = False
+        # This needs to be set to the local dirctory for error reports if local is True
+        cls.local_file_directory = ""
+
         cls.interfaces = InterfaceHolder()
         cls.jobTracker = cls.interfaces.jobDb
         cls.stagingDb = cls.interfaces.stagingDb
         cls.errorInterface = cls.interfaces.errorDb
         cls.validationDb = cls.interfaces.validationDb
         cls.userId = 1
+
 
     def setUp(self):
         """Set up broker unit tests."""
@@ -63,11 +70,6 @@ class BaseTest(unittest.TestCase):
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
 
-        if fileSize != False:
-            s3FileSize = s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId))
-            self.assertGreater(s3FileSize, fileSize - 5)
-            self.assertLess(s3FileSize, fileSize + 5)
-
         tableName = response.json["table"]
         if type(stagingRows) == type(False) and not stagingRows:
             self.assertFalse(stagingDb.tableExists(tableName))
@@ -79,6 +81,20 @@ class BaseTest(unittest.TestCase):
         if errorStatus is not False:
             self.assertEqual(errorInterface.checkStatusByJobId(jobId), errorInterface.getStatusId(errorStatus))
             self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId), numErrors)
+
+        if(fileSize != False):
+            if self.local:
+                path = "".join(
+                    [self.local_file_directory,jobTracker.getReportPath(jobId)])
+                self.assertGreater(os.path.getsize(path), fileSize - 5)
+                self.assertLess(os.path.getsize(path), fileSize + 5)
+            else:
+                self.assertGreater(s3UrlHandler.getFileSize(
+                    "errors/"+jobTracker.getReportPath(jobId)), fileSize - 5)
+                self.assertLess(s3UrlHandler.getFileSize(
+                    "errors/"+jobTracker.getReportPath(jobId)), fileSize + 5)
+
+
         return response
 
     def validateJob(self, jobId, useThreads):
@@ -120,8 +136,8 @@ class BaseTest(unittest.TestCase):
         jobTracker.session.commit()
         return sub.submission_id
 
-    @staticmethod
-    def uploadFile(filename, user):
+    @classmethod
+    def uploadFile(cls,filename, user):
         """ Upload file to S3 and return S3 filename"""
         if len(filename.strip()) == 0:
             return ""
@@ -129,13 +145,26 @@ class BaseTest(unittest.TestCase):
         bucketName = s3UrlHandler.getValueFromConfig("bucket")
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         fullPath = path + "/" + filename
-        s3FileName = str(user) + "/" + filename
-        s3conn = S3Connection()
-        key = Key(s3conn.get_bucket(bucketName))
-        key.key = s3FileName
-        bytesWritten = key.set_contents_from_filename(fullPath)
-        assert(bytesWritten > 0)
-        return s3FileName
+
+        if cls.local:
+            # Local version just stores full path in job tracker
+            return fullPath
+        else:
+            # Get bucket name
+            bucketName = s3UrlHandler.getValueFromConfig("bucket")
+
+            # Create file names for S3
+            s3FileName = str(user) + "/" + filename
+
+            if(cls.uploadFiles) :
+                # Use boto to put files on S3
+                s3conn = S3Connection()
+                key = Key(s3conn.get_bucket(bucketName))
+                key.key = s3FileName
+                bytesWritten = key.set_contents_from_filename(fullPath)
+
+                assert(bytesWritten > 0)
+            return s3FileName
 
     @staticmethod
     def addFileColumn(fileId, fieldTypeId, columnName,

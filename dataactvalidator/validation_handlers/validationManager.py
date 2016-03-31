@@ -29,7 +29,7 @@ class ValidationManager:
         self.directory = directory
 
     @staticmethod
-    def markJob(jobId,jobTracker,status,errorDb,filename = None, fileError = ValidationError.unknownError) :
+    def markJob(jobId,jobTracker,status,errorDb,filename = None, fileError = ValidationError.unknownError, extraInfo = None) :
         """ Update status of a job in job tracker database
 
         Args:
@@ -41,7 +41,7 @@ class ValidationManager:
         try :
             if(filename != None and (status == "invalid" or status == "failed")):
                 # Mark the file error that occurred
-                errorDb.writeFileError(jobId,filename,fileError)
+                errorDb.writeFileError(jobId,filename,fileError,extraInfo)
             jobTracker.markStatus(jobId,status)
         except ResponseException as e:
             # Could not get a unique job ID in the database, either a bad job ID was passed in or the record of that job was lost.
@@ -102,7 +102,7 @@ class ValidationManager:
             return
         except ResponseException as e:
             open("errorLog","a").write("".join([str(e),"\n"]))
-            self.markJob(jobId,jobTracker,"invalid",errorDb,self.filename,e.errorType)
+            self.markJob(jobId,jobTracker,"invalid",errorDb,self.filename,e.errorType,e.extraInfo)
         except ValueError as e:
             open("errorLog","a").write("".join([str(e),"\n"]))
             self.markJob(jobId,jobTracker,"invalid",errorDb,self.filename,ValidationError.unknownError)
@@ -261,7 +261,7 @@ class ValidationManager:
             if(e.errorType == None):
                 # Error occurred while trying to get and check job ID
                 e.errorType = ValidationError.jobError
-            interfaces.errorDb.writeFileError(jobId,self.filename,e.errorType)
+            interfaces.errorDb.writeFileError(jobId,self.filename,e.errorType,e.extraInfo)
             return JsonResponse.error(e,e.status,table=tableName)
         except Exception as e:
             open("errorLog","a").write("".join([str(e),"\n"]))
@@ -276,7 +276,7 @@ class ValidationManager:
             return  JsonResponse.create(StatusCode.OK,{"table":tableName})
         except ResponseException as e:
             open("errorLog","a").write("".join([str(e),"\n"]))
-            self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,e.errorType)
+            self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,e.errorType,e.extraInfo)
             return JsonResponse.error(e,e.status,table=tableName)
         except ValueError as e:
             open("errorLog","a").write("".join([str(e),"\n"]))

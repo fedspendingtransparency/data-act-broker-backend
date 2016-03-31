@@ -116,12 +116,9 @@ def createApp():
         return app
 
     except Exception as e:
-        print(str(e))
         trace = traceback.extract_tb(sys.exc_info()[2], 10)
-        print(str(trace))
         CloudLogger.logError('Validator App Level Error: ', e, trace)
         raise
-
 
 def runApp():
     """Run the application."""

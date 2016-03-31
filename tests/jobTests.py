@@ -1,3 +1,4 @@
+from __future__ import print_function
 import json
 from dataactcore.models.jobModels import Status, JobDependency
 from dataactcore.scripts.clearErrors import clearErrors
@@ -78,6 +79,8 @@ class JobTests(BaseTest):
                 raise Exception(
                     "".join(["Job for ", str(key), " did not get an id back"]))
             jobIdDict[key] = job.job_id
+            # Print submission IDs for error report checking
+            print("".join([str(key),": ",str(jobTracker.getSubmissionId(job.job_id)), ", "]), end = "")
 
         # Create dependencies
         dependencies = [
@@ -190,26 +193,28 @@ class JobTests(BaseTest):
             status = 200
         else:
             status = 400
+
         response = self.run_test(
-            jobId, status, "invalid", False, False, "missing_header_error", 0)
+            jobId, status, "invalid", False, False, "header_error", 0)
 
         if not self.useThreads:
             self.assertEqual(
-                response.json["message"], "Header : header_5 is required")
+                response.json["message"], "Errors in header row")
 
     def test_bad_header(self):
-        """Test bad header value in first row."""
+        """ Ignore bad header value in first row, then fail on a duplicate header """
         jobId = self.jobIdDict["bad_header"]
         if self.useThreads:
             status = 200
         else:
             status = 400
+
         response = self.run_test(
-            jobId, status, "invalid", False, False, "bad_header_error", 0)
+            jobId, status, "invalid", False, False, "header_error", 0)
 
         if not self.useThreads:
             self.assertEqual(
-                response.json["message"], "Header : walrus not in CSV schema")
+                response.json["message"], "Errors in header row")
 
     def test_many_rows(self):
         """Test many rows."""

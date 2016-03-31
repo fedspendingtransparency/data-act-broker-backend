@@ -10,7 +10,7 @@ class ValidatorErrorInterface(ErrorInterface):
         self.rowErrors = {}
         super(ValidatorErrorInterface, self).__init__()
 
-    def writeFileError(self, jobId, filename, errorType):
+    def writeFileError(self, jobId, filename, errorType, extraInfo = None):
         """ Write a file-level error to the file status table
 
         Args:
@@ -26,7 +26,13 @@ class ValidatorErrorInterface(ErrorInterface):
         except:
             raise ValueError("".join(["Bad jobId: ",str(jobId)]))
 
+
         fileError = FileStatus(job_id = jobId, filename = filename, status_id = self.getStatusId(ValidationError.getErrorTypeString(errorType)))
+        if extraInfo is not None:
+            if "missing_headers" in extraInfo:
+                fileError.headers_missing = extraInfo["missing_headers"]
+            if "duplicated_headers" in extraInfo:
+                fileError.headers_duplicated = extraInfo["duplicated_headers"]
 
         self.session.add(fileError)
         self.session.commit()
@@ -105,30 +111,28 @@ class ValidatorErrorInterface(ErrorInterface):
         # Clear the dictionary
         self.rowErrors = {}
 
-    def checkStatusByJobId(self, jobId):
-        """ Query status for specified job
+    def writeMissingHeaders(self, jobId, missingHeaders):
+        """ Write list of missing headers into headers_missing field
 
         Args:
-            jobId: job to check status for
+            jobId: Job to write error for
+            missingHeaders: List of missing headers
 
-        Returns:
-            Status ID of specified job
         """
-        query = self.session.query(FileStatus.status_id).filter(FileStatus.job_id == jobId)
-        return self.runUniqueQuery(query,"No file for that job ID","Multiple files for that job ID").status_id
+        fileStatus = self.getFileStatusByJobId(jobId)
+        # Create single string out of missing header list
+        fileStatus.headers_missing = ", ".join(missingHeaders)
+        self.session.commit()
 
-    def checkNumberOfErrorsByJobId(self, jobId):
-        """ Get the total number of errors for a specified job
+    def writeDuplicatedHeaders(self, jobId, duplicatedHeaders):
+        """ Write list of duplicated headers into headers_missing field
 
         Args:
-            jobId: job to get errors for
+            jobId: Job to write error for
+            duplicatedHeaders: List of duplicated headers
 
-        Returns:
-            Number of errors for specified job
         """
-        queryResult = self.session.query(ErrorData).filter(ErrorData.job_id == jobId).all()
-        numErrors = 0
-        for result in queryResult:
-            # For each row that matches jobId, add the number of that type of error
-	        numErrors += result.occurrences
-        return numErrors
+        fileStatus = self.getFileStatusByJobId(jobId)
+        # Create single string out of duplicated header list
+        fileStatus.headers_duplicated = ", ".join(duplicatedHeaders)
+        self.session.commit()
