@@ -63,7 +63,6 @@ class JobTests(BaseTest):
             csvFiles[key]["s3Filename"] = cls.uploadFile(
                 csvFiles[key]["filename"], cls.userId)
         jobIdDict = {}
-        subIdDict = {}
 
         for key in csvFiles.keys():
             file = csvFiles[key]
@@ -80,11 +79,9 @@ class JobTests(BaseTest):
                 raise Exception(
                     "".join(["Job for ", str(key), " did not get an id back"]))
             jobIdDict[key] = job.job_id
-            print("".join([key,": ",jobTracker.getSubmissionId(job.job_id)]), end = "")
-            subIdDict[key] = jobTracker.getSubmissionId(job.job_id)
+            # Print submission IDs for error report checking
+            print("".join([str(key),": ",str(jobTracker.getSubmissionId(job.job_id)), ", "]), end = "")
 
-        # Display submission IDs so error reports can be checked directly if unit tests fail
-        print(str(subIdDict))
         # Create dependencies
         dependencies = [
             JobDependency(

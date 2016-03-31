@@ -1,3 +1,4 @@
+from __future__ import print_function
 from dataactcore.scripts.databaseSetup import runCommands
 from dataactvalidator.models.validationModels import TASLookup
 from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
@@ -51,17 +52,14 @@ class FileTypeTests(BaseTest):
         }
 
         jobIdDict = {}
-        subIdDict = {}
         for key in jobInfoList:
             jobInfo = jobInfoList[key]  # Done this way to be compatible with python 2 and 3
             jobInfo.append(jobDb.session)
             job = cls.addJob(*jobInfo)
             jobId = job.job_id
             jobIdDict[key] = jobId
-            subIdDict[key] = cls.jobTracker.getSubmissionId(jobId)
+            print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]), end = "")
 
-        # Display submission numbers so error reports can be checked directly if unit tests fail
-        print(str(subIdDict))
         # Load fields and rules
         FileTypeTests.load_definitions(cls.interfaces, force_tas_load)
 
