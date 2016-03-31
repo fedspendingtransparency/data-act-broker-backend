@@ -25,7 +25,7 @@ class FileTests(BaseTest):
         # setup submission/jobs data for test_check_status
         cls.status_check_submission_id = cls.insertSubmission(
             cls.jobTracker, cls.submission_user_id)
-        cls.jobIdDict = cls.setupJobsForStatusCheck(cls.jobTracker,
+        cls.jobIdDict = cls.setupJobsForStatusCheck(cls.interfaces,
             cls.status_check_submission_id)
 
         # setup submission/jobs data for test_error_report
@@ -47,10 +47,10 @@ class FileTests(BaseTest):
 
     def call_file_submission(self):
         """Call the broker file submission route."""
-        fileJson = {"appropriations":"test1.csv",
+        self.filenames = {"appropriations":"test1.csv",
             "award_financial":"test2.csv", "award":"test3.csv",
             "program_activity":"test4.csv"}
-        return self.app.post_json("/v1/submit_files/", fileJson)
+        return self.app.post_json("/v1/submit_files/", self.filenames)
 
     def test_file_submission(self):
         """Test broker file submission and response."""
@@ -59,10 +59,10 @@ class FileTests(BaseTest):
         self.assertEqual(response.headers.get("Content-Type"), "application/json")
 
         json = response.json
-        self.assertIn("_test1.csv", json["appropriations_key"])
-        self.assertIn("_test2.csv", json["award_financial_key"])
-        self.assertIn("_test3.csv", json["award_key"])
-        self.assertIn("_test4.csv", json["program_activity_key"])
+        self.assertIn("test1.csv", json["appropriations_key"])
+        self.assertIn("test2.csv", json["award_financial_key"])
+        self.assertIn("test3.csv", json["award_key"])
+        self.assertIn("test4.csv", json["program_activity_key"])
         self.assertIn("credentials", json)
 
         credentials = json["credentials"]
@@ -81,17 +81,23 @@ class FileTests(BaseTest):
 
         # Test that job ids are returned
         responseDict = json
-        idKeys = ["program_activity_id", "award_id", "award_financial_id",
-            "appropriations_id"]
-        for key in idKeys:
-            self.assertIn(key, responseDict)
-            self.assertIsInstance(responseDict[key], int)
-
+        fileKeys = ["program_activity", "award", "award_financial",
+            "appropriations"]
+        for key in fileKeys:
+            idKey = "".join([key,"_id"])
+            self.assertIn(idKey, responseDict)
+            jobId = responseDict[idKey]
+            self.assertIsInstance(jobId, int)
+            # Check that original filenames were stored in DB
+            originalFilename = self.interfaces.jobDb.getOriginalFilenameById(jobId)
+            self.assertEquals(originalFilename,self.filenames[key])
         # check that submission got mapped to the correct user
         submissionId = responseDict["submission_id"]
         self.file_submission_id = submissionId
         submission = self.interfaces.jobDb.getSubmissionById(submissionId)
         self.assertEquals(submission.user_id, self.submission_user_id)
+
+
 
         # Call upload complete route
         finalizeResponse = self.check_upload_complete(
@@ -103,25 +109,21 @@ class FileTests(BaseTest):
         postJson = {"submission_id": self.status_check_submission_id}
         response = self.app.post_json("/v1/check_status/", postJson)
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, msg=str(response.json))
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
         json = response.json
-
         # response ids are coming back as string, so patch the jobIdDict
         jobIdDict = {k: str(self.jobIdDict[k]) for k in self.jobIdDict.keys()}
-        self.assertEqual(json[jobIdDict["uploadFinished"]]["status"],"finished")
-        self.assertEqual(json[jobIdDict["uploadFinished"]]["job_type"],"file_upload")
-        self.assertEqual(json[jobIdDict["uploadFinished"]]["file_type"],"award")
-        self.assertEqual(json[jobIdDict["recordRunning"]]["status"],"running")
-        self.assertEqual(json[jobIdDict["recordRunning"]]["job_type"],"csv_record_validation")
-        self.assertEqual(json[jobIdDict["recordRunning"]]["file_type"],"award")
-        self.assertEqual(json[jobIdDict["externalWaiting"]]["status"],"waiting")
-        self.assertEqual(json[jobIdDict["externalWaiting"]]["job_type"],"external_validation")
-        self.assertEqual(json[jobIdDict["externalWaiting"]]["file_type"],"award")
-        self.assertEqual(json[jobIdDict["appropriations"]]["status"],"ready")
+        self.assertEqual(json[jobIdDict["appropriations"]]["job_status"],"ready")
         self.assertEqual(json[jobIdDict["appropriations"]]["job_type"],"csv_record_validation")
         self.assertEqual(json[jobIdDict["appropriations"]]["file_type"],"appropriations")
+        self.assertEqual(json[jobIdDict["appropriations"]]["filename"],"approp.csv")
+        self.assertEqual(json[jobIdDict["appropriations"]]["file_status"],"complete")
+        self.assertIn("missing_header_one", json[jobIdDict["appropriations"]]["missing_headers"])
+        self.assertIn("missing_header_two", json[jobIdDict["appropriations"]]["missing_headers"])
+        self.assertIn("duplicated_header_one", json[jobIdDict["appropriations"]]["duplicated_headers"])
+        self.assertIn("duplicated_header_two", json[jobIdDict["appropriations"]]["duplicated_headers"])
 
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
@@ -191,13 +193,14 @@ class FileTests(BaseTest):
         return sub.submission_id
 
     @staticmethod
-    def insertJob(jobTracker, filetype, status, type_id, submission, job_id=None):
+    def insertJob(jobTracker, filetype, status, type_id, submission, job_id=None, filename = None):
         """Insert one job into job tracker and get ID back."""
         job = JobStatus(
             file_type_id=filetype,
             status_id=status,
             type_id=type_id,
-            submission_id=submission
+            submission_id=submission,
+            original_filename=filename
         )
         if job_id:
             job.job_id = job_id
@@ -235,29 +238,34 @@ class FileTests(BaseTest):
         return ed.error_data_id
 
     @staticmethod
-    def setupJobsForStatusCheck(jobTracker, submission_id):
+    def setupJobsForStatusCheck(interfaces, submission_id):
         """Set up test jobs for job status test."""
 
         # TODO: remove hard-coded surrogate keys
         jobValues = {}
-        jobValues["uploadFinished"] = [1, 4, 1]
-        jobValues["recordRunning"] = [1, 3, 2]
-        jobValues["externalWaiting"] = [1, 1, 5]
-        jobValues["awardFin"] = [2, 2, 2]
-        jobValues["appropriations"] = [3, 2, 2]
-        jobValues["program_activity"] = [4, 2, 2]
+        jobValues["uploadFinished"] = [1, 4, 1, None]
+        jobValues["recordRunning"] = [1, 3, 2, None]
+        jobValues["externalWaiting"] = [1, 1, 5, None]
+        jobValues["awardFin"] = [2, 2, 2, "awardFin.csv"]
+        jobValues["appropriations"] = [3, 2, 2, "approp.csv"]
+        jobValues["program_activity"] = [4, 2, 2, "programActivity.csv"]
         jobIdDict = {}
 
         for jobKey, values in jobValues.items():
             job_id = FileTests.insertJob(
-                jobTracker,
+                interfaces.jobDb,
                 filetype=values[0],
                 status=values[1],
                 type_id=values[2],
-                submission=submission_id
+                submission=submission_id,
+                filename=values[3]
             )
             jobIdDict[jobKey] = job_id
 
+        # For appropriations job, create an entry in file_status for this job
+        fileStatus = FileStatus(job_id = jobIdDict["appropriations"],filename = "approp.csv", status_id = interfaces.errorDb.getStatusId("complete"), headers_missing = "missing_header_one, missing_header_two", headers_duplicated = "duplicated_header_one, duplicated_header_two")
+        interfaces.errorDb.session.add(fileStatus)
+        interfaces.errorDb.session.commit()
         return jobIdDict
 
     @staticmethod

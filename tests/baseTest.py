@@ -1,3 +1,4 @@
+import json
 import unittest
 from webtest import TestApp
 from dataactbroker.app import createApp
