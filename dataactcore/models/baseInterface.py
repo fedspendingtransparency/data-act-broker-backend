@@ -17,7 +17,7 @@ class BaseInterface(object):
     IS_FLASK = True
     dbConfigFile = None # Should be overwritten by child classes
     dbName = None # Should be overwritten by child classes
-    credFileName = None
+    credFileName = "dbCred.json"
     logFileName = "dbErrors.log"
 
     def __init__(self):
@@ -84,11 +84,11 @@ class BaseInterface(object):
         """ Check that result is unique, if not raise exception"""
         if(len(queryResult) == 0):
             # Did not get a result for this job, mark as a job error
-            raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound,10)
+            raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound)
 
         elif(len(queryResult) > 1):
             # Multiple results for single job ID
-            raise ResponseException(multipleResultMessage,StatusCode.INTERNAL_ERROR,MultipleResultsFound,10)
+            raise ResponseException(multipleResultMessage,StatusCode.INTERNAL_ERROR,MultipleResultsFound)
 
         return True
 
@@ -101,9 +101,9 @@ class BaseInterface(object):
             if(noResultMessage == False):
                 # Raise the exception as is, used for specific handling
                 raise e
-            raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound,10)
+            raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound)
         except MultipleResultsFound as e:
-            raise ResponseException(multipleResultMessage,StatusCode.INTERNAL_ERROR,MultipleResultsFound,10)
+            raise ResponseException(multipleResultMessage,StatusCode.INTERNAL_ERROR,MultipleResultsFound)
 
     def runStatement(self,statement):
         """ Run specified statement on this database"""
