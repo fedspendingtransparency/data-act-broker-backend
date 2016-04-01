@@ -66,7 +66,6 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-
     # Submit set of files
     def submit(self,name,CreateCredentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
@@ -86,6 +85,10 @@ class FileHandler:
             self.s3manager = s3UrlHandler(s3UrlHandler.getValueFromConfig("bucket"))
             fileNameMap = []
             safeDictionary = RequestDictionary(self.request)
+            submissionId = self.jobManager.createSubmission(name, safeDictionary)
+
+            # TODO call createSubmission and pass ID in place of user ID
+
             for fileType in FileHandler.FILE_TYPES :
                 filename = safeDictionary.getValue(fileType)
                 if( safeDictionary.exists(fileType)) :

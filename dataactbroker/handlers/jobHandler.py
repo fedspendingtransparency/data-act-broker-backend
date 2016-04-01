@@ -36,31 +36,63 @@ class JobHandler(JobTrackerInterface):
         """ Returns all submissions associated with the provided user object """
         return self.getSubmissionsByUserId(user.user_id)
 
-    def createJobs(self,filenames,userId):
-        """  Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
+    @staticmethod
+    def loadSubmitParams(requestDict):
+        """ Load params from request, return dictionary of values provided mapped to submission fields """
+        # Existing submission ID is optional
+        existingSubmission = False
+        submissionValues = {}
+        if not requestDict.exists("existing_submission_id"):
+            # Agency name and reporting dates are required for new submissions
+            existingSubmission = True
+            submissionValues["submission_id"] = requestDict.getValue("existing_submission_id")
+        if requestDict.exists("agency_name"):
+            agencyName = requestDict.getValue("agency_name")
+        else:
+            if not existingSubmission:
+                raise ResponseException("agency_name is required",StatusCode.CLIENT_ERROR,ValueError)
+            else:
+                agencyName = None
+
+
+    def createSubmission(self, userId, requestDict):
+        """ Create a new submission
 
         Arguments:
-        filenames -- List of tuples containing (file type, upload path, original filenames)
-        userId -- User ID to be linked to submission
+            userId:  User to associate with this submission
+            requestDict:  Dictionary of keys provided in request, may contain "existing_submission_id", "agency_name", "reporting_period_start_date", "reporting_period_end_date"
 
         Returns:
-        Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
+            submission ID
         """
+        submissionValues = self.loadSubmitParams(requestDict)
         # Create submission entry
-        submission = Submission(datetime_utc = str(datetime.utcnow()))
+        submission = Submission(datetime_utc = str(datetime.utcnow()), agency_name = agencyName, reporting_start_date = reportingStart, reporting_end_date = reportingEnd)
         submission.user_id = userId
         self.session.add(submission)
         self.session.commit()
         # Calling submission_id to force query to load this
-        submission.submission_id
+        return submission.submission_id
 
-        jobsRequired, uploadDict = self.addUploadJobs(filenames,submission)
+    def createJobs(self, filenames, submissionId):
+        """  Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
+
+        Arguments:
+        filenames -- List of tuples containing (file type, upload path, original filenames)
+        submissionId -- Submission ID to be linked to jobs
+
+        Returns:
+        Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
+        """
+
+
+        jobsRequired, uploadDict = self.addUploadJobs(filenames,submissionId)
 
         # Create validation job
-        validationJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("validation"), submission_id = submission.submission_id)
+        validationJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("validation"), submission_id = submissionId)
         self.session.add(validationJob)
         # Create external validation job
-        externalJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("external_validation"), submission_id = submission.submission_id)
+        externalJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("external_validation"), submission_id = submissionId)
         self.session.add(externalJob)
         self.session.flush()
         # Create dependencies for validation jobs
@@ -72,14 +104,15 @@ class JobHandler(JobTrackerInterface):
 
         # Commit all changes
         self.session.commit()
-        uploadDict["submission_id"] = submission.submission_id
+        uploadDict["submission_id"] = submissionId
         return uploadDict
 
-    def addUploadJobs(self,filenames,submission):
+    def addUploadJobs(self,filenames,submissionId):
         """  Add upload jobs to job tracker database
 
         Arguments:
         filenames -- List of tuples containing (file type, upload path, original filenames)
+        submissionId -- Submission ID to attach to jobs
 
         Returns:
         jobsRequired -- List of job ids required for validation jobs, used to populate the prerequisite table
@@ -99,12 +132,12 @@ class JobHandler(JobTrackerInterface):
             fileTypeId = fileTypeResult.file_type_id
 
             # Create upload job, mark as running since frontend should be doing this upload
-            fileJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("running"), type_id = self.getTypeId("file_upload"), submission_id = submission.submission_id)
+            fileJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("running"), type_id = self.getTypeId("file_upload"), submission_id = submissionId)
 
             self.session.add(fileJob)
 
             # Create parse into DB job
-            dbJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("waiting"), type_id = self.getTypeId("csv_record_validation"), submission_id = submission.submission_id)
+            dbJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("waiting"), type_id = self.getTypeId("csv_record_validation"), submission_id = submissionId)
             self.session.add(dbJob)
             self.session.flush()
             # Add dependency between file upload and db upload
