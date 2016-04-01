@@ -47,7 +47,7 @@ setup(
     packages=find_packages(),
     install_requires=reqs,
     dependency_links=[
-      'git+https://git@github.com/fedspendingtransparency/data-act-broker#egg=data-act-broker',
-      'git+https://git@github.com/fedspendingtransparency/data-act-validator#egg=data-act-validator',
+      'git+https://git@github.com/fedspendingtransparency/data-act-broker#egg=dataactbroker',
+      'git+https://git@github.com/fedspendingtransparency/data-act-validator#egg=dataactvalidator',
     ],
 )
