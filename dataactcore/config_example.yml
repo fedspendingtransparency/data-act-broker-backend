@@ -65,11 +65,11 @@ services:
     server_debug: true
 
     # URL/IP address that hosts the broker API
-    broker_api_host: 0.0.0.0
+    broker_api_host: 127.0.0.1
     broker_api_port: 3333
 
     # URL/IP address that hosts the validator API
-    validator_host: 0.0.0.0
+    validator_host: 127.0.0.1
     validator_port: 3334
 
     # If you would like to restrict access from other origins, set the
@@ -112,7 +112,7 @@ db:
     # use_aws is true above, the broker will use a
     # Dynamo instance on your AWS account. Otherwise,
     # provide a dynamo host and port below.
-    dynamo_host: 0.0.0.0
+    dynamo_host: 127.0.0.1
     dynamo_port: 8000
 
 logging:
