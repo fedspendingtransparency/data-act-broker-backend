@@ -27,6 +27,7 @@ class s3UrlHandler:
         else:
             self.bucketRoute = name
         s3UrlHandler.S3_ROLE = s3UrlHandler.getValueFromConfig("role")
+        s3UrlHandler.REGION = s3UrlHandler.getValueFromConfig("region")
 
     def _signUrl(self,path,fileName,method="PUT") :
         """
@@ -40,7 +41,7 @@ class s3UrlHandler:
 
         """
         if(s3UrlHandler.ENABLE_S3) :
-            s3connection = boto.connect_s3()
+            s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
             if(method=="PUT") :
                 return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method, self.bucketRoute, "/"+path+"/" +fileName,headers={'Content-Type': 'application/octet-stream'})
             return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method, self.bucketRoute, "/"+path+"/" +fileName)
