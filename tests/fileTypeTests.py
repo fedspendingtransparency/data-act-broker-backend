@@ -56,7 +56,7 @@ class FileTypeTests(BaseTest):
             job = cls.addJob(*jobInfo)
             jobId = job.job_id
             jobIdDict[key] = jobId
-            print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]), end = "")
+            print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]))
 
         # Load fields and rules
         FileTypeTests.load_definitions(cls.interfaces, force_tas_load)
