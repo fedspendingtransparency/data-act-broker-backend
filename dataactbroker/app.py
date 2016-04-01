@@ -57,7 +57,7 @@ def createApp():
         def root():
             return "Broker is running"
 
-        localFiles = os.path.join(broker_file_path, "/<path:filename>")
+        localFiles = os.path.join(broker_file_path, "<path:filename>")
 
         @app.route(localFiles)
         def sendFile(filename):
