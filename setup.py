@@ -43,11 +43,11 @@ setup(
         'License :: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication',
         'Programming Language :: Python :: 2.7'
     ],
-    # dependency_links=[
-    #     'git+https://git@github.com/fedspendingtransparency/data-act-broker.git@v0.0.5-pre-alpha#egg=dataactbroker',
-    #     'git+https://git@github.com/fedspendingtransparency/data-act-validator.git@v0.0.5-pre-alpha#egg=dataactvalidator',
-    # ],
     keywords='dataAct broker setup',
     packages=find_packages(),
     install_requires=reqs,
+    dependency_links=[
+      'git+https://github.com/fedspendingtransparency/data-act-broker@v0.0.5-pre-alpha#egg=data-act-broker',
+      'git+https://github.com/fedspendingtransparency/data-act-validator@v0.0.5-pre-alpha#egg=data-act-validator',
+    ],
 )
