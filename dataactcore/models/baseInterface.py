@@ -1,13 +1,10 @@
 import sqlalchemy
-import os.path
-import sys
-import traceback
 from flask import _app_ctx_stack
 from sqlalchemy.orm import sessionmaker , scoped_session
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.config import CONFIG_DB, CONFIG_LOGGING
+from dataactcore.config import CONFIG_DB
 
 class BaseInterface(object):
     """ Abstract base interface to be inherited by interfaces for specific databases
@@ -31,7 +28,6 @@ class BaseInterface(object):
             "postgresql://{}:{}@{}:{}/{}".format(CONFIG_DB["username"],
             CONFIG_DB["password"], CONFIG_DB["host"], CONFIG_DB["port"],
             self.dbName), pool_size=100,max_overflow=50)
-            #"postgresql://" + CONFIG_DB['username'] + ":" + CONFIG_DB['password'] + "@" + CONFIG_DB['host'] + ":" + CONFIG_DB['port'] + "/" + self.dbName,pool_size=100,max_overflow=50)
         self.connection = self.engine.connect()
         if(self.Session == None):
             if(BaseInterface.IS_FLASK) :
@@ -44,7 +40,6 @@ class BaseInterface(object):
         try:
             #Close session
             self.session.close()
-            #self.Session.close_all()
             self.Session.remove()
             self.connection.close()
             self.engine.dispose()
@@ -63,16 +58,6 @@ class BaseInterface(object):
             'dbBaseName': CONFIG_DB['base_db_name']
         }
         return credDict
-
-    @staticmethod
-    def logDbError(exc):
-        logFile = os.path.join(
-            CONFIG_LOGGING['log_files'], BaseInterface.logFileName)
-        with open(logFile, "a") as file:
-        #file = open(BaseInterface.getLogFilePath(),"a")
-            file.write(str(exc) + ", ")
-            file.write(str(sys.exc_info()[0:1]) + "\n")
-            traceback.print_tb(sys.exc_info()[2], file=file)
 
     @staticmethod
     def checkUnique(queryResult, noResultMessage, multipleResultMessage):
