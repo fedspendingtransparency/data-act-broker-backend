@@ -39,6 +39,7 @@ def createApp():
         # If local, make the email directory if needed
         if local and not os.path.exists(broker_file_path):
             os.makedirs(broker_file_path)
+
         # When runlocal is true, assume Dynamo is on the same server
         # (should be false for prod)
         JsonResponse.debugMode = app.config['REST_TRACE']
@@ -57,12 +58,13 @@ def createApp():
         def root():
             return "Broker is running"
 
-        localFiles = os.path.join(broker_file_path, "<path:filename>")
-
-        @app.route(localFiles)
-        def sendFile(filename):
-            if(config["local"]) :
-                return send_from_directory(broker_file_path, filename)
+        if local:
+            localFiles = os.path.join(broker_file_path, "<path:filename>")
+            # Only define this route when running locally
+            @app.route(localFiles)
+            def sendFile(filename):
+                if(config["local"]) :
+                    return send_from_directory(broker_file_path, filename)
 
         # Add routes for modules here
         add_login_routes(app, bcrypt)
