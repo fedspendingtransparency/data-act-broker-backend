@@ -72,6 +72,7 @@ def createApp():
             config["local"], config["local_folder"])
         add_user_routes(app, config["system_email"], bcrypt)
         SessionTable.LOCAL_PORT = int(config["dynamo_port"])
+        SessionTable.DYNAMO_REGION = config["dynamo_region"]
         SessionTable.setup(app, runLocal)
 
         return app
