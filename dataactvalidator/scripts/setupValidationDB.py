@@ -29,7 +29,10 @@ def setupValidationDB(hardReset = False):
             (4, 'LESS', 'less than operator '),
             (5, 'GREATER', 'greater than operator'),
             (6, 'LENGTH', 'string length'),
-            (7, 'IN_SET', 'value must be in set')]
+            (7, 'IN_SET', 'value must be in set'),
+            (8, 'MIN LENGTH', 'length of data must be at least reference value'),
+            (9, 'REQUIRED_CONDITIONAL', 'field is required if secondary rule passes')
+            ]
         for r in ruleTypeList:
             ruleType = RuleType(rule_type_id=r[0], name=r[1], description=r[2])
             validatorDb.session.add(ruleType)
