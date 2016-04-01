@@ -124,12 +124,12 @@ logging:
     # to use logstash for logging
     use_logstash: true
 
-    # Logstash EC2 host. Ignored if use_logstash is false.
+    # Logstash host. Ignored if use_logstash is false.
     # NOTE: the dummy value below MUST be changed to the correct
     # value if use_logstash is true.
     logstash_host: logstash-host.compute-1.amazonaws.com
 
-    # Logstash EC2 port. 514 is the port typically used with logstash,
+    # Logstash port. 514 is the port typically used with logstash,
     # so you can mostly likely keep this as is.
     logstash_port: 514
 
