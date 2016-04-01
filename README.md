@@ -8,9 +8,9 @@ dataactbroker/
 └── handlers/       (Route handlers)
 ```
 
-##Scripts
-The `/dataactbroker/scripts` folder contains the install scripts needed to setup the Broker for a local install.  `configure.py` creates the various JSON files needed for running the Broker. The following three JSON files are created during
-the install process : `manager.json`, `web_api_configuration.json` and `credentials.json`. This script is called
+## Scripts
+The `/dataactbroker/scripts` folder contains the install scripts needed to setup the Broker for a local install.  `configure.py` creates the various JSON files needed for running the Broker. The following JSON files are created during
+the install process : `manager.json` and `web_api_configuration.json`. The `configure.py` script is called
 by the `initialize` script. The script however, can be called by itself to setup the JSON.
 
 ```bash
@@ -27,16 +27,6 @@ sudo python configure.py
 }
 ```
 
-`credentials.json` contains users and passwords that the Broker uses to authenticate sessions. This file will be removed in later versions of the broker when user authentication is done with a database. The file has the following format, where any number of users can be added.
-
-```json
-{
-  "user1":"password1",
-  "user2":"password2"
-}
-```
-
-
 `web_api_configurations.json` contains data used by the Data Broker Flask application for setting ports and debug options. It has the following format:
 
 ```json
@@ -47,7 +37,9 @@ sudo python configure.py
   "port": 5000,
   "local_dynamo": false,
   "dynamo_port": 5000,
-  "create_credentials": true
+  "create_credentials": true,
+  "local" : false,
+  "local_folder": ""
 }
 ```
 
@@ -61,24 +53,29 @@ sudo python configure.py
 | local_dynamo  | Sets if the dynamo database is on the localhost or AWS|
 | dynamo_port  | The port used for the dynamo database|
 | create_credentials  | Turns on the ability to create temporarily AWS credentials|
+| frontend_url  | The URL for the React front end|
+| security_key  | The key used to make hashes by the application|
+| system_email  | The from email address  used by the system for automated emails|
+| local | If a local install is being used |
+|local_folder| the path for system created files for local installs only|
 
 The `initialize` script provides users with these choices during the install process. See the [Broker Install Guide](#install-guide) for more information.
 
 ##Handlers
 The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py` and `fileRoutes.py` files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in. If user is not logged in to the system, a 401 HTTP error will be returned. This tag is defined in `dataactbroker/permissions.py`. Cookies are used to keep track of sessions for the end user. Only a UUID is stored in the cookie.
 
-`LoginHandler.py` contains the functions to check logins and to log users out. Currently, `credentials.json` defines which users exist within the system. This file is automatically created during the installation process.
+`AccountHandler.py` contains the functions to check logins and to log users out.
 
 `FileHandler.py` contains functions for managing user file interaction. It creates all of the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
 
 In addition to these helper objects, the following sub classes also exist within the directory: `UserHandler`, `JobHandler`, and `ErrorHandler`. These classes extend the database connection objects that are located in the Core Repository. Extra query methods exist in these classes that are used exclusively by the Broker API.
 
 
-#AWS Setup
+# AWS Setup
 In order to use the DATA Act Broker, additional AWS permissions and configurations are
 required in addition to those listed in the [DATA ACT Core README](https://github.com/fedspendingtransparency/data-act-core/blob/development/README.md).
 
-##DynamoDB
+## DynamoDB
 The DATA Act Broker uses AWS DynamoDB for session handling. This provides a fast and reliable methodology to check sessions in the cloud. Users can easily bounce between servers with no impact to their session.
 
 The install script seen in the [Broker Install Guide](#install-guide) provides an option to create the database automatically. This, however, assumes the user has the proper AWS Credentials to perform the operation. If you wish to create the database manually, it needs to be set up to have the following attributes:
@@ -108,7 +105,7 @@ The EC2 instance running the broker should be granted read/write permissions to 
 ```
 The `REGION` should be replaced with region of the AWS account and the `ACCOUNT_ID` should be replaced with the AWS account ID.
 
-###Local Version
+### Local Version
 
 It is possible to set up DynamoDB locally. This requires Java JDK 6 or higher to be installed, which can be done using the following command on Red Hat based systems:
 
@@ -163,34 +160,350 @@ In general, status codes returned are as follows:
 ## GET "/"
 This route confirms that the broker is running
 
-Example input: None  
-Example output: "Broker is running"
+Example input:
 
-##Login Methods
+None
+
+Example output:
+
+"Broker is running"
+
+##User Routes
 
 #### POST "/v1/login/"
 This route checks the username and password against a credentials file.  Accepts input as json or form-urlencoded, with keys "username" and "password".  
 
-Example input: {"username": "user", "password": "pass"}  
-Example output: {"message": "Login successful"}
+Example input:
+
+```json
+{
+    "username": "user",
+    "password": "pass"
+}
+```
+
+Example output:
+
+```json
+{
+    "message": "Login successful",
+    "user_id": 42,
+    "name": "John",
+    "title":"Developer",
+    "agency": "Department of Labor",
+    "permissions" : [0,1]
+}
+```
 
 #### POST "/v1/logout/"
-Logs the current user out, only the login route will be accessible until the next login.  If not logged in, just stays logged out. Returns 200 in boths cases.
+Logs the current user out, only the login route will be accessible until the next login.  If not logged in, just stays logged out. Returns 200 in both cases.
 
-Example input: None  
-Example output: {"message": "Logout successful"}
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+    "message": "Logout successful"
+}
+```
 
 #### GET "/v1/session/"
 Checks that the session is still valid. Returns 200, and JSON with key "status" containing True if the session exists, and False if it doesn't.
 
-Example input: None  
-Example output: {"status": "True"}
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+    "status": "True"
+}
+```
+
+#### GET "/v1/current_user/"
+Gets the information of the current that is login to the system.
+
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+    "user_id": 42,
+    "name": "John",
+    "title":"Developer",
+    "agency": "Department of Labor",
+    "permissions" : [0,1]
+}
+```
+
+Permissions for the DATA Act Broker are list based. Each integer in the list corresponds with a permission.
 
 
-##File Methods
+| Permission Type  | Value |
+| ------------- |-------------|
+|User| 0|
+|Admin  |1|
+
+
+#### POST "/v1/register/"
+Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.  This route can only be called after the `confirm_email_token` route. After a successful submission this route will require
+`confirm_email_token` to be called again.
+
+
+Example input:
+
+```json
+{
+   "email":"user@agency.gov",
+   "name":"user",
+   "agency":"Data Act Agency",
+   "title":"User Title",
+   "password":"pass"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Registration successful"
+}
+```
+
+#### POST "/v1/change_status/"
+Changes a user's status, used to approve or deny users.  This route requires an admin user to be logged in.  A call to this route should have JSON or form-urlencoded with keys "uid" and "new_status".  For typical usage, "new_status" should be either "approved" or "denied".
+
+Example input:
+
+```json
+{
+   "uid":"1234",
+   "new_status":"approved"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Status change successful"
+}
+```
+
+#### POST "/v1/confirm_email/"
+Create a new user and sends a confirmation email to their email address.  A call to this route should have JSON or form-urlencoded with key "email".
+
+Example input:
+
+```json
+{
+   "email":"user@agency.gov"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Email Sent"
+}
+```
+
+#### POST "/v1/confirm_email_token/"
+Checks the token sent by email.  If successful, updates the user to email_confirmed.  A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned along with the error code. The email address will also be returned upon success.
+
+Example input:
+
+```json
+{
+   "token":"longRandomString"
+}
+```
+
+Success Example output:
+
+```json
+{
+  "errorCode":0,
+  "message":"success",
+  "email" : "emailAddress@email.com"
+}
+```
+
+Failure Example output:
+
+```json
+{
+  "errorCode":3,
+  "message":"Link already used"
+}
+```
+
+The following is a table with all of the messages and error code  
+
+| ErrorCode  | Value |Message |
+| ------------- |-------------|------------- |
+|INVALID_LINK | 1| Invalid Link|
+| LINK_EXPIRED   |2| Link Expired|
+| LINK_ALREADY_USED  |3|Link already used|
+| LINK_VALID   |0|success|
+
+
+
+
+
+
+#### POST "/v1/confirm_password_token/"
+Checks the token sent by email for password reset. A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned along with the error code. The email address will also be returned upon success.
+
+Example input:
+
+```json
+{
+   "token":"longRandomString"
+}
+```
+
+Success Example output:
+
+```json
+{
+  "errorCode":0,
+  "message":"success",
+  "email" : "emailAddress@email.com"
+}
+```
+
+Failure Example output:
+
+```json
+{
+  "errorCode":3,
+  "message":"Link already used"
+}
+```
+
+The following is a table with all of the messages and error code  
+
+| ErrorCode  | Value |Message |
+| ------------- |-------------|------------- |
+|INVALID_LINK | 1| Invalid Link|
+| LINK_EXPIRED   |2| Link Expired|
+| LINK_ALREADY_USED  |3|Link already used|
+| LINK_VALID   |0|success|
+
+
+
+
+#### POST "/v1/list_users_with_status/"
+List all users with specified status, typically used to review users that have applied for an account.  Requires an admin login.  A call to this route should have JSON or form-urlencoded with key "status".
+
+Example input:
+
+```json
+{
+   "status":"awaiting_approval"
+}
+```
+
+Example output:
+
+```json
+{
+  "users":[{"uid":1,"name":"user","email":"agency@user.gov","title":"User Title","agency":"Data Act Agency"},{"uid":2,"name":"user2","email":"","title":"","agency":""}]
+}
+```
+
+#### GET "/v1/list_submissions/"
+List all submissions by currently logged in user.
+
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+  "submission_id_list":[1,2,3]
+}
+```
+
+#### POST "/v1/set_password/"
+Change specified user's password to new value.  User must have confirmed the token they received in same session to use this route.  A call to this route should have JSON or form-urlencoded with keys "uid" and "password".
+
+Example input:
+
+```json
+{
+   "token":"longRandomString"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Password successfully changed"
+}
+```
+
+#### POST "/v1/reset_password/"
+Remove current password and send password with token for reset.  A call to this route should have JSON or form-urlencoded with key "email".
+
+Example input:
+
+```json
+{
+   "email":"user@agency.gov"
+}
+```
+
+Example output:
+
+```json
+{
+  "message":"Password reset"
+}
+```
+
+
+## File Routes
+
+#### GET "/"
+This route confirms that the broker is running
+
+Example input: None
+Example output: "Broker is running"
+
+#### GET "/<filename>"
+This path will return files located in the local folder. This path is only accessible for local installs due
+to security reasons.
+
+Example Route `/Users/serverdata/test.csv`  for example will return the `test.csv` if the local folder points
+to `/Users/serverdata`.
+
+#### POST "/v1/local_upload/"
+Input for this route should be a post form with the key of `file` where the uploaded file is located. This route **only** will
+return a success for local installs for security reasons. Upon successful upload, file path will be returned.
+
+Example Output:
+```json    
+{
+   "path": "/User/localuser/server/1234_filename.csv"
+}
+```
 
 #### POST "/v1/submit_files/"
-This route is used to retrieve S3 URLs to upload files. Data should be either JSON or form-urlencoded with keys: ["appropriations", "award\_financial", "award", "procurement"], each with a filename as a value.
+This route is used to retrieve S3 URLs to upload files. Data should be either JSON or form-urlencoded with keys: ["appropriations", "award\_financial", "award", "program\_activity"], each with a filename as a value.
 
 This route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key\_id containing the job id. A returning submission\_id will also exist which acts as identifier for the submission.
 
@@ -206,7 +519,7 @@ Example input:
   "appropriations":"appropriations.csv",
   "award_financial":"award_financial.csv",
   "award":"award.csv",
-  "procurement":"procurement.csv"
+  "program_activity":"program_activity.csv"
 
 }
 ```
@@ -228,8 +541,8 @@ Example output:
   "award_financial_id": 102,
   "award_financial_key": "2/1453474327_award_financial.csv",
 
-  "procurement_id": 103,
-  "procurement_key": "2/1453474333_procurement.csv",
+  "program_activity_id": 103,
+  "program_activity_key": "2/1453474333_program_activity.csv",
 
   "credentials": {
     "SecretAccessKey": "ABCDEFG",
@@ -309,11 +622,17 @@ Example output:
 ```
 
 
+
 #### Test Cases
-Before running test cases, start the Flask app by running `python app.py` in the `dataactbroker` folder. Alternatively, if using `pip install`, you can uses the server start command `sudo webbroker -s`. The current test suite for the validator may then be run by navigating to the `datatactbroker/tests folder` and running `python runTests.py`.
+Before running test cases, [make sure the validator is running](https://github.com/fedspendingtransparency/data-act-core/blob/master/doc/INSTALL.md#run-broker-backend-applications "run the DATA Act broker backend apps").
 
+To generate a test coverage report from the command line:
 
-#Install Guide
+1. Make sure you're in the main project folder (`data-act-broker`).
+2. Run the tests using the `coverage` command: `coverage run tests/runTests.py`.
+3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
+
+# Install Guide
 
 ## Requirements
 
@@ -389,6 +708,11 @@ The following table below show the prompts created by the setup and there usage
 |Would you like to create the dynamo database table|yes or no. Creates a table on the Dynamo Database. This command you be used **exactly once** per AWS account |
 |Would you like to include test case users | yes or no, this options adds test users. This option should **not** be selected for production|
 |Enter the admin user password| string, this is the user password needed to login into the API|
+|Enter the admin user email| string, this is the user email address needed to login into the API|
+
+
+
+
 
 
 Alternatively, if you do not need to configure everything, the following commands are also available.

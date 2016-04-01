@@ -1,25 +1,20 @@
 from flask import request, session
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
-from dataactbroker.handlers.loginHandler import LoginHandler
+from dataactbroker.handlers.accountHandler import AccountHandler
 from dataactbroker.handlers.aws.session import LoginSession
+from dataactbroker.routeUtils import RouteUtils
 
-def add_login_routes(app):
+def add_login_routes(app,bcrypt):
     @app.route("/v1/login/", methods = ["POST"])
     def login():
-        interfaces = InterfaceHolder()
-        loginManager = LoginHandler(request,interfaces)
-        response = loginManager.login(session)
-        interfaces.close()
-        return response
+        accountManager = AccountHandler(request,bcrypt = bcrypt)
+        return RouteUtils.run_instance_function(accountManager, accountManager.login, getSession = True)
 
     @app.route("/v1/logout/", methods = ["POST"])
     def logout():
-        interfaces = InterfaceHolder()
-        loginManager = LoginHandler(request,interfaces)
-        interfaces.close()
-        return loginManager.logout(session)
+        accountManager = AccountHandler(request,bcrypt = bcrypt)
+        return RouteUtils.run_instance_function(accountManager, accountManager.logout, getSession = True)
 
     @app.route("/v1/session/", methods = ["GET"])
     def sessionCheck():
