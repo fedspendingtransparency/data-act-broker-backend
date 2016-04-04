@@ -11,7 +11,7 @@ class CsvAbstractWriter(object):
     BUFFER_SIZE =  (5 * 1024 ** 2)
     BATCH_SIZE = 100
 
-    def __init__(self,filename,header) :
+    def __init__(self,region,filename,header) :
         """
 
         args
