@@ -6,7 +6,7 @@ from dataactcore.models.userModel import User, PermissionType
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactbroker.models.brokerUserModels import EmailToken, EmailTemplateType , EmailTemplate
+from dataactcore.models.userModel import EmailToken, EmailTemplateType , EmailTemplate
 
 class UserHandler(UserInterface):
     """ Responsible for all interaction with the user database
