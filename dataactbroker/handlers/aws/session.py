@@ -1,12 +1,11 @@
 from uuid import uuid4
-from boto.dynamodb2.fields import HashKey, GlobalAllIndex, RangeKey
+from boto.dynamodb2.fields import HashKey, GlobalAllIndex
 from boto.dynamodb2.table import Table, exceptions
 from boto.dynamodb2.types import NUMBER
 from datetime import datetime, timedelta
 from flask.sessions import SessionInterface, SessionMixin
 from werkzeug.datastructures import CallbackDict
 from boto.dynamodb2.layer1 import DynamoDBConnection
-from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
 from flask.ext.login import _create_identifier
 
 class LoginSession():
@@ -281,9 +280,9 @@ class SessionTable :
     DATA_FIELD = "data"
     DATE_FIELD = "expiration"
     TIME_OUT_LIMIT = 604800
+    LOCAL_PORT =  8000 # This is overwritten by the dynamo_port value taken from the configuration file
     TableConnection = ""
     isLocal = False
-    localPort =  8000
 
     @staticmethod
     def clearSessions() :
@@ -300,7 +299,7 @@ class SessionTable :
         """
         returns the Boto DynamoDB connection object
         """
-        return DynamoDBConnection(host='localhost',port=SessionTable.localPort,aws_access_key_id='a',aws_secret_access_key='a',is_secure=False)
+        return DynamoDBConnection(host='localhost', port=SessionTable.LOCAL_PORT, aws_access_key_id='a', aws_secret_access_key='a', is_secure=False)
 
     @staticmethod
     def getTable() :
@@ -314,7 +313,7 @@ class SessionTable :
     @staticmethod
     def createTable(isLocal,localPort):
         """Used to create table for Dyanmo DB"""
-        SessionTable.localPort =localPort
+        SessionTable.LOCAL_PORT =localPort
         secondaryIndex = [
             GlobalAllIndex('expiration-index',
                 parts=[
@@ -323,19 +322,27 @@ class SessionTable :
                 throughput={'read': 5, 'write': 5}
             )
         ]
-        if(not isLocal) :
+        if isLocal:
+            try:
+                Table.create(
+                    SessionTable.TABLE_NAME,
+                    schema=[HashKey(SessionTable.KEY_NAME)],
+                    global_indexes=secondaryIndex,
+                    connection=SessionTable.getLocalConnection()
+                )
+            except exceptions.JSONResponseError as jre:
+                if jre.status == 400 and "preexisting" in jre.message.lower():
+                    #table already exists
+                    pass
+            else:
+                raise
+        else:
             Table.create(
                 SessionTable.TABLE_NAME,
                 schema=[HashKey(SessionTable.KEY_NAME)],
                 global_indexes=secondaryIndex
             )
-        else :
-            Table.create(
-                SessionTable.TABLE_NAME,
-                schema=[HashKey(SessionTable.KEY_NAME)],
-                global_indexes=secondaryIndex,
-                connection=SessionTable.getLocalConnection()
-            )
+
     @staticmethod
     def setup(app,isLocalHost):
         """

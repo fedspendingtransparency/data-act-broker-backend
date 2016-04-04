@@ -1,3 +1,6 @@
+import sys
+import traceback
+from dataactcore.utils.cloudLogger import CloudLogger
 from dataactbroker.handlers.errorHandler import ErrorHandler
 from dataactbroker.handlers.jobHandler import JobHandler
 from dataactbroker.handlers.userHandler import UserHandler
@@ -31,4 +34,8 @@ class InterfaceHolder:
                 interface.session.rollback()
                 interface.session.close()
             except Exception as e:
-                interface.logDbError(e)
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                trace = traceback.extract_tb(exc_tb, 10)
+                CloudLogger.logError('Broker DB Interface Error: ', e, trace)
+                del exc_tb
+                raise

@@ -1,19 +1,14 @@
 import requests
 import json
 import os
+from urlparse import urljoin
 import inspect
+from dataactcore.config import CONFIG_SERVICES
 
 class ManagerProxy(object):
     """ Temporary bypass of job manager, used to call validator directly """
     MANAGER_FILE  = "manager.json"
     JSON_HEADER = {"Content-Type": "application/json"}
-
-    def _getPath(self,):
-        """ Get path to validator out of JSON file """
-        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        dirName, fileName = os.path.split(path)
-        credFile = os.path.join(dirName, "config/", ManagerProxy.MANAGER_FILE)
-        return json.loads(open(credFile,"r").read())["URL"]
 
     def jobJson(self,jobId):
         """ Create JSON to hold jobId """
@@ -21,5 +16,14 @@ class ManagerProxy(object):
 
     def sendJobRequest(self,jobId):
         """ Send request to validator """
-        return requests.request(method="POST", url=self._getPath() + "/validate_threaded/", data=self.jobJson(jobId), headers = self.JSON_HEADER)
+        validator_host = str(CONFIG_SERVICES['validator_host'])
+        validator_port = str(CONFIG_SERVICES['validator_port'])
+        if validator_port:
+            validator_url = 'http://{}:{}/validate_threaded/'.format(
+                validator_host, validator_port)
+        else:
+            validator_url = 'http://{}/validate_threaded/'.format(
+                validator_host)
+        return requests.request(method="POST", url=validator_url,
+            data=self.jobJson(jobId), headers = self.JSON_HEADER)
 
