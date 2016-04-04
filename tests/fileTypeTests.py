@@ -1,6 +1,5 @@
-from dataactcore.scripts.databaseSetup import runCommands
+from dataactvalidator.scripts import setupStagingDB
 from dataactvalidator.models.validationModels import TASLookup
-from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.tasSetup import loadTAS
 from baseTest import BaseTest
@@ -19,7 +18,7 @@ class FileTypeTests(BaseTest):
         force_tas_load = False
 
         # Create staging database
-        runCommands(ValidatorStagingInterface.getCredDict(), [], "staging")
+        setupStagingDB.setupStagingDB()
 
         # Upload needed files to S3
         s3FileNameValid = cls.uploadFile("appropValid.csv", user)
@@ -51,17 +50,14 @@ class FileTypeTests(BaseTest):
         }
 
         jobIdDict = {}
-        subIdDict = {}
         for key in jobInfoList:
             jobInfo = jobInfoList[key]  # Done this way to be compatible with python 2 and 3
             jobInfo.append(jobDb.session)
             job = cls.addJob(*jobInfo)
             jobId = job.job_id
             jobIdDict[key] = jobId
-            subIdDict[key] = cls.jobTracker.getSubmissionId(jobId)
+            print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]))
 
-        # Display submission numbers so error reports can be checked directly if unit tests fail
-        print(str(subIdDict))
         # Load fields and rules
         FileTypeTests.load_definitions(cls.interfaces, force_tas_load)
 

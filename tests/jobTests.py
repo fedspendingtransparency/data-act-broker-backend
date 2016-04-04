@@ -1,8 +1,9 @@
+from __future__ import print_function
 import json
 from dataactcore.models.jobModels import Status, JobDependency
 from dataactcore.scripts.clearErrors import clearErrors
 from dataactvalidator.scripts.setupValidationDB import setupValidationDB
-from dataactvalidator.scripts.setupStagingDB import setupStaging
+from dataactvalidator.scripts.setupStagingDB import setupStagingDB
 from dataactvalidator.models.validationModels import Rule
 from baseTest import BaseTest
 import unittest
@@ -19,8 +20,8 @@ class JobTests(BaseTest):
         cls.includeLongTests = False
 
         # Prep databases
-        setupStaging()
-        setupValidationDB()
+        setupStagingDB()
+        setupValidationDB(True)
         validationDb = cls.validationDb
         jobTracker = cls.jobTracker
 
@@ -62,7 +63,6 @@ class JobTests(BaseTest):
             csvFiles[key]["s3Filename"] = cls.uploadFile(
                 csvFiles[key]["filename"], cls.userId)
         jobIdDict = {}
-        subIdDict = {}
 
         for key in csvFiles.keys():
             file = csvFiles[key]
@@ -79,10 +79,9 @@ class JobTests(BaseTest):
                 raise Exception(
                     "".join(["Job for ", str(key), " did not get an id back"]))
             jobIdDict[key] = job.job_id
-            subIdDict[key] = jobTracker.getSubmissionId(job.job_id)
+            # Print submission IDs for error report checking
+            print("".join([str(key),": ",str(jobTracker.getSubmissionId(job.job_id)), ", "]), end = "")
 
-        # Display submission IDs so error reports can be checked directly if unit tests fail
-        print(str(subIdDict))
         # Create dependencies
         dependencies = [
             JobDependency(

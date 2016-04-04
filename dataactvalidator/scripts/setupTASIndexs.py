@@ -1,11 +1,10 @@
-from dataactcore.scripts.databaseSetup import runCommands
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 
 def setupTASIndexs():
-    """
-        Creates indexes for the tas_lookup tables
-        Only call this after the table is fully populated
-    """
+    """Create tas_lookup indices. Don't run until table is populated."""
+    # TODO: define/enable/disable indices via ORM
+    validatorDb = ValidatorValidationInterface()
+    connection = validatorDb.engine.connect()
     sql=[
         "CREATE INDEX  ON tas_lookup (allocation_transfer_agency);",
         "CREATE INDEX  ON tas_lookup (agency_identifier);",
@@ -15,7 +14,9 @@ def setupTASIndexs():
         "CREATE INDEX  ON tas_lookup (main_account_code);",
         "CREATE INDEX  ON tas_lookup (sub_account_code);"
         ]
-    runCommands(ValidatorValidationInterface.getCredDict(),sql,"validation")
+    for s in sql:
+        connection.execute(s)
+    connection.close()
 
 if __name__ == '__main__':
     setupTASIndexs()
