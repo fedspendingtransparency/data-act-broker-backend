@@ -1,46 +1,42 @@
-import os
 import sys
 import traceback
-import inspect
-import json
 from threading import Thread
 from flask import Flask, request, copy_current_request_context
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
-
-
-def getAppConfiguration():
-    """Get the JSON for configuring the validator."""
-    path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-    configFile = path + "/validator_configuration.json"
-    return json.loads(open(configFile, "r").read())
 
 
 def createApp():
     """Create the Flask app."""
     try:
         app = Flask(__name__)
+        local = CONFIG_BROKER['local']
+        error_report_path = CONFIG_SERVICES['error_report_path']
         app.config.from_object(__name__)
-        config = getAppConfiguration()
-        validationManager = ValidationManager(config["local"],config["server_directory"])
 
-        @app.route("/",methods=["GET"])
+        # Future: Override config w/ environment variable, if set
+        app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
+
+        validationManager = ValidationManager(local, error_report_path)
+
+        @app.route("/", methods=["GET"])
         def testApp():
             """Confirm server running."""
             return "Validator is running"
 
-        @app.route("/validate_threaded/",methods=["POST"])
+        @app.route("/validate_threaded/", methods=["POST"])
         def validate_threaded():
             """Start the validation process on a new thread."""
             @copy_current_request_context
             def ThreadedFunction(arg):
                 """The new thread."""
-                threadedManager = ValidationManager(config["local"], config["server_directory"])
+                threadedManager = ValidationManager(local, error_report_path)
                 threadedManager.threadedValidateJob(arg)
 
             try:
@@ -55,7 +51,7 @@ def createApp():
                 return JsonResponse.error(exc,exc.status,table= "cannot connect to job database")
 
             jobId = None
-            manager = ValidationManager(config["local"],config["server_directory"])
+            manager = ValidationManager(local, error_report_path)
 
             try:
                 jobId = manager.getJobID(request)
@@ -110,8 +106,7 @@ def createApp():
             finally:
                 interfaces.close()
 
-        config = getAppConfiguration()
-        JsonResponse.debugMode = config["rest_trace"]
+        JsonResponse.debugMode = CONFIG_SERVICES['rest_trace']
 
         return app
 
@@ -123,12 +118,11 @@ def createApp():
 def runApp():
     """Run the application."""
     app = createApp()
-    config = getAppConfiguration()
     app.run(
-        debug=config["server_debug"],
+        debug=CONFIG_SERVICES['server_debug'],
         threaded=True,
-        host=config["host"],
-        port=int(config["port"])
+        host=CONFIG_SERVICES['validator_host'],
+        port=CONFIG_SERVICES['validator_port']
     )
 
 if __name__ == "__main__":

@@ -1,7 +1,5 @@
-from __future__ import print_function
-from dataactcore.scripts.databaseSetup import runCommands
+from dataactvalidator.scripts import setupStagingDB
 from dataactvalidator.models.validationModels import TASLookup
-from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.tasSetup import loadTAS
 from baseTest import BaseTest
@@ -20,7 +18,7 @@ class FileTypeTests(BaseTest):
         force_tas_load = False
 
         # Create staging database
-        runCommands(ValidatorStagingInterface.getCredDict(), [], "staging")
+        setupStagingDB.setupStagingDB()
 
         # Upload needed files to S3
         s3FileNameValid = cls.uploadFile("appropValid.csv", user)
@@ -58,7 +56,7 @@ class FileTypeTests(BaseTest):
             job = cls.addJob(*jobInfo)
             jobId = job.job_id
             jobIdDict[key] = jobId
-            print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]), end = "")
+            print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]))
 
         # Load fields and rules
         FileTypeTests.load_definitions(cls.interfaces, force_tas_load)

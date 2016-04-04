@@ -1,10 +1,10 @@
 import os
 from csv import Error
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
+from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
 from dataactvalidator.filestreaming.csvLocalReader import CsvLocalReader
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
@@ -13,6 +13,7 @@ from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactvalidator.interfaces.stagingTable import StagingTable
+
 
 class ValidationManager:
     """
@@ -153,7 +154,7 @@ class ValidationManager:
         # Get bucket name and file name
         fileName = jobTracker.getFileName(jobId)
         self.filename = fileName
-        bucketName = s3UrlHandler.getValueFromConfig("bucket")
+        bucketName = CONFIG_BROKER['aws_bucket']
         errorFileName = self.getFileName(jobTracker.getReportPath(jobId))
 
         validationDB = interfaces.validationDb

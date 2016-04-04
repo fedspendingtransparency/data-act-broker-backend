@@ -1,13 +1,8 @@
 .idea/*
 *.pyc
-jobTracker.conf
-handlers/s3bucket.json
 errorLog
 tests/errorLog
 tests/stats
-tests/jobId.json
-tests/appropJobIds.json
-tests/lastClearedId
 scripts/all_tas_betc.csv
 pathLog
 dataactvalidator/statusError.log
@@ -19,5 +14,4 @@ dataactvalidator/scripts/clearRules.py
 dataactvalidator/databaseErrors.log
 dataactvalidator/scripts/dropAll.py
 .coverage
-dataactvalidator/validator_configuration.json
 tests/appropFieldsRaw.csv
