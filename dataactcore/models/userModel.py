@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the user database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey
+from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -19,6 +19,8 @@ class User(Base):
     password_hash = Column(Text)
     salt = Column(Text)
     user_status = relationship("UserStatus", uselist=False)
+    last_login_date = Column(DateTime)
+    is_active = Column(Boolean, default=True, nullable=False, server_default="True")
 
 class PermissionType(Base):
     __tablename__ = "permission_type"
