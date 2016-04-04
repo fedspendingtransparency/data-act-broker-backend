@@ -1,4 +1,5 @@
 import unittest
+from decimal import *
 from dataactvalidator.models.validationModels import FieldType, RuleType, FileColumn, Rule
 from dataactvalidator.validation_handlers.validator import Validator
 from baseTest import BaseTest
@@ -130,7 +131,7 @@ class ValidatorTests(BaseTest):
         self.assertIsInstance(Validator.getType("1234.0", "STRING"), basestring)
         self.assertIsInstance(Validator.getType("10", "INT"), int)
         self.assertIsInstance(Validator.getType("YES", "BOOLEAN"), basestring)
-        self.assertIsInstance(Validator.getType("1234.2", "DECIMAL"), float)
+        self.assertIsInstance(Validator.getType("1234.2", "DECIMAL"), Decimal)
         self.assertIsInstance(Validator.getType("400000000001", "LONG"), long)
 
     def test_schema_optional_field(self):

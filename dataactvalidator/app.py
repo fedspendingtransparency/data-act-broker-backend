@@ -56,13 +56,13 @@ def createApp():
             try:
                 jobId = manager.getJobID(request)
             except ResponseException as e:
-                open("errorLog","a").write(str(e) + "\n")
                 manager.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,manager.filename)
+                CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
                 return JsonResponse.error(e,e.status,table ="")
             except Exception as e:
-                open("errorLog","a").write(str(e) + "\n")
                 exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
                 manager.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,manager.filename)
+                CloudLogger.logError(str(e),exc,traceback.extract_tb(sys.exc_info()[2]))
                 return JsonResponse.error(exc,exc.status,table="")
 
             try:

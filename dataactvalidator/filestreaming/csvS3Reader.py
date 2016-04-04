@@ -28,6 +28,10 @@ class CsvS3Reader(CsvAbstractReader):
 
         super(CsvS3Reader,self).openFile(bucket,filename,csvSchema,bucketName,errorFilename)
 
+    def close(self):
+        """ Don't need to close file when streaming from S3 """
+        pass
+
     def _getFileSize(self):
         """
         Gets the size of the file
