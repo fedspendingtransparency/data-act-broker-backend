@@ -5,6 +5,7 @@ from dataactbroker.app import createApp
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactcore.models.userModel import AccountType
 from dataactcore.scripts.setupUserDB import setupUserDB
+from dataactcore.config import CONFIG_BROKER
 from dataactbroker.scripts.setupEmails import setupEmails
 from dataactcore.scripts.clearJobs import clearJobs
 from dataactbroker.handlers.userHandler import UserHandler
@@ -103,6 +104,7 @@ class BaseTest(unittest.TestCase):
         cls.jobTracker = cls.interfaces.jobDb
         cls.errorDatabase = cls.interfaces.errorDb
         cls.userDb = cls.interfaces.userDb
+        cls.local = CONFIG_BROKER['local']
 
     def setUp(self):
         """Set up broker unit tests."""

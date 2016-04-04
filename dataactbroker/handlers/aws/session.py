@@ -1,12 +1,11 @@
 from uuid import uuid4
-from boto.dynamodb2.fields import HashKey, GlobalAllIndex, RangeKey
+from boto.dynamodb2.fields import HashKey, GlobalAllIndex
 from boto.dynamodb2.table import Table, exceptions
 from boto.dynamodb2.types import NUMBER
 from datetime import datetime, timedelta
 from flask.sessions import SessionInterface, SessionMixin
 from werkzeug.datastructures import CallbackDict
 from boto.dynamodb2.layer1 import DynamoDBConnection
-from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
 from flask.ext.login import _create_identifier
 
 class LoginSession():
@@ -323,19 +322,27 @@ class SessionTable :
                 throughput={'read': 5, 'write': 5}
             )
         ]
-        if(not isLocal) :
+        if isLocal:
+            try:
+                Table.create(
+                    SessionTable.TABLE_NAME,
+                    schema=[HashKey(SessionTable.KEY_NAME)],
+                    global_indexes=secondaryIndex,
+                    connection=SessionTable.getLocalConnection()
+                )
+            except exceptions.JSONResponseError as jre:
+                if jre.status == 400 and "preexisting" in jre.message.lower():
+                    #table already exists
+                    pass
+            else:
+                raise
+        else:
             Table.create(
                 SessionTable.TABLE_NAME,
                 schema=[HashKey(SessionTable.KEY_NAME)],
                 global_indexes=secondaryIndex
             )
-        else :
-            Table.create(
-                SessionTable.TABLE_NAME,
-                schema=[HashKey(SessionTable.KEY_NAME)],
-                global_indexes=secondaryIndex,
-                connection=SessionTable.getLocalConnection()
-            )
+
     @staticmethod
     def setup(app,isLocalHost):
         """
