@@ -11,6 +11,7 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.jobModels import JobStatus, Submission
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactvalidator.models.validationModels import FileColumn
 
 
@@ -34,9 +35,9 @@ class BaseTest(unittest.TestCase):
         # Upload files to S3 (False = skip re-uploading on subsequent runs)
         cls.uploadFiles = True
         # Run tests for local broker or not
-        cls.local = False
+        cls.local = CONFIG_BROKER['local']
         # This needs to be set to the local dirctory for error reports if local is True
-        cls.local_file_directory = ""
+        cls.local_file_directory = CONFIG_SERVICES['error_report_path']
 
         cls.interfaces = InterfaceHolder()
         cls.jobTracker = cls.interfaces.jobDb
@@ -44,7 +45,6 @@ class BaseTest(unittest.TestCase):
         cls.errorInterface = cls.interfaces.errorDb
         cls.validationDb = cls.interfaces.validationDb
         cls.userId = 1
-
 
     def setUp(self):
         """Set up broker unit tests."""
@@ -138,13 +138,14 @@ class BaseTest(unittest.TestCase):
         return sub.submission_id
 
     @classmethod
-    def uploadFile(cls,filename, user):
+    def uploadFile(cls, filename, user):
         """ Upload file to S3 and return S3 filename"""
         if len(filename.strip()) == 0:
             return ""
 
-        bucketName = s3UrlHandler.getValueFromConfig("bucket")
-        regionName = s3UrlHandler.getValueFromConfig("region")
+        bucketName = CONFIG_BROKER['aws_bucket']
+        regionName = CONFIG_BROKER['aws_region']
+
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         fullPath = path + "/" + filename
 
@@ -152,9 +153,6 @@ class BaseTest(unittest.TestCase):
             # Local version just stores full path in job tracker
             return fullPath
         else:
-            # Get bucket name
-            bucketName = s3UrlHandler.getValueFromConfig("bucket")
-
             # Create file names for S3
             s3FileName = str(user) + "/" + filename
 
