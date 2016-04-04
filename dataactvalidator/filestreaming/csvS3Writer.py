@@ -19,7 +19,8 @@ class CsvS3Writer(CsvAbstractWriter):
         header - list of strings for the header
 
         """
-        self.stream = smart_open.smart_open("".join(["s3://",bucket,"/",filename]), 'wb',region=region, min_part_size=CsvAbstractWriter.BUFFER_SIZE)
+        conn = boto.s3.connect_to_region(region).get_bucket(bucket).new_key(filename)
+        # self.stream = smart_open.smart_open(conn, 'wb',region=region,  min_part_size=CsvAbstractWriter.BUFFER_SIZE)
         super(CsvS3Writer,self).__init__(filename,header)
 
 
