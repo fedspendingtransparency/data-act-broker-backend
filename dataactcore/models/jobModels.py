@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey
+from sqlalchemy import Column, Integer, Text, ForeignKey, Date
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -35,6 +35,9 @@ class Submission(Base):
     submission_id = Column(Integer, primary_key=True)
     datetime_utc = Column(Text)
     user_id = Column(Integer, nullable=False) # This refers to the users table in the User DB
+    agency_name = Column(Text)
+    reporting_start_date = Column(Date)
+    reporting_end_date = Column(Date)
     jobs = None
 
 class JobStatus(Base):

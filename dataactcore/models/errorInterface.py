@@ -83,6 +83,13 @@ class ErrorInterface(BaseInterface):
 	        numErrors += result.occurrences
         return numErrors
 
+    def sumNumberOfErrorsForJobList(self,jobIdList):
+        """ Add number of errors for all jobs in list """
+        errorSum = 0
+        for jobId in jobIdList:
+            errorSum += self.checkNumberOfErrorsByJobId(jobId)
+        return errorSum
+
     def getMissingHeadersByJobId(self, jobId):
         return self.getFileStatusByJobId(jobId).headers_missing
 
