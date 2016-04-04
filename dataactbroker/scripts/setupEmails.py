@@ -1,5 +1,5 @@
-from dataactbroker.models import brokerUserModels
-from dataactbroker.models.brokerUserModels import EmailTemplateType
+from dataactcore.models import userModel
+from dataactcore.models.userModel import EmailTemplateType
 from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactcore.scripts.databaseSetup import createDatabase
@@ -11,8 +11,8 @@ def setupEmails(hardReset = True):
     createDatabase(CONFIG_DB['user_db_name'])
     userDb = UserHandler()
     if hardReset:
-        brokerUserModels.Base.metadata.drop_all(userDb.engine)
-    brokerUserModels.Base.metadata.create_all(userDb.engine)
+        userModel.Base.metadata.drop_all(userDb.engine)
+    userModel.Base.metadata.create_all(userDb.engine)
 
     # insert email template types
     typeList = [
