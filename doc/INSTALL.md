@@ -28,7 +28,7 @@ You can find PostgreSQL installers on [EnterpriseDB](http://www.enterprisedb.com
 
 Note: If you'd prefer to use an Amazon-hosted version of DynamoDB, you can skip this section for installing DynamoDB on your machine.
 
-Otherwise, you'll need to set up a local version of DynamoDB. DynamoDB local is a Java executable that runs on Windows, Mac, and Linux systems and is compatible with version 7 of the Java Runtime Environment, which you will have to install as a first step: [http://java.com/en/](http://java.com/en/ "download Java").
+Otherwise, you'll need to set up a local version of DynamoDB. DynamoDB local is a Java executable that runs on Windows, Mac, and Linux systems and is compatible with version 7+ of the Java Development Kit, which you will have to install as a first step: [http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html "download Java Development Kit").
 
 
 After installing Java, [download the local DynamoDB files](http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.zip "download local DynamoDB") and follow [Amazon's instructions](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html "running DynamoDB on your computer") to run it.
@@ -72,6 +72,23 @@ We highly recommend creating a [Python virtual environment](https://virtualenv.r
 The DATA Act broker can upload file submissions to an AWS S3 bucket if you so choose. If you're planning to store file submissions locally instead of using S3, skip to the [next section](#create-a-local-dynamodb "Create DynamoDB").
 
 Assuming that you already have an AWS account, [create an AWS S3 bucket](http://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html "Create a bucket") that will receive file submissions from the broker.
+
+In order to support larger file uploads, you'll need to [modify the CORS settings](http://docs.aws.amazon.com/AmazonS3/latest/dev/cors.html#how-do-i-enable-cors) of your submission bucket with the following configuration:
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+    <CORSRule>
+        <AllowedOrigin>*</AllowedOrigin>
+        <AllowedMethod>PUT</AllowedMethod>
+        <AllowedMethod>GET</AllowedMethod>
+        <AllowedMethod>POST</AllowedMethod>
+        <MaxAgeSeconds>3000</MaxAgeSeconds>
+        <AllowedHeader>*</AllowedHeader>
+        <ExposeHeader>ETag</ExposeHeader>
+    </CORSRule>
+</CORSConfiguration>
+```
 
 ## Create a Local DynamoDB
 
