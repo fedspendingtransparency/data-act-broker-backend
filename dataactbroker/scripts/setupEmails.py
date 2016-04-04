@@ -1,18 +1,11 @@
-from dataactcore.models import userModel
 from dataactcore.models.userModel import EmailTemplateType
 from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
-from dataactcore.scripts.databaseSetup import createDatabase
-from dataactcore.config import CONFIG_DB
 
 
-def setupEmails(hardReset = True):
+def setupEmails():
     """Create email templates from model metadata."""
-    createDatabase(CONFIG_DB['user_db_name'])
     userDb = UserHandler()
-    if hardReset:
-        userModel.Base.metadata.drop_all(userDb.engine)
-    userModel.Base.metadata.create_all(userDb.engine)
 
     # insert email template types
     typeList = [
