@@ -50,7 +50,10 @@ class FileTests(BaseTest):
         """Call the broker file submission route."""
         self.filenames = {"appropriations":"test1.csv",
             "award_financial":"test2.csv", "award":"test3.csv",
-            "program_activity":"test4.csv"}
+            "program_activity":"test4.csv", "agency_name": "Department of the Treasury",
+            "reporting_period_start_date":"01/13/2001",
+            "reporting_period_end_date":"01/14/2001"}
+
         return self.app.post_json("/v1/submit_files/", self.filenames)
 
     def test_file_submission(self):

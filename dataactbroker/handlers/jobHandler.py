@@ -42,7 +42,7 @@ class JobHandler(JobTrackerInterface):
         # Existing submission ID is optional
         existingSubmission = False
         submissionValues = {}
-        if not requestDict.exists("existing_submission_id"):
+        if requestDict.exists("existing_submission_id"):
             # Agency name and reporting dates are required for new submissions
             existingSubmission = True
             submissionValues["submission_id"] = requestDict.getValue("existing_submission_id")
@@ -54,7 +54,7 @@ class JobHandler(JobTrackerInterface):
                     # Create a date object from formatted string, assuming "MM/DD/YYYY"
                     try:
                         dateParts = requestDict.getValue(key).split("/")
-                        submissionData[metaDataFieldMap[key]] = date(year = dateParts[2],month = dateParts[1],day = dateParts[0])
+                        submissionData[metaDataFieldMap[key]] = date(year = int(dateParts[2]),month = int(dateParts[0]),day = int(dateParts[1]))
                     except Exception as e:
                         raise ResponseException("Submission dates must be formatted as MM/DD/YYYY, hit error: " + str(e),StatusCode.CLIENT_ERROR,type(e))
                 else:
