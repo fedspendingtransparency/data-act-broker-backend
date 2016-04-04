@@ -79,6 +79,8 @@ class s3UrlHandler:
     def doesFileExist(filename):
         """ Returns True if specified filename exists in the S3 bucket """
         # Get key
+        if not s3UrlHandler.REGION:
+            s3UrlHandler.REGION = CONFIG_BROKER["aws_region"]
         s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
         bucket = s3connection.get_bucket(CONFIG_BROKER['aws_bucket'])
         key = bucket.get_key(filename)
@@ -105,6 +107,8 @@ class s3UrlHandler:
         """ Returns file size in number of bytes for specified filename, or False if file doesn't exist """
 
         # Get key
+        if not s3UrlHandler.REGION:
+            s3UrlHandler.REGION = CONFIG_BROKER["aws_region"]
         s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
         bucket = s3connection.get_bucket(CONFIG_BROKER['aws_bucket'])
         key = bucket.get_key(filename)
