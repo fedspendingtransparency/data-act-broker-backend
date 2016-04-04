@@ -158,7 +158,7 @@ class ValidationManager:
         fileName = jobTracker.getFileName(jobId)
         self.filename = fileName
         bucketName = CONFIG_BROKER['aws_bucket']
-        bucketName = CONFIG_BROKER['aws_region']
+        regionName = CONFIG_BROKER['aws_region']
 
         errorFileName = self.getFileName(jobTracker.getReportPath(jobId))
 
