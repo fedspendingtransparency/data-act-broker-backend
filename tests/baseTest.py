@@ -13,7 +13,6 @@ from dataactcore.models.jobModels import JobStatus, Submission
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactvalidator.models.validationModels import FileColumn
 
-
 class BaseTest(unittest.TestCase):
     """ Test login, logout, and session handling """
 
