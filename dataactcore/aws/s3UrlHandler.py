@@ -1,5 +1,6 @@
 from datetime import datetime
 import boto
+from boto import sts
 import os
 import inspect
 import json
