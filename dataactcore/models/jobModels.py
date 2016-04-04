@@ -23,12 +23,6 @@ class Type(Base):
     name = Column(Text)
     description = Column(Text)
 
-class Resource(Base):
-    __tablename__ = "resource"
-
-    resource_id = Column(Integer, primary_key=True)
-    job = None
-
 class Submission(Base):
     __tablename__ = "submission"
 
@@ -46,8 +40,6 @@ class JobStatus(Base):
     status = relationship("Status", uselist=False)
     type_id = Column(Integer, ForeignKey("type.type_id"))
     type = relationship("Type", uselist=False)
-    resource_id = Column(Integer, ForeignKey("resource.resource_id"), nullable=True)
-    resource = relationship("Resource", uselist=False)
     submission_id = Column(Integer, ForeignKey("submission.submission_id"))
     submission = relationship("Submission", uselist=False)
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"), nullable=True)
