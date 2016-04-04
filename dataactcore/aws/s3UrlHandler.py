@@ -13,6 +13,7 @@ class s3UrlHandler:
     URL_LIFETIME = 2000
     STS_LIFETIME = 2000
     S3_ROLE = ""
+
     def __init__(self,name = None):
         """
         Creates the object for signing URLS
@@ -95,7 +96,7 @@ class s3UrlHandler:
         """
         Gets token that allows for S3 Uploads for seconds set in STS_LIFETIME
         """
-        stsConnection = boto.connect_sts()
+        stsConnection = boto.sts.connect_to_region(s3UrlHandler.REGION)
         role = stsConnection.assume_role(s3UrlHandler.S3_ROLE,"FileUpload"+str(user),duration_seconds=s3UrlHandler.STS_LIFETIME)
         credentials ={}
         credentials["AccessKeyId"] =  role.credentials.access_key
