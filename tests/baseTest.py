@@ -6,6 +6,7 @@ from dataactcore.scripts.clearJobs import clearJobs
 import os
 import inspect
 import time
+import boto.s3
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
@@ -143,6 +144,7 @@ class BaseTest(unittest.TestCase):
             return ""
 
         bucketName = s3UrlHandler.getValueFromConfig("bucket")
+        regionName = s3UrlHandler.getValueFromConfig("region")
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         fullPath = path + "/" + filename
 
@@ -159,6 +161,7 @@ class BaseTest(unittest.TestCase):
             if(cls.uploadFiles) :
                 # Use boto to put files on S3
                 s3conn = S3Connection()
+                s3conn = boto.s3.connect_to_region(s3UrlHandler.REGION)
                 key = Key(s3conn.get_bucket(bucketName))
                 key.key = s3FileName
                 bytesWritten = key.set_contents_from_filename(fullPath)
