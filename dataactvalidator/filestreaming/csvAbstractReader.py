@@ -81,19 +81,19 @@ class CsvAbstractReader(object):
         """
         closes the file
         """
-        pass
+        raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
 
     def _getFileSize(self):
         """
         Gets the size of the file
         """
-        return 0
+        raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
 
     def _getNextPacket(self):
         """
         Gets the next packet from the file returns true if successful
         """
-        return False , ""
+        raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
 
     def _getLine(self):
 

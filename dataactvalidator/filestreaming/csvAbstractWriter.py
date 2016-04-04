@@ -58,7 +58,7 @@ class CsvAbstractWriter(object):
         data -  (string) a string be written to the current file
 
         """
-        pass
+        raise NotImplementedError("Do not instantiate csvAbstractWriter directly.")
 
     def __enter__(self) :
         return self
@@ -72,4 +72,4 @@ class CsvAbstractWriter(object):
         traceback - the traceback of the error
 
         """
-        pass
+        raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
