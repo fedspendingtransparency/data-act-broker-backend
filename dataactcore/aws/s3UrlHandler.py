@@ -3,6 +3,7 @@ import boto
 import os
 import inspect
 import json
+from dataactcore.config import CONFIG_BROKER
 
 class s3UrlHandler:
     """
@@ -23,10 +24,10 @@ class s3UrlHandler:
 
         """
         if(name == None):
-            self.bucketRoute = s3UrlHandler.getValueFromConfig("bucket")
+            self.bucketRoute = CONFIG_BROKER['aws_bucket']
         else:
             self.bucketRoute = name
-        s3UrlHandler.S3_ROLE = s3UrlHandler.getValueFromConfig("role")
+        s3UrlHandler.S3_ROLE = CONFIG_BROKER['aws_role']
 
     def _signUrl(self,path,fileName,method="PUT") :
         """
@@ -70,20 +71,11 @@ class s3UrlHandler:
         return str(seconds)+"_"+filename
 
     @staticmethod
-    def getValueFromConfig(value):
-        """ Retrieve specified value from config file """
-        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        bucketFile = open(path+"/s3bucket.json","r").read()
-        bucketDict = json.loads(bucketFile)
-        return bucketDict[value]
-
-
-    @staticmethod
     def doesFileExist(filename):
         """ Returns True if specified filename exists in the S3 bucket """
         # Get key
         s3connection = boto.connect_s3()
-        bucket = s3connection.get_bucket(s3UrlHandler.getValueFromConfig("bucket"))
+        bucket = s3connection.get_bucket(CONFIG_BROKER['aws_bucket'])
         key = bucket.get_key(filename)
         if key:
             return True
@@ -109,7 +101,7 @@ class s3UrlHandler:
 
         # Get key
         s3connection = boto.connect_s3()
-        bucket = s3connection.get_bucket(s3UrlHandler.getValueFromConfig("bucket"))
+        bucket = s3connection.get_bucket(CONFIG_BROKER['aws_bucket'])
         key = bucket.get_key(filename)
         if(key == None):
             return False

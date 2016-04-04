@@ -51,7 +51,7 @@ target_metadata = {
 interfaces = [ErrorInterface, JobTrackerInterface, UserInterface]
 for interface in interfaces:
     creds = interface.getCredDict()
-    baseUrl = 'postgres://' + creds['username'] + ':' + creds['password'] + '@' + creds['host'] + ':' + creds['port']
+    baseUrl = 'postgres://' + creds['username'] + ':' + creds['password'] + '@' + creds['host'] + ':' + str(creds['port'])
     config.set_section_option(interface.getDbName(), 'sqlalchemy.url', baseUrl + '/' + interface.getDbName())
 
 # other values from the config, defined by the needs of env.py,
