@@ -68,6 +68,9 @@ class AccountHandler:
             if(not self.interfaces.userDb.checkStatus(user,"approved")):
                 raise ValueError("user name and or password invalid")
 
+            if not user.is_active:
+                raise ValueError("user name and or password invalid")
+
             try:
                 if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
                     # We have a valid login
