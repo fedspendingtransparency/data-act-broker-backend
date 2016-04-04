@@ -4,9 +4,10 @@ import inspect
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from baseTest import BaseTest
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.jobModels import Submission, JobStatus
 from dataactcore.models.errorModels import ErrorData, FileStatus
+from dataactcore.config import CONFIG_BROKER
+from shutil import copy
 
 class FileTests(BaseTest):
     """Test file submission routes."""
@@ -74,10 +75,9 @@ class FileTests(BaseTest):
         self.assertIn("bucket_name", json)
         self.assertTrue(len(json["bucket_name"]))
 
-        #TODO: mock out the S3 upload - should be in integration tests?
-        s3Results = self.uploadFileByURL(
+        fileResults = self.uploadFileByURL(
             "/"+json["appropriations_key"], "test1.csv")
-        self.assertGreater(s3Results['bytesWritten'], 0)
+        self.assertGreater(fileResults['bytesWritten'], 0)
 
         # Test that job ids are returned
         responseDict = json
@@ -132,20 +132,28 @@ class FileTests(BaseTest):
 
     @staticmethod
     def uploadFileByURL(s3FileName,filename):
-        """Upload file to S3 and return S3 filename."""
-        # Get bucket name
-        bucketName = s3UrlHandler.getValueFromConfig("bucket")
-
+        """Upload file and return filename and bytes written."""
         path = os.path.dirname(
             os.path.abspath(inspect.getfile(inspect.currentframe())))
-        fullPath = path + "/" + filename
+        fullPath = os.path.join(path, filename)
 
-        # Use boto to put files on S3
-        s3conn = S3Connection()
-        key = Key(s3conn.get_bucket(bucketName))
-        key.key = s3FileName
-        bytesWritten = key.set_contents_from_filename(fullPath)
-        return {'bytesWritten': bytesWritten, 's3FileName': s3FileName}
+        if CONFIG_BROKER['local']:
+            # If not using AWS, put file submission in location
+            # specified by the config file
+            broker_file_path = CONFIG_BROKER['broker_files']
+            copy(fullPath, broker_file_path)
+            submittedFile = os.path.join(broker_file_path, filename)
+            return {'bytesWritten': os.path.getsize(submittedFile),
+                    's3FileName': fullPath}
+        else:
+            # Use boto to put files on S3
+            s3conn = S3Connection()
+            bucketName = CONFIG_BROKER['aws_bucket']
+            key = Key(s3conn.get_bucket(bucketName))
+            key.key = s3FileName
+            bytesWritten = key.set_contents_from_filename(fullPath)
+            return {'bytesWritten': bytesWritten,
+                    's3FileName': s3FileName}
 
     def test_error_report(self):
         """Test broker csv_validation error report."""

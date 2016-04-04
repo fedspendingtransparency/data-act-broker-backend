@@ -8,6 +8,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
+from dataactcore.config import CONFIG_BROKER
 from dataactbroker.handlers.managerProxy import ManagerProxy
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactbroker.handlers.aws.session import LoginSession
@@ -48,7 +49,8 @@ class FileHandler:
         Gets the Signed URLs for download based on the submissionId
         """
         try :
-            self.s3manager = s3UrlHandler(s3UrlHandler.getValueFromConfig("bucket"))
+            self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
+            self.s3manager.REGION = s3UrlHandler(CONFIG_BROKER["aws_region"])
             safeDictionary = RequestDictionary(self.request)
             submissionId = safeDictionary.getValue("submission_id")
             responseDict ={}
@@ -83,8 +85,7 @@ class FileHandler:
         """
         try:
             responseDict= {}
-            self.s3manager = s3UrlHandler(s3UrlHandler.getValueFromConfig("bucket"))
-            self.s3manager.REGION = s3UrlHandler.getValueFromConfig("region")
+
             fileNameMap = []
             safeDictionary = RequestDictionary(self.request)
             for fileType in FileHandler.FILE_TYPES :
@@ -102,12 +103,16 @@ class FileHandler:
                 if (not "submission_id" in fileType) :
                     responseDict[fileType+"_id"] = fileJobDict[fileType]
             if(CreateCredentials and not self.isLocal) :
+                self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
                 responseDict["credentials"] = self.s3manager.getTemporaryCredentials(name)
             else :
                 responseDict["credentials"] ={"AccessKeyId" : "local","SecretAccessKey" :"local","SessionToken":"local" ,"Expiration" :"local"}
 
             responseDict["submission_id"] = fileJobDict["submission_id"]
-            responseDict["bucket_name"] =s3UrlHandler.getValueFromConfig("bucket")
+            if self.isLocal:
+                responseDict["bucket_name"] = CONFIG_BROKER["broker_files"]
+            else:
+                responseDict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
             return JsonResponse.create(StatusCode.OK,responseDict)
         except (ValueError , TypeError, NotImplementedError) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
