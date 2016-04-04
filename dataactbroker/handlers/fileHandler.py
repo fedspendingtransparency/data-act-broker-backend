@@ -99,7 +99,7 @@ class FileHandler:
                     responseDict[fileType+"_key"] = uploadName
                     fileNameMap.append((fileType,uploadName,filename))
 
-            fileJobDict = self.jobManager.createJobs(fileNameMap,name)
+            fileJobDict = self.jobManager.createJobs(fileNameMap,submissionId)
             for fileType in fileJobDict.keys():
                 if (not "submission_id" in fileType) :
                     responseDict[fileType+"_id"] = fileJobDict[fileType]
@@ -174,10 +174,17 @@ class FileHandler:
             # Get jobs in this submission
 
             jobs = self.jobManager.getJobsBySubmission(submissionId)
+            submission = self.jobManager.getSubmissionById(submissionId)
 
             # Build dictionary of submission info with info about each job
             submissionInfo = {}
             submissionInfo["jobs"] = []
+            submissionInfo["agency_name"] = submission.agency_name
+            submissionInfo["reporting_period_start_date"] = submission.reporting_start_date
+            submissionInfo["reporting_period_end_date"] = submission.reporting_end_date
+            # Include number of errors in submission
+            submissionInfo["number_of_errors"] = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobs)
+
             for job in jobs:
                 jobInfo = {}
                 if(self.jobManager.getJobType(job) != "csv_record_validation"):

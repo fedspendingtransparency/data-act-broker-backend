@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from dataactcore.models.jobModels import JobStatus,JobDependency,Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
@@ -46,14 +46,25 @@ class JobHandler(JobTrackerInterface):
             # Agency name and reporting dates are required for new submissions
             existingSubmission = True
             submissionValues["submission_id"] = requestDict.getValue("existing_submission_id")
-        if requestDict.exists("agency_name"):
-            agencyName = requestDict.getValue("agency_name")
-        else:
-            if not existingSubmission:
-                raise ResponseException("agency_name is required",StatusCode.CLIENT_ERROR,ValueError)
+        metaDataFieldMap = {"agency_name":"agency_name","reporting_period_start_date":"reporting_start_date","reporting_period_end_date":"reporting_end_date"}
+        submissionData = {}
+        for key in metaDataFieldMap:
+            if requestDict.exists(key):
+                if(key == "reporting_period_start_date" or key == "reporting_period_end_date"):
+                    # Create a date object from formatted string, assuming "MM/DD/YYYY"
+                    try:
+                        dateParts = requestDict.getValue(key).split("/")
+                        submissionData[metaDataFieldMap[key]] = date(year = dateParts[2],month = dateParts[1],day = dateParts[0])
+                    except Exception as e:
+                        raise ResponseException("Submission dates must be formatted as MM/DD/YYYY, hit error: " + str(e),StatusCode.CLIENT_ERROR,type(e))
+                else:
+                    submissionData[metaDataFieldMap[key]] = requestDict.getValue(key)
             else:
-                agencyName = None
-
+                if not existingSubmission:
+                    raise ResponseException(key + " is required",StatusCode.CLIENT_ERROR,ValueError)
+                else:
+                    submissionData[metaDataFieldMap[key]] = None
+        return submissionData
 
     def createSubmission(self, userId, requestDict):
         """ Create a new submission
@@ -67,7 +78,7 @@ class JobHandler(JobTrackerInterface):
         """
         submissionValues = self.loadSubmitParams(requestDict)
         # Create submission entry
-        submission = Submission(datetime_utc = str(datetime.utcnow()), agency_name = agencyName, reporting_start_date = reportingStart, reporting_end_date = reportingEnd)
+        submission = Submission(datetime_utc = str(datetime.utcnow()), **submissionValues)
         submission.user_id = userId
         self.session.add(submission)
         self.session.commit()
