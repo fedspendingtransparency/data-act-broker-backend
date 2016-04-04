@@ -73,8 +73,50 @@ This file is automatically created in the initialization step of the install pro
 * `StagingTable` - Used to create a new table for each job and manage writes to that table
 * `InterfaceHolder` - Container that holds one interface for each database as a static variable to ensure that redundant connections are not created
 
+##### Models
+* `validationModels` - Holds all the ORM objects for the validation database
+
+##### Scripts
+* `baseScript`, `configure` - Used during install process
+* `clearRules` - Deletes existing rules for four main file types
+* `loadTas`, `tasSetup`, `setupTASIndexs` - Used for loading valid TAS entries into database
+* `setupStagingDB`,`setupValidationDB` - Used to create staging and validation databases
+
+
+The following configuration json file is used by the validator and is created by `baseScript.py`.
+```Json
+{
+    "rest_trace": true,
+    "server_directory": "/server/",
+    "host": "0.0.0.0",
+    "server_debug": true,
+    "local": true,
+    "port": "80"
+}
+```
+The following table describes each setting in the configurations file:
+
+| Setting  | Value |
+| ------------- | ------------- |
+| rest_trace  | Provides debug output to rest responses   |
+| server_debug  | Turns on debug mode for the Flask server  |
+| local | If a local install is being used |
+|server_directory| the path for system created files for local installs only|
+|port | the port of the server |
+|host | the host address of the server |
+
+
+
 #### Test Cases
-Before running test cases, start the Flask app by running "python app.py" in the dataactvalidator folder.  The current test suite for the validator may then be run by navigating to the tests folder and running "python runTests.py".
+To run the validator unit tests, navigate to the main project folder (`data-act-validator`):
+
+        $ python tests/runTests.py
+
+To generate a test coverage report from the command line:
+
+1. Make sure you're in the tests folder (`data-act-validator/tests`).
+2. Run the tests using the `coverage` command: `coverage run runTests.py`.
+3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
 
 # Installation
 

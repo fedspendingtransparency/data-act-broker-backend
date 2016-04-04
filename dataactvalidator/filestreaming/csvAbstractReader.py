@@ -5,7 +5,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
-class CsvReader(object):
+class CsvAbstractReader(object):
     """
     Reads data from S3 CSV file
     """
@@ -19,17 +19,14 @@ class CsvReader(object):
             filename: The file path for the CSV file in S3
         Returns:
         """
-        s3connection = boto.connect_s3()
-        s3Bucket = s3connection.lookup(bucket)
+
 
         possibleFields = {}
         currentFields = {}
         for schema in  csvSchema:
                 possibleFields[FieldCleaner.cleanString(schema.name)] = 0
 
-        self.s3File = s3Bucket.lookup(filename)
-        if(self.s3File == None):
-            raise ValueError("Filename provided not found on S3: " + str(filename))
+        self.filename = filename
         self.unprocessed = ''
         self.extraLine = False
         self.lines = []
@@ -42,16 +39,16 @@ class CsvReader(object):
         # make sure we have not finished reading the file
 
         if(self.isFinished) :
-             raise ResponseException("CSV file must have a header",StatusCode.CLIENT_ERROR,ValueError,ValidationError.singleRow)
+            raise ResponseException("CSV file must have a header",StatusCode.CLIENT_ERROR,ValueError,ValidationError.singleRow)
 
         #create the header
         for row in csv.reader([line],dialect='excel'):
             for cell in row :
                 headerValue = FieldCleaner.cleanString(cell)
                 if( not headerValue in possibleFields) :
-                    raise ResponseException(("Header : "+ headerValue + " not in CSV schema"), StatusCode.CLIENT_ERROR, ValueError,ValidationError.badHeaderError)
+                    raise ResponseException(("".join(["Header : ",headerValue," not in CSV schema"])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.badHeaderError)
                 if(possibleFields[headerValue] == 1) :
-                    raise ResponseException(("Header : "+ headerValue + " is duplicated"), StatusCode.CLIENT_ERROR, ValueError,ValidationError.duplicateError)
+                    raise ResponseException(("".join(["Header : ",headerValue," is duplicated"])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.duplicateError)
                 self.headerDictionary[(current)] = headerValue
                 possibleFields[headerValue]  = 1
                 current += 1
@@ -59,7 +56,7 @@ class CsvReader(object):
         #Check that all required fields exists
         for schema in csvSchema :
             if(schema.required and  possibleFields[FieldCleaner.cleanString(schema.name)] == 0) :
-                raise ResponseException(("Header : "+ schema.name + " is required"), StatusCode.CLIENT_ERROR, ValueError,ValidationError.missingHeaderError)
+                raise ResponseException(("".join(["Header : ",schema.name," is required"])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.missingHeaderError)
 
     def getNextRecord(self):
         """
@@ -67,22 +64,39 @@ class CsvReader(object):
         Returns:
             dictionary representing this record
         """
-        current = 0
         returnDict = {}
         line = self._getLine()
 
         for row in csv.reader([line],dialect='excel'):
-            for cell in row :
+            for current, cell in enumerate(row):
                 if(current >= self.columnCount) :
                     raise ResponseException("Record contains too many fields",StatusCode.CLIENT_ERROR,ValueError,ValidationError.readError)
                 if(cell == ""):
                     # Use None instead of empty strings for sqlalchemy
                     cell = None
                 returnDict[self.headerDictionary[current]] = cell
-                current += 1
         return returnDict
 
+    def close(self):
+        """
+        closes the file
+        """
+        raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
+
+    def _getFileSize(self):
+        """
+        Gets the size of the file
+        """
+        raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
+
+    def _getNextPacket(self):
+        """
+        Gets the next packet from the file returns true if successful
+        """
+        raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
+
     def _getLine(self):
+
         """
         This method reads 8192 bytes from S3 Bucket at a time and stores
         it in a line buffer. The line buffer is used until its empty then
@@ -93,13 +107,10 @@ class CsvReader(object):
             return self.lines.pop(0)
         #packets are 8192 bytes in size
         #for packet in self.s3File :
-        while( self.packetCounter *  CsvReader.BUFFER_SIZE <=  self.s3File.size) :
-            offsetCheck = self.packetCounter *  CsvReader.BUFFER_SIZE
-            header ={'Range' : 'bytes='+str(offsetCheck)+'-'+str(offsetCheck +CsvReader.BUFFER_SIZE - 1) }
-            try:
-                packet = self.s3File.get_contents_as_string(headers=header).decode('utf-8')
-            except :
-                # Exit
+        while( self.packetCounter *  CsvAbstractReader.BUFFER_SIZE <=  self._getFileSize()) :
+
+            success,packet =  self._getNextPacket()
+            if(not success) :
                 break
             self.packetCounter +=1
 
@@ -122,6 +133,7 @@ class CsvReader(object):
             self.extraLine = True
         return self.unprocessed
 
+
     def _splitLines(self,packet) :
         """
         arguments :
@@ -132,8 +144,7 @@ class CsvReader(object):
         ecapeMode =  False
         current = ""
 
-        index = 0
-        for  char in packet :
+        for  index,char in enumerate(packet):
             if(not ecapeMode) :
                 if(char =='\r' or char =='\n' or char =='\r\n') :
                     if (len(current) >0 ) :
@@ -144,14 +155,13 @@ class CsvReader(object):
                             linesToReturn.append("")
                     current = ""
                 else :
-                  current = current + char
+                  current = "".join([current,char])
                   if(char == '"') :
                         ecapeMode = True
             else :
                 if(char == '"') :
                     ecapeMode = False
-                current = current + char
-            index+=1
+                current = "".join([current,char]) #current.join([char])
         if (len(current)>0) :
             linesToReturn.append(current)
         return linesToReturn

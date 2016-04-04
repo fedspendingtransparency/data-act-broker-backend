@@ -6,8 +6,8 @@ from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 class StagingTable(object):
     """ Represents a staging table used for a single job """
 
-    BATCH_INSERT = False
-    INSERT_BY_ORM = True
+    BATCH_INSERT = True
+    INSERT_BY_ORM = False
     BATCH_SIZE = 100
 
     def __init__(self,interfaces):
@@ -25,12 +25,12 @@ class StagingTable(object):
         tableName if created, exception otherwise
         """
         if(tableName == None):
-            tableName = "job"+str(jobId)
+            tableName = self.interface.getTableName(jobId)
         self.name = tableName
 
         if(self.interface.tableExists(tableName)):
-            # Now an exception, could change the name here if desired
-            raise ValueError("Table already exists")
+            # Old table still present, drop table and replace
+            self.interface.dropTable(tableName)
 
         # Alternate way of naming tables
         #tableName = "data" + tableName.replace("/","").replace("\\","").replace(".","")
@@ -56,7 +56,7 @@ class StagingTable(object):
         for key in fields:
             # Build column statement for this key
             # Create cleaned version of key
-            newKey = FieldCleaner.cleanString(key)
+            newKey = str(fields[key].file_column_id)
             # Get correct type name
             fieldTypeName = FieldCleaner.cleanString(fields[key].field_type.name)
             if(fieldTypeName == "string"):
@@ -84,7 +84,7 @@ class StagingTable(object):
 
         if(not primaryAssigned):
             # If no primary key assigned, add one based on table name
-            classFieldDict[tableName + "id"] = Column(Integer, primary_key = True)
+            classFieldDict["".join([tableName,"id"])] = Column(Integer, primary_key = True)
 
 
         # Create ORM class based on dict
@@ -121,20 +121,26 @@ class StagingTable(object):
                 success = False
         return success
 
-    def insert(self, record):
+    def insert(self, record, fileType):
         """ Write single record to this table
         Args:
-        record -- dict with column names as keys
+        record: dict with column names as keys
+        fileType: Type of file record is in
 
         Returns:
         True if successful
         """
 
+        # Need to translate the provided record to use column IDs instead of field names for keys
+        idRecord = {}
+        for key in record:
+            idRecord[str(self.interfaces.validationDb.getColumnId(key,fileType))] = record[key]
+
         if(self.BATCH_INSERT):
             if(self.INSERT_BY_ORM):
                 raise NotImplementedError("Have not implemented ORM method for batch insert")
             else:
-                self.batch.append(record)
+                self.batch.append(idRecord)
                 if(len(self.batch)>self.BATCH_SIZE):
                     # Time to write the batch
                     self.interface.connection.execute(self.orm.__table__.insert(),self.batch)
@@ -152,9 +158,9 @@ class StagingTable(object):
                 attributes = self.getPublicMembers(recordOrm)
 
                 # For each field, add value to ORM object
-                for key in record:
-                    attr = key.replace(" ","_")
-                    setattr(recordOrm,attr,record[key])
+                for key in idRecord:
+                    attr = FieldCleaner.cleanString(key) #key.replace(" ","_")
+                    setattr(recordOrm,attr,idRecord[key])
 
                 self.interface.session.add(recordOrm)
                 self.interface.session.commit()

@@ -2,10 +2,10 @@ import os
 import inspect
 import json
 import sys
+from builtins import input
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.tasLoader import TASLoader
 from dataactvalidator.scripts.setupTASIndexs import setupTASIndexs
-
 
 class ConfigureValidator(object):
     """
@@ -19,18 +19,21 @@ class ConfigureValidator(object):
         return os.path.split(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))[0]
 
     @staticmethod
-    def createJSON(port,trace,debug):
+    def createJSON(port,trace,debug,host,local,directory):
         """Creates the s3bucket.json File"""
         returnJson = {}
         returnJson ["port"] = port
         returnJson ["rest_trace"] = trace
         returnJson ["server_debug"] = debug
+        returnJson ["host"] = host
+        returnJson ["local"] = local
+        returnJson ["server_directory"] = directory
         return json.dumps(returnJson)
 
     @staticmethod
     def questionPrompt(question):
         "Creates a yes/no question propt"
-        response = raw_input(question)
+        response = input(question)
         if(response.lower() =="y" or response.lower() =="yes" ):
             return True
         return False
@@ -38,30 +41,35 @@ class ConfigureValidator(object):
 
     @staticmethod
     def promptForAppropriations():
-        if(ConfigureValidator.questionPrompt("Would you like to configure your appropriations rules? (y/n) : ")):
-            path = raw_input("Enter the full file path for your schema (appropriationsFields.csv) : " ).strip()
+        validInput = False
+        while((not validInput) and ConfigureValidator.questionPrompt("Would you like to configure your appropriations rules? (y/n) : ")):
+            path = input("Enter the full file path for your schema (appropriationsFields.csv) : " ).strip()
             try :
                 SchemaLoader.loadFields("appropriations",path)
+                validInput = True
             except IOError as e:
                 print("Cant open file")
             except Exception as e:
                   print("Unexpected error:", sys.exc_info()[0])
-            path = raw_input("Enter the full file path for your rules (appropriationsRules.csv) :  " ).strip()
+            path = input("Enter the full file path for your rules (appropriationsRules.csv) :  " ).strip()
 
             try :
                 SchemaLoader.loadRules("appropriations",path)
+                validInput = True
             except IOError as e:
                 print("Cant open file")
             except Exception as e:
                   print("Unexpected error:", sys.exc_info()[0])
     @staticmethod
     def promptForTAS():
-        if(ConfigureValidator.questionPrompt("Would you like to add a new TAS File? (y/n) : ")):
+        validInput = False
+        while((not validInput) and ConfigureValidator.questionPrompt("Would you like to add a new TAS File? (y/n) : ")):
 
-            path = raw_input("Enter the full file path for your TAS data (all_tas_betc.csv) : " ).strip()
+            path = input("Enter the full file path for your TAS data (all_tas_betc.csv) : " ).strip()
             try :
                 TASLoader.loadFields(path)
                 setupTASIndexs()
+                validInput = True
             except IOError as e:
                 print("Cant open file")
             except Exception as e:
@@ -71,8 +79,18 @@ class ConfigureValidator(object):
         """Promts user validator web service"""
         debugMode = False
         traceMode = False
+        isLocal = False
+        localPath = ""
         if(ConfigureValidator.questionPrompt("Would you like to configure your validator web service? (y/n) : ")):
-            port = raw_input("Enter web service port :")
+
+            if(ConfigureValidator.questionPrompt("Would you like to use local resources only? (y/n) : ")):
+                isLocal = True
+
+                localPath = input("Enter full path of the folder for error reports :")
+
+            port = input("Enter web service port :")
+
+            host = input("Enter the host : ")
 
             if(ConfigureValidator.questionPrompt("Would you like to enable server side debuging (y/n) : ")):
                 debugMode = True
@@ -80,9 +98,9 @@ class ConfigureValidator(object):
             if(ConfigureValidator.questionPrompt("Would you like to enable debug traces on REST requests (y/n) : ")):
                 traceMode = True
 
-            json = ConfigureValidator.createJSON(port,traceMode,debugMode)
+            json = ConfigureValidator.createJSON(port,traceMode,debugMode,host,isLocal,localPath)
 
-            with open(ConfigureValidator.getDatacorePath()+"/validator_configuration.json", 'wb') as bucketFile:
+            with open("".join([ConfigureValidator.getDatacorePath(),"/validator_configuration.json"]), 'wb') as bucketFile:
                 bucketFile.write(json)
 
 if __name__ == '__main__':

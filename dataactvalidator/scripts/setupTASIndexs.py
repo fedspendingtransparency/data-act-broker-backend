@@ -1,5 +1,5 @@
 from dataactcore.scripts.databaseSetup import runCommands
-from dataactcore.models.validationInterface import ValidationInterface
+from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 
 def setupTASIndexs():
     """
@@ -15,7 +15,7 @@ def setupTASIndexs():
         "CREATE INDEX  ON tas_lookup (main_account_code);",
         "CREATE INDEX  ON tas_lookup (sub_account_code);"
         ]
-    runCommands(ValidationInterface.getCredDict(),sql,"validation")
+    runCommands(ValidatorValidationInterface.getCredDict(),sql,"validation")
 
 if __name__ == '__main__':
     setupTASIndexs()
