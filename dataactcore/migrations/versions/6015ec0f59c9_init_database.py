@@ -81,10 +81,6 @@ def upgrade_job_tracker():
     sa.Column('description', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('file_type_id')
     )
-    op.create_table('resource',
-    sa.Column('resource_id', sa.Integer(), nullable=False),
-    sa.PrimaryKeyConstraint('resource_id')
-    )
     op.create_table('status',
     sa.Column('status_id', sa.Integer(), nullable=False),
     sa.Column('name', sa.Text(), nullable=True),
@@ -108,12 +104,10 @@ def upgrade_job_tracker():
     sa.Column('filename', sa.Text(), nullable=True),
     sa.Column('status_id', sa.Integer(), nullable=True),
     sa.Column('type_id', sa.Integer(), nullable=True),
-    sa.Column('resource_id', sa.Integer(), nullable=True),
     sa.Column('submission_id', sa.Integer(), nullable=True),
     sa.Column('file_type_id', sa.Integer(), nullable=True),
     sa.Column('staging_table', sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(['file_type_id'], ['file_type.file_type_id'], ),
-    sa.ForeignKeyConstraint(['resource_id'], ['resource.resource_id'], ),
     sa.ForeignKeyConstraint(['status_id'], ['status.status_id'], ),
     sa.ForeignKeyConstraint(['submission_id'], ['submission.submission_id'], ),
     sa.ForeignKeyConstraint(['type_id'], ['type.type_id'], ),
@@ -137,7 +131,6 @@ def downgrade_job_tracker():
     op.drop_table('type')
     op.drop_table('submission')
     op.drop_table('status')
-    op.drop_table('resource')
     op.drop_table('file_type')
     ### end Alembic commands ###
 
@@ -170,6 +163,26 @@ def upgrade_user_manager():
     sa.ForeignKeyConstraint(['user_status_id'], ['user_status.user_status_id'], ),
     sa.PrimaryKeyConstraint('user_id')
     )
+    op.create_table('email_template_type',
+    sa.Column('email_template_type_id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.Text(), nullable=True),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.PrimaryKeyConstraint('email_template_type_id')
+    )
+    op.create_table('email_template',
+    sa.Column('email_template_id', sa.Integer(), nullable=False),
+    sa.Column('template_type_id', sa.Integer(), nullable=True),
+    sa.Column('subject', sa.Text(), nullable=True),
+    sa.Column('content', sa.Text(), nullable=True),
+    sa.ForeignKeyConstraint(['template_type_id'], ['email_template_type.email_template_type_id']),
+    sa.PrimaryKeyConstraint('email_template_id')
+    )
+    op.create_table('email_token',
+    sa.Column('email_token_id', sa.Integer(), nullable=False),
+    sa.Column('token', sa.Text(), nullable=True),
+    sa.Column('salt', sa.Text(), nullable=True),
+    sa.PrimaryKeyConstraint('email_token_id')
+    )
     ### end Alembic commands ###
 
 
@@ -178,5 +191,8 @@ def downgrade_user_manager():
     op.drop_table('users')
     op.drop_table('user_status')
     op.drop_table('permission_type')
+    op.drop_table('email_template_type')
+    op.drop_table('email_template')
+    op.drop_table('email_token')
     ### end Alembic commands ###
 

@@ -1,27 +1,23 @@
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.userModel import UserStatus
+from dataactcore.config import CONFIG_DB
+
+
 class UserInterface(BaseInterface):
-    """ Manages all interaction with the validation database
-
-    STATIC FIELDS:
-    dbName -- Name of job tracker database
-    dbConfigFile -- Full path to credentials file
-    """
-
-    dbName = "user_manager"
-    credFileName = "dbCred.json"
+    """Manages all interaction with the user database."""
+    dbName = CONFIG_DB['user_db_name']
     Session = None
     engine = None
     session = None
 
     def __init__(self):
-        self.dbConfigFile = self.getCredFilePath()
-        super(UserInterface,self).__init__()
+        super(UserInterface, self).__init__()
 
     @staticmethod
     def getDbName():
-        """ Return database name"""
+        """Return database name."""
         return UserInterface.dbName
 
     def getUserStatusId(self, statusName):
-        return self.getIdFromDict(UserStatus,"STATUS_DICT","name",statusName,"user_status_id")
+        return self.getIdFromDict(
+            UserStatus, "STATUS_DICT", "name", statusName, "user_status_id")
