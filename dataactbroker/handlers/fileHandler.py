@@ -84,6 +84,7 @@ class FileHandler:
         try:
             responseDict= {}
             self.s3manager = s3UrlHandler(s3UrlHandler.getValueFromConfig("bucket"))
+            self.s3manager.REGION = s3UrlHandler.getValueFromConfig("region")
             fileNameMap = []
             safeDictionary = RequestDictionary(self.request)
             for fileType in FileHandler.FILE_TYPES :
