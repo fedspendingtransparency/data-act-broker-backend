@@ -10,14 +10,14 @@ from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 class CsvLocalReader(CsvAbstractReader):
 
 
-    def openFile(self,bucket,filename,csvSchema):
+    def openFile(self,region,bucket,filename,csvSchema):
         """open file if it exists"""
         self.filename = filename
         try:
             self.file = open(filename,"r")
         except :
             raise ValueError("".join(["Filename provided not found : ",str(self.filename)]))
-        super(CsvLocalReader,self).openFile(bucket,filename,csvSchema)
+        super(CsvLocalReader,self).openFile(region,bucket,filename,csvSchema)
 
     def close(self):
         """Closes file if it exists """

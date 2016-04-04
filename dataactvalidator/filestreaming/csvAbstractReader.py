@@ -12,7 +12,7 @@ class CsvAbstractReader(object):
 
     BUFFER_SIZE = 8192
 
-    def openFile(self,bucket,filename,csvSchema):
+    def openFile(self,region,bucket,filename,csvSchema):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
             bucket : the S3 Bucket

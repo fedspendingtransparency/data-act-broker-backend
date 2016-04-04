@@ -121,13 +121,13 @@ class ValidationManager:
             return CsvLocalReader()
         return CsvS3Reader()
 
-    def getWriter(self,bucketName,fileName,header):
+    def getWriter(self,regionName,bucketName,fileName,header):
         """
         Gets the write type based on if its a local install or not.
         """
         if(self.isLocal):
             return CsvLocalWriter(fileName,header)
-        return CsvS3Writer(bucketName,fileName,header)
+        return CsvS3Writer(regionName,bucketName,fileName,header)
 
     def getFileName(self,path):
         if(self.isLocal):
@@ -154,6 +154,7 @@ class ValidationManager:
         fileName = jobTracker.getFileName(jobId)
         self.filename = fileName
         bucketName = s3UrlHandler.getValueFromConfig("bucket")
+        regionName = s3UrlHandler.getValueFromConfig("region")
         errorFileName = self.getFileName(jobTracker.getReportPath(jobId))
 
         validationDB = interfaces.validationDb
@@ -164,7 +165,7 @@ class ValidationManager:
         reader = self.getReader()
         try:
             # Pull file
-            reader.openFile(bucketName, fileName,fieldList)
+            reader.openFile(regionName, bucketName, fileName,fieldList)
             # Create staging table
             # While not done, pull one row and put it into staging if it passes
             # the Validator
@@ -173,7 +174,7 @@ class ValidationManager:
             tableObject.createTable(fileType,fileName,jobId,tableName)
             errorInterface = interfaces.errorDb
 
-            with self.getWriter(bucketName, errorFileName, self.reportHeaders) as writer:
+            with self.getWriter(regionName, bucketName, errorFileName, self.reportHeaders) as writer:
                 while(not reader.isFinished):
                     rowNumber += 1
                     #if (rowNumber % 1000) == 0:
