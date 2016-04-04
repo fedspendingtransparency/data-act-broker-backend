@@ -22,7 +22,6 @@ class Validator(object):
         Returns:
         True if validation passed, False if failed, and list of failed rules, each with field, description of failure, and value that failed
         """
-        #print(str(record))
         recordFailed = False
         failedRules = []
         for fieldName in csvSchema :
@@ -30,6 +29,7 @@ class Validator(object):
                 return False, [[fieldName, ValidationError.requiredError, ""]]
 
         for fieldName in record :
+            checkRequiredOnly = False
             currentSchema =  csvSchema[fieldName]
             ruleSubset = Validator.getRules(fieldName, fileType, rules,interfaces.validationDb)
             currentData = record[fieldName]
@@ -44,9 +44,10 @@ class Validator(object):
                     continue
                 else:
                     #if field is empty and not required its valid
-                    continue
+                    checkRequiredOnly = True
+
             # Always check the type in the schema
-            if(not Validator.checkType(currentData,currentSchema.field_type.name) ) :
+            if(not checkRequiredOnly and not Validator.checkType(currentData,currentSchema.field_type.name) ) :
                 recordFailed = True
                 failedRules.append([fieldName, ValidationError.typeError, currentData])
                 # Don't check value rules if type failed
@@ -55,6 +56,9 @@ class Validator(object):
             # Check for a type rule in the rule table, don't want to do value checks if type is not correct
             typeFailed = False
             for currentRule in ruleSubset:
+                if(checkRequiredOnly):
+                    # Only checking conditional requirements
+                    continue
                 if(currentRule.rule_type.name == "TYPE"):
                     if(not Validator.checkType(currentData,currentRule.rule_text_1) ) :
                         recordFailed = True
@@ -65,7 +69,10 @@ class Validator(object):
                 continue
             #Field must pass all rules
             for currentRule in ruleSubset :
-                if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name)):
+                if(checkRequiredOnly and currentRule.rule_type_id != interfaces.validationDb.getRuleType("REQUIRED_CONDITIONAL")):
+                    # If data is empty, only check conditional required rules
+                    continue
+                if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name,interfaces,record)):
                     recordFailed = True
                     failedRules.append([fieldName,"".join(["Failed rule: ",str(currentRule.description)]), currentData])
         # Check all multi field rules for this file type
@@ -80,7 +87,7 @@ class Validator(object):
 
     @staticmethod
     def getRules(fieldName, fileType,rules,validationInterface) :
-        """ From a given set of rules, create a list of only the rules that apply to specified field
+        """ From a given set of rules, create a list of only the rules that apply to specified field during file validation
 
         Args:
             fieldName: Field to find rules for
@@ -94,7 +101,7 @@ class Validator(object):
         fileId = validationInterface.getFileId(fileType)
         returnList =[]
         for rule in rules :
-            if(rule.file_column.name == fieldName and rule.file_column.file_id == fileId) :
+            if(rule.file_column.name == fieldName and rule.file_column.file_id == fileId and rule.rule_timing_id == validationInterface.getRuleTimingIdByName("file_validation")) :
                 returnList.append(rule)
         return returnList
 
@@ -165,7 +172,7 @@ class Validator(object):
         raise ValueError("Data Type Invalid")
 
     @staticmethod
-    def evaluateRule(data,rule,datatype):
+    def evaluateRule(data,rule,datatype,interfaces,record):
         """ Checks data against specified rule
 
         Args:
@@ -176,6 +183,9 @@ class Validator(object):
         Returns:
             True if rule passed, False otherwise
         """
+        if data is None:
+            # Treat blank as an empty string
+            data = ""
         value1 = rule.rule_text_1
         currentRuleType = rule.rule_type.name
         if(currentRuleType =="LENGTH") :
@@ -194,7 +204,26 @@ class Validator(object):
         elif(currentRuleType == "IN_SET"):
             setList = Validator.cleanSplit(value1,toLower = False)
             return (data in setList)
+        elif(currentRuleType == "MIN LENGTH"):
+            return len(data.strip()) >= Validator.getIntFromString(value1)
+        elif(currentRuleType == "REQUIRED_CONDITIONAL"):
+            return Validator.conditionalRequired(data,rule,datatype,interfaces,record)
         raise ValueError("Rule Type Invalid")
+
+    @staticmethod
+    def conditionalRequired(data,rule,datatype,interfaces,record):
+        """ If conditional rule passes, data must not be empty """
+        # Get rule object for conditional rule
+        conditionalRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
+        conditionalTypeId = conditionalRule.file_column.field_types_id
+        conditionalDataType = interfaces.validationDb.getFieldTypeById(conditionalTypeId)
+        # If conditional rule passes, check that data is not empty
+        if Validator.evaluateRule(record[conditionalRule.file_column.name],conditionalRule,conditionalDataType,interfaces,record):
+            result = not (data is None or data == "")
+            return result
+        else:
+            # If conditional rule fails, this field is not required, so the condtional requirement passes
+            return True
 
     @staticmethod
     def evaluateMultiFieldRule(rule, record, interfaces, fileType):

@@ -1,7 +1,7 @@
 from dataactcore.scripts.databaseSetup import createDatabase
 from dataactcore.config import CONFIG_DB
 from dataactvalidator.models import validationModels
-from dataactvalidator.models.validationModels import FileType, RuleType, FieldType, MultiFieldRuleType
+from dataactvalidator.models.validationModels import FileType, RuleType, FieldType, MultiFieldRuleType, RuleTiming
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 
 def setupValidationDB(hardReset = False):
@@ -15,6 +15,13 @@ def setupValidationDB(hardReset = False):
 
     validatorDb.session.commit()
     validatorDb.session.close()
+
+    # insert rule timing
+    ruleTimingList = [(1,'file_validation','Run during pre-load validation of a file'),
+                      (2,'prerequisite','Run only when referenced by another rule')]
+    for r in ruleTimingList:
+        ruleTiming = RuleTiming(rule_timing_id = r[0], name = r[1], description = r[2])
+        validatorDb.session.merge(ruleTiming)
 
     # insert file types
     fileTypeList = [(1, 'award', 'award file'),
