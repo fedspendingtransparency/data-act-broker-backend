@@ -1,5 +1,7 @@
 import unittest
 from baseTest import BaseTest
+from webtest.app import AppError
+
 
 class LoginTests(BaseTest):
     """ Test login, logout, and session handling """
@@ -21,6 +23,11 @@ class LoginTests(BaseTest):
         self.assertIn("name", json)
         self.assertIn("agency", json)
         self.assertIn("permissions", json)
+
+    def test_inactive_login(self):
+        """Test broker inactive user login"""
+        response = self.login_inactive_user()
+        self.assertIn("401 UNAUTHORIZED", response.status)
 
     def test_logout(self):
         """Test broker logout."""

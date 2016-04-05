@@ -1,5 +1,6 @@
 import json
 import unittest
+import time
 from webtest import TestApp
 from dataactbroker.app import createApp
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
@@ -37,6 +38,7 @@ class BaseTest(unittest.TestCase):
             test_users['admin_email'] = 'data.act.tester.1@gmail.com'
             test_users['change_user_email'] = 'data.act.tester.2@gmail.com'
             test_users['password_reset_email'] = 'data.act.tester.3@gmail.com'
+            test_users['inactive_email'] = 'data.act.tester.4@gmail.com'
         if 'approved_email' not in test_users:
             test_users['approved_email'] = 'approved@agency.gov'
         if 'submission_email' not in test_users:
@@ -67,6 +69,8 @@ class BaseTest(unittest.TestCase):
             test_users["change_user_email"], user_password, Bcrypt())
         userDb.createUserWithPassword(
             test_users["password_reset_email"], user_password, Bcrypt())
+        userDb.createUserWithPassword(
+            test_users["inactive_email"], user_password, Bcrypt())
 
         # Create users for status testing
         for index in range(len(userEmails)):
@@ -94,6 +98,12 @@ class BaseTest(unittest.TestCase):
         cls.status_change_user_id = statusChangedUser.user_id
         statusChangedUser.name = "Test User"
         statusChangedUser.user_status_id = userDb.getUserStatusId("email_confirmed")
+        userDb.session.commit()
+
+        #set up deactivated user
+        user = userDb.getUserByEmail(test_users["inactive_email"])
+        user.last_login_date = time.strftime("%c")
+        user.is_active = False
         userDb.session.commit()
 
         #set up info needed by the individual test classes
@@ -131,6 +141,13 @@ class BaseTest(unittest.TestCase):
         #TODO: put user data in pytest fixture; put credentials in config file
         user = {"username": self.test_users['admin_email'], "password": self.admin_password}
         response = self.app.post_json("/v1/login/", user)
+        return response
+
+    def login_inactive_user(self):
+        """Attempt to log in an inactive user"""
+        #TODO: put user data in pytest fixture; put credentials in config file
+        user = {"username": self.test_users['inactive_email'], "password": self.user_password}
+        response = self.app.post_json("/v1/login/", user, expect_errors=True)
         return response
 
     def login_other_user(self, username, password):
