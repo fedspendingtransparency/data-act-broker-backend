@@ -1,6 +1,7 @@
 from flask import session as flaskSession
 from threading import Thread
 import re
+from datetime import datetime
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
@@ -68,7 +69,7 @@ class AccountHandler:
             if(not self.interfaces.userDb.checkStatus(user,"approved")):
                 raise ValueError("user name and or password invalid")
 
-            if not user.is_active:
+            if not self.isUserActive(user):
                 raise ValueError("user name and or password invalid")
 
             try:
@@ -415,3 +416,12 @@ class AccountHandler:
             if(self.interfaces.userDb.hasPermisson(user,permission.name)):
                 permissionList.append(permission.permission_type_id)
         return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList})
+
+    def isUserActive(self, user):
+        today = datetime.today()
+        daysActive = (today-user.last_login_date).days
+        secondsActive = (today-user.last_login_date).seconds
+        if daysActive > 120 or (daysActive == 120 and secondsActive > 0):
+            user.is_active = False
+        self.interfaces.userDb.session.commit()
+        return user.is_active
