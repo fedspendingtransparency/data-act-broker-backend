@@ -51,7 +51,7 @@ setup(
     install_requires=reqs,
     entry_points={
         'console_scripts': [
-            'validator = dataactvalidator.scripts.baseScript:baseScript',
+            'validator = dataactvalidator.scripts.initialize:options',
         ],
     }, 
 )
