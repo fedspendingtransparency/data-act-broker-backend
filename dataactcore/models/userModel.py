@@ -39,3 +39,23 @@ class UserStatus(Base):
 class AccountType:
     AGENCY_USER = 1
     WEBSITE_ADMIN = 2
+
+class EmailTemplateType(Base):
+    __tablename__ = 'email_template_type'
+    email_template_type_id = Column(Integer, primary_key=True)
+    name = Column(Text)
+    description = Column(Text)
+
+class EmailTemplate(Base):
+    __tablename__ = 'email_template'
+
+    email_template_id = Column(Integer, primary_key=True)
+    template_type_id = Column(Integer, ForeignKey("email_template_type.email_template_type_id"))
+    subject = Column(Text)
+    content = Column(Text)
+
+class EmailToken(Base):
+    __tablename__ = 'email_token'
+    email_token_id = Column(Integer, primary_key=True)
+    token = Column(Text)
+    salt = Column(Text)

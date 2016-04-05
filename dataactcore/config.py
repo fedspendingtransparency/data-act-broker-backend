@@ -52,7 +52,7 @@ else:
     # to localhost and port 8000
     if not CONFIG_DB['dynamo_host']:
         # TODO: dynamo host/port don't do anything; code assumes localhost/8000
-        CONFIG_DB['dynamo_host'] = '0.0.0.0'
+        CONFIG_DB['dynamo_host'] = '127.0.0.1'
     if not CONFIG_DB['dynamo_port']:
         CONFIG_DB['dynamo_port'] = 8000
     # TODO: can we test that local dynamo is up and running? if not, route calls hang
@@ -67,6 +67,14 @@ CONFIG_SERVICES['broker_api_host'] = re.sub(
     'http://|:(.*)', '', CONFIG_SERVICES['broker_api_host'])
 CONFIG_SERVICES['validator_host'] = re.sub(
     'http://|:(.*)', '', CONFIG_SERVICES['validator_host'])
+# if hosts in config file are set to 0.0.0.0, override to
+# 127.0.0.1 for cross-platform compatibility
+if CONFIG_SERVICES['broker_api_host'] == '0.0.0.0':
+    CONFIG_SERVICES['broker_api_host'] = '127.0.0.1'
+if CONFIG_SERVICES['validator_host'] == '0.0.0.0':
+    CONFIG_SERVICES['validator_host'] = '127.0.0.1'
+if CONFIG_DB['dynamo_host'] == '0.0.0.0':
+    CONFIG_DB['dynamo_host'] = '127.0.0.1'
 
 # TODO: error-handling for db config?
 # TODO: type checking and fixing for int stuff like ports?

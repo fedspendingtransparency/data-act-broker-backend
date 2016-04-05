@@ -1,13 +1,10 @@
 import sqlalchemy
-import os.path
-import sys
-import traceback
 from flask import _app_ctx_stack
 from sqlalchemy.orm import sessionmaker , scoped_session
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.config import CONFIG_DB, CONFIG_LOGGING
+from dataactcore.config import CONFIG_DB
 
 class BaseInterface(object):
     """ Abstract base interface to be inherited by interfaces for specific databases
@@ -31,7 +28,6 @@ class BaseInterface(object):
             "postgresql://{}:{}@{}:{}/{}".format(CONFIG_DB["username"],
             CONFIG_DB["password"], CONFIG_DB["host"], CONFIG_DB["port"],
             self.dbName), pool_size=100,max_overflow=50)
-            #"postgresql://" + CONFIG_DB['username'] + ":" + CONFIG_DB['password'] + "@" + CONFIG_DB['host'] + ":" + CONFIG_DB['port'] + "/" + self.dbName,pool_size=100,max_overflow=50)
         self.connection = self.engine.connect()
         if(self.Session == None):
             if(BaseInterface.IS_FLASK) :
@@ -44,7 +40,6 @@ class BaseInterface(object):
         try:
             #Close session
             self.session.close()
-            #self.Session.close_all()
             self.Session.remove()
             self.connection.close()
             self.engine.dispose()
@@ -52,15 +47,17 @@ class BaseInterface(object):
             # KeyError will occur in Python 3 on engine dispose
             pass
 
-    @staticmethod
-    def logDbError(exc):
-        logFile = os.path.join(
-            CONFIG_LOGGING['log_files'], BaseInterface.logFileName)
-        with open(logFile, "a") as file:
-        #file = open(BaseInterface.getLogFilePath(),"a")
-            file.write(str(exc) + ", ")
-            file.write(str(sys.exc_info()[0:1]) + "\n")
-            traceback.print_tb(sys.exc_info()[2], file=file)
+    @classmethod
+    def getCredDict(cls):
+        """ Return db credentials. """
+        credDict = {
+            'username': CONFIG_DB['username'],
+            'password': CONFIG_DB['password'],
+            'host': CONFIG_DB['host'],
+            'port': CONFIG_DB['port'],
+            'dbBaseName': CONFIG_DB['base_db_name']
+        }
+        return credDict
 
     @staticmethod
     def checkUnique(queryResult, noResultMessage, multipleResultMessage):
@@ -94,7 +91,8 @@ class BaseInterface(object):
         self.session.commit()
         return response
 
-    def getIdFromDict(self,model, dictName, fieldName, fieldValue, idField):
+    def getIdFromDict(self, model, dictName, fieldName, fieldValue, idField):
+        """ Populate a static dictionary to hold an id to name dictionary for specified model """
         dict = getattr(model, dictName)
         if(dict == None):
             dict = {}
@@ -104,6 +102,22 @@ class BaseInterface(object):
             for result in queryResult:
                 dict[getattr(result,fieldName)] = getattr(result,idField)
             setattr(model,dictName,dict)
+        if fieldValue is None:
+            # Not looking for a return, just called to set up dict
+            return None
         if(not fieldValue in dict):
             raise ValueError("Not a valid " + str(model) + ": " + str(fieldValue) + ", not found in dict: " + str(dict))
         return dict[fieldValue]
+
+    def getNameFromDict(self, model, dictName, fieldName, fieldValue, idField):
+        """ This uses the dict attached to model backwards, to get the name from the ID.  This is slow and should not
+        be used too widely """
+        # Populate dict
+        self.getIdFromDict(model, dictName, fieldName, None, idField)
+        # Step through dict to find fieldValue
+        dict = model.__dict__[dictName]
+        for key in dict:
+            if dict[key] == fieldValue:
+                return key
+        # If not found, raise an exception
+        raise ValueError("Value: " + str(fieldValue) + " not found in dict: " + str(dict))
