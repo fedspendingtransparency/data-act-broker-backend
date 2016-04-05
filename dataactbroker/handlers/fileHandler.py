@@ -229,7 +229,7 @@ class FileHandler:
                     jobInfo["file_type"] = self.jobManager.getFileType(job)
                 except Exception as e:
                     jobInfo["file_type"]  = ''
-                submissionInfo = submissionInfo["jobs"].append(jobInfo)
+                submissionInfo["jobs"].append(jobInfo)
 
             # Build response object holding dictionary
             return JsonResponse.create(StatusCode.OK,submissionInfo)

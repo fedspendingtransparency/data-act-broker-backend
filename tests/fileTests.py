@@ -118,15 +118,24 @@ class FileTests(BaseTest):
         json = response.json
         # response ids are coming back as string, so patch the jobIdDict
         jobIdDict = {k: str(self.jobIdDict[k]) for k in self.jobIdDict.keys()}
-        self.assertEqual(json[jobIdDict["appropriations"]]["job_status"],"ready")
-        self.assertEqual(json[jobIdDict["appropriations"]]["job_type"],"csv_record_validation")
-        self.assertEqual(json[jobIdDict["appropriations"]]["file_type"],"appropriations")
-        self.assertEqual(json[jobIdDict["appropriations"]]["filename"],"approp.csv")
-        self.assertEqual(json[jobIdDict["appropriations"]]["file_status"],"complete")
-        self.assertIn("missing_header_one", json[jobIdDict["appropriations"]]["missing_headers"])
-        self.assertIn("missing_header_two", json[jobIdDict["appropriations"]]["missing_headers"])
-        self.assertIn("duplicated_header_one", json[jobIdDict["appropriations"]]["duplicated_headers"])
-        self.assertIn("duplicated_header_two", json[jobIdDict["appropriations"]]["duplicated_headers"])
+        jobList = json["jobs"]
+        appropJob = None
+        for job in jobList:
+            if str(job["job_id"]) == str(jobIdDict["appropriations"]):
+                # Found the job to be checked
+                appropJob = job
+        # Must have an approp job
+        self.assertNotEqual(appropJob, None)
+        # And that job must have the following
+        self.assertEqual(appropJob["job_status"],"ready")
+        self.assertEqual(appropJob["job_type"],"csv_record_validation")
+        self.assertEqual(appropJob["file_type"],"appropriations")
+        self.assertEqual(appropJob["filename"],"approp.csv")
+        self.assertEqual(appropJob["file_status"],"complete")
+        self.assertIn("missing_header_one", appropJob["missing_headers"])
+        self.assertIn("missing_header_two", appropJob["missing_headers"])
+        self.assertIn("duplicated_header_one", appropJob["duplicated_headers"])
+        self.assertIn("duplicated_header_two", appropJob["duplicated_headers"])
 
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
