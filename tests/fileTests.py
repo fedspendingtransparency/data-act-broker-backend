@@ -1,7 +1,7 @@
 import unittest
 import os
 import inspect
-from boto.s3.connection import S3Connection
+import boto
 from boto.s3.key import Key
 from baseTest import BaseTest
 from dataactcore.models.jobModels import Submission, JobStatus
@@ -147,7 +147,7 @@ class FileTests(BaseTest):
                     's3FileName': fullPath}
         else:
             # Use boto to put files on S3
-            s3conn = S3Connection()
+            s3conn = boto.s3.connect_to_region(CONFIG_BROKER["aws_region"])
             bucketName = CONFIG_BROKER['aws_bucket']
             key = Key(s3conn.get_bucket(bucketName))
             key.key = s3FileName
