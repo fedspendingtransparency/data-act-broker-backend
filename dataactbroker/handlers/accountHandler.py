@@ -70,7 +70,8 @@ class AccountHandler:
             if(not self.interfaces.userDb.checkStatus(user,"approved")):
                 raise ValueError("user name and or password invalid")
 
-            if not self.isUserActive(user):
+            # Only check if user is active after they've logged in for the first time
+            if user.last_login_date is not None and not self.isUserActive(user):
                 raise ValueError("user name and or password invalid")
 
             try:
