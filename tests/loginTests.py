@@ -26,10 +26,8 @@ class LoginTests(BaseTest):
 
     def test_inactive_login(self):
         """Test broker inactive user login"""
-        try:
-            self.login_inactive_user()
-        except AppError as e:
-            self.assertIn("401 UNAUTHORIZED", e.message)
+        response = self.login_inactive_user()
+        self.assertIn("401 UNAUTHORIZED", response.status)
 
     def test_logout(self):
         """Test broker logout."""

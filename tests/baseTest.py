@@ -147,7 +147,7 @@ class BaseTest(unittest.TestCase):
         """Attempt to log in an inactive user"""
         #TODO: put user data in pytest fixture; put credentials in config file
         user = {"username": self.test_users['inactive_email'], "password": self.user_password}
-        response = self.app.post_json("/v1/login/", user)
+        response = self.app.post_json("/v1/login/", user, expect_errors=True)
         return response
 
     def login_other_user(self, username, password):
