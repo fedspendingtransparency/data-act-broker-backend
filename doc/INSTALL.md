@@ -172,6 +172,28 @@ Use Python's pip installer to install each broker back-end application:
         $ pip install git+git://github.com/fedspendingtransparency/data-act-broker.git
         $ pip install git+git://github.com/fedspendingtransparency/data-act-validator.git
 
+## Create Broker Config File
+
+Before running the broker, you'll need to provide a few configuration options. Use the provided sample config file as a starting point:
+
+1. Navigate to the location of the data-act-core code.
+2. From the `data-act-core` directory, go to `dataactcore` and open the file called `config_example.yml` in a text editor.
+3. Save `config_example.yml` as `config.yml`.
+4. Update the values in `config.yml` as appropriate for your environment. In many cases the default values should work just fine. The most important config values to change when getting started are:
+    * under _broker_:
+            * `full_url`
+            * `reply_to_email`
+            * `admin_email`
+            * `admin_password`
+            * `broker_files`
+    * under _services_:
+            * `error_report_path`
+    * under _db_:
+            * `username`
+            * `password`
+    * under _logging_:
+            * `log_files`
+
 ## Initialize Broker Backend Applications
 
 If everything installed correctly in the steps above, you're ready to initialize the broker backend applications. To do this, you'll run a few scripts that set up the databases and create the configuration files.
