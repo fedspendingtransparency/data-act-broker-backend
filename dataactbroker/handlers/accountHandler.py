@@ -1,7 +1,8 @@
 from flask import session as flaskSession
 from threading import Thread
 import re
-from datetime import datetime
+import time
+from dateutil.parser import parse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
@@ -418,7 +419,7 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList})
 
     def isUserActive(self, user):
-        today = datetime.today()
+        today = parse(time.strftime("%c"))
         daysActive = (today-user.last_login_date).days
         secondsActive = (today-user.last_login_date).seconds
         if daysActive > 120 or (daysActive == 120 and secondsActive > 0):
