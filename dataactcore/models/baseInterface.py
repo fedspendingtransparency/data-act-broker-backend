@@ -91,7 +91,8 @@ class BaseInterface(object):
         self.session.commit()
         return response
 
-    def getIdFromDict(self,model, dictName, fieldName, fieldValue, idField):
+    def getIdFromDict(self, model, dictName, fieldName, fieldValue, idField):
+        """ Populate a static dictionary to hold an id to name dictionary for specified model """
         dict = getattr(model, dictName)
         if(dict == None):
             dict = {}
@@ -101,6 +102,22 @@ class BaseInterface(object):
             for result in queryResult:
                 dict[getattr(result,fieldName)] = getattr(result,idField)
             setattr(model,dictName,dict)
+        if fieldValue is None:
+            # Not looking for a return, just called to set up dict
+            return None
         if(not fieldValue in dict):
             raise ValueError("Not a valid " + str(model) + ": " + str(fieldValue) + ", not found in dict: " + str(dict))
         return dict[fieldValue]
+
+    def getNameFromDict(self, model, dictName, fieldName, fieldValue, idField):
+        """ This uses the dict attached to model backwards, to get the name from the ID.  This is slow and should not
+        be used too widely """
+        # Populate dict
+        self.getIdFromDict(model, dictName, fieldName, None, idField)
+        # Step through dict to find fieldValue
+        dict = model.__dict__[dictName]
+        for key in dict:
+            if dict[key] == fieldValue:
+                return key
+        # If not found, raise an exception
+        raise ValueError("Value: " + str(fieldValue) + " not found in dict: " + str(dict))
