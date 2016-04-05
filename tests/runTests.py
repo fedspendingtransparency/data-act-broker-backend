@@ -7,8 +7,8 @@ from userTests import UserTests
 suite = unittest.TestSuite()
 
 suite.addTests(unittest.makeSuite(LoginTests))
-#suite.addTests(unittest.makeSuite(FileTests))
-#suite.addTests(unittest.makeSuite(UserTests))
+suite.addTests(unittest.makeSuite(FileTests))
+suite.addTests(unittest.makeSuite(UserTests))
 # to run a single test:
 # suite.addTest(FileTests('test_file_submission'))
 
