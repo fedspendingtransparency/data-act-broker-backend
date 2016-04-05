@@ -55,18 +55,36 @@ The broker's backend components currently run on Python 2.7 (with the intention 
 
 If you already have a Python development environment on your machine and a preferred way of managing it, feel free to skip to the next section. We wrote the directions below for folks who don't have a Python environment up and running yet and need the quickest way to get started.
 
-1. Download the miniconda installer: [http://conda.pydata.org/miniconda.html](http://conda.pydata.org/miniconda.html "Miniconda installers"). *Windows Users:* Choose the [Python 2.7 32-bit installer](https://repo.continuum.io/miniconda/Miniconda-latest-Windows-x86.exe "Python 2.7 Windows 32-bit installer"), even if you're using a 64-bit Windows machine.
-2. Run the miniconda installer. When prompted for _Advanced Installation Options_, accept the defaults.
-3. After miniconda installs, open a terminal window and type the following command to create your DATA Act virtual environment. These instructions assume that _data-act_ will be the name of your environment, but you can name it anything.
+1. Install Python 2.7 and pip (Python's package manager) using [these directions](https://docs.aws.amazon.com/cli/latest/userguide/installing.html#install-python "Install Python").
+2. Use pip to install virtualenv:
 
-        $ conda create --name data-act python=2.7.9
+        pip install virtualenv
+3. Use pip to install virtualenvwrapper:
 
-4. You should see an informational message about some packages that miniconda will download and install. At the prompt, type _y_ to proceed.
-5. Once miniconda is finished creating your environment, activate it:
+        pip install virtualenvwrapper
 
-        $ activate data-act
+4. Tell virtualenvwrapper where on your machine to create virtual environments and add it to your profile. This is a one-time virtualenvwrapper setup step, and the process varies by operating system. [This tutorial](http://newcoder.io/begin/setup-your-machine/ "Python: setting up your computer") covers setting up virtualenvwrapper on OSX, Linux, and Windows.
+5. Create a virtual environment for the DATA Act software. In this example we've named the environment *data-act*, but you can call it anything:
 
-This new environment will be active until you run the `deactivate` command. You can re-activate the environment again at any time by typing `activate data-act`.
+        mkvirtualenv data-act
+
+    **Note:** If you're running multiple versions of Python on your machine, you can make sure your data act environment is running the correct Python version by pointing to a specific binary
+
+        mkvirtualenv --python=[path to installed Python 2.7 executable] data-act
+
+6. You should see some output that looks similar to the example below. Essentially, this command creates and activates a new virtualenv named `data-act` with its own set of Python libraries.  Anything you pip install from this point forward will be installed into the *data-act* environment rather than your machine's global Python environment. Your command line prompt indicates which (if any) virtualenv is active.
+
+        rebeccasweger@GSA-xs-MacBook-Pro-4 ~
+        $ mkvirtualenv --python=/usr/local/bin/python2.7 data-act-test
+        Running virtualenv with interpreter /usr/local/bin/python2.7
+        New python executable in data-act-test/bin/python2.7
+        Also creating executable in data-act-test/bin/python
+        Installing setuptools, pip...done.
+
+        (data-act-test)
+        rebeccasweger@GSA-xs-MacBook-Pro-4 ~
+
+7. This new environment will be active until you run the `deactivate` command. You can re-activate the environment again at any time by typing `workon data-act`.
 
 ### Configure Amazon Web Services (Optional)
 
@@ -109,9 +127,9 @@ Navigate to the DATA Act core's main folder:
 
         $ cd data-act-core
 
-Install the code and its dependencies:
+Install the dependencies:
 
-        $ pip install -e .
+        $ pip install -r requirements.txt
 
 #### Broker API
 
@@ -123,9 +141,9 @@ Navigate to the broker API's main folder:
 
         $ cd data-act-broker
 
-Install the code and its dependencies:
+Install the dependencies:
 
-        $ pip install -e .
+        $ pip install -r requirements.txt
 
 #### Validator
 
@@ -137,15 +155,23 @@ Navigate to the validator's main folder:
 
         $ cd data-act-validator
 
-Install the code and its dependencies:
+Install the dependencies:
 
-        $ pip install -e .
+        $ pip install -r requirements.txt
 
 #### Broker Website
 
 Navigate back to your project home. From the command line, clone the DATA Act web app repository from GitHub to your local environment:
 
         $ git clone git@github.com:fedspendingtransparency/data-act-broker-web-app.git
+
+### Update $PYTHONPATH
+
+The backend components import Python modules from one another. Therefore, the locations of these modules need to be on your $PYTHONPATH. Use the virtualenvwrapper [add2virtual](http://virtualenvwrapper.readthedocs.org/en/latest/command_ref.html#path-management "virtualenvwrapper path management") shortcut to add them:
+
+        $ add2virtualenv [location of your code]/data-act-core
+        $ add2virtualenv [location of your code]/data-act-broker
+        $ add2virtualenv [location of your code]/data-act-validator
 
 ### Create Broker Config File
 
@@ -173,10 +199,12 @@ Before running the broker, you'll need to provide a few configuration options. U
 
 ### Initialize Broker Backend Applications
 
-You will need to run two scripts to setup the broker's backend components. These create the necessary databases and data. If you're using a local DynamoDB, make sure it's running.
+You will need to run two scripts to setup the broker's backend components. These create the necessary databases and data. From your DATA Act project home:
 
-        $ webbroker -i
-        $ validator -i
+        $ python data-act-broker/dataactbroker/scripts/initialize.py -i
+        $ python data-act-validator/dataactvalidator/scripts/initialize.py -i
+
+**Note:** If you're using a local DynamoDB, make sure it's running before executing these scripts.
 
 ### Run Broker Backend Applications
 
