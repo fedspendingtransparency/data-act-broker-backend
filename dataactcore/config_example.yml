@@ -68,7 +68,7 @@ logging:
     log_files: /Users/rebeccasweger/Dev/data-act-test/
     # Set to true and fill in all logstash_ settings
     # to use logstash for logging
-    use_logstash: true
+    use_logstash: false
     # Logstash EC2 host. Ignored if use_logstash is false.
     logstash_host: ec2-52-73-52-11.compute-1.amazonaws.com
     # Logstash EC2 port. Ignore if use_logstash is false.
