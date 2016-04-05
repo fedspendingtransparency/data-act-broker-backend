@@ -9,10 +9,7 @@ from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.tasLoader import TASLoader
 
 
-def baseScript():
-    if os.getuid() != 0:
-        print ("Please run this script with sudo")
-
+def options():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--initialize", action="store_true", help="Runs all of the setup options")
     parser.add_argument("-l", "--loadValidator", action="store_true", help="Loads validator Schema files and rules")
