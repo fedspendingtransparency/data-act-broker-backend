@@ -8,4 +8,3 @@ logstash==0.1.dev0
 alembic==0.8.5
 awscli==1.10.10
 pyyaml==3.11
-git+https://github.com/fedspendingtransparency/data-act-broker@v0.0.5-pre-alpha#egg=data-act-broker

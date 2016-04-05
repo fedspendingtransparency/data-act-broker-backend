@@ -46,8 +46,4 @@ setup(
     keywords='dataAct broker setup',
     packages=find_packages(),
     install_requires=reqs,
-    dependency_links=[
-      'git+https://git@github.com/fedspendingtransparency/data-act-broker#egg=dataactbroker',
-      'git+https://git@github.com/fedspendingtransparency/data-act-validator#egg=dataactvalidator',
-    ],
 )
