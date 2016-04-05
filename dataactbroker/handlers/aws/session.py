@@ -334,7 +334,7 @@ class SessionTable :
                 if jre.status == 400 and "preexisting" in jre.message.lower():
                     #table already exists
                     pass
-            else:
+            except:
                 raise
         else:
             Table.create(
