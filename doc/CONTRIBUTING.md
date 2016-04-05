@@ -173,7 +173,7 @@ Before running the broker, you'll need to provide a few configuration options. U
 
 ### Initialize Broker Backend Applications
 
-You will need to run two scripts to setup the broker's backend components. These create the necessary databases and data.
+You will need to run two scripts to setup the broker's backend components. These create the necessary databases and data. If you're using a local DynamoDB, make sure it's running.
 
         $ webbroker -i
         $ validator -i
