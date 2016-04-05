@@ -46,7 +46,7 @@ def setupDB():
     setupJobTrackerDB(hardReset=True)
     setupErrorDB(True)
     setupUserDB(True)
-    setupEmails(True)
+    setupEmails()
 
 
 def createAdmin():
