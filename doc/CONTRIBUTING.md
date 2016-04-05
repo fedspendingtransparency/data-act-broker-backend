@@ -232,7 +232,11 @@ Once the DATA Act broker's back-end is up and running, setup and start the corre
         $ npm install gulp && npm install gulp -g
 
 3. Change to the `data-act-broker-web-app` directory that was created when you cloned the DATA Act web repository.
-4. Open the `GlobalConstants_dev.js` file in the `data-act-broker-app` directory. Change the value for `API` to the URL where you're running the broker (for example, `http://localhost:3333/v1`).
+4. The website has it's own config file that you'll need to update. Open the `GlobalConstants_dev.js` file in the `data-act-broker-app` directory. Make the following changes:
+
+* Change the value for `API` to the URL where you're running the broker (for example, `http://localhost:3333/v1`).
+* If you're not using AWS to run the broker, change `LOCAL` to `true`. Otherwise, change `BUCKET_NAME` to the name of your AWS S3 bucket.
+
 5. Run the following commands to install the website's dependencies and run the site:
 
         $ npm install
