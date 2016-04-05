@@ -12,7 +12,7 @@ class CsvS3Reader(CsvAbstractReader):
     Reads data from S3 CSV file
     """
 
-    def openFile(self,bucket,filename,csvSchema):
+    def openFile(self,bucket,filename,csvSchema,bucketName,errorFilename):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
             bucket : the S3 Bucket
@@ -22,10 +22,15 @@ class CsvS3Reader(CsvAbstractReader):
         s3connection = boto.connect_s3()
         s3Bucket = s3connection.lookup(bucket)
         self.s3File = s3Bucket.lookup(filename)
+        self.isLocal = False
         if(self.s3File == None):
             raise ValueError("".join(["Filename provided not found on S3: ",str(filename)]))
 
-        super(CsvS3Reader,self).openFile(bucket,filename,csvSchema)
+        super(CsvS3Reader,self).openFile(bucket,filename,csvSchema,bucketName,errorFilename)
+
+    def close(self):
+        """ Don't need to close file when streaming from S3 """
+        pass
 
     def _getFileSize(self):
         """

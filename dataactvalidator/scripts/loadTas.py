@@ -3,7 +3,7 @@ from setupTASIndexs import setupTASIndexs
 
 def loadTas():
     """ Load all valid TAS combinations into database and index the TASLookup table """
-    filename = "all_tas_betc.csv"
+    filename = "../../tests/all_tas_betc.csv"
     TASLoader.loadFields(filename)
 
     setupTASIndexs()

@@ -1,10 +1,13 @@
 import os
+import traceback
+import sys
 from csv import Error
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
-from dataactcore.config import CONFIG_BROKER
+from dataactcore.utils.cloudLogger import CloudLogger
 from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
 from dataactvalidator.filestreaming.csvLocalReader import CsvLocalReader
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
@@ -102,14 +105,14 @@ class ValidationManager:
             errorDb.markFileComplete(jobId,self.filename)
             return
         except ResponseException as e:
-            open("errorLog","a").write("".join([str(e),"\n"]))
+            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             self.markJob(jobId,jobTracker,"invalid",errorDb,self.filename,e.errorType,e.extraInfo)
         except ValueError as e:
-            open("errorLog","a").write("".join([str(e),"\n"]))
+            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             self.markJob(jobId,jobTracker,"invalid",errorDb,self.filename,ValidationError.unknownError)
         except Exception as e:
             #Something unknown happened we may need to try again!
-            open("errorLog","a").write("".join([str(e),"\n"]))
+            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             self.markJob(jobId,jobTracker,"failed",errorDb,self.filename,ValidationError.unknownError)
         finally:
             interfaces.close()
@@ -164,16 +167,18 @@ class ValidationManager:
 
         reader = self.getReader()
         try:
+
             # Pull file
-            reader.openFile(bucketName, fileName,fieldList)
-            # Create staging table
-            # While not done, pull one row and put it into staging if it passes
-            # the Validator
+            reader.openFile(bucketName, fileName,fieldList,bucketName,errorFileName)
+
             tableName = interfaces.stagingDb.getTableName(jobId)
+            # Create staging table
             tableObject = StagingTable(interfaces)
             tableObject.createTable(fileType,fileName,jobId,tableName)
             errorInterface = interfaces.errorDb
 
+            # While not done, pull one row and put it into staging if it passes
+            # the Validator
             with self.getWriter(bucketName, errorFileName, self.reportHeaders) as writer:
                 while(not reader.isFinished):
                     rowNumber += 1
@@ -258,15 +263,15 @@ class ValidationManager:
                 raise ResponseException("Checks failed on Job ID",StatusCode.CLIENT_ERROR)
 
         except ResponseException as e:
-            open("errorLog","a").write("".join([str(e),"\n"]))
+            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             if(e.errorType == None):
                 # Error occurred while trying to get and check job ID
                 e.errorType = ValidationError.jobError
             interfaces.errorDb.writeFileError(jobId,self.filename,e.errorType,e.extraInfo)
             return JsonResponse.error(e,e.status,table=tableName)
         except Exception as e:
-            open("errorLog","a").write("".join([str(e),"\n"]))
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
+            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             self.markJob(jobId,jobTracker,"failed",interfaces.errorDb,self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,table=tableName)
 
@@ -276,23 +281,23 @@ class ValidationManager:
             interfaces.errorDb.markFileComplete(jobId,self.filename)
             return  JsonResponse.create(StatusCode.OK,{"table":tableName})
         except ResponseException as e:
-            open("errorLog","a").write("".join([str(e),"\n"]))
+            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,e.errorType,e.extraInfo)
             return JsonResponse.error(e,e.status,table=tableName)
         except ValueError as e:
-            open("errorLog","a").write("".join([str(e),"\n"]))
+            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             # Problem with CSV headers
-            exc = ResponseException("Internal value error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
+            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError) #"Internal value error"
             self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,table=tableName)
         except Error as e:
-            open("errorLog","a").write("".join([str(e),"\n"]))
+            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             # CSV file not properly formatted (usually too much in one field)
             exc = ResponseException("Internal error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
             self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,table=tableName)
         except Exception as e:
-            open("errorLog","a").write("".join([str(e),"\n"]))
+            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e),ValidationError.unknownError)
             self.markJob(jobId,jobTracker,"failed",interfaces.errorDb,self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,table=tableName)

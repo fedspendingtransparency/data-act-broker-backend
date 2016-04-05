@@ -1,0 +1,28 @@
+fieldname,required,data_type,field_length,rule_labels
+AllocationTransferAgencyIdentifier,Conditional per Validation Rule,string,3,A1
+AgencyIdentifier,Required,string,3,A1
+BeginningPeriodOfAvailability,Conditional per Validation Rule,string,4,A1
+EndingPeriodOfAvailability,Conditional per Validation Rule,string,4,A1
+AvailabilityTypeCode,Conditional per Validation Rule,string,1,A1
+MainAccountCode,Required,string,4,A1
+SubAccountCode,Required,string,3,A1
+BudgetAuthorityAvailableAmountTotal_FYB,Required,numeric,100,A6
+BudgetAuthorityAvailableAmountTotal_CPE,Required,numeric,100,"A2, A7"
+BudgetAuthorityUnobligatedBalanceBroughtForward_FYB,Required,numeric,100,A8
+BudgetAuthorityUnobligatedBalanceBroughtForward_CPE,Required,numeric,100,"A2, A9"
+BudgetAuthorityAppropriatedAmount_FYB,Required,numeric,100,A10
+BudgetAuthorityAppropriatedAmount_CPE,Required,numeric,100,"A2, A11"
+OtherBudgetaryResourcesAmount_FYB,Required,numeric,100,
+OtherBudgetaryResourcesAmount_CPE,Required,numeric,100,"A2, A3"
+ContractAuthorityAmountTotal_FYB,Required,numeric,100,A12
+ContractAuthorityAmountTotal_CPE,Required,numeric,100,"A3, A13"
+BorrowingAuthorityAmountTotal_FYB,Required,numeric,100,A14
+BorrowingAuthorityAmountTotal_CPE,Required,numeric,100,"A3, A15"
+SpendingAuthorityfromOffsettingCollectionsAmountTotal_FYB,Required,numeric,100,A16
+SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE,Required,numeric,100,"A3, A17"
+BudgetAuthorityAdjustmentsTotal_CPE,Required,numeric,100,"A2, A18"
+AvailableForObligationAmountTotal_CPE,Required,numeric,100,A4
+ObligationsIncurredTotal_CPE,Required,numeric,100,"A4, A5"
+UnpaidObligationsByTAS_CPE,Required,numeric,100,"A5, B1, A20"
+OutlayAmountByTAS_CPE,Required,numeric,100,"A5, B5, A21"
+UnobligatedBalance_CPE,Required,numeric,100,"A4, A22"

@@ -33,6 +33,8 @@ class CsvAbstractWriter(object):
         """
         byteList = []
         for data in dataList:
+            if data is None:
+                data = ""
             byteList.append(data.encode("UTF-8"))
         self.rows.append(byteList)
         if(len(self.rows) > self.BATCH_SIZE):
@@ -58,7 +60,7 @@ class CsvAbstractWriter(object):
         data -  (string) a string be written to the current file
 
         """
-        pass
+        raise NotImplementedError("Do not instantiate csvAbstractWriter directly.")
 
     def __enter__(self) :
         return self
@@ -72,4 +74,4 @@ class CsvAbstractWriter(object):
         traceback - the traceback of the error
 
         """
-        pass
+        raise NotImplementedError("Do not instantiate csvAbstractReader directly.")

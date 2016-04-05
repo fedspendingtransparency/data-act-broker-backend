@@ -1,7 +1,7 @@
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.baseInterface import BaseInterface
-from dataactvalidator.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType
+from dataactvalidator.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType, RuleTiming
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.config import CONFIG_DB
 
@@ -16,6 +16,18 @@ class ValidatorValidationInterface(BaseInterface) :
 
     def __init__(self):
         super(ValidatorValidationInterface,self).__init__()
+
+    @classmethod
+    def getCredDict(cls):
+        """ Return db credentials. """
+        credDict = {
+            'username': CONFIG_DB['username'],
+            'password': CONFIG_DB['password'],
+            'host': CONFIG_DB['host'],
+            'port': CONFIG_DB['port'],
+            'dbBaseName': CONFIG_DB['base_db_name']
+        }
+        return credDict
 
     @staticmethod
     def getDbName():
@@ -228,7 +240,7 @@ class ValidatorValidationInterface(BaseInterface) :
         rules = self.session.query(Rule).options(joinedload("rule_type")).options(joinedload("file_column")).filter(FileColumn.file_id == fileId).all()
         return rules
 
-    def addRule(self, columnId, ruleTypeText, ruleText, description):
+    def addRule(self, columnId, ruleTypeText, ruleText, description, rule_timing = 1, rule_label = None):
         """
 
         Args:
@@ -239,7 +251,10 @@ class ValidatorValidationInterface(BaseInterface) :
         Returns:
             True if successful
         """
-        newRule = Rule(file_column_id = columnId, rule_type_id = self.getRuleType(ruleTypeText), rule_text_1 = ruleText, description = description)
+        if rule_timing is None or rule_timing == "":
+            # Use default value if timing is unspecified
+            rule_timing = 1
+        newRule = Rule(file_column_id = columnId, rule_type_id = self.getRuleType(ruleTypeText), rule_text_1 = ruleText, description = description, rule_timing_id = rule_timing, rule_label = rule_label)
         self.session.add(newRule)
         self.session.commit()
         return True
@@ -327,3 +342,20 @@ class ValidatorValidationInterface(BaseInterface) :
             column - FileColumn object to get File object for
         """
         column.file = self.session.query(FileType).filter(FileType.file_id == column.file_id)[0]
+
+    def getRuleTimingIdByName(self,timingName):
+        """ Get rule ID for specified multi-field rule type
+
+        Arguments:
+            typeName - name of rule type (string)
+        Returns:
+            ID for rule type (int)
+        """
+        return self.getIdFromDict(RuleTiming,"TIMING_DICT","name",timingName.lower(),"rule_timing_id")
+
+    def getRuleByLabel(self,label):
+        query = self.session.query(Rule).options(joinedload("file_column")).filter(Rule.rule_label == label)
+        return self.runUniqueQuery(query,"No rule with that label","Multiple rules have that label")
+
+    def getFieldTypeById(self, id):
+        return self.getNameFromDict(FieldType,"TYPE_DICT","name",id,"field_type_id")

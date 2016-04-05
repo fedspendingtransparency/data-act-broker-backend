@@ -1,3 +1,4 @@
+from __future__ import print_function
 import json
 from dataactcore.models.jobModels import Status, JobDependency
 from dataactcore.scripts.clearErrors import clearErrors
@@ -62,7 +63,6 @@ class JobTests(BaseTest):
             csvFiles[key]["s3Filename"] = cls.uploadFile(
                 csvFiles[key]["filename"], cls.userId)
         jobIdDict = {}
-        subIdDict = {}
 
         for key in csvFiles.keys():
             file = csvFiles[key]
@@ -79,10 +79,9 @@ class JobTests(BaseTest):
                 raise Exception(
                     "".join(["Job for ", str(key), " did not get an id back"]))
             jobIdDict[key] = job.job_id
-            subIdDict[key] = jobTracker.getSubmissionId(job.job_id)
+            # Print submission IDs for error report checking
+            print("".join([str(key),": ",str(jobTracker.getSubmissionId(job.job_id)), ", "]), end = "")
 
-        # Display submission IDs so error reports can be checked directly if unit tests fail
-        print(str(subIdDict))
         # Create dependencies
         dependencies = [
             JobDependency(
@@ -113,11 +112,12 @@ class JobTests(BaseTest):
                     columnId, fileId)] = column.file_column_id
 
         rules = [
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 5, rule_text_1 = 0, description =  'value 1 must be greater than zero'),
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 3, rule_text_1 = 13, description =  'value 1 may not be 13'),
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(5),"_file_type_",str(3)])]),rule_type_id = 1, rule_text_1 = "INT", description =  'value 5 must be an integer'),
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(3),"_file_type_",str(3)])]),rule_type_id = 2, rule_text_1 = 42, description =  'value 3 must be equal to 42 if present'),
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 4, rule_text_1 = 100, description =  'value 1 must be less than 100')
+            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 5, rule_text_1 = 0, description =  'value 1 must be greater than zero', rule_timing_id=1),
+            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 3, rule_text_1 = 13, description =  'value 1 may not be 13', rule_timing_id=1),
+            Rule(file_column_id = str(colIdDict["".join(["header_",str(5),"_file_type_",str(3)])]),rule_type_id = 1, rule_text_1 = "INT", description =  'value 5 must be an integer', rule_timing_id=1),
+            Rule(file_column_id = str(colIdDict["".join(["header_",str(3),"_file_type_",str(3)])]),rule_type_id = 2, rule_text_1 = 42, description =  'value 3 must be equal to 42 if present', rule_timing_id=1),
+            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 4, rule_text_1 = 100, description =  'value 1 must be less than 100', rule_timing_id=1),
+            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 2, rule_text_1 = "  ", description =  'None shall pass', rule_timing_id=2) #This rule should never be checked with rule_timing 2
         ]
 
         for rule in rules:
