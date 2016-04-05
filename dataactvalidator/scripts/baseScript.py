@@ -48,14 +48,14 @@ def loadValidator():
     validator_config_path = os.path.join(
         os.path.dirname(dataactvalidator.__file__), "config")
 
-    appropriationsFields = os.path.join(validator_config_path, "appropriationsFields.csv")
+    appropriationsFields = os.path.join(validator_config_path, "appropFields.csv")
     try:
         SchemaLoader.loadFields("appropriations", appropriationsFields)
     except IOError:
         print("Can't open file: {}".format(appropriationsFields))
 
 
-    appropriationsRules = os.path.join(validator_config_path, "appropriationsRules.csv")
+    appropriationsRules = os.path.join(validator_config_path, "appropRules.csv")
     try:
         SchemaLoader.loadRules("appropriations", appropriationsRules)
     except IOError:
