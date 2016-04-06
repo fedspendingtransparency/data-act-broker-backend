@@ -6,25 +6,18 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils import jobQueue
+from dataactcore.config import CONFIG_DB
+
 
 class JobTrackerInterface(BaseInterface):
-    """ Manages all interaction with the job tracker database
-
-    STATIC FIELDS:
-    dbName -- Name of job tracker database
-    dbConfigFile -- Full path to credentials file
-    """
-    dbName = "job_tracker"
-    credFileName = "dbCred.json"
+    """Manages all interaction with the job tracker database."""
+    dbName = CONFIG_DB['job_db_name']
     Session = None
     engine = None
     session = None
 
     def __init__(self):
-        self.dbConfigFile = self.getCredFilePath()
         super(JobTrackerInterface,self).__init__()
-
-
 
     @staticmethod
     def getDbName():
@@ -42,7 +35,6 @@ class JobTrackerInterface(BaseInterface):
         True if single result, otherwise exception
         """
         return BaseInterface.runUniqueQuery(query, "Job ID not found in job_status table","Conflicting jobs found for this ID")
-
 
     def getSession(self):
         """ Return session object"""

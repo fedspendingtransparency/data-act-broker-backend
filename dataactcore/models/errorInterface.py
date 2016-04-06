@@ -1,36 +1,37 @@
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.errorModels import Status, ErrorType, FileStatus, ErrorData
+from dataactcore.config import CONFIG_DB
+
 
 class ErrorInterface(BaseInterface):
-    """ Manages communication with error database """
-    dbName = "error_data"
-    credFileName = "dbCred.json"
+    """Manages communication with error database."""
+    dbName = CONFIG_DB['error_db_name']
     Session = None
     engine = None
     session = None
 
     def __init__(self):
-        self.dbConfigFile = self.getCredFilePath()
         super(ErrorInterface,self).__init__()
         #Base.metadata.bind = self.engine
         #Base.metadata.create_all(self.engine)
 
-
     @staticmethod
     def getDbName():
-        """ Return database name"""
+        """Return database name."""
         return ErrorInterface.dbName
 
     def getSession(self):
         return self.session
 
     def getStatusId(self,statusName):
-        """ Get status ID for given name """
-        return self.getIdFromDict(Status,"STATUS_DICT","name",statusName,"status_id")
+        """Get status ID for given name."""
+        return self.getIdFromDict(
+            Status, "STATUS_DICT", "name", statusName, "status_id")
 
     def getTypeId(self,typeName):
-        return self.getIdFromDict(ErrorType,"TYPE_DICT","name",typeName,"error_type_id")
+        return self.getIdFromDict(
+            ErrorType, "TYPE_DICT", "name", typeName, "error_type_id")
 
     def getFileStatusByJobId(self, jobId):
         """ Get the File Status object with the specified job ID
@@ -80,7 +81,7 @@ class ErrorInterface(BaseInterface):
         numErrors = 0
         for result in queryResult:
             # For each row that matches jobId, add the number of that type of error
-	        numErrors += result.occurrences
+            numErrors += result.occurrences
         return numErrors
 
     def getMissingHeadersByJobId(self, jobId):
