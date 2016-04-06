@@ -160,11 +160,11 @@ class JobTrackerInterface(BaseInterface):
     def setFileSizeById(self,jobId, fileSize):
         """ Set file size for job matching ID """
         job = self.getJobById(jobId)
-        job.file_size = fileSize
+        job.file_size = int(fileSize)
         self.session.commit()
 
     def setNumberOfRowsById(self,jobId, numRows):
         """ Set number of rows in file for job matching ID """
         job = self.getJobById(jobId)
-        job.number_of_rows = numRows
+        job.number_of_rows = int(numRows)
         self.session.commit()
