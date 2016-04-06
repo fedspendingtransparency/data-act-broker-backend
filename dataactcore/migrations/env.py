@@ -4,8 +4,10 @@ from string import strip
 from alembic import context
 from dataactcore.models import errorModels
 from dataactcore.models import jobModels
+from dataactcore.models import userModel
 from dataactcore.models.errorInterface import ErrorInterface
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
+from dataactcore.models.userInterface import UserInterface
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
 import logging
@@ -25,7 +27,7 @@ logger = logging.getLogger('alembic.env')
 # gather section names referring to different
 # databases.  These are named "engine1", "engine2"
 # in the sample .ini file.
-db_names = ErrorInterface.getDbName() + ',' + JobTrackerInterface.getDbName()
+db_names = ErrorInterface.getDbName() + ',' + JobTrackerInterface.getDbName() + ',' + UserInterface.getDbName()
 config.set_main_option('databases', db_names)
 
 # add your model's MetaData objects here
@@ -41,11 +43,12 @@ config.set_main_option('databases', db_names)
 #}
 target_metadata = {
     ErrorInterface.getDbName(): errorModels.Base.metadata,
-    JobTrackerInterface.getDbName(): jobModels.Base.metadata
+    JobTrackerInterface.getDbName(): jobModels.Base.metadata,
+    UserInterface.getDbName(): userModel.Base.metadata
 }
 
 # Set up database URLs based on credentials file
-interfaces = [ErrorInterface, JobTrackerInterface]
+interfaces = [ErrorInterface, JobTrackerInterface, UserInterface]
 for interface in interfaces:
     creds = interface.getCredDict()
     baseUrl = 'postgres://' + creds['username'] + ':' + creds['password'] + '@' + creds['host'] + ':' + str(creds['port'])
