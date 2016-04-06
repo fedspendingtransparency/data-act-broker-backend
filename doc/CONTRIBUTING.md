@@ -127,6 +127,10 @@ Navigate to the DATA Act core's main folder:
 
         $ cd data-act-core
 
+Switch to the alpha release version of the code:
+
+        $ git checkout v0.1.0-alpha
+
 Install the dependencies:
 
         $ pip install -r requirements.txt
@@ -140,6 +144,10 @@ Navigate back to your DATA Act project home. From the command line, clone the DA
 Navigate to the broker API's main folder:
 
         $ cd data-act-broker
+
+Switch to the alpha release version of the code:
+
+        $ git checkout v0.1.0-alpha
 
 Install the dependencies:
 
@@ -155,6 +163,10 @@ Navigate to the validator's main folder:
 
         $ cd data-act-validator
 
+Switch to the alpha release version of the code:
+
+        $ git checkout v0.1.0-alpha
+
 Install the dependencies:
 
         $ pip install -r requirements.txt
@@ -164,6 +176,10 @@ Install the dependencies:
 Navigate back to your project home. From the command line, clone the DATA Act web app repository from GitHub to your local environment:
 
         $ git clone git@github.com:fedspendingtransparency/data-act-broker-web-app.git
+
+Switch to the alpha release version of the code:
+
+        $ git checkout v0.1.0-alpha
 
 ### Update $PYTHONPATH
 
