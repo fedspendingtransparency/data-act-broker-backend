@@ -8,6 +8,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.cloudLogger import CloudLogger
+from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
 from dataactvalidator.filestreaming.csvLocalReader import CsvLocalReader
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
@@ -166,8 +167,11 @@ class ValidationManager:
         rules = validationDB.getRulesByFile(fileType)
 
         reader = self.getReader()
-        try:
 
+        # Get file size and write to jobs table
+        jobTracker.setFileSizeById(jobId, s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId)))
+
+        try:
             # Pull file
             reader.openFile(bucketName, fileName,fieldList,bucketName,errorFileName)
 
@@ -188,12 +192,16 @@ class ValidationManager:
                         record = reader.getNextRecord()
                         if(reader.isFinished and len(record) < 2):
                             # This is the last line and is empty, don't record an error
+                            rowNumber -= 1 # Don't count this row
                             break
                     except ResponseException as e:
                         if(not (reader.isFinished and reader.extraLine) ) :
                             #Last line may be blank dont throw an error
                             writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber), ""])
                             errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
+                        else:
+                            # Don't count last row if empty
+                            rowNumber -= 1
                         continue
                     valid, failures = Validator.validate(record,rules,csvSchema,fileType,interfaces)
                     if(valid) :
@@ -223,6 +231,8 @@ class ValidationManager:
                 # Write unfinished batch
                 writer.finishBatch()
 
+            # Write number of rows to job table
+            jobTracker.setNumberOfRowsById(jobId,rowNumber)
             # Write leftover records
             tableObject.endBatch()
             # Mark validation as finished in job tracker
