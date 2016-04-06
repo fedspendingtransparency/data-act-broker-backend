@@ -1,6 +1,7 @@
 import unittest
 import os
 import inspect
+from datetime import datetime
 from datetime import date
 from time import sleep, time
 from boto.s3.connection import S3Connection
@@ -174,6 +175,8 @@ class FileTests(BaseTest):
         # Check submission level info
         self.assertEqual(json["number_of_errors"],0) # No actual validation is occurring in this test, so no errors
         self.assertEqual(json["number_of_rows"],667)
+        # Check that submission was created today, this test may fail if run right at midnight UTC
+        self.assertEqual(json["created_on"],datetime.utcnow().strftime("%m/%d/%Y"))
 
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
@@ -243,9 +246,9 @@ class FileTests(BaseTest):
         """Insert one submission into job tracker and get submission ID back."""
         if submission:
             sub = Submission(submission_id=submission,
-                datetime_utc=0, user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
+                datetime_utc=str(datetime.utcnow()), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
         else:
-            sub = Submission(datetime_utc=0, user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
+            sub = Submission(datetime_utc=str(datetime.utcnow()), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
         jobTracker.session.add(sub)
         jobTracker.session.commit()
         return sub.submission_id

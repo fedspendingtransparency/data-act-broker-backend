@@ -242,3 +242,12 @@ class JobHandler(JobTrackerInterface):
         """ Delete all submissions for a given user ID """
         self.session.query(Submission).filter(Submission.user_id == userId).delete()
         self.session.commit()
+
+    def getFormattedDatetimeBySubmissionId(self, submissionId):
+        """ Given a submission ID, return MM/DD/YYYY for the datetime of that submission """
+        # TODO refactor datetime_utc to use one of the Date formats in postgres, change here and where it is created
+        datetimeString = self.getSubmissionById(submissionId).datetime_utc
+        year = datetimeString[0:4]
+        month = datetimeString[5:7]
+        day = datetimeString[8:10]
+        return "".join([month,"/",day,"/",year])
