@@ -35,8 +35,7 @@ class sesEmail(object):
 
     def send(self):
         if(not sesEmail.isLocal):
-            raise NotImplementedError("SES through different AWS account not yet implemented")
-            connection = boto.ses.connect_to_region(CONFIG_BROKER["aws_region"])
+            connection = boto.connect_ses(aws_access_key_id=CONFIG_BROKER['aws_access_key_id'], aws_secret_access_key=CONFIG_BROKER['aws_secret_access_key'])
             return connection.send_email(self.fromAddress, self.subject,self.content,self.toAddress,format='html')
         else:
             newEmailText = "\n\n".join(["","Time",str(datetime.datetime.now()),"Subject",self.subject,"From",self.fromAddress,"To",self.toAddress,"Content",self.content])
