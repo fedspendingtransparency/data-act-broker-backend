@@ -20,6 +20,7 @@ print("{} tests in suite".format(suite.countTestCases()))
 
 # Run tests and store results
 runner = unittest.TextTestRunner(verbosity=2)
+
 if PROFILE:
     cProfile.run("runner.run(suite)","stats")
     stats = pstats.Stats("stats")

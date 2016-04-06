@@ -1,6 +1,8 @@
 from flask import session as flaskSession
 from threading import Thread
 import re
+import time
+from dateutil.parser import parse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
@@ -68,6 +70,10 @@ class AccountHandler:
             if(not self.interfaces.userDb.checkStatus(user,"approved")):
                 raise ValueError("user name and or password invalid")
 
+            # Only check if user is active after they've logged in for the first time
+            if user.last_login_date is not None and not self.isUserActive(user):
+                raise ValueError("user name and or password invalid")
+
             try:
                 if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
                     # We have a valid login
@@ -76,6 +82,7 @@ class AccountHandler:
                     for permission in self.interfaces.userDb.getPermssionList():
                         if(self.interfaces.userDb.hasPermisson(user,permission.name)):
                             permissionList.append(permission.permission_type_id)
+                    self.interfaces.userDb.updateLastLogin(user)
                     return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),"name":user.name,"title":user.title ,"agency":user.agency, "permissions" : permissionList})
                 else :
                     raise ValueError("user name and or password invalid")
@@ -411,3 +418,12 @@ class AccountHandler:
             if(self.interfaces.userDb.hasPermisson(user,permission.name)):
                 permissionList.append(permission.permission_type_id)
         return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList})
+
+    def isUserActive(self, user):
+        today = parse(time.strftime("%c"))
+        daysActive = (today-user.last_login_date).days
+        secondsActive = (today-user.last_login_date).seconds
+        if daysActive > 120 or (daysActive == 120 and secondsActive > 0):
+            user.is_active = False
+        self.interfaces.userDb.session.commit()
+        return user.is_active
