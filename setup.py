@@ -49,6 +49,9 @@ setup(
     keywords='dataAct validator setup',
     packages=find_packages(),
     install_requires=reqs,
+    dependency_links=[
+      'git+https://git@github.com/fedspendingtransparency/data-act-core.git@configuration#egg=dataactcore-0.0.1',
+    ],
     entry_points={
         'console_scripts': [
             'validator = dataactvalidator.scripts.initialize:options',
