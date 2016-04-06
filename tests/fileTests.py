@@ -2,12 +2,14 @@ import unittest
 import os
 import inspect
 from datetime import date
+from time import sleep, time
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from baseTest import BaseTest
 from dataactcore.models.jobModels import Submission, JobStatus
 from dataactcore.models.errorModels import ErrorData, FileStatus
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.utils.responseException import ResponseException
 from dataactbroker.handlers.jobHandler import JobHandler
 from shutil import copy
 
@@ -26,9 +28,11 @@ class FileTests(BaseTest):
         cls.submission_user_id = submission_user.user_id
 
         # setup submission/jobs data for test_check_status
+        print("Inserting submission")
         cls.status_check_submission_id = cls.insertSubmission(
             cls.jobTracker, cls.submission_user_id, agency = "Department of the Treasury", startDate = "04/01/2016", endDate = "04/02/2016")
 
+        print("Creating jobs for status check")
         cls.jobIdDict = cls.setupJobsForStatusCheck(cls.interfaces,
             cls.status_check_submission_id)
 
@@ -109,6 +113,28 @@ class FileTests(BaseTest):
         finalizeResponse = self.check_upload_complete(
             responseDict["appropriations_id"])
         self.assertEqual(finalizeResponse.status_code, 200)
+        # Wait for validation to complete
+        start = time()
+        valId = responseDict["appropriations_id"] + 1 # Validation job's ID is one higher than upload job
+        print("Validation ID should be: " + str(valId))
+        # First wait for job Id to get a file status
+        done = False
+        while not done and ((time() - start) < 100):
+            try:
+                self.interfaces.errorDb.checkStatusByJobId(valId)
+            except ResponseException:
+                # Does not exist yet, keep trying
+                sleep(1)
+        while (self.interfaces.errorDb.checkStatusByJobId(valId) is not self.interfaces.errorDb.getStatusId("complete")) and ((time() - start) < 100):
+            # If validation does not complete in 100 seconds, give up
+            sleep(1)
+            print("Status is " + str(self.interfaces.errorDb.checkStatusByJobId(valId)))
+        self.assertLess((time() - start),100,"Validation did not complete")
+        fileSize = self.interfaces.jobDb.getFileSizeById(valId)
+        numRows = self.interfaces.jobDb.getNumberOfRowsById(valId)
+        # Check that file size and number of rows got populated
+        self.assertIsNotNone(fileSize)
+        self.assertIsNotNone(numRows)
 
     def test_check_status(self):
         """Test broker status route response."""
@@ -139,6 +165,11 @@ class FileTests(BaseTest):
         self.assertIn("missing_header_two", appropJob["missing_headers"])
         self.assertIn("duplicated_header_one", appropJob["duplicated_headers"])
         self.assertIn("duplicated_header_two", appropJob["duplicated_headers"])
+        # Check file size and number of rows
+        self.assertEqual(appropJob["file_size"], 2345)
+        self.assertEqual(appropJob["number_of_rows"], 567)
+
+        # Check submission metadata
         self.assertEqual(json["agency_name"], "Department of the Treasury")
         self.assertEqual(json["reporting_period_start_date"], "04/01/2016")
         self.assertEqual(json["reporting_period_end_date"], "04/02/2016")
@@ -219,14 +250,16 @@ class FileTests(BaseTest):
         return sub.submission_id
 
     @staticmethod
-    def insertJob(jobTracker, filetype, status, type_id, submission, job_id=None, filename = None):
+    def insertJob(jobTracker, filetype, status, type_id, submission, job_id=None, filename = None, file_size = None, num_rows = None):
         """Insert one job into job tracker and get ID back."""
         job = JobStatus(
             file_type_id=filetype,
             status_id=status,
             type_id=type_id,
             submission_id=submission,
-            original_filename=filename
+            original_filename=filename,
+            file_size = file_size,
+            number_of_rows = num_rows
         )
         if job_id:
             job.job_id = job_id
@@ -269,29 +302,34 @@ class FileTests(BaseTest):
 
         # TODO: remove hard-coded surrogate keys
         jobValues = {}
-        jobValues["uploadFinished"] = [1, 4, 1, None]
-        jobValues["recordRunning"] = [1, 3, 2, None]
-        jobValues["externalWaiting"] = [1, 1, 5, None]
-        jobValues["awardFin"] = [2, 2, 2, "awardFin.csv"]
-        jobValues["appropriations"] = [3, 2, 2, "approp.csv"]
-        jobValues["program_activity"] = [4, 2, 2, "programActivity.csv"]
+        jobValues["uploadFinished"] = [1, 4, 1, None, None, None]
+        jobValues["recordRunning"] = [1, 3, 2, None, None, None]
+        jobValues["externalWaiting"] = [1, 1, 5, None, None, None]
+        jobValues["awardFin"] = [2, 2, 2, "awardFin.csv", None, None]
+        jobValues["appropriations"] = [3, 2, 2, "approp.csv", 2345, 567]
+        jobValues["program_activity"] = [4, 2, 2, "programActivity.csv", None, None]
         jobIdDict = {}
 
         for jobKey, values in jobValues.items():
+            print("Inserting job " + str(jobKey))
             job_id = FileTests.insertJob(
                 interfaces.jobDb,
                 filetype=values[0],
                 status=values[1],
                 type_id=values[2],
                 submission=submission_id,
-                filename=values[3]
+                filename=values[3],
+                file_size=values[4],
+                num_rows=values[5]
             )
             jobIdDict[jobKey] = job_id
 
+        print("all jobs inserted")
         # For appropriations job, create an entry in file_status for this job
         fileStatus = FileStatus(job_id = jobIdDict["appropriations"],filename = "approp.csv", status_id = interfaces.errorDb.getStatusId("complete"), headers_missing = "missing_header_one, missing_header_two", headers_duplicated = "duplicated_header_one, duplicated_header_two")
         interfaces.errorDb.session.add(fileStatus)
         interfaces.errorDb.session.commit()
+        print("completed setup for status check")
         return jobIdDict
 
     @staticmethod

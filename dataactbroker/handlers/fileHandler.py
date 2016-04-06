@@ -189,24 +189,25 @@ class FileHandler:
             # Include number of errors in submission
             submissionInfo["number_of_errors"] = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobs)
 
-            for job in jobs:
+            for jobId in jobs:
                 jobInfo = {}
-                if(self.jobManager.getJobType(job) != "csv_record_validation"):
+                if(self.jobManager.getJobType(jobId) != "csv_record_validation"):
                     continue
-                jobInfo["job_id"] = job
-                jobInfo["job_status"] = self.jobManager.getJobStatus(job)
-                jobInfo["job_type"] = self.jobManager.getJobType(job)
-                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job)
+                jobInfo["job_id"] = jobId
+                jobInfo["job_status"] = self.jobManager.getJobStatus(jobId)
+                jobInfo["job_type"] = self.jobManager.getJobType(jobId)
+                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(jobId)
                 try:
-                    jobInfo["file_status"] = self.interfaces.errorDb.getStatusLabelByJobId(job)
+                    jobInfo["file_status"] = self.interfaces.errorDb.getStatusLabelByJobId(jobId)
                 except ResponseException as e:
                     # Job ID not in error database, probably did not make it to validation, or has not yet been validated
                     jobInfo["file_status"] = ""
                     jobInfo["missing_headers"] = []
                     jobInfo["duplicated_headers"] = []
                 else:
-                    # If job ID was found in file_status, we should be able to get header error lists
-                    missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(job)
+                    # If job ID was found in file_status, we should be able to get header error lists and file data
+                    # Get string of missing headers and parse as a list
+                    missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(jobId)
                     if missingHeaderString is not None:
                         jobInfo["missing_headers"] = missingHeaderString.split(",")
                         if(len(jobInfo["missing_headers"]) == 1 and jobInfo["missing_headers"][0] == ""):
@@ -216,7 +217,8 @@ class FileHandler:
                             jobInfo["missing_headers"][i] = jobInfo["missing_headers"][i].strip()
                     else:
                         jobInfo["missing_headers"] = []
-                    duplicatedHeaderString = self.interfaces.errorDb.getDuplicatedHeadersByJobId(job)
+                    # Get string of duplicated headers and parse as a list
+                    duplicatedHeaderString = self.interfaces.errorDb.getDuplicatedHeadersByJobId(jobId)
                     if duplicatedHeaderString is not None:
                         jobInfo["duplicated_headers"] = duplicatedHeaderString.split(",")
                         if(len(jobInfo["duplicated_headers"]) == 1 and jobInfo["duplicated_headers"][0] == ""):
@@ -225,8 +227,12 @@ class FileHandler:
                             jobInfo["duplicated_headers"][i] = jobInfo["duplicated_headers"][i].strip()
                     else:
                         jobInfo["duplicated_headers"] = []
+                    # Get file size
+                    jobInfo["file_size"] = self.jobManager.getFileSizeById(jobId)
+                    # Get number of rows in file
+                    jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(jobId)
                 try :
-                    jobInfo["file_type"] = self.jobManager.getFileType(job)
+                    jobInfo["file_type"] = self.jobManager.getFileType(jobId)
                 except Exception as e:
                     jobInfo["file_type"]  = ''
                 submissionInfo["jobs"].append(jobInfo)

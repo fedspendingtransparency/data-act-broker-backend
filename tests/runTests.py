@@ -14,7 +14,7 @@ suite.addTests(unittest.makeSuite(LoginTests))
 suite.addTests(unittest.makeSuite(FileTests))
 suite.addTests(unittest.makeSuite(UserTests))
 # to run a single test:
-#suite.addTest(FileTests('test_check_status'))
+#suite.addTest(FileTests('test_file_submission'))
 
 print("{} tests in suite".format(suite.countTestCases()))
 
