@@ -8,6 +8,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
+from dataactcore.config import CONFIG_BROKER
 from dataactbroker.handlers.managerProxy import ManagerProxy
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactbroker.handlers.aws.session import LoginSession
@@ -48,7 +49,7 @@ class FileHandler:
         Gets the Signed URLs for download based on the submissionId
         """
         try :
-            self.s3manager = s3UrlHandler(s3UrlHandler.getValueFromConfig("bucket"))
+            self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
             safeDictionary = RequestDictionary(self.request)
             submissionId = safeDictionary.getValue("submission_id")
             responseDict ={}
@@ -83,29 +84,33 @@ class FileHandler:
         """
         try:
             responseDict= {}
-            self.s3manager = s3UrlHandler(s3UrlHandler.getValueFromConfig("bucket"))
             fileNameMap = []
             safeDictionary = RequestDictionary(self.request)
-            for fileName in FileHandler.FILE_TYPES :
-                if( safeDictionary.exists(fileName)) :
+            for fileType in FileHandler.FILE_TYPES :
+                filename = safeDictionary.getValue(fileType)
+                if( safeDictionary.exists(fileType)) :
                     if(not self.isLocal):
-                        uploadName =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(safeDictionary.getValue(fileName))
+                        uploadName =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(filename)
                     else:
-                        uploadName = safeDictionary.getValue(fileName)
-                    responseDict[fileName+"_key"] = uploadName
-                    fileNameMap.append((fileName,uploadName))
+                        uploadName = filename
+                    responseDict[fileType+"_key"] = uploadName
+                    fileNameMap.append((fileType,uploadName,filename))
 
             fileJobDict = self.jobManager.createJobs(fileNameMap,name)
-            for fileName in fileJobDict.keys():
-                if (not "submission_id" in fileName) :
-                    responseDict[fileName+"_id"] = fileJobDict[fileName]
+            for fileType in fileJobDict.keys():
+                if (not "submission_id" in fileType) :
+                    responseDict[fileType+"_id"] = fileJobDict[fileType]
             if(CreateCredentials and not self.isLocal) :
+                self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
                 responseDict["credentials"] = self.s3manager.getTemporaryCredentials(name)
             else :
                 responseDict["credentials"] ={"AccessKeyId" : "local","SecretAccessKey" :"local","SessionToken":"local" ,"Expiration" :"local"}
 
             responseDict["submission_id"] = fileJobDict["submission_id"]
-            responseDict["bucket_name"] =s3UrlHandler.getValueFromConfig("bucket")
+            if self.isLocal:
+                responseDict["bucket_name"] = CONFIG_BROKER["broker_files"]
+            else:
+                responseDict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
             return JsonResponse.create(StatusCode.OK,responseDict)
         except (ValueError , TypeError, NotImplementedError) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
@@ -153,7 +158,7 @@ class FileHandler:
         """ Get description and status of all jobs in the submission specified in request object
 
         Returns:
-            A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding description and status
+            A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding file_type, job_type, status, and filename
         """
         try:
             inputDictionary = RequestDictionary(self.request)
@@ -167,8 +172,33 @@ class FileHandler:
             submissionInfo = {}
             for job in jobs:
                 jobInfo = {}
-                jobInfo["status"] = self.jobManager.getJobStatus(job)
+                if(self.jobManager.getJobType(job) != "csv_record_validation"):
+                    continue
+                jobInfo["job_status"] = self.jobManager.getJobStatus(job)
                 jobInfo["job_type"] = self.jobManager.getJobType(job)
+                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job)
+                try:
+                    jobInfo["file_status"] = self.interfaces.errorDb.getStatusLabelByJobId(job)
+                except ResponseException as e:
+                    # Job ID not in error database, probably did not make it to validation, or has not yet been validated
+                    jobInfo["file_status"] = ""
+                    jobInfo["missing_headers"] = ""
+                else:
+                    # If job ID was found in file_status, we should be able to get header error lists
+                    missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(job)
+                    if missingHeaderString is not None:
+                        jobInfo["missing_headers"] = missingHeaderString.split(",")
+                        for i in range(0,len(jobInfo["missing_headers"])):
+                            jobInfo["missing_headers"][i] = jobInfo["missing_headers"][i].strip()
+                    else:
+                        jobInfo["missing_headers"] = []
+                    duplicatedHeaderString = self.interfaces.errorDb.getDuplicatedHeadersByJobId(job)
+                    if duplicatedHeaderString is not None:
+                        jobInfo["duplicated_headers"] = duplicatedHeaderString.split(",")
+                        for i in range(0,len(jobInfo["duplicated_headers"])):
+                            jobInfo["duplicated_headers"][i] = jobInfo["duplicated_headers"][i].strip()
+                    else:
+                        jobInfo["duplicated_headers"] = []
                 try :
                     jobInfo["file_type"] = self.jobManager.getFileType(job)
                 except Exception as e:

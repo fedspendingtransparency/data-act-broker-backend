@@ -40,7 +40,7 @@ class JobHandler(JobTrackerInterface):
         """  Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
 
         Arguments:
-        filenames -- List of filenames to be uploaded
+        filenames -- List of tuples containing (file type, upload path, original filenames)
         userId -- User ID to be linked to submission
 
         Returns:
@@ -79,7 +79,7 @@ class JobHandler(JobTrackerInterface):
         """  Add upload jobs to job tracker database
 
         Arguments:
-        filenames -- List of filenames to be uploaded
+        filenames -- List of tuples containing (file type, upload path, original filenames)
 
         Returns:
         jobsRequired -- List of job ids required for validation jobs, used to populate the prerequisite table
@@ -93,18 +93,18 @@ class JobHandler(JobTrackerInterface):
 
 
 
-        for fileType, filename in filenames:
+        for fileType, filePath, filename in filenames:
             fileTypeQuery = self.session.query(FileType.file_type_id).filter(FileType.name == fileType)
             fileTypeResult = self.runUniqueQuery(fileTypeQuery,"No matching file type", "Multiple matching file types")
             fileTypeId = fileTypeResult.file_type_id
 
             # Create upload job, mark as running since frontend should be doing this upload
-            fileJob = JobStatus(filename = filename, file_type_id = fileTypeId, status_id = self.getStatusId("running"), type_id = self.getTypeId("file_upload"), submission_id = submission.submission_id)
+            fileJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("running"), type_id = self.getTypeId("file_upload"), submission_id = submission.submission_id)
 
             self.session.add(fileJob)
 
             # Create parse into DB job
-            dbJob = JobStatus(filename = filename, file_type_id = fileTypeId, status_id = self.getStatusId("waiting"), type_id = self.getTypeId("csv_record_validation"), submission_id = submission.submission_id)
+            dbJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("waiting"), type_id = self.getTypeId("csv_record_validation"), submission_id = submission.submission_id)
             self.session.add(dbJob)
             self.session.flush()
             # Add dependency between file upload and db upload
