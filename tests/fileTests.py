@@ -28,11 +28,9 @@ class FileTests(BaseTest):
         cls.submission_user_id = submission_user.user_id
 
         # setup submission/jobs data for test_check_status
-        print("Inserting submission")
         cls.status_check_submission_id = cls.insertSubmission(
             cls.jobTracker, cls.submission_user_id, agency = "Department of the Treasury", startDate = "04/01/2016", endDate = "04/02/2016")
 
-        print("Creating jobs for status check")
         cls.jobIdDict = cls.setupJobsForStatusCheck(cls.interfaces,
             cls.status_check_submission_id)
 
@@ -116,19 +114,18 @@ class FileTests(BaseTest):
         # Wait for validation to complete
         start = time()
         valId = responseDict["appropriations_id"] + 1 # Validation job's ID is one higher than upload job
-        print("Validation ID should be: " + str(valId))
         # First wait for job Id to get a file status
         done = False
         while not done and ((time() - start) < 100):
             try:
                 self.interfaces.errorDb.checkStatusByJobId(valId)
+                done = True
             except ResponseException:
                 # Does not exist yet, keep trying
                 sleep(1)
         while (self.interfaces.errorDb.checkStatusByJobId(valId) is not self.interfaces.errorDb.getStatusId("complete")) and ((time() - start) < 100):
             # If validation does not complete in 100 seconds, give up
             sleep(1)
-            print("Status is " + str(self.interfaces.errorDb.checkStatusByJobId(valId)))
         self.assertLess((time() - start),100,"Validation did not complete")
         fileSize = self.interfaces.jobDb.getFileSizeById(valId)
         numRows = self.interfaces.jobDb.getNumberOfRowsById(valId)
@@ -311,7 +308,6 @@ class FileTests(BaseTest):
         jobIdDict = {}
 
         for jobKey, values in jobValues.items():
-            print("Inserting job " + str(jobKey))
             job_id = FileTests.insertJob(
                 interfaces.jobDb,
                 filetype=values[0],
@@ -324,12 +320,10 @@ class FileTests(BaseTest):
             )
             jobIdDict[jobKey] = job_id
 
-        print("all jobs inserted")
         # For appropriations job, create an entry in file_status for this job
         fileStatus = FileStatus(job_id = jobIdDict["appropriations"],filename = "approp.csv", status_id = interfaces.errorDb.getStatusId("complete"), headers_missing = "missing_header_one, missing_header_two", headers_duplicated = "duplicated_header_one, duplicated_header_two")
         interfaces.errorDb.session.add(fileStatus)
         interfaces.errorDb.session.commit()
-        print("completed setup for status check")
         return jobIdDict
 
     @staticmethod
