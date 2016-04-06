@@ -149,12 +149,15 @@ class JobTrackerInterface(BaseInterface):
         return status
 
     def getStatusId(self,statusName):
+        """ Return the status ID that corresponds to the given name """
         return self.getIdFromDict(Status,"STATUS_DICT","name",statusName,"status_id")
 
     def getTypeId(self,typeName):
+        """ Return the type ID that corresponds to the given name """
         return self.getIdFromDict(Type,"TYPE_DICT","name",typeName,"type_id")
 
     def getOriginalFilenameById(self,jobId):
+        """ Get original filename for job matching ID """
         return self.getJobById(jobId).original_filename
 
     def getPrerequisiteJobs(self, jobId):
@@ -195,3 +198,23 @@ class JobTrackerInterface(BaseInterface):
                 self.markStatus(depJobId, 'ready')
                 # add to the job queue
                 x = jobQueue.enqueue.delay(depJobId)
+
+    def getFileSizeById(self,jobId):
+        """ Get file size for job matching ID """
+        return self.getJobById(jobId).file_size
+
+    def getNumberOfRowsById(self,jobId):
+        """ Get number of rows in file for job matching ID """
+        return self.getJobById(jobId).number_of_rows
+
+    def setFileSizeById(self,jobId, fileSize):
+        """ Set file size for job matching ID """
+        job = self.getJobById(jobId)
+        job.file_size = int(fileSize)
+        self.session.commit()
+
+    def setNumberOfRowsById(self,jobId, numRows):
+        """ Set number of rows in file for job matching ID """
+        job = self.getJobById(jobId)
+        job.number_of_rows = int(numRows)
+        self.session.commit()
