@@ -53,8 +53,7 @@ class JobHandler(JobTrackerInterface):
                 if(key == "reporting_period_start_date" or key == "reporting_period_end_date"):
                     # Create a date object from formatted string, assuming "MM/DD/YYYY"
                     try:
-                        dateParts = requestDict.getValue(key).split("/")
-                        submissionData[metaDataFieldMap[key]] = date(year = int(dateParts[2]),month = int(dateParts[0]),day = int(dateParts[1]))
+                        submissionData[metaDataFieldMap[key]] = JobHandler.createDate(requestDict.getValue(key))
                     except Exception as e:
                         raise ResponseException("Submission dates must be formatted as MM/DD/YYYY, hit error: " + str(e),StatusCode.CLIENT_ERROR,type(e))
                 else:
@@ -65,6 +64,14 @@ class JobHandler(JobTrackerInterface):
                 else:
                     submissionData[metaDataFieldMap[key]] = None
         return submissionData
+
+    @staticmethod
+    def createDate(dateString):
+        """ Create a date object from a string in "MM/DD/YYYY" """
+        if dateString is None:
+            return None
+        dateParts = dateString.split("/")
+        return date(year = int(dateParts[2]),month = int(dateParts[0]),day = int(dateParts[1]))
 
     def createSubmission(self, userId, requestDict):
         """ Create a new submission

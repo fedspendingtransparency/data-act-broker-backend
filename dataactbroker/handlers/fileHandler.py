@@ -184,8 +184,8 @@ class FileHandler:
             submissionInfo = {}
             submissionInfo["jobs"] = []
             submissionInfo["agency_name"] = submission.agency_name
-            submissionInfo["reporting_period_start_date"] = submission.reporting_start_date
-            submissionInfo["reporting_period_end_date"] = submission.reporting_end_date
+            submissionInfo["reporting_period_start_date"] = submission.reporting_start_date.strftime("%m/%d/%Y")
+            submissionInfo["reporting_period_end_date"] = submission.reporting_end_date.strftime("%m/%d/%Y")
             # Include number of errors in submission
             submissionInfo["number_of_errors"] = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobs)
 

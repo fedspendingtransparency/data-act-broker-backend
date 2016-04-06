@@ -1,12 +1,14 @@
 import unittest
 import os
 import inspect
+from datetime import date
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from baseTest import BaseTest
 from dataactcore.models.jobModels import Submission, JobStatus
 from dataactcore.models.errorModels import ErrorData, FileStatus
 from dataactcore.config import CONFIG_BROKER
+from dataactbroker.handlers.jobHandler import JobHandler
 from shutil import copy
 
 class FileTests(BaseTest):
@@ -25,7 +27,8 @@ class FileTests(BaseTest):
 
         # setup submission/jobs data for test_check_status
         cls.status_check_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id)
+            cls.jobTracker, cls.submission_user_id, agency = "Department of the Treasury", startDate = "04/01/2016", endDate = "04/02/2016")
+
         cls.jobIdDict = cls.setupJobsForStatusCheck(cls.interfaces,
             cls.status_check_submission_id)
 
@@ -136,6 +139,9 @@ class FileTests(BaseTest):
         self.assertIn("missing_header_two", appropJob["missing_headers"])
         self.assertIn("duplicated_header_one", appropJob["duplicated_headers"])
         self.assertIn("duplicated_header_two", appropJob["duplicated_headers"])
+        self.assertEqual(json["agency_name"], "Department of the Treasury")
+        self.assertEqual(json["reporting_period_start_date"], "04/01/2016")
+        self.assertEqual(json["reporting_period_end_date"], "04/02/2016")
 
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
@@ -201,13 +207,13 @@ class FileTests(BaseTest):
             True, "appropriations")
 
     @staticmethod
-    def insertSubmission(jobTracker, submission_user_id, submission=None):
+    def insertSubmission(jobTracker, submission_user_id, submission=None, agency = None, startDate = None, endDate = None):
         """Insert one submission into job tracker and get submission ID back."""
         if submission:
             sub = Submission(submission_id=submission,
-                datetime_utc=0, user_id=submission_user_id)
+                datetime_utc=0, user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
         else:
-            sub = Submission(datetime_utc=0, user_id=submission_user_id)
+            sub = Submission(datetime_utc=0, user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
         jobTracker.session.add(sub)
         jobTracker.session.commit()
         return sub.submission_id
