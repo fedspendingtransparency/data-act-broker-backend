@@ -1,4 +1,5 @@
 import re
+from decimal import *
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.validationError import ValidationError
@@ -133,7 +134,7 @@ class Validator(object):
                 return False
         if(datatype == "DECIMAL") :
             try:
-                float(data)
+                Decimal(data)
                 return True
             except:
                 return False
@@ -164,7 +165,7 @@ class Validator(object):
         if(datatype =="INT") :
             return int(float(data))
         if(datatype =="DECIMAL") :
-            return float(data)
+            return Decimal(data)
         if(datatype == "STRING" or datatype =="BOOLEAN") :
             return data
         if(datatype == "LONG"):
