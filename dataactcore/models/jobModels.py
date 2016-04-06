@@ -49,6 +49,8 @@ class JobStatus(Base):
     file_type = relationship("FileType", uselist=False)
     staging_table = Column(Text, nullable=True)
     original_filename = Column(Text, nullable=True)
+    file_size = Column(Integer)
+    number_of_rows = Column(Integer)
 
 class JobDependency(Base):
     __tablename__ = "job_dependency"
