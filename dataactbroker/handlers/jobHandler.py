@@ -207,7 +207,7 @@ class JobHandler(JobTrackerInterface):
         return submission.user_id
 
     def getSubmissionForJob(self,job):
-        """ Takes a job about and returns the associated submission object """
+        """ Takes a job object and returns the associated submission object """
         query = self.session.query(Submission).filter(Submission.submission_id == job.submission_id)
         try:
             result = self.runUniqueQuery(query,"This job has no attached submission", "Multiple submissions with conflicting ID")
@@ -222,3 +222,23 @@ class JobHandler(JobTrackerInterface):
         query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
         result = self.runUniqueQuery(query,"No job with that ID","Multiple jobs with conflicting ID")
         return result
+
+    def sumNumberOfRowsForJobList(self, jobList):
+        """ Given a list of job IDs, return the number of rows summed across jobs """
+        rowSum = 0
+        for jobId in jobList:
+            jobRows = self.getNumberOfRowsById(jobId)
+            try:
+                rowSum += int(jobRows)
+            except TypeError:
+                # If jobRows is None or empty string, just don't add it, otherwise reraise
+                if jobRows is None or jobRows == "":
+                    continue
+                else:
+                    raise
+        return rowSum
+
+    def deleteSubmissionsForUserId(self,userId):
+        """ Delete all submissions for a given user ID """
+        self.session.query(Submission).filter(Submission.user_id == userId).delete()
+        self.session.commit()

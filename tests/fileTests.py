@@ -171,6 +171,10 @@ class FileTests(BaseTest):
         self.assertEqual(json["reporting_period_start_date"], "04/01/2016")
         self.assertEqual(json["reporting_period_end_date"], "04/02/2016")
 
+        # Check submission level info
+        self.assertEqual(json["number_of_errors"],0) # No actual validation is occurring in this test, so no errors
+        self.assertEqual(json["number_of_rows"],667)
+
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
         postJson = {"upload_id": jobId}
@@ -302,7 +306,7 @@ class FileTests(BaseTest):
         jobValues["uploadFinished"] = [1, 4, 1, None, None, None]
         jobValues["recordRunning"] = [1, 3, 2, None, None, None]
         jobValues["externalWaiting"] = [1, 1, 5, None, None, None]
-        jobValues["awardFin"] = [2, 2, 2, "awardFin.csv", None, None]
+        jobValues["awardFin"] = [2, 2, 2, "awardFin.csv", 100, 100]
         jobValues["appropriations"] = [3, 2, 2, "approp.csv", 2345, 567]
         jobValues["program_activity"] = [4, 2, 2, "programActivity.csv", None, None]
         jobIdDict = {}
