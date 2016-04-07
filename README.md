@@ -4,7 +4,7 @@ The validator is used to check files submitted by users against a set of rules s
 
 ## Installation
 
-For complete instructions on running your own copy of the DATA Act validator and the other DATA Act broker components, please refer to the [documentation in the DATA Act core responsitory](https://github.com/fedspendingtransparency/data-act-core/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
+For instructions on contributing to this project or running your own copy of the DATA Act broker, please refer to the [documentation in the DATA Act core responsitory](https://github.com/fedspendingtransparency/data-act-core/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
 
 ## Validator API Routes
 
