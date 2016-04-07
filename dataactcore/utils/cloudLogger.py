@@ -38,8 +38,10 @@ class CloudLogger(object):
             CloudLogger.getLogger().error(
                 "".join([message, str(exception)]), extra=logging_helpers)
         else:
-            localPath = os.path.join(CONFIG_LOGGING["log_files"], "error.log")
-            with open(localPath, "a") as file:
+            path = CONFIG_LOGGING["log_files"]
+            if not os.path.exists(path):
+                os.makedirs(path)
+            localFile = os.path.join(path, "error.log")
+            with open(localFile, "a") as file:
                 file.write("\n\n".join(["\n\n", message,
                     str(exception), json.dumps(logging_helpers)]))
-            #open (localPath,"a").write("\n\n".join(["\n\n",message,str(exception),json.dumps(logging_helpers)]))
