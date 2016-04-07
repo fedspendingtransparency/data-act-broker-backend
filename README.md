@@ -4,7 +4,7 @@ The DATA Act Broker repository is the API, which communicates to the web front e
 
 ## Installation
 
-For complete instructions on running your own copy of the broker API and the other DATA Act broker components, please refer to the [documentation in the DATA Act core responsitory](https://github.com/fedspendingtransparency/data-act-core/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
+For instructions on contributing to this project or running your own copy of the DATA Act broker, please refer to the [documentation in the DATA Act core responsitory](https://github.com/fedspendingtransparency/data-act-core/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
 
 ## Project Layout
 
