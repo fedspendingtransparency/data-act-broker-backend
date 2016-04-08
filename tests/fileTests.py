@@ -114,7 +114,8 @@ class FileTests(BaseTest):
         self.assertEqual(finalizeResponse.status_code, 200)
         # Wait for validation to complete
         start = time()
-        valId = responseDict["appropriations_id"] + 1 # Validation job's ID is one higher than upload job
+        valId = self.interfaces.jobDb.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.file_type_id == 3).filter(JobStatus.type_id == self.interfaces.jobDb.getTypeId("csv_record_validation")).one().job_id
+        
         # First wait for job Id to get a file status
         done = False
         while not done and ((time() - start) < 100):
@@ -152,6 +153,7 @@ class FileTests(BaseTest):
             if str(job["job_id"]) == str(jobIdDict["appropriations"]):
                 # Found the job to be checked
                 appropJob = job
+                break
         # Must have an approp job
         self.assertNotEqual(appropJob, None)
         # And that job must have the following
