@@ -115,7 +115,7 @@ class FileTests(BaseTest):
         # Wait for validation to complete
         start = time()
         valId = self.interfaces.jobDb.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.file_type_id == 3).filter(JobStatus.type_id == self.interfaces.jobDb.getTypeId("csv_record_validation")).one().job_id
-        
+
         # First wait for job Id to get a file status
         done = False
         while not done and ((time() - start) < 100):
@@ -128,6 +128,7 @@ class FileTests(BaseTest):
         while (self.interfaces.jobDb.getJobStatus(valId) == "waiting" or self.interfaces.jobDb.getJobStatus(valId) == "running") and ((time() - start) < 100):
             # If validation does not complete in 100 seconds, give up
             sleep(1)
+        self.assertEqual(self.interfaces.jobDb.getJobStatus(valId),"finished")
         self.assertEqual(self.interfaces.errorDb.checkStatusByJobId(valId),self.interfaces.errorDb.getStatusId("complete"))
         self.assertLess((time() - start),100,"Validation did not complete")
         fileSize = self.interfaces.jobDb.getFileSizeById(valId)
