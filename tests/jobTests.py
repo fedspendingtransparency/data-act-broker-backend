@@ -144,26 +144,26 @@ class JobTests(BaseTest):
         """Test valid job."""
         jobId = self.jobIdDict["valid"]
         response = self.run_test(
-            jobId, 200, "finished", 52, 1, "complete", 0)
+            jobId, 200, "finished", 52, 1, "complete", 0, False)
 
     def test_rules(self):
         """Test rules, should have one type failure and four value failures."""
         jobId = self.jobIdDict["rules"]
         response = self.run_test(
-            jobId, 200, "finished", 350, 1, "complete", 5)
+            jobId, 200, "finished", 350, 1, "complete", 5, True)
 
     def test_bad_values_job(self):
         """Test a job with bad values."""
         jobId = self.jobIdDict["bad_values"]
         response = self.run_test(
-            jobId, 200, "finished", 5474, 0, "complete", 90)
+            jobId, 200, "finished", 5474, 0, "complete", 90, True)
 
     def test_many_bad_values_job(self):
         # Test job with many bad values
         if self.includeLongTests:
             jobId = self.jobIdDict["many_bad"]
             response = self.run_test(
-                jobId, 200, "finished", 151665643, 0, "complete", 2302930)
+                jobId, 200, "finished", 151665643, 0, "complete", 2302930, True)
         else:
             self.skipTest("includeLongTests flag is off")
 
@@ -171,7 +171,7 @@ class JobTests(BaseTest):
         """Test mixed job."""
         jobId = self.jobIdDict["mixed"]
         response = self.run_test(
-            jobId, 200, "finished", 99, 3, "complete", 1)
+            jobId, 200, "finished", 99, 3, "complete", 1, True)
 
     def test_empty(self):
         """Test empty file."""
@@ -181,7 +181,7 @@ class JobTests(BaseTest):
         else:
             status = 400
         response = self.run_test(
-            jobId, status, "invalid", False, False, "single_row_error", 0)
+            jobId, status, "invalid", False, False, "single_row_error", 0, False)
 
         if not self.useThreads:
             self.assertEqual(
@@ -196,7 +196,7 @@ class JobTests(BaseTest):
             status = 400
 
         response = self.run_test(
-            jobId, status, "invalid", False, False, "header_error", 0)
+            jobId, status, "invalid", False, False, "header_error", 0, False)
 
         if not self.useThreads:
             self.assertEqual(
@@ -211,7 +211,7 @@ class JobTests(BaseTest):
             status = 400
 
         response = self.run_test(
-            jobId, status, "invalid", False, False, "header_error", 0)
+            jobId, status, "invalid", False, False, "header_error", 0, False)
 
         if not self.useThreads:
             self.assertEqual(
@@ -222,7 +222,7 @@ class JobTests(BaseTest):
         if self.includeLongTests:
             jobId = self.jobIdDict["many"]
             response = self.run_test(
-                jobId, 200, "finished", 52, 22380, "complete", 0)
+                jobId, 200, "finished", 52, 22380, "complete", 0, False)
         else:
             self.skipTest("includeLongTests flag is off")
 
@@ -230,31 +230,31 @@ class JobTests(BaseTest):
         """Test potentially problematic characters."""
         jobId = self.jobIdDict["odd_characters"]
         response = self.run_test(
-            jobId, 200, "finished", 99, 6, "complete", 1)
+            jobId, 200, "finished", 99, 6, "complete", 1, True)
 
     def test_bad_id_job(self):
         """Test job ID not found in job status table."""
         jobId = -1
         response = self.run_test(
-            jobId, 400, False, False, False, False, 0)
+            jobId, 400, False, False, False, False, 0, None)
 
     def test_prereq_job(self):
         """Test job with prerequisites finished."""
         jobId = self.jobIdDict["valid_prereq"]
         response = self.run_test(
-            jobId, 200, "finished", 52, 4, "complete", 0)
+            jobId, 200, "finished", 52, 4, "complete", 0, False)
 
     def test_bad_prereq_job(self):
         """Test job with unfinished prerequisites."""
         jobId = self.jobIdDict["bad_prereq"]
         response = self.run_test(
-            jobId, 400, "ready", False, False, "job_error", 0)
+            jobId, 400, "ready", False, False, "job_error", 0, None)
 
     def test_bad_type_job(self):
         """Test job with wrong type."""
         jobId = self.jobIdDict["wrong_type"]
         response = self.run_test(
-            jobId, 400, "ready", False, False, "job_error", 0)
+            jobId, 400, "ready", False, False, "job_error", 0, None)
 
     # TODO uncomment this unit test once jobs are labeled as ready
     # def test_finished_job(self):
