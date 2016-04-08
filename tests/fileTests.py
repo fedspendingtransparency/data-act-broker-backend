@@ -166,6 +166,15 @@ class FileTests(BaseTest):
         # Check file size and number of rows
         self.assertEqual(appropJob["file_size"], 2345)
         self.assertEqual(appropJob["number_of_rows"], 567)
+        self.assertEqual(appropJob["error_type"], "row_errors")
+
+        # Check error metadata
+        ruleErrorData = appropJob["error_data"][0]
+        self.assertEqual(ruleErrorData["field_name"],"header_three")
+        self.assertEqual(ruleErrorData["error_name"],"rule_failed")
+        self.assertEqual(ruleErrorData["error_description"],"A rule failed for this value")
+        self.assertEqual(ruleErrorData["occurrences"],"7")
+        self.assertEqual(ruleErrorData["rule_failed"],"Header three value must be real")
 
         # Check submission metadata
         self.assertEqual(json["agency_name"], "Department of the Treasury")
@@ -173,7 +182,7 @@ class FileTests(BaseTest):
         self.assertEqual(json["reporting_period_end_date"], "04/02/2016")
 
         # Check submission level info
-        self.assertEqual(json["number_of_errors"],0) # No actual validation is occurring in this test, so no errors
+        self.assertEqual(json["number_of_errors"],12)
         self.assertEqual(json["number_of_rows"],667)
         # Check that submission was created today, this test may fail if run right at midnight UTC
         self.assertEqual(json["created_on"],datetime.utcnow().strftime("%m/%d/%Y"))
@@ -328,9 +337,16 @@ class FileTests(BaseTest):
             jobIdDict[jobKey] = job_id
 
         # For appropriations job, create an entry in file_status for this job
-        fileStatus = FileStatus(job_id = jobIdDict["appropriations"],filename = "approp.csv", status_id = interfaces.errorDb.getStatusId("complete"), headers_missing = "missing_header_one, missing_header_two", headers_duplicated = "duplicated_header_one, duplicated_header_two")
+        fileStatus = FileStatus(job_id = jobIdDict["appropriations"],filename = "approp.csv", status_id = interfaces.errorDb.getStatusId("complete"), headers_missing = "missing_header_one, missing_header_two", headers_duplicated = "duplicated_header_one, duplicated_header_two",row_errors_present = True)
         interfaces.errorDb.session.add(fileStatus)
+
+        # Put some entries in error data for approp job
+        ruleError = ErrorData(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_three", error_type_id = 6, occurrences = 7, rule_failed = "Header three value must be real")
+        reqError = ErrorData(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_four", error_type_id = 2, occurrences = 5, rule_failed = "A required value was not provided")
+        interfaces.errorDb.session.add(ruleError)
+        interfaces.errorDb.session.add(reqError)
         interfaces.errorDb.session.commit()
+
         return jobIdDict
 
     @staticmethod

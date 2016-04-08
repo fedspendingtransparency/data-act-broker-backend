@@ -207,6 +207,8 @@ class FileHandler:
                     jobInfo["file_status"] = ""
                     jobInfo["missing_headers"] = []
                     jobInfo["duplicated_headers"] = []
+                    jobInfo["error_type"] = ""
+                    jobInfo["error_data"] = []
                 else:
                     # If job ID was found in file_status, we should be able to get header error lists and file data
                     # Get string of missing headers and parse as a list
@@ -227,10 +229,14 @@ class FileHandler:
                             jobInfo["duplicated_headers"][i] = jobInfo["duplicated_headers"][i].strip()
                     else:
                         jobInfo["duplicated_headers"] = []
-                    # Get file size
-                    jobInfo["file_size"] = self.jobManager.getFileSizeById(jobId)
-                    # Get number of rows in file
-                    jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(jobId)
+                    jobInfo["error_type"] = self.interfaces.errorDb.getErrorType(jobId)
+                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId)
+                # File size and number of rows not dependent on error DB
+                # Get file size
+                jobInfo["file_size"] = self.jobManager.getFileSizeById(jobId)
+                # Get number of rows in file
+                jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(jobId)
+
                 try :
                     jobInfo["file_type"] = self.jobManager.getFileType(jobId)
                 except Exception as e:
