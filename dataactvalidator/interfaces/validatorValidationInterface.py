@@ -10,6 +10,7 @@ class ValidatorValidationInterface(BaseInterface) :
     """ Manages all interaction with the validation database """
 
     dbName = CONFIG_DB['validator_db_name']
+    dbConfig = CONFIG_DB
     Session = None
     engine = None
     session = None
