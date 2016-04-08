@@ -104,3 +104,15 @@ class ErrorInterface(BaseInterface):
 
     def getDuplicatedHeadersByJobId(self, jobId):
         return self.getFileStatusByJobId(jobId).headers_duplicated
+
+    def getErrorType(self,jobId):
+        """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
+        if self.getStatusLabelByJobId(jobId) == "header_error":
+            # Header errors occurred, return that
+            return "header_errors"
+        elif self.getFileStatusByJobId(jobId).row_errors_present:
+            # Row errors occurred
+            return "row_errors"
+        else:
+            # No errors occurred during validation
+            return "none"
