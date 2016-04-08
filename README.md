@@ -508,7 +508,7 @@ Example output:
     "error_data": []
     },
     {
-    job_id": 3006,
+    "job_id": 3006,
     "job_status": "finished",
     "file_type": "appropriations",
     "job_type": "file_upload",
