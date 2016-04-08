@@ -1,17 +1,18 @@
 import sqlalchemy
 from flask import _app_ctx_stack
-from sqlalchemy.orm import sessionmaker , scoped_session
-from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
+from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.config import CONFIG_DB
+
 
 class BaseInterface(object):
     """ Abstract base interface to be inherited by interfaces for specific databases
     """
     #For Flask Apps use the context for locals
     IS_FLASK = True
-    dbName = None # Should be overwritten by child classes
+    dbName = None  # Should be overwritten by child classes
+    dbConfig = None  # Should be overwritten by child classes
     logFileName = "dbErrors.log"
 
     def __init__(self):
@@ -23,10 +24,13 @@ class BaseInterface(object):
             # Child class needs to set these before calling base constructor
             raise ValueError("Need dbName defined")
 
+        if not self.dbConfig:
+            raise ValueError("Database configuration is not defined")
+
         # Create sqlalchemy connection and session
         self.engine = sqlalchemy.create_engine(
-            "postgresql://{}:{}@{}:{}/{}".format(CONFIG_DB["username"],
-            CONFIG_DB["password"], CONFIG_DB["host"], CONFIG_DB["port"],
+            "postgresql://{}:{}@{}:{}/{}".format(self.dbConfig["username"],
+            self.dbConfig["password"], self.dbConfig["host"], self.dbConfig["port"],
             self.dbName), pool_size=100,max_overflow=50)
         self.connection = self.engine.connect()
         if(self.Session == None):
@@ -51,11 +55,11 @@ class BaseInterface(object):
     def getCredDict(cls):
         """ Return db credentials. """
         credDict = {
-            'username': CONFIG_DB['username'],
-            'password': CONFIG_DB['password'],
-            'host': CONFIG_DB['host'],
-            'port': CONFIG_DB['port'],
-            'dbBaseName': CONFIG_DB['base_db_name']
+            'username': self.dbConfig['username'],
+            'password': self.dbConfig['password'],
+            'host': self.dbConfig['host'],
+            'port': self.dbConfig['port'],
+            'dbBaseName': self.dbConfig['base_db_name']
         }
         return credDict
 
