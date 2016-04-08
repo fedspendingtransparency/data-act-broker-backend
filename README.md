@@ -42,7 +42,9 @@ The available rule types are as follows:
 * Equal / Not equal - checks that value is equal to a specified value, or not equal
 * Less than / Greater than - compares value against a specified reference point
 * Length - checks that value is no longer than specified length
-* Set membership - checks that value is one of an allowed set of values  
+* Set membership - checks that value is one of an allowed set of values
+* Minimum length - checks that the field has at least the number of characters specified
+* Conditional requirement - checks that the field is populated if another specified rule passes
 
 ## Class Descriptions
 
