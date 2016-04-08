@@ -384,7 +384,7 @@ Example Output:
 ```
 
 #### POST "/v1/submit_files/"
-This route is used to retrieve S3 URLs to upload files. Data should be either JSON or form-urlencoded with keys: ["appropriations", "award\_financial", "award", "program\_activity"], each with a filename as a value.
+This route is used to retrieve S3 URLs to upload files. Data should be JSON with keys: ["appropriations", "award\_financial", "award", "program\_activity"], each with a filename as a value, and submission metadata keys: ["agency_name","reporting_period_start_date","reporting_period_end_date","existing_submission_id"].  If an existing submission ID is provided, all other keys are optional and any data provided will be used to replace information in the existing submission.
 
 This route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key\_id containing the job id. A returning submission\_id will also exist which acts as identifier for the submission.
 
@@ -400,8 +400,11 @@ Example input:
   "appropriations":"appropriations.csv",
   "award_financial":"award_financial.csv",
   "award":"award.csv",
-  "program_activity":"program_activity.csv"
-
+  "program_activity":"program_activity.csv",
+  "agency_name":"Name of the agency",
+  "reporting_period_start_date":"03/31/2016",
+  "reporting_period_end_date":"03/31/2016",
+  "existing_submission_id: 7 (leave out if not correcting)
 }
 ```
 
@@ -475,7 +478,7 @@ Example output:
 ```
 
 #### POST "/v1/check_status/"
-A call to this route will provide status information on all jobs associated with the specified submission.  The request should have JSON or form-urlencoded with a key "submission\_id".  The response will contain a key for each job ID, with values containing dictionaries which detail the status of that job (with keys "status", "job\_type", and "file\_type").  
+A call to this route will provide status information on all jobs associated with the specified submission.  The request should have JSON or form-urlencoded with a key "submission\_id".  The response will contain a list of status objects for each job under the key "jobs", and other submission-level data.
 
 Example input:
 
@@ -489,16 +492,57 @@ Example output:
 
 ```json
 {  
-  "3005": {
-    "status": "running",
+  "jobs": [
+    {
+    "job_id": 3005,
+    "job_status": "invalid",
     "file_type": "appropriations",
-    "job_type": "file_upload"
-  },  
-  "3006": {
-    "status": "waiting",
+    "job_type": "file_upload",
+    "filename": "approp.csv",
+    "file_status" : "header_error",
+    "missing_headers": ["header_1", "header_2"],
+    "duplicated_headers": ["header_3", "header_4"],
+    "file_size": 4508,
+    "number_of_rows": 500,
+    "error_type": "header_error",
+    "error_data": []
+    },
+    {
+    job_id": 3006,
+    "job_status": "finished",
     "file_type": "appropriations",
-    "job_type": "csv_record_validation"
-  },      
+    "job_type": "file_upload",
+    "filename": "approp.csv",
+    "file_status" : "complete",
+    "missing_headers": [],
+    "duplicated_headers": [],
+    "file_size": 4508,
+    "number_of_rows": 500,
+    "error_type": "record_level_error",
+    "error_data":  [
+	{
+	"field_name":"allocationtransferagencyid",
+	"error_name": "type_error",
+	"error_description": "The value provided was of the wrong type",
+	"occurrences": 27,
+	"rule_failed": ""
+	},
+	{
+	"field_name":"availabilitytypecode",
+	"error_name": "rule_error",
+	"error_description": "",
+	"occurrences": 27,
+	"rule_failed": "Failed rule: Indicator must be X, F, A, or blank"
+	}
+	]
+    }
+  ]
+  "agency_name":"Name of the agency",
+  "reporting_period_start_date":"03/31/2016",
+  "reporting_period_end_date":"03/31/2016",
+  "number_of_errors":54,
+  "number_of_rows":446,
+  "created_on":"04/01/2016"
 }
 ```
 
