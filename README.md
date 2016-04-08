@@ -521,14 +521,14 @@ Example output:
     "error_type": "record_level_error",
     "error_data":  [
 	{
-	"field_name":"allocationtransferagencyid",
+	"field_name": "allocationtransferagencyid",
 	"error_name": "type_error",
 	"error_description": "The value provided was of the wrong type",
 	"occurrences": 27,
 	"rule_failed": ""
 	},
 	{
-	"field_name":"availabilitytypecode",
+	"field_name": "availabilitytypecode",
 	"error_name": "rule_error",
 	"error_description": "",
 	"occurrences": 27,
@@ -536,13 +536,13 @@ Example output:
 	}
 	]
     }
-  ]
-  "agency_name":"Name of the agency",
-  "reporting_period_start_date":"03/31/2016",
-  "reporting_period_end_date":"03/31/2016",
-  "number_of_errors":54,
-  "number_of_rows":446,
-  "created_on":"04/01/2016"
+  ],
+  "agency_name": "Name of the agency",
+  "reporting_period_start_date": "03/31/2016",
+  "reporting_period_end_date": "03/31/2016",
+  "number_of_errors": 54,
+  "number_of_rows": 446,
+  "created_on": "04/01/2016"
 }
 ```
 
