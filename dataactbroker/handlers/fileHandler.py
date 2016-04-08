@@ -212,10 +212,8 @@ class FileHandler:
                     # Get string of missing headers and parse as a list
                     missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(jobId)
                     if missingHeaderString is not None:
-                        jobInfo["missing_headers"] = missingHeaderString.split(",")
-                        if(len(jobInfo["missing_headers"]) == 1 and jobInfo["missing_headers"][0] == ""):
-                            # Split can return a single empty string when we'd prefer an empty list
-                            jobInfo["missing_headers"] = []
+                        # Split header string into list, excluding empty strings
+                        jobInfo["missing_headers"] = [n for n in missingHeaderString.split(",") if len(n) > 0]
                         for i in range(0,len(jobInfo["missing_headers"])):
                             jobInfo["missing_headers"][i] = jobInfo["missing_headers"][i].strip()
                     else:
@@ -223,9 +221,8 @@ class FileHandler:
                     # Get string of duplicated headers and parse as a list
                     duplicatedHeaderString = self.interfaces.errorDb.getDuplicatedHeadersByJobId(jobId)
                     if duplicatedHeaderString is not None:
-                        jobInfo["duplicated_headers"] = duplicatedHeaderString.split(",")
-                        if(len(jobInfo["duplicated_headers"]) == 1 and jobInfo["duplicated_headers"][0] == ""):
-                            jobInfo["duplicated_headers"] = []
+                        # Split header string into list, excluding empty strings
+                        jobInfo["duplicated_headers"] = [n for n in duplicatedHeaderString.split(",") if len(n) > 0]
                         for i in range(0,len(jobInfo["duplicated_headers"])):
                             jobInfo["duplicated_headers"][i] = jobInfo["duplicated_headers"][i].strip()
                     else:
