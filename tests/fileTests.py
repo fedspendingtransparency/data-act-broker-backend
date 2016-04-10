@@ -54,12 +54,21 @@ class FileTests(BaseTest):
 
     def call_file_submission(self):
         """Call the broker file submission route."""
-        filePath = CONFIG_BROKER["broker_files"]
-        self.filenames = {"appropriations":os.path.join(filePath,"test1.csv"),
-            "award_financial":os.path.join(filePath,"test2.csv"), "award":os.path.join(filePath,"test3.csv"),
-            "program_activity":os.path.join(filePath,"test4.csv"), "agency_name": "Department of the Treasury",
-            "reporting_period_start_date":"01/13/2001",
-            "reporting_period_end_date":"01/14/2001"}
+
+        if(CONFIG_BROKER["use_aws"]):
+            self.filenames = {"appropriations":"test1.csv",
+                "award_financial":"test2.csv", "award":"test3.csv",
+                "program_activity":"test4.csv", "agency_name": "Department of the Treasury",
+                "reporting_period_start_date":"01/13/2001",
+                "reporting_period_end_date":"01/14/2001"}
+        else:
+            # If local must use full destination path
+            filePath = CONFIG_BROKER["broker_files"]
+            self.filenames = {"appropriations":os.path.join(filePath,"test1.csv"),
+                "award_financial":os.path.join(filePath,"test2.csv"), "award":os.path.join(filePath,"test3.csv"),
+                "program_activity":os.path.join(filePath,"test4.csv"), "agency_name": "Department of the Treasury",
+                "reporting_period_start_date":"01/13/2001",
+                "reporting_period_end_date":"01/14/2001"}
 
         return self.app.post_json("/v1/submit_files/", self.filenames)
 
@@ -251,9 +260,9 @@ class FileTests(BaseTest):
         """Insert one submission into job tracker and get submission ID back."""
         if submission:
             sub = Submission(submission_id=submission,
-                datetime_utc=str(datetime.utcnow()), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
+                datetime_utc=datetime.utcnow(), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
         else:
-            sub = Submission(datetime_utc=str(datetime.utcnow()), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
+            sub = Submission(datetime_utc=datetime.utcnow(), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
         jobTracker.session.add(sub)
         jobTracker.session.commit()
         return sub.submission_id
