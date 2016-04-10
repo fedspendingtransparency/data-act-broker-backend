@@ -54,9 +54,10 @@ class FileTests(BaseTest):
 
     def call_file_submission(self):
         """Call the broker file submission route."""
-        self.filenames = {"appropriations":"test1.csv",
-            "award_financial":"test2.csv", "award":"test3.csv",
-            "program_activity":"test4.csv", "agency_name": "Department of the Treasury",
+        filePath = CONFIG_BROKER["broker_files"]
+        self.filenames = {"appropriations":os.path.join(filePath,"test1.csv"),
+            "award_financial":os.path.join(filePath,"test2.csv"), "award":os.path.join(filePath,"test3.csv"),
+            "program_activity":os.path.join(filePath,"test4.csv"), "agency_name": "Department of the Treasury",
             "reporting_period_start_date":"01/13/2001",
             "reporting_period_end_date":"01/14/2001"}
 
