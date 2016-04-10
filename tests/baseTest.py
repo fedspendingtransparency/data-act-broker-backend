@@ -1,5 +1,6 @@
 import unittest
 from webtest import TestApp
+from datetime import datetime
 from dataactvalidator.app import createApp
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.scripts.clearJobs import clearJobs
@@ -130,7 +131,7 @@ class BaseTest(unittest.TestCase):
     @staticmethod
     def insertSubmission(jobTracker, userId):
         """Insert submission into job tracker and return submission ID"""
-        sub = Submission(datetime_utc=0, user_id=userId)
+        sub = Submission(datetime_utc=datetime.utcnow(), user_id=userId)
         jobTracker.session.add(sub)
         jobTracker.session.commit()
         return sub.submission_id
