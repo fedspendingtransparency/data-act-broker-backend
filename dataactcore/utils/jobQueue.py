@@ -1,6 +1,6 @@
 from celery import Celery
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.config import CONFIG_SERVICES
+from dataactcore.config import CONFIG_SERVICES, CONFIG_JOB_QUEUE
 import requests
 
 # Set up backend persistent URL
@@ -12,8 +12,11 @@ backendUrl = ''.join(['db+', dbScheme, '://', creds['username'], ':', creds['pas
 # Set up url to the validator for the RESTFul calls
 validatorUrl = ''.join(['http://', CONFIG_SERVICES['validator_host'], ':', str(CONFIG_SERVICES['validator_port'])])
 
+# Set up url to the job queue to establish connection
+queueUrl = ''.join([CONFIG_JOB_QUEUE['broker_scheme'], '://', CONFIG_JOB_QUEUE['username'], ':', CONFIG_JOB_QUEUE['password'], '@', CONFIG_JOB_QUEUE['url'], ':', CONFIG_JOB_QUEUE['port'], '//'])
+
 # Create remote connection to the job queue
-jobQueue = Celery('tasks', backend=backendUrl, broker='amqp://user:pass@ec2-52-200-1-10.compute-1.amazonaws.com:5672//')
+jobQueue = Celery('tasks', backend=backendUrl, broker=queueUrl)
 
 @jobQueue.task(name='jobQueue.enqueue')
 def enqueue(jobID):

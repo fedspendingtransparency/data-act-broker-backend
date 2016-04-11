@@ -91,6 +91,9 @@ db:
     # changed this, you should not have to update the value below.
     base_db_name: postgres
 
+    # The type of backend database being used
+    scheme: postgres
+
     # Host and port of db instance. Set to localhost if running locally or set 
     # the remote address
     host: localhost
@@ -133,3 +136,19 @@ logging:
     # so you can mostly likely keep this as is.
     logstash_port: 514
 
+job-queue:
+    # RabbitMQ username
+    username: user
+
+    # RabbitMQ password
+    password: password
+
+    # URL for the job queue server
+    url: 127.0.0.1
+
+    # Port on which Celery is listening
+    port: 5672
+
+    # Broker scheme which must coordinate with the type of broker being used
+    # on the remote server. amqp corresponds to RabbitMQ.
+    broker_scheme: amqp

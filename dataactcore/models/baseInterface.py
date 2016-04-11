@@ -55,7 +55,8 @@ class BaseInterface(object):
             'password': CONFIG_DB['password'],
             'host': CONFIG_DB['host'],
             'port': CONFIG_DB['port'],
-            'dbBaseName': CONFIG_DB['base_db_name']
+            'dbBaseName': CONFIG_DB['base_db_name'],
+            'scheme': CONFIG_DB['scheme']
         }
         return credDict
 
