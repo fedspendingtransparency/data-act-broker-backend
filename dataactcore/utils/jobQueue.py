@@ -13,7 +13,7 @@ backendUrl = ''.join(['db+', dbScheme, '://', creds['username'], ':', creds['pas
 validatorUrl = ''.join(['http://', CONFIG_SERVICES['validator_host'], ':', str(CONFIG_SERVICES['validator_port'])])
 
 # Set up url to the job queue to establish connection
-queueUrl = ''.join([CONFIG_JOB_QUEUE['broker_scheme'], '://', CONFIG_JOB_QUEUE['username'], ':', CONFIG_JOB_QUEUE['password'], '@', CONFIG_JOB_QUEUE['url'], ':', CONFIG_JOB_QUEUE['port'], '//'])
+queueUrl = ''.join([CONFIG_JOB_QUEUE['broker_scheme'], '://', CONFIG_JOB_QUEUE['username'], ':', CONFIG_JOB_QUEUE['password'], '@', CONFIG_JOB_QUEUE['url'], ':', str(CONFIG_JOB_QUEUE['port']), '//'])
 
 # Create remote connection to the job queue
 jobQueue = Celery('tasks', backend=backendUrl, broker=queueUrl)
