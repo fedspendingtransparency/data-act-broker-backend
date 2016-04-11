@@ -8,3 +8,4 @@ logstash==0.1.dev0
 alembic==0.8.5
 awscli==1.10.10
 pyyaml==3.11
+SQLAlchemy-Utils==0.32.1
