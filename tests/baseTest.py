@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime
 import os
 import inspect
 import time
@@ -18,7 +19,6 @@ from dataactcore.models.jobModels import JobStatus, Submission
 from dataactvalidator.models.validationModels import FileColumn
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER
 import dataactcore.config
-
 
 class BaseTest(unittest.TestCase):
     """ Test login, logout, and session handling """
@@ -165,7 +165,7 @@ class BaseTest(unittest.TestCase):
     @staticmethod
     def insertSubmission(jobTracker, userId):
         """Insert submission into job tracker and return submission ID"""
-        sub = Submission(datetime_utc=0, user_id=userId)
+        sub = Submission(datetime_utc=datetime.utcnow(), user_id=userId)
         jobTracker.session.add(sub)
         jobTracker.session.commit()
         return sub.submission_id

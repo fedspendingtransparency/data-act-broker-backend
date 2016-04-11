@@ -9,7 +9,7 @@ from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.tasLoader import TASLoader
 
 
-def baseScript():
+def options():
     if os.getuid() != 0:
         print ("Please run this script with sudo")
 

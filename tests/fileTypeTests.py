@@ -1,3 +1,4 @@
+from __future__ import print_function
 from dataactvalidator.models.validationModels import TASLookup
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.tasSetup import loadTAS
@@ -51,7 +52,7 @@ class FileTypeTests(BaseTest):
             job = cls.addJob(*jobInfo)
             jobId = job.job_id
             jobIdDict[key] = jobId
-            print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]))
+            print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]), end = "")
 
         # Load fields and rules
         FileTypeTests.load_definitions(cls.interfaces, force_tas_load)
