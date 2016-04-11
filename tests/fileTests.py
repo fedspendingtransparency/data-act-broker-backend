@@ -1,12 +1,17 @@
 import unittest
 import os
 import inspect
+from datetime import datetime
+from datetime import date
+from time import sleep, time
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from baseTest import BaseTest
 from dataactcore.models.jobModels import Submission, JobStatus
 from dataactcore.models.errorModels import ErrorData, FileStatus
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.utils.responseException import ResponseException
+from dataactbroker.handlers.jobHandler import JobHandler
 from shutil import copy
 
 class FileTests(BaseTest):
@@ -25,7 +30,8 @@ class FileTests(BaseTest):
 
         # setup submission/jobs data for test_check_status
         cls.status_check_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id)
+            cls.jobTracker, cls.submission_user_id, agency = "Department of the Treasury", startDate = "04/01/2016", endDate = "04/02/2016")
+
         cls.jobIdDict = cls.setupJobsForStatusCheck(cls.interfaces,
             cls.status_check_submission_id)
 
@@ -48,9 +54,22 @@ class FileTests(BaseTest):
 
     def call_file_submission(self):
         """Call the broker file submission route."""
-        self.filenames = {"appropriations":"test1.csv",
-            "award_financial":"test2.csv", "award":"test3.csv",
-            "program_activity":"test4.csv"}
+
+        if(CONFIG_BROKER["use_aws"]):
+            self.filenames = {"appropriations":"test1.csv",
+                "award_financial":"test2.csv", "award":"test3.csv",
+                "program_activity":"test4.csv", "agency_name": "Department of the Treasury",
+                "reporting_period_start_date":"01/13/2001",
+                "reporting_period_end_date":"01/14/2001"}
+        else:
+            # If local must use full destination path
+            filePath = CONFIG_BROKER["broker_files"]
+            self.filenames = {"appropriations":os.path.join(filePath,"test1.csv"),
+                "award_financial":os.path.join(filePath,"test2.csv"), "award":os.path.join(filePath,"test3.csv"),
+                "program_activity":os.path.join(filePath,"test4.csv"), "agency_name": "Department of the Treasury",
+                "reporting_period_start_date":"01/13/2001",
+                "reporting_period_end_date":"01/14/2001"}
+
         return self.app.post_json("/v1/submit_files/", self.filenames)
 
     def test_file_submission(self):
@@ -103,6 +122,30 @@ class FileTests(BaseTest):
         finalizeResponse = self.check_upload_complete(
             responseDict["appropriations_id"])
         self.assertEqual(finalizeResponse.status_code, 200)
+        # Wait for validation to complete
+        start = time()
+        valId = self.interfaces.jobDb.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.file_type_id == 3).filter(JobStatus.type_id == self.interfaces.jobDb.getTypeId("csv_record_validation")).one().job_id
+
+        # First wait for job Id to get a file status
+        done = False
+        while not done and ((time() - start) < 100):
+            try:
+                self.interfaces.errorDb.checkStatusByJobId(valId)
+                done = True
+            except ResponseException:
+                # Does not exist yet, keep trying
+                sleep(1)
+        while (self.interfaces.jobDb.getJobStatus(valId) == "waiting" or self.interfaces.jobDb.getJobStatus(valId) == "running") and ((time() - start) < 100):
+            # If validation does not complete in 100 seconds, give up
+            sleep(1)
+        self.assertLess((time() - start),100,"Validation did not complete")
+        self.assertEqual(self.interfaces.jobDb.getJobStatus(valId),"finished")
+        self.assertEqual(self.interfaces.errorDb.checkStatusByJobId(valId),self.interfaces.errorDb.getStatusId("complete"))
+        fileSize = self.interfaces.jobDb.getFileSizeById(valId)
+        numRows = self.interfaces.jobDb.getNumberOfRowsById(valId)
+        # Check that file size and number of rows got populated
+        self.assertIsNotNone(fileSize)
+        self.assertIsNotNone(numRows)
 
     def test_check_status(self):
         """Test broker status route response."""
@@ -115,15 +158,39 @@ class FileTests(BaseTest):
         json = response.json
         # response ids are coming back as string, so patch the jobIdDict
         jobIdDict = {k: str(self.jobIdDict[k]) for k in self.jobIdDict.keys()}
-        self.assertEqual(json[jobIdDict["appropriations"]]["job_status"],"ready")
-        self.assertEqual(json[jobIdDict["appropriations"]]["job_type"],"csv_record_validation")
-        self.assertEqual(json[jobIdDict["appropriations"]]["file_type"],"appropriations")
-        self.assertEqual(json[jobIdDict["appropriations"]]["filename"],"approp.csv")
-        self.assertEqual(json[jobIdDict["appropriations"]]["file_status"],"complete")
-        self.assertIn("missing_header_one", json[jobIdDict["appropriations"]]["missing_headers"])
-        self.assertIn("missing_header_two", json[jobIdDict["appropriations"]]["missing_headers"])
-        self.assertIn("duplicated_header_one", json[jobIdDict["appropriations"]]["duplicated_headers"])
-        self.assertIn("duplicated_header_two", json[jobIdDict["appropriations"]]["duplicated_headers"])
+        jobList = json["jobs"]
+        appropJob = None
+        for job in jobList:
+            if str(job["job_id"]) == str(jobIdDict["appropriations"]):
+                # Found the job to be checked
+                appropJob = job
+                break
+        # Must have an approp job
+        self.assertNotEqual(appropJob, None)
+        # And that job must have the following
+        self.assertEqual(appropJob["job_status"],"ready")
+        self.assertEqual(appropJob["job_type"],"csv_record_validation")
+        self.assertEqual(appropJob["file_type"],"appropriations")
+        self.assertEqual(appropJob["filename"],"approp.csv")
+        self.assertEqual(appropJob["file_status"],"complete")
+        self.assertIn("missing_header_one", appropJob["missing_headers"])
+        self.assertIn("missing_header_two", appropJob["missing_headers"])
+        self.assertIn("duplicated_header_one", appropJob["duplicated_headers"])
+        self.assertIn("duplicated_header_two", appropJob["duplicated_headers"])
+        # Check file size and number of rows
+        self.assertEqual(appropJob["file_size"], 2345)
+        self.assertEqual(appropJob["number_of_rows"], 567)
+
+        # Check submission metadata
+        self.assertEqual(json["agency_name"], "Department of the Treasury")
+        self.assertEqual(json["reporting_period_start_date"], "04/01/2016")
+        self.assertEqual(json["reporting_period_end_date"], "04/02/2016")
+
+        # Check submission level info
+        self.assertEqual(json["number_of_errors"],0) # No actual validation is occurring in this test, so no errors
+        self.assertEqual(json["number_of_rows"],667)
+        # Check that submission was created today, this test may fail if run right at midnight UTC
+        self.assertEqual(json["created_on"],datetime.utcnow().strftime("%m/%d/%Y"))
 
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
@@ -189,26 +256,28 @@ class FileTests(BaseTest):
             True, "appropriations")
 
     @staticmethod
-    def insertSubmission(jobTracker, submission_user_id, submission=None):
+    def insertSubmission(jobTracker, submission_user_id, submission=None, agency = None, startDate = None, endDate = None):
         """Insert one submission into job tracker and get submission ID back."""
         if submission:
             sub = Submission(submission_id=submission,
-                datetime_utc=0, user_id=submission_user_id)
+                datetime_utc=datetime.utcnow(), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
         else:
-            sub = Submission(datetime_utc=0, user_id=submission_user_id)
+            sub = Submission(datetime_utc=datetime.utcnow(), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
         jobTracker.session.add(sub)
         jobTracker.session.commit()
         return sub.submission_id
 
     @staticmethod
-    def insertJob(jobTracker, filetype, status, type_id, submission, job_id=None, filename = None):
+    def insertJob(jobTracker, filetype, status, type_id, submission, job_id=None, filename = None, file_size = None, num_rows = None):
         """Insert one job into job tracker and get ID back."""
         job = JobStatus(
             file_type_id=filetype,
             status_id=status,
             type_id=type_id,
             submission_id=submission,
-            original_filename=filename
+            original_filename=filename,
+            file_size = file_size,
+            number_of_rows = num_rows
         )
         if job_id:
             job.job_id = job_id
@@ -251,12 +320,12 @@ class FileTests(BaseTest):
 
         # TODO: remove hard-coded surrogate keys
         jobValues = {}
-        jobValues["uploadFinished"] = [1, 4, 1, None]
-        jobValues["recordRunning"] = [1, 3, 2, None]
-        jobValues["externalWaiting"] = [1, 1, 5, None]
-        jobValues["awardFin"] = [2, 2, 2, "awardFin.csv"]
-        jobValues["appropriations"] = [3, 2, 2, "approp.csv"]
-        jobValues["program_activity"] = [4, 2, 2, "programActivity.csv"]
+        jobValues["uploadFinished"] = [1, 4, 1, None, None, None]
+        jobValues["recordRunning"] = [1, 3, 2, None, None, None]
+        jobValues["externalWaiting"] = [1, 1, 5, None, None, None]
+        jobValues["awardFin"] = [2, 2, 2, "awardFin.csv", 100, 100]
+        jobValues["appropriations"] = [3, 2, 2, "approp.csv", 2345, 567]
+        jobValues["program_activity"] = [4, 2, 2, "programActivity.csv", None, None]
         jobIdDict = {}
 
         for jobKey, values in jobValues.items():
@@ -266,7 +335,9 @@ class FileTests(BaseTest):
                 status=values[1],
                 type_id=values[2],
                 submission=submission_id,
-                filename=values[3]
+                filename=values[3],
+                file_size=values[4],
+                num_rows=values[5]
             )
             jobIdDict[jobKey] = job_id
 

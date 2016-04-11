@@ -24,8 +24,6 @@ class BaseTest(unittest.TestCase):
         setupUserDB(True)
         # load e-mail templates
         setupEmails()
-        # line below deletes everything from job_dependency, job_status, submission
-        clearJobs()
 
         #get test users
         try:
