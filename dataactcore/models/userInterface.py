@@ -5,13 +5,13 @@ from dataactcore.config import CONFIG_DB
 
 class UserInterface(BaseInterface):
     """Manages all interaction with the user database."""
-    dbName = CONFIG_DB['user_db_name']
     dbConfig = CONFIG_DB
     Session = None
     engine = None
     session = None
 
     def __init__(self):
+        self.dbName = self.dbConfig['user_db_name']
         super(UserInterface, self).__init__()
 
     @staticmethod
