@@ -55,11 +55,11 @@ class BaseInterface(object):
     def getCredDict(cls):
         """ Return db credentials. """
         credDict = {
-            'username': self.dbConfig['username'],
-            'password': self.dbConfig['password'],
-            'host': self.dbConfig['host'],
-            'port': self.dbConfig['port'],
-            'dbBaseName': self.dbConfig['base_db_name']
+            'username': cls.dbConfig['username'],
+            'password': cls.dbConfig['password'],
+            'host': cls.dbConfig['host'],
+            'port': cls.dbConfig['port'],
+            'dbBaseName': cls.dbConfig['base_db_name']
         }
         return credDict
 
