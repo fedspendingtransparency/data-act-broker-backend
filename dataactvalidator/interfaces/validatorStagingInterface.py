@@ -5,6 +5,7 @@ class ValidatorStagingInterface(BaseInterface):
     """ Manages all interaction with the staging database """
 
     dbName = CONFIG_DB['staging_db_name']
+    dbConfig = CONFIG_DB
     Session = None
     engine = None
     session = None
