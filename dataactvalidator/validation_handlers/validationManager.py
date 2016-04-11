@@ -200,13 +200,13 @@ class ValidationManager:
                             rowNumber -= 1 # Don't count this row
                             break
                     except ResponseException as e:
-                        if(not (reader.isFinished and reader.extraLine) ) :
-                            #Last line may be blank dont throw an error
-                            writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber), ""])
-                            errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
-                        else:
+                        if reader.isFinished and reader.extraLine:
+                            #Last line may be blank don't record an error, reader.extraLine indicates a case where the last valid line has extra line breaks
                             # Don't count last row if empty
                             rowNumber -= 1
+                        else:
+                            writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber), ""])
+                            errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
                         continue
                     valid, failures = Validator.validate(record,rules,csvSchema,fileType,interfaces)
                     if(valid) :
