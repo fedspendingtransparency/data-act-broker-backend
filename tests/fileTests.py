@@ -128,17 +128,17 @@ class FileTests(BaseTest):
 
         # First wait for job Id to get a file status
         done = False
-        while not done and ((time() - start) < 100):
+        while not done and ((time() - start) < 20):
             try:
                 self.interfaces.errorDb.checkStatusByJobId(valId)
                 done = True
             except ResponseException:
                 # Does not exist yet, keep trying
                 sleep(1)
-        while (self.interfaces.jobDb.getJobStatus(valId) == "waiting" or self.interfaces.jobDb.getJobStatus(valId) == "running") and ((time() - start) < 100):
-            # If validation does not complete in 100 seconds, give up
+        while (self.interfaces.jobDb.getJobStatus(valId) == "waiting" or self.interfaces.jobDb.getJobStatus(valId) == "running") and ((time() - start) < 20):
+            # If validation does not complete in 20 seconds, give up
             sleep(1)
-        self.assertLess((time() - start),100,"Validation did not complete")
+        self.assertLess((time() - start),20,"Validation did not complete")
         self.assertEqual(self.interfaces.jobDb.getJobStatus(valId),"finished")
         self.assertEqual(self.interfaces.errorDb.checkStatusByJobId(valId),self.interfaces.errorDb.getStatusId("complete"))
         fileSize = self.interfaces.jobDb.getFileSizeById(valId)
