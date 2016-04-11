@@ -138,7 +138,7 @@ class FileTests(BaseTest):
         while (self.interfaces.jobDb.getJobStatus(valId) == "waiting" or self.interfaces.jobDb.getJobStatus(valId) == "running") and ((time() - start) < 100):
             # If validation does not complete in 100 seconds, give up
             sleep(1)
-        self.assertEqual(self.interfaces.errorDb.checkStatusByJobId(valId),self.interfaces.errorDb.getStatusId("complete"))
+
         self.assertLess((time() - start),100,"Validation did not complete")
         self.assertEqual(self.interfaces.jobDb.getJobStatus(valId),"finished")
         self.assertEqual(self.interfaces.errorDb.checkStatusByJobId(valId),self.interfaces.errorDb.getStatusId("complete"))
