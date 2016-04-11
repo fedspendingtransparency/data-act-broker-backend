@@ -86,10 +86,18 @@ class FileHandler:
             fileNameMap = []
             safeDictionary = RequestDictionary(self.request)
             submissionId = self.jobManager.createSubmission(name, safeDictionary)
-
-            # TODO call createSubmission and pass ID in place of user ID
+            existingSubmission = False
+            if safeDictionary.exists("existing_submission_id"):
+                existingSubmission = True
 
             for fileType in FileHandler.FILE_TYPES :
+                # If filetype not included in request, and this is an update to an existing submission, skip it
+                if not safeDictionary.exists(fileType):
+                    if existingSubmission:
+                        continue
+                    else:
+                        # This is a new submission, all files are required
+                        raise ResponseException("Must include all files for new submission",StatusCode.CLIENT_ERROR)
                 filename = safeDictionary.getValue(fileType)
                 if( safeDictionary.exists(fileType)) :
                     if(not self.isLocal):
@@ -99,7 +107,7 @@ class FileHandler:
                     responseDict[fileType+"_key"] = uploadName
                     fileNameMap.append((fileType,uploadName,filename))
 
-            fileJobDict = self.jobManager.createJobs(fileNameMap,submissionId)
+            fileJobDict = self.jobManager.createJobs(fileNameMap,submissionId,existingSubmission)
             for fileType in fileJobDict.keys():
                 if (not "submission_id" in fileType) :
                     responseDict[fileType+"_id"] = fileJobDict[fileType]

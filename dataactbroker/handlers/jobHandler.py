@@ -41,11 +41,11 @@ class JobHandler(JobTrackerInterface):
         """ Load params from request, return dictionary of values provided mapped to submission fields """
         # Existing submission ID is optional
         existingSubmission = False
-        submissionValues = {}
+        existingSubmissionId = None
         if requestDict.exists("existing_submission_id"):
             # Agency name and reporting dates are required for new submissions
             existingSubmission = True
-            submissionValues["submission_id"] = requestDict.getValue("existing_submission_id")
+            existingSubmissionId = requestDict.getValue("existing_submission_id")
         metaDataFieldMap = {"agency_name":"agency_name","reporting_period_start_date":"reporting_start_date","reporting_period_end_date":"reporting_end_date"}
         submissionData = {}
         for key in metaDataFieldMap:
@@ -61,9 +61,7 @@ class JobHandler(JobTrackerInterface):
             else:
                 if not existingSubmission:
                     raise ResponseException(key + " is required",StatusCode.CLIENT_ERROR,ValueError)
-                else:
-                    submissionData[metaDataFieldMap[key]] = None
-        return submissionData
+        return submissionData, existingSubmissionId
 
     @staticmethod
     def createDate(dateString):
@@ -83,54 +81,77 @@ class JobHandler(JobTrackerInterface):
         Returns:
             submission ID
         """
-        submissionValues = self.loadSubmitParams(requestDict)
+        submissionValues,existingId = self.loadSubmitParams(requestDict)
         # Create submission entry
-        submission = Submission(datetime_utc = datetime.utcnow(), **submissionValues)
-        submission.user_id = userId
-        self.session.add(submission)
+        if existingId is None:
+            submission = Submission(datetime_utc = datetime.utcnow(), **submissionValues)
+            submission.user_id = userId
+            self.session.add(submission)
+        else:
+            submissionQuery = self.session.query(Submission).filter(Submission.submission_id == existingId)
+            submission = self.runUniqueQuery(submissionQuery,"No submission found with provided ID", "Multiple submissions found with provided ID")
+            #if "reporting_start_date" in submissionValues:
+            #    submission.reporting_start_date = submissionValues["reporting_start_date"]
+            for key in submissionValues:
+                # Update existing submission with any values provided
+                #submission.__dict__[key] = submissionValues[key]
+                setattr(submission,key,submissionValues[key])
+            self.session.commit()
         self.session.commit()
         # Calling submission_id to force query to load this
         return submission.submission_id
 
-    def createJobs(self, filenames, submissionId):
+    def createJobs(self, filenames, submissionId, existingSubmission = False):
         """  Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
 
         Arguments:
         filenames -- List of tuples containing (file type, upload path, original filenames)
         submissionId -- Submission ID to be linked to jobs
+        existingSubmission -- True if we should update jobs in an existing submission rather than creating new jobs
 
         Returns:
         Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
         """
 
 
-        jobsRequired, uploadDict = self.addUploadJobs(filenames,submissionId)
+        jobsRequired, uploadDict = self.addUploadJobs(filenames,submissionId,existingSubmission)
 
-        # Create validation job
-        validationJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("validation"), submission_id = submissionId)
-        self.session.add(validationJob)
-        # Create external validation job
-        externalJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("external_validation"), submission_id = submissionId)
-        self.session.add(externalJob)
-        self.session.flush()
-        # Create dependencies for validation jobs
-        for job_id in jobsRequired:
-            valDependency = JobDependency(job_id = validationJob.job_id, prerequisite_id = job_id)
-            self.session.add(valDependency)
-            extDependency = JobDependency(job_id = externalJob.job_id, prerequisite_id = job_id)
-            self.session.add(extDependency)
+        if(existingSubmission):
+            # Find cross-file and external validation jobs and mark them as waiting
+            valQuery = self.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.type_id == self.getTypeId("validation"))
+            valJob = self.runUniqueQuery(valQuery,"No cross-file validation job found","Conflicting jobs found")
+            valJob.status_id = self.getStatusId("waiting")
+            extQuery = self.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.type_id == self.getTypeId("external_validation"))
+            extJob = self.runUniqueQuery(valQuery,"No cross-file validation job found","Conflicting jobs found")
+            extJob.status_id = self.getStatusId("waiting")
+            self.session.commit()
+        else:
+            # Create validation job
+            validationJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("validation"), submission_id = submissionId)
+            self.session.add(validationJob)
+            # Create external validation job
+            externalJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("external_validation"), submission_id = submissionId)
+            self.session.add(externalJob)
+            self.session.flush()
+            # Create dependencies for validation jobs
+            for job_id in jobsRequired:
+                valDependency = JobDependency(job_id = validationJob.job_id, prerequisite_id = job_id)
+                self.session.add(valDependency)
+                extDependency = JobDependency(job_id = externalJob.job_id, prerequisite_id = job_id)
+                self.session.add(extDependency)
 
         # Commit all changes
         self.session.commit()
         uploadDict["submission_id"] = submissionId
         return uploadDict
 
-    def addUploadJobs(self,filenames,submissionId):
+    def addUploadJobs(self,filenames,submissionId,existingSubmission):
         """  Add upload jobs to job tracker database
 
         Arguments:
         filenames -- List of tuples containing (file type, upload path, original filenames)
         submissionId -- Submission ID to attach to jobs
+        existingSubmission -- True if we should update existing jobs rather than creating new ones
 
         Returns:
         jobsRequired -- List of job ids required for validation jobs, used to populate the prerequisite table
@@ -149,21 +170,39 @@ class JobHandler(JobTrackerInterface):
             fileTypeResult = self.runUniqueQuery(fileTypeQuery,"No matching file type", "Multiple matching file types")
             fileTypeId = fileTypeResult.file_type_id
 
-            # Create upload job, mark as running since frontend should be doing this upload
-            fileJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("running"), type_id = self.getTypeId("file_upload"), submission_id = submissionId)
+            if existingSubmission:
+                # Find existing upload job and mark as running
+                uploadQuery = self.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.file_type_id == fileTypeId).filter(JobStatus.type_id == self.getTypeId("file_upload"))
+                uploadJob = self.runUniqueQuery(uploadQuery,"No upload job found for this file","Conflicting jobs found")
+                # Mark as running and set new file name and path
+                uploadJob.status_id = self.getStatusId("running")
+                uploadJob.original_filename = filename
+                uploadJob.filename = filePath
+                self.session.commit()
+            else:
+                # Create upload job, mark as running since frontend should be doing this upload
+                uploadJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("running"), type_id = self.getTypeId("file_upload"), submission_id = submissionId)
+                self.session.add(uploadJob)
 
-            self.session.add(fileJob)
-
-            # Create parse into DB job
-            dbJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("waiting"), type_id = self.getTypeId("csv_record_validation"), submission_id = submissionId)
-            self.session.add(dbJob)
-            self.session.flush()
-            # Add dependency between file upload and db upload
-            uploadDependency = JobDependency(job_id = dbJob.job_id, prerequisite_id = fileJob.job_id)
-            self.session.add(uploadDependency)
-            # Later validation jobs are dependent only on record level validation, not upload jobs
-            jobsRequired.append(dbJob.job_id)
-            uploadDict[fileType] = fileJob.job_id
+            if existingSubmission:
+                valQuery = self.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.file_type_id == fileTypeId).filter(JobStatus.type_id == self.getTypeId("csv_record_validation"))
+                valJob = self.runUniqueQuery(valQuery,"No validation job found for this file","Conflicting jobs found")
+                valJob.status_id = self.getStatusId("waiting")
+                valJob.original_filename = filename
+                valJob.filename = filePath
+                self.session.commit()
+            else:
+                # Create parse into DB job
+                valJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("waiting"), type_id = self.getTypeId("csv_record_validation"), submission_id = submissionId)
+                self.session.add(valJob)
+                self.session.flush()
+            if not existingSubmission:
+                # Add dependency between file upload and db upload
+                uploadDependency = JobDependency(job_id = valJob.job_id, prerequisite_id = uploadJob.job_id)
+                self.session.add(uploadDependency)
+                # Later validation jobs are dependent only on record level validation, not upload jobs
+                jobsRequired.append(valJob.job_id)
+            uploadDict[fileType] = uploadJob.job_id
 
         # Return list of upload jobs
         return jobsRequired, uploadDict
