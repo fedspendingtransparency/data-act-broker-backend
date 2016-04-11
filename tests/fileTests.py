@@ -54,11 +54,21 @@ class FileTests(BaseTest):
 
     def call_file_submission(self):
         """Call the broker file submission route."""
-        self.filenames = {"appropriations":"test1.csv",
-            "award_financial":"test2.csv", "award":"test3.csv",
-            "program_activity":"test4.csv", "agency_name": "Department of the Treasury",
-            "reporting_period_start_date":"01/13/2001",
-            "reporting_period_end_date":"01/14/2001"}
+
+        if(CONFIG_BROKER["use_aws"]):
+            self.filenames = {"appropriations":"test1.csv",
+                "award_financial":"test2.csv", "award":"test3.csv",
+                "program_activity":"test4.csv", "agency_name": "Department of the Treasury",
+                "reporting_period_start_date":"01/13/2001",
+                "reporting_period_end_date":"01/14/2001"}
+        else:
+            # If local must use full destination path
+            filePath = CONFIG_BROKER["broker_files"]
+            self.filenames = {"appropriations":os.path.join(filePath,"test1.csv"),
+                "award_financial":os.path.join(filePath,"test2.csv"), "award":os.path.join(filePath,"test3.csv"),
+                "program_activity":os.path.join(filePath,"test4.csv"), "agency_name": "Department of the Treasury",
+                "reporting_period_start_date":"01/13/2001",
+                "reporting_period_end_date":"01/14/2001"}
 
         return self.app.post_json("/v1/submit_files/", self.filenames)
 
@@ -114,7 +124,8 @@ class FileTests(BaseTest):
         self.assertEqual(finalizeResponse.status_code, 200)
         # Wait for validation to complete
         start = time()
-        valId = responseDict["appropriations_id"] + 1 # Validation job's ID is one higher than upload job
+        valId = self.interfaces.jobDb.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.file_type_id == 3).filter(JobStatus.type_id == self.interfaces.jobDb.getTypeId("csv_record_validation")).one().job_id
+
         # First wait for job Id to get a file status
         done = False
         while not done and ((time() - start) < 100):
@@ -129,6 +140,8 @@ class FileTests(BaseTest):
             sleep(1)
         self.assertEqual(self.interfaces.errorDb.checkStatusByJobId(valId),self.interfaces.errorDb.getStatusId("complete"))
         self.assertLess((time() - start),100,"Validation did not complete")
+        self.assertEqual(self.interfaces.jobDb.getJobStatus(valId),"finished")
+        self.assertEqual(self.interfaces.errorDb.checkStatusByJobId(valId),self.interfaces.errorDb.getStatusId("complete"))
         fileSize = self.interfaces.jobDb.getFileSizeById(valId)
         numRows = self.interfaces.jobDb.getNumberOfRowsById(valId)
         # Check that file size and number of rows got populated
@@ -152,6 +165,7 @@ class FileTests(BaseTest):
             if str(job["job_id"]) == str(jobIdDict["appropriations"]):
                 # Found the job to be checked
                 appropJob = job
+                break
         # Must have an approp job
         self.assertNotEqual(appropJob, None)
         # And that job must have the following
@@ -256,9 +270,9 @@ class FileTests(BaseTest):
         """Insert one submission into job tracker and get submission ID back."""
         if submission:
             sub = Submission(submission_id=submission,
-                datetime_utc=str(datetime.utcnow()), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
+                datetime_utc=datetime.utcnow(), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
         else:
-            sub = Submission(datetime_utc=str(datetime.utcnow()), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
+            sub = Submission(datetime_utc=datetime.utcnow(), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
         jobTracker.session.add(sub)
         jobTracker.session.commit()
         return sub.submission_id
