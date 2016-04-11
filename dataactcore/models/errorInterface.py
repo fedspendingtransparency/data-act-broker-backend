@@ -7,6 +7,7 @@ from dataactcore.config import CONFIG_DB
 class ErrorInterface(BaseInterface):
     """Manages communication with error database."""
     dbConfig = CONFIG_DB
+    dbName = dbConfig['error_db_name']
     Session = None
     engine = None
     session = None

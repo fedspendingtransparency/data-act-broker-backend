@@ -6,6 +6,7 @@ from dataactcore.config import CONFIG_DB
 class UserInterface(BaseInterface):
     """Manages all interaction with the user database."""
     dbConfig = CONFIG_DB
+    dbName = dbConfig['user_db_name']
     Session = None
     engine = None
     session = None
