@@ -1,27 +1,48 @@
 import unittest
-from webtest import TestApp
-from dataactvalidator.app import createApp
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
-from dataactcore.scripts.clearJobs import clearJobs
 import os
 import inspect
 import time
+from random import randint
+from webtest import TestApp
+from dataactvalidator.app import createApp
+from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.scripts.databaseSetup import dropDatabase
+from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
+from dataactcore.scripts.setupErrorDB import setupErrorDB
+from dataactvalidator.scripts.setupStagingDB import setupStagingDB
+from dataactvalidator.scripts.setupValidationDB import setupValidationDB
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.jobModels import JobStatus, Submission
-from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactvalidator.models.validationModels import FileColumn
+from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER
+import dataactcore.config
 
 
 class BaseTest(unittest.TestCase):
     """ Test login, logout, and session handling """
 
-
     @classmethod
     def setUpClass(cls):
         """Set up resources to be shared within a test class"""
         #TODO: refactor into a pytest class fixtures and inject as necessary
+
+        # update application's db config options so unittests
+        # run against test databases
+        config = dataactcore.config.CONFIG_DB
+        cls.num = randint(1, 9999)
+        config['error_db_name'] = 'unittest{}_{}'.format(
+            cls.num, config['error_db_name'])
+        config['job_db_name'] = 'unittest{}_{}'.format(
+            cls.num, config['job_db_name'])
+        config['user_db_name'] = 'unittest{}_{}'.format(
+            cls.num, config['user_db_name'])
+        config['validator_db_name'] = 'unittest{}_{}'.format(
+            cls.num, config['validator_db_name'])
+        config['staging_db_name'] = 'unittest{}_{}'.format(
+            cls.num, config['staging_db_name'])
+        dataactcore.config.CONFIG_DB = config
 
         app = createApp()
         app.config['TESTING'] = True
@@ -35,8 +56,17 @@ class BaseTest(unittest.TestCase):
         cls.uploadFiles = True
         # Run tests for local broker or not
         cls.local = CONFIG_BROKER['local']
-        # This needs to be set to the local dirctory for error reports if local is True
+        # This needs to be set to the local directory for error reports if local is True
         cls.local_file_directory = CONFIG_SERVICES['error_report_path']
+
+        # drop and re-create test job db/tables
+        setupJobTrackerDB(hardReset=True)
+        # drop and re-create test error db/tables
+        setupErrorDB(hardReset=True)
+        # drop and re-create test staging db
+        setupStagingDB()
+        # drop and re-create test vaidation db
+        setupValidationDB(True)
 
         cls.interfaces = InterfaceHolder()
         cls.jobTracker = cls.interfaces.jobDb
@@ -52,6 +82,10 @@ class BaseTest(unittest.TestCase):
     def tearDownClass(cls):
         """Tear down class-level resources."""
         cls.interfaces.close()
+        dropDatabase(cls.interfaces.jobDb.dbName)
+        dropDatabase(cls.interfaces.errorDb.dbName)
+        dropDatabase(cls.interfaces.stagingDb.dbName)
+        dropDatabase(cls.interfaces.validationDb.dbName)
 
     def tearDown(self):
         """Tear down broker unit tests."""

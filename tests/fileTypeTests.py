@@ -1,4 +1,3 @@
-from dataactvalidator.scripts import setupStagingDB
 from dataactvalidator.models.validationModels import TASLookup
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.tasSetup import loadTAS
@@ -17,9 +16,6 @@ class FileTypeTests(BaseTest):
         # TODO: get rid of this flag once we're using a tempdb for test fixtures
         force_tas_load = False
 
-        # Create staging database
-        setupStagingDB.setupStagingDB()
-
         # Upload needed files to S3
         s3FileNameValid = cls.uploadFile("appropValid.csv", user)
         s3FileNameMixed = cls.uploadFile("appropMixed.csv", user)
@@ -31,7 +27,6 @@ class FileTypeTests(BaseTest):
         s3FileNameAwardMixed = cls.uploadFile("awardMixed.csv", user)
 
         # Create submissions and get IDs back
-
         submissionIDs = {}
         for i in range(0, 10):
             submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
@@ -60,15 +55,6 @@ class FileTypeTests(BaseTest):
 
         # Load fields and rules
         FileTypeTests.load_definitions(cls.interfaces, force_tas_load)
-
-        # Remove existing tables from staging if they exist
-        for jobId in jobIdDict.values():
-            try:
-                cls.stagingDb.dropTable("job{}".format(jobId))
-            except Exception as e:
-                # Close and replace session
-                cls.stagingDb.session.close()
-                cls.stagingDb.session = cls.stagingDb.Session()
 
         cls.jobIdDict = jobIdDict
 
@@ -135,12 +121,6 @@ class FileTypeTests(BaseTest):
         jobId = self.jobIdDict["awardMixed"]
         self.passed = self.run_test(
             jobId, 200, "finished", 3185, 7, "complete", 44)
-
-    @classmethod
-    def tearDownClass(cls):
-        """Tear down class-wide resources."""
-        super(FileTypeTests, cls).tearDownClass()
-        # TODO: clean up databases
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,9 +1,5 @@
 from __future__ import print_function
-import json
-from dataactcore.models.jobModels import Status, JobDependency
-from dataactcore.scripts.clearErrors import clearErrors
-from dataactvalidator.scripts.setupValidationDB import setupValidationDB
-from dataactvalidator.scripts.setupStagingDB import setupStagingDB
+from dataactcore.models.jobModels import JobDependency
 from dataactvalidator.models.validationModels import Rule
 from baseTest import BaseTest
 import unittest
@@ -19,9 +15,6 @@ class JobTests(BaseTest):
         # Flag for testing a million+ errors (can take ~30 min to run)
         cls.includeLongTests = False
 
-        # Prep databases
-        setupStagingDB()
-        setupValidationDB(True)
         validationDb = cls.validationDb
         jobTracker = cls.jobTracker
 
@@ -30,8 +23,6 @@ class JobTests(BaseTest):
                 "appropriations", "program_activity"]:
             validationDb.removeRulesByFileType(fileType)
             validationDb.removeColumnsByFileType(fileType)
-        # Clear databases and run setup
-        clearErrors()
 
         # Create submissions and get IDs back
         submissionIDs = {}
@@ -133,12 +124,6 @@ class JobTests(BaseTest):
                 cls.stagingDb.session = cls.stagingDb.Session()
 
         cls.jobIdDict = jobIdDict
-
-    @classmethod
-    def tearDownClass(cls):
-        """Tear down JobTest resources."""
-        super(JobTests, cls).tearDownClass()
-        #TODO: clear jobs, drop staging tables
 
     def test_valid_job(self):
         """Test valid job."""
