@@ -22,6 +22,7 @@ target_metadata = validationModels.Base.metadata
 # Set up database URLs based on credentials file
 creds = ValidatorValidationInterface.getCredDict()
 baseUrl = 'postgres://' + str(creds['username']) + ':' + str(creds['password']) + '@' + str(creds['host']) + ':' + str(creds['port'])
+
 config.set_main_option('sqlalchemy.url', baseUrl + '/' + ValidatorValidationInterface.getDbName())
 
 # other values from the config, defined by the needs of env.py,
