@@ -6,16 +6,15 @@ from dataactcore.config import CONFIG_DB
 
 class ErrorInterface(BaseInterface):
     """Manages communication with error database."""
-    dbName = CONFIG_DB['error_db_name']
     dbConfig = CONFIG_DB
+    dbName = dbConfig['error_db_name']
     Session = None
     engine = None
     session = None
 
     def __init__(self):
-        super(ErrorInterface,self).__init__()
-        #Base.metadata.bind = self.engine
-        #Base.metadata.create_all(self.engine)
+        self.dbName = self.dbConfig['error_db_name']
+        super(ErrorInterface, self).__init__()
 
     @staticmethod
     def getDbName():
@@ -85,6 +84,15 @@ class ErrorInterface(BaseInterface):
             numErrors += result.occurrences
         return numErrors
 
+    def resetErrorsByJobId(self, jobId):
+        """ Clear all entries in ErrorData for a specified job
+
+        Args:
+            jobId: job to reset
+        """
+        self.session.query(ErrorData).filter(ErrorData.job_id == jobId).delete()
+        self.session.commit()
+
     def sumNumberOfErrorsForJobList(self,jobIdList):
         """ Add number of errors for all jobs in list """
         errorSum = 0
@@ -105,3 +113,15 @@ class ErrorInterface(BaseInterface):
 
     def getDuplicatedHeadersByJobId(self, jobId):
         return self.getFileStatusByJobId(jobId).headers_duplicated
+
+    def getErrorType(self,jobId):
+        """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
+        if self.getStatusLabelByJobId(jobId) == "header_error":
+            # Header errors occurred, return that
+            return "header_errors"
+        elif self.getFileStatusByJobId(jobId).row_errors_present:
+            # Row errors occurred
+            return "row_errors"
+        else:
+            # No errors occurred during validation
+            return "none"

@@ -11,8 +11,8 @@ from dataactcore.config import CONFIG_DB
 
 class JobTrackerInterface(BaseInterface):
     """Manages all interaction with the job tracker database."""
-    dbName = CONFIG_DB['job_db_name']
     dbConfig = CONFIG_DB
+    dbName = dbConfig['job_db_name']
     Session = None
     engine = None
     session = None
@@ -20,6 +20,8 @@ class JobTrackerInterface(BaseInterface):
     def __init__(self):
         super(JobTrackerInterface,self).__init__()
         self.jobQueue = JobQueue()
+        self.dbName = self.dbConfig['job_db_name']
+        super(JobTrackerInterface, self).__init__()
 
     @staticmethod
     def getDbName():
