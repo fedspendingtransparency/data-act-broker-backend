@@ -1,10 +1,10 @@
 from celery import Celery
-from dataactcore.models.baseInterface import BaseInterface
+from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.config import CONFIG_SERVICES, CONFIG_JOB_QUEUE
 import requests
 
 # Set up backend persistent URL
-creds = BaseInterface.getCredDict()
+creds = JobTrackerInterface.getCredDict()
 dbScheme = creds['scheme'] if 'scheme' in creds else 'postgres'
 dbName = 'job_queue'
 backendUrl = ''.join(['db+', dbScheme, '://', creds['username'], ':', creds['password'], '@', creds['host'], '/', dbName])
