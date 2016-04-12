@@ -14,6 +14,9 @@ class UserTests(BaseTest):
         # Add submissions to one of the users
         jobDb = cls.jobTracker
 
+        # Delete existing submissions for approved user
+        jobDb.deleteSubmissionsForUserId(cls.approved_user_id)
+
         for i in range(0,5):
             sub = Submission(user_id = cls.approved_user_id)
             jobDb.session.add(sub)
