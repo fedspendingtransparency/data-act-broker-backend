@@ -3,6 +3,7 @@ from dataactcore.models.jobModels import JobStatus,JobDependency,Submission, Fil
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactbroker.handlers.errorHandler import ErrorHandler
 
 class JobHandler(JobTrackerInterface):
     """ Responsible for all interaction with the job tracker database
@@ -195,6 +196,11 @@ class JobHandler(JobTrackerInterface):
                 valJob.status_id = self.getStatusId("waiting")
                 valJob.original_filename = filename
                 valJob.filename = filePath
+                # Reset file size and number of rows to be set during validation of new file
+                valJob.file_size = None
+                valJob.number_of_rows = None
+                # Reset number of errors
+                ErrorHandler().resetErrorsByJobId(valJob.job_id)
                 self.session.commit()
             else:
                 # Create parse into DB job
