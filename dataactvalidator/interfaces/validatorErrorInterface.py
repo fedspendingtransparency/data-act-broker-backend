@@ -19,7 +19,7 @@ class ValidatorErrorInterface(ErrorInterface):
         except:
             raise ValueError("".join(["Bad jobId: ",str(jobId)]))
 
-        fileStatus = FileStatus(job_id = jobId, filename = filename, row_errors_present = False)
+        fileStatus = FileStatus(job_id = jobId, filename = filename, row_errors_present = False, status_id = self.getStatusId("incomplete"))
         self.session.add(fileStatus)
         self.session.commit()
         return fileStatus
