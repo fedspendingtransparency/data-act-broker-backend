@@ -1,38 +1,40 @@
 fieldname,required,data_type,field_length,rule_labels
-AllocationTransferAgencyIdentifier,Conditional per Validation Rule,string,3,A1
-AgencyIdentifier,Required,string,3,A1
+AllocationTransferAgencyIdentifier,Conditional per Validation Rule,string,3,"A1, A20"
+AgencyIdentifier,Required,string,3,"A1, A20"
 BeginningPeriodOfAvailability,Conditional per Validation Rule,string,4,A1
 EndingPeriodOfAvailability,Conditional per Validation Rule,string,4,A1
-AvailabilityTypeCode,Conditional per Validation Rule,string,1,A1
+AvailabilityTypeCode,Conditional per Validation Rule,string,1,"A1, A21"
 MainAccountCode,Required,string,4,A1
 SubAccountCode,Required,string,3,A1
-ProgramActivityName,Required,string,50,
-ProgramActivityCode,Required,integer,4,
-ObjectClass,Required,numeric,4,
-ByDirectReimbursableFundingSource,Required,string,26,
-UnpaidObligationsByProgramObjectClass_CPE,Required,numeric,100,"B1, B2"
-ObligationsUndeliveredOrdersUnpaidTotal_FYB,Required,numeric,100,
-ObligationsUndeliveredOrdersUnpaidTotal_CPE,Required,numeric,100,"B2, B3"
-USSGL480100UndeliveredOrdersObligationsUnpaid_FYB ,Required,numeric,100,
-USSGL480100UndeliveredOrdersObligationsUnpaid_CPE,Required,numeric,100,B3
-USSGL483100UndeliveredOrdersObligationsTransferredUnpaid_CPE,Required,numeric,100,B3
-USSGL488100UpwardAdjustmentsofPriorYearUndeliveredOrdersObligationsUnpaid_CPE,Required,numeric,100,B3
-ObligationsDeliveredOrdersUnpaidTotal_FYB,Required,numeric,100,
-ObligationsDeliveredOrdersUnpaidTotal_CPE,Required,numeric,100,"B2, B4"
-USSGL490100DeliveredOrdersObligationsUnpaid_FYB ,Required,numeric,100,
-USSGL490100DeliveredOrdersObligationsUnpaid_CPE,Required,numeric,100,B4
-USSGL490800AuthorityOutlayedNotYetDisbursed_FYB,Required,numeric,100,
-USSGL490800AuthorityOutlayedNotYetDisbursed_CPE,Required,numeric,100,B4
-USSGL493100DeliveredOrdersObligationsTransferredUnpaid_CPE,Required,numeric,100,B4
-USSGL498100Upward AdjustmentsofPriorYearDeliveredOrdersObligationsUnpaid_CPE,Required,numeric,100,B4
-OutlayAmountByProgramObjectClass_FYB,Required,numeric,100,
-OutlayAmountByProgramObjectClass_CPE,Required,numeric,100,B5
-OutlaysUndeliveredOrdersPrepaidTotal_FYB,Required,numeric,100,
-OutlaysUndeliveredOrdersPrepaidTotal_CPE,Required,numeric,100,"B5, B6"
-USSGL480200UndeliveredOrdersObligationsPrepaidAdvanced_FYB ,Required,numeric,100,
-USSGL480200UndeliveredOrdersObligationsPrepaidAdvanced_CPE,Required,numeric,100,B6
-USSGL483200UndeliveredOrdersObligationsTransferredPrepaidAdvanced_CPE,Required,numeric,100,B6
-USSGL488200UpwardAdjustmentsofPriorYearUndeliveredOrdersObligationsPrepaidAdvanced_CPE,Required,numeric,100,B6
-OutlaysDeliveredOrdersPaidTotal_CPE,Required,numeric,100,"B5, B7"
-USSGL490200DeliveredOrdersObligationsPaid_CPE,Required,numeric,100,B7
-USSGL498200UpwardAdjustmentsofPriorYearDeliveredOrdersObligationsPaid_CPE,Required,numeric,100,B7
+ProgramActivityName,Required,string,164,B9
+ProgramActivityCode,Required,integer,4,B10
+ObjectClass,Required,numeric,4,B11
+ByDirectReimbursableFundingSource,Required,string,1,B12
+DebitCreditIndicator,Required,string,1,B13
+ObligationsIncurredByProgramObjectClass_CPE,Required,numeric,21,"B8, A19, A17"
+UnpaidObligationsByProgramObjectClass_CPE,Required,numeric,21,"B1, B2, B8, A17"
+ObligationsUndeliveredOrdersUnpaidTotal_FYB,Required,numeric,21,"A16, A17"
+ObligationsUndeliveredOrdersUnpaidTotal_CPE,Required,numeric,21,"B2, B3, A17"
+USSGL480100UndeliveredOrdersObligationsUnpaid_FYB ,Required,numeric,21,"A16, A17"
+USSGL480100UndeliveredOrdersObligationsUnpaid_CPE,Required,numeric,21,"B3, A17"
+USSGL483100UndeliveredOrdersObligationsTransferredUnpaid_CPE,Required,numeric,21,"B3, A17"
+USSGL488100UpwardAdjustmentsofPriorYearUndeliveredOrdersObligationsUnpaid_CPE,Required,numeric,21,"B3, A17"
+ObligationsDeliveredOrdersUnpaidTotal_FYB,Required,numeric,21,"A16, A17"
+ObligationsDeliveredOrdersUnpaidTotal_CPE,Required,numeric,21,"B2, B4, A17"
+USSGL490100DeliveredOrdersObligationsUnpaid_FYB ,Required,numeric,21,"A16, A17"
+USSGL490100DeliveredOrdersObligationsUnpaid_CPE,Required,numeric,21,"B4, A17"
+USSGL493100DeliveredOrdersObligationsTransferredUnpaid_CPE,Required,numeric,21,"B4, A17"
+USSGL498100Upward AdjustmentsofPriorYearDeliveredOrdersObligationsUnpaid_CPE,Required,numeric,21,"B4, A17"
+OutlayAmountByProgramObjectClass_FYB,Required,numeric,21,"A16, A17"
+OutlayAmountByProgramObjectClass_CPE,Required,numeric,21,"B5, B8, A17"
+OutlaysUndeliveredOrdersPrepaidTotal_FYB,Required,numeric,21,"A16, A17"
+OutlaysUndeliveredOrdersPrepaidTotal_CPE,Required,numeric,21,"B5, B6, A18, A17"
+USSGL480200UndeliveredOrdersObligationsPrepaidAdvanced_FYB ,Required,numeric,21,"A16, A17"
+USSGL480200UndeliveredOrdersObligationsPrepaidAdvanced_CPE,Required,numeric,21,"B6, A17"
+USSGL483200UndeliveredOrdersObligationsTransferredPrepaidAdvanced_CPE,Required,numeric,21,"B6, A17"
+USSGL488200UpwardAdjustmentsofPriorYearUndeliveredOrdersObligationsPrepaidAdvanced_CPE,Required,numeric,21,"B6, A17"
+OutlaysDeliveredOrdersPaidTotal_CPE,Required,numeric,21,"B5, B7, A17"
+USSGL490200DeliveredOrdersObligationsPaid_CPE,Required,numeric,21,"B7, A17"
+USSGL490800AuthorityOutlayedNotYetDisbursed_FYB,Required,numeric,21,"A16, A17"
+USSGL490800AuthorityOutlayedNotYetDisbursed_CPE,Required,numeric,21,"B7, A17"
+USSGL498200UpwardAdjustmentsofPriorYearDeliveredOrdersObligationsPaid_CPE,Required,numeric,21,"B7, A17"
