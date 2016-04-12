@@ -19,10 +19,6 @@ class ValidatorErrorInterface(ErrorInterface):
         except:
             raise ValueError("".join(["Bad jobId: ",str(jobId)]))
 
-        # If job ID already present in FileStatus table, throw an error
-        if self.session.query(FileStatus).filter(FileStatus.job_id == jobId).count() > 0:
-            raise ValueError("".join(["Job ID already exists in file_status table: ",jobId]))
-
         fileStatus = FileStatus(job_id = jobId, filename = filename, row_errors_present = False)
         self.session.add(fileStatus)
         self.session.commit()
