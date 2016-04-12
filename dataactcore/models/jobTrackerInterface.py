@@ -5,7 +5,7 @@ from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
-from dataactcore.utils import jobQueue
+from dataactcore.utils.jobQueue import JobQueue
 from dataactcore.config import CONFIG_DB
 
 
@@ -19,6 +19,7 @@ class JobTrackerInterface(BaseInterface):
 
     def __init__(self):
         super(JobTrackerInterface,self).__init__()
+        self.jobQueue = JobQueue()
 
     @staticmethod
     def getDbName():
@@ -199,7 +200,7 @@ class JobTrackerInterface(BaseInterface):
                 # mark job as ready
                 self.markStatus(depJobId, 'ready')
                 # add to the job queue
-                x = jobQueue.enqueue.delay(depJobId)
+                jobQueueResult = self.jobQueue.enqueue.delay(depJobId)
 
     def getFileSizeById(self,jobId):
         """ Get file size for job matching ID """
