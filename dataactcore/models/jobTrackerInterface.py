@@ -193,6 +193,8 @@ class JobTrackerInterface(BaseInterface):
                     # Do nothing
                     isReady = False
                     break
+            # The type check here is temporary and needs to be removed once the validator is able
+            # to handle cross-file validation job
             if isReady and self.getJobType(depJobId) == 'csv_record_validation':
                 # mark job as ready
                 self.markStatus(depJobId, 'ready')
