@@ -6,7 +6,9 @@ import requests
 backendUrl = ''.join(['db+', CONFIG_DB['scheme'], '://', CONFIG_DB['username'], ':', CONFIG_DB['password'], '@', CONFIG_DB['host'], '/', CONFIG_DB['job_queue_db_name']])
 
 # Set up url to the validator for the RESTFul calls
-validatorUrl = ''.join(['http://', CONFIG_SERVICES['validator_host'], ':', str(CONFIG_SERVICES['validator_port'])])
+validatorUrl = ''.join([CONFIG_SERVICES['validator_host'], ':', str(CONFIG_SERVICES['validator_port'])])
+if 'http://' not in validatorUrl:
+	validatorUrl = ''.join(['http://', validatorUrl])
 
 # Set up url to the job queue to establish connection
 queueUrl = ''.join([CONFIG_JOB_QUEUE['broker_scheme'], '://', CONFIG_JOB_QUEUE['username'], ':', CONFIG_JOB_QUEUE['password'], '@', CONFIG_JOB_QUEUE['url'], ':', str(CONFIG_JOB_QUEUE['port']), '//'])
