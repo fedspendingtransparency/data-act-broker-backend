@@ -163,16 +163,15 @@ class JobTrackerInterface(BaseInterface):
 
     def getPrerequisiteJobs(self, jobId):
         """
+        Get all the jobs of which the current job is a dependent
 
         Args:
             jobId: job to get dependent jobs of
         Returns:
             list of prerequisite jobs for the specified job
         """
-        prerequisiteJobs = []
         queryResult = self.session.query(JobDependency.prerequisite_id).filter(JobDependency.job_id == jobId).all()
-        for result in queryResult:
-            prerequisiteJobs.append(result.prerequisite_id)
+        prerequisiteJobs = [result.prerequisite_id for result in queryResult]
         return prerequisiteJobs
 
     def checkJobDependencies(self,jobId):
