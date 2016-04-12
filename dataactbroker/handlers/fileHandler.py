@@ -207,30 +207,32 @@ class FileHandler:
                     jobInfo["file_status"] = ""
                     jobInfo["missing_headers"] = []
                     jobInfo["duplicated_headers"] = []
+                    jobInfo["error_type"] = ""
+                    jobInfo["error_data"] = []
                 else:
                     # If job ID was found in file_status, we should be able to get header error lists and file data
                     # Get string of missing headers and parse as a list
                     missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(jobId)
                     if missingHeaderString is not None:
                         # Split header string into list, excluding empty strings
-                        jobInfo["missing_headers"] = [n for n in missingHeaderString.split(",") if len(n) > 0]
-                        for i in range(0,len(jobInfo["missing_headers"])):
-                            jobInfo["missing_headers"][i] = jobInfo["missing_headers"][i].strip()
+                        jobInfo["missing_headers"] = [n.strip() for n in missingHeaderString.split(",") if len(n) > 0]
                     else:
                         jobInfo["missing_headers"] = []
                     # Get string of duplicated headers and parse as a list
                     duplicatedHeaderString = self.interfaces.errorDb.getDuplicatedHeadersByJobId(jobId)
                     if duplicatedHeaderString is not None:
                         # Split header string into list, excluding empty strings
-                        jobInfo["duplicated_headers"] = [n for n in duplicatedHeaderString.split(",") if len(n) > 0]
-                        for i in range(0,len(jobInfo["duplicated_headers"])):
-                            jobInfo["duplicated_headers"][i] = jobInfo["duplicated_headers"][i].strip()
+                        jobInfo["duplicated_headers"] = [n.strip() for n in duplicatedHeaderString.split(",") if len(n) > 0]
                     else:
                         jobInfo["duplicated_headers"] = []
-                    # Get file size
-                    jobInfo["file_size"] = self.jobManager.getFileSizeById(jobId)
-                    # Get number of rows in file
-                    jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(jobId)
+                    jobInfo["error_type"] = self.interfaces.errorDb.getErrorType(jobId)
+                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId)
+                # File size and number of rows not dependent on error DB
+                # Get file size
+                jobInfo["file_size"] = self.jobManager.getFileSizeById(jobId)
+                # Get number of rows in file
+                jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(jobId)
+
                 try :
                     jobInfo["file_type"] = self.jobManager.getFileType(jobId)
                 except Exception as e:
