@@ -1,14 +1,18 @@
 import json
 import unittest
 import time
+from random import randint
 from webtest import TestApp
 from dataactbroker.app import createApp
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactcore.models.userModel import AccountType
+from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupUserDB import setupUserDB
+from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
+from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.config import CONFIG_BROKER
+import dataactcore.config
 from dataactbroker.scripts.setupEmails import setupEmails
-from dataactcore.scripts.clearJobs import clearJobs
 from dataactbroker.handlers.userHandler import UserHandler
 from flask.ext.bcrypt import Bcrypt
 
@@ -20,8 +24,29 @@ class BaseTest(unittest.TestCase):
         """Set up resources to be shared within a test class"""
         #TODO: refactor into a pytest class fixtures and inject as necessary
 
-        # line below drops and re-creates user tables
-        setupUserDB(True)
+        # update application's db config options so unittests
+        # run against test databases
+        suite = cls.__name__.lower()
+        config = dataactcore.config.CONFIG_DB
+        cls.num = randint(1, 9999)
+        config['error_db_name'] = 'unittest{}_{}_error_data'.format(
+            cls.num, suite)
+        config['job_db_name'] = 'unittest{}_{}_job_tracker'.format(
+            cls.num, suite)
+        config['user_db_name'] = 'unittest{}_{}_user_manager'.format(
+            cls.num, suite)
+        config['validator_db_name'] = 'unittest{}_{}_validator'.format(
+            cls.num, suite)
+        config['staging_db_name'] = 'unittest{}_{}_staging'.format(
+            cls.num, suite)
+        dataactcore.config.CONFIG_DB = config
+
+        # drop and re-create test user db/tables
+        setupUserDB(hardReset=True)
+        # drop and re-create test job db/tables
+        setupJobTrackerDB(hardReset=True)
+        # drop and re-create test error db/tables
+        setupErrorDB(hardReset=True)
         # load e-mail templates
         setupEmails()
 
@@ -92,10 +117,12 @@ class BaseTest(unittest.TestCase):
         userDb.session.commit()
 
         #set up status changed user
-        statusChangedUser = userDb.getUserByEmail(test_users["change_user_email"])
+        statusChangedUser = userDb.getUserByEmail(
+            test_users["change_user_email"])
         cls.status_change_user_id = statusChangedUser.user_id
         statusChangedUser.name = "Test User"
-        statusChangedUser.user_status_id = userDb.getUserStatusId("email_confirmed")
+        statusChangedUser.user_status_id = userDb.getUserStatusId(
+            "email_confirmed")
         userDb.session.commit()
 
         #set up deactivated user
@@ -124,6 +151,9 @@ class BaseTest(unittest.TestCase):
     def tearDownClass(cls):
         """Tear down class-level resources."""
         cls.interfaces.close()
+        dropDatabase(cls.interfaces.userDb.dbName)
+        dropDatabase(cls.interfaces.jobDb.dbName)
+        dropDatabase(cls.interfaces.errorDb.dbName)
 
     def tearDown(self):
         """Tear down broker unit tests."""
@@ -131,20 +161,23 @@ class BaseTest(unittest.TestCase):
     def login_approved_user(self):
         """Log an agency user (non-admin) into broker."""
         #TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['approved_email'], "password": self.user_password}
+        user = {"username": self.test_users['approved_email'],
+            "password": self.user_password}
         return self.app.post_json("/v1/login/", user)
 
     def login_admin_user(self):
         """Log an admin user into broker."""
         #TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['admin_email'], "password": self.admin_password}
+        user = {"username": self.test_users['admin_email'],
+            "password": self.admin_password}
         response = self.app.post_json("/v1/login/", user)
         return response
 
     def login_inactive_user(self):
         """Attempt to log in an inactive user"""
         #TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['inactive_email'], "password": self.user_password}
+        user = {"username": self.test_users['inactive_email'],
+            "password": self.user_password}
         response = self.app.post_json("/v1/login/", user, expect_errors=True)
         return response
 
@@ -165,7 +198,8 @@ class BaseTest(unittest.TestCase):
     def check_response(self, response, status, message=None):
         """Perform common tests on API responses."""
         self.assertEqual(response.status_code, status)
-        self.assertEqual(response.headers.get("Content-Type"), "application/json")
+        self.assertEqual(response.headers.get("Content-Type"),
+            "application/json")
         try:
             self.assertIsInstance(response.json, dict)
         except AttributeError:
