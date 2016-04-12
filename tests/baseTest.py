@@ -57,7 +57,7 @@ class BaseTest(unittest.TestCase):
         """Tear down broker unit tests."""
 
     def run_test(self, jobId, statusId, statusName, fileSize, stagingRows,
-            errorStatus, numErrors):
+                 errorStatus, numErrors, rowErrorsPresent = None):
         response = self.validateJob(jobId, self.useThreads)
         jobTracker = self.jobTracker
         stagingDb = self.stagingDb
@@ -94,7 +94,10 @@ class BaseTest(unittest.TestCase):
                 self.assertLess(s3UrlHandler.getFileSize(
                     "errors/"+jobTracker.getReportPath(jobId)), fileSize + 5)
 
-
+        # Check if errors_present is set correctly
+        if rowErrorsPresent is not None:
+            # If no value provided, skip this check
+            self.assertEqual(self.interfaces.errorDb.getRowErrorsPresent(jobId), rowErrorsPresent)
         return response
 
     def validateJob(self, jobId, useThreads):

@@ -161,6 +161,9 @@ class ValidationManager:
         bucketName = CONFIG_BROKER['aws_bucket']
         errorFileName = self.getFileName(jobTracker.getReportPath(jobId))
 
+        # Create File Status object
+        interfaces.errorDb.createFileStatus(jobId,fileName)
+
         validationDB = interfaces.validationDb
         fieldList = validationDB.getFieldsByFileList(fileType)
         csvSchema  = validationDB.getFieldsByFile(fileType)
@@ -207,6 +210,7 @@ class ValidationManager:
                         else:
                             writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber), ""])
                             errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
+                            errorInterface.setRowErrorsPresent(jobId, True)
                         continue
                     valid, failures = Validator.validate(record,rules,csvSchema,fileType,interfaces)
                     if(valid) :
@@ -216,10 +220,13 @@ class ValidationManager:
                             # Write failed, move to next record
                             writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber),""])
                             errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.writeError,rowNumber)
+                            errorInterface.setRowErrorsPresent(jobId, True)
                             continue
 
                     else:
                         # For each failure, record it in error report and metadata
+                        if failures:
+                            errorInterface.setRowErrorsPresent(jobId, True)
                         for failure in failures:
                             fieldName = failure[0]
                             error = failure[1]
