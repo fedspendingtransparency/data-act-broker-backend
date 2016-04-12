@@ -6,16 +6,15 @@ from dataactcore.config import CONFIG_DB
 
 class ErrorInterface(BaseInterface):
     """Manages communication with error database."""
-    dbName = CONFIG_DB['error_db_name']
     dbConfig = CONFIG_DB
+    dbName = dbConfig['error_db_name']
     Session = None
     engine = None
     session = None
 
     def __init__(self):
-        super(ErrorInterface,self).__init__()
-        #Base.metadata.bind = self.engine
-        #Base.metadata.create_all(self.engine)
+        self.dbName = self.dbConfig['error_db_name']
+        super(ErrorInterface, self).__init__()
 
     @staticmethod
     def getDbName():
