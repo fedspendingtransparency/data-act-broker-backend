@@ -17,6 +17,7 @@ CONFIG_BROKER = CONFIG_ALL['broker']
 CONFIG_SERVICES = CONFIG_ALL['services']
 CONFIG_DB = CONFIG_ALL['db']
 CONFIG_LOGGING = CONFIG_ALL['logging']
+CONFIG_JOB_QUEUE = CONFIG_ALL['job-queue']
 
 # for backward-compatibility, differentiate between local runs and AWS
 if CONFIG_BROKER['use_aws'] or CONFIG_BROKER['use_aws'] == "true":

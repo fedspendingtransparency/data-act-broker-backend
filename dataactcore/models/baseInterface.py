@@ -59,7 +59,8 @@ class BaseInterface(object):
             'password': cls.dbConfig['password'],
             'host': cls.dbConfig['host'],
             'port': cls.dbConfig['port'],
-            'dbBaseName': cls.dbConfig['base_db_name']
+            'dbBaseName': cls.dbConfig['base_db_name'],
+            'scheme': cls.dbConfig['scheme']
         }
         return credDict
 
