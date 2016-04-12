@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the error database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey
+from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -31,6 +31,7 @@ class FileStatus(Base):
     status = relationship("Status", uselist=False)
     headers_missing = Column(Text, nullable=True)
     headers_duplicated = Column(Text, nullable=True)
+    row_errors_present = Column(Boolean)
 
 class ErrorData(Base):
     __tablename__ = "error_data"
