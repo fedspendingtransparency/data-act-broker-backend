@@ -25,7 +25,7 @@ class FileStatus(Base):
     __tablename__ = "file_status"
 
     file_id = Column(Integer, primary_key=True)
-    job_id = Column(Integer, nullable=True)
+    job_id = Column(Integer, nullable=True, unique=True)
     filename = Column(Text, nullable=True)
     status_id = Column(Integer, ForeignKey("status.status_id"))
     status = relationship("Status", uselist=False)
