@@ -22,8 +22,11 @@ class CsvLocalReader(CsvAbstractReader):
 
     def close(self):
         """Closes file if it exists """
-        if(self.file != None) :
+        try:
             self.file.close()
+        except AttributeError:
+            # File does not exist, and so does not need to be closed
+            pass
 
     def _getFileSize(self):
         """

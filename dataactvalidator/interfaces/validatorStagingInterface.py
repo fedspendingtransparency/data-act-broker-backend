@@ -4,13 +4,15 @@ from dataactcore.config import CONFIG_DB
 class ValidatorStagingInterface(BaseInterface):
     """ Manages all interaction with the staging database """
 
-    dbName = CONFIG_DB['staging_db_name']
+    dbConfig = CONFIG_DB
+    dbName = dbConfig['staging_db_name']
     Session = None
     engine = None
     session = None
 
     def __init__(self):
-        super(ValidatorStagingInterface,self).__init__()
+        self.dbName = self.dbConfig['staging_db_name']
+        super(ValidatorStagingInterface, self).__init__()
 
     @staticmethod
     def getDbName():
