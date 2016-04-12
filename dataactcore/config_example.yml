@@ -120,9 +120,10 @@ logging:
     # The path where broker still store log files.
     # Ignored if use_logstash is true.
     log_files: /full/path/to/logfiles
-    # Set to true and fill in all logstash_ settings
+
+    # Set following to true and fill in all logstash_ settings
     # to use logstash for logging
-    use_logstash: true
+    use_logstash: false
 
     # Logstash host. Ignored if use_logstash is false.
     # NOTE: the dummy value below MUST be changed to the correct

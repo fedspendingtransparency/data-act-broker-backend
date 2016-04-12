@@ -6,13 +6,15 @@ from dataactcore.config import CONFIG_DB
 
 class JobTrackerInterface(BaseInterface):
     """Manages all interaction with the job tracker database."""
-    dbName = CONFIG_DB['job_db_name']
+    dbConfig = CONFIG_DB
+    dbName = dbConfig['job_db_name']
     Session = None
     engine = None
     session = None
 
     def __init__(self):
-        super(JobTrackerInterface,self).__init__()
+        self.dbName = self.dbConfig['job_db_name']
+        super(JobTrackerInterface, self).__init__()
 
     @staticmethod
     def getDbName():
@@ -138,10 +140,33 @@ class JobTrackerInterface(BaseInterface):
         return status
 
     def getStatusId(self,statusName):
+        """ Return the status ID that corresponds to the given name """
         return self.getIdFromDict(Status,"STATUS_DICT","name",statusName,"status_id")
 
     def getTypeId(self,typeName):
+        """ Return the type ID that corresponds to the given name """
         return self.getIdFromDict(Type,"TYPE_DICT","name",typeName,"type_id")
 
     def getOriginalFilenameById(self,jobId):
+        """ Get original filename for job matching ID """
         return self.getJobById(jobId).original_filename
+
+    def getFileSizeById(self,jobId):
+        """ Get file size for job matching ID """
+        return self.getJobById(jobId).file_size
+
+    def getNumberOfRowsById(self,jobId):
+        """ Get number of rows in file for job matching ID """
+        return self.getJobById(jobId).number_of_rows
+
+    def setFileSizeById(self,jobId, fileSize):
+        """ Set file size for job matching ID """
+        job = self.getJobById(jobId)
+        job.file_size = int(fileSize)
+        self.session.commit()
+
+    def setNumberOfRowsById(self,jobId, numRows):
+        """ Set number of rows in file for job matching ID """
+        job = self.getJobById(jobId)
+        job.number_of_rows = int(numRows)
+        self.session.commit()
