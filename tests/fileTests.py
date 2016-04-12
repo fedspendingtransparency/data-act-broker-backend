@@ -17,6 +17,10 @@ from shutil import copy
 class FileTests(BaseTest):
     """Test file submission routes."""
 
+    updateSubmissionId = None
+    filesSubmitted = False
+    submitFilesResponse = None
+
     @classmethod
     def setUpClass(cls):
         """Set up class-wide resources (test data)"""
@@ -54,23 +58,24 @@ class FileTests(BaseTest):
 
     def call_file_submission(self):
         """Call the broker file submission route."""
-
-        if(CONFIG_BROKER["use_aws"]):
-            self.filenames = {"appropriations":"test1.csv",
-                "award_financial":"test2.csv", "award":"test3.csv",
-                "program_activity":"test4.csv", "agency_name": "Department of the Treasury",
-                "reporting_period_start_date":"01/13/2001",
-                "reporting_period_end_date":"01/14/2001"}
-        else:
-            # If local must use full destination path
-            filePath = CONFIG_BROKER["broker_files"]
-            self.filenames = {"appropriations":os.path.join(filePath,"test1.csv"),
-                "award_financial":os.path.join(filePath,"test2.csv"), "award":os.path.join(filePath,"test3.csv"),
-                "program_activity":os.path.join(filePath,"test4.csv"), "agency_name": "Department of the Treasury",
-                "reporting_period_start_date":"01/13/2001",
-                "reporting_period_end_date":"01/14/2001"}
-
-        return self.app.post_json("/v1/submit_files/", self.filenames)
+        if not self.filesSubmitted:
+            if(CONFIG_BROKER["use_aws"]):
+                self.filenames = {"appropriations":"test1.csv",
+                    "award_financial":"test2.csv", "award":"test3.csv",
+                    "program_activity":"test4.csv", "agency_name": "Department of the Treasury",
+                    "reporting_period_start_date":"01/13/2001",
+                    "reporting_period_end_date":"01/14/2001"}
+            else:
+                # If local must use full destination path
+                filePath = CONFIG_BROKER["broker_files"]
+                self.filenames = {"appropriations":os.path.join(filePath,"test1.csv"),
+                    "award_financial":os.path.join(filePath,"test2.csv"), "award":os.path.join(filePath,"test3.csv"),
+                    "program_activity":os.path.join(filePath,"test4.csv"), "agency_name": "Department of the Treasury",
+                    "reporting_period_start_date":"01/13/2001",
+                    "reporting_period_end_date":"01/14/2001"}
+            self.submitFilesResponse = self.app.post_json("/v1/submit_files/", self.filenames)
+            self.updateSubmissionId = self.submitFilesResponse.json["submission_id"]
+        return self.submitFilesResponse
 
     def test_file_submission(self):
         """Test broker file submission and response."""
@@ -120,6 +125,34 @@ class FileTests(BaseTest):
         finalizeResponse = self.check_upload_complete(
             responseDict["appropriations_id"])
         self.assertEqual(finalizeResponse.status_code, 200)
+
+    def test_update_submission(self):
+        """ Test submit_files with an existing submission ID """
+        self.call_file_submission()
+        print("Updating submission: " + str(self.updateSubmissionId))
+        if(CONFIG_BROKER["use_aws"]):
+            updateJson = {"existing_submission_id": self.updateSubmissionId,
+                "award_financial":"updated.csv",
+                "reporting_period_start_date":"02/03/2016",
+                "reporting_period_end_date":"02/04/2016"}
+        else:
+            # If local must use full destination path
+            filePath = CONFIG_BROKER["broker_files"]
+            updateJson = {"existing_submission_id": self.updateSubmissionId,
+                "award_financial": os.path.join(filePath,"updated.csv"),
+                "reporting_period_start_date":"02/03/2016",
+                "reporting_period_end_date":"02/04/2016"}
+        updateResponse = self.app.post_json("/v1/submit_files/", updateJson)
+        self.assertEqual(updateResponse.status_code, 200)
+        self.assertEqual(updateResponse.headers.get("Content-Type"), "application/json")
+
+        json = updateResponse.json
+        self.assertIn("updated.csv", json["award_financial_key"])
+        submissionId = json["submission_id"]
+        submission = self.interfaces.jobDb.getSubmissionById(submissionId)
+        self.assertEqual(submission.agency_name,"Department of the Treasury") # Should not have changed agency name
+        self.assertEqual(submission.reporting_start_date.strftime("%m/%d/%Y"),"02/03/2016")
+        self.assertEqual(submission.reporting_end_date.strftime("%m/%d/%Y"),"02/04/2016")
 
     def test_check_status(self):
         """Test broker status route response."""
