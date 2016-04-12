@@ -84,6 +84,15 @@ class ErrorInterface(BaseInterface):
             numErrors += result.occurrences
         return numErrors
 
+    def resetErrorsByJobId(self, jobId):
+        """ Clear all entries in ErrorData for a specified job
+
+        Args:
+            jobId: job to reset
+        """
+        self.session.query(ErrorData).filter(ErrorData.job_id == jobId).delete()
+        self.session.commit()
+
     def sumNumberOfErrorsForJobList(self,jobIdList):
         """ Add number of errors for all jobs in list """
         errorSum = 0
