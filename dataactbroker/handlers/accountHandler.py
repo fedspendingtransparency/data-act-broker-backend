@@ -168,7 +168,7 @@ class AccountHandler:
         self.interfaces.userDb.addUserInfo(user,requestFields.getValue("name"),requestFields.getValue("agency"),requestFields.getValue("title"))
         self.interfaces.userDb.setPassword(user,requestFields.getValue("password"),self.bcrypt)
 
-        userLink= "".join([AccountHandler.FRONT_END, '/login?redirect=/admin'])
+        userLink= "".join([AccountHandler.FRONT_END, '#/login?redirect=/admin'])
         # Send email to approver list
         emailThread = Thread(target=ThreadedFunction, kwargs=dict(from_email=system_email,username=user.name,title=user.title,agency=user.agency,userEmail=user.email,link=userLink))
         emailThread.start()
@@ -211,7 +211,7 @@ class AccountHandler:
                 exc = ResponseException("User already registered", StatusCode.CLIENT_ERROR)
                 return JsonResponse.error(exc,exc.status)
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"validate_email")
-        link= "".join([AccountHandler.FRONT_END,'/registration/',emailToken])
+        link= "".join([AccountHandler.FRONT_END,'#/registration/',emailToken])
         emailTemplate = {'[USER]': email, '[URL]':link}
         newEmail = sesEmail(email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()
@@ -392,7 +392,7 @@ class AccountHandler:
         email = requestDict.getValue("email")
         # Send email with token
         emailToken = sesEmail.createToken(email,self.interfaces.userDb,"password_reset")
-        link= "".join([ AccountHandler.FRONT_END,'/forgotpassword/',emailToken])
+        link= "".join([ AccountHandler.FRONT_END,'#/forgotpassword/',emailToken])
         emailTemplate = { '[URL]':link}
         newEmail = sesEmail(user.email, system_email,templateType="reset_password",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()
