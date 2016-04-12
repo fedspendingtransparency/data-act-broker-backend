@@ -110,6 +110,7 @@ db:
     staging_db_name: staging # Staging db
     validator_db_name: validation # Validation db
     error_db_name: error_data # Error data db
+    job_queue_db_name: job_queue # Job queue db
 
     # The broker uses DynamoDb for session management. If
     # use_aws is true above, the broker will use a
