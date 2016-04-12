@@ -26,14 +26,19 @@ class BaseTest(unittest.TestCase):
 
         # update application's db config options so unittests
         # run against test databases
+        suite = cls.__name__.lower()
         config = dataactcore.config.CONFIG_DB
         cls.num = randint(1, 9999)
-        config['error_db_name'] = 'unittest{}_{}'.format(
-            cls.num, config['error_db_name'])
-        config['job_db_name'] = 'unittest{}_{}'.format(
-            cls.num, config['job_db_name'])
-        config['user_db_name'] = 'unittest{}_{}'.format(
-            cls.num, config['user_db_name'])
+        config['error_db_name'] = 'unittest{}_{}_error_data'.format(
+            cls.num, suite)
+        config['job_db_name'] = 'unittest{}_{}_job_tracker'.format(
+            cls.num, suite)
+        config['user_db_name'] = 'unittest{}_{}_user_manager'.format(
+            cls.num, suite)
+        config['validator_db_name'] = 'unittest{}_{}_validator'.format(
+            cls.num, suite)
+        config['staging_db_name'] = 'unittest{}_{}_staging'.format(
+            cls.num, suite)
         dataactcore.config.CONFIG_DB = config
 
         # drop and re-create test user db/tables
