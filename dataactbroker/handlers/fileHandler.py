@@ -153,14 +153,6 @@ class FileHandler:
             if(self.jobManager.checkUploadType(jobId)):
                 self.jobManager.changeToFinished(jobId)
                 responseDict["success"] = True
-                proxy =  ManagerProxy()
-                validationId = self.jobManager.getDependentJobs(jobId)
-                if(len(validationId) == 1):
-                    response = proxy.sendJobRequest(validationId[0])
-                elif(len(validationId) == 0):
-                    raise NoResultFound("No jobs were dependent on upload job")
-                else:
-                    raise MultipleResultsFound("Got more than one job dependent on upload job")
                 return JsonResponse.create(StatusCode.OK,responseDict)
             else:
                 raise ResponseException("Wrong job type for finalize route",StatusCode.CLIENT_ERROR)
