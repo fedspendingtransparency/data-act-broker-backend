@@ -116,36 +116,10 @@ class FileTests(BaseTest):
         submission = self.interfaces.jobDb.getSubmissionById(submissionId)
         self.assertEquals(submission.user_id, self.submission_user_id)
 
-
-
         # Call upload complete route
         finalizeResponse = self.check_upload_complete(
             responseDict["appropriations_id"])
         self.assertEqual(finalizeResponse.status_code, 200)
-        # Wait for validation to complete
-        start = time()
-        valId = self.interfaces.jobDb.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.file_type_id == 3).filter(JobStatus.type_id == self.interfaces.jobDb.getTypeId("csv_record_validation")).one().job_id
-
-        # First wait for job Id to get a file status
-        done = False
-        while not done and ((time() - start) < 20):
-            try:
-                self.interfaces.errorDb.checkStatusByJobId(valId)
-                done = True
-            except ResponseException:
-                # Does not exist yet, keep trying
-                sleep(1)
-        while (self.interfaces.jobDb.getJobStatus(valId) == "waiting" or self.interfaces.jobDb.getJobStatus(valId) == "running") and ((time() - start) < 20):
-            # If validation does not complete in 20 seconds, give up
-            sleep(1)
-        self.assertLess((time() - start),20,"Validation did not complete")
-        self.assertEqual(self.interfaces.jobDb.getJobStatus(valId),"finished")
-        self.assertEqual(self.interfaces.errorDb.checkStatusByJobId(valId),self.interfaces.errorDb.getStatusId("complete"))
-        fileSize = self.interfaces.jobDb.getFileSizeById(valId)
-        numRows = self.interfaces.jobDb.getNumberOfRowsById(valId)
-        # Check that file size and number of rows got populated
-        self.assertIsNotNone(fileSize)
-        self.assertIsNotNone(numRows)
 
     def test_check_status(self):
         """Test broker status route response."""
