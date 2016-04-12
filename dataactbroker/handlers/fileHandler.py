@@ -68,7 +68,6 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-
     # Submit set of files
     def submit(self,name,CreateCredentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
@@ -88,7 +87,19 @@ class FileHandler:
 
             fileNameMap = []
             safeDictionary = RequestDictionary(self.request)
+            submissionId = self.jobManager.createSubmission(name, safeDictionary)
+            existingSubmission = False
+            if safeDictionary.exists("existing_submission_id"):
+                existingSubmission = True
+
             for fileType in FileHandler.FILE_TYPES :
+                # If filetype not included in request, and this is an update to an existing submission, skip it
+                if not safeDictionary.exists(fileType):
+                    if existingSubmission:
+                        continue
+                    else:
+                        # This is a new submission, all files are required
+                        raise ResponseException("Must include all files for new submission",StatusCode.CLIENT_ERROR)
                 filename = safeDictionary.getValue(fileType)
                 if( safeDictionary.exists(fileType)) :
                     if(not self.isLocal):
@@ -98,7 +109,7 @@ class FileHandler:
                     responseDict[fileType+"_key"] = uploadName
                     fileNameMap.append((fileType,uploadName,filename))
 
-            fileJobDict = self.jobManager.createJobs(fileNameMap,name)
+            fileJobDict = self.jobManager.createJobs(fileNameMap,submissionId,existingSubmission)
             for fileType in fileJobDict.keys():
                 if (not "submission_id" in fileType) :
                     responseDict[fileType+"_id"] = fileJobDict[fileType]
@@ -177,43 +188,66 @@ class FileHandler:
             # Get jobs in this submission
 
             jobs = self.jobManager.getJobsBySubmission(submissionId)
+            submission = self.jobManager.getSubmissionById(submissionId)
 
             # Build dictionary of submission info with info about each job
             submissionInfo = {}
-            for job in jobs:
+            submissionInfo["jobs"] = []
+            submissionInfo["agency_name"] = submission.agency_name
+            submissionInfo["reporting_period_start_date"] = submission.reporting_start_date.strftime("%m/%d/%Y")
+            submissionInfo["reporting_period_end_date"] = submission.reporting_end_date.strftime("%m/%d/%Y")
+            submissionInfo["created_on"] = self.interfaces.jobDb.getFormattedDatetimeBySubmissionId(submissionId)
+            # Include number of errors in submission
+            submissionInfo["number_of_errors"] = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobs)
+            submissionInfo["number_of_rows"] = self.interfaces.jobDb.sumNumberOfRowsForJobList(jobs)
+
+
+            for jobId in jobs:
                 jobInfo = {}
-                if(self.jobManager.getJobType(job) != "csv_record_validation"):
+                if(self.jobManager.getJobType(jobId) != "csv_record_validation"):
                     continue
-                jobInfo["job_status"] = self.jobManager.getJobStatus(job)
-                jobInfo["job_type"] = self.jobManager.getJobType(job)
-                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job)
+                jobInfo["job_id"] = jobId
+                jobInfo["job_status"] = self.jobManager.getJobStatus(jobId)
+                jobInfo["job_type"] = self.jobManager.getJobType(jobId)
+                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(jobId)
                 try:
-                    jobInfo["file_status"] = self.interfaces.errorDb.getStatusLabelByJobId(job)
+                    jobInfo["file_status"] = self.interfaces.errorDb.getStatusLabelByJobId(jobId)
                 except ResponseException as e:
                     # Job ID not in error database, probably did not make it to validation, or has not yet been validated
                     jobInfo["file_status"] = ""
-                    jobInfo["missing_headers"] = ""
+                    jobInfo["missing_headers"] = []
+                    jobInfo["duplicated_headers"] = []
+                    jobInfo["error_type"] = ""
+                    jobInfo["error_data"] = []
                 else:
-                    # If job ID was found in file_status, we should be able to get header error lists
-                    missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(job)
+                    # If job ID was found in file_status, we should be able to get header error lists and file data
+                    # Get string of missing headers and parse as a list
+                    missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(jobId)
                     if missingHeaderString is not None:
-                        jobInfo["missing_headers"] = missingHeaderString.split(",")
-                        for i in range(0,len(jobInfo["missing_headers"])):
-                            jobInfo["missing_headers"][i] = jobInfo["missing_headers"][i].strip()
+                        # Split header string into list, excluding empty strings
+                        jobInfo["missing_headers"] = [n.strip() for n in missingHeaderString.split(",") if len(n) > 0]
                     else:
                         jobInfo["missing_headers"] = []
-                    duplicatedHeaderString = self.interfaces.errorDb.getDuplicatedHeadersByJobId(job)
+                    # Get string of duplicated headers and parse as a list
+                    duplicatedHeaderString = self.interfaces.errorDb.getDuplicatedHeadersByJobId(jobId)
                     if duplicatedHeaderString is not None:
-                        jobInfo["duplicated_headers"] = duplicatedHeaderString.split(",")
-                        for i in range(0,len(jobInfo["duplicated_headers"])):
-                            jobInfo["duplicated_headers"][i] = jobInfo["duplicated_headers"][i].strip()
+                        # Split header string into list, excluding empty strings
+                        jobInfo["duplicated_headers"] = [n.strip() for n in duplicatedHeaderString.split(",") if len(n) > 0]
                     else:
                         jobInfo["duplicated_headers"] = []
+                    jobInfo["error_type"] = self.interfaces.errorDb.getErrorType(jobId)
+                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId)
+                # File size and number of rows not dependent on error DB
+                # Get file size
+                jobInfo["file_size"] = self.jobManager.getFileSizeById(jobId)
+                # Get number of rows in file
+                jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(jobId)
+
                 try :
-                    jobInfo["file_type"] = self.jobManager.getFileType(job)
+                    jobInfo["file_type"] = self.jobManager.getFileType(jobId)
                 except Exception as e:
                     jobInfo["file_type"]  = ''
-                submissionInfo[job] = jobInfo
+                submissionInfo["jobs"].append(jobInfo)
 
             # Build response object holding dictionary
             return JsonResponse.create(StatusCode.OK,submissionInfo)

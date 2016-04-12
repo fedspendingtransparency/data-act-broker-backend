@@ -14,6 +14,9 @@ class UserTests(BaseTest):
         # Add submissions to one of the users
         jobDb = cls.jobTracker
 
+        # Delete existing submissions for approved user
+        jobDb.deleteSubmissionsForUserId(cls.approved_user_id)
+
         for i in range(0,5):
             sub = Submission(user_id = cls.approved_user_id)
             jobDb.session.add(sub)
@@ -136,7 +139,7 @@ class UserTests(BaseTest):
         emails = []
         for admin in agencyUsers:
             emails.append(admin.email)
-        self.assertEqual(len(agencyUsers), 10)
+        self.assertEqual(len(agencyUsers), 11)
         for email in ["realEmail@agency.gov", "waiting@agency.gov",
             "impatient@agency.gov", "watchingPaintDry@agency.gov",
             "approved@agency.gov", "nefarious@agency.gov",]:

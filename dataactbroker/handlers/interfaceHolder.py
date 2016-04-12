@@ -25,6 +25,13 @@ class InterfaceHolder:
         if(interface == None):
             # No need to close a nonexistent connection
             return
+        try:
+            if(interface.session == None):
+                # If session is None, skip closing
+                return
+        except AttributeError as e:
+            # If interface has no session, skip closing
+            return
 
         # Try to close the session and connection, on error try a rollback
         try:
