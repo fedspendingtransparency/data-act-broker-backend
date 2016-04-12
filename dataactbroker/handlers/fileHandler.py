@@ -223,18 +223,14 @@ class FileHandler:
                     missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(jobId)
                     if missingHeaderString is not None:
                         # Split header string into list, excluding empty strings
-                        jobInfo["missing_headers"] = [n for n in missingHeaderString.split(",") if len(n) > 0]
-                        for i in range(0,len(jobInfo["missing_headers"])):
-                            jobInfo["missing_headers"][i] = jobInfo["missing_headers"][i].strip()
+                        jobInfo["missing_headers"] = [n.strip() for n in missingHeaderString.split(",") if len(n) > 0]
                     else:
                         jobInfo["missing_headers"] = []
                     # Get string of duplicated headers and parse as a list
                     duplicatedHeaderString = self.interfaces.errorDb.getDuplicatedHeadersByJobId(jobId)
                     if duplicatedHeaderString is not None:
                         # Split header string into list, excluding empty strings
-                        jobInfo["duplicated_headers"] = [n for n in duplicatedHeaderString.split(",") if len(n) > 0]
-                        for i in range(0,len(jobInfo["duplicated_headers"])):
-                            jobInfo["duplicated_headers"][i] = jobInfo["duplicated_headers"][i].strip()
+                        jobInfo["duplicated_headers"] = [n.strip() for n in duplicatedHeaderString.split(",") if len(n) > 0]
                     else:
                         jobInfo["duplicated_headers"] = []
                     jobInfo["error_type"] = self.interfaces.errorDb.getErrorType(jobId)
