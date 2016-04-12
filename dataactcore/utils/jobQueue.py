@@ -1,13 +1,9 @@
 from celery import Celery
-from dataactcore.models.jobTrackerInterface import JobTrackerInterface
-from dataactcore.config import CONFIG_SERVICES, CONFIG_JOB_QUEUE
+from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE
 import requests
 
 # Set up backend persistent URL
-creds = JobTrackerInterface.getCredDict()
-dbScheme = creds['scheme'] if 'scheme' in creds else 'postgres'
-dbName = 'job_queue'
-backendUrl = ''.join(['db+', dbScheme, '://', creds['username'], ':', creds['password'], '@', creds['host'], '/', dbName])
+backendUrl = ''.join(['db+', CONFIG_DB['scheme'], '://', CONFIG_DB['username'], ':', CONFIG_DB['password'], '@', CONFIG_DB['host'], '/', CONFIG_DB['job_queue_db_name']])
 
 # Set up url to the validator for the RESTFul calls
 validatorUrl = ''.join(['http://', CONFIG_SERVICES['validator_host'], ':', str(CONFIG_SERVICES['validator_port'])])
