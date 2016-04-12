@@ -6,6 +6,8 @@ from dataactcore.utils.statusCode import StatusCode
 
 class JobHandler(JobTrackerInterface):
     """ Responsible for all interaction with the job tracker database
+    Class fields:
+    metaDataFieldMap -- Maps names in the request object to database column names
 
     Instance fields:
     engine -- sqlalchemy engine for generating connections and sessions
@@ -22,6 +24,8 @@ class JobHandler(JobTrackerInterface):
 
     # Available instance variables:  session, waitingStatus, runningStatus, fileUploadType, dbUploadType, validationType, externalValidationTYpe
 
+    metaDataFieldMap = {"agency_name":"agency_name","reporting_period_start_date":"reporting_start_date","reporting_period_end_date":"reporting_end_date"}
+
     def getSubmissionById(self,submissionId):
         """ Return submission object that matches ID """
         query = self.session.query(Submission).filter(Submission.submission_id == submissionId)
@@ -36,8 +40,8 @@ class JobHandler(JobTrackerInterface):
         """ Returns all submissions associated with the provided user object """
         return self.getSubmissionsByUserId(user.user_id)
 
-    @staticmethod
-    def loadSubmitParams(requestDict):
+    @classmethod
+    def loadSubmitParams(cls,requestDict):
         """ Load params from request, return dictionary of values provided mapped to submission fields """
         # Existing submission ID is optional
         existingSubmission = False
@@ -46,18 +50,18 @@ class JobHandler(JobTrackerInterface):
             # Agency name and reporting dates are required for new submissions
             existingSubmission = True
             existingSubmissionId = requestDict.getValue("existing_submission_id")
-        metaDataFieldMap = {"agency_name":"agency_name","reporting_period_start_date":"reporting_start_date","reporting_period_end_date":"reporting_end_date"}
+
         submissionData = {}
-        for key in metaDataFieldMap:
+        for key in cls.metaDataFieldMap:
             if requestDict.exists(key):
                 if(key == "reporting_period_start_date" or key == "reporting_period_end_date"):
                     # Create a date object from formatted string, assuming "MM/DD/YYYY"
                     try:
-                        submissionData[metaDataFieldMap[key]] = JobHandler.createDate(requestDict.getValue(key))
+                        submissionData[cls.metaDataFieldMap[key]] = JobHandler.createDate(requestDict.getValue(key))
                     except Exception as e:
                         raise ResponseException("Submission dates must be formatted as MM/DD/YYYY, hit error: " + str(e),StatusCode.CLIENT_ERROR,type(e))
                 else:
-                    submissionData[metaDataFieldMap[key]] = requestDict.getValue(key)
+                    submissionData[cls.metaDataFieldMap[key]] = requestDict.getValue(key)
             else:
                 if not existingSubmission:
                     raise ResponseException(key + " is required",StatusCode.CLIENT_ERROR,ValueError)
@@ -81,6 +85,7 @@ class JobHandler(JobTrackerInterface):
         Returns:
             submission ID
         """
+        # submissionValues is a dictionary with keys determined by JobHandler.metaDataFieldMap, and existingId is the existing submission ID if it exists
         submissionValues,existingId = self.loadSubmitParams(requestDict)
         # Create submission entry
         if existingId is None:
