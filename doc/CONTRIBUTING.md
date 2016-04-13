@@ -107,7 +107,7 @@ Don't worry about creating tables in DynamoDB: the broker's initialization proce
 
 **Note:** The local version of DynamoDB is not recommend for production.
 
-### Clone Broker Code Repositories
+### Clone Broker Backend Code Repositories
 
 Now we're ready to install the DATA Act broker itself. Before starting:
 
@@ -171,16 +171,6 @@ Install the dependencies:
 
         $ pip install -r requirements.txt
 
-#### Broker Website
-
-Navigate back to your project home. From the command line, clone the DATA Act web app repository from GitHub to your local environment:
-
-        $ git clone git@github.com:fedspendingtransparency/data-act-broker-web-app.git
-
-Switch to the alpha release version of the code:
-
-        $ git checkout v0.1.0-alpha
-
 ### Update $PYTHONPATH
 
 The backend components import Python modules from one another. Therefore, the locations of these modules need to be on your $PYTHONPATH. Use the virtualenvwrapper [add2virtual](http://virtualenvwrapper.readthedocs.org/en/latest/command_ref.html#path-management "virtualenvwrapper path management") shortcut to add them:
@@ -240,25 +230,9 @@ Make sure the validator is working by visiting by visiting the hostname and port
 
 ### Setup and Run Broker Website
 
-Once the DATA Act broker's back-end is up and running, setup and start the corresponding website:
+Once the DATA Act broker's backend is up and running, you may also want to stand up a local version of the broker website. The directions for doing that are in the [website project's code repository](https://github.com/fedspendingtransparency/data-act-broker-web-app "DATA Act broker website").
 
-1. Download and run the Node.js installer for your operating system: [https://nodejs.org/en/](https://nodejs.org/en/ "Node.js installer").
-2. Use *npm* (Node's package manager, which is part of the Node.js install) to install the latest version of gulp:
-
-        $ npm install gulp && npm install gulp -g
-
-3. Change to the `data-act-broker-web-app` directory that was created when you cloned the DATA Act web repository.
-4. The website has it's own config file that you'll need to update. Open the `GlobalConstants_dev.js` file in the `data-act-broker-app` directory. Make the following changes:
-
-* Change the value for `API` to the URL where you're running the broker (for example, `http://localhost:3333/v1`).
-* If you're not using AWS to run the broker, change `LOCAL` to `true`. Otherwise, change `BUCKET_NAME` to the name of your AWS S3 bucket.
-
-5. Run the following commands to install the website's dependencies and run the site:
-
-        $ npm install
-        $ gulp
-
-Your browser will open to the broker website's login page. Log in with the admin e-mail and password you set in the broker config file (`admin_email` and `admin_password`).
+After following the website setup directions, you can log in with the admin e-mail and password you set in the [broker's backend config file](#create-broker-config-file "config file setup") (`admin_email` and `admin_password`).
 
 
 ## Database Migrations
