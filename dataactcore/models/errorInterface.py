@@ -125,3 +125,8 @@ class ErrorInterface(BaseInterface):
         else:
             # No errors occurred during validation
             return "none"
+
+    def resetFileStatusByJobId(self, jobId):
+        """ Delete file status for job ID """
+        self.session.query(FileStatus).filter(FileStatus.job_id == jobId).delete()
+        self.session.commit()
