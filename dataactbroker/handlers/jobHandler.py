@@ -200,7 +200,9 @@ class JobHandler(JobTrackerInterface):
                 valJob.file_size = None
                 valJob.number_of_rows = None
                 # Reset number of errors
-                ErrorHandler().resetErrorsByJobId(valJob.job_id)
+                errorDb = ErrorHandler()
+                errorDb.resetErrorsByJobId(valJob.job_id)
+                errorDb.resetFileStatusByJobId(valJob.job_id)
                 self.session.commit()
             else:
                 # Create parse into DB job
