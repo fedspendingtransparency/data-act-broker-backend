@@ -1,5 +1,6 @@
 import boto
 import csv
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactvalidator.validation_handlers.validationError import ValidationError
@@ -15,7 +16,7 @@ class CsvAbstractReader(object):
     BUFFER_SIZE = 8192
     headerReportHeaders = ["Error type", "Header name"]
 
-    def openFile(self,bucket,filename,csvSchema,bucketName,errorFilename):
+    def openFile(self,region,bucket,filename,csvSchema,bucketName,errorFilename):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
             bucket : the S3 Bucket
@@ -84,13 +85,15 @@ class CsvAbstractReader(object):
             raise ResponseException("Errors in header row", StatusCode.CLIENT_ERROR, ValueError,ValidationError.headerError,**extraInfo)
 
     @staticmethod
-    def getWriter(bucketName,fileName,header,isLocal):
+    def getWriter(bucketName,fileName,header,isLocal, region = None):
         """
         Gets the write type based on if its a local install or not.
         """
         if(isLocal):
             return CsvLocalWriter(fileName,header)
-        return CsvS3Writer(bucketName,fileName,header)
+        if region == None:
+            region = CONFIG_BROKER["aws_region"]
+        return CsvS3Writer(region, bucketName,fileName,header)
 
     def getNextRecord(self):
         """
