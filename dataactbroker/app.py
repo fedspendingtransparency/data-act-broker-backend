@@ -68,11 +68,13 @@ def createApp():
 
         # Add routes for modules here
         add_login_routes(app, bcrypt)
+
         add_file_routes(app, CONFIG_BROKER['aws_create_temp_credentials'],
             local, broker_file_path)
         add_user_routes(app, app.config['SYSTEM_EMAIL'], bcrypt)
 
         SessionTable.LOCAL_PORT = CONFIG_DB['dynamo_port']
+        SessionTable.DYNAMO_REGION = CONFIG_BROKER['aws_region']
         SessionTable.setup(app, local)
 
         return app
