@@ -27,10 +27,11 @@ class sesEmail(object):
             self.content = template.content
 
             for key in parameters :
-                if(not parameters[key] is None) :
+                if key in parameters and parameters[key] is not None:
                     self.content = self.content.replace(key,parameters[key])
-                else :
+                else:
                     self.content = self.content.replace(key,"")
+            print("Email content is: " + str(self.content))
 
     def send(self):
         if(not sesEmail.isLocal):
