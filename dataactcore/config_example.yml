@@ -42,6 +42,13 @@ broker:
     # order to use AWS (see install instructions for more information).
     use_aws: false 
 
+    # If using AWS, set your region here
+    aws_region: us-east-1
+
+    # Add your AWS Key to use for sending SES emails
+    aws_access_key_id: ACCESSKEYID123
+    aws_secret_access_key: test123abc/123testsecretkeY
+
     # Name of AWS S3 bucket for uploaded broker files. Ignored if use_aws
     # is false. NOTE: the dummy value below MUST be changed to the correct
     # value if use_aws is true.
@@ -91,6 +98,9 @@ db:
     # changed this, you should not have to update the value below.
     base_db_name: postgres
 
+    # The type of backend database being used
+    scheme: postgres
+
     # Host and port of db instance. Set to localhost if running locally or set 
     # the remote address
     host: localhost
@@ -107,6 +117,8 @@ db:
     staging_db_name: staging # Staging db
     validator_db_name: validation # Validation db
     error_db_name: error_data # Error data db
+    job_queue_db_name: job_queue # Job queue db
+
 
     # The broker uses DynamoDb for session management. If
     # use_aws is true above, the broker will use a
@@ -133,4 +145,21 @@ logging:
     # Logstash port. 514 is the port typically used with logstash,
     # so you can mostly likely keep this as is.
     logstash_port: 514
+
+job-queue:
+    # RabbitMQ username
+    username: user
+
+    # RabbitMQ password
+    password: password
+
+    # URL for the job queue server
+    url: 127.0.0.1
+
+    # Port on which Celery is listening
+    port: 5672
+
+    # Broker scheme which must coordinate with the type of broker being used
+    # on the remote server. amqp corresponds to RabbitMQ.
+    broker_scheme: amqp
 
