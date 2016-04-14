@@ -23,6 +23,18 @@ CONFIG_JOB_QUEUE = CONFIG_ALL['job-queue']
 if CONFIG_BROKER['use_aws'] or CONFIG_BROKER['use_aws'] == "true":
     CONFIG_BROKER['local'] = False
     CONFIG_BROKER['broker_files'] = None
+    # AWS flag is on, so make sure all needed AWS info is present
+    required_aws_keys = ['aws_access_key_id', 'aws_bucket',
+        'aws_role', 'aws_region', 'aws_create_temp_credentials']
+    for k in required_aws_keys:
+        try:
+            CONFIG_BROKER[k]
+        except KeyError as e:
+            raise KeyError('Config error: use_aws is True, but the {} key is'
+                ' missing from the config.yml file'.format(k))
+        if not CONFIG_BROKER[k]:
+            raise ValueError('Config error: use_aws is True but {} value is '
+                 'missing'.format(k))
 else:
     CONFIG_BROKER['local'] = True
     CONFIG_BROKER['aws_bucket'] = None
