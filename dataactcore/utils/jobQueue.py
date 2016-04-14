@@ -32,6 +32,5 @@ class JobQueue:
 		self.enqueue = enqueue
 
 if __name__ in ['__main__', 'jobQueue']:
-	print "IN MAIN"
 	jobQueue = JobQueue()
 	queue = jobQueue.jobQueue
