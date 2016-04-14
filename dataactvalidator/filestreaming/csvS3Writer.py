@@ -9,7 +9,7 @@ class CsvS3Writer(CsvAbstractWriter):
     Writes a CSV to an S3 Bucket in a steaming manner
     use with the "with" python construct
     """
-    def __init__(self,bucket,filename,header) :
+    def __init__(self,region,bucket,filename,header) :
         """
 
         args
@@ -19,7 +19,8 @@ class CsvS3Writer(CsvAbstractWriter):
         header - list of strings for the header
 
         """
-        self.stream = smart_open.smart_open("".join(["s3://",bucket,"/",filename]), 'wb',min_part_size=CsvAbstractWriter.BUFFER_SIZE)
+        conn = boto.s3.connect_to_region(region).get_bucket(bucket).new_key(filename)
+        self.stream = smart_open.smart_open(conn, 'wb', min_part_size=CsvAbstractWriter.BUFFER_SIZE)
         super(CsvS3Writer,self).__init__(filename,header)
 
 

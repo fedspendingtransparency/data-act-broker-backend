@@ -1,3 +1,5 @@
+from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
+from dataactcore.utils.responseException import ResponseException
 from dataactcore.models.errorModels import FileStatus, ErrorData
 from dataactcore.models.errorInterface import ErrorInterface
 from dataactvalidator.validation_handlers.validationError import ValidationError
@@ -9,6 +11,34 @@ class ValidatorErrorInterface(ErrorInterface):
         """ Create empty row error dict """
         self.rowErrors = {}
         super(ValidatorErrorInterface, self).__init__()
+
+    def createFileStatus(self,jobId, filename):
+        """ Create a new file status object for specified job and filename """
+        try:
+            int(jobId)
+        except:
+            raise ValueError("".join(["Bad jobId: ",str(jobId)]))
+
+        fileStatus = FileStatus(job_id = jobId, filename = filename, row_errors_present = False, status_id = self.getStatusId("incomplete"))
+        self.session.add(fileStatus)
+        self.session.commit()
+        return fileStatus
+
+    def createFileStatusIfNeeded(self, jobId, filename):
+        """ Return the existing FileStatus if it exists, or create a new one """
+        try:
+            fileStatus = self.getFileStatusByJobId(jobId)
+            if fileStatus.filename != filename:
+                # There is a FileStatus for this job, but the filename does not match
+                raise ValueError("".join(["FileStatus exists for this Job ID, but old filename ",fileStatus.filename," does not match new filename ",filename]))
+        except ResponseException as e:
+            if isinstance(e.wrappedException, NoResultFound):
+                # No File Status object for this job ID, just create one
+                fileStatus = self.createFileStatus(jobId, filename)
+            else:
+                # Other error types should be handled at a higher level, so re-raise
+                raise
+        return fileStatus
 
     def writeFileError(self, jobId, filename, errorType, extraInfo = None):
         """ Write a file-level error to the file status table
@@ -26,15 +56,18 @@ class ValidatorErrorInterface(ErrorInterface):
         except:
             raise ValueError("".join(["Bad jobId: ",str(jobId)]))
 
+        # Get File Status for this job ID or create it if it doesn't exist
+        fileStatus = self.createFileStatusIfNeeded(jobId,filename)
 
-        fileError = FileStatus(job_id = jobId, filename = filename, status_id = self.getStatusId(ValidationError.getErrorTypeString(errorType)))
+        # Mark error type and add header info if present
+        fileStatus.status_id = self.getStatusId(ValidationError.getErrorTypeString(errorType))
         if extraInfo is not None:
             if "missing_headers" in extraInfo:
-                fileError.headers_missing = extraInfo["missing_headers"]
+                fileStatus.headers_missing = extraInfo["missing_headers"]
             if "duplicated_headers" in extraInfo:
-                fileError.headers_duplicated = extraInfo["duplicated_headers"]
+                fileStatus.headers_duplicated = extraInfo["duplicated_headers"]
 
-        self.session.add(fileError)
+        self.session.add(fileStatus)
         self.session.commit()
         return True
 
@@ -49,8 +82,8 @@ class ValidatorErrorInterface(ErrorInterface):
             True if successful
         """
 
-        fileComplete = FileStatus(job_id = jobId, filename = filename, status_id = self.getStatusId("complete"))
-        self.session.add(fileComplete)
+        fileComplete = self.createFileStatusIfNeeded(jobId,filename)
+        fileComplete.status_id = self.getStatusId("complete")
         self.session.commit()
         return True
 
@@ -96,13 +129,14 @@ class ValidatorErrorInterface(ErrorInterface):
             except ValueError:
                 # For rule failures, it will hold the error message
                 errorMsg = errorDict["errorType"]
-                errorRow = ErrorData(job_id = thisJob, filename = errorDict["filename"], field_name = fieldName, rule_failed = errorMsg, occurrences = errorDict["numErrors"], first_row = errorDict["firstRow"])
+                ruleFailedId = self.getTypeId("rule_failed")
+                errorRow = ErrorData(job_id = thisJob, filename = errorDict["filename"], field_name = fieldName, error_type_id = ruleFailedId, rule_failed = errorMsg, occurrences = errorDict["numErrors"], first_row = errorDict["firstRow"])
             else:
                 # This happens if cast to int was successful
                 errorString = ValidationError.getErrorTypeString(errorType)
                 errorId = self.getTypeId(errorString)
                 # Create error data
-                errorRow = ErrorData(job_id = thisJob, filename = errorDict["filename"], field_name = fieldName, error_type_id = errorId, occurrences = errorDict["numErrors"], first_row = errorDict["firstRow"])
+                errorRow = ErrorData(job_id = thisJob, filename = errorDict["filename"], field_name = fieldName, error_type_id = errorId, occurrences = errorDict["numErrors"], first_row = errorDict["firstRow"], rule_failed = ValidationError.getErrorMessage(errorType))
 
             self.session.add(errorRow)
 
@@ -136,3 +170,14 @@ class ValidatorErrorInterface(ErrorInterface):
         # Create single string out of duplicated header list
         fileStatus.headers_duplicated = ",".join(duplicatedHeaders)
         self.session.commit()
+
+    def setRowErrorsPresent(self, jobId, errorsPresent):
+        """ Set errors present for the specified job ID to true or false.  Note this refers only to row-level errors, not file-level errors. """
+        fileStatus = self.getFileStatusByJobId(jobId)
+        # If errorsPresent is not a bool, this function will raise a TypeError
+        fileStatus.row_errors_present = bool(errorsPresent)
+        self.session.commit()
+
+    def getRowErrorsPresent(self, jobId):
+        """ Returns True or False depending on if errors were found in the specified job """
+        return self.getFileStatusByJobId(jobId).row_errors_present
