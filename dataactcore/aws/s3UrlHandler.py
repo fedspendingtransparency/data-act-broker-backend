@@ -1,5 +1,6 @@
 from datetime import datetime
 import boto
+from boto import sts
 import os
 import inspect
 import json
@@ -14,6 +15,7 @@ class s3UrlHandler:
     URL_LIFETIME = 2000
     STS_LIFETIME = 2000
     S3_ROLE = ""
+
     def __init__(self,name = None):
         """
         Creates the object for signing URLS
@@ -27,7 +29,10 @@ class s3UrlHandler:
             self.bucketRoute = CONFIG_BROKER['aws_bucket']
         else:
             self.bucketRoute = name
+
         s3UrlHandler.S3_ROLE = CONFIG_BROKER['aws_role']
+        s3UrlHandler.REGION = CONFIG_BROKER['aws_region']
+
 
     def _signUrl(self,path,fileName,method="PUT") :
         """
@@ -41,7 +46,7 @@ class s3UrlHandler:
 
         """
         if(s3UrlHandler.ENABLE_S3) :
-            s3connection = boto.connect_s3()
+            s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
             if(method=="PUT") :
                 return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method, self.bucketRoute, "/"+path+"/" +fileName,headers={'Content-Type': 'application/octet-stream'})
             return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method, self.bucketRoute, "/"+path+"/" +fileName)
@@ -74,7 +79,11 @@ class s3UrlHandler:
     def doesFileExist(filename):
         """ Returns True if specified filename exists in the S3 bucket """
         # Get key
-        s3connection = boto.connect_s3()
+        try:
+            s3UrlHandler.REGION
+        except AttributeError as e:
+            s3UrlHandler.REGION = CONFIG_BROKER["aws_region"]
+        s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
         bucket = s3connection.get_bucket(CONFIG_BROKER['aws_bucket'])
         key = bucket.get_key(filename)
         if key:
@@ -86,7 +95,7 @@ class s3UrlHandler:
         """
         Gets token that allows for S3 Uploads for seconds set in STS_LIFETIME
         """
-        stsConnection = boto.connect_sts()
+        stsConnection = sts.connect_to_region(s3UrlHandler.REGION)
         role = stsConnection.assume_role(s3UrlHandler.S3_ROLE,"FileUpload"+str(user),duration_seconds=s3UrlHandler.STS_LIFETIME)
         credentials ={}
         credentials["AccessKeyId"] =  role.credentials.access_key
@@ -100,7 +109,11 @@ class s3UrlHandler:
         """ Returns file size in number of bytes for specified filename, or False if file doesn't exist """
 
         # Get key
-        s3connection = boto.connect_s3()
+        try:
+            s3UrlHandler.REGION
+        except AttributeError as e:
+            s3UrlHandler.REGION = CONFIG_BROKER["aws_region"]
+        s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
         bucket = s3connection.get_bucket(CONFIG_BROKER['aws_bucket'])
         key = bucket.get_key(filename)
         if(key == None):
