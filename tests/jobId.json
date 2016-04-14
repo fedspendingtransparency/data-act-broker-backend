@@ -1,1 +1,0 @@
-{"valid_upload": 1, "missing_header": 2, "bad_header": 9, "rules": 4, "many": 5, "bad_upload": 7, "wrong_type": 8, "many_bad": 3, "not_ready": 10, "bad_prereq": 6, "valid_prereq": 12, "mixed": 13, "bad_values": 14, "odd_characters": 15, "valid": 11, "empty": 16}
