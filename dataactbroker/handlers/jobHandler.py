@@ -200,7 +200,9 @@ class JobHandler(JobTrackerInterface):
                 valJob.file_size = None
                 valJob.number_of_rows = None
                 # Reset number of errors
-                ErrorHandler().resetErrorsByJobId(valJob.job_id)
+                errorDb = ErrorHandler()
+                errorDb.resetErrorsByJobId(valJob.job_id)
+                errorDb.resetFileStatusByJobId(valJob.job_id)
                 self.session.commit()
             else:
                 # Create parse into DB job
@@ -242,15 +244,7 @@ class JobHandler(JobTrackerInterface):
         jobId -- job_id to mark as finished
 
         """
-
-        # Pull from job status table
-        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
-        jobToChange = self.runUniqueQuery(query,"Job ID not found","Multiple jobs with same ID")
-
-        # Change status to finished
-        jobToChange.status_id = self.getStatusId("finished")
-        # Commit changes
-        self.session.commit()
+        JobTrackerInterface.markStatus(self, jobId, 'finished')
 
     def getUserForSubmission(self,submission):
         """ Takes a submission object and returns the user ID """

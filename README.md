@@ -529,7 +529,7 @@ Example output:
 	},
 	{
 	"field_name": "availabilitytypecode",
-	"error_name": "rule_error",
+	"error_name": "rule_failed",
 	"error_description": "",
 	"occurrences": 27,
 	"rule_failed": "Failed rule: Indicator must be X, F, A, or blank"
