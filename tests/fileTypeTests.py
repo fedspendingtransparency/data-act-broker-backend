@@ -99,7 +99,7 @@ class FileTypeTests(BaseTest):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 5510, 4, "complete", 57)
+            jobId, 200, "finished", 4433, 4, "complete", 45)
 
     def test_program_valid(self):
         """Test valid job."""
@@ -111,7 +111,7 @@ class FileTypeTests(BaseTest):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 7712, 4, "complete", 77)
+            jobId, 200, "finished", 7787, 4, "complete", 78)
 
     def test_award_fin_valid(self):
         """Test valid job."""
@@ -123,7 +123,7 @@ class FileTypeTests(BaseTest):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 7480, 7, "complete", 76)
+            jobId, 200, "finished", 5700, 7, "complete", 58)
 
     def test_award_valid(self):
         """Test valid job."""
@@ -135,7 +135,7 @@ class FileTypeTests(BaseTest):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 3185, 7, "complete", 44)
+            jobId, 200, "finished", 2168, 7, "complete", 33)
 
     @classmethod
     def tearDownClass(cls):

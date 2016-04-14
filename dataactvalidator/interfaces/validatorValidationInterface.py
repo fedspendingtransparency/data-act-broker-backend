@@ -1,7 +1,7 @@
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.baseInterface import BaseInterface
-from dataactvalidator.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType, RuleTiming, CGACLookup
+from dataactvalidator.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType, RuleTiming
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.config import CONFIG_DB
 
@@ -37,12 +37,6 @@ class ValidatorValidationInterface(BaseInterface) :
 
     def getSession(self):
         return self.session
-
-    def deleteCGAC(self):
-        """
-        Removes the CGAC table
-        """
-        queryResult
 
     def deleteTAS(self) :
         """
