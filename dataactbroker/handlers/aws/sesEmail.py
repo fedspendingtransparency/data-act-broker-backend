@@ -31,7 +31,6 @@ class sesEmail(object):
                     self.content = self.content.replace(key,parameters[key])
                 else:
                     self.content = self.content.replace(key,"")
-            print("Email content is: " + str(self.content))
 
     def send(self):
         if(not sesEmail.isLocal):
