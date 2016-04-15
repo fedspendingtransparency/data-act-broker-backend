@@ -35,8 +35,13 @@ class sesEmail(object):
 
     def send(self):
         if(not sesEmail.isLocal):
-            connection = boto.connect_ses(aws_access_key_id=CONFIG_BROKER['aws_access_key_id'], aws_secret_access_key=CONFIG_BROKER['aws_secret_access_key'])
-            return connection.send_email(self.fromAddress, self.subject,self.content,self.toAddress,format='html')
+            # Use aws creds for ses if possible, otherwise, use aws_key from config
+            connection = boto.connect_ses()
+            try:
+                return connection.send_email(self.fromAddress, self.subject,self.content,self.toAddress,format='html')
+            except:
+                connection = boto.connect_ses(aws_access_key_id=CONFIG_BROKER['aws_access_key_id'], aws_secret_access_key=CONFIG_BROKER['aws_secret_access_key'])
+                return connection.send_email(self.fromAddress, self.subject,self.content,self.toAddress,format='html')
         else:
             newEmailText = "\n\n".join(["","Time",str(datetime.datetime.now()),"Subject",self.subject,"From",self.fromAddress,"To",self.toAddress,"Content",self.content])
             open (sesEmail.emailLog,"a").write(newEmailText)
