@@ -1,4 +1,5 @@
 import uuid
+import time
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func
@@ -6,7 +7,7 @@ from dataactcore.models.userModel import User, PermissionType
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactbroker.models.brokerUserModels import EmailToken, EmailTemplateType , EmailTemplate
+from dataactcore.models.userModel import EmailToken, EmailTemplateType , EmailTemplate
 
 class UserHandler(UserInterface):
     """ Responsible for all interaction with the user database
@@ -405,4 +406,10 @@ class UserHandler(UserInterface):
         template.content = contents
         template.template_type_id = emailId
         self.session.add(template)
+        self.session.commit()
+
+    def updateLastLogin(self, user):
+        """ This updates the last login date to today's datetime for the user to the current date upon successful login.
+        """
+        user.last_login_date = time.strftime("%c")
         self.session.commit()

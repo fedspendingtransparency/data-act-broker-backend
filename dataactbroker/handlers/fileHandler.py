@@ -8,6 +8,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
+from dataactcore.config import CONFIG_BROKER
 from dataactbroker.handlers.managerProxy import ManagerProxy
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactbroker.handlers.aws.session import LoginSession
@@ -48,7 +49,8 @@ class FileHandler:
         Gets the Signed URLs for download based on the submissionId
         """
         try :
-            self.s3manager = s3UrlHandler(s3UrlHandler.getValueFromConfig("bucket"))
+            self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
+            self.s3manager.REGION = s3UrlHandler(CONFIG_BROKER["aws_region"])
             safeDictionary = RequestDictionary(self.request)
             submissionId = safeDictionary.getValue("submission_id")
             responseDict ={}
@@ -66,7 +68,6 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-
     # Submit set of files
     def submit(self,name,CreateCredentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
@@ -83,29 +84,46 @@ class FileHandler:
         """
         try:
             responseDict= {}
-            self.s3manager = s3UrlHandler(s3UrlHandler.getValueFromConfig("bucket"))
+
             fileNameMap = []
             safeDictionary = RequestDictionary(self.request)
-            for fileName in FileHandler.FILE_TYPES :
-                if( safeDictionary.exists(fileName)) :
-                    if(not self.isLocal):
-                        uploadName =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(safeDictionary.getValue(fileName))
-                    else:
-                        uploadName = safeDictionary.getValue(fileName)
-                    responseDict[fileName+"_key"] = uploadName
-                    fileNameMap.append((fileName,uploadName))
+            submissionId = self.jobManager.createSubmission(name, safeDictionary)
+            existingSubmission = False
+            if safeDictionary.exists("existing_submission_id"):
+                existingSubmission = True
 
-            fileJobDict = self.jobManager.createJobs(fileNameMap,name)
-            for fileName in fileJobDict.keys():
-                if (not "submission_id" in fileName) :
-                    responseDict[fileName+"_id"] = fileJobDict[fileName]
+            for fileType in FileHandler.FILE_TYPES :
+                # If filetype not included in request, and this is an update to an existing submission, skip it
+                if not safeDictionary.exists(fileType):
+                    if existingSubmission:
+                        continue
+                    else:
+                        # This is a new submission, all files are required
+                        raise ResponseException("Must include all files for new submission",StatusCode.CLIENT_ERROR)
+                filename = safeDictionary.getValue(fileType)
+                if( safeDictionary.exists(fileType)) :
+                    if(not self.isLocal):
+                        uploadName =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(filename)
+                    else:
+                        uploadName = filename
+                    responseDict[fileType+"_key"] = uploadName
+                    fileNameMap.append((fileType,uploadName,filename))
+
+            fileJobDict = self.jobManager.createJobs(fileNameMap,submissionId,existingSubmission)
+            for fileType in fileJobDict.keys():
+                if (not "submission_id" in fileType) :
+                    responseDict[fileType+"_id"] = fileJobDict[fileType]
             if(CreateCredentials and not self.isLocal) :
+                self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
                 responseDict["credentials"] = self.s3manager.getTemporaryCredentials(name)
             else :
                 responseDict["credentials"] ={"AccessKeyId" : "local","SecretAccessKey" :"local","SessionToken":"local" ,"Expiration" :"local"}
 
             responseDict["submission_id"] = fileJobDict["submission_id"]
-            responseDict["bucket_name"] =s3UrlHandler.getValueFromConfig("bucket")
+            if self.isLocal:
+                responseDict["bucket_name"] = CONFIG_BROKER["broker_files"]
+            else:
+                responseDict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
             return JsonResponse.create(StatusCode.OK,responseDict)
         except (ValueError , TypeError, NotImplementedError) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
@@ -137,14 +155,6 @@ class FileHandler:
             if(self.jobManager.checkUploadType(jobId)):
                 self.jobManager.changeToFinished(jobId)
                 responseDict["success"] = True
-                proxy =  ManagerProxy()
-                validationId = self.jobManager.getDependentJobs(jobId)
-                if(len(validationId) == 1):
-                    response = proxy.sendJobRequest(validationId[0])
-                elif(len(validationId) == 0):
-                    raise NoResultFound("No jobs were dependent on upload job")
-                else:
-                    raise MultipleResultsFound("Got more than one job dependent on upload job")
                 return JsonResponse.create(StatusCode.OK,responseDict)
             else:
                 raise ResponseException("Wrong job type for finalize route",StatusCode.CLIENT_ERROR)
@@ -161,7 +171,7 @@ class FileHandler:
         """ Get description and status of all jobs in the submission specified in request object
 
         Returns:
-            A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding description and status
+            A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding file_type, job_type, status, and filename
         """
         try:
             inputDictionary = RequestDictionary(self.request)
@@ -170,18 +180,66 @@ class FileHandler:
             # Get jobs in this submission
 
             jobs = self.jobManager.getJobsBySubmission(submissionId)
+            submission = self.jobManager.getSubmissionById(submissionId)
 
             # Build dictionary of submission info with info about each job
             submissionInfo = {}
-            for job in jobs:
+            submissionInfo["jobs"] = []
+            submissionInfo["agency_name"] = submission.agency_name
+            submissionInfo["reporting_period_start_date"] = submission.reporting_start_date.strftime("%m/%d/%Y")
+            submissionInfo["reporting_period_end_date"] = submission.reporting_end_date.strftime("%m/%d/%Y")
+            submissionInfo["created_on"] = self.interfaces.jobDb.getFormattedDatetimeBySubmissionId(submissionId)
+            # Include number of errors in submission
+            submissionInfo["number_of_errors"] = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobs)
+            submissionInfo["number_of_rows"] = self.interfaces.jobDb.sumNumberOfRowsForJobList(jobs)
+
+
+            for jobId in jobs:
                 jobInfo = {}
-                jobInfo["status"] = self.jobManager.getJobStatus(job)
-                jobInfo["job_type"] = self.jobManager.getJobType(job)
+                if(self.jobManager.getJobType(jobId) != "csv_record_validation"):
+                    continue
+                jobInfo["job_id"] = jobId
+                jobInfo["job_status"] = self.jobManager.getJobStatus(jobId)
+                jobInfo["job_type"] = self.jobManager.getJobType(jobId)
+                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(jobId)
+                try:
+                    jobInfo["file_status"] = self.interfaces.errorDb.getStatusLabelByJobId(jobId)
+                except ResponseException as e:
+                    # Job ID not in error database, probably did not make it to validation, or has not yet been validated
+                    jobInfo["file_status"] = ""
+                    jobInfo["missing_headers"] = []
+                    jobInfo["duplicated_headers"] = []
+                    jobInfo["error_type"] = ""
+                    jobInfo["error_data"] = []
+                else:
+                    # If job ID was found in file_status, we should be able to get header error lists and file data
+                    # Get string of missing headers and parse as a list
+                    missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(jobId)
+                    if missingHeaderString is not None:
+                        # Split header string into list, excluding empty strings
+                        jobInfo["missing_headers"] = [n.strip() for n in missingHeaderString.split(",") if len(n) > 0]
+                    else:
+                        jobInfo["missing_headers"] = []
+                    # Get string of duplicated headers and parse as a list
+                    duplicatedHeaderString = self.interfaces.errorDb.getDuplicatedHeadersByJobId(jobId)
+                    if duplicatedHeaderString is not None:
+                        # Split header string into list, excluding empty strings
+                        jobInfo["duplicated_headers"] = [n.strip() for n in duplicatedHeaderString.split(",") if len(n) > 0]
+                    else:
+                        jobInfo["duplicated_headers"] = []
+                    jobInfo["error_type"] = self.interfaces.errorDb.getErrorType(jobId)
+                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId)
+                # File size and number of rows not dependent on error DB
+                # Get file size
+                jobInfo["file_size"] = self.jobManager.getFileSizeById(jobId)
+                # Get number of rows in file
+                jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(jobId)
+
                 try :
-                    jobInfo["file_type"] = self.jobManager.getFileType(job)
+                    jobInfo["file_type"] = self.jobManager.getFileType(jobId)
                 except Exception as e:
                     jobInfo["file_type"]  = ''
-                submissionInfo[job] = jobInfo
+                submissionInfo["jobs"].append(jobInfo)
 
             # Build response object holding dictionary
             return JsonResponse.create(StatusCode.OK,submissionInfo)

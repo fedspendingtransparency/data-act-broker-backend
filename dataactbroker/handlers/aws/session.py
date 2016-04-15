@@ -1,12 +1,12 @@
 from uuid import uuid4
-from boto.dynamodb2.fields import HashKey, GlobalAllIndex, RangeKey
+from boto.dynamodb2.fields import HashKey, GlobalAllIndex
 from boto.dynamodb2.table import Table, exceptions
 from boto.dynamodb2.types import NUMBER
 from datetime import datetime, timedelta
 from flask.sessions import SessionInterface, SessionMixin
 from werkzeug.datastructures import CallbackDict
+from boto.dynamodb2 import connect_to_region
 from boto.dynamodb2.layer1 import DynamoDBConnection
-from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
 from flask.ext.login import _create_identifier
 
 class LoginSession():
@@ -232,13 +232,14 @@ class DynamoInterface(SessionInterface):
         session -- (Session)  the session object
 
         implements the save_session method that saves the session or clears it
-        based on the timeout limit
+        based on the timeout limit, this function also extends the expiration time of the current session
 
         """
         domain = self.get_cookie_domain(app)
         if not session:
             response.delete_cookie(app.session_cookie_name, domain=domain)
             return
+        # Extend the expiration based on either the time out limit set here or the permanent_session_lifetime property of the app
         if self.get_expiration_time(app, session):
             expiration = self.get_expiration_time(app, session)
         else:
@@ -283,6 +284,7 @@ class SessionTable :
     LOCAL_PORT =  8000 # This is overwritten by the dynamo_port value taken from the configuration file
     TableConnection = ""
     isLocal = False
+    DYNAMO_REGION = False
 
     @staticmethod
     def clearSessions() :
@@ -308,7 +310,9 @@ class SessionTable :
         """
         if(SessionTable.isLocal) :
             return Table(SessionTable.TABLE_NAME,connection=SessionTable.getLocalConnection())
-        return Table(SessionTable.TABLE_NAME)
+        return Table(SessionTable.TABLE_NAME,connection=connect_to_region(SessionTable.DYNAMO_REGION))
+
+
 
     @staticmethod
     def createTable(isLocal,localPort):
@@ -322,19 +326,26 @@ class SessionTable :
                 throughput={'read': 5, 'write': 5}
             )
         ]
-        if(not isLocal) :
+        if isLocal:
+            try:
+                Table.create(
+                    SessionTable.TABLE_NAME,
+                    schema=[HashKey(SessionTable.KEY_NAME)],
+                    global_indexes=secondaryIndex,
+                    connection=SessionTable.getLocalConnection()
+                )
+            except exceptions.JSONResponseError as jre:
+                if jre.status == 400 and "preexisting" in jre.message.lower():
+                    #table already exists
+                    pass
+
+        else:
             Table.create(
                 SessionTable.TABLE_NAME,
                 schema=[HashKey(SessionTable.KEY_NAME)],
                 global_indexes=secondaryIndex
             )
-        else :
-            Table.create(
-                SessionTable.TABLE_NAME,
-                schema=[HashKey(SessionTable.KEY_NAME)],
-                global_indexes=secondaryIndex,
-                connection=SessionTable.getLocalConnection()
-            )
+
     @staticmethod
     def setup(app,isLocalHost):
         """

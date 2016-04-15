@@ -5,6 +5,7 @@ import datetime
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
+from dataactcore.config import CONFIG_BROKER
 
 class sesEmail(object):
 
@@ -27,15 +28,20 @@ class sesEmail(object):
             self.content = template.content
 
             for key in parameters :
-                if(not parameters[key] is None) :
+                if parameters[key] is not None:
                     self.content = self.content.replace(key,parameters[key])
-                else :
+                else:
                     self.content = self.content.replace(key,"")
 
     def send(self):
         if(not sesEmail.isLocal):
+            # Use aws creds for ses if possible, otherwise, use aws_key from config
             connection = boto.connect_ses()
-            return connection.send_email(self.fromAddress, self.subject,self.content,self.toAddress,format='html')
+            try:
+                return connection.send_email(self.fromAddress, self.subject,self.content,self.toAddress,format='html')
+            except:
+                connection = boto.connect_ses(aws_access_key_id=CONFIG_BROKER['aws_access_key_id'], aws_secret_access_key=CONFIG_BROKER['aws_secret_access_key'])
+                return connection.send_email(self.fromAddress, self.subject,self.content,self.toAddress,format='html')
         else:
             newEmailText = "\n\n".join(["","Time",str(datetime.datetime.now()),"Subject",self.subject,"From",self.fromAddress,"To",self.toAddress,"Content",self.content])
             open (sesEmail.emailLog,"a").write(newEmailText)

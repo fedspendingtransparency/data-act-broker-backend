@@ -1,5 +1,4 @@
 .idea/*
-dataactbroker/dbCred.json
 dataactbroker/logFile.dat
 logFile.dat
 node_modules
@@ -8,14 +7,10 @@ node_modules
 dataactbroker/venv
 dataactbroker/errorLog
 dataactbroker/responseErrorLog
-tests/jobId.json
+dataactbroker/scripts/createUser.py
 tests/submissionId
 tests/tablesCleared
 tests/validatorResponse
-tests/testConfig.json
 tests/test.json
 dataactbroker/validatorResponse
-dataactbroker/manager.json
-dataactbroker/config/*.json
-!*example*.json
 .coverage

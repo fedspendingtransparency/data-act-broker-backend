@@ -13,14 +13,10 @@ class ErrorHandler(ErrorInterface) :
         queryResult = self.runUniqueQuery(query,"No file status for this job", "Conflicting file statuses for this job")
 
         if(not queryResult.status.status_id == self.getStatusId("complete")) :
-            return [["File Level Error",str(queryResult.status.description),1]]
+            return [{"field_name":"File Level Error","error_name": queryResult.status.name,"error_description":str(queryResult.status.description),"occurrences":1,"rule_failed":""}]
 
         queryResult = self.session.query(ErrorData).options(joinedload("error_type")).filter(ErrorData.job_id == jobId).all()
         for result in queryResult:
-            if(result.error_type is None) :
-                errorType  = result.rule_failed
-            else :
-                errorType  = result.error_type.description
-            recordList = [result.field_name,str(result.occurrences),errorType]
-            resultList.append(recordList)
+            recordDict = {"field_name":result.field_name,"error_name": result.error_type.name, "error_description": result.error_type.description, "occurrences": str(result.occurrences), "rule_failed": result.rule_failed}
+            resultList.append(recordDict)
         return resultList
