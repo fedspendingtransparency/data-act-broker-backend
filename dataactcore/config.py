@@ -40,6 +40,7 @@ else:
     CONFIG_BROKER['aws_bucket'] = None
     CONFIG_BROKER['aws_role'] = None
     CONFIG_BROKER['aws_create_temp_credentials'] = None
+    CONFIG_BROKER['aws_region'] = None
 
     # if not using AWS and no broker file path specified,
     # default to `data_act_broker` in user's home dir
