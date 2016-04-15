@@ -72,7 +72,7 @@ class AccountHandler:
 
             # Only check if user is active after they've logged in for the first time
             if user.last_login_date is not None and not self.isUserActive(user):
-                raise ValueError("user name and or password invalid")
+                raise ValueError("Your account has expired. Please contact an administrator.")
 
             try:
                 if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
