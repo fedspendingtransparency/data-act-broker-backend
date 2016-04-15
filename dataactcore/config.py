@@ -20,7 +20,7 @@ CONFIG_LOGGING = CONFIG_ALL['logging']
 CONFIG_JOB_QUEUE = CONFIG_ALL['job-queue']
 
 # for backward-compatibility, differentiate between local runs and AWS
-if CONFIG_BROKER['use_aws'] or CONFIG_BROKER['use_aws'] == "true":
+if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
     CONFIG_BROKER['local'] = False
     CONFIG_BROKER['broker_files'] = None
     # AWS flag is on, so make sure all needed AWS info is present
