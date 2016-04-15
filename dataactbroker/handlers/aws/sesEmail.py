@@ -27,7 +27,7 @@ class sesEmail(object):
             self.content = template.content
 
             for key in parameters :
-                if key in parameters and parameters[key] is not None:
+                if parameters[key] is not None:
                     self.content = self.content.replace(key,parameters[key])
                 else:
                     self.content = self.content.replace(key,"")
