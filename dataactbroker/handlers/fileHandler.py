@@ -50,6 +50,7 @@ class FileHandler:
         """
         try :
             self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
+            self.s3manager.REGION = s3UrlHandler(CONFIG_BROKER["aws_region"])
             safeDictionary = RequestDictionary(self.request)
             submissionId = safeDictionary.getValue("submission_id")
             responseDict ={}
@@ -83,6 +84,7 @@ class FileHandler:
         """
         try:
             responseDict= {}
+
             fileNameMap = []
             safeDictionary = RequestDictionary(self.request)
             submissionId = self.jobManager.createSubmission(name, safeDictionary)

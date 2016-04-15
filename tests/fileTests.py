@@ -1,6 +1,7 @@
 import unittest
 import os
 import inspect
+import boto
 from datetime import datetime
 from datetime import date
 from time import sleep, time
@@ -230,7 +231,7 @@ class FileTests(BaseTest):
                     's3FileName': fullPath}
         else:
             # Use boto to put files on S3
-            s3conn = S3Connection()
+            s3conn = boto.s3.connect_to_region(CONFIG_BROKER["aws_region"])
             bucketName = CONFIG_BROKER['aws_bucket']
             key = Key(s3conn.get_bucket(bucketName))
             key.key = s3FileName

@@ -5,6 +5,7 @@ from boto.dynamodb2.types import NUMBER
 from datetime import datetime, timedelta
 from flask.sessions import SessionInterface, SessionMixin
 from werkzeug.datastructures import CallbackDict
+from boto.dynamodb2 import connect_to_region
 from boto.dynamodb2.layer1 import DynamoDBConnection
 from flask.ext.login import _create_identifier
 
@@ -283,6 +284,7 @@ class SessionTable :
     LOCAL_PORT =  8000 # This is overwritten by the dynamo_port value taken from the configuration file
     TableConnection = ""
     isLocal = False
+    DYNAMO_REGION = False
 
     @staticmethod
     def clearSessions() :
@@ -308,7 +310,9 @@ class SessionTable :
         """
         if(SessionTable.isLocal) :
             return Table(SessionTable.TABLE_NAME,connection=SessionTable.getLocalConnection())
-        return Table(SessionTable.TABLE_NAME)
+        return Table(SessionTable.TABLE_NAME,connection=connect_to_region(SessionTable.DYNAMO_REGION))
+
+
 
     @staticmethod
     def createTable(isLocal,localPort):
