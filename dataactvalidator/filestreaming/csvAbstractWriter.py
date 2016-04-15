@@ -33,6 +33,8 @@ class CsvAbstractWriter(object):
         """
         byteList = []
         for data in dataList:
+            if data is None:
+                data = ""
             byteList.append(data.encode("UTF-8"))
         self.rows.append(byteList)
         if(len(self.rows) > self.BATCH_SIZE):

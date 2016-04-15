@@ -2,12 +2,13 @@ import os
 import traceback
 import sys
 from csv import Error
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.cloudLogger import CloudLogger
+from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
 from dataactvalidator.filestreaming.csvLocalReader import CsvLocalReader
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
@@ -16,6 +17,7 @@ from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactvalidator.interfaces.stagingTable import StagingTable
+
 
 class ValidationManager:
     """
@@ -32,7 +34,7 @@ class ValidationManager:
         self.directory = directory
 
     @staticmethod
-    def markJob(jobId,jobTracker,status,errorDb,filename = None, fileError = ValidationError.unknownError) :
+    def markJob(jobId,jobTracker,status,errorDb,filename = None, fileError = ValidationError.unknownError, extraInfo = None) :
         """ Update status of a job in job tracker database
 
         Args:
@@ -44,7 +46,7 @@ class ValidationManager:
         try :
             if(filename != None and (status == "invalid" or status == "failed")):
                 # Mark the file error that occurred
-                errorDb.writeFileError(jobId,filename,fileError)
+                errorDb.writeFileError(jobId,filename,fileError,extraInfo)
             jobTracker.markStatus(jobId,status)
         except ResponseException as e:
             # Could not get a unique job ID in the database, either a bad job ID was passed in or the record of that job was lost.
@@ -105,7 +107,7 @@ class ValidationManager:
             return
         except ResponseException as e:
             CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId,jobTracker,"invalid",errorDb,self.filename,e.errorType)
+            self.markJob(jobId,jobTracker,"invalid",errorDb,self.filename,e.errorType,e.extraInfo)
         except ValueError as e:
             CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             self.markJob(jobId,jobTracker,"invalid",errorDb,self.filename,ValidationError.unknownError)
@@ -124,13 +126,13 @@ class ValidationManager:
             return CsvLocalReader()
         return CsvS3Reader()
 
-    def getWriter(self,bucketName,fileName,header):
+    def getWriter(self,regionName,bucketName,fileName,header):
         """
         Gets the write type based on if its a local install or not.
         """
         if(self.isLocal):
             return CsvLocalWriter(fileName,header)
-        return CsvS3Writer(bucketName,fileName,header)
+        return CsvS3Writer(regionName,bucketName,fileName,header)
 
     def getFileName(self,path):
         if(self.isLocal):
@@ -156,8 +158,13 @@ class ValidationManager:
         # Get bucket name and file name
         fileName = jobTracker.getFileName(jobId)
         self.filename = fileName
-        bucketName = s3UrlHandler.getValueFromConfig("bucket")
+        bucketName = CONFIG_BROKER['aws_bucket']
+        regionName = CONFIG_BROKER['aws_region']
+
         errorFileName = self.getFileName(jobTracker.getReportPath(jobId))
+
+        # Create File Status object
+        interfaces.errorDb.createFileStatus(jobId,fileName)
 
         validationDB = interfaces.validationDb
         fieldList = validationDB.getFieldsByFileList(fileType)
@@ -165,18 +172,31 @@ class ValidationManager:
         rules = validationDB.getRulesByFile(fileType)
 
         reader = self.getReader()
+
+        # Get file size and write to jobs table
+        if(CONFIG_BROKER["use_aws"]):
+            fileSize =  s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId))
+        else:
+            fileSize = os.path.getsize(jobTracker.getFileName(jobId))
+        jobTracker.setFileSizeById(jobId, fileSize)
+
+
         try:
             # Pull file
-            reader.openFile(bucketName, fileName,fieldList)
+            reader.openFile(regionName, bucketName, fileName,fieldList,bucketName,errorFileName)
             # Create staging table
             # While not done, pull one row and put it into staging if it passes
             # the Validator
+
             tableName = interfaces.stagingDb.getTableName(jobId)
+            # Create staging table
             tableObject = StagingTable(interfaces)
             tableObject.createTable(fileType,fileName,jobId,tableName)
             errorInterface = interfaces.errorDb
 
-            with self.getWriter(bucketName, errorFileName, self.reportHeaders) as writer:
+            # While not done, pull one row and put it into staging if it passes
+            # the Validator
+            with self.getWriter(regionName, bucketName, errorFileName, self.reportHeaders) as writer:
                 while(not reader.isFinished):
                     rowNumber += 1
                     #if (rowNumber % 1000) == 0:
@@ -185,12 +205,17 @@ class ValidationManager:
                         record = reader.getNextRecord()
                         if(reader.isFinished and len(record) < 2):
                             # This is the last line and is empty, don't record an error
+                            rowNumber -= 1 # Don't count this row
                             break
                     except ResponseException as e:
-                        if(not (reader.isFinished and reader.extraLine) ) :
-                            #Last line may be blank dont throw an error
+                        if reader.isFinished and reader.extraLine:
+                            #Last line may be blank don't record an error, reader.extraLine indicates a case where the last valid line has extra line breaks
+                            # Don't count last row if empty
+                            rowNumber -= 1
+                        else:
                             writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber), ""])
                             errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
+                            errorInterface.setRowErrorsPresent(jobId, True)
                         continue
                     valid, failures = Validator.validate(record,rules,csvSchema,fileType,interfaces)
                     if(valid) :
@@ -200,10 +225,13 @@ class ValidationManager:
                             # Write failed, move to next record
                             writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber),""])
                             errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.writeError,rowNumber)
+                            errorInterface.setRowErrorsPresent(jobId, True)
                             continue
 
                     else:
                         # For each failure, record it in error report and metadata
+                        if failures:
+                            errorInterface.setRowErrorsPresent(jobId, True)
                         for failure in failures:
                             fieldName = failure[0]
                             error = failure[1]
@@ -220,6 +248,8 @@ class ValidationManager:
                 # Write unfinished batch
                 writer.finishBatch()
 
+            # Write number of rows to job table
+            jobTracker.setNumberOfRowsById(jobId,rowNumber)
             # Write leftover records
             tableObject.endBatch()
             # Mark validation as finished in job tracker
@@ -264,7 +294,7 @@ class ValidationManager:
             if(e.errorType == None):
                 # Error occurred while trying to get and check job ID
                 e.errorType = ValidationError.jobError
-            interfaces.errorDb.writeFileError(jobId,self.filename,e.errorType)
+            interfaces.errorDb.writeFileError(jobId,self.filename,e.errorType,e.extraInfo)
             return JsonResponse.error(e,e.status,table=tableName)
         except Exception as e:
             exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
@@ -279,12 +309,12 @@ class ValidationManager:
             return  JsonResponse.create(StatusCode.OK,{"table":tableName})
         except ResponseException as e:
             CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,e.errorType)
+            self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,e.errorType,e.extraInfo)
             return JsonResponse.error(e,e.status,table=tableName)
         except ValueError as e:
             CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             # Problem with CSV headers
-            exc = ResponseException("Internal value error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
+            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError) #"Internal value error"
             self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc,exc.status,table=tableName)
         except Error as e:

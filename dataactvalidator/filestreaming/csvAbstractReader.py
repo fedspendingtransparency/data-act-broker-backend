@@ -1,9 +1,12 @@
 import boto
 import csv
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
+from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
+from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 
 class CsvAbstractReader(object):
     """
@@ -11,12 +14,14 @@ class CsvAbstractReader(object):
     """
 
     BUFFER_SIZE = 8192
+    headerReportHeaders = ["Error type", "Header name"]
 
-    def openFile(self,bucket,filename,csvSchema):
+    def openFile(self,region,bucket,filename,csvSchema,bucketName,errorFilename):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
             bucket : the S3 Bucket
             filename: The file path for the CSV file in S3
+            writer: An implementation of csvAbstractWriter to send header errors to
         Returns:
         """
 
@@ -41,22 +46,54 @@ class CsvAbstractReader(object):
         if(self.isFinished) :
             raise ResponseException("CSV file must have a header",StatusCode.CLIENT_ERROR,ValueError,ValidationError.singleRow)
 
+        duplicatedHeaders = []
         #create the header
         for row in csv.reader([line],dialect='excel'):
             for cell in row :
                 headerValue = FieldCleaner.cleanString(cell)
                 if( not headerValue in possibleFields) :
-                    raise ResponseException(("".join(["Header : ",headerValue," not in CSV schema"])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.badHeaderError)
-                if(possibleFields[headerValue] == 1) :
-                    raise ResponseException(("".join(["Header : ",headerValue," is duplicated"])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.duplicateError)
-                self.headerDictionary[(current)] = headerValue
-                possibleFields[headerValue]  = 1
-                current += 1
+                    # Allow unexpected headers, just mark the header as None so we skip it when reading
+                    self.headerDictionary[(current)] = None
+                    current += 1
+                elif(possibleFields[headerValue] == 1) :
+                    # Add to duplicated header list
+                    duplicatedHeaders.append(headerValue)
+                else:
+                    self.headerDictionary[(current)] = headerValue
+                    possibleFields[headerValue]  = 1
+                    current += 1
         self.columnCount = current
         #Check that all required fields exists
+        missingHeaders = []
         for schema in csvSchema :
             if(schema.required and  possibleFields[FieldCleaner.cleanString(schema.name)] == 0) :
-                raise ResponseException(("".join(["Header : ",schema.name," is required"])), StatusCode.CLIENT_ERROR, ValueError,ValidationError.missingHeaderError)
+                missingHeaders.append(schema.name)
+        if(len(missingHeaders) > 0 or len(duplicatedHeaders) > 0):
+            # Write header errors if any occurred and raise a header_error exception
+
+            with self.getWriter(bucketName, errorFilename, self.headerReportHeaders, self.isLocal) as writer:
+                extraInfo = {}
+                if(len(duplicatedHeaders) > 0):
+                    extraInfo["duplicated_headers"] = ", ".join(duplicatedHeaders)
+                    for header in duplicatedHeaders:
+                        writer.write(["Duplicated header", header])
+                if(len(missingHeaders) > 0):
+                    extraInfo["missing_headers"] = ", ".join(missingHeaders)
+                    for header in missingHeaders:
+                        writer.write(["Missing header", header])
+                writer.finishBatch()
+            raise ResponseException("Errors in header row", StatusCode.CLIENT_ERROR, ValueError,ValidationError.headerError,**extraInfo)
+
+    @staticmethod
+    def getWriter(bucketName,fileName,header,isLocal, region = None):
+        """
+        Gets the write type based on if its a local install or not.
+        """
+        if(isLocal):
+            return CsvLocalWriter(fileName,header)
+        if region == None:
+            region = CONFIG_BROKER["aws_region"]
+        return CsvS3Writer(region, bucketName,fileName,header)
 
     def getNextRecord(self):
         """
@@ -74,7 +111,11 @@ class CsvAbstractReader(object):
                 if(cell == ""):
                     # Use None instead of empty strings for sqlalchemy
                     cell = None
-                returnDict[self.headerDictionary[current]] = cell
+                if self.headerDictionary[current] is None:
+                    # Skip this column as it is unknown
+                    continue
+                else:
+                    returnDict[self.headerDictionary[current]] = cell
         return returnDict
 
     def close(self):

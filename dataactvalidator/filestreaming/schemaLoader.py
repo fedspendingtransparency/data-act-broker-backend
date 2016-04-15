@@ -25,6 +25,7 @@ class SchemaLoader(object):
         database = ValidatorValidationInterface()
         database.removeRulesByFileType(fileTypeName)
         database.removeColumnsByFileType(fileTypeName)
+
         #Step 2 add the new fields
         with open(schemaFileName, 'rU') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -51,14 +52,34 @@ class SchemaLoader(object):
         """
         validationDb = ValidatorValidationInterface()
         fileId = validationDb.getFileId(fileTypeName)
-        ruleFile = open(filename)
-        reader = csv.DictReader(ruleFile)
-        for record in reader:
-            if(FieldCleaner.cleanString(record["is_single_field"]) == "true"):
-                # Find column ID based on field name
-                columnId = validationDb.getColumnId(FieldCleaner.cleanString(record["field_name"]),fileTypeName)
-                # Write to rule table
-                validationDb.addRule(columnId,record["rule_type"],record["rule_text_one"],record["description"])
-            else:
-                # Write to multi_field_rule table
-                validationDb.addMultiFieldRule(fileId,record["rule_type"],record["rule_text_one"],record["rule_text_two"],record["description"])
+
+        with open(filename, 'rU') as ruleFile:
+            reader = csv.DictReader(ruleFile)
+            for record in reader:
+                if(FieldCleaner.cleanString(record["is_single_field"]) == "true"):
+                    # Find column ID based on field name
+                    try:
+                        columnId = validationDb.getColumnId(FieldCleaner.cleanName(record["field_name"]),fileTypeName)
+                    except Exception as e:
+                        print("Failed on field " + FieldCleaner.cleanName(record["field_name"]) + " and file " + fileTypeName)
+                        raise e
+                    # Write to rule table
+                    if "rule_timing" in record and "rule_label" in record:
+                        validationDb.addRule(columnId,record["rule_type"],record["rule_text_one"],record["description"],record["rule_timing"],record["rule_label"])
+                    else:
+                        validationDb.addRule(columnId,record["rule_type"],record["rule_text_one"],record["description"])
+                else:
+                    # Write to multi_field_rule table
+                    validationDb.addMultiFieldRule(fileId,record["rule_type"],record["rule_text_one"],record["rule_text_two"],record["description"])
+
+if __name__ == '__main__':
+    # Load field definitions and rules into validation DB
+    SchemaLoader.loadFields("appropriations","../config/appropFields.csv")
+    SchemaLoader.loadFields("award","../config/awardFields.csv")
+    SchemaLoader.loadFields("award_financial","../config/awardFinancialFields.csv")
+    SchemaLoader.loadFields("program_activity","../config/programActivityFields.csv")
+    # Load rules files
+    SchemaLoader.loadRules("appropriations","../config/appropRules.csv")
+    #SchemaLoader.loadRules("award","../config/awardRules.csv")
+    SchemaLoader.loadRules("award_financial","../config/awardFinancialRules.csv")
+    SchemaLoader.loadRules("program_activity","../config/programActivityRules.csv")

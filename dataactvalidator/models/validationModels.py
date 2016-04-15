@@ -20,6 +20,8 @@ class FieldType(Base):
     name = Column(Text)
     description = Column(Text)
 
+    TYPE_DICT = None
+
 class RuleType(Base):
     __tablename__ = "rule_type"
 
@@ -64,6 +66,17 @@ class Rule(Base):
     description = Column(Text, nullable=True)
     rule_type = relationship("RuleType", uselist=False)
     file_column = relationship("FileColumn", uselist=False)
+    rule_timing_id = Column(Integer, ForeignKey("rule_timing.rule_timing_id"), nullable=False, default=1)
+    rule_timing = relationship("RuleTiming", uselist=False)
+    rule_label = Column(Text)
+
+class RuleTiming(Base):
+    __tablename__ = "rule_timing"
+    rule_timing_id = Column(Integer, primary_key=True)
+    name = Column(Text,nullable=False)
+    description = Column(Text, nullable=False)
+
+    TIMING_DICT = None
 
 class MultiFieldRule(Base):
     __tablename__ = "multi_field_rule"

@@ -1,8 +1,5 @@
-import json
-from dataactcore.models.jobModels import Status, JobDependency
-from dataactcore.scripts.clearErrors import clearErrors
-from dataactvalidator.scripts.setupValidationDB import setupValidationDB
-from dataactvalidator.scripts.setupStagingDB import setupStaging
+from __future__ import print_function
+from dataactcore.models.jobModels import JobDependency
 from dataactvalidator.models.validationModels import Rule
 from baseTest import BaseTest
 import unittest
@@ -18,9 +15,6 @@ class JobTests(BaseTest):
         # Flag for testing a million+ errors (can take ~30 min to run)
         cls.includeLongTests = False
 
-        # Prep databases
-        setupStaging()
-        setupValidationDB()
         validationDb = cls.validationDb
         jobTracker = cls.jobTracker
 
@@ -29,8 +23,6 @@ class JobTests(BaseTest):
                 "appropriations", "program_activity"]:
             validationDb.removeRulesByFileType(fileType)
             validationDb.removeColumnsByFileType(fileType)
-        # Clear databases and run setup
-        clearErrors()
 
         # Create submissions and get IDs back
         submissionIDs = {}
@@ -78,6 +70,8 @@ class JobTests(BaseTest):
                 raise Exception(
                     "".join(["Job for ", str(key), " did not get an id back"]))
             jobIdDict[key] = job.job_id
+            # Print submission IDs for error report checking
+            print("".join([str(key),": ",str(jobTracker.getSubmissionId(job.job_id)), ", "]), end = "")
 
         # Create dependencies
         dependencies = [
@@ -109,11 +103,12 @@ class JobTests(BaseTest):
                     columnId, fileId)] = column.file_column_id
 
         rules = [
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 5, rule_text_1 = 0, description =  'value 1 must be greater than zero'),
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 3, rule_text_1 = 13, description =  'value 1 may not be 13'),
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(5),"_file_type_",str(3)])]),rule_type_id = 1, rule_text_1 = "INT", description =  'value 5 must be an integer'),
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(3),"_file_type_",str(3)])]),rule_type_id = 2, rule_text_1 = 42, description =  'value 3 must be equal to 42 if present'),
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 4, rule_text_1 = 100, description =  'value 1 must be less than 100')
+            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 5, rule_text_1 = 0, description =  'value 1 must be greater than zero', rule_timing_id=1),
+            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 3, rule_text_1 = 13, description =  'value 1 may not be 13', rule_timing_id=1),
+            Rule(file_column_id = str(colIdDict["".join(["header_",str(5),"_file_type_",str(3)])]),rule_type_id = 1, rule_text_1 = "INT", description =  'value 5 must be an integer', rule_timing_id=1),
+            Rule(file_column_id = str(colIdDict["".join(["header_",str(3),"_file_type_",str(3)])]),rule_type_id = 2, rule_text_1 = 42, description =  'value 3 must be equal to 42 if present', rule_timing_id=1),
+            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 4, rule_text_1 = 100, description =  'value 1 must be less than 100', rule_timing_id=1),
+            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 2, rule_text_1 = "  ", description =  'None shall pass', rule_timing_id=2) #This rule should never be checked with rule_timing 2
         ]
 
         for rule in rules:
@@ -130,36 +125,30 @@ class JobTests(BaseTest):
 
         cls.jobIdDict = jobIdDict
 
-    @classmethod
-    def tearDownClass(cls):
-        """Tear down JobTest resources."""
-        super(JobTests, cls).tearDownClass()
-        #TODO: clear jobs, drop staging tables
-
     def test_valid_job(self):
         """Test valid job."""
         jobId = self.jobIdDict["valid"]
         response = self.run_test(
-            jobId, 200, "finished", 52, 1, "complete", 0)
+            jobId, 200, "finished", 52, 1, "complete", 0, False)
 
     def test_rules(self):
         """Test rules, should have one type failure and four value failures."""
         jobId = self.jobIdDict["rules"]
         response = self.run_test(
-            jobId, 200, "finished", 350, 1, "complete", 5)
+            jobId, 200, "finished", 350, 1, "complete", 5, True)
 
     def test_bad_values_job(self):
         """Test a job with bad values."""
         jobId = self.jobIdDict["bad_values"]
         response = self.run_test(
-            jobId, 200, "finished", 5474, 0, "complete", 90)
+            jobId, 200, "finished", 5474, 0, "complete", 90, True)
 
     def test_many_bad_values_job(self):
         # Test job with many bad values
         if self.includeLongTests:
             jobId = self.jobIdDict["many_bad"]
             response = self.run_test(
-                jobId, 200, "finished", 151665643, 0, "complete", 2302930)
+                jobId, 200, "finished", 151665643, 0, "complete", 2302930, True)
         else:
             self.skipTest("includeLongTests flag is off")
 
@@ -167,7 +156,7 @@ class JobTests(BaseTest):
         """Test mixed job."""
         jobId = self.jobIdDict["mixed"]
         response = self.run_test(
-            jobId, 200, "finished", 99, 3, "complete", 1)
+            jobId, 200, "finished", 99, 3, "complete", 1, True)
 
     def test_empty(self):
         """Test empty file."""
@@ -177,7 +166,7 @@ class JobTests(BaseTest):
         else:
             status = 400
         response = self.run_test(
-            jobId, status, "invalid", False, False, "single_row_error", 0)
+            jobId, status, "invalid", False, False, "single_row_error", 0, False)
 
         if not self.useThreads:
             self.assertEqual(
@@ -190,33 +179,35 @@ class JobTests(BaseTest):
             status = 200
         else:
             status = 400
+
         response = self.run_test(
-            jobId, status, "invalid", False, False, "missing_header_error", 0)
+            jobId, status, "invalid", False, False, "header_error", 0, False)
 
         if not self.useThreads:
             self.assertEqual(
-                response.json["message"], "Header : header_5 is required")
+                response.json["message"], "Errors in header row")
 
     def test_bad_header(self):
-        """Test bad header value in first row."""
+        """ Ignore bad header value in first row, then fail on a duplicate header """
         jobId = self.jobIdDict["bad_header"]
         if self.useThreads:
             status = 200
         else:
             status = 400
+
         response = self.run_test(
-            jobId, status, "invalid", False, False, "bad_header_error", 0)
+            jobId, status, "invalid", False, False, "header_error", 0, False)
 
         if not self.useThreads:
             self.assertEqual(
-                response.json["message"], "Header : walrus not in CSV schema")
+                response.json["message"], "Errors in header row")
 
     def test_many_rows(self):
         """Test many rows."""
         if self.includeLongTests:
             jobId = self.jobIdDict["many"]
             response = self.run_test(
-                jobId, 200, "finished", 52, 22380, "complete", 0)
+                jobId, 200, "finished", 52, 22380, "complete", 0, False)
         else:
             self.skipTest("includeLongTests flag is off")
 
@@ -224,31 +215,31 @@ class JobTests(BaseTest):
         """Test potentially problematic characters."""
         jobId = self.jobIdDict["odd_characters"]
         response = self.run_test(
-            jobId, 200, "finished", 99, 6, "complete", 1)
+            jobId, 200, "finished", 99, 6, "complete", 1, True)
 
     def test_bad_id_job(self):
         """Test job ID not found in job status table."""
         jobId = -1
         response = self.run_test(
-            jobId, 400, False, False, False, False, 0)
+            jobId, 400, False, False, False, False, 0, None)
 
     def test_prereq_job(self):
         """Test job with prerequisites finished."""
         jobId = self.jobIdDict["valid_prereq"]
         response = self.run_test(
-            jobId, 200, "finished", 52, 4, "complete", 0)
+            jobId, 200, "finished", 52, 4, "complete", 0, False)
 
     def test_bad_prereq_job(self):
         """Test job with unfinished prerequisites."""
         jobId = self.jobIdDict["bad_prereq"]
         response = self.run_test(
-            jobId, 400, "ready", False, False, "job_error", 0)
+            jobId, 400, "ready", False, False, "job_error", 0, None)
 
     def test_bad_type_job(self):
         """Test job with wrong type."""
         jobId = self.jobIdDict["wrong_type"]
         response = self.run_test(
-            jobId, 400, "ready", False, False, "job_error", 0)
+            jobId, 400, "ready", False, False, "job_error", 0, None)
 
     # TODO uncomment this unit test once jobs are labeled as ready
     # def test_finished_job(self):

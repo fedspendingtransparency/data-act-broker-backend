@@ -7,29 +7,25 @@ class ValidationError:
     requiredError = 1
     valueErrorMsg = "The value provided was invalid"
     valueError = 2
-    missingHeaderErrorMsg = "One of the required columns is not present in the file"
-    missingHeaderError = 3
-    badHeaderErrorMsg = "One of the headers in the file is not recognized"
-    badHeaderError = 4
+    headerErrorMsg = "The file has errors in the header row"
+    headerError = 3
     readErrorMsg = "Could not parse this record correctly"
-    readError = 5
+    readError = 4
     writeErrorMsg = "Could not write this record into the staging database"
-    writeError = 6
+    writeError = 5
     unknownErrorMsg = "An unknown error has occurred with this file"
-    unknownError = 7
-    singleRow = 8
+    unknownError = 6
+    singleRow = 7
     singleRowMsg = "CSV file must have a header row and at least one record"
-    duplicateError = 9
-    duplicateErrorMsg = "May not have the same header twice"
-    jobError = 10
+    jobError = 8
     jobErrorMsg = "Error occurred in job manager"
      # Create dict of error types
-    errorDict = {typeError:typeErrorMsg, requiredError:requiredErrorMsg, valueError:valueErrorMsg, missingHeaderError:missingHeaderErrorMsg,
-                 badHeaderError:badHeaderErrorMsg, readError:readErrorMsg, writeError:writeErrorMsg, unknownError:unknownErrorMsg,
-                 singleRow:singleRowMsg,duplicateError:duplicateErrorMsg,jobError:jobErrorMsg}
-    errorTypeDict = {typeError:"type_error",requiredError:"required_error",valueError:"value_error",missingHeaderError:"missing_header_error",
-                     badHeaderError:"bad_header_error",readError:"read_error",writeError:"write_error",unknownError:"unknown_error",
-                     singleRow:"single_row_error",duplicateError:"duplicate_header_error",jobError:"job_error"}
+    errorDict = {typeError:typeErrorMsg, requiredError:requiredErrorMsg, valueError:valueErrorMsg, headerError:headerErrorMsg,
+                 readError:readErrorMsg, writeError:writeErrorMsg, unknownError:unknownErrorMsg,
+                 singleRow:singleRowMsg,jobError:jobErrorMsg}
+    errorTypeDict = {typeError:"type_error",requiredError:"required_error",valueError:"value_error",headerError:"header_error",
+                     readError:"read_error",writeError:"write_error",unknownError:"unknown_error",
+                     singleRow:"single_row_error",jobError:"job_error"}
 
     @staticmethod
     def getErrorMessage(errorType):

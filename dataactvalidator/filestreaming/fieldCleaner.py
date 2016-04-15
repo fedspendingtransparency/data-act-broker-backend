@@ -8,15 +8,16 @@ class FieldCleaner:
         """ Clean input file line by line and create output file """
         done = False
         # Open CSV file for reading each record as a dictionary
-        reader = csv.DictReader(open(fileIn,"r"))
-        fieldnames = ["fieldname","required","data_type","field_length"]
-        writer = csv.DictWriter(open(fileOut,"w"),fieldnames=fieldnames,lineterminator='\n')
-        writer.writeheader()
-        for record in reader:
-            # Pass record into cleanRecord to sanitize
-            record = FieldCleaner.cleanRecord(record)
-            # Write new row to output file
-            writer.writerow(record)
+        with open(fileIn, "rU") as csvfile:
+            reader = csv.DictReader(csvfile)
+            fieldnames = ["fieldname","required","data_type","field_length","rule_labels"]
+            writer = csv.DictWriter(open(fileOut,"w"),fieldnames=fieldnames,lineterminator='\n')
+            writer.writeheader()
+            for record in reader:
+                # Pass record into cleanRecord to sanitize
+                record = FieldCleaner.cleanRecord(record)
+                # Write new row to output file
+                writer.writerow(record)
 
     @staticmethod
     def cleanRecord(record):
@@ -74,10 +75,10 @@ class FieldCleaner:
         required = FieldCleaner.cleanString(required,False)
         if(required == "required" or required == "(required)" or required == "true"):
             return "true"
-        elif(required == "false" or required == "" or required == "optional" or required == "required if relevant" or required == "required if modification"):
+        elif(required == "false" or required == "" or required == "optional" or required == "required if relevant" or required == "required if modification" or required == "conditional per validation rule" or required == "conditional per award type" or required == "conditionally required"):
             return "false"
         else:
-            raise ValueError("Unknown value for required")
+            raise ValueError("".join(["Unknown value for required: ", required]))
 
     @staticmethod
     def cleanType(type):
@@ -87,7 +88,7 @@ class FieldCleaner:
             return "int"
         elif(type == "numeric" or type == "float"):
             return "float"
-        elif(type == "alphanumeric" or type == "" or type == "str"):
+        elif(type == "alphanumeric" or type == "" or type == "str" or type == "string"):
             return "str"
         elif(type == "alphanumeric (logically a boolean)"):
             # Some of these are intended to be booleans, but others use this value when they have multiple possible values,
@@ -98,7 +99,7 @@ class FieldCleaner:
         elif(type == "long"):
             return "long"
         else:
-            raise ValueError("Unknown type")
+            raise ValueError("".join(["Unknown type: ", type]))
 
     @staticmethod
     def cleanLength(length):
@@ -119,4 +120,7 @@ class FieldCleaner:
 if __name__ == '__main__':
     #FieldCleaner.cleanFile("programActivityRaw.csv","programActivityFields.csv")
     #FieldCleaner.cleanFile("awardFinFields.csv","awardFinancialFields.csv")
-    FieldCleaner.cleanFile("awardFieldsRaw.csv","awardFields.csv")
+    FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")
+    FieldCleaner.cleanFile("../config/awardFinancialFieldsRaw.csv","../config/awardFinancialFields.csv")
+    FieldCleaner.cleanFile("../config/programActivityFieldsRaw.csv","../config/programActivityFields.csv")
+    FieldCleaner.cleanFile("../config/awardFieldsRaw.csv","../config/awardFields.csv")
