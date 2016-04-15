@@ -3,6 +3,7 @@ from datetime import datetime
 import os
 import inspect
 import time
+import boto.s3
 from random import randint
 from webtest import TestApp
 from dataactvalidator.app import createApp
@@ -181,6 +182,8 @@ class BaseTest(unittest.TestCase):
             return ""
 
         bucketName = CONFIG_BROKER['aws_bucket']
+        regionName = CONFIG_BROKER['aws_region']
+
         path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
         fullPath = path + "/" + filename
 
@@ -194,6 +197,7 @@ class BaseTest(unittest.TestCase):
             if(cls.uploadFiles) :
                 # Use boto to put files on S3
                 s3conn = S3Connection()
+                s3conn = boto.s3.connect_to_region(regionName)
                 key = Key(s3conn.get_bucket(bucketName))
                 key.key = s3FileName
                 bytesWritten = key.set_contents_from_filename(fullPath)
