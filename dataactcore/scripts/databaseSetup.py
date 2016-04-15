@@ -1,30 +1,20 @@
-import sqlalchemy
-from sqlalchemy.exc import ProgrammingError, IntegrityError
-from dataactcore.models.baseInterface import BaseInterface
+import sqlalchemy_utils
+from dataactcore.config import CONFIG_DB
 
-def runCommands(credDict, sqlCommands, dbName, connection = None):
-    """ Apply commands to specified database """
-    dbBaseName = "postgres"
-    baseEngine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+dbBaseName, isolation_level = "AUTOCOMMIT")
+def createDatabase(dbName):
+    """Create specified database if it doesn't exist."""
+    config = CONFIG_DB
+    connectString = "postgresql://{}:{}@{}:{}/{}".format(config["username"],
+        config["password"], config["host"], config["port"],
+        dbName)
 
-    try:
-        connect = baseEngine.connect()
-        rows  = connect.execute("SELECT 1 FROM pg_database WHERE datname = '" +dbName+"'")
-        if ((rows.rowcount) == 0) :
-            connect.execute("CREATE DATABASE " + '"' + dbName + '"')
-        connect.close()
-    except ProgrammingError as e:
-        # Happens if DB exists, just print and carry on
-        BaseInterface.logDbError(e)
+    if not sqlalchemy_utils.database_exists(connectString):
+        sqlalchemy_utils.create_database(connectString)
 
-    if(connection == None):
-        engine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+dbName)
-        connection = engine.connect()
-    for statement in sqlCommands:
-        #print("Execute statement: " + statement)
-        try:
-            connection.execute(statement)
-        except (ProgrammingError, IntegrityError) as e:
-            # Usually a table exists error, print and continue
-            BaseInterface.logDbError(e)
-    connection.close()
+def dropDatabase(dbName):
+    """Drop specified database."""
+    config = CONFIG_DB
+    connectString = "postgresql://{}:{}@{}:{}/{}".format(config["username"],
+        config["password"], config["host"], config["port"], dbName)
+    if sqlalchemy_utils.database_exists(connectString):
+        sqlalchemy_utils.drop_database(connectString)

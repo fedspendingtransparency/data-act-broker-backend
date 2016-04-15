@@ -1,34 +1,24 @@
-""" This script clears all jobs from job_status and job_dependency """
-import json
-import sqlalchemy
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import ProgrammingError
+from dataactcore.models.errorModels import FileStatus, ErrorData
 from dataactcore.models.errorInterface import ErrorInterface
-from dataactcore.models.baseInterface import BaseInterface
+
 
 def clearErrors():
-    credentialsFile = ErrorInterface.getCredFilePath()
-    dbName = ErrorInterface.getDbName()
+    """Clear all error-related data from database."""
+    errorDb = ErrorInterface()
+    errorDb.session.query(ErrorData).delete()
+    errorDb.session.query(FileStatus).delete()
+    errorDb.session.commit()
+    errorDb.session.close()
 
-    # Load credentials from config file
-    cred = open(credentialsFile,"r").read()
-    credDict = json.loads(cred)
 
-    # Create engine and session
-    engine = sqlalchemy.create_engine("postgresql://"+credDict["username"]+":"+credDict["password"]+"@"+credDict["host"]+":"+credDict["port"]+"/"+dbName)
-    connection = engine.connect()
-    Session = sessionmaker(bind=engine)
-    session = Session()
+def clearErrorsByJobId(jobId):
+    """Clear all errors for specified job."""
+    errorDb = ErrorInterface()
+    errorDb.session.query(ErrorData).filter(job_id==jobId).delete()
+    errorDb.session.query(FileStatus).filter(job_id==jobId).delete()
+    errorDb.session.commit()
+    errorDb.session.close()
 
-    # Create tables
-    sqlStatements = ["DDELETE FROM error_data", "DDELETE FROM file_status"]
-
-    for statement in sqlStatements:
-        try:
-            connection.execute(statement)
-        except ProgrammingError as e:
-            # Usually a table exists error, print and continue
-            BaseInterface.logDbError(e)
 
 if __name__ == '__main__':
     clearErrors()
