@@ -1,11 +1,11 @@
-allocationtransferagencyidentifier,agencyidentifier,beginningperiodofavailability,endingperiodofavailability,availabilitytypecode,mainaccountcode,subaccountcode,budgetauthorityavailableamounttotal_fyb,budgetauthorityavailableamounttotal_cpe,budgetauthorityunobligatedbalancebroughtforward_fyb,budgetauthorityunobligatedbalancebroughtforward_cpe,budgetauthorityappropriatedamount_fyb,budgetauthorityappropriatedamount_cpe,otherbudgetaryresourcesamount_fyb,otherbudgetaryresourcesamount_cpe,contractauthorityamounttotal_fyb,contractauthorityamounttotal_cpe,borrowingauthorityamounttotal_fyb,borrowingauthorityamounttotal_cpe,spendingauthorityfromoffsettingcollectionsamounttotal_fyb,spendingauthorityfromoffsettingcollectionsamounttotal_cpe,budgetauthorityadjustmentstotal_cpe,availableforobligationamounttotal_cpe,obligationsincurredtotal_cpe,unpaidobligationsbytas_cpe,outlayamountbytas_cpe,unobligatedbalance_cpe
-19,72,0,0,X,306,0,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5
-19,72,0,0,X,306,0,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD
-,,,,,,,,,,,,,,,,,,,,,,,,,,
-1900,7200,10000,10000, XFA,10950,9999,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
-19,72,0,0,F,306,1,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
-19,72,0,0,A,306,0,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
-19,72,0,0,B,306,0,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
-19,72,0,0,X,306,0,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
-19,72,0,0,X,306,0,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
-19,72,0,0,X,306,0,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
+allocationtransferagencyidentifier,agencyidentifier,beginningperiodofavailability,endingperiodofavailability,availabilitytypecode,mainaccountcode,subaccountcode,budgetauthorityunobligatedbalancebroughtforward,budgetauthorityadjustmentstotal_cpe,budgetauthorityappropriatedamount_cpe,borrowingauthorityamounttotal_cpe,contractauthorityamounttotal_cpe,spendingauthorityfromoffsettingcollectionsamounttotal_cpe,otherbudgetaryresourcesamount_cpe,budgetauthorityavailableamounttotal_cpe,obligationsincurredtotal_cpe,unobligatedbalance_cpe,availableforobligationamounttotal_cpe,unpaidobligationsbytas_cpe,outlayamountbytas_cpe
+19,72,0,0,X,306,0,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5,3500.5
+19,72,0,0,X,306,0,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD,ABCD
+,,,,,,,,,,,,,,,,,,,
+1900,7200,10000,10000, XFA,10950,9999,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
+19,72,0,0,A,306,1,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
+19,72,0,0,F,306,0,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
+19,72,0,0,B,306,0,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
+19,72,0,0,X,306,0,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
+19,72,0,0,X,306,0,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
+19,72,0,0,X,306,0,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500,3500
