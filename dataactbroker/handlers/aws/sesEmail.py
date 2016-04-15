@@ -28,9 +28,9 @@ class sesEmail(object):
             self.content = template.content
 
             for key in parameters :
-                if(not parameters[key] is None) :
+                if parameters[key] is not None:
                     self.content = self.content.replace(key,parameters[key])
-                else :
+                else:
                     self.content = self.content.replace(key,"")
 
     def send(self):
