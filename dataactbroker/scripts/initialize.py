@@ -5,14 +5,11 @@ from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.aws.session import SessionTable
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
-import os
 import argparse
 from flask.ext.bcrypt import Bcrypt
 
 
 def options():
-    if os.getuid() != 0:
-        print ("Please run this script with sudo")
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--initialize", action="store_true", help="Runs all of the setup options")
