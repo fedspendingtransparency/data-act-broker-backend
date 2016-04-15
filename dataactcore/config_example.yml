@@ -42,6 +42,13 @@ broker:
     # order to use AWS (see install instructions for more information).
     use_aws: false 
 
+    # If using AWS, set your region here
+    aws_region: us-east-1
+
+    # Add your AWS Key to use for sending SES emails
+    aws_access_key_id: ACCESSKEYID123
+    aws_secret_access_key: test123abc/123testsecretkeY
+
     # Name of AWS S3 bucket for uploaded broker files. Ignored if use_aws
     # is false. NOTE: the dummy value below MUST be changed to the correct
     # value if use_aws is true.
