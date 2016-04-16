@@ -1,38 +1,40 @@
 fieldname,required,data_type,field_length,rule_labels
-allocationtransferagencyidentifier,false,str,3,A1
-agencyidentifier,true,str,3,A1
+allocationtransferagencyidentifier,false,str,3,"A1, A20"
+agencyidentifier,true,str,3,"A1, A20"
 beginningperiodofavailability,false,str,4,A1
 endingperiodofavailability,false,str,4,A1
-availabilitytypecode,false,str,1,A1
+availabilitytypecode,false,str,1,"A1, A21"
 mainaccountcode,true,str,4,A1
 subaccountcode,true,str,3,A1
-programactivityname,true,str,50,
-programactivitycode,true,int,4,
-objectclass,true,float,4,
-bydirectreimbursablefundingsource,true,str,26,
-unpaidobligationsbyprogramobjectclass_cpe,true,float,100,"B1, B2"
-obligationsundeliveredordersunpaidtotal_fyb,true,float,100,
-obligationsundeliveredordersunpaidtotal_cpe,true,float,100,"B2, B3"
-ussgl480100undeliveredordersobligationsunpaid_fyb,true,float,100,
-ussgl480100undeliveredordersobligationsunpaid_cpe,true,float,100,B3
-ussgl483100undeliveredordersobligationstransferredunpaid_cpe,true,float,100,B3
-ussgl488100upwardadjustmentsofprioryearundeliveredordersobligationsunpaid_cpe,true,float,100,B3
-obligationsdeliveredordersunpaidtotal_fyb,true,float,100,
-obligationsdeliveredordersunpaidtotal_cpe,true,float,100,"B2, B4"
-ussgl490100deliveredordersobligationsunpaid_fyb,true,float,100,
-ussgl490100deliveredordersobligationsunpaid_cpe,true,float,100,B4
-ussgl490800authorityoutlayednotyetdisbursed_fyb,true,float,100,
-ussgl490800authorityoutlayednotyetdisbursed_cpe,true,float,100,B4
-ussgl493100deliveredordersobligationstransferredunpaid_cpe,true,float,100,B4
-ussgl498100upward_adjustmentsofprioryeardeliveredordersobligationsunpaid_cpe,true,float,100,B4
-outlayamountbyprogramobjectclass_fyb,true,float,100,
-outlayamountbyprogramobjectclass_cpe,true,float,100,B5
-outlaysundeliveredordersprepaidtotal_fyb,true,float,100,
-outlaysundeliveredordersprepaidtotal_cpe,true,float,100,"B5, B6"
-ussgl480200undeliveredordersobligationsprepaidadvanced_fyb,true,float,100,
-ussgl480200undeliveredordersobligationsprepaidadvanced_cpe,true,float,100,B6
-ussgl483200undeliveredordersobligationstransferredprepaidadvanced_cpe,true,float,100,B6
-ussgl488200upwardadjustmentsofprioryearundeliveredordersobligationsprepaidadvanced_cpe,true,float,100,B6
-outlaysdeliveredorderspaidtotal_cpe,true,float,100,"B5, B7"
-ussgl490200deliveredordersobligationspaid_cpe,true,float,100,B7
-ussgl498200upwardadjustmentsofprioryeardeliveredordersobligationspaid_cpe,true,float,100,B7
+programactivityname,true,str,164,B9
+programactivitycode,true,int,4,B10
+objectclass,true,float,4,B11
+bydirectreimbursablefundingsource,true,str,1,B12
+debitcreditindicator,true,str,1,B13
+obligationsincurredbyprogramobjectclass_cpe,true,float,21,"B8, A19, A17"
+unpaidobligationsbyprogramobjectclass_cpe,true,float,21,"B1, B2, B8, A17"
+obligationsundeliveredordersunpaidtotal_fyb,true,float,21,"A16, A17"
+obligationsundeliveredordersunpaidtotal_cpe,true,float,21,"B2, B3, A17"
+ussgl480100undeliveredordersobligationsunpaid_fyb,true,float,21,"A16, A17"
+ussgl480100undeliveredordersobligationsunpaid_cpe,true,float,21,"B3, A17"
+ussgl483100undeliveredordersobligationstransferredunpaid_cpe,true,float,21,"B3, A17"
+ussgl488100upwardadjustmentsofprioryearundeliveredordersobligationsunpaid_cpe,true,float,21,"B3, A17"
+obligationsdeliveredordersunpaidtotal_fyb,true,float,21,"A16, A17"
+obligationsdeliveredordersunpaidtotal_cpe,true,float,21,"B2, B4, A17"
+ussgl490100deliveredordersobligationsunpaid_fyb,true,float,21,"A16, A17"
+ussgl490100deliveredordersobligationsunpaid_cpe,true,float,21,"B4, A17"
+ussgl493100deliveredordersobligationstransferredunpaid_cpe,true,float,21,"B4, A17"
+ussgl498100upward_adjustmentsofprioryeardeliveredordersobligationsunpaid_cpe,true,float,21,"B4, A17"
+outlayamountbyprogramobjectclass_fyb,true,float,21,"A16, A17"
+outlayamountbyprogramobjectclass_cpe,true,float,21,"B5, B8, A17"
+outlaysundeliveredordersprepaidtotal_fyb,true,float,21,"A16, A17"
+outlaysundeliveredordersprepaidtotal_cpe,true,float,21,"B5, B6, A18, A17"
+ussgl480200undeliveredordersobligationsprepaidadvanced_fyb,true,float,21,"A16, A17"
+ussgl480200undeliveredordersobligationsprepaidadvanced_cpe,true,float,21,"B6, A17"
+ussgl483200undeliveredordersobligationstransferredprepaidadvanced_cpe,true,float,21,"B6, A17"
+ussgl488200upwardadjustmentsofprioryearundeliveredordersobligationsprepaidadvanced_cpe,true,float,21,"B6, A17"
+outlaysdeliveredorderspaidtotal_cpe,true,float,21,"B5, B7, A17"
+ussgl490200deliveredordersobligationspaid_cpe,true,float,21,"B7, A17"
+ussgl490800authorityoutlayednotyetdisbursed_fyb,true,float,21,"A16, A17"
+ussgl490800authorityoutlayednotyetdisbursed_cpe,true,float,21,"B7, A17"
+ussgl498200upwardadjustmentsofprioryeardeliveredordersobligationspaid_cpe,true,float,21,"B7, A17"

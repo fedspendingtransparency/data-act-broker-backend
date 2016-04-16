@@ -1,32 +1,55 @@
 fieldname,required,data_type,field_length,rule_labels
-fainawardnumber,FALSE,str,30,"C8, C9"
-awardmodamendmentnumber,TRUE,int,50,
-assistancetype,TRUE,int,2,
-cfda_number,TRUE,str,7,
-cfda_title,TRUE,str,100,
-awardeerecipientuniqueidentifier,TRUE,int,9,
-businesstypes,TRUE,str,2,
-awarddescription,TRUE,str,4000,
-placeofperfcity,FALSE,str,100,
-placeofperfstate,FALSE,str,2,
-placeofperfstateorprovincename,FALSE,str,100,
-placeofperfcountrycode,TRUE,str,3,
-placeofperfcountryname,TRUE,str,100,
-placeofperfuszip5,FALSE,int,5,
-placeofperfzip+4,TRUE,int,9,
-placeofperfpostalcode,FALSE,str,50,
-placeofperfcountyname,FALSE,str,100,
-placeofperfcongressionaldistrict,TRUE,int,2,
-periodofperfstartdate,FALSE,str,8,
-periodofperfcurrentenddate,FALSE,str,8,
-actiondate,TRUE,str,8,
-recordtype,TRUE,int,1,
-typeofaction,TRUE,str,1,
-federalactionobligation,TRUE,float,20,
-facevalueloanguarantee,FALSE,float,20,
-originalloansubsidycost,FALSE,float,20,
-nonfederalfundingamount,FALSE,float,20,
-awardingagencyname,TRUE,str,50,
-awardingagencycode,TRUE,int,4,
-accounttitle,FALSE,str,100,
-uri,FALSE,str,70,"C8, C9"
+cfda_number,true,str,7,D4
+awardeeorrecipientlegalentityname,true,str,120,D12
+legalentitycitycode,false,str,5,"D13, D36"
+legalentitycountycode,true,str,3,D15
+legalentitystatecode,true,str,2,D16
+legalentityzip9,false,int,9,D17
+legalentitycongressionaldistrict,false,int,2,"D18, D17"
+businesstypes,true,str,2,
+legalentityaddressline1,false,str,150,"D14, D38, D17"
+typeofaction,false,str,1,
+legalentitycountrycode,true,str,3,D19
+fainawardnumber,false,str,30,"C8, C9, D5"
+legalentitycityname,false,str,40,D14
+awardmodamendmentnumber,false,str,25,D6
+legalentitycountyname,true,str,40,
+actiondate,true,str,8,D24
+legalentityaddressline2,true,str,150,"D14, D38"
+periodofperfstartdate,false,str,8,"D23, D32"
+legalentityaddressline3,false,str,35,D38
+periodofperfcurrentenddate,false,str,8,"D23, D33, D34"
+assistancetype,true,int,2,
+recordtype,true,int,1,D25
+placeofperformancecode,true,str,7,"D22, D35"
+placeofperfzip9,false,int,9,D9
+placeofperfcongressionaldistrict,true,int,2,D11
+awardeeorrecipientuniqueidentifier,true,int,9,D7
+facevalueloanguarantee,false,float,20,D27
+originalloansubsidycost,false,float,20,D28
+businessfundsindicator,true,str,3,D20
+placeofperfcountrycode,true,str,3,D8
+uri,false,str,70,"C8, C9, D30"
+cfda_title,false,str,100,D37
+awarddescription,true,str,4000,
+placeofperfpostalcode,false,str,50,D10
+sainumber,false,str,50,
+correction_lateindicator,false,str,1,D21
+federalactionobligation,true,float,20,D26
+nonfederalfundingamount,false,float,20,D29
+awardingagencyname,false,str,50,
+awardingagencycode,false,str,4,
+awardingagencyofficecode,false,str,6,
+fundingagencyofficecode,false,str,6,
+dunsnumberplus4,false,int,4,
+placeofperfstate,false,str,2,
+dunsconfidencecode,false,str,2,
+totalfundingamount,false,float,20,D31
+federalfundingsign,false,str,1,D39
+nonfederalfundingsign,false,str,1,D39
+totalfundingsign,false,str,1,D39
+fiscalyearandquartercorrection,false,str,5,D40
+statename,false,str,25,
+agencyidentifier,false,str,2,D41
+mainaccountcode,false,str,4,D42
+subaccountcode,false,str,3,D43

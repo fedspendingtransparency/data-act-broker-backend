@@ -1,48 +1,49 @@
 fieldname,required,data_type,field_length,rule_labels
-allocationtransferagencyidentifier,false,str,3,A1
-agencyidentifier,true,str,3,A1
+allocationtransferagencyidentifier,false,str,3,"A1, A20"
+agencyidentifier,true,str,3,"A1, A20"
 beginningperiodofavailability,false,str,4,A1
 endingperiodofavailability,false,str,4,A1
-availabilitytypecode,false,str,1,A1
+availabilitytypecode,false,str,1,"A1, A21"
 mainaccountcode,true,str,4,A1
 subaccountcode,true,str,3,A1
 awardidfieldtype,true,str,2,
-piid,false,str,50,"C11, C13"
-awardingagencycodenist,true,str,4,C11
+piidfpds,false,str,50,"C11, C13"
+awardingagencycodefpds,true,str,4,C11
 parentawardid,false,str,50,"C10, C11, C13"
-parentawardawardingagencycodenist,false,str,4,"C10, C11, C13"
+parentawardawardingagencycodefpds,false,str,4,"C10, C11, C13"
 fainawardnumber,false,str,30,"C8, C9, C14"
 uri,false,str,70,"C8, C9, C14"
-programactivityname,false,str,50,
-programactivitycode,false,int,4,
-objectclass,true,float,4,
-bydirectreimbursablefundingsource,true,str,26,
-transactionobligatedamount_fyb,true,float,100,
-transactionobligatedamount_cpe,true,float,100,"C1, C2"
-obligationsundeliveredordersunpaidtotal_fyb,true,float,100,
-obligationsundeliveredordersunpaidtotal_cpe,true,float,100,"C2, C3"
-ussgl480100undeliveredordersobligationsunpaid_fyb,true,float,100,
-ussgl480100undeliveredordersobligationsunpaid_cpe,true,float,100,C3
-ussgl483100undeliveredordersobligationstransferredunpaid_cpe,true,float,100,C3
-ussgl488100upwardadjustmentsofprioryearundeliveredordersobligationsunpaid_cpe,true,float,100,C3
-obligationsdeliveredordersunpaidtotal_fyb,true,float,100,
-obligationsdeliveredordersunpaidtotal_cpe,true,float,100,"C2, C4"
-ussgl490100deliveredordersobligationsunpaid_fyb,true,float,100,
-ussgl490100deliveredordersobligationsunpaid_cpe,true,float,100,C4
-ussgl490800authorityoutlayednotyetdisbursed_fyb,false,float,100,
-ussgl490800authorityoutlayednotyetdisbursed_cpe,false,float,100,
-ussgl493100deliveredordersobligationstransferredunpaid_cpe,true,float,100,C4
-ussgl498100upward_adjustmentsofprioryeardeliveredordersobligationsunpaid_cpe,true,float,100,C4
-outlayamountbyaward_fyb,false,float,100,
-outlayamountbyaward_cpe,false,float,100,C5
-outlaysundeliveredordersprepaidtotal_fyb,false,float,100,
-outlaysundeliveredordersprepaidtotal_cpe,false,float,100,"C5, C6"
-ussgl480200undeliveredordersobligationsprepaidadvanced_fyb,false,float,100,
-ussgl480200undeliveredordersobligationsprepaidadvanced_cpe,false,float,100,C6
-ussgl483200undeliveredordersobligationstransferredprepaidadvanced_cpe,false,float,100,C6
-ussgl488200upwardadjustmentsofprioryearundeliveredordersobligationsprepaidadvanced_cpe,false,float,100,C6
-outlaysdeliveredorderspaidtotal_fyb,false,float,100,
-outlaysdeliveredorderspaidtotal_cpe,false,float,100,"C5, C7"
-ussgl490200deliveredordersobligationspaid_fyb,false,float,100,
-ussgl490200deliveredordersobligationspaid_cpe,false,float,100,C7
-ussgl498200upwardadjustmentsofprioryeardeliveredordersobligationspaid_cpe,false,float,100,C7
+programactivityname,false,str,164,B9
+programactivitycode,false,int,4,B10
+objectclass,true,float,4,B11
+bydirectreimbursablefundingsource,false,str,1,"B12, C16"
+debitcreditindicator,false,str,1,"B13, C16"
+obligationsincurredtotalbyaward_cpe,true,float,21,"C15, A17"
+unpaidobligationsbyaward_fyb,false,float,21,"A16, A17"
+unpaidobligationsbyaward_cpe,false,float,21,"C1, C2, A17"
+obligationsundeliveredordersunpaidtotal_fyb,false,float,21,"A16, A17"
+obligationsundeliveredordersunpaidtotal_cpe,false,float,21,"C2, C3, A17"
+ussgl480100undeliveredordersobligationsunpaid_fyb,false,float,21,"A16, A17"
+ussgl480100undeliveredordersobligationsunpaid_cpe,false,float,21,"C3, A17"
+ussgl483100undeliveredordersobligationstransferredunpaid_cpe,false,float,21,"C3, A17"
+ussgl488100upwardadjustmentsofprioryearundeliveredordersobligationsunpaid_cpe,false,float,21,"C3, A17"
+obligationsdeliveredordersunpaidtotal_fyb,false,float,21,"A16, A17"
+obligationsdeliveredordersunpaidtotal_cpe,false,float,21,"C2, C4, A17"
+ussgl490100deliveredordersobligationsunpaid_fyb,false,float,21,"A16, A17"
+ussgl490100deliveredordersobligationsunpaid_cpe,false,float,21,"C4, A17"
+ussgl493100deliveredordersobligationstransferredunpaid_cpe,false,float,21,"C4, A17"
+ussgl498100upward_adjustmentsofprioryeardeliveredordersobligationsunpaid_cpe,false,float,21,"C4, A17"
+outlayamountbyaward_fyb,false,float,21,"A16, A17"
+outlayamountbyaward_cpe,false,float,21,"C5, A17"
+outlaysundeliveredordersprepaidtotal_fyb,false,float,21,"A16, A17"
+outlaysundeliveredordersprepaidtotal_cpe,false,float,21,"C5, C6, A17"
+ussgl480200undeliveredordersobligationsprepaidadvanced_fyb,false,float,21,"A16, A17"
+ussgl480200undeliveredordersobligationsprepaidadvanced_cpe,false,float,21,"C6, A17"
+ussgl483200undeliveredordersobligationstransferredprepaidadvanced_cpe,false,float,21,"C6, A17"
+ussgl488200upwardadjustmentsofprioryearundeliveredordersobligationsprepaidadvanced_cpe,false,float,21,"C6, A17"
+outlaysdeliveredorderspaidtotal_fyb,false,float,21,"A16, A17"
+outlaysdeliveredorderspaidtotal_cpe,false,float,21,"C5, C7, A17"
+ussgl490200deliveredordersobligationspaid_cpe,false,float,21,"C7, A17"
+ussgl490800authorityoutlayednotyetdisbursed_fyb,false,float,21,"A16, A17"
+ussgl490800authorityoutlayednotyetdisbursed_cpe,false,float,21,"C7, A17"
+ussgl498200upwardadjustmentsofprioryeardeliveredordersobligationspaid_cpe,false,float,21,"C7, A17"

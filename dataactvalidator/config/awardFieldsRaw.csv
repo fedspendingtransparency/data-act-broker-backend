@@ -1,32 +1,55 @@
 fieldname,required,data_type,field_length,rule_labels
-FainAwardNumber,Conditional per Validation Rule,string,30,"C8, C9"
-AwardModAmendmentNumber,Required,integer,50,
-AssistanceType,Required,integer,2,
-CFDA_Number,Required,string,7,
-CFDA_Title,Required,string,100,
-AwardeeRecipientUniqueIdentifier,Required,integer,9,
+CFDA_Number,Required,string,7,D4
+AwardeeOrRecipientLegalEntityName,Required,string,120,D12
+LegalEntityCityCode,Optional,string,5,"D13, D36"
+LegalEntityCountyCode,Required,string,3,D15
+LegalEntityStateCode,Required,string,2,D16
+LegalEntityZIP9,Conditional per Validation Rule,integer,9,D17
+LegalEntityCongressionalDistrict,Conditional per Validation Rule,integer,2,"D18, D17"
 BusinessTypes,Required,string,2,
+LegalEntityAddressLine1,Conditional per Validation Rule,string,150,"D14, D38, D17"
+TypeOfAction,Optional,string,1,
+LegalEntityCountryCode,Required,string,3,D19
+FainAwardNumber,Conditional per Validation Rule,string,30,"C8, C9, D5"
+LegalEntityCityName,Optional,string,40,D14
+AwardModAmendmentNumber,Optional,string,25,D6
+LegalEntityCountyName,Required,string,40,
+ActionDate,Required,string,8,D24
+LegalEntityAddressLine2,Required,string,150,"D14, D38"
+PeriodOfPerfStartDate,Optional,string,8,"D23, D32"
+LegalEntityAddressLine3,Optional,string,35,D38
+PeriodOfPerfCurrentEndDate,Optional,string,8,"D23, D33, D34"
+AssistanceType,Required,integer,2,
+RecordType,Required,integer,1,D25
+PlaceofPerformanceCode,Required,string,7,"D22, D35"
+PlaceOfPerfZIP9,Conditional per Validation Rule,integer,9,D9
+PlaceOfPerfCongressionalDistrict,Required,integer,2,D11
+AwardeeOrRecipientUniqueIdentifier,Required,integer,9,D7
+FaceValueLoanGuarantee,Conditional per Validation Rule,numeric,20,D27
+OriginalLoanSubsidyCost,Conditional per Validation Rule,numeric,20,D28
+BusinessFundsIndicator,Required,string,3,D20
+PlaceOfPerfCountryCode,Required,string,3,D8
+URI,Conditional per Validation Rule,string,70,"C8, C9, D30"
+CFDA_Title,Optional,string,100,D37
 AwardDescription,Required,string,4000,
-PlaceOfPerfCity,Optional,string,100,
+PlaceOfPerfPostalCode,Conditional per Validation Rule,string,50,D10
+SAINumber,Optional,string,50,
+Correction_LateIndicator,Optional,string,1,D21
+FederalActionObligation,Required,numeric,20,D26
+NonFederalFundingAmount,Optional,numeric,20,D29
+AwardingAgencyName,Optional,string,50,
+AwardingAgencyCode,Optional,string,4,
+AwardingAgencyOfficeCode,Optional,string,6,
+FundingAgencyOfficeCode,Optional,string,6,
+DUNSNumberPlus4,Optional,integer,4,
 PlaceOfPerfState,Optional,string,2,
-PlaceOfPerfStateOrProvinceName,Optional,string,100,
-PlaceOfPerfCountryCode,Required,string,3,
-PlaceOfPerfCountryName,Required,string,100,
-PlaceofPerfUSZIP5,Optional,integer,5,
-PlaceOfPerfZIP+4,Required,integer,10,
-PlaceOfPerfPostalCode,Optional,string,50,
-PlaceOfPerfCountyName,Optional,string,100,
-PlaceOfPerfCongressionalDistrict,Required,integer,2,
-PeriodOfPerfStartDate,Optional,string,8,
-PeriodOfPerfCurrentEndDate,Optional,string,8,
-ActionDate,Required,string,8,
-RecordType,Required,integer,1,
-TypeOfAction,Required,string,1,
-FederalActionObligation,Required,numeric,20,
-FaceValueLoanGuarantee,Conditionally Required,numeric,20,
-OriginalLoanSubsidyCost,Conditionally Required,numeric,20,
-NonFederalFundingAmount,Optional,numeric,20,
-AwardingAgencyName,Required,string,50,
-AwardingAgencyCode,Required,integer,4,
-AccountTitle,Optional,string,100,
-URI,Conditional per Validation Rule,string,70,"C8, C9"
+DUNSConfidenceCode,Optional,,2,
+TotalFundingAmount,Optional,numeric,20,D31
+FederalFundingSign,Optional,string,1,D39
+NonFederalFundingSign,Optional,string,1,D39
+TotalFundingSign,Optional,string,1,D39
+FiscalYearandQuarterCorrection,Optional,string,5,D40
+StateName,Optional,string,25,
+AgencyIdentifier,Optional,string,2,D41
+MainAccountCode,Optional,string,4,D42
+SubAccountCode,Optional,string,3,D43

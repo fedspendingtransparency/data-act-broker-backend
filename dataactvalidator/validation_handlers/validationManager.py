@@ -21,9 +21,7 @@ from dataactvalidator.interfaces.stagingTable import StagingTable
 
 class ValidationManager:
     """
-
     Outer level class, called by flask route
-
     """
     reportHeaders = ["Field name", "Error message", "Row number", "Value provided"]
 
@@ -36,12 +34,10 @@ class ValidationManager:
     @staticmethod
     def markJob(jobId,jobTracker,status,errorDb,filename = None, fileError = ValidationError.unknownError, extraInfo = None) :
         """ Update status of a job in job tracker database
-
         Args:
             jobId: Job to be updated
             jobTracker: Interface object for job tracker
             status: New status for specified job
-
         """
         try :
             if(filename != None and (status == "invalid" or status == "failed")):
@@ -56,10 +52,8 @@ class ValidationManager:
     @staticmethod
     def getJobID(request):
         """ Pull job ID out of request
-
         Args:
             request: HTTP request containing the job ID
-
         Returns:
             job ID, or raises exception if job ID not found in request
         """
@@ -92,7 +86,6 @@ class ValidationManager:
         This method runs on a new thread thus
         there are zero error messages other then the
         job status being updated
-
         """
 
         # As this is the start of a new thread, first generate new connections to the databases
@@ -141,11 +134,9 @@ class ValidationManager:
 
     def runValidation(self, jobId, interfaces):
         """ Run validations for specified job
-
         Args:
             jobId: Job to be validated
             jobTracker: Interface for job tracker
-
         Returns:
             True if successful
         """
@@ -265,7 +256,6 @@ class ValidationManager:
         Args:
         request -- HTTP request containing the jobId
         sessions -- A SessionHolder object used to query the databases
-
         Returns:
         Http response object
         """
