@@ -100,10 +100,9 @@ Using AWS is optional, and by default the broker will not use these services. If
 If you're not using AWS tools when running the broker, you'll need to install a local version of Amazon's DynamoDB to handle session management. The local DynamoDB is a Java executable the runs on Windows, Mac, and Linux systems.
 
 1. Install version 7+ of the [Java Development Kit (jdk)](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html "download Java Development Kit").
-2. Download the [local DynamoDB files](http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.zip "download local DynamoDB").
-3. Follow [Amazon's instructions](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html "running DynamoDB on your computer") to run local DynamoDB using the downloaded files.
+2. Follow [Amazon's instructions](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html#Tools.DynamoDBLocal.DownloadingAndRunning "running DynamoDB on your computer") for downloading and running local DynamoDB. You should be able to start the local DynamoDB using the example command provided by Amazon, without overriding any of the default options.
 
-Don't worry about creating tables in DynamoDB: the broker's initialization process handles that.
+Don't worry about setting DynamoDB endpoints or creating tables: the broker's code handles this.
 
 **Note:** The local version of DynamoDB is not recommend for production.
 
@@ -127,9 +126,11 @@ Navigate to the DATA Act core's main folder:
 
         $ cd data-act-core
 
-Switch to the alpha release version of the code:
+Switch to the alpha release version of the code. This is the latest stable release.
 
         $ git checkout v0.1.0-alpha
+
+**Note:** If you'd rather use the latest, work-in-progress features of the DATA Act broker, replace the above command with `git checkout staging`.
 
 Install the dependencies:
 
@@ -145,9 +146,11 @@ Navigate to the broker API's main folder:
 
         $ cd data-act-broker
 
-Switch to the alpha release version of the code:
+Switch to the alpha release version of the code. This is the latest stable release.
 
         $ git checkout v0.1.0-alpha
+
+**Note:** If you'd rather use the latest, work-in-progress features of the DATA Act broker, replace the above command with `git checkout staging`.
 
 Install the dependencies:
 
@@ -163,9 +166,11 @@ Navigate to the validator's main folder:
 
         $ cd data-act-validator
 
-Switch to the alpha release version of the code:
+Switch to the alpha release version of the code. This is the latest stable release.
 
         $ git checkout v0.1.0-alpha
+
+**Note:** If you'd rather use the latest, work-in-progress features of the DATA Act broker, replace the above command with `git checkout staging`.
 
 Install the dependencies:
 
