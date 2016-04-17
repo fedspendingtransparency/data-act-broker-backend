@@ -10,8 +10,6 @@ from dataactvalidator.filestreaming.tasLoader import TASLoader
 
 
 def options():
-    if os.getuid() != 0:
-        print ("Please run this script with sudo")
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--initialize", action="store_true", help="Runs all of the setup options")

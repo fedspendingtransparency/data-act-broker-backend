@@ -1,12 +1,11 @@
 rule_type,is_single_field,field_name,rule_text_one,rule_text_two,description,rule_timing,rule_label
 car_match,FALSE,,"allocationtransferagencyidentifier, agencyidentifier, beginningperiodofavailability, endingperiodofavailability, availabilitytypecode, mainaccountcode, subaccountcode","allocation_transfer_agency, agency_identifier, beginning_period_of_availability, ending_period_of_availability, availability_type_code, main_account_code, sub_account_code",TAS fields must match CAR file,1,A1
-IN_SET,TRUE,availabilitytypecode,"X,F,A",,"Indicator must be X, F, A, or blank",1,
 MIN LENGTH,TRUE,ParentAwardId,1,,Checks if parent award ID is empty,2,C10
-REQUIRED_CONDITIONAL,TRUE,ParentAwardAwardingAgencyCode(NIST),C10,,Required if C10 passes,1,
-IN_SET,TRUE,awardidfieldtype,"P3,P7",,Checks if award id is either P3 or P7,2,C13
-REQUIRED_CONDITIONAL,TRUE,piid,C13,,Required if C13 passes,1,
+REQUIRED_CONDITIONAL,TRUE,ParentAwardAwardingAgencyCode(FPDS),C10,,Required if C10 passes,1,
+IN_SET,TRUE,awardidfieldtype,"P3,P7",,Checks if award id field type is either P3 or P7,2,C13
+REQUIRED_CONDITIONAL,TRUE,piidfpds,C13,,Required if C13 passes,1,
 REQUIRED_CONDITIONAL,TRUE,parentawardid,C13,,Required if C13 passes,1,
-REQUIRED_CONDITIONAL,TRUE,ParentAwardAwardingAgencyCodeNIST,C13,,Required if C13 passes,1,
+REQUIRED_CONDITIONAL,TRUE,ParentAwardAwardingAgencyCodeFPDS,C13,,Required if C13 passes,1,
 EQUAL,TRUE,awardidfieldtype,FA,,Checks if award id is FA,2,C14
 REQUIRED_CONDITIONAL,TRUE,FainAwardNumber,C14,,Required if C14 passes,1,
 REQUIRED_CONDITIONAL,TRUE,URI,C14,,Required if C14 passes,1,
