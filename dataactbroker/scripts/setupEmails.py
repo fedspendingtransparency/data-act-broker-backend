@@ -43,7 +43,21 @@ def setupEmails():
     userDb.loadEmailTemplate("New Data Broker registration - Action Required",template,"account_creation")
 
     #User Email When finished submitting
-    template = "Thank you for registering for a user account with the DATA Act Broker. Your information has been sent to your DATA Act Broker Help Desk at [EMAIL]. You will receive a response within 24 hours. <br /><br />The DATA Act Implementation Team <br />DATABroker@fiscal.treasury.gov "
+    template = ("Thank you for registering a DATA Act Broker user account. "
+        "The final registration step is for the Help Desk to review your "
+        "request. You should receive an e-mail update from them within one "
+        "business day, saying whether they've approved or denied your access."
+        "<br /><br />"
+        "Until the Help Desk approves your request, you won't be able to log "
+        "into the Broker. Thanks for being patient with the security process--"
+        "we appreciate your interest and look forward to working with you."
+        "<br /><br/>"
+        "If you have any questions or haven't received a follow-up e-mail "
+        "within one business day, please get in touch with the Help Desk at "
+        "[EMAIL]."
+        "<br /><br />"
+        "The DATA Act Implementation Team <br />"
+        "[EMAIL]")
     userDb.loadEmailTemplate("DATA Act Broker - Registration",template,"account_creation_user")
 
     InterfaceHolder.closeOne(userDb)
