@@ -14,3 +14,6 @@ class TimeStampMixin(object):
     @classmethod
     def __declare_last__(cls):
         event.listen(cls, 'before_update', cls._updated_at)
+
+class TimeStampBase(TimeStampMixin):
+    pass
