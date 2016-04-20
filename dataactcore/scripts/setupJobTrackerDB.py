@@ -35,8 +35,8 @@ def setupJobTrackerDB(hardReset = False):
         (4, 'validation', 'new information must be validated'),
         (5, 'external_validation', 'new information must be validated against external sources')]
     for t in typeList:
-        type = Type(type_id=t[0],name=t[1], description=t[2])
-        jobDb.session.merge(type)
+        thisType = Type(type_id=t[0],name=t[1], description=t[2])
+        jobDb.session.merge(thisType)
 
     fileTypeList = [(1, 'award', ''),
         (2, 'award_financial', ''),
