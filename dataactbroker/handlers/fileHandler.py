@@ -176,11 +176,21 @@ class FileHandler:
         try:
             inputDictionary = RequestDictionary(self.request)
 
+            # Get submission
             submissionId = inputDictionary.getValue("submission_id")
-            # Get jobs in this submission
-
-            jobs = self.jobManager.getJobsBySubmission(submissionId)
             submission = self.jobManager.getSubmissionById(submissionId)
+
+            # Get user
+            userId = LoginSession.getName(session)
+            user = self.interfaces.userDb.getUserByUID(userId)
+            print("User email is " + str(user.email))
+            # Check that user has permission to see this submission, user must either own the submission or be an admin
+            if(submission.user_id != userId and not self.interfaces.userDb.hasPermission(user,"website_admin")):
+                exc = ResponseException("User does not have permission to view that submission",StatusCode.CLIENT_ERROR)
+                return JsonResponse.error(exc, exc.status)
+            # Get jobs in this submission
+            jobs = self.jobManager.getJobsBySubmission(submissionId)
+
 
             # Build dictionary of submission info with info about each job
             submissionInfo = {}

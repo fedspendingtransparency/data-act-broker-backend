@@ -155,6 +155,26 @@ class FileTests(BaseTest):
         self.assertEqual(submission.reporting_start_date.strftime("%m/%d/%Y"),"02/03/2016")
         self.assertEqual(submission.reporting_end_date.strftime("%m/%d/%Y"),"02/04/2016")
 
+    def test_check_status_permission(self):
+        """ Test that other users do not have access to status check submission """
+        postJson = {"submission_id": self.status_check_submission_id}
+        # Log in as non-admin user
+        self.login_approved_user()
+        # Call check status route
+        response = self.app.post_json("/v1/check_status/", postJson)
+        # Assert 400 status
+        self.assertEqual(response.status_code,400)
+
+    def test_check_status_admin(self):
+        """ Test that admins have access to other user's submissions """
+        postJson = {"submission_id": self.status_check_submission_id}
+        # Log in as admin user
+        self.login_admin_user()
+        # Call check status route
+        response = self.app.post_json("/v1/check_status/", postJson)
+        # Assert 200 status
+        self.assertEqual(response.status_code,200)
+
     def test_check_status(self):
         """Test broker status route response."""
         postJson = {"submission_id": self.status_check_submission_id}
