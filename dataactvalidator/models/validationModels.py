@@ -3,8 +3,9 @@
 from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from dataactcore.utils.timeStampMixin import TimeStampBase
 
-Base = declarative_base()
+Base = declarative_base(cls=TimeStampBase)
 
 class FileType(Base):
     __tablename__ = "file_type"
