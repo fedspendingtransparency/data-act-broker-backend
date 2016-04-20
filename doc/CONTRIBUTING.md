@@ -114,7 +114,7 @@ Now we're ready to install the DATA Act broker itself. Before starting:
 * Decide where on your machine you want the DATA Act code to live. Throughout these directions, we'll refer to this directory as your `project home` and use it as your starting point.
 * Make sure that your DATA Act Python environment is activated:
 
-        $ activate data-act
+        $ workon data-act
 
 #### DATA Act Core
 
