@@ -126,13 +126,13 @@ class ValidationManager:
             return CsvLocalReader()
         return CsvS3Reader()
 
-    def getWriter(self,bucketName,fileName,header):
+    def getWriter(self,regionName,bucketName,fileName,header):
         """
         Gets the write type based on if its a local install or not.
         """
         if(self.isLocal):
             return CsvLocalWriter(fileName,header)
-        return CsvS3Writer(bucketName,fileName,header)
+        return CsvS3Writer(regionName,bucketName,fileName,header)
 
     def getFileName(self,path):
         if(self.isLocal):
@@ -159,6 +159,8 @@ class ValidationManager:
         fileName = jobTracker.getFileName(jobId)
         self.filename = fileName
         bucketName = CONFIG_BROKER['aws_bucket']
+        regionName = CONFIG_BROKER['aws_region']
+
         errorFileName = self.getFileName(jobTracker.getReportPath(jobId))
 
         # Create File Status object
@@ -181,7 +183,10 @@ class ValidationManager:
 
         try:
             # Pull file
-            reader.openFile(bucketName, fileName,fieldList,bucketName,errorFileName)
+            reader.openFile(regionName, bucketName, fileName,fieldList,bucketName,errorFileName)
+            # Create staging table
+            # While not done, pull one row and put it into staging if it passes
+            # the Validator
 
             tableName = interfaces.stagingDb.getTableName(jobId)
             # Create staging table
@@ -191,7 +196,7 @@ class ValidationManager:
 
             # While not done, pull one row and put it into staging if it passes
             # the Validator
-            with self.getWriter(bucketName, errorFileName, self.reportHeaders) as writer:
+            with self.getWriter(regionName, bucketName, errorFileName, self.reportHeaders) as writer:
                 while(not reader.isFinished):
                     rowNumber += 1
                     #if (rowNumber % 1000) == 0:

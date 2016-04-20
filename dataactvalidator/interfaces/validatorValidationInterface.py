@@ -6,17 +6,18 @@ from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.config import CONFIG_DB
 
 
-class ValidatorValidationInterface(BaseInterface) :
+class ValidatorValidationInterface(BaseInterface):
     """ Manages all interaction with the validation database """
 
-    dbName = CONFIG_DB['validator_db_name']
     dbConfig = CONFIG_DB
+    dbName = dbConfig['validator_db_name']
     Session = None
     engine = None
     session = None
 
     def __init__(self):
-        super(ValidatorValidationInterface,self).__init__()
+        self.dbName = self.dbConfig['validator_db_name']
+        super(ValidatorValidationInterface, self).__init__()
 
     @classmethod
     def getCredDict(cls):
