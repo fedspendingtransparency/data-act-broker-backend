@@ -238,8 +238,12 @@ class AccountHandler:
         if(success):
             #mark session that email can be filled out
             LoginSession.register(session)
+
             #remove token so it cant be used again
-            self.interfaces.userDb.deleteToken(token)
+            # The following line is commented out for issues with registration email links bouncing users back
+            # to the original email input page instead of the registration page
+            #self.interfaces.userDb.deleteToken(token)
+
             #set the status
             self.interfaces.userDb.changeStatus(self.interfaces.userDb.getUserByEmail(message),"email_confirmed")
             return JsonResponse.create(StatusCode.OK,{"email":message,"errorCode":errorCode,"message":"success"})
