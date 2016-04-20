@@ -165,7 +165,6 @@ class AccountHandler:
         # Find user that matches specified email
         user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
         # Check that user's status is before submission of registration
-        print("About to register a user with current status of " + str(user.user_status_id))
         if not (self.interfaces.userDb.checkStatus(user,"awaiting_confirmation") or self.interfaces.userDb.checkStatus(user,"email_confirmed")):
             # Do not allow duplicate registrations
             exc = ResponseException("User already registered",StatusCode.CLIENT_ERROR)
