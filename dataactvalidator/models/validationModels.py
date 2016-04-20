@@ -3,8 +3,9 @@
 from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from dataactcore.utils.timeStampMixin import TimeStampBase
 
-Base = declarative_base()
+Base = declarative_base(cls=TimeStampBase)
 
 class FileType(Base):
     __tablename__ = "file_type"
@@ -99,8 +100,3 @@ class TASLookup(Base) :
     availability_type_code = Column(Text, nullable=True)
     main_account_code = Column(Text, nullable=True)
     sub_account_code = Column(Text, nullable=True)
-
-class CGACLookup(Base):
-    __tablename__ = "cgac_lookup"
-    cgac_id = Column(Integer, primary_key=True)
-    agency_id = Column(Integer, unique=True)
