@@ -120,7 +120,7 @@ Now we're ready to install the DATA Act broker itself. Before starting:
 
 Navigate to your DATA Act project home. From the command line, clone the DATA Act Core repository from GitHub to your local environment:
 
-        $ git clone git@github.com:fedspendingtransparency/data-act-core.git
+        $ git clone https://github.com/fedspendingtransparency/data-act-core.git
 
 Navigate to the DATA Act core's main folder:
 
@@ -140,7 +140,7 @@ Install the dependencies:
 
 Navigate back to your DATA Act project home. From the command line, clone the DATA Act Broker API repository from GitHub to your local environment:
 
-        $ git clone git@github.com:fedspendingtransparency/data-act-broker.git
+        $ git clone https://github.com/fedspendingtransparency/data-act-broker.git
 
 Navigate to the broker API's main folder:
 
@@ -160,7 +160,7 @@ Install the dependencies:
 
 Navigate back to your DATA Act project home. From the command line, clone the DATA Act Validator repository from GitHub to your local environment:
 
-        $ git clone git@github.com:fedspendingtransparency/data-act-validator.git
+        $ git clone https://github.com/fedspendingtransparency/data-act-validator.git
 
 Navigate to the validator's main folder:
 
