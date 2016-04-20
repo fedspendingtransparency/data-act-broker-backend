@@ -3,8 +3,12 @@
 from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from dataactcore.utils.timeStampMixin import TimeStampMixin
 
-Base = declarative_base()
+class Base(TimeStampMixin):
+    pass
+
+Base = declarative_base(cls=Base)
 
 class Status(Base):
     __tablename__ = "status"
