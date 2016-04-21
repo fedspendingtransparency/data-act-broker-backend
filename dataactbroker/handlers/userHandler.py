@@ -7,7 +7,7 @@ from dataactcore.models.userModel import User, PermissionType
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.models.userModel import EmailToken, EmailTemplateType , EmailTemplate
+from dataactcore.models.userModel import EmailToken, EmailTemplateType, EmailTemplate
 
 class UserHandler(UserInterface):
     """ Responsible for all interaction with the user database
@@ -399,13 +399,21 @@ class UserHandler(UserInterface):
             self.setPermission(user,1)
         self.session.commit()
 
-    def loadEmailTemplate(self,subject,contents,emailType):
-        emailId = self.session.query(EmailTemplateType.email_template_type_id).filter(EmailTemplateType.name == emailType).one()
+    def loadEmailTemplate(self, subject, contents, emailType):
+        """Upsert a broker e-mail template."""
+        emailId = self.session.query(
+            EmailTemplateType.email_template_type_id).filter(
+            EmailTemplateType.name == emailType).one()
+        templateId = self.session.query(
+            EmailTemplate.email_template_id).filter(
+            EmailTemplate.template_type_id == emailId).one_or_none()
         template = EmailTemplate()
+        if templateId:
+            template.email_template_id = templateId
         template.subject = subject
         template.content = contents
         template.template_type_id = emailId
-        self.session.add(template)
+        self.session.merge(template)
         self.session.commit()
 
     def updateLastLogin(self, user):
