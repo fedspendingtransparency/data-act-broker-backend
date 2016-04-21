@@ -18,7 +18,8 @@ def setupValidationDB(hardReset = False):
 
     # insert rule timing
     ruleTimingList = [(1,'file_validation','Run during pre-load validation of a file'),
-                      (2,'prerequisite','Run only when referenced by another rule')]
+                      (2,'prerequisite','Run only when referenced by another rule'),
+                      (3,'cross-file','This rule is checked during cross-file validation')]
     for r in ruleTimingList:
         ruleTiming = RuleTiming(rule_timing_id = r[0], name = r[1], description = r[2])
         validatorDb.session.merge(ruleTiming)
