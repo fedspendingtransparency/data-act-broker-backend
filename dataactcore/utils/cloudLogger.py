@@ -2,6 +2,7 @@ import logging
 import logstash
 import os
 import json
+import datetime
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.config import CONFIG_LOGGING
 
@@ -21,6 +22,8 @@ class CloudLogger(object):
     @staticmethod
     def logError(message,exception,traceback):
         """Logs errors"""
+        # Add timestamp to message
+        message = " ".join([str(datetime.datetime.utcnow()), str(message)])
         wrappedType =""
         wrappedMessage =""
         if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):
