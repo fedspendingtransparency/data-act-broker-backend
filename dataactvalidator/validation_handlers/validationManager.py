@@ -95,6 +95,13 @@ class ValidationManager:
         jobTracker = interfaces.jobDb
         errorDb = interfaces.errorDb
         try:
+            jobType = interfaces.jobDb.checkJobType(jobId)
+            if jobType == interfaces.jobDb.getTypeId("csv_record_validation"):
+                self.runValidation(jobId,interfaces)
+            elif jobType == interfaces.jobDb.getTypeId("validation"):
+                self.runCrossValidation(jobId, interfaces)
+            else:
+                raise ResponseException("Bad job type for validator", StatusCode.INTERNAL_ERROR)
             self.runValidation(jobId, interfaces)
             errorDb.markFileComplete(jobId,self.filename)
             return
@@ -251,6 +258,11 @@ class ValidationManager:
             reader.close()
         return True
 
+    def runCrossValidation(self, jobId, interfaces):
+        """ Cross file validation job, test all rules with matching rule_timing """
+        # TODO Select all rules from multi-field rule table
+        # TODO Call cross-file validator for each rule
+
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to staging database
         Args:
@@ -278,6 +290,7 @@ class ValidationManager:
             # Check that job exists and is ready
             if(not (jobTracker.runChecks(jobId))):
                 raise ResponseException("Checks failed on Job ID",StatusCode.CLIENT_ERROR)
+            jobType = interfaces.jobDb.checkJobType(jobId)
 
         except ResponseException as e:
             CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
@@ -294,7 +307,12 @@ class ValidationManager:
 
         try:
             jobTracker.markStatus(jobId,"running")
-            self.runValidation(jobId,interfaces)
+            if jobType == interfaces.jobDb.getTypeId("csv_record_validation"):
+                self.runValidation(jobId,interfaces)
+            elif jobType == interfaces.jobDb.getTypeId("validation"):
+                self.runCrossValidation(jobId, interfaces)
+            else:
+                raise ResponseException("Bad job type for validator", StatusCode.INTERNAL_ERROR)
             interfaces.errorDb.markFileComplete(jobId,self.filename)
             return  JsonResponse.create(StatusCode.OK,{"table":tableName})
         except ResponseException as e:
