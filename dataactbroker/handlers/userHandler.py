@@ -231,7 +231,7 @@ class UserHandler(UserInterface):
         return userList
 
 
-    def hasPermisson(self,user,permissionName):
+    def hasPermission(self, user, permissionName):
         """ Checks if user has specified permission
 
         Arguments:
