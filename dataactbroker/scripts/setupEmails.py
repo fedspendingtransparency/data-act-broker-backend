@@ -1,7 +1,6 @@
 from dataactcore.models.userModel import EmailTemplateType
 from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
-from sqlalchemy.orm.exc import NoResultFound
 
 def setupEmails():
     """Create email templates from model metadata."""
