@@ -12,36 +12,29 @@ def permissions_check(f=None,permissionList=[]):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             errorMessage  = "Login Required"
-            #Check if address and browser match what is stored
-            if(not LoginSession.isSessionSecure(session) ):
-                # log user out and reset
-                LoginSession.logout(session)
-                LoginSession.resetID(session)
-                errorMessage  = "Session Error"
-            else :
-                if LoginSession.isLogin(session):
-                    userDb = UserHandler()
-                    try:
-                        user = userDb.getUserByUID(session["name"])
-                        validUser = True
-                        for permission in permissionList :
-                            if(not userDb.hasPermission(user, permission)) :
-                                validUser = False
-                    finally:
-                        InterfaceHolder.closeOne(userDb)
-                    if(validUser) :
-                        return f(*args, **kwargs)
-                    errorMessage  = "Wrong User Type"
-                elif "check_email_token" in permissionList:
-                    if(LoginSession.isRegistering(session)) :
-                        return f(*args, **kwargs)
-                    else :
-                        errorMessage  = "unauthorized"
-                elif "check_password_token" in permissionList  :
-                    if(LoginSession.isResetingPassword(session)) :
-                        return f(*args, **kwargs)
-                    else :
-                        errorMessage  = "unauthorized"
+            if LoginSession.isLogin(session):
+                userDb = UserHandler()
+                try:
+                    user = userDb.getUserByUID(session["name"])
+                    validUser = True
+                    for permission in permissionList :
+                        if(not userDb.hasPermission(user, permission)) :
+                            validUser = False
+                finally:
+                    InterfaceHolder.closeOne(userDb)
+                if(validUser) :
+                    return f(*args, **kwargs)
+                errorMessage  = "Wrong User Type"
+            elif "check_email_token" in permissionList:
+                if(LoginSession.isRegistering(session)) :
+                    return f(*args, **kwargs)
+                else :
+                    errorMessage  = "unauthorized"
+            elif "check_password_token" in permissionList  :
+                if(LoginSession.isResetingPassword(session)) :
+                    return f(*args, **kwargs)
+                else :
+                    errorMessage  = "unauthorized"
 
             returnResponse = flask.Response()
             returnResponse.headers["Content-Type"] = "application/json"
