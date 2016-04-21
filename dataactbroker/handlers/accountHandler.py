@@ -80,7 +80,7 @@ class AccountHandler:
                     LoginSession.login(session,user.user_id)
                     permissionList = []
                     for permission in self.interfaces.userDb.getPermssionList():
-                        if(self.interfaces.userDb.hasPermisson(user,permission.name)):
+                        if(self.interfaces.userDb.hasPermission(user, permission.name)):
                             permissionList.append(permission.permission_type_id)
                     self.interfaces.userDb.updateLastLogin(user)
                     return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),"name":user.name,"title":user.title ,"agency":user.agency, "permissions" : permissionList})
@@ -164,6 +164,11 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
         # Find user that matches specified email
         user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
+        # Check that user's status is before submission of registration
+        if not (self.interfaces.userDb.checkStatus(user,"awaiting_confirmation") or self.interfaces.userDb.checkStatus(user,"email_confirmed")):
+            # Do not allow duplicate registrations
+            exc = ResponseException("User already registered",StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc,exc.status)
         # Add user info to database
         self.interfaces.userDb.addUserInfo(user,requestFields.getValue("name"),requestFields.getValue("agency"),requestFields.getValue("title"))
         self.interfaces.userDb.setPassword(user,requestFields.getValue("password"),self.bcrypt)
@@ -238,10 +243,16 @@ class AccountHandler:
         if(success):
             #mark session that email can be filled out
             LoginSession.register(session)
+
             #remove token so it cant be used again
-            self.interfaces.userDb.deleteToken(token)
-            #set the status
-            self.interfaces.userDb.changeStatus(self.interfaces.userDb.getUserByEmail(message),"email_confirmed")
+            # The following line is commented out for issues with registration email links bouncing users back
+            # to the original email input page instead of the registration page
+            #self.interfaces.userDb.deleteToken(token)
+
+            #set the status only if current status is awaiting confirmation
+            user = self.interfaces.userDb.getUserByEmail(message)
+            if self.interfaces.userDb.checkStatus(user,"awaiting_confirmation"):
+                self.interfaces.userDb.changeStatus(user,"email_confirmed")
             return JsonResponse.create(StatusCode.OK,{"email":message,"errorCode":errorCode,"message":"success"})
         else:
             #failure but alert UI of issue
@@ -268,8 +279,7 @@ class AccountHandler:
         if(success):
             #mark session that password can be filled out
             LoginSession.resetPassword(session)
-            #remove token so it cant be used again
-            self.interfaces.userDb.deleteToken(token)
+
             return JsonResponse.create(StatusCode.OK,{"email":message,"errorCode":errorCode,"message":"success"})
         else:
             #failure but alert UI of issue
@@ -415,7 +425,7 @@ class AccountHandler:
         user =  self.interfaces.userDb.getUserByUID(uid)
         permissionList = []
         for permission in self.interfaces.userDb.getPermssionList():
-            if(self.interfaces.userDb.hasPermisson(user,permission.name)):
+            if(self.interfaces.userDb.hasPermission(user, permission.name)):
                 permissionList.append(permission.permission_type_id)
         return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList})
 
