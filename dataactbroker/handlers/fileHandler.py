@@ -91,6 +91,8 @@ class FileHandler:
             existingSubmission = False
             if safeDictionary.exists("existing_submission_id"):
                 existingSubmission = True
+                # Check if user has permission to specified submission
+                self.checkSubmissionPermission(self.jobManager.getSubmissionById(submissionId))
 
             for fileType in FileHandler.FILE_TYPES :
                 # If filetype not included in request, and this is an update to an existing submission, skip it
@@ -167,6 +169,15 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
+    def checkSubmissionPermission(self,submission):
+        """ Check if current user has permisson to access submission and return user object. """
+        userId = LoginSession.getName(session)
+        user = self.interfaces.userDb.getUserByUID(userId)
+        # Check that user has permission to see this submission, user must either own the submission or be an admin
+        if(submission.user_id != userId and not self.interfaces.userDb.hasPermission(user,"website_admin")):
+            raise ResponseException("User does not have permission to view that submission",StatusCode.CLIENT_ERROR)
+        return user
+
     def getStatus(self):
         """ Get description and status of all jobs in the submission specified in request object
 
@@ -176,11 +187,15 @@ class FileHandler:
         try:
             inputDictionary = RequestDictionary(self.request)
 
+            # Get submission
             submissionId = inputDictionary.getValue("submission_id")
-            # Get jobs in this submission
-
-            jobs = self.jobManager.getJobsBySubmission(submissionId)
             submission = self.jobManager.getSubmissionById(submissionId)
+
+            # Check that user has access to submission
+            user = self.checkSubmissionPermission(submission)
+
+            # Get jobs in this submission
+            jobs = self.jobManager.getJobsBySubmission(submissionId)
 
             # Build dictionary of submission info with info about each job
             submissionInfo = {}
@@ -256,6 +271,10 @@ class FileHandler:
         try:
             safeDictionary = RequestDictionary(self.request)
             submission_id =  safeDictionary.getValue("submission_id")
+
+            # Check if user has permission to specified submission
+            self.checkSubmissionPermission(self.jobManager.getSubmissionById(submission_id))
+
             jobIds = self.jobManager.getJobsBySubmission(submission_id)
             for currentId in jobIds :
                 if(self.jobManager.getJobType(currentId) == "csv_record_validation"):

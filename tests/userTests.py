@@ -38,8 +38,8 @@ class UserTests(BaseTest):
     def setUpToken(self,email):
         """Test e-mail token."""
         userDb = self.userDb
-        token = sesEmail.createToken(email, userDb, "validate_email")
-        postJson = {"token": token}
+        self.registerToken = sesEmail.createToken(email, userDb, "validate_email")
+        postJson = {"token": self.registerToken}
         return self.app.post_json("/v1/confirm_email_token/", postJson)
 
     def test_registration_no_token(self):
@@ -58,6 +58,11 @@ class UserTests(BaseTest):
         postJson = {"email": email, "name": "user", "agency": "agency", "title": "title", "password": self.user_password}
         response = self.app.post_json("/v1/register/", postJson)
         self.check_response(response, StatusCode.OK, "Registration successful")
+        # Check that re-registration is an error
+        tokenJson = {"token": self.registerToken}
+        self.app.post_json("/v1/confirm_email_token/", tokenJson)
+        response = self.app.post_json("/v1/register/", postJson, expect_errors=True)
+        self.assertEqual(response.status_code,400)
 
     def test_registration_empty(self):
         """Test user registration with no user."""
