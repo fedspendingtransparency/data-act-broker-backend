@@ -260,8 +260,11 @@ class ValidationManager:
 
     def runCrossValidation(self, jobId, interfaces):
         """ Cross file validation job, test all rules with matching rule_timing """
-        # TODO Select all rules from multi-field rule table
-        # TODO Call cross-file validator for each rule
+        # Select all rules from multi-field rule table
+        rules = interfaces.validationDb.getMultiFieldRulesByTiming("cross-file")
+        # Validate cross validation rules
+        Validator.crossValidate(rules)
+        raise NotImplementedError("")
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to staging database

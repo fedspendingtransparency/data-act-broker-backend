@@ -279,6 +279,11 @@ class ValidatorValidationInterface(BaseInterface):
         self.session.commit()
         return True
 
+    def getMultiFieldRuleByLabel(self, label):
+        """ Find multi field rule by label """
+        ruleQuery = self.session.query(MultiFieldRule).filter(MultiFieldRule.rule_label == label)
+        self.runUniqueQuery(ruleQuery,"Rule label not found", "Multiple rules match specified label")
+
     def getMultiFieldRulesByFile(self, fileType):
         """
 
@@ -290,6 +295,18 @@ class ValidatorValidationInterface(BaseInterface):
         """
         fileId = self.getFileId(fileType)
         return self.session.query(MultiFieldRule).filter(MultiFieldRule.file_id == fileId).all()
+
+    def getMultiFieldRulesByTiming(self, timing):
+        """
+
+        Args:
+            fileType:  Which type of file to get rules for
+
+        Returns:
+            list of MultiFieldRule objects
+        """
+        timingId = self.getRuleTimingIdByName(timing)
+        return self.session.query(MultiFieldRule).filter(MultiFieldRule.rule_timing_id == timingId).all()
 
     def getColumnId(self, fieldName, fileType):
         """ Find file column given field name and file type

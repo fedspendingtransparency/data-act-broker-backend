@@ -1,5 +1,6 @@
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.config import CONFIG_DB
+from dataactvalidator.interfaces.jobTrackerInterface import JobTrackerInterface
 
 class ValidatorStagingInterface(BaseInterface):
     """ Manages all interaction with the staging database """
@@ -45,7 +46,17 @@ class ValidatorStagingInterface(BaseInterface):
         else:
             return 0
 
-    @staticmethod
-    def getTableName(jobId):
+    @classmethod
+    def getTableName(cls, jobId):
         """ Get the staging table name based on the job ID """
-        return "".join(["job",str(jobId)])
+        # Get submission ID and file type
+        jobDb = JobTrackerInterface()
+        submissionId = jobDb.getSubmissionId(jobId)
+        fileType = jobDb.getFileType(jobId)
+        # Get table name based on submissionId and fileType
+        return cls.getTableNameBySubmissionId(submissionId, fileType)
+
+    @staticmethod
+    def getTableNameBySubmissionId(submissionId, fileType):
+        """ Get staging table name based on submission ID and file type """
+        return "".join(["submission",str(submissionId),str(fileType)])

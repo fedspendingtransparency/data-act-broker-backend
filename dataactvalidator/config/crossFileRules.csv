@@ -1,0 +1,5 @@
+rule_type,is_single_field,field_name,rule_text_one,rule_text_two,description,file,rule_label,rule_timing,file_type
+field_match,FALSE,,"fainawardnumber, uri",award,Check that all fain award number and URI pairs in file C are present in file D2,award_financial,C8,3,award_financial
+field_match,FALSE,,"fainawardnumber, uri",award_financial,Check that all fain award number and URI pairs in file D2 are present in file C,award,C9,2,award
+rule_if,FALSE,,C9,C9B,Rule C9 only applies if FederalActionObligation is greater than 0,award,,3,award
+greater,TRUE,federalactionobligation,0,,Check if federalactionobligation is greater than 0,award,C9B,2,award

@@ -72,6 +72,15 @@ class SchemaLoader(object):
                     # Write to multi_field_rule table
                     validationDb.addMultiFieldRule(fileId,record["rule_type"],record["rule_text_one"],record["rule_text_two"],record["description"])
 
+    @staticmethod
+    def loadCrossRules(filename):
+        """ Populate multifield rule table with cross file validation rules """
+        validationDb = ValidatorValidationInterface()
+        with open(filename, 'rU') as ruleFile:
+            reader = csv.DictReader(ruleFile)
+            for record in reader:
+                raise NotImplementedError("")
+
 if __name__ == '__main__':
     # Load field definitions and rules into validation DB
     SchemaLoader.loadFields("appropriations","../config/appropFields.csv")
@@ -83,3 +92,5 @@ if __name__ == '__main__':
     #SchemaLoader.loadRules("award","../config/awardRules.csv")
     SchemaLoader.loadRules("award_financial","../config/awardFinancialRules.csv")
     SchemaLoader.loadRules("program_activity","../config/programActivityRules.csv")
+    # Load cross file validation rules
+    SchemaLoader.loadCrossRules("../config/crossFileRules.csv")
