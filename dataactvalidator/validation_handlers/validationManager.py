@@ -24,6 +24,7 @@ class ValidationManager:
     Outer level class, called by flask route
     """
     reportHeaders = ["Field name", "Error message", "Row number", "Value provided"]
+    crossFileReportHeaders = ["Field names", "Error message", "Values provided"]
 
     def __init__(self,isLocal =True,directory=""):
         # Initialize instance variables
@@ -263,7 +264,16 @@ class ValidationManager:
         # Select all rules from multi-field rule table
         rules = interfaces.validationDb.getMultiFieldRulesByTiming("cross-file")
         # Validate cross validation rules
-        Validator.crossValidate(rules)
+        submissionId = interfaces.jobDb.getSubmissionId(jobId)
+        failures = Validator.crossValidate(rules,submissionId)
+        bucketName = CONFIG_BROKER['aws_bucket']
+        regionName = CONFIG_BROKER['aws_region']
+        errorFileName = self.getFileName(interfaces.jobDb.getCrossFileReportPath(submissionId))
+
+        with self.getWriter(regionName, bucketName, errorFileName, self.crossFileReportHeaders) as writer:
+            for failure in failures:
+                writer.write(failure)
+
         raise NotImplementedError("")
 
     def validateJob(self, request,interfaces):
