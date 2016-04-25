@@ -22,8 +22,6 @@ class CloudLogger(object):
     @staticmethod
     def logError(message,exception,traceback):
         """Logs errors"""
-        # Add timestamp to message
-        message = " ".join([str(datetime.datetime.utcnow()), str(message)])
         wrappedType =""
         wrappedMessage =""
         if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):
@@ -34,7 +32,8 @@ class CloudLogger(object):
             'error_log_message': str(exception),
             'error_log_wrapped_message': str(wrappedMessage),
             'error_log_wrapped_type': str(wrappedType),
-            'error_log_trace': str(traceback)
+            'error_log_trace': str(traceback),
+            'error_timestamp': str(datetime.datetime.utcnow())
         }
         if CONFIG_LOGGING["use_logstash"]:
         #if( not CloudLogger.getValueFromConfig("local")):
