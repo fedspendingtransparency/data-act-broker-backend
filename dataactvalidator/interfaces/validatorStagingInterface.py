@@ -1,5 +1,8 @@
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.config import CONFIG_DB
+from sqlalchemy import MetaData, Table
+from sqlalchemy.exc import NoSuchTableError
+
 
 class ValidatorStagingInterface(BaseInterface):
     """ Manages all interaction with the staging database """
@@ -28,8 +31,10 @@ class ValidatorStagingInterface(BaseInterface):
         Returns:
             True if successful
         """
-        self.runStatement("".join(["DROP TABLE ",table]))
-        self.session.commit()
+
+        metadata = MetaData()
+        stagingTable = Table(table, metadata, autoload_with=self.engine)
+        stagingTable.drop(bind=self.engine)
 
     def tableExists(self,table):
         """ True if table exists, false otherwise """
@@ -37,13 +42,14 @@ class ValidatorStagingInterface(BaseInterface):
 
     def countRows(self,table):
         """ Returns number of rows in the specified table """
-        if(self.tableExists(table)):
-            response =  (self.runStatement("".join(["SELECT COUNT(*) FROM ",table]))).fetchone()[0]
-            # Try to prevent blocking
-            self.session.close()
-            return response
-        else:
+        metadata = MetaData()
+        try:
+            stagingTable = Table(table, metadata, autoload_with=self.engine)
+        except NoSuchTableError:
             return 0
+        rows = self.session.query(stagingTable).count()
+        self.session.close()
+        return rows
 
     @staticmethod
     def getTableName(jobId):
