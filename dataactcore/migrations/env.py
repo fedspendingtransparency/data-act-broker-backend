@@ -1,13 +1,10 @@
 from __future__ import with_statement
 
-from string import strip
 from alembic import context
 from dataactcore.models import errorModels
 from dataactcore.models import jobModels
 from dataactcore.models import userModel
-from dataactcore.models.errorInterface import ErrorInterface
-from dataactcore.models.jobTrackerInterface import JobTrackerInterface
-from dataactcore.models.userInterface import UserInterface
+from dataactcore.config import CONFIG_DB
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
 import logging
@@ -24,10 +21,16 @@ config = context.config
 fileConfig(config.config_file_name)
 logger = logging.getLogger('alembic.env')
 
-# gather section names referring to different
-# databases.  These are named "engine1", "engine2"
-# in the sample .ini file.
-db_names = ErrorInterface.getDbName() + ',' + JobTrackerInterface.getDbName() + ',' + UserInterface.getDbName()
+# Use the broker's config file to gather section names referring to different
+# databases. In db_dict, the key will = alembic .ini section names and
+# migration method names. Value[0] will = the actual database name as
+# set in the broker config. Value[1] is the corresponding model.
+db_dict = {}
+db_dict['error_data'] = [CONFIG_DB['error_db_name'], errorModels]
+db_dict['job_tracker'] = [CONFIG_DB['job_db_name'], jobModels]
+db_dict['user_manager'] = [CONFIG_DB['user_db_name'], userModel]
+# TODO: add validation db to the list once the backend repos are merged
+db_names = ', '.join([value[0] for (key, value) in db_dict.items()])
 config.set_main_option('databases', db_names)
 
 # add your model's MetaData objects here
@@ -41,18 +44,18 @@ config.set_main_option('databases', db_names)
 #       'engine1':mymodel.metadata1,
 #       'engine2':mymodel.metadata2
 #}
-target_metadata = {
-    ErrorInterface.getDbName(): errorModels.Base.metadata,
-    JobTrackerInterface.getDbName(): jobModels.Base.metadata,
-    UserInterface.getDbName(): userModel.Base.metadata
-}
+target_metadata = {value[0]: value[1] for (key, value) in db_dict.items()}
 
 # Set up database URLs based on credentials file
-interfaces = [ErrorInterface, JobTrackerInterface, UserInterface]
-for interface in interfaces:
-    creds = interface.getCredDict()
-    baseUrl = 'postgres://' + creds['username'] + ':' + creds['password'] + '@' + creds['host'] + ':' + str(creds['port'])
-    config.set_section_option(interface.getDbName(), 'sqlalchemy.url', baseUrl + '/' + interface.getDbName())
+username = str(CONFIG_DB['username'])
+password = str(CONFIG_DB['password'])
+host = str(CONFIG_DB['host'])
+port = str(CONFIG_DB['port'])
+for (key, value) in db_dict.items():
+    # key = db-related names expected by Alembic config/scripts
+    # value[0] = actual db names as set in broker config file
+    baseUrl = 'postgres://' + username + ':' + password + '@' + host + ':' + port
+    config.set_section_option(key, 'sqlalchemy.url', baseUrl + '/' + value[0])
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
