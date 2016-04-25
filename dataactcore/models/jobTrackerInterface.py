@@ -65,6 +65,9 @@ class JobTrackerInterface(BaseInterface):
         """ Return the filename for the error report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
         return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_error_report.csv"
 
+    def getCrossFileReportPath(self,submissionId):
+        return "".join(["submission_",str(submissionId),"_cross_file_error_report.csv"])
+
     def getJobsBySubmission(self,submissionId):
         """ Get list of jobs that are part of the specified submission
 
