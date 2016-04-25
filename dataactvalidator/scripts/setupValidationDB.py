@@ -59,7 +59,10 @@ def setupValidationDB(hardReset = False):
         validatorDb.session.merge(fieldType)
 
     # insert multi-field rule types
-    mfrTypeList = [(1, 'CAR_MATCH', 'Matching a set of fields against a CAR file')]
+    mfrTypeList = [(1, 'CAR_MATCH', 'Matching a set of fields against a CAR file'),
+                   (2, 'FIELD_MATCH', 'Match a set of fields against a different file'),
+                   (3, 'RULE_IF', 'Apply first rule if second rule passes'),
+                   (4, 'GREATER', 'Check if field is greater than specified value')]
     for m in mfrTypeList:
         mfrt = MultiFieldRuleType(
             multi_field_rule_type_id = m[0], name=m[1], description=m[2])
@@ -69,4 +72,4 @@ def setupValidationDB(hardReset = False):
     validatorDb.session.close()
 
 if __name__ == '__main__':
-    setupValidationDB(True)
+    setupValidationDB(False)

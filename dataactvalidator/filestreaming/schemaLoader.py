@@ -79,7 +79,8 @@ class SchemaLoader(object):
         with open(filename, 'rU') as ruleFile:
             reader = csv.DictReader(ruleFile)
             for record in reader:
-                raise NotImplementedError("")
+                fileId = validationDb.getFileId(record["file"])
+                validationDb.addMultiFieldRule(fileId,record["rule_type"],record["rule_text_one"],record["rule_text_two"],record["description"],record["rule_label"],record["rule_timing"])
 
 if __name__ == '__main__':
     # Load field definitions and rules into validation DB

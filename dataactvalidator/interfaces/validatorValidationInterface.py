@@ -256,12 +256,13 @@ class ValidatorValidationInterface(BaseInterface):
         if rule_timing is None or rule_timing == "":
             # Use default value if timing is unspecified
             rule_timing = 1
-        newRule = Rule(file_column_id = columnId, rule_type_id = self.getRuleType(ruleTypeText), rule_text_1 = ruleText, description = description, rule_timing_id = rule_timing, rule_label = rule_label)
+        newRule = Rule(file_column_id = columnId, rule_type_id = self.getRuleType(ruleTypeText), rule_text_1 = ruleText,
+                       description = description, rule_timing_id = rule_timing, rule_label = rule_label)
         self.session.add(newRule)
         self.session.commit()
         return True
 
-    def addMultiFieldRule(self,fileId, ruleTypeText, ruleTextOne, ruleTextTwo, description):
+    def addMultiFieldRule(self,fileId, ruleTypeText, ruleTextOne, ruleTextTwo, description, ruleLabel = None, ruleTiming = 1):
         """
 
         Args:
@@ -274,7 +275,9 @@ class ValidatorValidationInterface(BaseInterface):
         Returns:
             True if successful
         """
-        newRule = MultiFieldRule(file_id = fileId, multi_field_rule_type_id = self.getMultiFieldRuleType(ruleTypeText), rule_text_1 = ruleTextOne, rule_text_2 = ruleTextTwo, description = description)
+        newRule = MultiFieldRule(file_id = fileId, multi_field_rule_type_id = self.getMultiFieldRuleType(ruleTypeText),
+                                 rule_text_1 = ruleTextOne, rule_text_2 = ruleTextTwo, description = description,
+                                 rule_label = ruleLabel, rule_timing_id = ruleTiming)
         self.session.add(newRule)
         self.session.commit()
         return True
@@ -282,7 +285,7 @@ class ValidatorValidationInterface(BaseInterface):
     def getMultiFieldRuleByLabel(self, label):
         """ Find multi field rule by label """
         ruleQuery = self.session.query(MultiFieldRule).filter(MultiFieldRule.rule_label == label)
-        self.runUniqueQuery(ruleQuery,"Rule label not found", "Multiple rules match specified label")
+        return self.runUniqueQuery(ruleQuery,"Rule label not found", "Multiple rules match specified label")
 
     def getMultiFieldRulesByFile(self, fileType):
         """

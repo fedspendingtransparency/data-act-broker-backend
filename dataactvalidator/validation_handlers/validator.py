@@ -100,7 +100,7 @@ class Validator(object):
             if not record:
                 # Must provide a record for this rule
                 raise ValueError("Cannot apply greater rule without a record")
-            rulePassed = record.__dict__[rule.file_column.name] > rule.rule_text_1
+            rulePassed = record.__dict__[rule.rule_text_2] > rule.rule_text_1
         return rulePassed,failures
 
     @staticmethod
