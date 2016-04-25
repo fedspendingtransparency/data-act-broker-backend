@@ -26,10 +26,12 @@ class FileTypeTests(BaseTest):
         s3FileNameAwardFinMixed = cls.uploadFile("awardFinancialMixed.csv", user)
         s3FileNameAwardValid = cls.uploadFile("awardValid.csv", user)
         s3FileNameAwardMixed = cls.uploadFile("awardMixed.csv", user)
+        s3FileNameCrossAwardFin = cls.uploadFile("cross_file_C.csv", user)
+        s3FileNameCrossAward = cls.uploadFile("cross_file_D2.csv", user)
 
         # Create submissions and get IDs back
         submissionIDs = {}
-        for i in range(0, 10):
+        for i in range(0, 11):
             submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
 
         # Create jobs
@@ -42,7 +44,10 @@ class FileTypeTests(BaseTest):
             "awardFinValid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[6]), s3FileNameAwardFinValid, 2],
             "awardFinMixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[7]), s3FileNameAwardFinMixed, 2],
             "awardValid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[8]), s3FileNameAwardValid, 1],
-            "awardMixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[9]), s3FileNameAwardMixed, 1]
+            "awardMixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[9]), s3FileNameAwardMixed, 1],
+            "crossAwardFin": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[10]), s3FileNameCrossAwardFin, 2],
+            "crossAward": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[10]), s3FileNameCrossAward, 1],
+            "crossFile": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("validation")), str(submissionIDs[10]), None, None]
         }
 
         jobIdDict = {}
@@ -70,6 +75,7 @@ class FileTypeTests(BaseTest):
         SchemaLoader.loadRules("appropriations","../dataactvalidator/config/appropRules.csv")
         SchemaLoader.loadRules("program_activity","../dataactvalidator/config/programActivityRules.csv")
         SchemaLoader.loadRules("award_financial","../dataactvalidator/config/awardFinancialRules.csv")
+        SchemaLoader.loadCrossRules("../dataactvalidator/config/crossFileRules.csv")
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
                 or force_tas_load):
             # TAS table is empty, load it
@@ -122,6 +128,18 @@ class FileTypeTests(BaseTest):
         jobId = self.jobIdDict["awardMixed"]
         self.passed = self.run_test(
             jobId, 200, "finished", 2168, 7, "complete", 33, True)
+
+    def test_cross_file(self):
+        # Run jobs for C and D2, then cross file validation job
+        awardFinResponse = self.validateJob(self.jobIdDict["crossAwardFin"],self.useThreads)
+        self.assertEqual(awardFinResponse.status_code, 200)
+        awardResponse = self.validateJob(self.jobIdDict["crossAward"],self.useThreads)
+        self.assertEqual(awardResponse.status_code, 200)
+        crossFileResponse = self.validateJob(self.jobIdDict["crossFile"],self.useThreads)
+        self.assertEqual(awardFinResponse.status_code, 200)
+        # Check that cross file validation report exists and is the right size
+        # Check number of cross file validation errors in DB for this job
+        raise NotImplementedError("")
 
 if __name__ == '__main__':
     unittest.main()

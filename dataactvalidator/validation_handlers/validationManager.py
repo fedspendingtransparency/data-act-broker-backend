@@ -269,10 +269,13 @@ class ValidationManager:
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
         errorFileName = self.getFileName(interfaces.jobDb.getCrossFileReportPath(submissionId))
+        errorDb = interfaces.errorDb
 
         with self.getWriter(regionName, bucketName, errorFileName, self.crossFileReportHeaders) as writer:
             for failure in failures:
                 writer.write(failure)
+                errorDb.recordRowError(jobId,"cross_file",failure[0],failure[1],None)
+        errorDb.writeAllRowErrors(jobId)
 
         raise NotImplementedError("")
 
