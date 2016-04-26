@@ -314,3 +314,10 @@ class FileHandler:
         except Exception as e:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+
+    def getRss(self):
+        response = {}
+        self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
+        self.s3manager.REGION = s3UrlHandler(CONFIG_BROKER["aws_region"])
+        response["rss_url"] = self.s3manager.getSignedUrl(CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"],"GET")
+        return JsonResponse.create(200,response)
