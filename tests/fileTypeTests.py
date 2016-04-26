@@ -139,13 +139,12 @@ class FileTypeTests(BaseTest):
         awardResponse = self.validateJob(self.jobIdDict["crossAward"],self.useThreads)
         self.assertEqual(awardResponse.status_code, 200,msg=str(awardResponse.json))
         crossFileResponse = self.validateJob(crossId,self.useThreads)
-        print(str(crossFileResponse.json))
         self.assertEqual(crossFileResponse.status_code, 200,msg=str(crossFileResponse.json))
         # Check number of cross file validation errors in DB for this job
         self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId),2)
         # Check that cross file validation report exists and is the right size
         jobTracker = self.interfaces.jobDb
-        fileSize = 0
+        fileSize = 405
         reportPath = jobTracker.getCrossFileReportPath(jobTracker.getSubmissionId(crossId))
         if self.local:
             path = "".join(

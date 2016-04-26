@@ -383,6 +383,7 @@ class ValidatorValidationInterface(BaseInterface):
         return self.getNameFromDict(FieldType,"TYPE_DICT","name",id,"field_type_id")
 
     def getFieldNameByColId(self, id):
+        int(id) # Raise appropriate error if id is not an int
         query = self.session.query(FileColumn).filter(FileColumn.file_column_id == id)
         column = self.runUniqueQuery(query,"No column found with that ID", "Multiple columns found with that ID")
         return column.name

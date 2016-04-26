@@ -1,5 +1,7 @@
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.config import CONFIG_DB
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.interfaces.validatorJobTrackerInterface import ValidatorJobTrackerInterface
 
 class ValidatorStagingInterface(BaseInterface):
@@ -58,7 +60,7 @@ class ValidatorStagingInterface(BaseInterface):
         elif jobType == "validation":
             fileType = "_cross_file"
         else:
-            raise ValueError("Unknown Job Type")
+            raise ResponseException("Unknown Job Type",StatusCode.CLIENT_ERROR,ValueError)
         # Get table name based on submissionId and fileType
         return cls.getTableNameBySubmissionId(submissionId, fileType)
 

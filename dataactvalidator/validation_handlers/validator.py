@@ -71,33 +71,41 @@ class Validator(object):
             sourceRecords = cls.getRecordsIfNone(sourceTable,stagingDb,record)
             fieldsToCheck = cls.cleanSplit(rule.rule_text_1,True)
             # For each entry, check for the presence of matching values in second table
-            for record in sourceRecords:
+            for thisRecord in sourceRecords:
                 # Build query to filter for each field to match
                 matchDict = {}
                 query = stagingDb.session.query(targetTable)
                 for field in fieldsToCheck:
                     # Have to get file column IDs for source and target tables
-                    sourceColId = interfaces.validationDb.getColumnId(field,fileType)
                     targetColId = interfaces.validationDb.getColumnId(field,targetType)
-                    matchDict[field] = getattr(record,str(sourceColId))
+                    if isinstance(thisRecord,dict):
+                        matchDict[field] = thisRecord[str(field)]
+                    else:
+                        sourceColId = interfaces.validationDb.getColumnId(field,fileType)
+                        matchDict[field] = getattr(thisRecord,str(sourceColId))
                     query = query.filter(getattr(targetTable.c,str(targetColId)) == matchDict[field])
                 # Make sure at least one in target table record matches
                 if not query.first():
                     # Fields don't match target file, add to failures
                     rulePassed = False
-                    failures.append([fieldsToCheck,rule.description,str(matchDict)])
+                    dictString = str(matchDict)[1:-1] # Remove braces
+
+                    failures.append([", ".join(fieldsToCheck),rule.description,dictString])
         elif ruleType == "rule_if":
             # Get all records from source table
             sourceTable = cls.getTable(submissionId, fileType, stagingDb)
 
             columns = list(sourceTable.columns)
             colNames = []
-            print("columns is: " + str(type(columns)))
-            print("column is: " + str(type(columns[0])))
-            print("name is: " + str(columns[0].name))
             for i in range(0,len(columns)):
-                colNames.append(interfaces.validationDb.getFieldNameByColId(columns[i].name))
-            print("column names: " + str(colNames))
+                try:
+                    int(columns[i].name)
+                except ValueError:
+                    # Each staging table has a primary key field that is not an int, just include this directly
+                    colNames.append(columns[i].name)
+                else:
+                    # If it is an int, treat it as a column id
+                    colNames.append(interfaces.validationDb.getFieldNameByColId(columns[i].name))
 
 
             # Can apply rule to a specified record or all records in first table
@@ -108,20 +116,18 @@ class Validator(object):
             # Apply first rule for all records that pass second rule
             for record in sourceRecords:
                 # Record is a tuple, we need it to be a dict with field names as keys
-                print("record from source:" + str(record))
                 recordDict = dict(zip(colNames,list(record)))
-                print("recordDict: " + str(recordDict))
                 if cls.evaluateCrossFileRule(condition,submissionId,recordDict)[0]:
                     result = cls.evaluateCrossFileRule(conditionalRule,submissionId,recordDict)
                     if not result[0]:
                         # Record if we have seen a failure
                         rulePassed = False
-                        failures = failures.extend(result[1])
+                        failures.extend(result[1])
         elif ruleType == "greater":
             if not record:
                 # Must provide a record for this rule
                 raise ValueError("Cannot apply greater rule without a record")
-            rulePassed = getattr(record,rule.rule_text_2) > rule.rule_text_1
+            rulePassed = int(record[rule.rule_text_2]) > int(rule.rule_text_1)
         return rulePassed,failures
 
     @staticmethod

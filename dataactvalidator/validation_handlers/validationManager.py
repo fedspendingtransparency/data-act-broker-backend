@@ -275,6 +275,7 @@ class ValidationManager:
             for failure in failures:
                 writer.write(failure)
                 errorDb.recordRowError(jobId,"cross_file",failure[0],failure[1],None)
+            writer.finishBatch()
         errorDb.writeAllRowErrors(jobId)
 
     def validateJob(self, request,interfaces):
@@ -294,9 +295,9 @@ class ValidationManager:
         try:
             jobTracker = interfaces.jobDb
             requestDict = RequestDictionary(request)
+            tableName = ""
             if(requestDict.exists("job_id")):
                 jobId = requestDict.getValue("job_id")
-                tableName = interfaces.stagingDb.getTableName(jobId)
             else:
                 # Request does not have a job ID, can't validate
                 raise ResponseException("No job ID specified in request",StatusCode.CLIENT_ERROR)
@@ -304,6 +305,7 @@ class ValidationManager:
             # Check that job exists and is ready
             if(not (jobTracker.runChecks(jobId))):
                 raise ResponseException("Checks failed on Job ID",StatusCode.CLIENT_ERROR)
+            tableName = interfaces.stagingDb.getTableName(jobId)
             jobType = interfaces.jobDb.checkJobType(jobId)
 
         except ResponseException as e:
