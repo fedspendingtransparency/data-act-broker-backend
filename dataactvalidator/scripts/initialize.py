@@ -74,7 +74,7 @@ def loadTas():
 
 
 def setupDB():
-    setupValidationDB(True)
+    setupValidationDB()
     setupStagingDB()
 
 
