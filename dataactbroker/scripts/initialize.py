@@ -2,6 +2,7 @@ from dataactbroker.scripts.setupEmails import setupEmails
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.scripts.setupUserDB import setupUserDB
+from dataactcore.utils.responseException import ResponseException
 from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.aws.session import SessionTable
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
@@ -51,9 +52,14 @@ def createAdmin():
     adminEmail = CONFIG_BROKER['admin_email']
     adminPass = CONFIG_BROKER['admin_password']
     userDb = UserHandler()
-    userDb.createUserWithPassword(adminEmail, adminPass, Bcrypt(), admin=True)
-    user = userDb.getUserByEmail(adminEmail)
-    userDb.addUserInfo(user, "Admin", "System", "System Admin")
+    try:
+        user = userDb.getUserByEmail(adminEmail)
+    except ResponseException as e:
+        if "no users" in e.message.lower():
+            userDb.createUserWithPassword(
+                adminEmail, adminPass, Bcrypt(), admin=True)
+            user = userDb.getUserByEmail(adminEmail)
+            userDb.addUserInfo(user, "Admin", "System", "System Admin")
     userDb.session.close()
 
 
