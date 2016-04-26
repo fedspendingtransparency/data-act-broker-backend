@@ -1,5 +1,4 @@
 from __future__ import with_statement
-
 from alembic import context
 from dataactcore.models import errorModels
 from dataactcore.models import jobModels
@@ -30,8 +29,13 @@ db_dict['error_data'] = [CONFIG_DB['error_db_name'], errorModels]
 db_dict['job_tracker'] = [CONFIG_DB['job_db_name'], jobModels]
 db_dict['user_manager'] = [CONFIG_DB['user_db_name'], userModel]
 # TODO: add validation db to the list once the backend repos are merged
-db_names = ', '.join([value[0] for (key, value) in db_dict.items()])
-config.set_main_option('databases', db_names)
+db_names = config.get_main_option('databases')
+for name in re.split(r',\s*', db_names):
+    if name not in db_dict:
+        raise Exception('The alembic.ini databases section is targeting '
+                        'a database ({}) that is not set up in env.py. '
+                        'Please add {} info to db_dict in env.py'.
+                        format(name, name))
 
 # add your model's MetaData objects here
 # for 'autogenerate' support.  These must be set
@@ -46,7 +50,7 @@ config.set_main_option('databases', db_names)
 #}
 target_metadata = {value[0]: value[1] for (key, value) in db_dict.items()}
 
-# Set up database URLs based on credentials file
+# Set up database URLs based on config file
 username = str(CONFIG_DB['username'])
 password = str(CONFIG_DB['password'])
 host = str(CONFIG_DB['host'])
