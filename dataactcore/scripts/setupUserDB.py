@@ -1,22 +1,16 @@
-from dataactcore.models import userModel
 from dataactcore.models.userModel import PermissionType, UserStatus
 from dataactcore.models.userInterface import UserInterface
-from dataactcore.scripts.databaseSetup import createDatabase
+from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_DB
+
 
 def setupUserDB(hardReset = False):
     """Create user tables from model metadata."""
     createDatabase(CONFIG_DB['user_db_name'])
+    runMigrations('user_manager')
     userDb = UserInterface()
-    if hardReset:
-        userModel.Base.metadata.drop_all(userDb.engine)
-    userModel.Base.metadata.create_all(userDb.engine)
-
-    userDb.session.commit()
-    userDb.session.close()
 
     # TODO: define these codes as enums in the data model?
-
     # insert status types
     statusList = [(1, 'awaiting_confirmation', 'User has entered email but not confirmed'),
         (2, 'email_confirmed', 'User email has been confirmed'),

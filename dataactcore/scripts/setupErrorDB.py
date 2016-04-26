@@ -1,20 +1,14 @@
-from dataactcore.models import errorModels
 from dataactcore.models.errorModels import Status, ErrorType
 from dataactcore.models.errorInterface import ErrorInterface
-from dataactcore.scripts.databaseSetup import createDatabase
+from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_DB
 
 
 def setupErrorDB(hardReset = False):
     """Create job tracker tables from model metadata."""
     createDatabase(CONFIG_DB['error_db_name'])
+    runMigrations('error_data')
     errorDb = ErrorInterface()
-    if hardReset:
-        errorModels.Base.metadata.drop_all(errorDb.engine)
-    errorModels.Base.metadata.create_all(errorDb.engine)
-
-    errorDb.session.commit()
-    errorDb.session.close()
 
     # TODO: define these codes as enums in the data model?
     # insert status types
@@ -43,4 +37,4 @@ def setupErrorDB(hardReset = False):
     errorDb.session.close()
 
 if __name__ == '__main__':
-    setupErrorDB(True)
+    setupErrorDB(False)

@@ -1,23 +1,16 @@
-from dataactcore.models import jobModels
 from dataactcore.models.jobModels import Status, Type, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
-from dataactcore.scripts.databaseSetup import createDatabase
+from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_DB
 
 
 def setupJobTrackerDB(hardReset = False):
     """Create job tracker tables from model metadata."""
     createDatabase(CONFIG_DB['job_db_name'])
+    runMigrations('job_tracker')
     jobDb = JobTrackerInterface()
-    if hardReset:
-        jobModels.Base.metadata.drop_all(jobDb.engine)
-    jobModels.Base.metadata.create_all(jobDb.engine)
-
-    jobDb.session.commit()
-    jobDb.session.close()
 
     # TODO: define these codes as enums in the data model?
-
     # insert status types
     statusList = [(1, 'waiting', 'check dependency table'),
         (2, 'ready', 'can be assigned'),
