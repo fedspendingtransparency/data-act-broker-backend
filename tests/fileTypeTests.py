@@ -1,4 +1,6 @@
 from __future__ import print_function
+import os
+from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactvalidator.models.validationModels import TASLookup
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.tasSetup import loadTAS
@@ -130,16 +132,31 @@ class FileTypeTests(BaseTest):
             jobId, 200, "finished", 2168, 7, "complete", 33, True)
 
     def test_cross_file(self):
+        crossId = self.jobIdDict["crossFile"]
         # Run jobs for C and D2, then cross file validation job
         awardFinResponse = self.validateJob(self.jobIdDict["crossAwardFin"],self.useThreads)
-        self.assertEqual(awardFinResponse.status_code, 200)
+        self.assertEqual(awardFinResponse.status_code, 200,msg=str(awardFinResponse.json))
         awardResponse = self.validateJob(self.jobIdDict["crossAward"],self.useThreads)
-        self.assertEqual(awardResponse.status_code, 200)
-        crossFileResponse = self.validateJob(self.jobIdDict["crossFile"],self.useThreads)
-        self.assertEqual(awardFinResponse.status_code, 200)
-        # Check that cross file validation report exists and is the right size
+        self.assertEqual(awardResponse.status_code, 200,msg=str(awardResponse.json))
+        crossFileResponse = self.validateJob(crossId,self.useThreads)
+        print(str(crossFileResponse.json))
+        self.assertEqual(crossFileResponse.status_code, 200,msg=str(crossFileResponse.json))
         # Check number of cross file validation errors in DB for this job
-        raise NotImplementedError("")
+        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId),2)
+        # Check that cross file validation report exists and is the right size
+        jobTracker = self.interfaces.jobDb
+        fileSize = 0
+        reportPath = jobTracker.getCrossFileReportPath(jobTracker.getSubmissionId(crossId))
+        if self.local:
+            path = "".join(
+                [self.local_file_directory,reportPath])
+            self.assertGreater(os.path.getsize(path), fileSize - 5)
+            self.assertLess(os.path.getsize(path), fileSize + 5)
+        else:
+            self.assertGreater(s3UrlHandler.getFileSize(
+                "errors/"+reportPath), fileSize - 5)
+            self.assertLess(s3UrlHandler.getFileSize(
+                "errors/"+reportPath), fileSize + 5)
 
 if __name__ == '__main__':
     unittest.main()

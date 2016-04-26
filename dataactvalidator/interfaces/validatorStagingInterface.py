@@ -52,7 +52,13 @@ class ValidatorStagingInterface(BaseInterface):
         # Get submission ID and file type
         jobDb = ValidatorJobTrackerInterface()
         submissionId = jobDb.getSubmissionId(jobId)
-        fileType = jobDb.getFileType(jobId)
+        jobType = jobDb.getJobType(jobId)
+        if jobType == "csv_record_validation":
+            fileType = jobDb.getFileType(jobId)
+        elif jobType == "validation":
+            fileType = "_cross_file"
+        else:
+            raise ValueError("Unknown Job Type")
         # Get table name based on submissionId and fileType
         return cls.getTableNameBySubmissionId(submissionId, fileType)
 

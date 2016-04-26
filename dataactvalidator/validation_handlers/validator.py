@@ -1,5 +1,7 @@
 import re
-from sqlalchemy import MetaData, Table
+from sqlalchemy import MetaData, Table, inspect
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.engine import reflection
 from decimal import *
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -36,7 +38,8 @@ class Validator(object):
         # Get name of staging tables
         tableName = stagingDb.getTableNameBySubmissionId(submissionId,fileType)
         # Create ORM table from database
-        return Table(tableName, meta, autoload=True)
+        table = Table(tableName, meta, autoload=True, autoload_with=stagingDb.engine)
+        return table
 
     @staticmethod
     def getRecordsIfNone(sourceTable, stagingDb, record = None):
@@ -53,12 +56,12 @@ class Validator(object):
         failures = [] # Can get multiple failures for these rule types
         rulePassed = True # Set to false on first failures
         # Get rule type
-        ruleType = rule.multi_field_rule_type.name
+        ruleType = rule.multi_field_rule_type.name.lower()
         fileType = rule.file_type.name
         interfaces = InterfaceHolder()
         stagingDb = interfaces.stagingDb
         if ruleType == "field_match":
-            targetType = rule.rule_text_two
+            targetType = rule.rule_text_2
             # Get ORM objects for source and target staging tables
             sourceTable = cls.getTable(submissionId, fileType, stagingDb)
             targetTable = cls.getTable(submissionId, targetType, stagingDb)
@@ -66,15 +69,18 @@ class Validator(object):
             # TODO new query against second table for every record in first table, possibly index second table at start
             # Can apply rule to a specified record or all records in first table
             sourceRecords = cls.getRecordsIfNone(sourceTable,stagingDb,record)
-            fieldsToCheck = rule.rule_text_1
+            fieldsToCheck = cls.cleanSplit(rule.rule_text_1,True)
             # For each entry, check for the presence of matching values in second table
             for record in sourceRecords:
                 # Build query to filter for each field to match
                 matchDict = {}
                 query = stagingDb.session.query(targetTable)
                 for field in fieldsToCheck:
-                    matchDict[field] = record.__dict__[field]
-                    query = query.filter(targetTable.__dict__[field] == matchDict[field])
+                    # Have to get file column IDs for source and target tables
+                    sourceColId = interfaces.validationDb.getColumnId(field,fileType)
+                    targetColId = interfaces.validationDb.getColumnId(field,targetType)
+                    matchDict[field] = getattr(record,str(sourceColId))
+                    query = query.filter(getattr(targetTable.c,str(targetColId)) == matchDict[field])
                 # Make sure at least one in target table record matches
                 if not query.first():
                     # Fields don't match target file, add to failures
@@ -83,6 +89,17 @@ class Validator(object):
         elif ruleType == "rule_if":
             # Get all records from source table
             sourceTable = cls.getTable(submissionId, fileType, stagingDb)
+
+            columns = list(sourceTable.columns)
+            colNames = []
+            print("columns is: " + str(type(columns)))
+            print("column is: " + str(type(columns[0])))
+            print("name is: " + str(columns[0].name))
+            for i in range(0,len(columns)):
+                colNames.append(interfaces.validationDb.getFieldNameByColId(columns[i].name))
+            print("column names: " + str(colNames))
+
+
             # Can apply rule to a specified record or all records in first table
             sourceRecords = cls.getRecordsIfNone(sourceTable,stagingDb,record)
             # Get both rules, condition to check and rule to apply based on condition
@@ -90,8 +107,12 @@ class Validator(object):
             conditionalRule = interfaces.validationDb.getMultiFieldRuleByLabel(rule.rule_text_1)
             # Apply first rule for all records that pass second rule
             for record in sourceRecords:
-                if cls.evaluateCrossFileRule(condition,submissionId,record)[0]:
-                    result = cls.evaluateCrossFileRule(conditionalRule,submissionId,record)
+                # Record is a tuple, we need it to be a dict with field names as keys
+                print("record from source:" + str(record))
+                recordDict = dict(zip(colNames,list(record)))
+                print("recordDict: " + str(recordDict))
+                if cls.evaluateCrossFileRule(condition,submissionId,recordDict)[0]:
+                    result = cls.evaluateCrossFileRule(conditionalRule,submissionId,recordDict)
                     if not result[0]:
                         # Record if we have seen a failure
                         rulePassed = False
@@ -100,7 +121,7 @@ class Validator(object):
             if not record:
                 # Must provide a record for this rule
                 raise ValueError("Cannot apply greater rule without a record")
-            rulePassed = record.__dict__[rule.rule_text_2] > rule.rule_text_1
+            rulePassed = getattr(record,rule.rule_text_2) > rule.rule_text_1
         return rulePassed,failures
 
     @staticmethod

@@ -297,7 +297,7 @@ class ValidatorValidationInterface(BaseInterface):
             list of MultiFieldRule objects
         """
         fileId = self.getFileId(fileType)
-        return self.session.query(MultiFieldRule).filter(MultiFieldRule.file_id == fileId).all()
+        return self.session.query(MultiFieldRule).filter(MultiFieldRule.file_id == fileId).filter(MultiFieldRule.rule_timing_id == self.getRuleTimingIdByName("file_validation")).all()
 
     def getMultiFieldRulesByTiming(self, timing):
         """
@@ -381,3 +381,8 @@ class ValidatorValidationInterface(BaseInterface):
 
     def getFieldTypeById(self, id):
         return self.getNameFromDict(FieldType,"TYPE_DICT","name",id,"field_type_id")
+
+    def getFieldNameByColId(self, id):
+        query = self.session.query(FileColumn).filter(FileColumn.file_column_id == id)
+        column = self.runUniqueQuery(query,"No column found with that ID", "Multiple columns found with that ID")
+        return column.name
