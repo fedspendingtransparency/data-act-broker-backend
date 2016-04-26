@@ -47,3 +47,9 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath):
     def upload_local_file():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.uploadFile)
+
+    @app.route("/v1/get_rss/", methods = ["GET"])
+    @permissions_check
+    def get_rss():
+        fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return RouteUtils.run_instance_function(fileManager, fileManager.getRss)
