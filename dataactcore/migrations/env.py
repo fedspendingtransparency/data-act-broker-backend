@@ -48,7 +48,7 @@ for name in re.split(r',\s*', db_names):
 #       'engine1':mymodel.metadata1,
 #       'engine2':mymodel.metadata2
 #}
-target_metadata = {value[0]: value[1] for (key, value) in db_dict.items()}
+target_metadata = {value[0]: value[1].Base.metadata for (key, value) in db_dict.items()}
 
 # Set up database URLs based on config file
 username = str(CONFIG_DB['username'])
