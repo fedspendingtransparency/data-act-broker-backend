@@ -28,9 +28,8 @@ class ValidatorErrorInterface(ErrorInterface):
         """ Return the existing FileStatus if it exists, or create a new one """
         try:
             fileStatus = self.getFileStatusByJobId(jobId)
-            if fileStatus.filename != filename:
-                # There is a FileStatus for this job, but the filename does not match
-                raise ValueError("".join(["FileStatus exists for this Job ID, but old filename ",fileStatus.filename," does not match new filename ",filename]))
+            # Set new filename for changes to an existing submission
+            fileStatus.filename = filename
         except ResponseException as e:
             if isinstance(e.wrappedException, NoResultFound):
                 # No File Status object for this job ID, just create one
