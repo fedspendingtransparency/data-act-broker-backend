@@ -316,6 +316,9 @@ class FileHandler:
 
     def getRss(self):
         response = {}
-        self.s3manager = s3UrlHandler()
-        response["rss_url"] = self.s3manager.getSignedUrl(CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"],"GET")
+        if self.isLocal:
+            response["rss_url"] = os.path.join(self.serverPath, CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"])
+        else:
+            self.s3manager = s3UrlHandler()
+            response["rss_url"] = self.s3manager.getSignedUrl(CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"],"GET")
         return JsonResponse.create(200,response)
