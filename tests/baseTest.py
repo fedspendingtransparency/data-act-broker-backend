@@ -1,6 +1,7 @@
 import json
 import unittest
 import time
+import logging
 from random import randint
 from webtest import TestApp
 from dataactbroker.app import createApp
@@ -41,14 +42,18 @@ class BaseTest(unittest.TestCase):
             cls.num, suite)
         dataactcore.config.CONFIG_DB = config
 
-        # drop and re-create test user db/tables
-        setupUserDB(hardReset=True)
-        # drop and re-create test job db/tables
-        setupJobTrackerDB(hardReset=True)
-        # drop and re-create test error db/tables
-        setupErrorDB(hardReset=True)
+        # suppress INFO-level logging from Alembic migrations
+        logging.disable(logging.WARN)
+        # create test user db
+        setupUserDB()
+        # create test job db
+        setupJobTrackerDB()
+        # create test error db
+        setupErrorDB()
         # load e-mail templates
         setupEmails()
+        # reset logging defaults
+        logging.disable(logging.NOTSET)
 
         #get test users
         try:
