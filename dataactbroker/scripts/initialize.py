@@ -14,8 +14,6 @@ def options():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--initialize", action="store_true", help="Runs all of the setup options")
-    parser.add_argument("-db", "--setupDB", action="store_true", help="Creates the database schema")
-    parser.add_argument("-a", "--createAdmin", action="store_true", help="Creates admin user")
     parser.add_argument("-s", "--start", action="store_true", help="Starts the broker")
     args = parser.parse_args()
     optionsDict = vars(args)
@@ -41,9 +39,9 @@ def initialize():
 
 
 def setupDB():
-    setupJobTrackerDB(hardReset=True)
-    setupErrorDB(True)
-    setupUserDB(True)
+    setupJobTrackerDB()
+    setupErrorDB()
+    setupUserDB()
     setupEmails()
 
 
