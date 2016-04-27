@@ -8,6 +8,11 @@ def setupJobTrackerDB():
     """Create job tracker tables from model metadata."""
     createDatabase(CONFIG_DB['job_db_name'])
     runMigrations('job_tracker')
+    insertCodes()
+
+
+def insertCodes():
+    """Create job tracker tables from model metadata."""
     jobDb = JobTrackerInterface()
 
     # TODO: define these codes as enums in the data model?

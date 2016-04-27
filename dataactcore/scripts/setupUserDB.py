@@ -8,6 +8,11 @@ def setupUserDB():
     """Create user tables from model metadata."""
     createDatabase(CONFIG_DB['user_db_name'])
     runMigrations('user_manager')
+    insertCodes()
+
+
+def insertCodes():
+    """Create job tracker tables from model metadata."""
     userDb = UserInterface()
 
     # TODO: define these codes as enums in the data model?

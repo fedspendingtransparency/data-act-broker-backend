@@ -8,6 +8,10 @@ def setupErrorDB():
     """Create job tracker tables from model metadata."""
     createDatabase(CONFIG_DB['error_db_name'])
     runMigrations('error_data')
+    insertCodes()
+
+def insertCodes():
+    """Insert static data."""
     errorDb = ErrorInterface()
 
     # TODO: define these codes as enums in the data model?
