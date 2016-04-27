@@ -8,6 +8,7 @@ from dataactbroker.handlers.aws.session import SessionTable
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import argparse
 from flask.ext.bcrypt import Bcrypt
+from sqlalchemy.orm.exc import NoResultFound
 
 
 def options():
@@ -53,7 +54,7 @@ def createAdmin():
     try:
         user = userDb.getUserByEmail(adminEmail)
     except ResponseException as e:
-        if "no users" in e.message.lower():
+        if type(e.wrappedException) is NoResultFound:
             userDb.createUserWithPassword(
                 adminEmail, adminPass, Bcrypt(), admin=True)
             user = userDb.getUserByEmail(adminEmail)
