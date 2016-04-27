@@ -15,6 +15,7 @@ def options():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--initialize", action="store_true", help="Runs all of the setup options")
+    parser.add_argument("-a", "--createAdmin", action="store_true", help="Creates admin user")
     parser.add_argument("-s", "--start", action="store_true", help="Starts the broker")
     args = parser.parse_args()
     optionsDict = vars(args)
@@ -54,6 +55,7 @@ def createAdmin():
     try:
         user = userDb.getUserByEmail(adminEmail)
     except ResponseException as e:
+
         if type(e.wrappedException) is NoResultFound:
             userDb.createUserWithPassword(
                 adminEmail, adminPass, Bcrypt(), admin=True)
