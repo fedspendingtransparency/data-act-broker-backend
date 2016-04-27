@@ -157,7 +157,7 @@ class Validator(object):
 
         Args:
             data: Data to be converted
-            datatype: Type to conert into
+            datatype: Type to convert into
 
         Returns:
             Data in specified type
@@ -199,6 +199,8 @@ class Validator(object):
             return Validator.getType(data,datatype) == Validator.getType(value1,datatype)
         elif(currentRuleType =="NOT EQUAL") :
             return not (Validator.getType(data,datatype) == Validator.getType(value1,datatype))
+        elif(currentRuleType =="SUM"):
+            return Validator.validateSum(record[rule.rule_text_1], rule.rule_text_2, record)
         elif(currentRuleType == "TYPE"):
             # Type checks happen earlier, but type rule is still included in rule set, so skip it
             return True
@@ -246,6 +248,8 @@ class Validator(object):
             if(len(fieldsToCheck) != len(tasFields)):
                 raise ResponseException("Number of fields to check does not match number of fields checked against",StatusCode.CLIENT_ERROR,ValueError)
             return Validator.validateTAS(fieldsToCheck, tasFields, record, interfaces, fileType)
+        elif(ruleType == "SUM_TO_VALUE"):
+            return Validator.validateSum(rule.rule_text_1, rule.rule_text_2, record)
         else:
             raise ResponseException("Bad rule type for multi-field rule",StatusCode.INTERNAL_ERROR)
 
@@ -270,15 +274,48 @@ class Validator(object):
         Returns:
             One string including all values involved in this rule check
         """
-        fields = Validator.cleanSplit(rule.rule_text_1)
+        ruletext1 = Validator.cleanSplit(rule.rule_text_1, True)
+        ruletext2 = Validator.cleanSplit(rule.rule_text_2, True)
+        fields = ruletext1 + ruletext2 #TODO try catch
         output = ""
         for field in fields:
-            value = record[field]
-            if(value == None):
-                # For concatenating fields, represent None with an empty string
-                value = ""
-            output = "".join([output,field,": ",value,", "])
+            try:
+                value = record[field]
+                if(value == None):
+                    # For concatenating fields, represent None with an empty string
+                    value = ""
+                output = "".join([output,field,": ",value,", "])
+            except:
+                continue
         return output[:-2]
+
+    @staticmethod
+    def validateSum(value, fields_to_sum, record):
+        """ Check that the value of one field is the sum of others
+
+        :param value: The field which holds the sum we will validate against
+        :param fields_to_sum: A comma separated list of fields which we should sum. These should be valid Decimals
+        :param record: Record containing the data for the current record
+        :return: True if the sum of fields is equal to the designated sum field
+        """
+
+        decimalValues = []
+
+        # Validate that our sum is a decimal
+        if Validator.checkType(value, 'DECIMAL'):
+            decimalSum = Validator.getType(value, 'DECIMAL')
+        else:
+            return False
+
+        # Validate each field we are summing is a decimal and store their values in an array
+        for field in Validator.cleanSplit(fields_to_sum, True):
+            entry = record[field]
+            if Validator.checkType(entry, 'DECIMAL'):
+                decimalValues.append(Validator.getType(entry, 'DECIMAL'))
+            else:
+                return False
+
+        return decimalSum == sum(decimalValues)
 
     @staticmethod
     def validateTAS(fieldsToCheck, tasFields, record, interfaces, fileType):
