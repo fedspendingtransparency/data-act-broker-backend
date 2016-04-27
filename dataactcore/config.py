@@ -5,6 +5,9 @@ import re
 
 # set the location of the DATA Act broker config file
 CONFIG_PATH = os.path.join(dirname(__file__), 'config.yml')
+# set the location of the Alembic config file
+ALEMBIC_PATH = os.path.join(dirname(__file__), 'alembic.ini')
+MIGRATION_PATH = os.path.join(dirname(__file__), 'migrations')
 
 try:
     with open(CONFIG_PATH) as c:
