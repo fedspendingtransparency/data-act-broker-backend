@@ -4,7 +4,7 @@ import argparse
 import dataactvalidator
 from dataactvalidator.scripts.setupValidationDB import setupValidationDB
 from dataactvalidator.scripts.setupStagingDB import setupStagingDB
-from dataactvalidator.scripts.setupTASIndexs import setupTASIndexs
+from dataactvalidator.scripts.loadTas import loadTas
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.tasLoader import TASLoader
 
@@ -36,16 +36,17 @@ def initialize():
     print ("Loading validator fields and rules...")
     loadValidator()
     print ("Loading TAS file...")
-    loadTas()
+    validator_config_path = os.path.join(
+    os.path.dirname(dataactvalidator.__file__), "config")
+    tas = os.path.join(validator_config_path, "all_tas_betc.csv")
+    loadTas(tas)
     print ("The validator has been initialized. You may now run the validator with the -start argument.")
 
 
 def loadValidator():
     """Load validator fields and rules from config."""
-    # TODO: better place to stash the validator config path
     validator_config_path = os.path.join(
-        os.path.dirname(dataactvalidator.__file__), "config")
-
+    os.path.dirname(dataactvalidator.__file__), "config")
     appropriationsFields = os.path.join(validator_config_path, "appropFields.csv")
     try:
         SchemaLoader.loadFields("appropriations", appropriationsFields)
@@ -58,19 +59,6 @@ def loadValidator():
         SchemaLoader.loadRules("appropriations", appropriationsRules)
     except IOError:
         print("Can't open file: {}".format(appropriationsRules))
-
-
-def loadTas():
-    """Load validator fields and rules from config."""
-    # TODO: better place to stash the validator config path
-    validator_config_path = os.path.join(
-        os.path.dirname(dataactvalidator.__file__), "config")
-    tas = os.path.join(validator_config_path, "all_tas_betc.csv")
-    try:
-        TASLoader.loadFields(tas)
-        setupTASIndexs()
-    except IOError:
-        print("Can't open file: {}".format(tas))
 
 
 def setupDB():
