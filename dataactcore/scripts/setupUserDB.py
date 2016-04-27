@@ -4,7 +4,7 @@ from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_DB
 
 
-def setupUserDB(hardReset = False):
+def setupUserDB():
     """Create user tables from model metadata."""
     createDatabase(CONFIG_DB['user_db_name'])
     runMigrations('user_manager')
@@ -33,4 +33,4 @@ def setupUserDB(hardReset = False):
     userDb.session.close()
 
 if __name__ == '__main__':
-    setupUserDB(hardReset=True)
+    setupUserDB()

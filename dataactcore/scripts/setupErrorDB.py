@@ -4,7 +4,7 @@ from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_DB
 
 
-def setupErrorDB(hardReset = False):
+def setupErrorDB():
     """Create job tracker tables from model metadata."""
     createDatabase(CONFIG_DB['error_db_name'])
     runMigrations('error_data')
@@ -37,4 +37,4 @@ def setupErrorDB(hardReset = False):
     errorDb.session.close()
 
 if __name__ == '__main__':
-    setupErrorDB(False)
+    setupErrorDB()
