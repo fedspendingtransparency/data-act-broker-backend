@@ -6,7 +6,6 @@ from dataactvalidator.scripts.setupValidationDB import setupValidationDB
 from dataactvalidator.scripts.setupStagingDB import setupStagingDB
 from dataactvalidator.scripts.loadTas import loadTas
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
-from dataactvalidator.filestreaming.tasLoader import TASLoader
 
 
 def options():
