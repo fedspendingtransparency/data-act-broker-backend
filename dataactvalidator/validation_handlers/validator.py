@@ -1,15 +1,134 @@
 import re
+from sqlalchemy import MetaData, Table, inspect
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.engine import reflection
 from decimal import *
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.models.validationModels import TASLookup
+from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
 class Validator(object):
     """
     Checks individual records against specified validation tests
     """
     BOOLEAN_VALUES = ["TRUE","FALSE","YES","NO","1","0"]
+
+    @classmethod
+    def crossValidate(cls,rules, submissionId):
+        """ Evaluate all rules for cross file validation
+
+        Args:
+            rules -- List of MultiFieldRule objects
+        """
+        failures = []
+        # Put each rule through evaluate, appending all failures into list
+        for rule in rules:
+            (passed, ruleFailures) = cls.evaluateCrossFileRule(rule, submissionId)
+            if not passed:
+                failures.extend(ruleFailures)
+        # Return list of cross file validation failures
+        return failures
+
+    @staticmethod
+    def getTable(submissionId, fileType, stagingDb):
+        """ Get ORM table based on submission ID and file type """
+        meta = MetaData(bind=stagingDb.engine)
+        # Get name of staging tables
+        tableName = stagingDb.getTableNameBySubmissionId(submissionId,fileType)
+        # Create ORM table from database
+        table = Table(tableName, meta, autoload=True, autoload_with=stagingDb.engine)
+        return table
+
+    @staticmethod
+    def getRecordsIfNone(sourceTable, stagingDb, record = None):
+        """ If record is None, load all records from sourceTable, otherwise return record in list """
+        if record:
+            sourceRecords = [record]
+        else:
+            # If no record provided, get list of all entries in first table
+            sourceRecords = stagingDb.session.query(sourceTable).all()
+        return sourceRecords
+    @classmethod
+    def evaluateCrossFileRule(cls, rule, submissionId, record = None):
+        """ Evaluate specified rule against all records to which it applies """
+        failures = [] # Can get multiple failures for these rule types
+        rulePassed = True # Set to false on first failures
+        # Get rule type
+        ruleType = rule.multi_field_rule_type.name.lower()
+        fileType = rule.file_type.name
+        interfaces = InterfaceHolder()
+        stagingDb = interfaces.stagingDb
+        if ruleType == "field_match":
+            targetType = rule.rule_text_2
+            # Get ORM objects for source and target staging tables
+            sourceTable = cls.getTable(submissionId, fileType, stagingDb)
+            targetTable = cls.getTable(submissionId, targetType, stagingDb)
+            # TODO Could try to do a join and see what doesn't match, or otherwise improve performance by avoiding a
+            # TODO new query against second table for every record in first table, possibly index second table at start
+            # Can apply rule to a specified record or all records in first table
+            sourceRecords = cls.getRecordsIfNone(sourceTable,stagingDb,record)
+            fieldsToCheck = cls.cleanSplit(rule.rule_text_1,True)
+            # For each entry, check for the presence of matching values in second table
+            for thisRecord in sourceRecords:
+                # Build query to filter for each field to match
+                matchDict = {}
+                query = stagingDb.session.query(targetTable)
+                for field in fieldsToCheck:
+                    # Have to get file column IDs for source and target tables
+                    targetColId = interfaces.validationDb.getColumnId(field,targetType)
+                    if isinstance(thisRecord,dict):
+                        matchDict[field] = thisRecord[str(field)]
+                    else:
+                        sourceColId = interfaces.validationDb.getColumnId(field,fileType)
+                        matchDict[field] = getattr(thisRecord,str(sourceColId))
+                    query = query.filter(getattr(targetTable.c,str(targetColId)) == matchDict[field])
+                # Make sure at least one in target table record matches
+                if not query.first():
+                    # Fields don't match target file, add to failures
+                    rulePassed = False
+                    dictString = str(matchDict)[1:-1] # Remove braces
+
+                    failures.append([", ".join(fieldsToCheck),rule.description,dictString])
+        elif ruleType == "rule_if":
+            # Get all records from source table
+            sourceTable = cls.getTable(submissionId, fileType, stagingDb)
+
+            columns = list(sourceTable.columns)
+            colNames = []
+            for i in range(0,len(columns)):
+                try:
+                    int(columns[i].name)
+                except ValueError:
+                    # Each staging table has a primary key field that is not an int, just include this directly
+                    colNames.append(columns[i].name)
+                else:
+                    # If it is an int, treat it as a column id
+                    colNames.append(interfaces.validationDb.getFieldNameByColId(columns[i].name))
+
+
+            # Can apply rule to a specified record or all records in first table
+            sourceRecords = cls.getRecordsIfNone(sourceTable,stagingDb,record)
+            # Get both rules, condition to check and rule to apply based on condition
+            condition = interfaces.validationDb.getMultiFieldRuleByLabel(rule.rule_text_2)
+            conditionalRule = interfaces.validationDb.getMultiFieldRuleByLabel(rule.rule_text_1)
+            # Apply first rule for all records that pass second rule
+            for record in sourceRecords:
+                # Record is a tuple, we need it to be a dict with field names as keys
+                recordDict = dict(zip(colNames,list(record)))
+                if cls.evaluateCrossFileRule(condition,submissionId,recordDict)[0]:
+                    result = cls.evaluateCrossFileRule(conditionalRule,submissionId,recordDict)
+                    if not result[0]:
+                        # Record if we have seen a failure
+                        rulePassed = False
+                        failures.extend(result[1])
+        elif ruleType == "greater":
+            if not record:
+                # Must provide a record for this rule
+                raise ValueError("Cannot apply greater rule without a record")
+            rulePassed = int(record[rule.rule_text_2]) > int(rule.rule_text_1)
+        return rulePassed,failures
 
     @staticmethod
     def validate(record,rules,csvSchema,fileType,interfaces):

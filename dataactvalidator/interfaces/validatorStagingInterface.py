@@ -1,5 +1,8 @@
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.config import CONFIG_DB
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
+from dataactvalidator.interfaces.validatorJobTrackerInterface import ValidatorJobTrackerInterface
 from sqlalchemy import MetaData, Table
 from sqlalchemy.exc import NoSuchTableError
 
@@ -51,7 +54,23 @@ class ValidatorStagingInterface(BaseInterface):
         self.session.close()
         return rows
 
-    @staticmethod
-    def getTableName(jobId):
+    @classmethod
+    def getTableName(cls, jobId):
         """ Get the staging table name based on the job ID """
-        return "".join(["job",str(jobId)])
+        # Get submission ID and file type
+        jobDb = ValidatorJobTrackerInterface()
+        submissionId = jobDb.getSubmissionId(jobId)
+        jobType = jobDb.getJobType(jobId)
+        if jobType == "csv_record_validation":
+            fileType = jobDb.getFileType(jobId)
+        elif jobType == "validation":
+            fileType = "_cross_file"
+        else:
+            raise ResponseException("Unknown Job Type",StatusCode.CLIENT_ERROR,ValueError)
+        # Get table name based on submissionId and fileType
+        return cls.getTableNameBySubmissionId(submissionId, fileType)
+
+    @staticmethod
+    def getTableNameBySubmissionId(submissionId, fileType):
+        """ Get staging table name based on submission ID and file type """
+        return "".join(["submission",str(submissionId),str(fileType)])

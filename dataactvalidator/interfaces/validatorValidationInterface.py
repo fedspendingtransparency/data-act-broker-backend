@@ -256,12 +256,13 @@ class ValidatorValidationInterface(BaseInterface):
         if rule_timing is None or rule_timing == "":
             # Use default value if timing is unspecified
             rule_timing = 1
-        newRule = Rule(file_column_id = columnId, rule_type_id = self.getRuleType(ruleTypeText), rule_text_1 = ruleText, description = description, rule_timing_id = rule_timing, rule_label = rule_label)
+        newRule = Rule(file_column_id = columnId, rule_type_id = self.getRuleType(ruleTypeText), rule_text_1 = ruleText,
+                       description = description, rule_timing_id = rule_timing, rule_label = rule_label)
         self.session.add(newRule)
         self.session.commit()
         return True
 
-    def addMultiFieldRule(self,fileId, ruleTypeText, ruleTextOne, ruleTextTwo, description):
+    def addMultiFieldRule(self,fileId, ruleTypeText, ruleTextOne, ruleTextTwo, description, ruleLabel = None, ruleTiming = 1):
         """
 
         Args:
@@ -274,10 +275,17 @@ class ValidatorValidationInterface(BaseInterface):
         Returns:
             True if successful
         """
-        newRule = MultiFieldRule(file_id = fileId, multi_field_rule_type_id = self.getMultiFieldRuleType(ruleTypeText), rule_text_1 = ruleTextOne, rule_text_2 = ruleTextTwo, description = description)
+        newRule = MultiFieldRule(file_id = fileId, multi_field_rule_type_id = self.getMultiFieldRuleType(ruleTypeText),
+                                 rule_text_1 = ruleTextOne, rule_text_2 = ruleTextTwo, description = description,
+                                 rule_label = ruleLabel, rule_timing_id = ruleTiming)
         self.session.add(newRule)
         self.session.commit()
         return True
+
+    def getMultiFieldRuleByLabel(self, label):
+        """ Find multi field rule by label """
+        ruleQuery = self.session.query(MultiFieldRule).filter(MultiFieldRule.rule_label == label)
+        return self.runUniqueQuery(ruleQuery,"Rule label not found", "Multiple rules match specified label")
 
     def getMultiFieldRulesByFile(self, fileType):
         """
@@ -289,7 +297,19 @@ class ValidatorValidationInterface(BaseInterface):
             list of MultiFieldRule objects
         """
         fileId = self.getFileId(fileType)
-        return self.session.query(MultiFieldRule).filter(MultiFieldRule.file_id == fileId).all()
+        return self.session.query(MultiFieldRule).filter(MultiFieldRule.file_id == fileId).filter(MultiFieldRule.rule_timing_id == self.getRuleTimingIdByName("file_validation")).all()
+
+    def getMultiFieldRulesByTiming(self, timing):
+        """
+
+        Args:
+            fileType:  Which type of file to get rules for
+
+        Returns:
+            list of MultiFieldRule objects
+        """
+        timingId = self.getRuleTimingIdByName(timing)
+        return self.session.query(MultiFieldRule).filter(MultiFieldRule.rule_timing_id == timingId).all()
 
     def getColumnId(self, fieldName, fileType):
         """ Find file column given field name and file type
@@ -361,3 +381,9 @@ class ValidatorValidationInterface(BaseInterface):
 
     def getFieldTypeById(self, id):
         return self.getNameFromDict(FieldType,"TYPE_DICT","name",id,"field_type_id")
+
+    def getFieldNameByColId(self, id):
+        int(id) # Raise appropriate error if id is not an int
+        query = self.session.query(FileColumn).filter(FileColumn.file_column_id == id)
+        column = self.runUniqueQuery(query,"No column found with that ID", "Multiple columns found with that ID")
+        return column.name
