@@ -114,57 +114,17 @@ Now we're ready to install the DATA Act broker itself. Before starting:
 * Decide where on your machine you want the DATA Act code to live. Throughout these directions, we'll refer to this directory as your `project home` and use it as your starting point.
 * Make sure that your DATA Act Python environment is activated:
 
-        $ workon data-act
+        $ activate data-act
 
-#### DATA Act Core
+#### DATA Act Broker Backend
 
-Navigate to your DATA Act project home. From the command line, clone the DATA Act Core repository from GitHub to your local environment:
+Navigate to your DATA Act project home. From the command line, clone the DATA Act Broker Backend repository from GitHub to your local environment:
 
-        $ git clone https://github.com/fedspendingtransparency/data-act-core.git
+        $ git clone git@github.com:fedspendingtransparency/data-act-broker-backend.git
 
-Navigate to the DATA Act core's main folder:
+Navigate to the DATA Act Broker Backend's main folder:
 
-        $ cd data-act-core
-
-Switch to the alpha release version of the code. This is the latest stable release.
-
-        $ git checkout v0.1.0-alpha
-
-**Note:** If you'd rather use the latest, work-in-progress features of the DATA Act broker, replace the above command with `git checkout staging`.
-
-Install the dependencies:
-
-        $ pip install -r requirements.txt
-
-#### Broker API
-
-Navigate back to your DATA Act project home. From the command line, clone the DATA Act Broker API repository from GitHub to your local environment:
-
-        $ git clone https://github.com/fedspendingtransparency/data-act-broker.git
-
-Navigate to the broker API's main folder:
-
-        $ cd data-act-broker
-
-Switch to the alpha release version of the code. This is the latest stable release.
-
-        $ git checkout v0.1.0-alpha
-
-**Note:** If you'd rather use the latest, work-in-progress features of the DATA Act broker, replace the above command with `git checkout staging`.
-
-Install the dependencies:
-
-        $ pip install -r requirements.txt
-
-#### Validator
-
-Navigate back to your DATA Act project home. From the command line, clone the DATA Act Validator repository from GitHub to your local environment:
-
-        $ git clone https://github.com/fedspendingtransparency/data-act-validator.git
-
-Navigate to the validator's main folder:
-
-        $ cd data-act-validator
+        $ cd data-act-broker-backend
 
 Switch to the alpha release version of the code. This is the latest stable release.
 
@@ -180,16 +140,14 @@ Install the dependencies:
 
 The backend components import Python modules from one another. Therefore, the locations of these modules need to be on your $PYTHONPATH. Use the virtualenvwrapper [add2virtual](http://virtualenvwrapper.readthedocs.org/en/latest/command_ref.html#path-management "virtualenvwrapper path management") shortcut to add them:
 
-        $ add2virtualenv [location of your code]/data-act-core
-        $ add2virtualenv [location of your code]/data-act-broker
-        $ add2virtualenv [location of your code]/data-act-validator
+        $ add2virtualenv [location of your code]/data-act-broker-backend
 
 ### Create Broker Config File
 
 Before running the broker, you'll need to provide a few configuration options. Use the provided sample config file as a starting point:
 
-1. Navigate to the location of the data-act-core code.
-2. From the `data-act-core` directory, go to `dataactcore` and open the file called `config_example.yml` in a text editor.
+1. Navigate to the location of the data-act-broker-backend code.
+2. From the `data-act-broker-backend` directory, go to `dataactcore` and open the file called `config_example.yml` in a text editor.
 3. Save `config_example.yml` as `config.yml`.
 4. Update the values in `config.yml` as appropriate for your environment. In many cases the default values will work just fine. The most important config values to change when getting started are:
 
@@ -212,8 +170,8 @@ Before running the broker, you'll need to provide a few configuration options. U
 
 You will need to run two scripts to setup the broker's backend components. These create the necessary databases and data. From your DATA Act project home:
 
-        $ python data-act-broker/dataactbroker/scripts/initialize.py -i
-        $ python data-act-validator/dataactvalidator/scripts/initialize.py -i
+        $ python data-act-broker-backend/dataactbroker/scripts/initialize.py -i
+        $ python data-act-broker-backend/dataactvalidator/scripts/initialize.py -i
 
 **Note:** If you're using a local DynamoDB, make sure it's running before executing these scripts.
 
@@ -221,13 +179,13 @@ You will need to run two scripts to setup the broker's backend components. These
 
 After you've initialized the broker API and validator, start the broker API:
 
-From the `data-act-broker` directory:
+From the `data-act-broker-backend` directory:
 
         $ python dataactbroker/app.py
 
 Make sure the broker API is working by visiting the hostname and port specified in the config file (`broker_api_host` and `broker_api_port`). For example, if you're running the broker on localhost port 3333, visit `http://localhost:3333` in your browser. You should see the message `Broker is running`.
 
-The process for starting the validator is similar. From the `data-act-validator` directory:
+The process for starting the validator is similar. From the `data-act-broker-backend` directory:
 
         $ python dataactvalidator/app.py
 

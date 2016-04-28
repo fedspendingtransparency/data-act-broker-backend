@@ -1,10 +1,10 @@
 from __future__ import print_function
 from dataactcore.models.jobModels import JobDependency
 from dataactvalidator.models.validationModels import Rule
-from baseTest import BaseTest
+from baseTestValidator import BaseTestValidator
 import unittest
 
-class JobTests(BaseTest):
+class JobTests(BaseTestValidator):
 
     @classmethod
     def setUpClass(cls):

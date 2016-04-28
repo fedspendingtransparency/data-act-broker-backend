@@ -1,9 +1,9 @@
-from baseTest import BaseTest
+from baseTestAPI import BaseTestAPI
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.models.jobModels import Submission, JobStatus
 from dataactcore.utils.statusCode import StatusCode
 
-class UserTests(BaseTest):
+class UserTests(BaseTestAPI):
     """ Test user registration and user specific functions """
 
     @classmethod

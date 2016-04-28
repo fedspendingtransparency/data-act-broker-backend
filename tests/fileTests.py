@@ -7,7 +7,7 @@ from datetime import date
 from time import sleep, time
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
-from baseTest import BaseTest
+from baseTestAPI import BaseTestAPI
 from dataactcore.models.jobModels import Submission, JobStatus
 from dataactcore.models.errorModels import ErrorData, FileStatus
 from dataactcore.config import CONFIG_BROKER
@@ -15,7 +15,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactbroker.handlers.jobHandler import JobHandler
 from shutil import copy
 
-class FileTests(BaseTest):
+class FileTests(BaseTestAPI):
     """Test file submission routes."""
 
     updateSubmissionId = None
