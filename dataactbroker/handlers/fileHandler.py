@@ -60,6 +60,11 @@ class FileHandler:
                     else:
                         path = os.path.join(self.serverPath, self.jobManager.getReportPath(jobId))
                         responseDict["job_"+str(jobId)+"_error_url"] = path
+            if(not self.isLocal):
+                crossFileReport = self.s3manager.getSignedUrl("errors",self.jobManager.getCrossFileReportPath(submissionId),"GET")
+            else:
+                crossFileReport = os.path.join(self.serverPath, self.jobManager.getCrossFileReportPath(submissionId))
+            responseDict["cross_file_error_url"] = crossFileReport
             return JsonResponse.create(StatusCode.OK,responseDict)
         except ResponseException as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)

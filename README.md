@@ -473,7 +473,8 @@ Example output:
   "job_3012_error_url": "https...",
   "job_3006_error_url": "https...",
   "job_3010_error_url": "https...",
-  "job_3008_error_url": "https..."
+  "job_3008_error_url": "https...",
+  "cross_file_error_url": "https..."
 }
 ```
 
@@ -546,7 +547,16 @@ Example output:
 }
 ```
 
+#### GET "/v1/get_rss/"
+Returns a signed URL to the current RSS file.  Requires a logged in user.
 
+Example output:
+
+```json
+{
+  "rss_url":"https://rssfilehere"
+}
+```
 
 ## Test Cases
 
