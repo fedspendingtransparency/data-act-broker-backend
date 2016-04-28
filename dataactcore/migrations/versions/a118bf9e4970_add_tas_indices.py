@@ -56,3 +56,20 @@ def downgrade_validation():
     op.drop_index(op.f('ix_tas_lookup_agency_identifier'), table_name='tas_lookup')
     ### end Alembic commands ###
 
+def upgrade_error_data():
+    pass
+
+def downgrade_error_data():
+    pass
+
+def upgrade_job_tracker():
+    pass
+
+def downgrade_job_tracker():
+    pass
+
+def upgrade_user_manager():
+    pass
+
+def downgrade_user_manager():
+    pass

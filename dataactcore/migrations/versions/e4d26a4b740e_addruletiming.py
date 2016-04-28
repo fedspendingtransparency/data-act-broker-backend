@@ -42,3 +42,21 @@ def downgrade_validation():
     op.drop_column(u'rule', 'rule_timing_id')
     op.drop_table('rule_timing')
     ### end Alembic commands ###
+
+def upgrade_error_data():
+    pass
+
+def downgrade_error_data():
+    pass
+
+def upgrade_job_tracker():
+    pass
+
+def downgrade_job_tracker():
+    pass
+
+def upgrade_user_manager():
+    pass
+
+def downgrade_user_manager():
+    pass

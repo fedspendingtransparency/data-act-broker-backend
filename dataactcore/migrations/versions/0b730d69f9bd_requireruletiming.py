@@ -37,3 +37,21 @@ def downgrade_validation():
                existing_type=sa.INTEGER(),
                nullable=True)
     ### end Alembic commands ###
+
+def upgrade_error_data():
+    pass
+
+def downgrade_error_data():
+    pass
+
+def upgrade_job_tracker():
+    pass
+
+def downgrade_job_tracker():
+    pass
+
+def upgrade_user_manager():
+    pass
+
+def downgrade_user_manager():
+    pass
