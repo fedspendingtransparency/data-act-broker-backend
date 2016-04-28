@@ -42,7 +42,8 @@ def setupValidationDB(hardReset = False):
         (6, 'LENGTH', 'string length'),
         (7, 'IN_SET', 'value must be in set'),
         (8, 'MIN LENGTH', 'length of data must be at least reference value'),
-        (9, 'REQUIRED_CONDITIONAL', 'field is required if secondary rule passes')
+        (9, 'REQUIRED_CONDITIONAL', 'field is required if secondary rule passes'),
+        (10, 'SUM', 'field is equal to the sum of other fields')
         ]
     for r in ruleTypeList:
         ruleType = RuleType(rule_type_id=r[0], name=r[1], description=r[2])
@@ -62,7 +63,9 @@ def setupValidationDB(hardReset = False):
     mfrTypeList = [(1, 'CAR_MATCH', 'Matching a set of fields against a CAR file'),
                    (2, 'FIELD_MATCH', 'Match a set of fields against a different file'),
                    (3, 'RULE_IF', 'Apply first rule if second rule passes'),
-                   (4, 'GREATER', 'Check if field is greater than specified value')]
+                   (4, 'GREATER', 'Check if field is greater than specified value'),
+                   (5, 'SUM_TO_VALUE', 'Sum a set of fields and compare to specified value')
+                   ]
     for m in mfrTypeList:
         mfrt = MultiFieldRuleType(
             multi_field_rule_type_id = m[0], name=m[1], description=m[2])

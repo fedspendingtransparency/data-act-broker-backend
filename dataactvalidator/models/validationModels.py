@@ -31,7 +31,7 @@ class RuleType(Base):
     description = Column(Text)
 
     TYPE_DICT = None
-    TYPE_LIST = ["TYPE", "EQUAL","NOT EQUAL","LESS","GREATER","LENGTH","IN_SET"]
+    TYPE_LIST = ["TYPE", "EQUAL","NOT EQUAL","LESS","GREATER","LENGTH","IN_SET","SUM"]
 
 class MultiFieldRuleType(Base):
     __tablename__ = "multi_field_rule_type"
@@ -42,7 +42,7 @@ class MultiFieldRuleType(Base):
 
     session = None
     TYPE_DICT = None
-    TYPE_LIST = ["CAR_MATCH"]
+    TYPE_LIST = ["CAR_MATCH", "SUM_TO_VALUE"]
 
 class FileColumn(Base):
     __tablename__ = "file_columns"
@@ -96,10 +96,10 @@ class MultiFieldRule(Base):
 class TASLookup(Base) :
     __tablename__ = "tas_lookup"
     tas_id = Column(Integer, primary_key=True)
-    allocation_transfer_agency = Column(Text, nullable=True)
-    agency_identifier = Column(Text, nullable=True)
-    beginning_period_of_availability = Column(Text, nullable=True)
-    ending_period_of_availability = Column(Text, nullable=True)
-    availability_type_code = Column(Text, nullable=True)
-    main_account_code = Column(Text, nullable=True)
-    sub_account_code = Column(Text, nullable=True)
+    allocation_transfer_agency = Column(Text, nullable=True, index=True)
+    agency_identifier = Column(Text, nullable=True, index=True)
+    beginning_period_of_availability = Column(Text, nullable=True, index=True)
+    ending_period_of_availability = Column(Text, nullable=True, index=True)
+    availability_type_code = Column(Text, nullable=True, index=True)
+    main_account_code = Column(Text, nullable=True, index=True)
+    sub_account_code = Column(Text, nullable=True, index=True)

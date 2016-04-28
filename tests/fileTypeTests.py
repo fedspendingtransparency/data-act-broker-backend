@@ -3,7 +3,7 @@ import os
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactvalidator.models.validationModels import TASLookup
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
-from dataactvalidator.scripts.tasSetup import loadTAS
+from dataactvalidator.scripts.loadTas import loadTas
 from baseTest import BaseTest
 import unittest
 
@@ -81,7 +81,7 @@ class FileTypeTests(BaseTest):
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
                 or force_tas_load):
             # TAS table is empty, load it
-            loadTAS("all_tas_betc.csv")
+            loadTas(tasFile="all_tas_betc.csv", dropIdx=False)
 
     def test_approp_valid(self):
         """Test valid job."""
