@@ -1,7 +1,7 @@
 from dataactcore.scripts.databaseSetup import createDatabase
 from dataactcore.config import CONFIG_DB
-from dataactvalidator.models import validationModels
-from dataactvalidator.models.validationModels import FileType, RuleType, FieldType, MultiFieldRuleType, RuleTiming
+from dataactcore.models import validationModels
+from dataactcore.models.validationModels import FileType, RuleType, FieldType, MultiFieldRuleType, RuleTiming
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 
 def setupValidationDB(hardReset = False):

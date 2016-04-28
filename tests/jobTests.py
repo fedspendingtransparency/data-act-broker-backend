@@ -1,6 +1,6 @@
 from __future__ import print_function
 from dataactcore.models.jobModels import JobDependency
-from dataactvalidator.models.validationModels import Rule
+from dataactcore.models.validationModels import Rule
 from baseTestValidator import BaseTestValidator
 import unittest
 

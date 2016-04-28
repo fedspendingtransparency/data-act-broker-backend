@@ -6,7 +6,7 @@ from decimal import *
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactvalidator.models.validationModels import TASLookup
+from dataactcore.models.validationModels import TASLookup
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
 class Validator(object):

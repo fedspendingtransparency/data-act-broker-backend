@@ -13,7 +13,6 @@ branch_labels = None
 depends_on = None
 
 from alembic import op
-from dataactvalidator.models.validationModels import TASLookup
 
 
 def upgrade(engine_name):
