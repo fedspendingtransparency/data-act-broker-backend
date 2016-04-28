@@ -2,18 +2,19 @@ from dataactbroker.scripts.setupEmails import setupEmails
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.scripts.setupUserDB import setupUserDB
+from dataactcore.utils.responseException import ResponseException
 from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.aws.session import SessionTable
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import argparse
 from flask.ext.bcrypt import Bcrypt
+from sqlalchemy.orm.exc import NoResultFound
 
 
 def options():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--initialize", action="store_true", help="Runs all of the setup options")
-    parser.add_argument("-db", "--setupDB", action="store_true", help="Creates the database schema")
     parser.add_argument("-a", "--createAdmin", action="store_true", help="Creates admin user")
     parser.add_argument("-s", "--start", action="store_true", help="Starts the broker")
     args = parser.parse_args()
@@ -40,9 +41,9 @@ def initialize():
 
 
 def setupDB():
-    setupJobTrackerDB(hardReset=True)
-    setupErrorDB(True)
-    setupUserDB(True)
+    setupJobTrackerDB()
+    setupErrorDB()
+    setupUserDB()
     setupEmails()
 
 
@@ -51,9 +52,15 @@ def createAdmin():
     adminEmail = CONFIG_BROKER['admin_email']
     adminPass = CONFIG_BROKER['admin_password']
     userDb = UserHandler()
-    userDb.createUserWithPassword(adminEmail, adminPass, Bcrypt(), admin=True)
-    user = userDb.getUserByEmail(adminEmail)
-    userDb.addUserInfo(user, "Admin", "System", "System Admin")
+    try:
+        user = userDb.getUserByEmail(adminEmail)
+    except ResponseException as e:
+
+        if type(e.wrappedException) is NoResultFound:
+            userDb.createUserWithPassword(
+                adminEmail, adminPass, Bcrypt(), admin=True)
+            user = userDb.getUserByEmail(adminEmail)
+            userDb.addUserInfo(user, "Admin", "System", "System Admin")
     userDb.session.close()
 
 
