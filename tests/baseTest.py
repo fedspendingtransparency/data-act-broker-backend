@@ -2,6 +2,7 @@ import unittest
 from datetime import datetime
 import os
 import inspect
+import logging
 import time
 import boto.s3
 from random import randint
@@ -61,14 +62,18 @@ class BaseTest(unittest.TestCase):
         # This needs to be set to the local directory for error reports if local is True
         cls.local_file_directory = CONFIG_SERVICES['error_report_path']
 
+        # suppress INFO-level logging from Alembic migrations
+        logging.disable(logging.WARN)
         # drop and re-create test job db/tables
-        setupJobTrackerDB(hardReset=True)
+        setupJobTrackerDB()
         # drop and re-create test error db/tables
-        setupErrorDB(hardReset=True)
+        setupErrorDB()
         # drop and re-create test staging db
         setupStagingDB()
         # drop and re-create test vaidation db
         setupValidationDB(True)
+        # reset logging defaults
+        logging.disable(logging.NOTSET)
 
         cls.interfaces = InterfaceHolder()
         cls.jobTracker = cls.interfaces.jobDb
