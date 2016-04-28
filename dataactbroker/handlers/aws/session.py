@@ -8,6 +8,7 @@ from werkzeug.datastructures import CallbackDict
 from boto.dynamodb2 import connect_to_region
 from boto.dynamodb2.layer1 import DynamoDBConnection
 from flask.ext.login import _create_identifier
+from dataactcore.utils.requestDictionary import RequestDictionary
 
 class LoginSession():
     """
@@ -212,7 +213,7 @@ class DynamoInterface(SessionInterface):
         implements the open_session method that pulls or creates a new DynamoSession object
 
         """
-        sid = request.cookies.get(app.session_cookie_name)
+        sid = request.headers.get("x-session-id")
         if(sid and SessionTable.doesSessionExist(sid)):
             if SessionTable.getTimeout(sid)> toUnixTime(datetime.utcnow()):
                 return DynamoSession(initial=SessionTable.getData(sid),sid=sid)
@@ -252,10 +253,8 @@ class DynamoInterface(SessionInterface):
             SessionTable.clearSessions()
             DynamoInterface.CountLimit = 1
 
-        response.set_cookie(app.session_cookie_name, session.sid,
-                            expires=self.get_expiration_time(app, session),
-                            httponly=True, domain=domain)
-
+        # Return session ID as header x-session-id
+        response.headers["x-session-id"] = session.sid
 
 class SessionTable :
     """

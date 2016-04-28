@@ -30,6 +30,9 @@ In addition to these helper objects, the following sub classes also exist within
 
 ## DATA Act Broker Route Documentation
 
+All routes that require a login should now be passed a header "x-session-id".  The value for this header should be taken
+from the login route response header "x-session-id".
+
 ### Status Codes
 In general, status codes returned are as follows:
 

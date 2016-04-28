@@ -24,6 +24,9 @@ class BaseTestAPI(unittest.TestCase):
         """Set up resources to be shared within a test class"""
         #TODO: refactor into a pytest class fixtures and inject as necessary
 
+        # Create an empty session ID
+        cls.session_id = ""
+
         # update application's db config options so unittests
         # run against test databases
         suite = cls.__name__.lower()
@@ -42,11 +45,11 @@ class BaseTestAPI(unittest.TestCase):
         dataactcore.config.CONFIG_DB = config
 
         # drop and re-create test user db/tables
-        setupUserDB()
+        setupUserDB(hardReset=True)
         # drop and re-create test job db/tables
-        setupJobTrackerDB()
+        setupJobTrackerDB(hardReset=True)
         # drop and re-create test error db/tables
-        setupErrorDB()
+        setupErrorDB(hardReset=True)
         # load e-mail templates
         setupEmails()
 
@@ -163,14 +166,17 @@ class BaseTestAPI(unittest.TestCase):
         #TODO: put user data in pytest fixture; put credentials in config file
         user = {"username": self.test_users['approved_email'],
             "password": self.user_password}
-        return self.app.post_json("/v1/login/", user)
+        response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
+        self.session_id = response.headers["x-session-id"]
+        return response
 
     def login_admin_user(self):
         """Log an admin user into broker."""
         #TODO: put user data in pytest fixture; put credentials in config file
         user = {"username": self.test_users['admin_email'],
             "password": self.admin_password}
-        response = self.app.post_json("/v1/login/", user)
+        response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
+        self.session_id = response.headers["x-session-id"]
         return response
 
     def login_inactive_user(self):
@@ -178,22 +184,24 @@ class BaseTestAPI(unittest.TestCase):
         #TODO: put user data in pytest fixture; put credentials in config file
         user = {"username": self.test_users['inactive_email'],
             "password": self.user_password}
-        response = self.app.post_json("/v1/login/", user, expect_errors=True)
+        response = self.app.post_json("/v1/login/", user, expect_errors=True, headers={"x-session-id":self.session_id})
+        self.session_id = response.headers["x-session-id"]
         return response
 
     def login_other_user(self, username, password):
         """Log a specific user into broker."""
         user = {"username": username, "password": password}
-        response = self.app.post_json("/v1/login/", user)
+        response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
+        self.session_id = response.headers["x-session-id"]
         return response
 
     def logout(self):
         """Log user out of broker."""
-        return self.app.post("/v1/logout/", {})
+        return self.app.post("/v1/logout/", {}, headers={"x-session-id":self.session_id})
 
     def session_route(self):
         """Get session."""
-        return self.app.get("/v1/session/")
+        return self.app.get("/v1/session/", headers={"x-session-id":self.session_id})
 
     def check_response(self, response, status, message=None):
         """Perform common tests on API responses."""
