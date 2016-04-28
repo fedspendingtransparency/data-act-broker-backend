@@ -1,6 +1,10 @@
 import unittest
 from decimal import *
-from dataactvalidator.models.validationModels import FieldType, RuleType, FileColumn, Rule
+
+from dataactcore.models.baseInterface import BaseInterface
+from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
+from dataactvalidator.models.validationModels import FieldType, RuleType, FileColumn, Rule, MultiFieldRule, \
+    MultiFieldRuleType
 from dataactvalidator.validation_handlers.validator import Validator
 from baseTest import BaseTest
 
@@ -172,6 +176,10 @@ class ValidatorTests(BaseTest):
         notRule.name = "NOT EQUAL"
         setRule = RuleType()
         setRule.name = "IN_SET"
+        sumRule = RuleType()
+        sumRule.name = "SUM"
+        sumToValueRule = MultiFieldRuleType()
+        sumToValueRule.name = "SUM_TO_VALUE"
 
         schema = self.schema
         interfaces = self.interfaces
@@ -223,14 +231,32 @@ class ValidatorTests(BaseTest):
         rule8.rule_text_1 = "X, F, A"
         rule8.rule_timing_id = 1
 
-        rules = [rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8]
+        rule9 = Rule()
+        rule9.rule_type = sumRule
+        rule9.file_column = schema["test2"]
+        rule9.rule_text_1 = "test7"
+        rule9.rule_text_2 = "test2,test4,test5"
+        rule9.rule_timing_id = 1
+
+        rule10 = MultiFieldRule()
+        rule10.rule_type = sumToValueRule
+        rule10.rule_text_1 = "46"
+        rule10.rule_text_2 = "test2,test4,test5"
+        rule10.rule_timing_id = 1
+
+        vvi = ValidatorValidationInterface()
+        fileId = vvi.getFileId("award")
+        vvi.addMultiFieldRule(fileId, "SUM_TO_VALUE", rule10.rule_text_1, rule10.rule_text_2, "Evaluates the sum of fields to a number")
+
+        rules = [rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9]
         record = {
             "test1": "hello",
             "test2": "1.0",
             "test3": "YES",
             "test4": "44",
             "test5": "1",
-            "test6": "X"
+            "test6": "X",
+            "test7": "46"
         }
         self.assertTrue(Validator.validate(
             record, rules, schema, "award", self.interfaces)[0])
@@ -241,7 +267,8 @@ class ValidatorTests(BaseTest):
             "test3": "NO",
             "test4": "45",
             "test5": "1",
-            "test6": "Q"
+            "test6": "Q",
+            "test7": "46.5"
         }
         self.assertFalse(Validator.validate(
             record, [rule3], schema, "award", interfaces)[0])
@@ -255,6 +282,8 @@ class ValidatorTests(BaseTest):
             record, [rule7], schema, "award", interfaces)[0])
         self.assertFalse(Validator.validate(
             record, [rule8], schema, "award", interfaces)[0])
+        self.assertFalse(Validator.validate(
+            record, [rule9], schema, "award", interfaces)[0])
         self.assertFalse(Validator.validate(
             record, rules, schema, "award", interfaces)[0])
 
