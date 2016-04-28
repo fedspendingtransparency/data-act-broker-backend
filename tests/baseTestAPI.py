@@ -45,11 +45,11 @@ class BaseTestAPI(unittest.TestCase):
         dataactcore.config.CONFIG_DB = config
 
         # drop and re-create test user db/tables
-        setupUserDB(hardReset=True)
+        setupUserDB()
         # drop and re-create test job db/tables
-        setupJobTrackerDB(hardReset=True)
+        setupJobTrackerDB()
         # drop and re-create test error db/tables
-        setupErrorDB(hardReset=True)
+        setupErrorDB()
         # load e-mail templates
         setupEmails()
 
@@ -185,7 +185,11 @@ class BaseTestAPI(unittest.TestCase):
         user = {"username": self.test_users['inactive_email'],
             "password": self.user_password}
         response = self.app.post_json("/v1/login/", user, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.session_id = response.headers["x-session-id"]
+        try:
+            self.session_id = response.headers["x-session-id"]
+        except KeyError:
+            # Session ID doesn't come back for inactive user, set to empty
+            self.session_id = ""
         return response
 
     def login_other_user(self, username, password):
