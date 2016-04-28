@@ -211,7 +211,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(appropJob["error_type"], "row_errors")
 
         # Check error metadata
-        ruleErrorData = appropJob["error_data"][0]
+        ruleErrorData = appropJob["error_data"][1]
         self.assertEqual(ruleErrorData["field_name"],"header_three")
         self.assertEqual(ruleErrorData["error_name"],"rule_failed")
         self.assertEqual(ruleErrorData["error_description"],"A rule failed for this value")
@@ -267,7 +267,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
-        self.assertEqual(len(response.json), 4)
+        self.assertEqual(len(response.json), 5)
 
     def check_metrics(self, submission_id, exists, type_file) :
         """Get error metrics for specified submission."""

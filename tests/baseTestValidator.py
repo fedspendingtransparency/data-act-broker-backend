@@ -62,9 +62,9 @@ class BaseTestValidator(unittest.TestCase):
         cls.local_file_directory = CONFIG_SERVICES['error_report_path']
 
         # drop and re-create test job db/tables
-        setupJobTrackerDB(hardReset=True)
+        setupJobTrackerDB()
         # drop and re-create test error db/tables
-        setupErrorDB(hardReset=True)
+        setupErrorDB()
         # drop and re-create test staging db
         setupStagingDB()
         # drop and re-create test vaidation db

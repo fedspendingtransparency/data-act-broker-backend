@@ -42,11 +42,11 @@ class BaseTestAPI(unittest.TestCase):
         dataactcore.config.CONFIG_DB = config
 
         # drop and re-create test user db/tables
-        setupUserDB(hardReset=True)
+        setupUserDB()
         # drop and re-create test job db/tables
-        setupJobTrackerDB(hardReset=True)
+        setupJobTrackerDB()
         # drop and re-create test error db/tables
-        setupErrorDB(hardReset=True)
+        setupErrorDB()
         # load e-mail templates
         setupEmails()
 
