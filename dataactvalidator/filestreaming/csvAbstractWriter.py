@@ -74,4 +74,4 @@ class CsvAbstractWriter(object):
         traceback - the traceback of the error
 
         """
-        raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
+        raise NotImplementedError("Do not instantiate csvAbstractWriter directly.")
