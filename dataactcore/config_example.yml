@@ -53,7 +53,12 @@ broker:
     # is false. NOTE: the dummy value below MUST be changed to the correct
     # value if use_aws is true.
     aws_bucket: sample-aws-bucket-name
- 
+
+    # Include folder and filename of RSS file if running on AWS, if running locally the RSS folder and file should be in
+    # the broker_files directory specified above
+    rss_folder: rss
+    rss_file: rss_file.xls
+
     # Name of the AWS role you're using to upload broker files. Ignored if
     # use_aws is false. NOTE: the dummy value below MUST be changed to the
     # correct value if use_aws is true.

@@ -5,6 +5,9 @@ import re
 
 # set the location of the DATA Act broker config file
 CONFIG_PATH = os.path.join(dirname(__file__), 'config.yml')
+# set the location of the Alembic config file
+ALEMBIC_PATH = os.path.join(dirname(__file__), 'alembic.ini')
+MIGRATION_PATH = os.path.join(dirname(__file__), 'migrations')
 
 try:
     with open(CONFIG_PATH) as c:
@@ -24,7 +27,7 @@ if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
     CONFIG_BROKER['local'] = False
     CONFIG_BROKER['broker_files'] = None
     # AWS flag is on, so make sure all needed AWS info is present
-    required_aws_keys = ['aws_access_key_id', 'aws_bucket',
+    required_aws_keys = ['aws_bucket',
         'aws_role', 'aws_region', 'aws_create_temp_credentials']
     for k in required_aws_keys:
         try:
