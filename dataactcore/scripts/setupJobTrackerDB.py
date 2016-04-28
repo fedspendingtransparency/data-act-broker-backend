@@ -1,23 +1,21 @@
-from dataactcore.models import jobModels
 from dataactcore.models.jobModels import Status, Type, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
-from dataactcore.scripts.databaseSetup import createDatabase
+from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_DB
 
 
-def setupJobTrackerDB(hardReset = False):
+def setupJobTrackerDB():
     """Create job tracker tables from model metadata."""
     createDatabase(CONFIG_DB['job_db_name'])
-    jobDb = JobTrackerInterface()
-    if hardReset:
-        jobModels.Base.metadata.drop_all(jobDb.engine)
-    jobModels.Base.metadata.create_all(jobDb.engine)
+    runMigrations('job_tracker')
+    insertCodes()
 
-    jobDb.session.commit()
-    jobDb.session.close()
+
+def insertCodes():
+    """Create job tracker tables from model metadata."""
+    jobDb = JobTrackerInterface()
 
     # TODO: define these codes as enums in the data model?
-
     # insert status types
     statusList = [(1, 'waiting', 'check dependency table'),
         (2, 'ready', 'can be assigned'),
@@ -35,8 +33,8 @@ def setupJobTrackerDB(hardReset = False):
         (4, 'validation', 'new information must be validated'),
         (5, 'external_validation', 'new information must be validated against external sources')]
     for t in typeList:
-        type = Type(type_id=t[0],name=t[1], description=t[2])
-        jobDb.session.merge(type)
+        thisType = Type(type_id=t[0],name=t[1], description=t[2])
+        jobDb.session.merge(thisType)
 
     fileTypeList = [(1, 'award', ''),
         (2, 'award_financial', ''),
@@ -50,4 +48,4 @@ def setupJobTrackerDB(hardReset = False):
     jobDb.session.close()
 
 if __name__ == '__main__':
-    setupJobTrackerDB(hardReset=True)
+    setupJobTrackerDB()
