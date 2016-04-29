@@ -185,8 +185,8 @@ class FileTests(BaseTestAPI):
         postJson = {"submission_id": self.status_check_submission_id}
         # Log in as admin user
         self.login_admin_user()
-        # Call check status route
-        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True, headers={"x-session-id":self.session_id})
+        # Call check status route (also checking case insensitivity of header here)
+        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True, headers={"x-SESSION-id":self.session_id})
         # Assert 200 status
         self.assertEqual(response.status_code,200)
 

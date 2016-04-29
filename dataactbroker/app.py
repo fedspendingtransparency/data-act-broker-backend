@@ -45,10 +45,10 @@ def createApp():
         JsonResponse.debugMode = app.config['REST_TRACE']
 
         if CONFIG_SERVICES['cross_origin_url'] ==  "*":
-            cors = CORS(app, supports_credentials=True)
+            cors = CORS(app, supports_credentials=True, allow_headers = "X-Session-Id", expose_headers = "X-Session-Id")
         else:
-            cors = CORS(app, supports_credentials=True,
-                origins=CONFIG_SERVICES['cross_origin_url'])
+            cors = CORS(app, supports_credentials=True, origins=CONFIG_SERVICES['cross_origin_url'],
+                        allow_headers = "X-Session-Id", expose_headers = "X-Session-Id")
         # Enable AWS Sessions
         app.session_interface = DynamoInterface()
         # Set up bcrypt
