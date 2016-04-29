@@ -155,6 +155,21 @@ class FileTests(BaseTestAPI):
         self.assertEqual(submission.reporting_start_date.strftime("%m/%d/%Y"),"02/03/2016")
         self.assertEqual(submission.reporting_end_date.strftime("%m/%d/%Y"),"02/04/2016")
 
+    def test_check_status_no_login(self):
+        """ Test response with no login """
+        self.logout()
+        postJson = {"submission_id": self.status_check_submission_id}
+        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True, headers={"x-session-id":self.session_id})
+        # Assert 401 status
+        self.assertEqual(response.status_code,401)
+
+    def test_check_status_no_session_id(self):
+        """ Test response with no session ID """
+        postJson = {"submission_id": self.status_check_submission_id}
+        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True)
+        # Assert 401 status
+        self.assertEqual(response.status_code,401)
+
     def test_check_status_permission(self):
         """ Test that other users do not have access to status check submission """
         postJson = {"submission_id": self.status_check_submission_id}
