@@ -240,7 +240,6 @@ class DynamoInterface(SessionInterface):
         based on the timeout limit, this function also extends the expiration time of the current session
 
         """
-        domain = self.get_cookie_domain(app)
         if not session:
             return
         # Extend the expiration based on either the time out limit set here or the permanent_session_lifetime property of the app
