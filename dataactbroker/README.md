@@ -1,12 +1,14 @@
-# The DATA Act Broker Repository
+# The DATA Act Broker Application Programming Interface (API)
 
-The DATA Act Broker repository is the API, which communicates to the web front end.
+The DATA Act Broker API powers the DATA Act's data submission process.
 
-## Installation
+## Background
 
-For instructions on contributing to this project or running your own copy of the DATA Act broker, please refer to the [documentation in the DATA Act core responsitory](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
+The U.S. Department of the Treasury is building a suite of open-source tools to help federal agencies comply with the [DATA Act](http://fedspendingtransparency.github.io/about/ "Federal Spending Transparency Background") and to deliver the resulting standardized federal spending information back to agencies and to the public.
 
-## Project Layout
+For more information about the DATA Act Broker codebase, please visit this repository's [main README](../README.md "DATA Act Broker Backend README").
+
+## Broker API Project Layout
 
 The repository has two major directories: scripts and handlers.
 
@@ -561,4 +563,3 @@ To generate a test coverage report from the command line:
 1. Make sure you're in the main project folder (`data-act-broker`).
 2. Run the tests using the `coverage` command: `coverage run tests/runTests.py`.
 3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
-

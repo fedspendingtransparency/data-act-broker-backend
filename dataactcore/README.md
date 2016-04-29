@@ -6,22 +6,7 @@ The DATA Act Core is a collection of common components used by other DATA Act re
 
 The U.S. Department of the Treasury is building a suite of open-source tools to help federal agencies comply with the [DATA Act](http://fedspendingtransparency.github.io/about/ "Federal Spending Transparency Background") and to deliver the resulting standardized federal spending information back to agencies and to the public.
 
-One of these tools is the DATA Act Broker (broker). The broker ingests federal spending data from agency award and financial systems, validates it, and standardizes it against the [common DATA Act model](http://fedspendingtransparency.github.io/data-model/ "data model"). Treasury will make a hosted version of the broker freely available to agencies. Alternately, agencies can take this code and run the broker locally.
-
-The broker comprises:
-
-* The DATA Act core (you are here)
-* The [broker's application programming interface (API)](https://github.com/fedspendingtransparency/data-act-broker-backend/tree/master/dataactbroker "DATA Act broker API")
-* The [DATA Act validator](https://github.com/fedspendingtransparency/data-act-broker-backend/tree/master/dataactvalidator "DATA Act validator")
-* The [broker website](https://github.com/fedspendingtransparency/data-act-broker-web-app "DATA Act broker website")
-
-## What Do I Need to Know?
-
-If you're from a federal agency that will use Treasury's hosted DATA Act broker, you can probably stop reading here. Instead, visit the [broker's website (coming soon)](# "DATA Act broker").
-
-If you want to install and run the broker locally, read the [installation and setup directions](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "DATA Act broker installation and setup").
-
-If you're doing either of the above but are also interested in the sofware's under-the-hood details, refer to the README.md files in [each project's respository](https://github.com/fedspendingtransparency "fedspendingtransparency repos").
+For more information about the DATA Act Broker codebase, please visit this repository's [main README](../README.md "DATA Act Broker Backend README").
 
 ## DATA Act Core Details
 
@@ -174,4 +159,3 @@ from a REST request. Users are able to pass dictionary objects that will be
 automatically converted to JSON with the correct application headers added.
 
 In addition, the static `error` method will auto create a JSON response with the current exception stack trace encoded. This is useful in the development environment, but should be disabled in production by setting the static class variable `printDebug` to `false`.
-
