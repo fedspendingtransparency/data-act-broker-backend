@@ -8,7 +8,7 @@ Create Date: 2016-03-17 11:36:56.904831
 
 # revision identifiers, used by Alembic.
 revision = '6015ec0f59c9'
-down_revision = None
+down_revision = 'a118bf9e4970'
 branch_labels = None
 depends_on = None
 
@@ -195,4 +195,10 @@ def downgrade_user_manager():
     op.drop_table('email_template')
     op.drop_table('email_token')
     ### end Alembic commands ###
+
+def upgrade_validation():
+    pass
+
+def downgrade_validation():
+    pass
 

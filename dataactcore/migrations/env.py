@@ -3,6 +3,7 @@ from alembic import context
 from dataactcore.models import errorModels
 from dataactcore.models import jobModels
 from dataactcore.models import userModel
+from dataactcore.models import validationModels
 from dataactcore.config import CONFIG_DB
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
@@ -28,7 +29,7 @@ db_dict = {}
 db_dict['error_data'] = [CONFIG_DB['error_db_name'], errorModels]
 db_dict['job_tracker'] = [CONFIG_DB['job_db_name'], jobModels]
 db_dict['user_manager'] = [CONFIG_DB['user_db_name'], userModel]
-# TODO: add validation db to the list once the backend repos are merged
+db_dict['validation'] = [CONFIG_DB['validator_db_name'], validationModels]
 db_names = config.get_main_option('databases')
 for name in re.split(r',\s*', db_names):
     if name not in db_dict:
