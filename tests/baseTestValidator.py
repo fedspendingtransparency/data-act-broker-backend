@@ -68,7 +68,7 @@ class BaseTestValidator(unittest.TestCase):
         # drop and re-create test staging db
         setupStagingDB()
         # drop and re-create test vaidation db
-        setupValidationDB(True)
+        setupValidationDB()
 
         cls.interfaces = InterfaceHolder()
         cls.jobTracker = cls.interfaces.jobDb
