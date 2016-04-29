@@ -32,6 +32,6 @@ If you want to run the broker locally, the easiest way to get started is to use 
 
 ### Installing the Broker Locally
 
-If you want to install the software on your own machine, follow the instructions on our DATA Broker [contributing guide](doc/CONTRIBUTING.md "DATA Act contributing guide"). If you're a developer on the DATA Act team or if you want to contribute to the project, this is the option you want.
+If you want to install the software on your own machine, follow the instructions on our DATA Broker [contributing guide](doc/CONTRIBUTING.md#data-act-broker-setup-for-developers "DATA Act contributing guide"). If you're a developer on the DATA Act team or if you want to contribute to the project, this is the option you want.
 
-**[Local installation directions](doc/CONTRIBUTING.md "DATA Act contributing guide")**
+**[Local installation directions](doc/CONTRIBUTING.md#data-act-broker-setup-for-developers "DATA Act contributing guide")**
