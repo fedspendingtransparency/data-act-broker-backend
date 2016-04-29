@@ -106,7 +106,7 @@ Don't worry about setting DynamoDB endpoints or creating tables: the broker's co
 
 **Note:** The local version of DynamoDB is not recommended for production.
 
-### Clone Broker Backend Code Repositories
+### Clone Broker Backend Code Repository
 
 Now we're ready to install the DATA Act broker itself. Before starting:
 

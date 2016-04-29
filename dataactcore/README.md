@@ -1,6 +1,6 @@
 # DATA Act Core
 
-The DATA Act Core is a collection of common components used by other DATA Act repositories.
+The DATA Act Core is a collection of common components used by other DATA Act packages.
 
 ## Background
 
@@ -20,8 +20,8 @@ The DATA Act broker uses the following databases; the models and setup scripts f
 
 ## DATA Act Core Project Layout
 
-The DATA Act Core repository is a collection of common components used by other
-DATA Act repositories.  The structure for the repository is as follows:
+The DATA Act Core is a collection of common components used by other
+DATA Act packages.  The directory structure is as follows:
 
 ```
 dataactcore/
@@ -63,8 +63,7 @@ Database interfaces are defined for each database used within the project. Each 
 
 #### Scripts
 
-The `scripts/` folder contains various python scripts to setup parts of the DATA Act Core
-repository for local installation. Database creation scripts are located in this folder. When run directly, the following scripts take no parameters and stand up all required tables within each database:
+The `scripts/` folder contains various python scripts used in the DATA Act broker backend install process, including database creation scripts. When run directly, the following scripts take no parameters and stand up all required tables within each database:
 
 - setupJobTrackerDB (Creates job_tracker database)
 - setupErrorDB      (Creates the error database)
@@ -83,7 +82,7 @@ These scripts should **not** be used in a live production environment, as existi
 #### Utils
 
 The `utils/` folder contains common REST requests and error handling objects.
-These provide a common way for other repositories to handle requests.
+These provide a common way for other broker components to handle requests.
 
 The `RequestDictionary` class is used throughout the DATA Act repositories to provide a
 seamless method to access both the JSON Body and POST FormData from a REST request.
