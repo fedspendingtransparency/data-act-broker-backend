@@ -277,6 +277,7 @@ class ValidationManager:
                 errorDb.recordRowError(jobId,"cross_file",failure[0],failure[1],None)
             writer.finishBatch()
         errorDb.writeAllRowErrors(jobId)
+        interfaces.jobDb.markStatus(jobId,"finished")
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to staging database
