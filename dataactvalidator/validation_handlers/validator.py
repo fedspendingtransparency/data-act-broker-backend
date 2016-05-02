@@ -90,7 +90,7 @@ class Validator(object):
                     rulePassed = False
                     dictString = str(matchDict)[1:-1] # Remove braces
 
-                    failures.append([", ".join(fieldsToCheck),rule.description,dictString])
+                    failures.append([", ".join(fieldsToCheck),rule.description,dictString,thisRecord["row"]])
         elif ruleType == "rule_if":
             # Get all records from source table
             sourceTable = cls.getTable(submissionId, fileType, stagingDb)
