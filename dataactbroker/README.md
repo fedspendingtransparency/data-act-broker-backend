@@ -22,7 +22,7 @@ dataactbroker/
 The `/dataactbroker/scripts` folder contains the install scripts needed to setup the broker API for a local install. For complete instructions on running your own copy of the API and other DATA Act broker components, please refer to the [documentation in the DATA Act core responsitory](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
 
 ### Handlers
-The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py`, `fileRoutes.py`, and 'userRoutes.py' files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tag is defined in `dataactbroker/permissions.py`. Cookies are used to keep track of sessions for the end user. Only a UUID is stored in the cookie.
+The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py`, `fileRoutes.py`, and 'userRoutes.py' files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tag is defined in `dataactbroker/permissions.py`.
 
 `accountHandler.py` contains the functions to check logins and to log users out.
 
@@ -31,6 +31,9 @@ The `dataactbroker\handlers` folder contains the logic to handle requests that a
 In addition to these helper objects, the following sub classes also exist within the directory: `UserHandler`, `JobHandler`, `ErrorHandler`, and 'InterfaceHolder'. These classes extend the database connection objects that are located in the DATA Act Core. Extra query methods exist in these classes that are used exclusively by the Broker API.
 
 ## DATA Act Broker Route Documentation
+
+All routes that require a login should now be passed a header "x-session-id".  The value for this header should be taken
+from the login route response header "x-session-id".
 
 ### Status Codes
 In general, status codes returned are as follows:

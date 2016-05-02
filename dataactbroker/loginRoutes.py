@@ -18,4 +18,5 @@ def add_login_routes(app,bcrypt):
 
     @app.route("/v1/session/", methods = ["GET"])
     def sessionCheck():
+        session["session_check"] = True
         return JsonResponse.create(StatusCode.OK,{"status":str(LoginSession.isLogin(session))})
