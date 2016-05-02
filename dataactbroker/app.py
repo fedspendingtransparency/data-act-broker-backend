@@ -1,6 +1,8 @@
 import os, os.path
 import sys
 import traceback
+import time
+import multiprocessing
 from flask.ext.cors import CORS
 from flask.ext.bcrypt import Bcrypt
 from flask import Flask ,send_from_directory
@@ -13,6 +15,7 @@ from dataactbroker.fileRoutes import add_file_routes
 from dataactbroker.loginRoutes import add_login_routes
 from dataactbroker.userRoutes import add_user_routes
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_DB, CONFIG_PATH
+from dataactcore.utils.timeout import timeout
 
 
 def createApp():
@@ -80,6 +83,9 @@ def createApp():
 
         SessionTable.setup(app, local)
 
+        if local:
+            checkDynamo()
+
         return app
 
     except Exception as e:
@@ -90,6 +96,9 @@ def createApp():
         del exc_tb
         raise
 
+@timeout(1, "DynamoDB is not running")
+def checkDynamo():
+    SessionTable.getTable().describe()
 
 def runApp():
     """runs the application"""
@@ -104,5 +113,13 @@ def runApp():
 
 if __name__ == '__main__':
     runApp()
+    proc = multiprocessing.Process(target=checkDynamo)
+    proc.start()
+    proc.join(5)
+
+    if proc.is_alive():
+        proc.terminate()
+        proc.join()
+
 elif __name__[0:5]=="uwsgi":
     app = createApp()
