@@ -225,8 +225,12 @@ class FileTests(BaseTestAPI):
         self.assertEqual(appropJob["number_of_rows"], 567)
         self.assertEqual(appropJob["error_type"], "row_errors")
 
-        # Check error metadata
-        ruleErrorData = appropJob["error_data"][0]
+        # Check error metadata for specified error
+        ruleErrorData = None
+        for data in appropJob["error_data"]:
+            if data["field_name"] == "header_three":
+                ruleErrorData = data
+        self.assertIsNotNone(ruleErrorData)
         self.assertEqual(ruleErrorData["field_name"],"header_three")
         self.assertEqual(ruleErrorData["error_name"],"rule_failed")
         self.assertEqual(ruleErrorData["error_description"],"A rule failed for this value")
