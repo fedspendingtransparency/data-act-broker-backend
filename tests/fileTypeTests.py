@@ -1,7 +1,7 @@
 from __future__ import print_function
 import os
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
-from dataactvalidator.models.validationModels import TASLookup
+from dataactcore.models.validationModels import TASLookup
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.loadTas import loadTas
 from baseTestValidator import BaseTestValidator

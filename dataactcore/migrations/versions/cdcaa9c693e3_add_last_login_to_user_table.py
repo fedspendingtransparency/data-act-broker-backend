@@ -64,3 +64,8 @@ def downgrade_user_manager():
     op.drop_column('users', 'is_active')
     ### end Alembic commands ###
 
+def upgrade_validation():
+    pass
+
+def downgrade_validation():
+    pass

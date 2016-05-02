@@ -17,7 +17,7 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.jobModels import JobStatus, Submission
-from dataactvalidator.models.validationModels import FileColumn
+from dataactcore.models.validationModels import FileColumn
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER
 import dataactcore.config
 
@@ -68,7 +68,7 @@ class BaseTestValidator(unittest.TestCase):
         # drop and re-create test staging db
         setupStagingDB()
         # drop and re-create test vaidation db
-        setupValidationDB(True)
+        setupValidationDB()
 
         cls.interfaces = InterfaceHolder()
         cls.jobTracker = cls.interfaces.jobDb
