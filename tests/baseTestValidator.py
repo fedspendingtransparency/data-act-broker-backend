@@ -86,7 +86,7 @@ class BaseTestValidator(unittest.TestCase):
         cls.interfaces.close()
         dropDatabase(cls.interfaces.jobDb.dbName)
         dropDatabase(cls.interfaces.errorDb.dbName)
-        dropDatabase(cls.interfaces.stagingDb.dbName)
+        #dropDatabase(cls.interfaces.stagingDb.dbName)
         dropDatabase(cls.interfaces.validationDb.dbName)
 
     def tearDown(self):

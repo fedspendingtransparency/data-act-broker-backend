@@ -35,7 +35,7 @@ class CsvAbstractWriter(object):
         for data in dataList:
             if data is None:
                 data = ""
-            byteList.append(data.encode("UTF-8"))
+            byteList.append(str(data).encode("UTF-8"))
         self.rows.append(byteList)
         if(len(self.rows) > self.BATCH_SIZE):
             ioStream = io.BytesIO()

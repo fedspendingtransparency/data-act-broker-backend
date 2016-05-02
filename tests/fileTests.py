@@ -74,7 +74,7 @@ class FileTests(BaseTestAPI):
                     "program_activity":os.path.join(filePath,"test4.csv"), "agency_name": "Department of the Treasury",
                     "reporting_period_start_date":"01/13/2001",
                     "reporting_period_end_date":"01/14/2001"}
-            self.submitFilesResponse = self.app.post_json("/v1/submit_files/", self.filenames)
+            self.submitFilesResponse = self.app.post_json("/v1/submit_files/", self.filenames, headers={"x-session-id":self.session_id})
             self.updateSubmissionId = self.submitFilesResponse.json["submission_id"]
         return self.submitFilesResponse
 
@@ -143,7 +143,7 @@ class FileTests(BaseTestAPI):
                 "award_financial": os.path.join(filePath,"updated.csv"),
                 "reporting_period_start_date":"02/03/2016",
                 "reporting_period_end_date":"02/04/2016"}
-        updateResponse = self.app.post_json("/v1/submit_files/", updateJson)
+        updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id":self.session_id})
         self.assertEqual(updateResponse.status_code, 200)
         self.assertEqual(updateResponse.headers.get("Content-Type"), "application/json")
 
@@ -155,13 +155,28 @@ class FileTests(BaseTestAPI):
         self.assertEqual(submission.reporting_start_date.strftime("%m/%d/%Y"),"02/03/2016")
         self.assertEqual(submission.reporting_end_date.strftime("%m/%d/%Y"),"02/04/2016")
 
+    def test_check_status_no_login(self):
+        """ Test response with no login """
+        self.logout()
+        postJson = {"submission_id": self.status_check_submission_id}
+        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True, headers={"x-session-id":self.session_id})
+        # Assert 401 status
+        self.assertEqual(response.status_code,401)
+
+    def test_check_status_no_session_id(self):
+        """ Test response with no session ID """
+        postJson = {"submission_id": self.status_check_submission_id}
+        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True)
+        # Assert 401 status
+        self.assertEqual(response.status_code,401)
+
     def test_check_status_permission(self):
         """ Test that other users do not have access to status check submission """
         postJson = {"submission_id": self.status_check_submission_id}
         # Log in as non-admin user
         self.login_approved_user()
         # Call check status route
-        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True)
+        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True, headers={"x-session-id":self.session_id})
         # Assert 400 status
         self.assertEqual(response.status_code,400)
 
@@ -170,15 +185,15 @@ class FileTests(BaseTestAPI):
         postJson = {"submission_id": self.status_check_submission_id}
         # Log in as admin user
         self.login_admin_user()
-        # Call check status route
-        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True)
+        # Call check status route (also checking case insensitivity of header here)
+        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True, headers={"x-SESSION-id":self.session_id})
         # Assert 200 status
         self.assertEqual(response.status_code,200)
 
     def test_check_status(self):
         """Test broker status route response."""
         postJson = {"submission_id": self.status_check_submission_id}
-        response = self.app.post_json("/v1/check_status/", postJson)
+        response = self.app.post_json("/v1/check_status/", postJson, headers={"x-session-id":self.session_id})
 
         self.assertEqual(response.status_code, 200, msg=str(response.json))
         self.assertEqual(
@@ -236,7 +251,7 @@ class FileTests(BaseTestAPI):
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
         postJson = {"upload_id": jobId}
-        return self.app.post_json("/v1/finalize_job/", postJson)
+        return self.app.post_json("/v1/finalize_job/", postJson, headers={"x-session-id":self.session_id})
 
     @staticmethod
     def uploadFileByURL(s3FileName,filename):
@@ -267,7 +282,7 @@ class FileTests(BaseTestAPI):
         """Test broker csv_validation error report."""
         postJson = {"submission_id": self.error_report_submission_id}
         response = self.app.post_json(
-            "/v1/submission_error_reports/", postJson)
+            "/v1/submission_error_reports/", postJson, headers={"x-session-id":self.session_id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
@@ -277,7 +292,7 @@ class FileTests(BaseTestAPI):
     def check_metrics(self, submission_id, exists, type_file) :
         """Get error metrics for specified submission."""
         postJson = {"submission_id": submission_id}
-        response = self.app.post_json("/v1/error_metrics/", postJson)
+        response = self.app.post_json("/v1/error_metrics/", postJson, headers={"x-session-id":self.session_id})
 
         self.assertEqual(response.status_code, 200)
 

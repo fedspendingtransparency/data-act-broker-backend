@@ -24,7 +24,7 @@ class ValidationManager:
     Outer level class, called by flask route
     """
     reportHeaders = ["Field name", "Error message", "Row number", "Value provided"]
-    crossFileReportHeaders = ["Field names", "Error message", "Values provided"]
+    crossFileReportHeaders = ["Source File", "Field names", "Error message", "Values provided", "Row number"]
 
     def __init__(self,isLocal =True,directory=""):
         # Initialize instance variables
