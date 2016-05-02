@@ -202,6 +202,7 @@ class ValidationManager:
                     #    print("Validating row " + str(rowNumber))
                     try :
                         record = reader.getNextRecord()
+                        record["row"] = rowNumber
                         if(reader.isFinished and len(record) < 2):
                             # This is the last line and is empty, don't record an error
                             rowNumber -= 1 # Don't count this row

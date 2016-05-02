@@ -149,6 +149,9 @@ class Validator(object):
                 return False, [[fieldName, ValidationError.requiredError, ""]]
 
         for fieldName in record :
+            if fieldName == "row":
+                # Skip row number, nothing to validate on that
+                continue
             checkRequiredOnly = False
             currentSchema =  csvSchema[fieldName]
             ruleSubset = Validator.getRules(fieldName, fileType, rules,interfaces.validationDb)
