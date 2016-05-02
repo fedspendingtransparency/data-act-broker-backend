@@ -96,7 +96,7 @@ def createApp():
         del exc_tb
         raise
 
-@timeout(1)
+@timeout(1, 'DynamoDB is not running')
 def checkDynamo():
     SessionTable.getTable().describe()
 

@@ -1,11 +1,12 @@
 from threading import Thread
 import functools
 
-def timeout(timeout):
+def timeout(timeout, message=None):
     def deco(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            res = [Exception('function [%s] timeout [%s seconds] exceeded!' % (func.__name__, timeout))]
+            defaultMessage = 'function [%s] timeout [%s seconds] exceeded!' % (func.__name__, timeout)
+            res = [Exception(message or defaultMessage)]
             def newFunc():
                 try:
                     res[0] = func(*args, **kwargs)
