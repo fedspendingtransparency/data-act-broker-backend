@@ -51,7 +51,7 @@ def createApp():
             cors = CORS(app, supports_credentials=True, allow_headers = "*", expose_headers = "X-Session-Id")
         else:
             cors = CORS(app, supports_credentials=True, origins=CONFIG_SERVICES['cross_origin_url'],
-                        allow_headers = "X-Session-Id", expose_headers = "*")
+                        allow_headers = "*", expose_headers = "X-Session-Id")
         # Enable AWS Sessions
         app.session_interface = DynamoInterface()
         # Set up bcrypt
