@@ -130,7 +130,6 @@ class FileTests(BaseTestAPI):
     def test_update_submission(self):
         """ Test submit_files with an existing submission ID """
         self.call_file_submission()
-        print("Updating submission: " + str(self.updateSubmissionId))
         if(CONFIG_BROKER["use_aws"]):
             updateJson = {"existing_submission_id": self.updateSubmissionId,
                 "award_financial":"updated.csv",

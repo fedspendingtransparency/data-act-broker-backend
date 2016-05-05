@@ -72,7 +72,6 @@ class Validator(object):
             fieldsToCheck = cls.cleanSplit(rule.rule_text_1,True)
             # For each entry, check for the presence of matching values in second table
             for thisRecord in sourceRecords:
-                print("thisRecord: " + str(type(thisRecord)) + ", " + str(thisRecord))
                 # Build query to filter for each field to match
                 matchDict = {}
                 query = stagingDb.session.query(targetTable)
@@ -90,12 +89,9 @@ class Validator(object):
                     # Fields don't match target file, add to failures
                     rulePassed = False
                     dictString = str(matchDict)[1:-1] # Remove braces
-                    print("Get row number")
                     if isinstance(thisRecord,dict):
-                        print("thisRecord is a dict: " +str(thisRecord))
                         rowNumber = thisRecord["row"]
                     else:
-                        print("Not a dict")
                         rowNumber = getattr(thisRecord,"row")
                     print(str(rowNumber))
                     failures.append([fileType,", ".join(fieldsToCheck),rule.description,dictString,rowNumber])
