@@ -71,10 +71,10 @@ class AccountHandler:
                 raise ValueError("user name and or password invalid")
 
             # Only check if user is active after they've logged in for the first time
-            if user.last_login_date is not None and self.isUserActive(user).has_key('expired'):
+            if user.last_login_date is not None and not self.isUserActive(user, True):
                 raise ValueError("Your account has expired. Please contact an administrator.")
 
-            if not self.isUserActive(user).has_key('expired') and not self.isUserActive(user)['active']:
+            if not self.isUserActive(user):
                 raise ValueError("Your account has been locked. Please contact an administrator.")
 
             try:
@@ -445,16 +445,17 @@ class AccountHandler:
                 permissionList.append(permission.permission_type_id)
         return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList})
 
-    def isUserActive(self, user):
-        result = {}
+    def isUserActive(self, user, checkExpiration=False):
+        if checkExpiration:
+            self.isAccountExpired(user)
+        return user.is_active
+
+    def isAccountExpired(self, user):
         today = parse(time.strftime("%c"))
         daysActive = (today-user.last_login_date).days
         secondsActive = (today-user.last_login_date).seconds
         if daysActive > 120 or (daysActive == 120 and secondsActive > 0):
             self.lockAccount(user)
-            result['expired'] = True
-        result['active'] = user.is_active
-        return result
 
     def resetPasswordCount(self, user):
         if user.incorrect_password_attempts != 0:

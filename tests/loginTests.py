@@ -29,6 +29,17 @@ class LoginTests(BaseTestAPI):
         response = self.login_inactive_user()
         self.assertIn("401 UNAUTHORIZED", response.status)
 
+    def test_expired_locked_login(self):
+        """Test broker expired lockout"""
+        response = self.login_expired_locked_user()
+        self.assertIn("expired", response.json["message"].lower())
+
+    def test_password_locked_login(self):
+        """Test broker password lockout"""
+        for i in range(1,4):
+            response = self.login_password_locked_user()
+        self.assertIn("locked", response.json["message"].lower())
+
     def test_logout(self):
         """Test broker logout."""
         response = self.logout()
