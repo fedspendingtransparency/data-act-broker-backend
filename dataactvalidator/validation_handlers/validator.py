@@ -93,7 +93,6 @@ class Validator(object):
                         rowNumber = thisRecord["row"]
                     else:
                         rowNumber = getattr(thisRecord,"row")
-                    print(str(rowNumber))
                     failures.append([fileType,", ".join(fieldsToCheck),rule.description,dictString,rowNumber])
         elif ruleType == "rule_if":
             # Get all records from source table
