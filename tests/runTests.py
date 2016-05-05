@@ -23,7 +23,7 @@ def runTests():
 
     # to run a single test:
     #suite.addTest(FileTests('test_check_status'))
-    #suite.addTest(FileTypeTests('test_award_fin_mixed'))
+    #suite.addTest(FileTypeTests('test_cross_file'))
 
     print("{} tests in suite".format(suite.countTestCases()))
 
