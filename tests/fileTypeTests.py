@@ -93,7 +93,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 4433, 4, "complete", 45, True)
+            jobId, 200, "finished", 4433, 4, "complete", 40, True)
 
     def test_program_valid(self):
         """Test valid job."""
@@ -105,7 +105,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 7787, 4, "complete", 78, True)
+            jobId, 200, "finished", 7787, 4, "complete", 88, True)
 
     def test_award_fin_valid(self):
         """Test valid job."""
@@ -117,7 +117,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 5910, 7, "complete", 60, True)
+            jobId, 200, "finished", 5910, 7, "complete", 53, True)
 
     def test_award_valid(self):
         """Test valid job."""
@@ -129,7 +129,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 2168, 7, "complete", 33, True)
+            jobId, 200, "finished", 2168, 7, "complete", 35, True)
 
     def test_cross_file(self):
         crossId = self.jobIdDict["crossFile"]
