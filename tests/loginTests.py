@@ -32,12 +32,14 @@ class LoginTests(BaseTestAPI):
     def test_expired_locked_login(self):
         """Test broker expired lockout"""
         response = self.login_expired_locked_user()
+        self.assertEqual(response.status_code, 401)
         self.assertIn("expired", response.json["message"].lower())
 
     def test_password_locked_login(self):
         """Test broker password lockout"""
         for i in range(1,4):
             response = self.login_password_locked_user()
+            self.assertEqual(response.status_code, 401)
         self.assertIn("locked", response.json["message"].lower())
 
     def test_logout(self):
