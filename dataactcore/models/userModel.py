@@ -22,6 +22,7 @@ class User(Base):
     user_status = relationship("UserStatus", uselist=False)
     last_login_date = Column(DateTime)
     is_active = Column(Boolean, default=True, nullable=False, server_default="True")
+    incorrect_password_attempts = Column(Integer, default=0, nullable=False, server_default='0')
 
 class PermissionType(Base):
     __tablename__ = "permission_type"
