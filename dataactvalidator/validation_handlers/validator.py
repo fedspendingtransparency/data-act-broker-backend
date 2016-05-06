@@ -8,6 +8,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.models.validationModels import TASLookup
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 class Validator(object):
     """
@@ -134,7 +135,7 @@ class Validator(object):
     def validate(record,rules,csvSchema,fileType,interfaces):
         """
         Args:
-        record -- dict represenation of a single record of data
+        record -- dict representation of a single record of data
         rules -- list of rule Objects
         csvSchema -- dict of schema for the current file.
         fileType -- name of file type to check against
@@ -333,6 +334,27 @@ class Validator(object):
         raise ValueError("Rule Type Invalid")
 
     @staticmethod
+    def requireOne(record, fields, interfaces):
+        """ Require at least one of the specified fields to be present
+
+        Args:
+            record: Dict for current record
+            fields: List of fields to check
+            interfaces: interface holder for DBs
+
+        Returns:
+            True if at least one of the fields is present
+        """
+        for field in fields:
+            fieldName = FieldCleaner.cleanName(field)
+            if fieldName in record and record[fieldName] is not None and str(record[fieldName]).strip() != "":
+                # If data is present in this field, rule is satisfied
+                return True
+
+        # If all were empty, return false
+        return False
+
+    @staticmethod
     def conditionalRequired(data,rule,datatype,interfaces,record):
         """ If conditional rule passes, data must not be empty """
         # Get rule object for conditional rule
@@ -369,6 +391,8 @@ class Validator(object):
             return Validator.validateTAS(fieldsToCheck, tasFields, record, interfaces, fileType)
         elif(ruleType == "SUM_TO_VALUE"):
             return Validator.validateSum(rule.rule_text_1, rule.rule_text_2, record)
+        elif(ruleType == "REQUIRE_ONE_OF_SET"):
+            return Validator.requireOne(record,rule.rule_text_1.split(','),interfaces)
         else:
             raise ResponseException("Bad rule type for multi-field rule",StatusCode.INTERNAL_ERROR)
 

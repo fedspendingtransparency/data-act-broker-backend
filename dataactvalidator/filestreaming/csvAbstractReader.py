@@ -66,23 +66,28 @@ class CsvAbstractReader(object):
         #Check that all required fields exists
         missingHeaders = []
         for schema in csvSchema :
-            if(schema.required and  possibleFields[FieldCleaner.cleanString(schema.name)] == 0) :
+            if(possibleFields[FieldCleaner.cleanString(schema.name)] == 0) :
                 missingHeaders.append(schema.name)
         if(len(missingHeaders) > 0 or len(duplicatedHeaders) > 0):
             # Write header errors if any occurred and raise a header_error exception
-
+            errorString = ""
             with self.getWriter(bucketName, errorFilename, self.headerReportHeaders, self.isLocal) as writer:
                 extraInfo = {}
                 if(len(duplicatedHeaders) > 0):
+                    errorString = "".join([errorString, "Duplicated: ",", ".join(duplicatedHeaders)])
                     extraInfo["duplicated_headers"] = ", ".join(duplicatedHeaders)
                     for header in duplicatedHeaders:
                         writer.write(["Duplicated header", header])
                 if(len(missingHeaders) > 0):
+                    if(len(duplicatedHeaders)):
+                        # Separate missing and duplicated headers if both are present
+                        errorString += "| "
+                    errorString = "".join([errorString, "Missing: ",", ".join(missingHeaders)])
                     extraInfo["missing_headers"] = ", ".join(missingHeaders)
                     for header in missingHeaders:
                         writer.write(["Missing header", header])
                 writer.finishBatch()
-            raise ResponseException("Errors in header row", StatusCode.CLIENT_ERROR, ValueError,ValidationError.headerError,**extraInfo)
+            raise ResponseException("Errors in header row: " + str(errorString), StatusCode.CLIENT_ERROR, ValueError,ValidationError.headerError,**extraInfo)
 
     @staticmethod
     def getWriter(bucketName,fileName,header,isLocal, region = None):

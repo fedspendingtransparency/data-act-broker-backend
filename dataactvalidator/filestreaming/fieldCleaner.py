@@ -55,7 +55,7 @@ class FieldCleaner:
 
     @staticmethod
     def cleanName(name):
-        """ Remove whitespace from name and change to lowercase """
+        """ Remove whitespace from name and change to lowercase, also clean up special characters """
         # Convert to lowercase and remove whitespace on ends
         originalName = name
         name = FieldCleaner.cleanString(name)
