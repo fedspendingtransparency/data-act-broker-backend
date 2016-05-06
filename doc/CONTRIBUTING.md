@@ -106,6 +106,13 @@ Don't worry about setting DynamoDB endpoints or creating tables: the broker's co
 
 **Note:** The local version of DynamoDB is not recommended for production.
 
+### Install RabbitMQ
+
+RabbitMQ is used to pass jobs to the validator, and requires Erlang to be installed before RabbitMQ.
+
+1.  Install Erlang based on the [download instructions](https://www.erlang.org/downloads)
+2.  Choose an installation guide based on your OS for [RabbitMQ](https://www.rabbitmq.com/download.html).  Be sure to install Erlang before installing RabbitMQ.  The default user and password is "guest"/"guest", be sure to update the config.yml file if you change this.
+
 ### Clone Broker Backend Code Repository
 
 Now we're ready to install the DATA Act broker itself. Before starting:
