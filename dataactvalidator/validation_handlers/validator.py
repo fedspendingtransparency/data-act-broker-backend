@@ -90,8 +90,11 @@ class Validator(object):
                     # Fields don't match target file, add to failures
                     rulePassed = False
                     dictString = str(matchDict)[1:-1] # Remove braces
-
-                    failures.append([", ".join(fieldsToCheck),rule.description,dictString])
+                    if isinstance(thisRecord,dict):
+                        rowNumber = thisRecord["row"]
+                    else:
+                        rowNumber = getattr(thisRecord,"row")
+                    failures.append([fileType,", ".join(fieldsToCheck),rule.description,dictString,rowNumber])
         elif ruleType == "rule_if":
             # Get all records from source table
             sourceTable = cls.getTable(submissionId, fileType, stagingDb)
@@ -150,6 +153,9 @@ class Validator(object):
                 return False, [[fieldName, ValidationError.requiredError, ""]]
 
         for fieldName in record :
+            if fieldName == "row":
+                # Skip row number, nothing to validate on that
+                continue
             checkRequiredOnly = False
             currentSchema =  csvSchema[fieldName]
             ruleSubset = Validator.getRules(fieldName, fileType, rules,interfaces.validationDb)

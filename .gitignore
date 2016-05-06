@@ -33,5 +33,6 @@ dataactvalidator/scripts/clearRules.py
 dataactvalidator/databaseErrors.log
 dataactvalidator/scripts/dropAll.py
 scripts/all_tas_betc.csv
-runDynamo.py
 shared-local-instance.db
+dataactcore/scripts/dropMany.py
+runDynamo.py

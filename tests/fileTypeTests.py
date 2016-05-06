@@ -30,7 +30,6 @@ class FileTypeTests(BaseTestValidator):
         s3FileNameAwardMixed = cls.uploadFile("awardMixed.csv", user)
         s3FileNameCrossAwardFin = cls.uploadFile("cross_file_C.csv", user)
         s3FileNameCrossAward = cls.uploadFile("cross_file_D2.csv", user)
-
         # Create submissions and get IDs back
         submissionIDs = {}
         for i in range(0, 11):
@@ -142,9 +141,11 @@ class FileTypeTests(BaseTestValidator):
         self.assertEqual(crossFileResponse.status_code, 200,msg=str(crossFileResponse.json))
         # Check number of cross file validation errors in DB for this job
         self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId),2)
+        # Check cross file job complete
+        self.waitOnJob(self.interfaces.jobDb, crossId, "finished", self.useThreads)
         # Check that cross file validation report exists and is the right size
         jobTracker = self.interfaces.jobDb
-        fileSize = 361
+        fileSize = 400
         reportPath = jobTracker.getCrossFileReportPath(jobTracker.getSubmissionId(crossId))
         if self.local:
             path = "".join(

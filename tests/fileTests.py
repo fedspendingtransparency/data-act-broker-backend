@@ -130,7 +130,6 @@ class FileTests(BaseTestAPI):
     def test_update_submission(self):
         """ Test submit_files with an existing submission ID """
         self.call_file_submission()
-        print("Updating submission: " + str(self.updateSubmissionId))
         if(CONFIG_BROKER["use_aws"]):
             updateJson = {"existing_submission_id": self.updateSubmissionId,
                 "award_financial":"updated.csv",
@@ -287,6 +286,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
         self.assertEqual(len(response.json), 5)
+        self.assertIn("cross_file_error_url", response.json)
 
     def check_metrics(self, submission_id, exists, type_file) :
         """Get error metrics for specified submission."""
