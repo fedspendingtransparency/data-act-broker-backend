@@ -1,55 +1,61 @@
 fieldname,required,data_type,field_length,rule_labels
-CFDA_Number,Required,string,7,D4
-AwardeeOrRecipientLegalEntityName,Required,string,120,D12
-LegalEntityCityCode,Optional,string,5,"D13, D36"
-LegalEntityCountyCode,Required,string,3,D15
-LegalEntityStateCode,Required,string,2,D16
-LegalEntityZIP9,Conditional per Validation Rule,integer,9,D17
-LegalEntityCongressionalDistrict,Conditional per Validation Rule,integer,2,"D18, D17"
-BusinessTypes,Required,string,2,
-LegalEntityAddressLine1,Conditional per Validation Rule,string,150,"D14, D38, D17"
-TypeOfAction,Optional,string,1,
-LegalEntityCountryCode,Required,string,3,D19
-FainAwardNumber,Conditional per Validation Rule,string,30,"C8, C9, D5"
-LegalEntityCityName,Optional,string,40,D14
-AwardModAmendmentNumber,Optional,string,25,D6
-LegalEntityCountyName,Required,string,40,
-ActionDate,Required,string,8,D24
-LegalEntityAddressLine2,Required,string,150,"D14, D38"
-PeriodOfPerfStartDate,Optional,string,8,"D23, D32"
-LegalEntityAddressLine3,Optional,string,35,D38
-PeriodOfPerfCurrentEndDate,Optional,string,8,"D23, D33, D34"
-AssistanceType,Required,integer,2,
-RecordType,Required,integer,1,D25
-PlaceofPerformanceCode,Required,string,7,"D22, D35"
-PlaceOfPerfZIP9,Conditional per Validation Rule,integer,9,D9
-PlaceOfPerfCongressionalDistrict,Required,integer,2,D11
-AwardeeOrRecipientUniqueIdentifier,Required,integer,9,D7
-FaceValueLoanGuarantee,Conditional per Validation Rule,numeric,20,D27
-OriginalLoanSubsidyCost,Conditional per Validation Rule,numeric,20,D28
-BusinessFundsIndicator,Required,string,3,D20
-PlaceOfPerfCountryCode,Required,string,3,D8
-URI,Conditional per Validation Rule,string,70,"C8, C9, D30"
-CFDA_Title,Optional,string,100,D37
-AwardDescription,Required,string,4000,
-PlaceOfPerfPostalCode,Conditional per Validation Rule,string,50,D10
-SAINumber,Optional,string,50,
-Correction_LateIndicator,Optional,string,1,D21
-FederalActionObligation,Required,numeric,20,D26
-NonFederalFundingAmount,Optional,numeric,20,D29
-AwardingAgencyName,Optional,string,50,
-AwardingAgencyCode,Optional,string,4,
-AwardingAgencyOfficeCode,Optional,string,6,
-FundingAgencyOfficeCode,Optional,string,6,
-DUNSNumberPlus4,Optional,integer,4,
-PlaceOfPerfState,Optional,string,2,
-DUNSConfidenceCode,Optional,,2,
-TotalFundingAmount,Optional,numeric,20,D31
-FederalFundingSign,Optional,string,1,D39
-NonFederalFundingSign,Optional,string,1,D39
-TotalFundingSign,Optional,string,1,D39
-FiscalYearandQuarterCorrection,Optional,string,5,D40
-StateName,Optional,string,25,
-AgencyIdentifier,Optional,string,2,D41
-MainAccountCode,Optional,string,4,D42
-SubAccountCode,Optional,string,3,D43
+ActionType,ASP: Conditional per Validation Rule,string,1,"D1, D2"
+ActionDate,ASP: Required,string,8,"D3, D4"
+AssistanceType ,ASP: Required,string,2,D1
+RecordType,ASP: Required,integer,1,D1
+FAIN,ASP: Conditional per Validation Rule,string,30,"C9, D2, D5, D6"
+AwardModificationAmendmentNumber,ASP: Optional,string,25,D6
+URI,ASP: Conditional per Validation Rule,string,70,"C9, D6, D7"
+CorrectionLateDeleteIndicator,ASP: Optional,string,1,D1
+FiscalYearAndQuarterCorrection,ASP: Optional,string,5,D8
+SAI_Number,ASP: Optional,string,50,
+AwardeeOrRecipientLegalEntityName,ASP: Required,string,120,D22
+AwardeeOrRecipientUniqueIdentifier,ASP: Conditional per Validation Rule,string,9,"D2, D10"
+LegalEntityAddressLine1,ASP: Conditional per Validation Rule,string,150,D2
+LegalEntityAddressLine2,ASP: Optional,string,150,
+LegalEntityAddressLine3,ASP: Optional,string,35,
+LegalEntityCityName,ASP: Derived,string,40,
+LegalEntityCityCode,ASP: Derived,string,5,
+LegalEntityCountyName,ASP: Derived,string,40,
+LegalEntityCountyCode,ASP: Derived,string,3,
+LegalEntityStateName,ASP: Derived,string,50,
+LegalEntityStateCode,ASP: Derived,string,2,
+LegalEntityZIP5,ASP: Conditional per Validation Rule,string,5,"D2, D11"
+LegalEntityZIPLast4,ASP: Conditional per Validation Rule,string,4,"D2, D11"
+LegalEntityCountryCode,ASP: Conditional per Validation Rule,string,3,"D1, D2, D12"
+LegalEntityForeignCityName,ASP: Conditional per Validation Rule,string,40,D9
+LegalEntityForeignProvinceName,ASP: Optional,string,25,
+LegalEntityForeignPostalCode,ASP: Optional,string,50,
+LegalEntityCongressionalDistrict,ASP: Derived,string,2,
+BusinessTypes,ASP: Required,string,3,D1
+FundingAgencyName,ASP: Derived,string,100,
+FundingAgencyCode,ASP: Optional,string,3,D1
+FundingSubTierAgencyName,ASP: Derived,string,100,
+FundingSubTierAgencyCode,ASP: Optional,string,4,D1
+FundingAgencyOfficeName,ASP: Derived,string,100,
+FundingOfficeCode,ASP: Optional,string,3,
+AwardingAgencyName,ASP: Derived,string,100,
+AwardingAgencyCode,ASP: Optional,string,3,D1
+AwardingSubTierAgencyName,ASP: Derived,string,100,
+AwardingSubTierAgencyCode,ASP: Required,string,4,"D1, D6"
+AwardingOfficeName,ASP: Derived,string,100,
+AwardingOfficeCode,ASP: Optional,string,3,
+CFDA_Number,ASP: Required,string,7,D13
+CFDA_Title,ASP: Derived,string,100,
+PrimaryPlaceOfPerformanceCode,ASP: Required,string,7,"D1, D14, D15"
+PrimaryPlaceOfPerformanceCountryCode,ASP: Required,string,3,D1
+PrimaryPlaceOfPerformanceStateName,ASP: Derived,string,50,
+PrimaryPlaceOfPerformanceCountyName,ASP: Derived,string,40,
+PrimaryPlaceOfPerformanceCityName,ASP: Derived,string,100,
+PrimaryPlaceOfPerformanceZIP+4,ASP: Conditional per Validation Rule,string,10,"D2, D16"
+PrimaryPlaceOfPerformanceForeignLocationDescription,ASP: Conditional per Validation Rule,string,100,D17
+PrimaryPlaceOfPerformanceCongressionalDistrict,ASP: Derived,string,2,
+AwardDescription,ASP: Conditional per Validation Rule,string,4000,D2
+PeriodOfPerformanceStartDate,ASP: Optional,string,8,"D3, D18"
+PeriodOfPerformanceCurrentEndDate,ASP: Optional,string,8,"D3, D4, D19"
+FederalActionObligation,ASP: Conditional per Validation Rule,numeric,20,"C12, D20"
+NonFederalFundingAmount,ASP: Optional,numeric,20,
+TotalFundingAmount,ASP: Derived,numeric,20,
+FaceValueLoanGuarantee,ASP: Conditional per Validation Rule,numeric,20,D21
+OriginalLoanSubsidyCost,ASP: Conditional per Validation Rule,numeric,20,D21
+BusinessFundsIndicator,ASP: Required,string,3,D1

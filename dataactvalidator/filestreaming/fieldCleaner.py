@@ -55,7 +55,7 @@ class FieldCleaner:
 
     @staticmethod
     def cleanName(name):
-        """ Remove whitespace from name and change to lowercase """
+        """ Remove whitespace from name and change to lowercase, also clean up special characters """
         # Convert to lowercase and remove whitespace on ends
         originalName = name
         name = FieldCleaner.cleanString(name)
@@ -73,9 +73,12 @@ class FieldCleaner:
     def cleanRequired(required):
         """ Convert 'required' and '(required)' to True, "optional" and "required if relevant" if False, otherwise raises an exception """
         required = FieldCleaner.cleanString(required,False)
+        if required[0:3].lower() == "asp":
+            # Remove ASP prefix
+            required = required[5:]
         if(required == "required" or required == "(required)" or required == "true"):
             return "true"
-        elif(required == "false" or required == "" or required == "optional" or required == "required if relevant" or required == "required if modification" or required == "conditional per validation rule" or required == "conditional per award type" or required == "conditionally required"):
+        elif(required == "false" or required == "" or required == "optional" or required == "required if relevant" or required == "required if modification" or required == "conditional per validation rule" or required == "conditional per award type" or required == "conditionally required" or required == "derived"):
             return "false"
         else:
             raise ValueError("".join(["Unknown value for required: ", required]))
