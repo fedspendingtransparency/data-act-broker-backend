@@ -65,10 +65,10 @@ class AccountHandler:
             try:
                 user  = self.interfaces.userDb.getUserByEmail(username)
             except Exception as e:
-                raise ValueError("user name and or password invalid")
+                raise ValueError("Invalid username and/or password")
 
             if(not self.interfaces.userDb.checkStatus(user,"approved")):
-                raise ValueError("user name and or password invalid")
+                raise ValueError("Invalid username and/or password")
 
             # Only check if user is active after they've logged in for the first time
             if user.last_login_date is not None and not self.isUserActive(user, True):
@@ -96,15 +96,15 @@ class AccountHandler:
                     # if this is the 3rd incorrect attempt, lock account
                     self.incrementPasswordCount(user)
                     if user.incorrect_password_attempts == 3:
-                        raise ValueError("Your account has been locked due to too many incorrect password attempts. Please contact an administrator.")
+                        raise ValueError("Your account has been locked due to too many failed login attempts. Please contact an administrator.")
 
-                    raise ValueError("user name and or password invalid")
+                    raise ValueError("Invalid username and/or password")
             except ValueError as ve:
                 LoginSession.logout(session)
                 raise ve
             except Exception as e:
                     LoginSession.logout(session)
-                    raise ValueError("user name and or password invalid")
+                    raise ValueError("Invalid username and/or password")
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
