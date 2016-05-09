@@ -48,7 +48,8 @@ class CsvAbstractReader(object):
 
         duplicatedHeaders = []
         #create the header
-        for row in csv.reader([line],dialect='excel'):
+        self.delimiter = "|" if line.count("|") > line.count(",") else ","
+        for row in csv.reader([line],dialect='excel', delimiter=self.delimiter):
             for cell in row :
                 headerValue = FieldCleaner.cleanString(cell)
                 if( not headerValue in possibleFields) :
@@ -104,7 +105,7 @@ class CsvAbstractReader(object):
         returnDict = {}
         line = self._getLine()
 
-        for row in csv.reader([line],dialect='excel'):
+        for row in csv.reader([line],dialect='excel', delimiter=self.delimiter):
             for current, cell in enumerate(row):
                 if(current >= self.columnCount) :
                     raise ResponseException("Record contains too many fields",StatusCode.CLIENT_ERROR,ValueError,ValidationError.readError)
