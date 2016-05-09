@@ -48,7 +48,15 @@ class CsvAbstractReader(object):
 
         duplicatedHeaders = []
         #create the header
-        self.delimiter = "|" if line.count("|") > line.count(",") else ","
+
+        # check delimiters in header row
+        pipeCount = line.count("|")
+        commaCount = line.count(",")
+
+        if pipeCount != 0 and commaCount != 0:
+            raise ResponseException("Error in header row: CSV file must use only '|' or ',' as the delimiter", StatusCode.CLIENT_ERROR, ValueError, ValidationError.singleRow)
+
+        self.delimiter = "|" if line.count("|") != 0 else ","
         for row in csv.reader([line],dialect='excel', delimiter=self.delimiter):
             for cell in row :
                 headerValue = FieldCleaner.cleanString(cell)
