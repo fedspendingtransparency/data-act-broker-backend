@@ -64,6 +64,8 @@ If you already have a Python development environment on your machine and a prefe
         pip install virtualenvwrapper
 
 4. Tell virtualenvwrapper where on your machine to create virtual environments and add it to your profile. This is a one-time virtualenvwrapper setup step, and the process varies by operating system. [This tutorial](http://newcoder.io/begin/setup-your-machine/ "Python: setting up your computer") covers setting up virtualenvwrapper on OSX, Linux, and Windows.
+   For Windows users, there may be extra steps needed.  If you run into an error on the import-module step, move the "VirtualEnvWrapper" folder from C:/Python27/Lib/site-packages/Users/*username*/Documents/WindowsPowerShell/Modules/ to C:/Users/*username*/Documents/WindowsPowerShell/Modules/.  Next, in powershell run the command "set-executionpolicy unrestricted".  Finally, in the VirtualEnvWrapper directory, open the file "VirtualEnvWrapperTabExpansion.psm1" and change "Function:TabExpansion" to "Function:TabExpansion2" in line 12.
+
 5. Create a virtual environment for the DATA Act software. In this example we've named the environment *data-act*, but you can call it anything:
 
         mkvirtualenv data-act
@@ -138,13 +140,14 @@ Switch to the alpha release version of the code. This is the latest stable relea
 
 **Note:** If you'd rather use the latest, work-in-progress features of the DATA Act broker, replace the above command with `git checkout staging`.
 
-Install the dependencies:
+Install the dependencies.  If you are installing on Windows, you may get an error on the "uwsgi" package.  This is not necessary for local installs, so this error can be ignored, and you can proceed to the next section after getting this error.
 
         $ pip install -r requirements.txt
 
 ### Update $PYTHONPATH
 
 The backend components import Python modules from one another. Therefore, the locations of these modules need to be on your $PYTHONPATH. Use the virtualenvwrapper [add2virtual](http://virtualenvwrapper.readthedocs.org/en/latest/command_ref.html#path-management "virtualenvwrapper path management") shortcut to add them:
+If you are using virtualenvwrapper-powershell in Windows, the following command may not work.  In that case, you can add this directory to your PATH or PYTHONPATH environment variable.
 
         $ add2virtualenv [location of your code]/data-act-broker-backend
 
