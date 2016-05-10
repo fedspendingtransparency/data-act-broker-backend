@@ -11,7 +11,7 @@ RUN dnf install -y git \
 
 RUN pip install unittest-xml-reporting
 
-ADD . /
+ADD . /backend
 
 RUN pip install -r requirements.txt
 
