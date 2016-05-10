@@ -61,8 +61,7 @@ class SchemaLoader(object):
                     try:
                         columnId = validationDb.getColumnId(FieldCleaner.cleanName(record["field_name"]),fileTypeName)
                     except Exception as e:
-                        print("Failed on field " + FieldCleaner.cleanName(record["field_name"]) + " and file " + fileTypeName)
-                        raise e
+                        raise Exception("".join([str(e),"Failed on field ",FieldCleaner.cleanName(record["field_name"])," and file ",fileTypeName]))
                     # Write to rule table
                     if "rule_timing" in record and "rule_label" in record:
                         validationDb.addRule(columnId,record["rule_type"],record["rule_text_one"],record["description"],record["rule_timing"],record["rule_label"])
