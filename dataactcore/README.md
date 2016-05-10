@@ -17,6 +17,7 @@ The DATA Act broker uses the following databases; the models and setup scripts f
 * `staging` - Holds records that passed validation. Each file validated will have a table in this database, named based on the job ID. If the `file_status` table in the `error_data` database lists the file as completed, each record in the input file will be present in either this staging table or the error report.
 * `user_manager` - Holds a mapping between user names and user IDs to be used for providing submission history information to a user.
 * `validation` - Contains all the information a submitted file is validated against. The `file_columns` table details what columns are expected in each file type, and the rule table maps all defined single-field rules to one of the columns specified in `file_columns`. The `multi_field_rule` table stores rules that involve a set of fields, but are still checked against a single record at a time. Finally, the `tas_lookup` table holds the set of valid TAS combinations, taken from the TAS csv file discussed in the setup section.
+* `job_queue` - Holds queue of jobs to be sent to validator
 
 ## DATA Act Core Project Layout
 
@@ -26,6 +27,7 @@ DATA Act packages.  The directory structure is as follows:
 ```
 dataactcore/
 ├── aws/            (Common AWS functions)
+├── migrations/     (Alembic migration scripts)
 ├── credentials/    (Database credentials)
 ├── models/         (ORM models and database interfaces)
 ├── scripts/        (Database setup scripts)
@@ -35,6 +37,10 @@ dataactcore/
 #### AWS
 
 The `aws/` folder contains all of the common code that uses AWS Boto SDK, which requires the AWS CLI to function correctly. The installation instructions for the AWS CLI can be found in the [DATA Act installation guide](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md).
+
+#### Migrations
+
+This contains the code for running migrations to different alembic versions of the databases, and contains the version history for all alembic migrations.
 
 #### Models
 

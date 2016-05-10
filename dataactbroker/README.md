@@ -555,14 +555,12 @@ Example output:
 
 ## Test Cases
 
-To run the broker API unit tests, navigate to the main project folder (`data-act-broker`) and type the following:
+To run the broker API unit tests, navigate to the main project folder (`data-act-broker-backend`) and type the following:
 
         $ python tests/runTests.py
 
-Before running test cases, [make sure the validator is running](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md#run-broker-backend-applications "run the DATA Act broker backend apps").
-
 To generate a test coverage report from the command line:
 
-1. Make sure you're in the main project folder (`data-act-broker`).
+1. Make sure you're in the main project folder (`data-act-broker-backend`).
 2. Run the tests using the `coverage` command: `coverage run tests/runTests.py`.
 3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
