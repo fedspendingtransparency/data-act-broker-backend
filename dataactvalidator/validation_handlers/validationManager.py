@@ -163,7 +163,7 @@ class ValidationManager:
         errorFileName = self.getFileName(jobTracker.getReportPath(jobId))
 
         # Create File Status object
-        interfaces.errorDb.createFileStatusIfNeeded(jobId,fileName)
+        interfaces.errorDb.createFileIfNeeded(jobId,fileName)
 
         validationDB = interfaces.validationDb
         fieldList = validationDB.getFieldsByFileList(fileType)

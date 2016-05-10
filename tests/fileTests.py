@@ -9,7 +9,7 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from baseTestAPI import BaseTestAPI
 from dataactcore.models.jobModels import Submission, JobStatus
-from dataactcore.models.errorModels import ErrorData, FileStatus
+from dataactcore.models.errorModels import ErrorData, File
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.responseException import ResponseException
 from dataactbroker.handlers.jobHandler import JobHandler
@@ -48,7 +48,7 @@ class FileTests(BaseTestAPI):
         # setup file status data for test_metrics
         cls.test_metrics_submission_id = cls.insertSubmission(
             cls.jobTracker, cls.submission_user_id)
-        cls.setupFileStatusData(cls.jobTracker, cls.errorDatabase,
+        cls.setupFileData(cls.jobTracker, cls.errorDatabase,
             cls.test_metrics_submission_id)
 
     def setUp(self):
@@ -342,9 +342,9 @@ class FileTests(BaseTestAPI):
         return job.job_id
 
     @staticmethod
-    def insertFileStatus(errorDB, job, status):
+    def insertFile(errorDB, job, status):
         """Insert one file status into error database and get ID back."""
-        fs = FileStatus(
+        fs = File(
             job_id=job,
             filename=' ',
             status_id=status
@@ -397,9 +397,14 @@ class FileTests(BaseTestAPI):
             )
             jobIdDict[jobKey] = job_id
 
-        # For appropriations job, create an entry in file_status for this job
-        fileStatus = FileStatus(job_id = jobIdDict["appropriations"],filename = "approp.csv", status_id = interfaces.errorDb.getStatusId("complete"), headers_missing = "missing_header_one, missing_header_two", headers_duplicated = "duplicated_header_one, duplicated_header_two",row_errors_present = True)
-        interfaces.errorDb.session.add(fileStatus)
+        # For appropriations job, create an entry in file for this job
+        fileRec = File(job_id=jobIdDict["appropriations"],
+                       filename="approp.csv",
+                       status_id=interfaces.errorDb.getStatusId("complete"),
+                       headers_missing="missing_header_one, missing_header_two",
+                       headers_duplicated="duplicated_header_one, duplicated_header_two",
+                       row_errors_present=True)
+        interfaces.errorDb.session.add(fileRec)
 
         # Put some entries in error data for approp job
         ruleError = ErrorData(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_three", error_type_id = 6, occurrences = 7, rule_failed = "Header three value must be real")
@@ -423,7 +428,7 @@ class FileTests(BaseTestAPI):
             submission=error_report_submission_id)
 
     @staticmethod
-    def setupFileStatusData(jobTracker, errorDb, submission_id):
+    def setupFileData(jobTracker, errorDb, submission_id):
         """Setup test data for the route test"""
 
         # TODO: remove hard-coded surrogate keys
@@ -434,7 +439,7 @@ class FileTests(BaseTestAPI):
             type_id=2,
             submission=submission_id
         )
-        FileTests.insertFileStatus(errorDb, job, 1) # Everything Is Fine
+        FileTests.insertFile(errorDb, job, 1) # Everything Is Fine
 
         job = FileTests.insertJob(
             jobTracker,
@@ -443,7 +448,7 @@ class FileTests(BaseTestAPI):
             type_id=2,
             submission=submission_id
         )
-        FileTests.insertFileStatus(errorDb, job, 3) # Bad Header
+        FileTests.insertFile(errorDb, job, 3) # Bad Header
 
         job = FileTests.insertJob(
             jobTracker,
@@ -452,7 +457,7 @@ class FileTests(BaseTestAPI):
             type_id=2,
             submission=submission_id
         )
-        FileTests.insertFileStatus(errorDb, job, 1) # Validation level Errors
+        FileTests.insertFile(errorDb, job, 1) # Validation level Errors
         FileTests.insertRowLevelError(errorDb, job)
 
 if __name__ == '__main__':

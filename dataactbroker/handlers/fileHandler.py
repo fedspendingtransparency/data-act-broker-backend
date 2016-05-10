@@ -231,7 +231,7 @@ class FileHandler:
                     jobInfo["error_type"] = ""
                     jobInfo["error_data"] = []
                 else:
-                    # If job ID was found in file_status, we should be able to get header error lists and file data
+                    # If job ID was found in file, we should be able to get header error lists and file data
                     # Get string of missing headers and parse as a list
                     missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(jobId)
                     if missingHeaderString is not None:

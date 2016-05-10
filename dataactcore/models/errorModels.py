@@ -22,8 +22,8 @@ class ErrorType(Base):
     name = Column(Text)
     description = Column(Text)
 
-class FileStatus(Base):
-    __tablename__ = "file_status"
+class File(Base):
+    __tablename__ = "file"
 
     file_id = Column(Integer, primary_key=True)
     job_id = Column(Integer, nullable=True, unique=True)

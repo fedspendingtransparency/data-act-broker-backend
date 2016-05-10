@@ -47,7 +47,7 @@ def upgrade_error_data():
     op.alter_column('error_type', 'name',
                existing_type=sa.TEXT(),
                nullable=True)
-    op.alter_column('file_status', 'status_id',
+    op.alter_column('file', 'status_id',
                existing_type=sa.INTEGER(),
                nullable=True)
     op.alter_column('status', 'description',
@@ -67,7 +67,7 @@ def downgrade_error_data():
     op.alter_column('status', 'description',
                existing_type=sa.TEXT(),
                nullable=False)
-    op.alter_column('file_status', 'status_id',
+    op.alter_column('file', 'status_id',
                existing_type=sa.INTEGER(),
                nullable=False)
     op.alter_column('error_type', 'name',
