@@ -46,7 +46,7 @@ def insertCodes():
         (7, 'IN_SET', 'value must be in set'),
         (8, 'MIN LENGTH', 'length of data must be at least reference value'),
         (9, 'REQUIRED_CONDITIONAL', 'field is required if secondary rule passes'),
-        (10, 'SUM', 'field is equal to the sum of other fields')
+        (10, 'SUM', 'field is equal to the sum of other fields'),
         ]
     for r in ruleTypeList:
         ruleType = RuleType(rule_type_id=r[0], name=r[1], description=r[2])
@@ -70,7 +70,8 @@ def insertCodes():
         (2, 'FIELD_MATCH', 'Match a set of fields against a different file'),
         (3, 'RULE_IF', 'Apply first rule if second rule passes'),
         (4, 'GREATER', 'Check if field is greater than specified value'),
-        (5, 'SUM_TO_VALUE', 'Sum a set of fields and compare to specified value')
+        (5, 'SUM_TO_VALUE', 'Sum a set of fields and compare to specified value'),
+        (6, 'REQUIRE_ONE_OF_SET', 'At least one of these fields must be present')
         ]
     for m in mfrTypeList:
         mfrt = MultiFieldRuleType(
