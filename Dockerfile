@@ -13,7 +13,7 @@ RUN pip install unittest-xml-reporting
 
 ADD . /backend
 
-RUN pip install -r requirements.txt
+RUN pip install -r backend/requirements.txt
 
 CMD export PYTHONPATH="${PYTHONPATH}:/"
 
