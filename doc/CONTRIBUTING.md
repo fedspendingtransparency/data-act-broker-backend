@@ -113,7 +113,7 @@ Don't worry about setting DynamoDB endpoints or creating tables: the broker's co
 RabbitMQ is used to pass jobs to the validator, and requires Erlang to be installed before RabbitMQ.
 
 1.  Install Erlang based on the [download instructions](https://www.erlang.org/downloads)
-2.  Choose an installation guide based on your OS for [RabbitMQ](https://www.rabbitmq.com/download.html).  Be sure to install Erlang before installing RabbitMQ.  The default user and password is "guest"/"guest", be sure to update the config.yml file if you change this.
+2.  Choose an installation guide based on your OS for [RabbitMQ](https://www.rabbitmq.com/download.html).  Be sure to install Erlang before installing RabbitMQ.  The default user and password is "guest"/"guest", if you change these you'll need to keep that information to be placed in the config file later in the process.
 
 ### Clone Broker Backend Code Repository
 
