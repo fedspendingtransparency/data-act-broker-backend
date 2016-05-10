@@ -46,6 +46,10 @@ class CsvAbstractReader(object):
         # make sure we have not finished reading the file
 
         if(self.isFinished) :
+            # Write header error for no header row
+            with self.getWriter(bucketName, errorFilename, ["Error Type"], self.isLocal) as writer:
+                writer.write(["No header row"])
+                writer.finishBatch()
             raise ResponseException("CSV file must have a header",StatusCode.CLIENT_ERROR,ValueError,ValidationError.singleRow)
 
         duplicatedHeaders = []

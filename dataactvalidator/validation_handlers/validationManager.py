@@ -196,8 +196,6 @@ class ValidationManager:
             # Pull file
             reader.openFile(regionName, bucketName, fileName,fieldList,bucketName,errorFileName)
             # Create staging table
-            # While not done, pull one row and put it into staging if it passes
-            # the Validator
 
             tableName = interfaces.stagingDb.getTableName(jobId)
             # Create staging table
