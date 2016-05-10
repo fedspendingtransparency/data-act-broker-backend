@@ -46,4 +46,3 @@ class ErrorData(Base):
     occurrences = Column(Integer)
     first_row = Column(Integer)
     rule_failed = Column(Text, nullable=True)
-
