@@ -22,7 +22,6 @@ class s3UrlHandler:
 
         arguments:
         name -- (String) Name of the S3 bucket
-        user -- (int) User id folder of S3 bucket
 
         """
         if(name == None):
@@ -39,9 +38,9 @@ class s3UrlHandler:
         Creates the object for signing URLS
 
         arguments:
-
-        fileName -- (String) File name of file to be uploaded to S3.
-
+            path - (String) path to folder
+            fileName - (String) File name of file to be uploaded to S3.
+            method - method to create signed url for
         returns signed url (String)
 
         """

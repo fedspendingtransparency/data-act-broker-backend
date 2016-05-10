@@ -12,7 +12,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 
 def options():
-
+    """ Run functions based on arguments provided """
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--initialize", action="store_true", help="Runs all of the setup options")
     parser.add_argument("-a", "--createAdmin", action="store_true", help="Creates admin user")
@@ -31,6 +31,7 @@ def options():
 
 
 def initialize():
+    """ Set up databases and dynamo and create an admin user """
     print ("Setting up databases...")
     setupDB()
     print ("Setting up DynamoDB session table...")
@@ -41,6 +42,7 @@ def initialize():
 
 
 def setupDB():
+    """ Setup all databases used by API """
     setupJobTrackerDB()
     setupErrorDB()
     setupUserDB()
@@ -65,10 +67,12 @@ def createAdmin():
 
 
 def setupSessionTable():
+    """ Create Dynamo session table """
     SessionTable.createTable(CONFIG_BROKER['local'], CONFIG_DB['dynamo_port'])
 
 
 def start():
+    """ Launches the app """
     from dataactbroker.app import runApp
     runApp()
 
