@@ -88,11 +88,11 @@ class ValidatorJobTrackerInterface(JobTrackerInterface):
         Returns:
         True if correct type, False or exception otherwise
         """
-        query = self.session.query(Job.type_id).filter(Job.job_id == jobId)
+        query = self.session.query(Job.job_type_id).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
-        if result.type_id == self.getTypeId("csv_record_validation") or result.type_id == self.getTypeId("validation"):
+        if result.job_type_id == self.getJobTypeId("csv_record_validation") or result.job_type_id == self.getJobTypeId("validation"):
             # Correct type
-            return result.type_id
+            return result.job_type_id
         else:
             # Wrong type
             raise ResponseException("Wrong type of job for this service",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)

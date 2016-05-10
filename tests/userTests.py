@@ -25,7 +25,7 @@ class UserTests(BaseTestAPI):
                 cls.submission_id = sub.submission_id
 
         # Add job to first submission
-        job = Job(submission_id=cls.submission_id, job_status_id=3, type_id=1, file_type_id=1)
+        job = Job(submission_id=cls.submission_id, job_status_id=3, job_type_id=1, file_type_id=1)
         jobDb.session.add(job)
         jobDb.session.commit()
         cls.uploadId = job.job_id

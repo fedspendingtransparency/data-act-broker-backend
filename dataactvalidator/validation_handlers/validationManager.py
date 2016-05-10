@@ -97,9 +97,9 @@ class ValidationManager:
         errorDb = interfaces.errorDb
         try:
             jobType = interfaces.jobDb.checkJobType(jobId)
-            if jobType == interfaces.jobDb.getTypeId("csv_record_validation"):
+            if jobType == interfaces.jobDb.getJobTypeId("csv_record_validation"):
                 self.runValidation(jobId,interfaces)
-            elif jobType == interfaces.jobDb.getTypeId("validation"):
+            elif jobType == interfaces.jobDb.getJobTypeId("validation"):
                 self.runCrossValidation(jobId, interfaces)
             else:
                 raise ResponseException("Bad job type for validator", StatusCode.INTERNAL_ERROR)
@@ -325,9 +325,9 @@ class ValidationManager:
 
         try:
             jobTracker.markJobStatus(jobId,"running")
-            if jobType == interfaces.jobDb.getTypeId("csv_record_validation"):
+            if jobType == interfaces.jobDb.getJobTypeId("csv_record_validation"):
                 self.runValidation(jobId,interfaces)
-            elif jobType == interfaces.jobDb.getTypeId("validation"):
+            elif jobType == interfaces.jobDb.getJobTypeId("validation"):
                 self.runCrossValidation(jobId, interfaces)
             else:
                 raise ResponseException("Bad job type for validator", StatusCode.INTERNAL_ERROR)

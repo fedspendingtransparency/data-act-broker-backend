@@ -15,12 +15,12 @@ class JobStatus(Base):
     name = Column(Text)
     description = Column(Text)
 
-class Type(Base):
-    __tablename__ = "type"
-    TYPE_DICT = None
-    TYPE_LIST = ["file_upload", "csv_record_validation","db_transfer","validation","external_validation"]
+class JobType(Base):
+    __tablename__ = "job_type"
+    JOB_TYPE_DICT = None
+    JOB_TYPE_LIST = ["file_upload", "csv_record_validation","db_transfer","validation","external_validation"]
 
-    type_id = Column(Integer, primary_key=True)
+    job_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
 
@@ -42,8 +42,8 @@ class Job(Base):
     filename = Column(Text, nullable=True)
     job_status_id = Column(Integer, ForeignKey("job_status.job_status_id", name="fk_job_status_id"))
     job_status = relationship("JobStatus", uselist=False)
-    type_id = Column(Integer, ForeignKey("type.type_id"))
-    type = relationship("Type", uselist=False)
+    job_type_id = Column(Integer, ForeignKey("job_type.job_type_id", name="fk_job_type_id"))
+    job_type = relationship("JobType", uselist=False)
     submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_job_submission_id"))
     submission = relationship("Submission", uselist=False, cascade="delete")
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"), nullable=True)

@@ -1,4 +1,4 @@
-from dataactcore.models.jobModels import JobStatus, Type, FileType
+from dataactcore.models.jobModels import JobStatus, JobType, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_DB
@@ -33,7 +33,7 @@ def insertCodes():
         (4, 'validation', 'new information must be validated'),
         (5, 'external_validation', 'new information must be validated against external sources')]
     for t in typeList:
-        thisType = Type(type_id=t[0],name=t[1], description=t[2])
+        thisType = JobType(job_type_id=t[0],name=t[1], description=t[2])
         jobDb.session.merge(thisType)
 
     fileTypeList = [(1, 'award', ''),

@@ -326,7 +326,7 @@ class FileTests(BaseTestAPI):
         job = Job(
             file_type_id=filetype,
             job_status_id=status,
-            type_id=type_id,
+            job_type_id=type_id,
             submission_id=submission,
             original_filename=filename,
             file_size = file_size,

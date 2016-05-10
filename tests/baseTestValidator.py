@@ -149,7 +149,7 @@ class BaseTestValidator(unittest.TestCase):
     @staticmethod
     def addJob(status, jobType, submissionId, s3Filename, fileType, session):
         """ Create a job model and add it to the session """
-        job = Job(job_status_id=status, type_id=jobType,
+        job = Job(job_status_id=status, job_type_id=jobType,
             submission_id=submissionId, filename=s3Filename, file_type_id=fileType)
         session.add(job)
         session.commit()

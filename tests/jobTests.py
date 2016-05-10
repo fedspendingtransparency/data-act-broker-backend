@@ -31,22 +31,22 @@ class JobTests(BaseTestValidator):
                 jobTracker, userId=cls.userId)
 
         csvFiles = {
-            "valid": {"filename": "testValid.csv", "status": "ready", "type": "csv_record_validation", "submissionLocalId": 1, "fileType": 1},
-            "bad_upload": {"filename": "", "status": "ready", "type": "file_upload", "submissionLocalId": 2, "fileType": 1},
-            "bad_prereq": {"filename": "", "status": "ready", "type": "csv_record_validation", "submissionLocalId" :2,  "fileType": 1},
-            "wrong_type": {"filename": "", "status": "ready", "type": "external_validation", "submissionLocalId": 4, "fileType": 1},
-            "not_ready": {"filename": "", "status": "finished", "type": "csv_record_validation", "submissionLocalId": 5, "fileType": 1},
-            "valid_upload": {"filename": "", "status": "finished", "type": "file_upload", "submissionLocalId": 6, "fileType": 1},
-            "valid_prereq": {"filename": "testPrereq.csv", "status": "ready", "type": "csv_record_validation", "submissionLocalId": 6, "fileType": 1},
-            "bad_values": {"filename": "testBadValues.csv", "status": "ready", "type": "csv_record_validation", "submissionLocalId": 8, "fileType": 1},
-            "mixed": {"filename": "testMixed.csv", "status": "ready", "type": "csv_record_validation", "submissionLocalId": 9, "fileType": 1},
-            "empty": {"filename": "testEmpty.csv", "status": "ready", "type": "csv_record_validation", "submissionLocalId": 10, "fileType": 1},
-            "missing_header": {"filename": "testMissingHeader.csv", "status": "ready", "type": "csv_record_validation", "submissionLocalId": 11, "fileType": 1},
-            "bad_header": {"filename": "testBadHeader.csv", "status": "ready", "type": "csv_record_validation", "submissionLocalId": 12, "fileType": 2},
-            "many": {"filename": "testMany.csv", "status": "ready", "type": "csv_record_validation", "submissionLocalId": 11, "fileType": 3},
-            "odd_characters": {"filename": "testOddCharacters.csv", "status": "ready", "type": "csv_record_validation", "submissionLocalId":14, "fileType": 2},
-            "many_bad": {"filename": "testManyBadValues.csv", "status": "ready", "type": "csv_record_validation", "submissionLocalId": 11, "fileType": 4},
-            "rules": {"filename": "testRules.csv", "status":"ready", "type": "csv_record_validation", "submissionLocalId": 16, "fileType": 3}
+            "valid": {"filename": "testValid.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 1, "fileType": 1},
+            "bad_upload": {"filename": "", "status": "ready", "jobType": "file_upload", "submissionLocalId": 2, "fileType": 1},
+            "bad_prereq": {"filename": "", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId" :2,  "fileType": 1},
+            "wrong_type": {"filename": "", "status": "ready", "jobType": "external_validation", "submissionLocalId": 4, "fileType": 1},
+            "not_ready": {"filename": "", "status": "finished", "jobType": "csv_record_validation", "submissionLocalId": 5, "fileType": 1},
+            "valid_upload": {"filename": "", "status": "finished", "jobType": "file_upload", "submissionLocalId": 6, "fileType": 1},
+            "valid_prereq": {"filename": "testPrereq.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 6, "fileType": 1},
+            "bad_values": {"filename": "testBadValues.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 8, "fileType": 1},
+            "mixed": {"filename": "testMixed.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 9, "fileType": 1},
+            "empty": {"filename": "testEmpty.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 10, "fileType": 1},
+            "missing_header": {"filename": "testMissingHeader.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 11, "fileType": 1},
+            "bad_header": {"filename": "testBadHeader.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 12, "fileType": 2},
+            "many": {"filename": "testMany.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 11, "fileType": 3},
+            "odd_characters": {"filename": "testOddCharacters.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId":14, "fileType": 2},
+            "many_bad": {"filename": "testManyBadValues.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 11, "fileType": 4},
+            "rules": {"filename": "testRules.csv", "status":"ready", "jobType": "csv_record_validation", "submissionLocalId": 16, "fileType": 3}
         }
 
         # Upload needed files to S3
@@ -59,7 +59,7 @@ class JobTests(BaseTestValidator):
             file = csvFiles[key]
             job = cls.addJob(
                 str(jobTracker.getJobStatusId(file["status"])),
-                str(jobTracker.getTypeId(file["type"])),
+                str(jobTracker.getJobTypeId(file["jobType"])),
                 str(submissionIDs[file["submissionLocalId"]]),
                 file["s3Filename"],
                 str(file["fileType"]),
