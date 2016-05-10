@@ -1,6 +1,6 @@
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.errorModels import Status, ErrorType, File, ErrorData
+from dataactcore.models.errorModels import FileStatus, ErrorType, File, ErrorData
 from dataactcore.config import CONFIG_DB
 
 
@@ -24,10 +24,10 @@ class ErrorInterface(BaseInterface):
     def getSession(self):
         return self.session
 
-    def getStatusId(self,statusName):
-        """Get status ID for given name."""
+    def getFileStatusId(self,statusName):
+        """Get file status ID for given name."""
         return self.getIdFromDict(
-            Status, "STATUS_DICT", "name", statusName, "status_id")
+            FileStatus, "FILE_STATUS_DICT", "name", statusName, "file_status_id")
 
     def getTypeId(self,typeName):
         return self.getIdFromDict(
@@ -45,28 +45,28 @@ class ErrorInterface(BaseInterface):
         query = self.session.query(File).filter(File.job_id == jobId)
         return self.runUniqueQuery(query,"No file for that job ID", "Multiple files have been associated with that job ID")
 
-    def checkStatusByJobId(self, jobId):
-        """ Query status for specified job
+    def checkFileStatusByJobId(self, jobId):
+        """ Query file status for specified job
 
         Args:
             jobId: job to check status for
 
         Returns:
-            Status ID of specified job
+            File Status ID of specified job
         """
-        return self.getFileByJobId(jobId).status_id
+        return self.getFileByJobId(jobId).file_status_id
 
-    def getStatusLabelByJobId(self, jobId):
-        """ Query status label for specified job
+    def getFileStatusLabelByJobId(self, jobId):
+        """ Query file status label for specified job
 
         Args:
             jobId: job to check status for
 
         Returns:
-            Status label of specified job (string)
+            File status label (aka name) for specified job (string)
         """
-        query = self.session.query(File).options(joinedload("status")).filter(File.job_id == jobId)
-        return self.runUniqueQuery(query,"No file for that job ID", "Multiple files have been associated with that job ID").status.name
+        query = self.session.query(File).options(joinedload("file_status")).filter(File.job_id == jobId)
+        return self.runUniqueQuery(query,"No file for that job ID", "Multiple files have been associated with that job ID").file_status.name
 
     def checkNumberOfErrorsByJobId(self, jobId):
         """ Get the total number of errors for a specified job
@@ -116,7 +116,7 @@ class ErrorInterface(BaseInterface):
 
     def getErrorType(self,jobId):
         """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
-        if self.getStatusLabelByJobId(jobId) == "header_error":
+        if self.getFileStatusLabelByJobId(jobId) == "header_error":
             # Header errors occurred, return that
             return "header_errors"
         elif self.getFileByJobId(jobId).row_errors_present:

@@ -343,11 +343,11 @@ class FileTests(BaseTestAPI):
 
     @staticmethod
     def insertFile(errorDB, job, status):
-        """Insert one file status into error database and get ID back."""
+        """Insert one file into error database and get ID back."""
         fs = File(
             job_id=job,
             filename=' ',
-            status_id=status
+            file_status_id=status
         )
         errorDB.session.add(fs)
         errorDB.session.commit()
@@ -400,7 +400,7 @@ class FileTests(BaseTestAPI):
         # For appropriations job, create an entry in file for this job
         fileRec = File(job_id=jobIdDict["appropriations"],
                        filename="approp.csv",
-                       status_id=interfaces.errorDb.getStatusId("complete"),
+                       file_status_id=interfaces.errorDb.getFileStatusId("complete"),
                        headers_missing="missing_header_one, missing_header_two",
                        headers_duplicated="duplicated_header_one, duplicated_header_two",
                        row_errors_present=True)

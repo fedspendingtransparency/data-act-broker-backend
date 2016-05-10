@@ -222,7 +222,7 @@ class FileHandler:
                 jobInfo["job_type"] = self.jobManager.getJobType(jobId)
                 jobInfo["filename"] = self.jobManager.getOriginalFilenameById(jobId)
                 try:
-                    jobInfo["file_status"] = self.interfaces.errorDb.getStatusLabelByJobId(jobId)
+                    jobInfo["file_status"] = self.interfaces.errorDb.getFileStatusLabelByJobId(jobId)
                 except ResponseException as e:
                     # Job ID not in error database, probably did not make it to validation, or has not yet been validated
                     jobInfo["file_status"] = ""

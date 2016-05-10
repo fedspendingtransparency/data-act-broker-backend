@@ -22,7 +22,7 @@ class ValidatorErrorInterface(ErrorInterface):
         fileRec = File(job_id=jobId,
                        filename=filename,
                        row_errors_present=False,
-                       status_id=self.getStatusId("incomplete"))
+                       file_status_id=self.getFileStatusId("incomplete"))
         self.session.add(fileRec)
         self.session.commit()
         return fileRec
@@ -62,7 +62,7 @@ class ValidatorErrorInterface(ErrorInterface):
         fileRec = self.createFileIfNeeded(jobId, filename)
 
         # Mark error type and add header info if present
-        fileRec.status_id = self.getStatusId(
+        fileRec.file_status_id = self.getFileStatusId(
             ValidationError.getErrorTypeString(errorType))
         if extraInfo is not None:
             if "missing_headers" in extraInfo:
@@ -86,7 +86,7 @@ class ValidatorErrorInterface(ErrorInterface):
         """
 
         fileComplete = self.createFileIfNeeded(jobId, filename)
-        fileComplete.status_id = self.getStatusId("complete")
+        fileComplete.file_status_id = self.getFileStatusId("complete")
         self.session.commit()
         return True
 

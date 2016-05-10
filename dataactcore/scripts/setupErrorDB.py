@@ -1,4 +1,4 @@
-from dataactcore.models.errorModels import Status, ErrorType
+from dataactcore.models.errorModels import FileStatus, ErrorType
 from dataactcore.models.errorInterface import ErrorInterface
 from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_DB
@@ -15,7 +15,7 @@ def insertCodes():
     errorDb = ErrorInterface()
 
     # TODO: define these codes as enums in the data model?
-    # insert status types
+    # insert file status types
     statusList = [(1, 'complete', 'File has been processed'),
         (2, 'header_error', 'The file has errors in the header row'),
         (3, 'unknown_error', 'An unknown error has occurred with this file'),
@@ -23,7 +23,7 @@ def insertCodes():
         (5, 'job_error', 'Error occurred in job manager'),
         (6, 'incomplete', 'File has not yet been validated')]
     for s in statusList:
-        status = Status(status_id=s[0], name=s[1], description=s[2])
+        status = FileStatus(file_status_id=s[0], name=s[1], description=s[2])
         errorDb.session.merge(status)
 
     # insert error types

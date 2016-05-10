@@ -115,7 +115,7 @@ class BaseTestValidator(unittest.TestCase):
 
         errorInterface = self.errorInterface
         if errorStatus is not False:
-            self.assertEqual(errorInterface.checkStatusByJobId(jobId), errorInterface.getStatusId(errorStatus))
+            self.assertEqual(errorInterface.checkFileStatusByJobId(jobId), errorInterface.getFileStatusId(errorStatus))
             self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId), numErrors)
 
         if(fileSize != False):

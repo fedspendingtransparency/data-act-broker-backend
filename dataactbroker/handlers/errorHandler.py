@@ -9,11 +9,11 @@ class ErrorHandler(ErrorInterface) :
         """ Get error metrics for specified job, including number of errors for each field name and error type """
         resultList = []
 
-        query = self.session.query(File).options(joinedload("status")).filter(File.job_id == jobId)
-        queryResult = self.runUniqueQuery(query,"No file status for this job", "Conflicting file statuses for this job")
+        query = self.session.query(File).options(joinedload("file_status")).filter(File.job_id == jobId)
+        queryResult = self.runUniqueQuery(query,"No files for this job", "Conflicting file records for this job")
 
-        if(not queryResult.status.status_id == self.getStatusId("complete")) :
-            return [{"field_name":"File Level Error","error_name": queryResult.status.name,"error_description":str(queryResult.status.description),"occurrences":1,"rule_failed":""}]
+        if(not queryResult.file_status.file_status_id == self.getFileStatusId("complete")) :
+            return [{"field_name":"File Level Error","error_name": queryResult.file_status.name,"error_description":str(queryResult.file_status.description),"occurrences":1,"rule_failed":""}]
 
         queryResult = self.session.query(ErrorData).options(joinedload("error_type")).filter(ErrorData.job_id == jobId).all()
         for result in queryResult:
