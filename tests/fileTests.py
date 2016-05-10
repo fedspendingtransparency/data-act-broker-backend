@@ -7,7 +7,7 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from baseTestAPI import BaseTestAPI
 from dataactcore.models.jobModels import Submission, Job
-from dataactcore.models.errorModels import ErrorData, File
+from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.config import CONFIG_BROKER
 from dataactbroker.handlers.jobHandler import JobHandler
 from shutil import copy
@@ -354,7 +354,7 @@ class FileTests(BaseTestAPI):
     def insertRowLevelError(errorDB, job):
         """Insert one error into error database."""
         #TODO: remove hard-coded surrogate keys and filename
-        ed = ErrorData(
+        ed = ErrorMetadata(
             job_id=job,
             filename='test.csv',
             field_name='header 1',
@@ -365,7 +365,7 @@ class FileTests(BaseTestAPI):
         )
         errorDB.session.add(ed)
         errorDB.session.commit()
-        return ed.error_data_id
+        return ed.error_metadata_id
 
     @staticmethod
     def setupJobsForStatusCheck(interfaces, submission_id):
@@ -404,8 +404,8 @@ class FileTests(BaseTestAPI):
         interfaces.errorDb.session.add(fileRec)
 
         # Put some entries in error data for approp job
-        ruleError = ErrorData(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_three", error_type_id = 6, occurrences = 7, rule_failed = "Header three value must be real")
-        reqError = ErrorData(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_four", error_type_id = 2, occurrences = 5, rule_failed = "A required value was not provided")
+        ruleError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_three", error_type_id = 6, occurrences = 7, rule_failed = "Header three value must be real")
+        reqError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_four", error_type_id = 2, occurrences = 5, rule_failed = "A required value was not provided")
         interfaces.errorDb.session.add(ruleError)
         interfaces.errorDb.session.add(reqError)
         interfaces.errorDb.session.commit()

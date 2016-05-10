@@ -1,6 +1,6 @@
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.errorModels import FileStatus, ErrorType, File, ErrorData
+from dataactcore.models.errorModels import FileStatus, ErrorType, File, ErrorMetadata
 from dataactcore.config import CONFIG_DB
 
 
@@ -77,7 +77,7 @@ class ErrorInterface(BaseInterface):
         Returns:
             Number of errors for specified job
         """
-        queryResult = self.session.query(ErrorData).filter(ErrorData.job_id == jobId).all()
+        queryResult = self.session.query(ErrorMetadata).filter(ErrorMetadata.job_id == jobId).all()
         numErrors = 0
         for result in queryResult:
             # For each row that matches jobId, add the number of that type of error
@@ -85,12 +85,12 @@ class ErrorInterface(BaseInterface):
         return numErrors
 
     def resetErrorsByJobId(self, jobId):
-        """ Clear all entries in ErrorData for a specified job
+        """ Clear all entries in ErrorMetadata for a specified job
 
         Args:
             jobId: job to reset
         """
-        self.session.query(ErrorData).filter(ErrorData.job_id == jobId).delete()
+        self.session.query(ErrorMetadata).filter(ErrorMetadata.job_id == jobId).delete()
         self.session.commit()
 
     def sumNumberOfErrorsForJobList(self,jobIdList):

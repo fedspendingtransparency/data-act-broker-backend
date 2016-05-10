@@ -34,10 +34,10 @@ class File(Base):
     headers_duplicated = Column(Text, nullable=True)
     row_errors_present = Column(Boolean)
 
-class ErrorData(Base):
-    __tablename__ = "error_data"
+class ErrorMetadata(Base):
+    __tablename__ = "error_metadata"
 
-    error_data_id = Column(Integer, primary_key=True)
+    error_metadata_id = Column(Integer, primary_key=True)
     job_id = Column(Integer)
     filename = Column(Text, nullable=True)
     field_name = Column(Text)

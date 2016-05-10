@@ -1,6 +1,6 @@
 from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.utils.responseException import ResponseException
-from dataactcore.models.errorModels import File, ErrorData
+from dataactcore.models.errorModels import File, ErrorMetadata
 from dataactcore.models.errorInterface import ErrorInterface
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
@@ -133,13 +133,13 @@ class ValidatorErrorInterface(ErrorInterface):
                 # For rule failures, it will hold the error message
                 errorMsg = errorDict["errorType"]
                 ruleFailedId = self.getTypeId("rule_failed")
-                errorRow = ErrorData(job_id = thisJob, filename = errorDict["filename"], field_name = fieldName, error_type_id = ruleFailedId, rule_failed = errorMsg, occurrences = errorDict["numErrors"], first_row = errorDict["firstRow"])
+                errorRow = ErrorMetadata(job_id=thisJob, filename=errorDict["filename"], field_name=fieldName, error_type_id=ruleFailedId, rule_failed=errorMsg, occurrences=errorDict["numErrors"], first_row=errorDict["firstRow"])
             else:
                 # This happens if cast to int was successful
                 errorString = ValidationError.getErrorTypeString(errorType)
                 errorId = self.getTypeId(errorString)
-                # Create error data
-                errorRow = ErrorData(job_id = thisJob, filename = errorDict["filename"], field_name = fieldName, error_type_id = errorId, occurrences = errorDict["numErrors"], first_row = errorDict["firstRow"], rule_failed = ValidationError.getErrorMessage(errorType))
+                # Create error metadata
+                errorRow = ErrorMetadata(job_id=thisJob, filename=errorDict["filename"], field_name=fieldName, error_type_id=errorId, occurrences=errorDict["numErrors"], first_row=errorDict["firstRow"], rule_failed=ValidationError.getErrorMessage(errorType))
 
             self.session.add(errorRow)
 

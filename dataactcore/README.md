@@ -12,7 +12,7 @@ For more information about the DATA Act Broker codebase, please visit this repos
 
 The DATA Act broker uses the following databases; the models and setup scripts for all of them live in the DATA Act core project.
 
-* `error_data` - Holds file level errors in the `file` table, along with information about number of row level errors of each type in the `error_data` table. A complete list of every separate occurrence can be found in the error report csv file.
+* `error_data` - Holds file level errors in the `file` table, along with information about number of row level errors of each type in the `error_metadata` table. A complete list of every separate occurrence can be found in the error report csv file.
 * `job_tracker` - Holds information on all validation and upload jobs, including status of jobs and relations between jobs. The `job` table is the main place to get this information and provides file name/type, status of the job, the job's associated submission, and the table in which the results are located. The `job_dependency` table details precedence constraints between jobs, giving the job IDs for both the prerequisite and the dependent job.
 * `staging` - Holds records that passed validation. Each file validated will have a table in this database, named based on the job ID. If the `file` table in the `error_data` database lists the file as completed, each record in the input file will be present in either this staging table or the error report.
 * `user_manager` - Holds a mapping between user names and user IDs to be used for providing submission history information to a user.
@@ -74,7 +74,7 @@ The order of execution does not matter, as long as each of them are executed.
 
 To clean out the databases for testing proposes, the following scripts are also provided:
 
-- clearErrors (Clears error_data and file tables)
+- clearErrors (Clears error_metadata and file tables)
 - clearJobs (Clears job_dependency, job, and submission tables)
 
 These scripts should **not** be used in a live production environment, as existing queries may hold references to the deleted data.
