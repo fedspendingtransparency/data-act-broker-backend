@@ -1,16 +1,13 @@
 import os
-from flask import session ,request
-from datetime import datetime, timedelta
+from flask import session, request
+from datetime import datetime
 from werkzeug import secure_filename
-from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.config import CONFIG_BROKER
-from dataactbroker.handlers.managerProxy import ManagerProxy
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactbroker.handlers.aws.session import LoginSession
 
 class FileHandler:

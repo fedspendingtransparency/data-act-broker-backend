@@ -8,7 +8,7 @@ from time import sleep, time
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from baseTestAPI import BaseTestAPI
-from dataactcore.models.jobModels import Submission, JobStatus
+from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.errorModels import ErrorData, File
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.responseException import ResponseException
@@ -326,7 +326,7 @@ class FileTests(BaseTestAPI):
     @staticmethod
     def insertJob(jobTracker, filetype, status, type_id, submission, job_id=None, filename = None, file_size = None, num_rows = None):
         """Insert one job into job tracker and get ID back."""
-        job = JobStatus(
+        job = Job(
             file_type_id=filetype,
             status_id=status,
             type_id=type_id,

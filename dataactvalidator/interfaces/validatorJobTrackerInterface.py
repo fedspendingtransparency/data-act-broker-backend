@@ -1,5 +1,5 @@
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
-from dataactcore.models.jobModels import JobStatus, JobDependency
+from dataactcore.models.jobModels import Job, JobDependency
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.validationError import ValidationError
@@ -22,14 +22,14 @@ class ValidatorJobTrackerInterface(JobTrackerInterface):
             return False
 
     def checkJobReady(self, jobId):
-        """ Check that the jobId is located in job_status table and that status is ready
+        """ Check that the jobId is located in job table and that status is ready
         Args:
         jobId -- ID of job to be run
 
         Returns:
         True if job is ready, False otherwise
         """
-        query = self.session.query(JobStatus.status_id).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job.status_id).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         # Found a unique job
         if(result.status_id != self.getStatusId("ready")):
@@ -54,7 +54,7 @@ class ValidatorJobTrackerInterface(JobTrackerInterface):
         # Get list of prerequisites
         queryResult = self.session.query(JobDependency).filter(JobDependency.job_id == jobId).all()
         for prereq in queryResult:
-            query = self.session.query(JobStatus).filter(JobStatus.job_id == prereq.prerequisite_id)
+            query = self.session.query(Job).filter(Job.job_id == prereq.prerequisite_id)
             result = self.checkJobUnique(query)
             # Found a unique job
             if(result.status_id != self.getStatusId("finished")):
@@ -73,7 +73,7 @@ class ValidatorJobTrackerInterface(JobTrackerInterface):
         Returns:
             True if successful
         """
-        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         result.staging_table = stagingTable
         self.session.commit()
@@ -88,7 +88,7 @@ class ValidatorJobTrackerInterface(JobTrackerInterface):
         Returns:
         True if correct type, False or exception otherwise
         """
-        query = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job.type_id).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         if result.type_id == self.getTypeId("csv_record_validation") or result.type_id == self.getTypeId("validation"):
             # Correct type

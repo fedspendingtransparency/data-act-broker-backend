@@ -16,7 +16,7 @@ from dataactvalidator.scripts.setupValidationDB import setupValidationDB
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
-from dataactcore.models.jobModels import JobStatus, Submission
+from dataactcore.models.jobModels import Job, Submission
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER
 import dataactcore.config
@@ -149,7 +149,7 @@ class BaseTestValidator(unittest.TestCase):
     @staticmethod
     def addJob(status, jobType, submissionId, s3Filename, fileType, session):
         """ Create a job model and add it to the session """
-        job = JobStatus(status_id=status, type_id=jobType,
+        job = Job(status_id=status, type_id=jobType,
             submission_id=submissionId, filename=s3Filename, file_type_id=fileType)
         session.add(job)
         session.commit()

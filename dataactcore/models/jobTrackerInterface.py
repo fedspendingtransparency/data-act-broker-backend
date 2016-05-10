@@ -1,7 +1,7 @@
 import traceback
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import JobStatus, JobDependency, Status, Type
+from dataactcore.models.jobModels import Job, JobDependency, Status, Type
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -38,14 +38,14 @@ class JobTrackerInterface(BaseInterface):
         Returns:
         True if single result, otherwise exception
         """
-        return BaseInterface.runUniqueQuery(query, "Job ID not found in job_status table","Conflicting jobs found for this ID")
+        return BaseInterface.runUniqueQuery(query, "Job ID not found in job table","Conflicting jobs found for this ID")
 
     def getSession(self):
         """ Return session object"""
         return self.session
 
     def getJobById(self,jobId):
-        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job).filter(Job.job_id == jobId)
         return self.checkJobUnique(query)
 
     def getFileName(self,jobId):
@@ -54,7 +54,7 @@ class JobTrackerInterface(BaseInterface):
 
     def getFileType(self,jobId):
         """ Get type of file associated with this job """
-        query = self.session.query(JobStatus).options(joinedload("file_type")).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job).options(joinedload("file_type")).filter(Job.job_id == jobId)
         return self.checkJobUnique(query).file_type.name
 
     def getSubmissionId(self,jobId):
@@ -78,7 +78,7 @@ class JobTrackerInterface(BaseInterface):
             List of job IDs
         """
         jobList = []
-        queryResult = self.session.query(JobStatus.job_id).filter(JobStatus.submission_id == submissionId).all()
+        queryResult = self.session.query(Job.job_id).filter(Job.submission_id == submissionId).all()
         for result in queryResult:
             jobList.append(result.job_id)
         return jobList
@@ -87,12 +87,12 @@ class JobTrackerInterface(BaseInterface):
         """
 
         Args:
-            jobId: Job to get status for
+            jobId: Job status to get
 
         Returns:
-            status of specified job
+            status name of specified job
         """
-        query = self.session.query(JobStatus).options(joinedload("status")).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job).options(joinedload("status")).filter(Job.job_id == jobId)
         return self.checkJobUnique(query).status.name
 
     def getJobType(self, jobId):
@@ -105,7 +105,7 @@ class JobTrackerInterface(BaseInterface):
             description of specified job
         """
 
-        query = self.session.query(JobStatus).options(joinedload("type")).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job).options(joinedload("type")).filter(Job.job_id == jobId)
         return self.checkJobUnique(query).type.name
 
     def getDependentJobs(self, jobId):
@@ -124,10 +124,10 @@ class JobTrackerInterface(BaseInterface):
         return dependents
 
     def markStatus(self,jobId,statusName):
-        # Pull JobStatus for jobId
+        # Pull Job status for jobId
         prevStatus = self.getJobStatus(jobId)
 
-        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         # Mark it finished
         result.status_id = self.getStatusId(statusName)
@@ -149,7 +149,7 @@ class JobTrackerInterface(BaseInterface):
         status ID
         """
         status = None
-        query = self.session.query(JobStatus.status_id).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job.status_id).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         status = result.status_id
         self.session.commit()
