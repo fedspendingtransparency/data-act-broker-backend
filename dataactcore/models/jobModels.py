@@ -40,7 +40,7 @@ class Job(Base):
 
     job_id = Column(Integer, primary_key=True)
     filename = Column(Text, nullable=True)
-    job_status_id = Column(Integer, ForeignKey("job_status.job_status_id"), name="fk_job_status_id")
+    job_status_id = Column(Integer, ForeignKey("job_status.job_status_id", name="fk_job_status_id"))
     job_status = relationship("JobStatus", uselist=False)
     type_id = Column(Integer, ForeignKey("type.type_id"))
     type = relationship("Type", uselist=False)
