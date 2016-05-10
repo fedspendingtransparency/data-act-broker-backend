@@ -18,9 +18,8 @@ class JobTrackerInterface(BaseInterface):
     session = None
 
     def __init__(self):
-        super(JobTrackerInterface,self).__init__()
-        self.jobQueue = JobQueue()
         self.dbName = self.dbConfig['job_db_name']
+        self.jobQueue = JobQueue()
         super(JobTrackerInterface, self).__init__()
 
     @staticmethod
