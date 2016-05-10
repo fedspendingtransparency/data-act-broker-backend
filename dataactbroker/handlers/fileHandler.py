@@ -215,7 +215,7 @@ class FileHandler:
                 if(self.jobManager.getJobType(jobId) != "csv_record_validation"):
                     continue
                 jobInfo["job_id"] = jobId
-                jobInfo["job_status"] = self.jobManager.getJobStatus(jobId)
+                jobInfo["job_status"] = self.jobManager.getJobStatusName(jobId)
                 jobInfo["job_type"] = self.jobManager.getJobType(jobId)
                 jobInfo["filename"] = self.jobManager.getOriginalFilenameById(jobId)
                 try:

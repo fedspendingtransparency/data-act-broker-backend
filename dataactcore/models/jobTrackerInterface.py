@@ -82,7 +82,7 @@ class JobTrackerInterface(BaseInterface):
             jobList.append(result.job_id)
         return jobList
 
-    def getJobStatus(self, jobId):
+    def getJobStatusName(self, jobId):
         """
 
         Args:
@@ -124,7 +124,7 @@ class JobTrackerInterface(BaseInterface):
 
     def markJobStatus(self,jobId,statusName):
         # Pull job status for jobId
-        prevStatus = self.getJobStatus(jobId)
+        prevStatus = self.getJobStatusName(jobId)
 
         query = self.session.query(Job).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
