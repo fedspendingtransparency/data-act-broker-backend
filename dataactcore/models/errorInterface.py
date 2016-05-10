@@ -22,6 +22,7 @@ class ErrorInterface(BaseInterface):
         return ErrorInterface.dbName
 
     def getSession(self):
+        """ Return current active session """
         return self.session
 
     def getStatusId(self,statusName):
@@ -30,6 +31,7 @@ class ErrorInterface(BaseInterface):
             Status, "STATUS_DICT", "name", statusName, "status_id")
 
     def getTypeId(self,typeName):
+        """Get type ID for given name """
         return self.getIdFromDict(
             ErrorType, "TYPE_DICT", "name", typeName, "error_type_id")
 
@@ -109,9 +111,11 @@ class ErrorInterface(BaseInterface):
         return errorSum
 
     def getMissingHeadersByJobId(self, jobId):
+        """ Get a comma delimited string of all missing headers for specified job """
         return self.getFileStatusByJobId(jobId).headers_missing
 
     def getDuplicatedHeadersByJobId(self, jobId):
+        """ Get a comma delimited string of all duplicated headers for specified job """
         return self.getFileStatusByJobId(jobId).headers_duplicated
 
     def getErrorType(self,jobId):

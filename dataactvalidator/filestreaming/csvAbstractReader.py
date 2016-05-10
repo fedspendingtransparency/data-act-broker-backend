@@ -19,10 +19,12 @@ class CsvAbstractReader(object):
     def openFile(self,region,bucket,filename,csvSchema,bucketName,errorFilename):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
-            bucket : the S3 Bucket
+            region: AWS region where the bucket is located
+            bucket: the S3 Bucket
             filename: The file path for the CSV file in S3
-            writer: An implementation of csvAbstractWriter to send header errors to
-        Returns:
+            csvSchema: list of FileColumn objects for this file type
+            bucketName: bucket to send errors to
+            errorFilename: filename for error report
         """
 
 

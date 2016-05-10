@@ -239,11 +239,11 @@ class JobTests(BaseTestValidator):
         response = self.run_test(
             jobId, 400, "ready", False, False, "job_error", 0, None)
 
-    # TODO uncomment this unit test once jobs are labeled as ready
-    # def test_finished_job(self):
-    #     """ Test job that is already finished """
-    #     jobId = self.jobIdDict["finished"]
-    #     self.run_test(jobId,400,"finished",False,False,"job_error",0)
+    # TODO uncomment this test if we start limiting the validator to only jobs that are "ready"
+    #def test_finished_job(self):
+    #    """ Test job that is already finished """
+    #    jobId = self.jobIdDict["finished"]
+    #    self.run_test(jobId,400,"finished",False,False,"job_error",0)
 
     def tearDown(self):
         super(JobTests, self).tearDown()

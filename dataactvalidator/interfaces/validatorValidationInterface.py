@@ -37,6 +37,7 @@ class ValidatorValidationInterface(BaseInterface):
         return ValidatorValidationInterface.dbName
 
     def getSession(self):
+        """ Return current session object """
         return self.session
 
     def deleteTAS(self) :
@@ -376,13 +377,16 @@ class ValidatorValidationInterface(BaseInterface):
         return self.getIdFromDict(RuleTiming,"TIMING_DICT","name",timingName.lower(),"rule_timing_id")
 
     def getRuleByLabel(self,label):
+        """ Find rule based on label provided in rules file """
         query = self.session.query(Rule).options(joinedload("file_column")).filter(Rule.rule_label == label)
         return self.runUniqueQuery(query,"No rule with that label","Multiple rules have that label")
 
     def getFieldTypeById(self, id):
+        """ Return name of field type based on id """
         return self.getNameFromDict(FieldType,"TYPE_DICT","name",id,"field_type_id")
 
     def getFieldNameByColId(self, id):
+        """ Return field name based on a column ID.  Used to map staging database columns to matching field names. """
         int(id) # Raise appropriate error if id is not an int
         query = self.session.query(FileColumn).filter(FileColumn.file_column_id == id)
         column = self.runUniqueQuery(query,"No column found with that ID", "Multiple columns found with that ID")

@@ -2,6 +2,7 @@ from threading import Thread
 import functools
 
 def timeout(timeout, message=None):
+    """ Creates timeout decorator to be attached to functions """
     def deco(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):

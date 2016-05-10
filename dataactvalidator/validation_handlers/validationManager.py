@@ -39,6 +39,10 @@ class ValidationManager:
             jobId: Job to be updated
             jobTracker: Interface object for job tracker
             status: New status for specified job
+            errorDb: Interface object for error database
+            filename: Filename of file to be validated
+            fileError: Type of error that occurred if this is an invalid or failed status
+            extraInfo: Dict of extra fields to attach to exception
         """
         try :
             if(filename != None and (status == "invalid" or status == "failed")):
@@ -69,10 +73,12 @@ class ValidationManager:
     @staticmethod
     def testJobID(jobId,interfaces) :
         """
-        args
-        jobId: job to be tested
-        returns the jobId
-        True if the job is ready, if the job is not ready an exception will be raised
+        args:
+            jobId: job to be tested
+            interfaces: InterfaceHolder to the databases
+
+        returns:
+            True if the job is ready, if the job is not ready an exception will be raised
         """
         if(not (interfaces.jobDb.runChecks(jobId))):
             raise ResponseException("Checks failed on Job ID",StatusCode.CLIENT_ERROR)
@@ -128,14 +134,20 @@ class ValidationManager:
         return CsvS3Reader()
 
     def getWriter(self,regionName,bucketName,fileName,header):
-        """
-        Gets the write type based on if its a local install or not.
+        """ Gets the write type based on if its a local install or not.
+
+        Args:
+            regionName - AWS region to write to, not used for local
+            bucketName - AWS bucket to write to, not used for local
+            fileName - File to be written
+            header - Column headers for file to be written
         """
         if(self.isLocal):
             return CsvLocalWriter(fileName,header)
         return CsvS3Writer(regionName,bucketName,fileName,header)
 
     def getFileName(self,path):
+        """ Return full path of error report based on provided name """
         if(self.isLocal):
             return "".join([self.directory,path])
         return "".join(["errors/",path])
@@ -284,7 +296,7 @@ class ValidationManager:
         """ Gets file for job, validates each row, and sends valid rows to staging database
         Args:
         request -- HTTP request containing the jobId
-        sessions -- A SessionHolder object used to query the databases
+        interfaces -- InterfaceHolder object to the databases
         Returns:
         Http response object
         """
