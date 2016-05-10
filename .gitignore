@@ -26,6 +26,7 @@ tests/appropFieldsRaw.csv
 tests/awardFieldsRaw.csv
 tests/awardFinFields.csv
 tests/programActivityRaw.csv
+tests/test-reports/
 pathLog
 dataactvalidator/statusError.log
 dataactvalidator/responseErrorLog
