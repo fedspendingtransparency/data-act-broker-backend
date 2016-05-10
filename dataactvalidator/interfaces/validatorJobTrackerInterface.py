@@ -29,10 +29,10 @@ class ValidatorJobTrackerInterface(JobTrackerInterface):
         Returns:
         True if job is ready, False otherwise
         """
-        query = self.session.query(Job.status_id).filter(Job.job_id == jobId)
+        query = self.session.query(Job.job_status_id).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         # Found a unique job
-        if(result.status_id != self.getStatusId("ready")):
+        if(result.job_status_id != self.getJobStatusId("ready")):
             # Job is not ready
             # Job manager is not yet implemented, so for now doesn't have to be ready
             return True
@@ -57,7 +57,7 @@ class ValidatorJobTrackerInterface(JobTrackerInterface):
             query = self.session.query(Job).filter(Job.job_id == prereq.prerequisite_id)
             result = self.checkJobUnique(query)
             # Found a unique job
-            if(result.status_id != self.getStatusId("finished")):
+            if(result.job_status_id != self.getJobStatusId("finished")):
                 # Prerequisite not complete
                 raise ResponseException("Prerequisites incomplete, job cannot be started",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
 

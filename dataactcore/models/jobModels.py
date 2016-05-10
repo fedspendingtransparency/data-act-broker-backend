@@ -7,11 +7,11 @@ from dataactcore.utils.timeStampMixin import TimeStampBase
 
 Base = declarative_base(cls=TimeStampBase)
 
-class Status(Base):
-    __tablename__ = "status"
-    STATUS_DICT = None
+class JobStatus(Base):
+    __tablename__ = "job_status"
+    JOB_STATUS_DICT = None
 
-    status_id = Column(Integer, primary_key=True)
+    job_status_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
 
@@ -40,8 +40,8 @@ class Job(Base):
 
     job_id = Column(Integer, primary_key=True)
     filename = Column(Text, nullable=True)
-    status_id = Column(Integer, ForeignKey("status.status_id"))
-    status = relationship("Status", uselist=False)
+    job_status_id = Column(Integer, ForeignKey("job_status.job_status_id"), name="fk_job_status_id")
+    job_status = relationship("JobStatus", uselist=False)
     type_id = Column(Integer, ForeignKey("type.type_id"))
     type = relationship("Type", uselist=False)
     submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_job_submission_id"))

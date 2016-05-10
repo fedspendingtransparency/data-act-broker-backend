@@ -58,7 +58,7 @@ class JobTests(BaseTestValidator):
         for key in csvFiles.keys():
             file = csvFiles[key]
             job = cls.addJob(
-                str(jobTracker.getStatusId(file["status"])),
+                str(jobTracker.getJobStatusId(file["status"])),
                 str(jobTracker.getTypeId(file["type"])),
                 str(submissionIDs[file["submissionLocalId"]]),
                 file["s3Filename"],
@@ -216,7 +216,7 @@ class JobTests(BaseTestValidator):
             jobId, 200, "finished", 99, 6, "complete", 1, True)
 
     def test_bad_id_job(self):
-        """Test job ID not found in job status table."""
+        """Test job ID not found in job table."""
         jobId = -1
         response = self.run_test(
             jobId, 400, False, False, False, False, 0, None)

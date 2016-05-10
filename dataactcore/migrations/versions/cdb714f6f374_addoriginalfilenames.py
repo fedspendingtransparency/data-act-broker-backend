@@ -100,7 +100,7 @@ def upgrade_job_tracker():
                existing_type=sa.INTEGER(),
                nullable=True)
     op.add_column('job', sa.Column('original_filename', sa.Text(), nullable=True))
-    op.alter_column('job', 'status_id',
+    op.alter_column('job', 'job_status_id',
                existing_type=sa.INTEGER(),
                nullable=True)
     op.alter_column('job', 'submission_id',
@@ -109,10 +109,10 @@ def upgrade_job_tracker():
     op.alter_column('job', 'type_id',
                existing_type=sa.INTEGER(),
                nullable=True)
-    op.alter_column('status', 'description',
+    op.alter_column('job_status', 'description',
                existing_type=sa.TEXT(),
                nullable=True)
-    op.alter_column('status', 'name',
+    op.alter_column('job_status', 'name',
                existing_type=sa.TEXT(),
                nullable=True)
     op.alter_column('type', 'description',
@@ -132,10 +132,10 @@ def downgrade_job_tracker():
     op.alter_column('type', 'description',
                existing_type=sa.TEXT(),
                nullable=False)
-    op.alter_column('status', 'name',
+    op.alter_column('job_status', 'name',
                existing_type=sa.TEXT(),
                nullable=False)
-    op.alter_column('status', 'description',
+    op.alter_column('job_status', 'description',
                existing_type=sa.TEXT(),
                nullable=False)
     op.alter_column('job', 'type_id',
@@ -144,7 +144,7 @@ def downgrade_job_tracker():
     op.alter_column('job', 'submission_id',
                existing_type=sa.INTEGER(),
                nullable=False)
-    op.alter_column('job', 'status_id',
+    op.alter_column('job', 'job_status_id',
                existing_type=sa.INTEGER(),
                nullable=False)
     op.drop_column('job', 'original_filename')

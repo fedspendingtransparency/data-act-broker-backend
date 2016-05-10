@@ -1,7 +1,7 @@
 import traceback
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import Job, JobDependency, Status, Type
+from dataactcore.models.jobModels import Job, JobDependency, JobStatus, Type
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -92,8 +92,8 @@ class JobTrackerInterface(BaseInterface):
         Returns:
             status name of specified job
         """
-        query = self.session.query(Job).options(joinedload("status")).filter(Job.job_id == jobId)
-        return self.checkJobUnique(query).status.name
+        query = self.session.query(Job).options(joinedload("job_status")).filter(Job.job_id == jobId)
+        return self.checkJobUnique(query).job_status.name
 
     def getJobType(self, jobId):
         """
@@ -123,14 +123,14 @@ class JobTrackerInterface(BaseInterface):
             dependents.append(result.job_id)
         return dependents
 
-    def markStatus(self,jobId,statusName):
-        # Pull Job status for jobId
+    def markJobStatus(self,jobId,statusName):
+        # Pull job status for jobId
         prevStatus = self.getJobStatus(jobId)
 
         query = self.session.query(Job).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         # Mark it finished
-        result.status_id = self.getStatusId(statusName)
+        result.job_status_id = self.getJobStatusId(statusName)
         # Push
         self.session.commit()
 
@@ -139,7 +139,7 @@ class JobTrackerInterface(BaseInterface):
         if prevStatus != 'finished' and statusName == 'finished':
             self.checkJobDependencies(jobId)
 
-    def getStatus(self,jobId):
+    def getJobStatus(self,jobId):
         """ Get status for specified job
 
         Args:
@@ -149,15 +149,16 @@ class JobTrackerInterface(BaseInterface):
         status ID
         """
         status = None
-        query = self.session.query(Job.status_id).filter(Job.job_id == jobId)
+        query = self.session.query(Job.job_status_id).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
-        status = result.status_id
+        status = result.job_status_id
         self.session.commit()
         return status
 
-    def getStatusId(self,statusName):
+    def getJobStatusId(self,statusName):
         """ Return the status ID that corresponds to the given name """
-        return self.getIdFromDict(Status,"STATUS_DICT","name",statusName,"status_id")
+        return self.getIdFromDict(
+            JobStatus, "JOB_STATUS_DICT", "name", statusName, "job_status_id")
 
     def getTypeId(self,typeName):
         """ Return the type ID that corresponds to the given name """
@@ -182,20 +183,20 @@ class JobTrackerInterface(BaseInterface):
 
     def checkJobDependencies(self,jobId):
         # raise exception if current job is not actually finished
-        if self.getStatus(jobId) != self.getStatusId('finished'):
+        if self.getJobStatus(jobId) != self.getJobStatusId('finished'):
             raise ValueError('Current job not finished, unable to check dependencies')
 
         # check if dependent jobs are finished
         for depJobId in self.getDependentJobs(jobId):
             isReady = True
-            if not (self.getStatus(depJobId) == self.getStatusId('waiting')):
+            if not (self.getJobStatus(depJobId) == self.getJobStatusId('waiting')):
                 CloudLogger.logError("Job dependency is not in a 'waiting' state",
                                      ResponseException("Job dependency is not in a 'waiting' state",StatusCode.CLIENT_ERROR, ValueError),
                                      traceback.extract_stack())
                 continue
             # if dependent jobs are finished, then check the jobs of which the current job is a dependent
             for preReqJobId in self.getPrerequisiteJobs(depJobId):
-                if not (self.getStatus(preReqJobId) == self.getStatusId('finished')):
+                if not (self.getJobStatus(preReqJobId) == self.getJobStatusId('finished')):
                     # Do nothing
                     isReady = False
                     break
@@ -203,7 +204,7 @@ class JobTrackerInterface(BaseInterface):
             # to handle cross-file validation job
             if isReady and (self.getJobType(depJobId) == 'csv_record_validation' or self.getJobType(depJobId) == 'validation'):
                 # mark job as ready
-                self.markStatus(depJobId, 'ready')
+                self.markJobStatus(depJobId, 'ready')
                 # add to the job queue
                 jobQueueResult = self.jobQueue.enqueue.delay(depJobId)
 

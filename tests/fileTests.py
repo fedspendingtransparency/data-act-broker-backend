@@ -3,15 +3,12 @@ import os
 import inspect
 import boto
 from datetime import datetime
-from datetime import date
-from time import sleep, time
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from baseTestAPI import BaseTestAPI
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.errorModels import ErrorData, File
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.responseException import ResponseException
 from dataactbroker.handlers.jobHandler import JobHandler
 from shutil import copy
 
@@ -328,7 +325,7 @@ class FileTests(BaseTestAPI):
         """Insert one job into job tracker and get ID back."""
         job = Job(
             file_type_id=filetype,
-            status_id=status,
+            job_status_id=status,
             type_id=type_id,
             submission_id=submission,
             original_filename=filename,

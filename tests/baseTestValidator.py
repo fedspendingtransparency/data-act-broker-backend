@@ -101,7 +101,7 @@ class BaseTestValidator(unittest.TestCase):
             msg="{}".format(self.getResponseInfo(response)))
         if statusName != False:
             self.waitOnJob(jobTracker, jobId, statusName, self.useThreads)
-            self.assertEqual(jobTracker.getStatus(jobId), jobTracker.getStatusId(statusName))
+            self.assertEqual(jobTracker.getJobStatus(jobId), jobTracker.getJobStatusId(statusName))
 
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
@@ -149,7 +149,7 @@ class BaseTestValidator(unittest.TestCase):
     @staticmethod
     def addJob(status, jobType, submissionId, s3Filename, fileType, session):
         """ Create a job model and add it to the session """
-        job = Job(status_id=status, type_id=jobType,
+        job = Job(job_status_id=status, type_id=jobType,
             submission_id=submissionId, filename=s3Filename, file_type_id=fileType)
         session.add(job)
         session.commit()
@@ -157,14 +157,14 @@ class BaseTestValidator(unittest.TestCase):
 
     def waitOnJob(self, jobTracker, jobId, status, useThreads):
         """Wait until job gets set to the correct status in job tracker, this is done to wait for validation to complete when running tests."""
-        currentID = jobTracker.getStatusId("running")
-        targetStatus = jobTracker.getStatusId(status)
+        currentID = jobTracker.getJobStatusId("running")
+        targetStatus = jobTracker.getJobStatusId(status)
         if useThreads:
-            while jobTracker.getStatus(jobId) == currentID:
+            while jobTracker.getJobStatus(jobId) == currentID:
                 time.sleep(1)
-            self.assertEqual(targetStatus, jobTracker.getStatus(jobId))
+            self.assertEqual(targetStatus, jobTracker.getJobStatus(jobId))
         else:
-            self.assertEqual(targetStatus, jobTracker.getStatus(jobId))
+            self.assertEqual(targetStatus, jobTracker.getJobStatus(jobId))
             return
 
     @staticmethod

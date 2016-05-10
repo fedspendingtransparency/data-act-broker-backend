@@ -38,17 +38,17 @@ class FileTypeTests(BaseTestValidator):
         # Create jobs
         jobDb = cls.jobTracker
         jobInfoList = {
-            "valid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[1]), s3FileNameValid, 3],
-            "mixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[2]), s3FileNameMixed, 3],
-            "programValid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[4]), s3FileNameProgramValid, 4],
-            "programMixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[5]), s3FileNameProgramMixed, 4],
-            "awardFinValid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[6]), s3FileNameAwardFinValid, 2],
-            "awardFinMixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[7]), s3FileNameAwardFinMixed, 2],
-            "awardValid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[8]), s3FileNameAwardValid, 1],
-            "awardMixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[9]), s3FileNameAwardMixed, 1],
-            "crossAwardFin": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[10]), s3FileNameCrossAwardFin, 2],
-            "crossAward": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[10]), s3FileNameCrossAward, 1],
-            "crossFile": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("validation")), str(submissionIDs[10]), None, None]
+            "valid": [str(jobDb.getJobStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[1]), s3FileNameValid, 3],
+            "mixed": [str(jobDb.getJobStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[2]), s3FileNameMixed, 3],
+            "programValid": [str(jobDb.getJobStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[4]), s3FileNameProgramValid, 4],
+            "programMixed": [str(jobDb.getJobStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[5]), s3FileNameProgramMixed, 4],
+            "awardFinValid": [str(jobDb.getJobStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[6]), s3FileNameAwardFinValid, 2],
+            "awardFinMixed": [str(jobDb.getJobStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[7]), s3FileNameAwardFinMixed, 2],
+            "awardValid": [str(jobDb.getJobStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[8]), s3FileNameAwardValid, 1],
+            "awardMixed": [str(jobDb.getJobStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[9]), s3FileNameAwardMixed, 1],
+            "crossAwardFin": [str(jobDb.getJobStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[10]), s3FileNameCrossAwardFin, 2],
+            "crossAward": [str(jobDb.getJobStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[10]), s3FileNameCrossAward, 1],
+            "crossFile": [str(jobDb.getJobStatusId("ready")), str(jobDb.getTypeId("validation")), str(submissionIDs[10]), None, None]
         }
 
         jobIdDict = {}

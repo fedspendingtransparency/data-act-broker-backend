@@ -81,11 +81,11 @@ def upgrade_job_tracker():
     sa.Column('description', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('file_type_id')
     )
-    op.create_table('status',
-    sa.Column('status_id', sa.Integer(), nullable=False),
+    op.create_table('job_status',
+    sa.Column('job_status_id', sa.Integer(), nullable=False),
     sa.Column('name', sa.Text(), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
-    sa.PrimaryKeyConstraint('status_id')
+    sa.PrimaryKeyConstraint('job_status_id')
     )
     op.create_table('submission',
     sa.Column('submission_id', sa.Integer(), nullable=False),
@@ -102,13 +102,13 @@ def upgrade_job_tracker():
     op.create_table('job',
     sa.Column('job_id', sa.Integer(), nullable=False),
     sa.Column('filename', sa.Text(), nullable=True),
-    sa.Column('status_id', sa.Integer(), nullable=True),
+    sa.Column('job_status_id', sa.Integer(), nullable=True),
     sa.Column('type_id', sa.Integer(), nullable=True),
     sa.Column('submission_id', sa.Integer(), nullable=True),
     sa.Column('file_type_id', sa.Integer(), nullable=True),
     sa.Column('staging_table', sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(['file_type_id'], ['file_type.file_type_id'], ),
-    sa.ForeignKeyConstraint(['status_id'], ['status.status_id'], ),
+    sa.ForeignKeyConstraint(['job_status_id'], ['job_status.job_status_id'], name='fk_job_status_id'),
     sa.ForeignKeyConstraint(['submission_id'], ['submission.submission_id'], name='fk_job_submission_id'),
     sa.ForeignKeyConstraint(['type_id'], ['type.type_id'], ),
     sa.PrimaryKeyConstraint('job_id')
@@ -130,7 +130,7 @@ def downgrade_job_tracker():
     op.drop_table('job')
     op.drop_table('type')
     op.drop_table('submission')
-    op.drop_table('status')
+    op.drop_table('job_status')
     op.drop_table('file_type')
     ### end Alembic commands ###
 

@@ -44,7 +44,7 @@ class ValidationManager:
             if(filename != None and (status == "invalid" or status == "failed")):
                 # Mark the file error that occurred
                 errorDb.writeFileError(jobId,filename,fileError,extraInfo)
-            jobTracker.markStatus(jobId,status)
+            jobTracker.markJobStatus(jobId,status)
         except ResponseException as e:
             # Could not get a unique job ID in the database, either a bad job ID was passed in or the record of that job was lost.
             # Either way, cannot mark status of a job that does not exist
@@ -253,7 +253,7 @@ class ValidationManager:
             # Write leftover records
             tableObject.endBatch()
             # Mark validation as finished in job tracker
-            jobTracker.markStatus(jobId,"finished")
+            jobTracker.markJobStatus(jobId,"finished")
             errorInterface.writeAllRowErrors(jobId)
         finally:
             #ensure the file always closes
@@ -278,7 +278,7 @@ class ValidationManager:
                 errorDb.recordRowError(jobId,"cross_file",failure[0],failure[1],None)
             writer.finishBatch()
         errorDb.writeAllRowErrors(jobId)
-        interfaces.jobDb.markStatus(jobId,"finished")
+        interfaces.jobDb.markJobStatus(jobId,"finished")
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to staging database
@@ -324,7 +324,7 @@ class ValidationManager:
             return JsonResponse.error(exc,exc.status,table=tableName)
 
         try:
-            jobTracker.markStatus(jobId,"running")
+            jobTracker.markJobStatus(jobId,"running")
             if jobType == interfaces.jobDb.getTypeId("csv_record_validation"):
                 self.runValidation(jobId,interfaces)
             elif jobType == interfaces.jobDb.getTypeId("validation"):
