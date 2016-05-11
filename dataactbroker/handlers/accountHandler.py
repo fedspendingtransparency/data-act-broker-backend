@@ -71,9 +71,10 @@ class AccountHandler:
                 raise ValueError("Invalid username and/or password")
 
             # Only check if user is active after they've logged in for the first time
-            if user.last_login_date is not None and not self.isUserActive(user, True):
+            if user.last_login_date is not None and self.isAccountExpired(user):
                 raise ValueError("Your account has expired. Please contact an administrator.")
 
+            # for whatever reason, your account is not active, therefore it's locked
             if not self.isUserActive(user):
                 raise ValueError("Your account has been locked. Please contact an administrator.")
 
@@ -445,9 +446,7 @@ class AccountHandler:
                 permissionList.append(permission.permission_type_id)
         return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList})
 
-    def isUserActive(self, user, checkExpiration=False):
-        if checkExpiration:
-            self.isAccountExpired(user)
+    def isUserActive(self, user):
         return user.is_active
 
     def isAccountExpired(self, user):
@@ -456,6 +455,8 @@ class AccountHandler:
         secondsActive = (today-user.last_login_date).seconds
         if daysActive > 120 or (daysActive == 120 and secondsActive > 0):
             self.lockAccount(user)
+            return True
+        return False
 
     def resetPasswordCount(self, user):
         if user.incorrect_password_attempts != 0:
