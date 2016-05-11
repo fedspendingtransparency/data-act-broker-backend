@@ -137,7 +137,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with mixed delimiter"""
         jobId = self.jobIdDict["awardMixedDelimiter"]
         self.passed = self.run_test(
-            jobId, 400, "invalid", False, False, "single_row_error", 0, False)
+            jobId, 400, "invalid", False, False, "header_error", 0, False)
 
     def test_cross_file(self):
         crossId = self.jobIdDict["crossFile"]
