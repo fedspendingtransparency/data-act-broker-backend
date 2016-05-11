@@ -54,7 +54,11 @@ class CsvAbstractReader(object):
         commaCount = line.count(",")
 
         if pipeCount != 0 and commaCount != 0:
-            raise ResponseException("Error in header row: CSV file must use only '|' or ',' as the delimiter", StatusCode.CLIENT_ERROR, ValueError, ValidationError.singleRow)
+            # Write header error for mixed delimiter use
+            with self.getWriter(bucketName, errorFilename, ["Error Type"], self.isLocal) as writer:
+                writer.write(["Cannot use both ',' and '|' as delimiters. Please choose one."])
+                writer.finishBatch()
+            raise ResponseException("Error in header row: CSV file must use only '|' or ',' as the delimiter", StatusCode.CLIENT_ERROR, ValueError, ValidationError.headerError)
 
         self.delimiter = "|" if line.count("|") != 0 else ","
         for row in csv.reader([line],dialect='excel', delimiter=self.delimiter):
