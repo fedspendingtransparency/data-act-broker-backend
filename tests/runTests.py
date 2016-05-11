@@ -37,7 +37,7 @@ def runTests(argv=''):
 
     # to run a single test:
     #suite.addTest(JobTests('test_bad_values_job'))
-    #suite.addTest(FileTypeTests('test_award_fin_mixed'))
+    #suite.addTest(FileTypeTests('test_cross_file'))
 
     print("{} tests in suite".format(suite.countTestCases()))
 
