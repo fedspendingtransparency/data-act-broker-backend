@@ -7,9 +7,23 @@ from validatorTests import ValidatorTests
 from fileTypeTests import FileTypeTests
 import cProfile
 import pstats
+import xmlrunner
+import sys, getopt
 
-def runTests():
+def runTests(argv=''):
     PROFILE = False
+    XMLresults = False
+
+    # Get command line arg to determine output
+    try:
+        opts, args = getopt.getopt(argv,"o:")
+    except getopt.GetoptError:
+        XMLresults = False
+    for opt, arg in opts:
+      if opt == '-o' and arg == "XML":
+        XMLresults = True
+      else: 
+        XMLresults = False
 
     # Create test suite
     suite = unittest.TestSuite()
@@ -28,14 +42,17 @@ def runTests():
     print("{} tests in suite".format(suite.countTestCases()))
 
     # Run tests and store results
-    runner = unittest.TextTestRunner(verbosity=2)
+    if XMLresults:
+        runner = xmlrunner.XMLTestRunner(output='test-reports')
+    else:
+        runner = unittest.TextTestRunner(verbosity=2)
 
     if PROFILE:
         cProfile.run("runner.run(suite)","stats")
         stats = pstats.Stats("stats")
         stats.sort_stats("tottime").print_stats(100)
-    else:
+    else: 
         runner.run(suite)
 
 if __name__ == '__main__':
-    runTests()
+    runTests(sys.argv[1:])

@@ -191,8 +191,8 @@ def downgrade_user_manager():
     op.drop_table('users')
     op.drop_table('user_status')
     op.drop_table('permission_type')
-    op.drop_table('email_template_type')
     op.drop_table('email_template')
+    op.drop_table('email_template_type')
     op.drop_table('email_token')
     ### end Alembic commands ###
 
