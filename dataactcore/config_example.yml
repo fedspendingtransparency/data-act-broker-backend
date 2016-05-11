@@ -152,10 +152,10 @@ logging:
 
 job-queue:
     # RabbitMQ username
-    username: user
+    username: guest
 
     # RabbitMQ password
-    password: password
+    password: guest
 
     # URL for the job queue server
     url: 127.0.0.1
