@@ -393,7 +393,6 @@ class AccountHandler:
         # Set new password
         self.interfaces.userDb.setPassword(user,requestDict.getValue("password"),self.bcrypt)
         # Invalidate token
-        print("Deleting token: " + str(session["token"]))
         self.interfaces.userDb.deleteToken(session["token"])
         session["reset"] = None
         # Return success message
