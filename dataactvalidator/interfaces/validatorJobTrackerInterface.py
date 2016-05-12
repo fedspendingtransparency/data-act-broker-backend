@@ -1,5 +1,5 @@
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
-from dataactcore.models.jobModels import JobStatus, JobDependency
+from dataactcore.models.jobModels import Job, JobDependency
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.validationError import ValidationError
@@ -22,17 +22,17 @@ class ValidatorJobTrackerInterface(JobTrackerInterface):
             return False
 
     def checkJobReady(self, jobId):
-        """ Check that the jobId is located in job_status table and that status is ready
+        """ Check that the jobId is located in job table and that status is ready
         Args:
         jobId -- ID of job to be run
 
         Returns:
         True if job is ready, False otherwise
         """
-        query = self.session.query(JobStatus.status_id).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job.job_status_id).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         # Found a unique job
-        if(result.status_id != self.getStatusId("ready")):
+        if(result.job_status_id != self.getJobStatusId("ready")):
             # Job is not ready
             # Job manager is not yet implemented, so for now doesn't have to be ready
             return True
@@ -54,10 +54,10 @@ class ValidatorJobTrackerInterface(JobTrackerInterface):
         # Get list of prerequisites
         queryResult = self.session.query(JobDependency).filter(JobDependency.job_id == jobId).all()
         for prereq in queryResult:
-            query = self.session.query(JobStatus).filter(JobStatus.job_id == prereq.prerequisite_id)
+            query = self.session.query(Job).filter(Job.job_id == prereq.prerequisite_id)
             result = self.checkJobUnique(query)
             # Found a unique job
-            if(result.status_id != self.getStatusId("finished")):
+            if(result.job_status_id != self.getJobStatusId("finished")):
                 # Prerequisite not complete
                 raise ResponseException("Prerequisites incomplete, job cannot be started",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
 
@@ -73,7 +73,7 @@ class ValidatorJobTrackerInterface(JobTrackerInterface):
         Returns:
             True if successful
         """
-        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         result.staging_table = stagingTable
         self.session.commit()
@@ -88,11 +88,11 @@ class ValidatorJobTrackerInterface(JobTrackerInterface):
         Returns:
         True if correct type, False or exception otherwise
         """
-        query = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job.job_type_id).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
-        if result.type_id == self.getTypeId("csv_record_validation") or result.type_id == self.getTypeId("validation"):
+        if result.job_type_id == self.getJobTypeId("csv_record_validation") or result.job_type_id == self.getJobTypeId("validation"):
             # Correct type
-            return result.type_id
+            return result.job_type_id
         else:
             # Wrong type
             raise ResponseException("Wrong type of job for this service",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
