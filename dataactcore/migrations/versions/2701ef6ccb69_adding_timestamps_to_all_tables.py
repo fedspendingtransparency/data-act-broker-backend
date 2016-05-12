@@ -120,3 +120,8 @@ def downgrade_user_manager():
     op.drop_column('email_template', 'created_at')
     ### end Alembic commands ###
 
+def upgrade_validation():
+    pass
+
+def downgrade_validation():
+    pass

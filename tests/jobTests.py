@@ -1,6 +1,6 @@
 from __future__ import print_function
 from dataactcore.models.jobModels import JobDependency
-from dataactvalidator.models.validationModels import Rule
+from dataactcore.models.validationModels import Rule
 from baseTestValidator import BaseTestValidator
 import unittest
 
@@ -141,7 +141,7 @@ class JobTests(BaseTestValidator):
         """Test a job with bad values."""
         jobId = self.jobIdDict["bad_values"]
         response = self.run_test(
-            jobId, 200, "finished", 5474, 0, "complete", 90, True)
+            jobId, 200, "finished", 5894, 0, "complete", 90, True)
 
     def test_many_bad_values_job(self):
         # Test job with many bad values
@@ -184,8 +184,7 @@ class JobTests(BaseTestValidator):
             jobId, status, "invalid", False, False, "header_error", 0, False)
 
         if not self.useThreads:
-            self.assertEqual(
-                response.json["message"], "Errors in header row")
+            self.assertIn("Errors in header row", response.json["message"])
 
     def test_bad_header(self):
         """ Ignore bad header value in first row, then fail on a duplicate header """
@@ -199,8 +198,7 @@ class JobTests(BaseTestValidator):
             jobId, status, "invalid", False, False, "header_error", 0, False)
 
         if not self.useThreads:
-            self.assertEqual(
-                response.json["message"], "Errors in header row")
+            self.assertIn("Errors in header row", response.json["message"])
 
     def test_many_rows(self):
         """Test many rows."""

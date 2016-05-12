@@ -80,7 +80,8 @@ class StagingTable(object):
                 classFieldDict[newKey] = Column(fieldTypeName, nullable=False)
             else:
                 classFieldDict[newKey] = Column(fieldTypeName)
-
+        # Add column for row number
+        classFieldDict["row"] = Column(Integer, nullable=False)
 
         if(not primaryAssigned):
             # If no primary key assigned, add one based on table name
@@ -134,7 +135,10 @@ class StagingTable(object):
         # Need to translate the provided record to use column IDs instead of field names for keys
         idRecord = {}
         for key in record:
-            idRecord[str(self.interfaces.validationDb.getColumnId(key,fileType))] = record[key]
+            if key == "row":
+                idRecord["row"] = record[key]
+            else:
+                idRecord[str(self.interfaces.validationDb.getColumnId(key,fileType))] = record[key]
 
         if(self.BATCH_INSERT):
             if(self.INSERT_BY_ORM):

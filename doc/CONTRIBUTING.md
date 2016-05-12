@@ -64,6 +64,8 @@ If you already have a Python development environment on your machine and a prefe
         pip install virtualenvwrapper
 
 4. Tell virtualenvwrapper where on your machine to create virtual environments and add it to your profile. This is a one-time virtualenvwrapper setup step, and the process varies by operating system. [This tutorial](http://newcoder.io/begin/setup-your-machine/ "Python: setting up your computer") covers setting up virtualenvwrapper on OSX, Linux, and Windows.
+   For Windows users, there may be extra steps needed.  If you run into an error on the import-module step, move the "VirtualEnvWrapper" folder from C:/Python27/Lib/site-packages/Users/*username*/Documents/WindowsPowerShell/Modules/ to C:/Users/*username*/Documents/WindowsPowerShell/Modules/.  Next, in powershell run the command "set-executionpolicy unrestricted".  Finally, in the VirtualEnvWrapper directory, open the file "VirtualEnvWrapperTabExpansion.psm1" and change "Function:TabExpansion" to "Function:TabExpansion2" in line 12.
+
 5. Create a virtual environment for the DATA Act software. In this example we've named the environment *data-act*, but you can call it anything:
 
         mkvirtualenv data-act
@@ -75,13 +77,13 @@ If you already have a Python development environment on your machine and a prefe
 6. You should see some output that looks similar to the example below. Essentially, this command creates and activates a new virtualenv named `data-act` with its own set of Python libraries.  Anything you pip install from this point forward will be installed into the *data-act* environment rather than your machine's global Python environment. Your command line prompt indicates which (if any) virtualenv is active.
 
         rebeccasweger@GSA-xs-MacBook-Pro-4 ~
-        $ mkvirtualenv --python=/usr/local/bin/python2.7 data-act-test
+        $ mkvirtualenv --python=/usr/local/bin/python2.7 data-act
         Running virtualenv with interpreter /usr/local/bin/python2.7
         New python executable in data-act-test/bin/python2.7
         Also creating executable in data-act-test/bin/python
         Installing setuptools, pip...done.
 
-        (data-act-test)
+        (data-act)
         rebeccasweger@GSA-xs-MacBook-Pro-4 ~
 
 7. This new environment will be active until you run the `deactivate` command. You can re-activate the environment again at any time by typing `workon data-act`.
@@ -104,23 +106,29 @@ If you're not using AWS tools when running the broker, you'll need to install a 
 
 Don't worry about setting DynamoDB endpoints or creating tables: the broker's code handles this.
 
-**Note:** The local version of DynamoDB is not recommend for production.
+**Note:** The local version of DynamoDB is not recommended for production.
 
-### Clone Broker Backend Code Repositories
+### Install RabbitMQ
+
+RabbitMQ is used to pass jobs to the validator, and requires Erlang to be installed before RabbitMQ.
+
+1.  Install Erlang based on the [download instructions](https://www.erlang.org/downloads)
+2.  Choose an installation guide based on your OS for [RabbitMQ](https://www.rabbitmq.com/download.html).  Be sure to install Erlang before installing RabbitMQ.  The default user and password is "guest"/"guest", if you change these you'll need to keep that information to be placed in the config file later in the process.
+
+### Clone Broker Backend Code Repository
 
 Now we're ready to install the DATA Act broker itself. Before starting:
 
 * These directions involve the command line. If you're on Windows, use the Git shell that comes with the Windows git install or the GitHub desktop install. Don't use the Windows command prompt.
-* Decide where on your machine you want the DATA Act code to live. Throughout these directions, we'll refer to this directory as your `project home` and use it as your starting point.
 * Make sure that your DATA Act Python environment is activated:
 
-        $ activate data-act
+        $ workon data-act
 
 #### DATA Act Broker Backend
 
-Navigate to your DATA Act project home. From the command line, clone the DATA Act Broker Backend repository from GitHub to your local environment:
+Decide where on your machine you want the DATA Act broker code to live. From the command line, navigate there and clone the DATA Act Broker Backend repository from GitHub to your local environment:
 
-        $ git clone git@github.com:fedspendingtransparency/data-act-broker-backend.git
+        $ git clone https://github.com/fedspendingtransparency/data-act-broker-backend.git
 
 Navigate to the DATA Act Broker Backend's main folder:
 
@@ -132,13 +140,14 @@ Switch to the alpha release version of the code. This is the latest stable relea
 
 **Note:** If you'd rather use the latest, work-in-progress features of the DATA Act broker, replace the above command with `git checkout staging`.
 
-Install the dependencies:
+Install the dependencies.  If you are installing on Windows, you may get an error on the "uwsgi" package.  This is not necessary for local installs, so this error can be ignored, and you can proceed to the next section after getting this error.
 
         $ pip install -r requirements.txt
 
 ### Update $PYTHONPATH
 
 The backend components import Python modules from one another. Therefore, the locations of these modules need to be on your $PYTHONPATH. Use the virtualenvwrapper [add2virtual](http://virtualenvwrapper.readthedocs.org/en/latest/command_ref.html#path-management "virtualenvwrapper path management") shortcut to add them:
+If you are using virtualenvwrapper-powershell in Windows, the following command may not work.  In that case, you can add this directory to your PATH or PYTHONPATH environment variable.
 
         $ add2virtualenv [location of your code]/data-act-broker-backend
 
@@ -146,10 +155,9 @@ The backend components import Python modules from one another. Therefore, the lo
 
 Before running the broker, you'll need to provide a few configuration options. Use the provided sample config file as a starting point:
 
-1. Navigate to the location of the data-act-broker-backend code.
-2. From the `data-act-broker-backend` directory, go to `dataactcore` and open the file called `config_example.yml` in a text editor.
-3. Save `config_example.yml` as `config.yml`.
-4. Update the values in `config.yml` as appropriate for your environment. In many cases the default values will work just fine. The most important config values to change when getting started are:
+1. From the `data-act-broker-backend` directory, go to `dataactcore` and open the file called `config_example.yml` in a text editor.
+2. Save `config_example.yml` as `config.yml`.
+3. Update the values in `config.yml` as appropriate for your environment. In many cases the default values will work just fine. The most important config values to change when getting started are:
 
     * under _broker_:
         * `full_url`
@@ -164,14 +172,14 @@ Before running the broker, you'll need to provide a few configuration options. U
         * `password`
     * under _logging_:
         * `log_files`
-5. Save your changes to config.yml
+4. Save your changes to config.yml
 
 ### Initialize Broker Backend Applications
 
-You will need to run two scripts to setup the broker's backend components. These create the necessary databases and data. From your DATA Act project home:
+You will need to run two scripts to setup the broker's backend components. These create the necessary databases and data. From the `data-act-broker-backend` directory:
 
-        $ python data-act-broker-backend/dataactbroker/scripts/initialize.py -i
-        $ python data-act-broker-backend/dataactvalidator/scripts/initialize.py -i
+        $ python dataactbroker/scripts/initialize.py -i
+        $ python dataactvalidator/scripts/initialize.py -i
 
 **Note:** If you're using a local DynamoDB, make sure it's running before executing these scripts.
 
