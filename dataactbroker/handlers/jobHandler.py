@@ -14,16 +14,7 @@ class JobHandler(JobTrackerInterface):
     engine -- sqlalchemy engine for generating connections and sessions
     connection -- sqlalchemy connection for executing direct SQL statements
     session -- sqlalchemy session for ORM usage
-    waitingStatus -- job_status_id for "waiting"
-    runningStatus -- job_status_id for "running"
-    finishedStatus -- job_status_id for "finished"
-    fileUploadType -- job_type_id for "file_upload"
-    dbUploadType -- job_type_id for "db_upload"
-    validationType -- job_type_id for "validation"
-    externalValidationType -- job_type_id for "external_validation"
     """
-
-    # Available instance variables:  session, waitingStatus, runningStatus, fileUploadType, dbUploadType, validationType, externalValidationTYpe
 
     metaDataFieldMap = {"agency_name":"agency_name","reporting_period_start_date":"reporting_start_date","reporting_period_end_date":"reporting_end_date"}
 
