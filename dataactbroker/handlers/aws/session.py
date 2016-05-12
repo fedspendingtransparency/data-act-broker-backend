@@ -1,4 +1,5 @@
 from uuid import uuid4
+from decimal import Decimal
 from boto.dynamodb2.fields import HashKey, GlobalAllIndex
 from boto.dynamodb2.table import Table, exceptions
 from boto.dynamodb2.types import NUMBER
@@ -8,6 +9,7 @@ from werkzeug.datastructures import CallbackDict
 from boto.dynamodb2 import connect_to_region
 from boto.dynamodb2.layer1 import DynamoDBConnection
 from flask.ext.login import _create_identifier
+from dataactcore.utils.requestDictionary import RequestDictionary
 
 class LoginSession():
     """
@@ -166,6 +168,9 @@ def toUnixTime(datetimeValue) :
 
     returns int
     """
+    if(type(datetimeValue) == Decimal):
+        # If argument is already Decimal, assume it's been converted previously
+        return datetimeValue
     return (datetimeValue-datetime(1970,1,1)).total_seconds()
 
 
@@ -212,7 +217,7 @@ class DynamoInterface(SessionInterface):
         implements the open_session method that pulls or creates a new DynamoSession object
 
         """
-        sid = request.cookies.get(app.session_cookie_name)
+        sid = request.headers.get("x-session-id")
         if(sid and SessionTable.doesSessionExist(sid)):
             if SessionTable.getTimeout(sid)> toUnixTime(datetime.utcnow()):
                 return DynamoSession(initial=SessionTable.getData(sid),sid=sid)
@@ -235,15 +240,19 @@ class DynamoInterface(SessionInterface):
         based on the timeout limit, this function also extends the expiration time of the current session
 
         """
-        domain = self.get_cookie_domain(app)
         if not session:
-            response.delete_cookie(app.session_cookie_name, domain=domain)
             return
         # Extend the expiration based on either the time out limit set here or the permanent_session_lifetime property of the app
         if self.get_expiration_time(app, session):
             expiration = self.get_expiration_time(app, session)
         else:
-            expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
+            if "session_check" in session and session["session_check"] and SessionTable.doesSessionExist(session.sid):
+                # This is just a session check, don't extend expiration time
+                expiration = SessionTable.getTimeout(session.sid)
+                # Make sure next route call does not get counted as session check
+                session["session_check"] = False
+            else:
+                expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
         if(not "_uid" in session):
             session["_uid"] = _create_identifier()
         SessionTable.newSession(session.sid,session,expiration)
@@ -252,10 +261,8 @@ class DynamoInterface(SessionInterface):
             SessionTable.clearSessions()
             DynamoInterface.CountLimit = 1
 
-        response.set_cookie(app.session_cookie_name, session.sid,
-                            expires=self.get_expiration_time(app, session),
-                            httponly=True, domain=domain)
-
+        # Return session ID as header x-session-id
+        response.headers["x-session-id"] = session.sid
 
 class SessionTable :
     """

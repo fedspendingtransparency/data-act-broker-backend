@@ -6,8 +6,9 @@ from decimal import *
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactvalidator.models.validationModels import TASLookup
+from dataactcore.models.validationModels import TASLookup
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 class Validator(object):
     """
@@ -21,6 +22,7 @@ class Validator(object):
 
         Args:
             rules -- List of MultiFieldRule objects
+            submissionId -- ID of submission to run cross-file validation
         """
         failures = []
         # Put each rule through evaluate, appending all failures into list
@@ -33,7 +35,13 @@ class Validator(object):
 
     @staticmethod
     def getTable(submissionId, fileType, stagingDb):
-        """ Get ORM table based on submission ID and file type """
+        """ Get ORM table based on submission ID and file type
+
+        Args:
+            submissionId - ID of submission
+            fileType - Which type of file this table is for
+            stagingDb - Interface object for stagingDB
+        """
         meta = MetaData(bind=stagingDb.engine)
         # Get name of staging tables
         tableName = stagingDb.getTableNameBySubmissionId(submissionId,fileType)
@@ -50,9 +58,21 @@ class Validator(object):
             # If no record provided, get list of all entries in first table
             sourceRecords = stagingDb.session.query(sourceTable).all()
         return sourceRecords
+
     @classmethod
     def evaluateCrossFileRule(cls, rule, submissionId, record = None):
-        """ Evaluate specified rule against all records to which it applies """
+        """ Evaluate specified rule against all records to which it applies
+
+        Args:
+            rule - Rule or MultiFieldRule object to be tested
+            submissionId - ID of submission being tested
+            record - Some rule types are applied to only a single record.  For those rules, include the record as a dict here.
+
+        Returns:
+            Tuple of a boolean indicating passed or not, and a list of all failures that occurred.  Each failure is a
+            list containing the type of the source file, the fields involved, a description of the rule, the values for
+            the fields involved, and the row number in the source file where the failure occurred.
+        """
         failures = [] # Can get multiple failures for these rule types
         rulePassed = True # Set to false on first failures
         # Get rule type
@@ -89,8 +109,12 @@ class Validator(object):
                     # Fields don't match target file, add to failures
                     rulePassed = False
                     dictString = str(matchDict)[1:-1] # Remove braces
+                    if isinstance(thisRecord,dict):
+                        rowNumber = thisRecord["row"]
+                    else:
+                        rowNumber = getattr(thisRecord,"row")
+                    failures.append([fileType,", ".join(fieldsToCheck),rule.description,dictString,rowNumber])
 
-                    failures.append([", ".join(fieldsToCheck),rule.description,dictString])
         elif ruleType == "rule_if":
             # Get all records from source table
             sourceTable = cls.getTable(submissionId, fileType, stagingDb)
@@ -134,7 +158,7 @@ class Validator(object):
     def validate(record,rules,csvSchema,fileType,interfaces):
         """
         Args:
-        record -- dict represenation of a single record of data
+        record -- dict representation of a single record of data
         rules -- list of rule Objects
         csvSchema -- dict of schema for the current file.
         fileType -- name of file type to check against
@@ -149,6 +173,9 @@ class Validator(object):
                 return False, [[fieldName, ValidationError.requiredError, ""]]
 
         for fieldName in record :
+            if fieldName == "row":
+                # Skip row number, nothing to validate on that
+                continue
             checkRequiredOnly = False
             currentSchema =  csvSchema[fieldName]
             ruleSubset = Validator.getRules(fieldName, fileType, rules,interfaces.validationDb)
@@ -299,6 +326,8 @@ class Validator(object):
             data: Data to be checked
             rule: Rule object to test against
             datatype: Type to convert data into
+            interfaces: InterfaceHolder object to the databases
+            record: Some rule types require the entire record as a dict
 
         Returns:
             True if rule passed, False otherwise
@@ -333,8 +362,37 @@ class Validator(object):
         raise ValueError("Rule Type Invalid")
 
     @staticmethod
+    def requireOne(record, fields, interfaces):
+        """ Require at least one of the specified fields to be present
+
+        Args:
+            record: Dict for current record
+            fields: List of fields to check
+            interfaces: interface holder for DBs
+
+        Returns:
+            True if at least one of the fields is present
+        """
+        for field in fields:
+            fieldName = FieldCleaner.cleanName(field)
+            if fieldName in record and record[fieldName] is not None and str(record[fieldName]).strip() != "":
+                # If data is present in this field, rule is satisfied
+                return True
+
+        # If all were empty, return false
+        return False
+
+    @staticmethod
     def conditionalRequired(data,rule,datatype,interfaces,record):
-        """ If conditional rule passes, data must not be empty """
+        """ If conditional rule passes, data must not be empty
+
+        Args:
+            data: Data to be checked
+            rule: Rule object to test against
+            datatype: Type to convert data into
+            interfaces: InterfaceHolder object to the databases
+            record: Some rule types require the entire record as a dict
+        """
         # Get rule object for conditional rule
         conditionalRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
         conditionalTypeId = conditionalRule.file_column.field_types_id
@@ -354,6 +412,7 @@ class Validator(object):
         Args:
             rule: MultiFieldRule object to check against
             record: Record to be checked
+            interfaces: InterfaceHolder object to the databases
             fileType: File type being checked
 
         Returns:
@@ -369,12 +428,19 @@ class Validator(object):
             return Validator.validateTAS(fieldsToCheck, tasFields, record, interfaces, fileType)
         elif(ruleType == "SUM_TO_VALUE"):
             return Validator.validateSum(rule.rule_text_1, rule.rule_text_2, record)
+        elif(ruleType == "REQUIRE_ONE_OF_SET"):
+            return Validator.requireOne(record,rule.rule_text_1.split(','),interfaces)
         else:
             raise ResponseException("Bad rule type for multi-field rule",StatusCode.INTERNAL_ERROR)
 
     @staticmethod
     def cleanSplit(string, toLower = True):
-        """ Split string on commas and remove whitespace around each element"""
+        """ Split string on commas and remove whitespace around each element
+
+        Args:
+            string - String to be split
+            toLower - If True, also changes string to lowercase
+        """
         stringList = string.split(",")
         for i in range(0,len(stringList)):
             stringList[i] = stringList[i].strip()
@@ -444,6 +510,7 @@ class Validator(object):
             fieldsToCheck: Set of fields involved in TAS check
             tasFields: Corresponding field names in TASLookup table
             record: Record to check TAS for
+            interfaces: InterfaceHolder object to the databases
             fileType: File type being checked
 
         Returns:

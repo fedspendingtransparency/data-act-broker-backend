@@ -16,8 +16,8 @@ from dataactvalidator.scripts.setupValidationDB import setupValidationDB
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
-from dataactcore.models.jobModels import JobStatus, Submission
-from dataactvalidator.models.validationModels import FileColumn
+from dataactcore.models.jobModels import Job, Submission
+from dataactcore.models.validationModels import FileColumn
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER
 import dataactcore.config
 
@@ -68,7 +68,7 @@ class BaseTestValidator(unittest.TestCase):
         # drop and re-create test staging db
         setupStagingDB()
         # drop and re-create test vaidation db
-        setupValidationDB(True)
+        setupValidationDB()
 
         cls.interfaces = InterfaceHolder()
         cls.jobTracker = cls.interfaces.jobDb
@@ -94,6 +94,21 @@ class BaseTestValidator(unittest.TestCase):
 
     def run_test(self, jobId, statusId, statusName, fileSize, stagingRows,
                  errorStatus, numErrors, rowErrorsPresent = None):
+        """ Runs a validation test
+
+        Args:
+            jobId: ID of job for this validation
+            statusId: Expected HTTP status code for this test
+            statusName: Expected status in job tracker, False if job should not exist
+            fileSize: Expected file size of error report, False if error report should not exist
+            stagingRows: Expected number of rows in staging table, False if table should not exist
+            errorStatus: Expected status in file table of error DB, False if file object should not exist
+            numErrors: Expected number of errors
+            rowErrorsPresent: Checks flag for whether row errors occurred, None to skip the check
+
+        Returns:
+
+        """
         response = self.validateJob(jobId, self.useThreads)
         jobTracker = self.jobTracker
         stagingDb = self.stagingDb
@@ -101,7 +116,7 @@ class BaseTestValidator(unittest.TestCase):
             msg="{}".format(self.getResponseInfo(response)))
         if statusName != False:
             self.waitOnJob(jobTracker, jobId, statusName, self.useThreads)
-            self.assertEqual(jobTracker.getStatus(jobId), jobTracker.getStatusId(statusName))
+            self.assertEqual(jobTracker.getJobStatus(jobId), jobTracker.getJobStatusId(statusName))
 
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
@@ -115,7 +130,7 @@ class BaseTestValidator(unittest.TestCase):
 
         errorInterface = self.errorInterface
         if errorStatus is not False:
-            self.assertEqual(errorInterface.checkStatusByJobId(jobId), errorInterface.getStatusId(errorStatus))
+            self.assertEqual(errorInterface.checkFileStatusByJobId(jobId), errorInterface.getFileStatusId(errorStatus))
             self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId), numErrors)
 
         if(fileSize != False):
@@ -149,7 +164,7 @@ class BaseTestValidator(unittest.TestCase):
     @staticmethod
     def addJob(status, jobType, submissionId, s3Filename, fileType, session):
         """ Create a job model and add it to the session """
-        job = JobStatus(status_id=status, type_id=jobType,
+        job = Job(job_status_id=status, job_type_id=jobType,
             submission_id=submissionId, filename=s3Filename, file_type_id=fileType)
         session.add(job)
         session.commit()
@@ -157,14 +172,14 @@ class BaseTestValidator(unittest.TestCase):
 
     def waitOnJob(self, jobTracker, jobId, status, useThreads):
         """Wait until job gets set to the correct status in job tracker, this is done to wait for validation to complete when running tests."""
-        currentID = jobTracker.getStatusId("running")
-        targetStatus = jobTracker.getStatusId(status)
+        currentID = jobTracker.getJobStatusId("running")
+        targetStatus = jobTracker.getJobStatusId(status)
         if useThreads:
-            while jobTracker.getStatus(jobId) == currentID:
+            while jobTracker.getJobStatus(jobId) == currentID:
                 time.sleep(1)
-            self.assertEqual(targetStatus, jobTracker.getStatus(jobId))
+            self.assertEqual(targetStatus, jobTracker.getJobStatus(jobId))
         else:
-            self.assertEqual(targetStatus, jobTracker.getStatus(jobId))
+            self.assertEqual(targetStatus, jobTracker.getJobStatus(jobId))
             return
 
     @staticmethod
@@ -208,6 +223,19 @@ class BaseTestValidator(unittest.TestCase):
     @staticmethod
     def addFileColumn(fileId, fieldTypeId, columnName,
             description, required, session):
+        """ Add information for one field
+
+        Args:
+            fileId: Which file this field is part of
+            fieldTypeId: Data type found in this field
+            columnName: Name of field
+            description: Description of field
+            required: True if field is required
+            session: session object to be used for queries
+
+        Returns:
+
+        """
         column = FileColumn(file_id=fileId, field_types_id=fieldTypeId,
             name=columnName, description=description, required=required)
         session.add(column)
@@ -215,6 +243,7 @@ class BaseTestValidator(unittest.TestCase):
         return column
 
     def getResponseInfo(self, response):
+        """ Format response object in readable form """
         info = 'status_code: {}'.format(response.status_code)
         if response.content_type.endswith(('+json', '/json')):
             json = response.json

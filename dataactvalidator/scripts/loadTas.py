@@ -1,5 +1,5 @@
 from dataactvalidator.filestreaming.tasLoader import TASLoader
-from dataactvalidator.models.validationModels import TASLookup
+from dataactcore.models.validationModels import TASLookup
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 
 

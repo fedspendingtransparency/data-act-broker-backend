@@ -21,5 +21,6 @@ class UserInterface(BaseInterface):
         return UserInterface.dbName
 
     def getUserStatusId(self, statusName):
+        """ Get ID for specified User Status """
         return self.getIdFromDict(
             UserStatus, "STATUS_DICT", "name", statusName, "user_status_id")

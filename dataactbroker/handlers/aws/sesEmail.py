@@ -17,6 +17,16 @@ class sesEmail(object):
     isLocal = False
     emailLog = "Email.log"
     def __init__(self,toAddress,fromAddress,content="",subject="",templateType=None,parameters=None, database=None):
+        """ Creates an email object to be sent
+        Args:
+            toAddress: Email is sent to this address
+            fromAddress: This will appear as the sender, must be an address verified through S3 for cloud version
+            content: Body of email
+            subject: Subject line of email
+            templateType: What type of template to use to fill in the email
+            parameters: Dict of replacement values to populate the template
+            database: Interface object to User DB
+        """
         self.toAddress = toAddress
         self.fromAddress = fromAddress
         if(templateType is None):
@@ -34,6 +44,7 @@ class sesEmail(object):
                     self.content = self.content.replace(key,"")
 
     def send(self):
+        """ Send the email built in the constructor """
         if(not sesEmail.isLocal):
             # Use aws creds for ses if possible, otherwise, use aws_key from config
             connection = boto.connect_ses()

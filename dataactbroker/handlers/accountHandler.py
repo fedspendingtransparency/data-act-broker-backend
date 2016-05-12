@@ -18,12 +18,17 @@ class AccountHandler:
     """
     # Handles login process, compares username and password provided
     FRONT_END = ""
+    INACTIVITY_THRESHOLD = 120 # Days a user's account can be unused before being marked as inactive
+    ALLOWED_PASSWORD_ATTEMPTS = 3 # Number of allowed login attempts before account is locked
     # Instance fields include request, response, logFlag, and logFile
 
     def __init__(self,request, interfaces = None, bcrypt = None):
-        """
+        """ Creates the Login Handler
 
-        Creates the Login Handler
+        Args:
+            request - Flask request object
+            interfaces - InterfaceHolder object for databases
+            bcrypt - Bcrypt object associated with app
         """
         self.request = request
         self.bcrypt = bcrypt
@@ -32,7 +37,11 @@ class AccountHandler:
             self.userManager = interfaces.userDb
 
     def addInterfaces(self,interfaces):
-        """ Add interfaces to an existing account handler """
+        """ Add interfaces to an existing account handler
+
+        Args:
+            interfaces - InterfaceHolder object for databases
+        """
         self.interfaces = interfaces
         self.userManager = interfaces.userDb
 
@@ -65,18 +74,26 @@ class AccountHandler:
             try:
                 user  = self.interfaces.userDb.getUserByEmail(username)
             except Exception as e:
-                raise ValueError("user name and or password invalid")
+                raise ValueError("Invalid username and/or password")
 
             if(not self.interfaces.userDb.checkStatus(user,"approved")):
-                raise ValueError("user name and or password invalid")
+                raise ValueError("Invalid username and/or password")
 
             # Only check if user is active after they've logged in for the first time
-            if user.last_login_date is not None and not self.isUserActive(user):
+            if user.last_login_date is not None and self.isAccountExpired(user):
                 raise ValueError("Your account has expired. Please contact an administrator.")
+
+            # for whatever reason, your account is not active, therefore it's locked
+            if not self.isUserActive(user):
+                raise ValueError("Your account has been locked. Please contact an administrator.")
 
             try:
                 if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
                     # We have a valid login
+
+                    # Reset incorrect password attempt count to 0
+                    self.resetPasswordCount(user)
+
                     LoginSession.login(session,user.user_id)
                     permissionList = []
                     for permission in self.interfaces.userDb.getPermssionList():
@@ -85,10 +102,19 @@ class AccountHandler:
                     self.interfaces.userDb.updateLastLogin(user)
                     return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),"name":user.name,"title":user.title ,"agency":user.agency, "permissions" : permissionList})
                 else :
-                    raise ValueError("user name and or password invalid")
+                    # increase incorrect password attempt count by 1
+                    # if this is the 3rd incorrect attempt, lock account
+                    self.incrementPasswordCount(user)
+                    if user.incorrect_password_attempts == 3:
+                        raise ValueError("Your account has been locked due to too many failed login attempts. Please contact an administrator.")
+
+                    raise ValueError("Invalid username and/or password")
+            except ValueError as ve:
+                LoginSession.logout(session)
+                raise ve
             except Exception as e:
                     LoginSession.logout(session)
-                    raise ValueError("user name and or password invalid")
+                    raise ValueError("Invalid username and/or password")
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
@@ -429,11 +455,59 @@ class AccountHandler:
                 permissionList.append(permission.permission_type_id)
         return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList})
 
-    def isUserActive(self, user):
+    def isUserActive(self, user, checkExpiration=False):
+        """ Checks if user's account is still active
+
+        Args:
+            user: User object to check
+        """
+        return user.is_active
+
+    def isAccountExpired(self, user):
+        """ Checks user's last login date against inactivity threshold, marks account as inactive if expired
+
+        Args:
+            user: User object to check
+
+        """
         today = parse(time.strftime("%c"))
         daysActive = (today-user.last_login_date).days
         secondsActive = (today-user.last_login_date).seconds
-        if daysActive > 120 or (daysActive == 120 and secondsActive > 0):
-            user.is_active = False
+        if daysActive > self.INACTIVITY_THRESHOLD or (daysActive == self.INACTIVITY_THRESHOLD and secondsActive > 0):
+            self.lockAccount(user)
+            return True
+        return False
+
+    def resetPasswordCount(self, user):
+        """ Resets the number of failed attempts when a user successfully logs in
+
+        Args:
+            user: User object to be changed
+        """
+        if user.incorrect_password_attempts != 0:
+            user.incorrect_password_attempts = 0
+            self.interfaces.userDb.session.commit()
+
+    def incrementPasswordCount(self, user):
+        """ Records a failed attempt to log in.  If number of failed attempts is higher than threshold, locks account.
+
+        Args:
+            user: User object to be changed
+
+        Returns:
+
+        """
+        if user.incorrect_password_attempts < self.ALLOWED_PASSWORD_ATTEMPTS:
+            user.incorrect_password_attempts += 1
+            if user.incorrect_password_attempts == self.ALLOWED_PASSWORD_ATTEMPTS:
+                self.lockAccount(user)
+            self.interfaces.userDb.session.commit()
+
+    def lockAccount(self, user):
+        """ Lock this user's account by marking it as inactive
+
+        Args:
+            user: User object to be locked
+        """
+        user.is_active = False
         self.interfaces.userDb.session.commit()
-        return user.is_active
