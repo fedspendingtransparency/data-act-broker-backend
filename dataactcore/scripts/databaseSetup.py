@@ -1,4 +1,5 @@
 import sqlalchemy_utils
+import logging
 from dataactcore.config import CONFIG_DB, ALEMBIC_PATH, MIGRATION_PATH
 from alembic.config import Config
 from alembic import command
@@ -32,6 +33,7 @@ def runMigrations(alembicDbName):
         alembicDbName: the database to target (must match one of the
         default databases in alembic.ini.
     """
+    logging.disable(logging.WARN)
     alembic_cfg = Config(ALEMBIC_PATH)
     alembic_cfg.set_main_option("script_location", MIGRATION_PATH)
     alembic_cfg.set_main_option("databases", alembicDbName)
@@ -41,3 +43,5 @@ def runMigrations(alembicDbName):
         if "relation" and "already exists" in e.message:
             raise Exception("Cannot run initial db migration if tables "
                             "already exist. " + e.message)
+    finally:
+        logging.disable(logging.NOTSET)

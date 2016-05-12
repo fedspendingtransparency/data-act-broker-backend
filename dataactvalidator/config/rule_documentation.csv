@@ -1,0 +1,51 @@
+File,Rule,Rule Detail,Type,Validation Type,Implemented,Comments
+A/B/C,A1,"TAS components: The combination of all the elements that make up the TAS must match the Treasury Central Accounting Reporting System (CARS). AgencyIdentifier, MainAccountCode, and SubAccountCode are always required. AllocationTransferAgencyIdentifier, BeginningPeriodOfAvailability, EndingPeriodOfAvailability and AvailabilityTypeCode are required if present in the CARS table.",Multi-Element Existence,External CARS,Yes,Need some process for keeping TAS file up to date
+,,,,,,
+A,A2,BudgetAuthorityAvailableAmountTotal_CPE = BudgetAuthorityAppropriatedAmount_CPE + BudgetAuthorityUnobligatedBalanceBroughtForward_FYB + AdjustmentsToUnobligatedBalanceBroughtForward_CPE + OtherBudgetaryResourcesAmount_CPE,Calculation,Record calculation,No,Ready
+A,A3,OtherBudgetaryResourcesAmount_CPE = ContractAuthorityAmountTotal_CPE + BorrowingAuthorityAmountTotal_CPE + SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE,Calculation,Record calculation,No,Ready
+A,A4,StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE + UnobligatedBalance_CPE,Calculation,Record calculation,No,Ready
+A,A6,BudgetAuthorityAvailableAmountTotal_CPE= CPE value for GTAS SF 133 line #1910 ,Calculation,External 133,No,SF 133 unclear
+A,A7,BudgetAuthorityUnobligatedBalanceBroughtForward_FYB= value for GTAS SF 133 line #1000 ,Calculation,External 133,No,SF 133 unclear
+A,A8,BudgetAuthorityAppropriatedAmount_CPE= CPE aggregate value for GTAS SF 133 line #1160 + #1180 + #1260 + #1280,Calculation,External 133,No,SF 133 unclear
+A,A9,ContractAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1540 + #1640,Calculation,External 133,No,SF 133 unclear
+A,A10,BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440,Calculation,External 133,No,SF 133 unclear
+A,A11,SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1750 + #1850,Calculation,External 133,No,SF 133 unclear
+A,A12,AdjustmentsToUnobligatedBalanceBroughtForward_CPE= CPE aggregate value for GTAS SF 133 line #1010-1042,Calculation,External 133,No,SF 133 unclear
+A,A14,GrossOutlayAmountByTAS_CPE= CPE value for GTAS SF 133 line #3020,Calculation,External 133,No,SF 133 unclear
+A,A15,UnobligatedBalance_CPE= CPE value for GTAS SF 133 line #2490 ,Calculation,External 133,No,SF 133 unclear
+"A, B, C",A16,"All the elements that have FYB in file A, B & C would be expected in quarter 1, as a soft edit. It would be optional in subsequent periods.",Requirement,Time dependent,No,Set of fields required if applicable to Q1
+A,A17,Submitted value must match corresponding GTAS value (see specific rule),Requirement,Unknown,No,Unclear
+"A, B",A18,"GrossOutlayAmountByTAS_CPE (file A) = sum of all GrossOutlayAmountByProgramObjectClass (file B) {When not disaggregated by Program Activity and Object Class, this value is the sum of all Gross Outlay Amounts reported in file B, by TAS/Subaccount}",Calculation,Cross File Calculation,No,Unclear
+"A, B",A19,ObligationsIncurredTotalByTAS_CPE (File A) = sum of ObligationsIncurredByProgramObjectClass_CPE (File B),Calculation,Cross File Calculation,No,Is this summed by TAS like A18?
+A,A20,Must be valid Agency ID in the Common Government-wide Accounting Classification (CGAC),Requirement,External CGAC,No,Is this in domain values file?
+A,A21,Only acceptable values are x and [blank],Requirement,Equals,Yes,Implemented as IN_SET because of earlier version
+A,A22,ObligationsIncurredTotaByTAS_CPE= CPE value for GTAS SF 133 line #2190 ,Calculation,External 133,No,SF 133 unclear
+A,A23,StatusOfBudgetaryResourcesTotal_CPE= CPE value for GTAS SF 133 line #2500,Calculation,External 133,No,SF 133 unclear
+A,A24,StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE,Calculation,Record calculation,No,Ready
+A,A25,"BorrowingAuthorityAmountTotal_CPE must be provided if TAS has borrowing authority per CARS or GTAS. If no borrowing authority on TAS, leave blank.",Required if applicable,External CARS,No,What does it mean to have borrowing authority?
+A,A26,"ContractAuthorityAmountTotal_CPE must be provided if TAS has contract authority per CARS or GTAS. If no contract authority on TAS, leave blank.",Required if applicable,External CARS,No,What does it mean to have contract authority?
+A,A27,"SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE must be provided if TAS has spending authority per CARS or GTAS. If no spending authority on TAS, leave blank. ",Required if applicable,External CARS,No,What does it mean to have spending authority?
+A,A28,"OtherBudgetaryResourcesAmount_CPE must be provided if TAS has borrowing, contract or spending authority per CARS or GTAS. If not applicable, leave blank. ",Required if applicable,External CARS,No,Requires A25-27
+,,,,,,
+B,B3,ObligationsUndeliveredOrdersUnpaidTotal (FYB or CPE) = USSGL(4801 + 4831 + 4871 + 4881). This applies to the program activity and object class level.,Calculation,Record calculation,No,Ready
+B,B4,ObligationsDeliveredOrdersUnpaidTotal (FYB or CPE) = USSGL(4901 + 4931 + 4971 + 4981). This applies to the program activity and object class level.,Calculation,Record calculation,No,Ready
+B,B5,"GrossOutlayAmountByProgramObjectClass (FYB or CPE, File B) = GrossOutlaysUndeliveredOrdersPrepaidTotal (FYB or CPE, File B) + GrossOutlaysDeliveredOrdersPaidTotal (FYB or CPE, File B)",Calculation,Record calculation,No,Ready
+B,B6,GrossOutlaysUndeliveredOrdersPrepaidTotal (FYB or CPE) = USSGL(4802 + 4832 + 4872+ 4882). This applies to the program activity and object class level.,Calculation,Record calculation,No,Ready
+B,B7,GrossOutlaysDeliveredOrdersPaidTotal (FYB or CPE)= USSGL(4902 + 4908 + 4972 + 4982). This applies to the program activity and object class level.,Calculation,Record calculation,No,Ready
+B,B9,Must be a valid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular A-11.,Requirement,External,No,Is this in domain values file?
+B,B10,Must be a valid program activity code for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular A-11.,Requirement,External,No,Is this in domain values file?
+B,B11,"Must be valid 3-digit object class as defined in OMB Circular A-11 Section 83.6, or a 4-digit code which includes a 1-digit prefix that distinguishes direct, reimbursable, and allocation obligations. Do not include decimal points when reporting in the Schema.",Requirement,External,No,Is this in domain values file?  What are the valid prefixes?
+B,B12,"Reimbursable flag indicator is required when reporting obligation or outlay USSGL account balances (excluding downward adjustments SGL accounts). Valid values are ""R"" for ""ReimbursableFundingSource"" and ""D"" for ""DirectFundingSource"".",Requirement,"Condtional requirement, in set",No,"Unclear what the condition is, this check is currently applied to all records"
+B,B13,DeobligationsRecoveriesRefundsdOfPriorYearByProgramObjectClass_CPE = USSGL(4871+ 4872 + 4971 + 4972),Requirement,Record calculation,No,Ready
+,,,,,,
+C,C3,ObligationsUndeliveredOrdersUnpaidTotal (FYB or CPE) = USSGL(4801 + 4831 + 4871 + 4881). This applies to the award level.,Calculation,Record calculation,No,Ready
+C,C4,ObligationsDeliveredOrdersUnpaidTotal (FYB or CPE) = USSGL(4901 + 4931 + 4971 + 4981). This applies to the award level.,Calculation,Record calculation,No,Ready
+C,C5,"GrossOutlayAmountByAward (FYB or CPE, File C) = GrossOutlaysUndeliveredOrdersPrepaidTotal (FYB or CPE, File C) + GrossOutlaysDeliveredOrdersPaidTotal (FYB or CPE, File C)",Calculation,Record calculation,No,Ready
+C,C6,GrossOutlaysUndeliveredOrdersPrepaidTotal (FYB or CPE) = USSGL(4802 + 4832 + 4872+ 4882). This applies to the award level.,Calculation,Record calculation,No,Ready
+C,C7,GrossOutlaysDeliveredOrdersPaidTotal (FYB or CPE) = USSGL(4902 + 4908 + 4972 + 4982). This applies to the award level.,Calculation,Record calculation,No,Ready
+C/D2,C8,Unique FAIN/URI from file C exists in file D2,Linkage,Cross file existence,Yes,
+C/D2,C9,"Unique FAIN/URI from file D2 exists in file C, except D2 records with zero FederalActionObligation",Linkage,Cross file existence,Yes,
+C/D1,C11,"Unique PIID, ParentAwardId from file C exists in file D1",Linkage,Cross file existence,No,File D1 not yet included
+C/D1,C12,"Unique PIID, ParentAwardId from file D1 exists in file C, except D1 records with zero FederalActionObligation",Linkage,Cross file existence,No,File D1 not yet included
+C,C14,If FAIN is not provided then provide URI ,Element Conditionally Required,Conditional requirement,Yes,"Including PIID in this rule, one of the three must be present "
+C,C17,Not Required on rows that include values for USSGL accounts balances or subtotals,Element Conditionally Required,Conditional requirement,No,Ready

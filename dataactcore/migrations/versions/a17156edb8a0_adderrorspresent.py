@@ -62,3 +62,8 @@ def downgrade_user_manager():
     pass
     ### end Alembic commands ###
 
+def upgrade_validation():
+    pass
+
+def downgrade_validation():
+    pass
