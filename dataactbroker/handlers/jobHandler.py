@@ -24,6 +24,10 @@ class JobHandler(JobTrackerInterface):
         result = self.runUniqueQuery(query,"No submission with that ID","Multiple submissions with that ID")
         return result
 
+    def getSubmissionsByUserAgency(self,user,limit=5):
+        """ Returns all submissions associated with the specified user's agency """
+        return self.session.query(Submission).filter(Submission.agency_name == user.agency).order_by(Submission.created_at.desc()).limit(limit).all()
+
     def getSubmissionsByUserId(self,userId):
         """ Returns all submissions associated with the specified user ID """
         return self.session.query(Submission).filter(Submission.user_id == userId).all()

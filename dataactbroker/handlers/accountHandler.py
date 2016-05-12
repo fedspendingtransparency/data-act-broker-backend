@@ -368,6 +368,16 @@ class AccountHandler:
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
+    def listSubmissionsByCurrentUserAgency(self):
+        """ List all submission IDs associated with the current user's agency """
+        userId = LoginSession.getName(flaskSession)
+        user = self.interfaces.userDb.getUserByUID(userId)
+        submissions = self.interfaces.jobDb.getSubmissionsByUserAgency(user)
+        submissionIdList = []
+        for submission in submissions:
+            submissionIdList.append(submission.submission_id)
+        return JsonResponse.create(StatusCode.OK, {"submission_id_list": submissionIdList})
+
     def listSubmissionsByCurrentUser(self):
         """ List all submission IDs associated with the current user ID """
         userId = LoginSession.getName(flaskSession)
@@ -375,6 +385,7 @@ class AccountHandler:
         submissionIdList = []
         for submission in submissions:
             submissionIdList.append(submission.submission_id)
+        print "DEBUG: Submission Count => " + str(len(submissionIdList))
         return JsonResponse.create(StatusCode.OK,{"submission_id_list": submissionIdList})
 
     def setNewPassword(self, session):

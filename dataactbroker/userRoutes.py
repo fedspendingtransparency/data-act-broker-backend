@@ -54,13 +54,6 @@ def add_user_routes(app,system_email,bcrypt):
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.listUsersWithStatus)
 
-    @app.route("/v1/list_submissions/", methods = ["GET"])
-    @permissions_check
-    def list_submissions():
-        """ List submission IDs associated with the current user """
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.listSubmissionsByCurrentUser)
-
     @app.route("/v1/set_password/", methods=["POST"])
     @permissions_check(permissionList=["check_password_token"])
     def set_password():
