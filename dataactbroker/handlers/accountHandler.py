@@ -201,7 +201,9 @@ class AccountHandler:
         newEmail = sesEmail(user.email, system_email,templateType="account_creation_user",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()
 
+        # Logout and delete token
         LoginSession.logout(session)
+        self.interfaces.userDb.deleteToken(session["token"])
         # Mark user as awaiting approval
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
@@ -256,6 +258,7 @@ class AccountHandler:
             exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         token = requestFields.getValue("token")
+        session["token"] = token
         success,message,errorCode = sesEmail.checkToken(token,self.interfaces.userDb,"validate_email")
         if(success):
             #mark session that email can be filled out

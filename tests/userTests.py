@@ -59,13 +59,13 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/register/", postJson, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK, "Registration successful")
         # Check that session does not allow another registration
-        response = self.app.post_json("/v1/register/", postJson, headers={"x-session-id":self.session_id})
+        response = self.app.post_json("/v1/register/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
         self.check_response(response, StatusCode.LOGIN_REQUIRED)
-        # Check that re-registration with token is an error
+        # Check that re-registration with same token is an error
         tokenJson = {"token": self.registerToken}
         self.app.post_json("/v1/confirm_email_token/", tokenJson, headers={"x-session-id":self.session_id})
         response = self.app.post_json("/v1/register/", postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.assertEqual(response.status_code,400)
+        self.assertEqual(response.status_code,401)
 
     def test_registration_empty(self):
         """Test user registration with no user."""
