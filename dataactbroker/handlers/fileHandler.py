@@ -1,16 +1,13 @@
 import os
-from flask import session ,request
-from datetime import datetime, timedelta
+from flask import session, request
+from datetime import datetime
 from werkzeug import secure_filename
-from sqlalchemy.orm.exc import NoResultFound,MultipleResultsFound
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.config import CONFIG_BROKER
-from dataactbroker.handlers.managerProxy import ManagerProxy
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactbroker.handlers.aws.session import LoginSession
 
 class FileHandler:
@@ -231,11 +228,11 @@ class FileHandler:
                 if(self.jobManager.getJobType(jobId) != "csv_record_validation"):
                     continue
                 jobInfo["job_id"] = jobId
-                jobInfo["job_status"] = self.jobManager.getJobStatus(jobId)
+                jobInfo["job_status"] = self.jobManager.getJobStatusName(jobId)
                 jobInfo["job_type"] = self.jobManager.getJobType(jobId)
                 jobInfo["filename"] = self.jobManager.getOriginalFilenameById(jobId)
                 try:
-                    jobInfo["file_status"] = self.interfaces.errorDb.getStatusLabelByJobId(jobId)
+                    jobInfo["file_status"] = self.interfaces.errorDb.getFileStatusLabelByJobId(jobId)
                 except ResponseException as e:
                     # Job ID not in error database, probably did not make it to validation, or has not yet been validated
                     jobInfo["file_status"] = ""
@@ -244,7 +241,7 @@ class FileHandler:
                     jobInfo["error_type"] = ""
                     jobInfo["error_data"] = []
                 else:
-                    # If job ID was found in file_status, we should be able to get header error lists and file data
+                    # If job ID was found in file, we should be able to get header error lists and file data
                     # Get string of missing headers and parse as a list
                     missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(jobId)
                     if missingHeaderString is not None:

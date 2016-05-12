@@ -114,6 +114,7 @@ class Validator(object):
                     else:
                         rowNumber = getattr(thisRecord,"row")
                     failures.append([fileType,", ".join(fieldsToCheck),rule.description,dictString,rowNumber])
+
         elif ruleType == "rule_if":
             # Get all records from source table
             sourceTable = cls.getTable(submissionId, fileType, stagingDb)

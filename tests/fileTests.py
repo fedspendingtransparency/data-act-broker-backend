@@ -3,15 +3,12 @@ import os
 import inspect
 import boto
 from datetime import datetime
-from datetime import date
-from time import sleep, time
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from baseTestAPI import BaseTestAPI
-from dataactcore.models.jobModels import Submission, JobStatus
-from dataactcore.models.errorModels import ErrorData, FileStatus
+from dataactcore.models.jobModels import Submission, Job
+from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.responseException import ResponseException
 from dataactbroker.handlers.jobHandler import JobHandler
 from shutil import copy
 
@@ -48,7 +45,7 @@ class FileTests(BaseTestAPI):
         # setup file status data for test_metrics
         cls.test_metrics_submission_id = cls.insertSubmission(
             cls.jobTracker, cls.submission_user_id)
-        cls.setupFileStatusData(cls.jobTracker, cls.errorDatabase,
+        cls.setupFileData(cls.jobTracker, cls.errorDatabase,
             cls.test_metrics_submission_id)
 
     def setUp(self):
@@ -326,10 +323,10 @@ class FileTests(BaseTestAPI):
     @staticmethod
     def insertJob(jobTracker, filetype, status, type_id, submission, job_id=None, filename = None, file_size = None, num_rows = None):
         """Insert one job into job tracker and get ID back."""
-        job = JobStatus(
+        job = Job(
             file_type_id=filetype,
-            status_id=status,
-            type_id=type_id,
+            job_status_id=status,
+            job_type_id=type_id,
             submission_id=submission,
             original_filename=filename,
             file_size = file_size,
@@ -342,12 +339,12 @@ class FileTests(BaseTestAPI):
         return job.job_id
 
     @staticmethod
-    def insertFileStatus(errorDB, job, status):
-        """Insert one file status into error database and get ID back."""
-        fs = FileStatus(
+    def insertFile(errorDB, job, status):
+        """Insert one file into error database and get ID back."""
+        fs = File(
             job_id=job,
             filename=' ',
-            status_id=status
+            file_status_id=status
         )
         errorDB.session.add(fs)
         errorDB.session.commit()
@@ -357,7 +354,7 @@ class FileTests(BaseTestAPI):
     def insertRowLevelError(errorDB, job):
         """Insert one error into error database."""
         #TODO: remove hard-coded surrogate keys and filename
-        ed = ErrorData(
+        ed = ErrorMetadata(
             job_id=job,
             filename='test.csv',
             field_name='header 1',
@@ -368,7 +365,7 @@ class FileTests(BaseTestAPI):
         )
         errorDB.session.add(ed)
         errorDB.session.commit()
-        return ed.error_data_id
+        return ed.error_metadata_id
 
     @staticmethod
     def setupJobsForStatusCheck(interfaces, submission_id):
@@ -397,13 +394,18 @@ class FileTests(BaseTestAPI):
             )
             jobIdDict[jobKey] = job_id
 
-        # For appropriations job, create an entry in file_status for this job
-        fileStatus = FileStatus(job_id = jobIdDict["appropriations"],filename = "approp.csv", status_id = interfaces.errorDb.getStatusId("complete"), headers_missing = "missing_header_one, missing_header_two", headers_duplicated = "duplicated_header_one, duplicated_header_two",row_errors_present = True)
-        interfaces.errorDb.session.add(fileStatus)
+        # For appropriations job, create an entry in file for this job
+        fileRec = File(job_id=jobIdDict["appropriations"],
+                       filename="approp.csv",
+                       file_status_id=interfaces.errorDb.getFileStatusId("complete"),
+                       headers_missing="missing_header_one, missing_header_two",
+                       headers_duplicated="duplicated_header_one, duplicated_header_two",
+                       row_errors_present=True)
+        interfaces.errorDb.session.add(fileRec)
 
         # Put some entries in error data for approp job
-        ruleError = ErrorData(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_three", error_type_id = 6, occurrences = 7, rule_failed = "Header three value must be real")
-        reqError = ErrorData(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_four", error_type_id = 2, occurrences = 5, rule_failed = "A required value was not provided")
+        ruleError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_three", error_type_id = 6, occurrences = 7, rule_failed = "Header three value must be real")
+        reqError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_four", error_type_id = 2, occurrences = 5, rule_failed = "A required value was not provided")
         interfaces.errorDb.session.add(ruleError)
         interfaces.errorDb.session.add(reqError)
         interfaces.errorDb.session.commit()
@@ -423,7 +425,7 @@ class FileTests(BaseTestAPI):
             submission=error_report_submission_id)
 
     @staticmethod
-    def setupFileStatusData(jobTracker, errorDb, submission_id):
+    def setupFileData(jobTracker, errorDb, submission_id):
         """Setup test data for the route test"""
 
         # TODO: remove hard-coded surrogate keys
@@ -434,7 +436,7 @@ class FileTests(BaseTestAPI):
             type_id=2,
             submission=submission_id
         )
-        FileTests.insertFileStatus(errorDb, job, 1) # Everything Is Fine
+        FileTests.insertFile(errorDb, job, 1) # Everything Is Fine
 
         job = FileTests.insertJob(
             jobTracker,
@@ -443,7 +445,7 @@ class FileTests(BaseTestAPI):
             type_id=2,
             submission=submission_id
         )
-        FileTests.insertFileStatus(errorDb, job, 3) # Bad Header
+        FileTests.insertFile(errorDb, job, 3) # Bad Header
 
         job = FileTests.insertJob(
             jobTracker,
@@ -452,7 +454,7 @@ class FileTests(BaseTestAPI):
             type_id=2,
             submission=submission_id
         )
-        FileTests.insertFileStatus(errorDb, job, 1) # Validation level Errors
+        FileTests.insertFile(errorDb, job, 1) # Validation level Errors
         FileTests.insertRowLevelError(errorDb, job)
 
 if __name__ == '__main__':

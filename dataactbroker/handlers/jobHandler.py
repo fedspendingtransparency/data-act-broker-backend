@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from dataactcore.models.jobModels import JobStatus,JobDependency,Submission, FileType
+from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -14,16 +14,7 @@ class JobHandler(JobTrackerInterface):
     engine -- sqlalchemy engine for generating connections and sessions
     connection -- sqlalchemy connection for executing direct SQL statements
     session -- sqlalchemy session for ORM usage
-    waitingStatus -- status_id for "waiting"
-    runningStatus -- status_id for "running"
-    finishedStatus -- status_id for "finished"
-    fileUploadType -- type_id for "file_upload"
-    dbUploadType -- type_id for "db_upload"
-    validationType -- type_id for "validation"
-    externalValidationType -- type_id for "external_validation"
     """
-
-    # Available instance variables:  session, waitingStatus, runningStatus, fileUploadType, dbUploadType, validationType, externalValidationTYpe
 
     metaDataFieldMap = {"agency_name":"agency_name","reporting_period_start_date":"reporting_start_date","reporting_period_end_date":"reporting_end_date"}
 
@@ -124,19 +115,19 @@ class JobHandler(JobTrackerInterface):
 
         if(existingSubmission):
             # Find cross-file and external validation jobs and mark them as waiting
-            valQuery = self.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.type_id == self.getTypeId("validation"))
+            valQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.job_type_id == self.getJobTypeId("validation"))
             valJob = self.runUniqueQuery(valQuery,"No cross-file validation job found","Conflicting jobs found")
-            valJob.status_id = self.getStatusId("waiting")
-            extQuery = self.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.type_id == self.getTypeId("external_validation"))
+            valJob.job_status_id = self.getJobStatusId("waiting")
+            extQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.job_type_id == self.getJobTypeId("external_validation"))
             extJob = self.runUniqueQuery(valQuery,"No external validation job found","Conflicting jobs found")
-            extJob.status_id = self.getStatusId("waiting")
+            extJob.job_status_id = self.getJobStatusId("waiting")
             self.session.commit()
         else:
             # Create validation job
-            validationJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("validation"), submission_id = submissionId)
+            validationJob = Job(job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("validation"), submission_id=submissionId)
             self.session.add(validationJob)
             # Create external validation job
-            externalJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("external_validation"), submission_id = submissionId)
+            externalJob = Job(job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("external_validation"), submission_id=submissionId)
             self.session.add(externalJob)
             self.session.flush()
             # Create dependencies for validation jobs
@@ -169,8 +160,6 @@ class JobHandler(JobTrackerInterface):
         # Dictionary of upload ids by filename to return to client
         uploadDict = {}
 
-
-
         for fileType, filePath, filename in filenames:
             fileTypeQuery = self.session.query(FileType.file_type_id).filter(FileType.name == fileType)
             fileTypeResult = self.runUniqueQuery(fileTypeQuery,"No matching file type", "Multiple matching file types")
@@ -178,22 +167,22 @@ class JobHandler(JobTrackerInterface):
 
             if existingSubmission:
                 # Find existing upload job and mark as running
-                uploadQuery = self.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.file_type_id == fileTypeId).filter(JobStatus.type_id == self.getTypeId("file_upload"))
+                uploadQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.file_type_id == fileTypeId).filter(Job.job_type_id == self.getJobTypeId("file_upload"))
                 uploadJob = self.runUniqueQuery(uploadQuery,"No upload job found for this file","Conflicting jobs found")
                 # Mark as running and set new file name and path
-                uploadJob.status_id = self.getStatusId("running")
+                uploadJob.job_status_id = self.getJobStatusId("running")
                 uploadJob.original_filename = filename
                 uploadJob.filename = filePath
                 self.session.commit()
             else:
                 # Create upload job, mark as running since frontend should be doing this upload
-                uploadJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("running"), type_id = self.getTypeId("file_upload"), submission_id = submissionId)
+                uploadJob = Job(original_filename=filename, filename=filePath, file_type_id=fileTypeId, job_status_id=self.getJobStatusId("running"), job_type_id=self.getJobTypeId("file_upload"), submission_id=submissionId)
                 self.session.add(uploadJob)
 
             if existingSubmission:
-                valQuery = self.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.file_type_id == fileTypeId).filter(JobStatus.type_id == self.getTypeId("csv_record_validation"))
+                valQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.file_type_id == fileTypeId).filter(Job.job_type_id == self.getJobTypeId("csv_record_validation"))
                 valJob = self.runUniqueQuery(valQuery,"No validation job found for this file","Conflicting jobs found")
-                valJob.status_id = self.getStatusId("waiting")
+                valJob.job_status_id = self.getJobStatusId("waiting")
                 valJob.original_filename = filename
                 valJob.filename = filePath
                 # Reset file size and number of rows to be set during validation of new file
@@ -202,11 +191,11 @@ class JobHandler(JobTrackerInterface):
                 # Reset number of errors
                 errorDb = ErrorHandler()
                 errorDb.resetErrorsByJobId(valJob.job_id)
-                errorDb.resetFileStatusByJobId(valJob.job_id)
+                errorDb.resetFileByJobId(valJob.job_id)
                 self.session.commit()
             else:
                 # Create parse into DB job
-                valJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("waiting"), type_id = self.getTypeId("csv_record_validation"), submission_id = submissionId)
+                valJob = Job(original_filename=filename, filename=filePath, file_type_id=fileTypeId, job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("csv_record_validation"), submission_id=submissionId)
                 self.session.add(valJob)
                 self.session.flush()
             if not existingSubmission:
@@ -228,10 +217,10 @@ class JobHandler(JobTrackerInterface):
         Returns:
         True if file upload, False otherwise
         """
-        query = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job.job_type_id).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         # Got single job, check type
-        if(result.type_id == self.getTypeId("file_upload")):
+        if(result.job_type_id == self.getJobTypeId("file_upload")):
             # Correct type
             return True
         # Did not confirm correct type
@@ -244,7 +233,7 @@ class JobHandler(JobTrackerInterface):
         jobId -- job_id to mark as finished
 
         """
-        JobTrackerInterface.markStatus(self, jobId, 'finished')
+        JobTrackerInterface.markJobStatus(self, jobId, 'finished')
 
     def getUserForSubmission(self,submission):
         """ Takes a submission object and returns the user ID """
@@ -263,7 +252,7 @@ class JobHandler(JobTrackerInterface):
 
     def getJobById(self,jobId):
         """ Given a job ID, return the corresponding job """
-        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job).filter(Job.job_id == jobId)
         result = self.runUniqueQuery(query,"No job with that ID","Multiple jobs with conflicting ID")
         return result
 

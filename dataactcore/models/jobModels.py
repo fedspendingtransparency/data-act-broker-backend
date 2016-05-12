@@ -7,20 +7,20 @@ from dataactcore.utils.timeStampMixin import TimeStampBase
 
 Base = declarative_base(cls=TimeStampBase)
 
-class Status(Base):
-    __tablename__ = "status"
-    STATUS_DICT = None
+class JobStatus(Base):
+    __tablename__ = "job_status"
+    JOB_STATUS_DICT = None
 
-    status_id = Column(Integer, primary_key=True)
+    job_status_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
 
-class Type(Base):
-    __tablename__ = "type"
-    TYPE_DICT = None
-    TYPE_LIST = ["file_upload", "csv_record_validation","db_transfer","validation","external_validation"]
+class JobType(Base):
+    __tablename__ = "job_type"
+    JOB_TYPE_DICT = None
+    JOB_TYPE_LIST = ["file_upload", "csv_record_validation","db_transfer","validation","external_validation"]
 
-    type_id = Column(Integer, primary_key=True)
+    job_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
 
@@ -35,16 +35,16 @@ class Submission(Base):
     reporting_end_date = Column(Date)
     jobs = None
 
-class JobStatus(Base):
-    __tablename__ = "job_status"
+class Job(Base):
+    __tablename__ = "job"
 
     job_id = Column(Integer, primary_key=True)
     filename = Column(Text, nullable=True)
-    status_id = Column(Integer, ForeignKey("status.status_id"))
-    status = relationship("Status", uselist=False)
-    type_id = Column(Integer, ForeignKey("type.type_id"))
-    type = relationship("Type", uselist=False)
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_job_status_submission_id"))
+    job_status_id = Column(Integer, ForeignKey("job_status.job_status_id", name="fk_job_status_id"))
+    job_status = relationship("JobStatus", uselist=False)
+    job_type_id = Column(Integer, ForeignKey("job_type.job_type_id", name="fk_job_type_id"))
+    job_type = relationship("JobType", uselist=False)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_job_submission_id"))
     submission = relationship("Submission", uselist=False, cascade="delete")
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"), nullable=True)
     file_type = relationship("FileType", uselist=False)
@@ -57,10 +57,8 @@ class JobDependency(Base):
     __tablename__ = "job_dependency"
 
     dependency_id = Column(Integer, primary_key=True)
-    job_id = Column(Integer, ForeignKey("job_status.job_id"))
-    #job_status = relationship("JobStatus")
-    prerequisite_id = Column(Integer, ForeignKey("job_status.job_id"))
-    #prerequisite_status = relationship("JobStatus")
+    job_id = Column(Integer, ForeignKey("job.job_id"))
+    prerequisite_id = Column(Integer, ForeignKey("job.job_id"))
 
 class FileType(Base):
     __tablename__ = "file_type"

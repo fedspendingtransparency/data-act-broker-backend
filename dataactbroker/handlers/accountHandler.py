@@ -80,9 +80,10 @@ class AccountHandler:
                 raise ValueError("Invalid username and/or password")
 
             # Only check if user is active after they've logged in for the first time
-            if user.last_login_date is not None and not self.isUserActive(user, True):
+            if user.last_login_date is not None and self.isAccountExpired(user):
                 raise ValueError("Your account has expired. Please contact an administrator.")
 
+            # for whatever reason, your account is not active, therefore it's locked
             if not self.isUserActive(user):
                 raise ValueError("Your account has been locked. Please contact an administrator.")
 
@@ -459,13 +460,7 @@ class AccountHandler:
 
         Args:
             user: User object to check
-            checkExpiration: If true, will check if account is expired in addition to active flag
-
-        Returns:
-
         """
-        if checkExpiration:
-            self.isAccountExpired(user)
         return user.is_active
 
     def isAccountExpired(self, user):
@@ -480,6 +475,8 @@ class AccountHandler:
         secondsActive = (today-user.last_login_date).seconds
         if daysActive > self.INACTIVITY_THRESHOLD or (daysActive == self.INACTIVITY_THRESHOLD and secondsActive > 0):
             self.lockAccount(user)
+            return True
+        return False
 
     def resetPasswordCount(self, user):
         """ Resets the number of failed attempts when a user successfully logs in

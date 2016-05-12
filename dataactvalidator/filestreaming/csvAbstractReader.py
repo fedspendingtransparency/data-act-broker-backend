@@ -54,7 +54,20 @@ class CsvAbstractReader(object):
 
         duplicatedHeaders = []
         #create the header
-        for row in csv.reader([line],dialect='excel'):
+
+        # check delimiters in header row
+        pipeCount = line.count("|")
+        commaCount = line.count(",")
+
+        if pipeCount != 0 and commaCount != 0:
+            # Write header error for mixed delimiter use
+            with self.getWriter(bucketName, errorFilename, ["Error Type"], self.isLocal) as writer:
+                writer.write(["Cannot use both ',' and '|' as delimiters. Please choose one."])
+                writer.finishBatch()
+            raise ResponseException("Error in header row: CSV file must use only '|' or ',' as the delimiter", StatusCode.CLIENT_ERROR, ValueError, ValidationError.headerError)
+
+        self.delimiter = "|" if line.count("|") != 0 else ","
+        for row in csv.reader([line],dialect='excel', delimiter=self.delimiter):
             for cell in row :
                 headerValue = FieldCleaner.cleanString(cell)
                 if( not headerValue in possibleFields) :
@@ -115,7 +128,7 @@ class CsvAbstractReader(object):
         returnDict = {}
         line = self._getLine()
 
-        for row in csv.reader([line],dialect='excel'):
+        for row in csv.reader([line],dialect='excel', delimiter=self.delimiter):
             for current, cell in enumerate(row):
                 if(current >= self.columnCount) :
                     raise ResponseException("Record contains too many fields",StatusCode.CLIENT_ERROR,ValueError,ValidationError.readError)

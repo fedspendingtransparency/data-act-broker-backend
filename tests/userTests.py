@@ -1,6 +1,6 @@
 from baseTestAPI import BaseTestAPI
 from dataactbroker.handlers.aws.sesEmail import sesEmail
-from dataactcore.models.jobModels import Submission, JobStatus
+from dataactcore.models.jobModels import Submission, Job
 from dataactcore.utils.statusCode import StatusCode
 
 class UserTests(BaseTestAPI):
@@ -25,7 +25,7 @@ class UserTests(BaseTestAPI):
                 cls.submission_id = sub.submission_id
 
         # Add job to first submission
-        job = JobStatus(submission_id = cls.submission_id,status_id = 3,type_id = 1, file_type_id = 1)
+        job = Job(submission_id=cls.submission_id, job_status_id=3, job_type_id=1, file_type_id=1)
         jobDb.session.add(job)
         jobDb.session.commit()
         cls.uploadId = job.job_id

@@ -11,12 +11,13 @@ flask-bcrypt==0.7.1
 flask-login==0.3.2
 logstash==0.1.dev0
 python-logstash==0.4.6
-uwsgi==2.0.12
 awscli==1.10.10
-supervisor==3.2.2
 WebTest==2.0.20
 coverage==4.0.3
 alembic==0.8.5
 pyyaml==3.11
 celery==3.1.23
 SQLAlchemy-Utils==0.32.1
+xmlrunner==1.7.7
+uwsgi==2.0.12
+supervisor==3.2.2
