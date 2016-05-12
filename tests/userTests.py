@@ -58,11 +58,14 @@ class UserTests(BaseTestAPI):
         postJson = {"email": email, "name": "user", "agency": "agency", "title": "title", "password": self.user_password}
         response = self.app.post_json("/v1/register/", postJson, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK, "Registration successful")
-        # Check that re-registration is an error
+        # Check that session does not allow another registration
+        response = self.app.post_json("/v1/register/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+        self.check_response(response, StatusCode.LOGIN_REQUIRED)
+        # Check that re-registration with same token is an error
         tokenJson = {"token": self.registerToken}
         self.app.post_json("/v1/confirm_email_token/", tokenJson, headers={"x-session-id":self.session_id})
         response = self.app.post_json("/v1/register/", postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.assertEqual(response.status_code,400)
+        self.assertEqual(response.status_code,401)
 
     def test_registration_empty(self):
         """Test user registration with no user."""
@@ -226,6 +229,11 @@ class UserTests(BaseTestAPI):
         self.check_response(response, StatusCode.OK, "Password successfully changed")
         user = userDb.getUserByEmail(email)
         self.assertTrue(user.password_hash)
+
+        # Call again, should error
+        postJson = {"user_email": email, "password": self.user_password}
+        response = self.app.post_json("/v1/set_password/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+        self.check_response(response, StatusCode.LOGIN_REQUIRED)
 
     def test_check_password_token(self):
         """Test password reset with valid token."""
