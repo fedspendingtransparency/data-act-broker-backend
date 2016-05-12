@@ -227,6 +227,11 @@ class UserTests(BaseTestAPI):
         user = userDb.getUserByEmail(email)
         self.assertTrue(user.password_hash)
 
+        # Call again, should error
+        postJson = {"user_email": email, "password": self.user_password}
+        response = self.app.post_json("/v1/set_password/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+        self.check_response(response, StatusCode.LOGIN_REQUIRED)
+
     def test_check_password_token(self):
         """Test password reset with valid token."""
         userDb = self.userDb

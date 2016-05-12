@@ -292,6 +292,8 @@ class AccountHandler:
             exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         token = requestFields.getValue("token")
+        # Save token to be deleted after reset
+        session["token"] = token
         success,message,errorCode = sesEmail.checkToken(token,self.interfaces.userDb,"password_reset")
         if(success):
             #mark session that password can be filled out
@@ -372,7 +374,7 @@ class AccountHandler:
             submissionIdList.append(submission.submission_id)
         return JsonResponse.create(StatusCode.OK,{"submission_id_list": submissionIdList})
 
-    def setNewPassword(self):
+    def setNewPassword(self, session):
         """ Set a new password for a user, request should have keys "user_email" and "password" """
         requestDict = RequestDictionary(self.request)
         if(not (requestDict.exists("user_email") and requestDict.exists("password"))):
@@ -387,7 +389,10 @@ class AccountHandler:
         user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("user_email"))
         # Set new password
         self.interfaces.userDb.setPassword(user,requestDict.getValue("password"),self.bcrypt)
-
+        # Invalidate token
+        print("Deleting token: " + str(session["token"]))
+        self.interfaces.userDb.deleteToken(session["token"])
+        session["reset"] = None
         # Return success message
         return JsonResponse.create(StatusCode.OK,{"message":"Password successfully changed"})
 

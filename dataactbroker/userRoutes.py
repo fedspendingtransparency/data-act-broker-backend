@@ -66,7 +66,7 @@ def add_user_routes(app,system_email,bcrypt):
     def set_password():
         """ Set a new password for specified user """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.setNewPassword)
+        return RouteUtils.run_instance_function(accountManager, accountManager.setNewPassword, getSession = True)
 
     @app.route("/v1/reset_password/", methods=["POST"])
     def reset_password():
