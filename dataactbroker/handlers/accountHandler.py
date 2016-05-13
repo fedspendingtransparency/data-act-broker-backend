@@ -420,6 +420,11 @@ class AccountHandler:
         except Exception as e:
             exc = ResponseException("Unknown Error",StatusCode.CLIENT_ERROR,ValueError)
             return JsonResponse.error(exc,exc.status)
+        # User must be approved and active to reset password
+        if user.user_status_id != self.interfaces.userDb.getUserStatusId("approved"):
+            raise ResponseException("User must be approved before resetting password", StatusCode.CLIENT_ERROR)
+        elif not user.is_active:
+            raise ResponseException("User is locked, cannot reset password", StatusCode.CLIENT_ERROR)
 
         LoginSession.logout(session)
         self.interfaces.userDb.session.commit()

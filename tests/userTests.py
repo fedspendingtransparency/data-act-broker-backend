@@ -216,7 +216,18 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK)
 
+        # Test password reset for unapproved user and locked user
         userDb = self.userDb
+        user = userDb.getUserByEmail(email)
+        user.user_status_id = userDb.getUserStatusId("awaiting_approval")
+        response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+        self.check_response(response, StatusCode.CLIENT_ERROR)
+
+        user.user_status_id = userDb.getUserStatusId("approved")
+        user.is_active = False
+        response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+        self.check_response(response, StatusCode.CLIENT_ERROR)
+
         token = sesEmail.createToken(
             self.test_users["password_reset_email"], userDb, "password_reset")
         postJson = {"token": token}
