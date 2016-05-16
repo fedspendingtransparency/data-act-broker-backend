@@ -5,8 +5,12 @@ from dataactbroker.routeUtils import RouteUtils
 
 
 def add_user_routes(app,system_email,bcrypt):
-    """ Create routes related to file submission for flask app
+    """ Create routes related to user management
 
+        Args:
+            app - Flask app to add routes to
+            system_email - Sender address to use for emails
+            bcrypt - Password hashing Bcrypt associated with app
     """
 
     RouteUtils.SYSTEM_EMAIL = system_email # Set the system email to be used
