@@ -3,7 +3,6 @@ import os.path
 import argparse
 import dataactvalidator
 from dataactvalidator.scripts.setupValidationDB import setupValidationDB
-from dataactvalidator.scripts.setupStagingDB import setupStagingDB
 from dataactvalidator.scripts.loadTas import loadTas
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 
@@ -62,7 +61,6 @@ def loadValidator():
 
 def setupDB():
     setupValidationDB()
-    setupStagingDB()
 
 
 def start():
