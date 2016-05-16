@@ -6,6 +6,7 @@ from dataactbroker.handlers.aws.session import LoginSession
 from dataactbroker.routeUtils import RouteUtils
 
 def add_login_routes(app,bcrypt):
+    """ Create routes related to login """
     @app.route("/v1/login/", methods = ["POST"])
     def login():
         accountManager = AccountHandler(request,bcrypt = bcrypt)

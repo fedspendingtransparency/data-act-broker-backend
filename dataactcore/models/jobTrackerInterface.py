@@ -44,6 +44,7 @@ class JobTrackerInterface(BaseInterface):
         return self.session
 
     def getJobById(self,jobId):
+        """ Return job model object based on ID """
         query = self.session.query(Job).filter(Job.job_id == jobId)
         return self.checkJobUnique(query)
 
@@ -65,6 +66,7 @@ class JobTrackerInterface(BaseInterface):
         return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_error_report.csv"
 
     def getCrossFileReportPath(self,submissionId):
+        """ Returns the filename for the cross file error report. """
         return "".join(["submission_",str(submissionId),"_cross_file_error_report.csv"])
 
     def getJobsBySubmission(self,submissionId):
@@ -123,7 +125,13 @@ class JobTrackerInterface(BaseInterface):
         return dependents
 
     def markJobStatus(self,jobId,statusName):
-        # Pull job status for jobId
+        """ Mark job as having specified status.  Jobs being marked as finished will add dependent jobs to queue.
+
+        Args:
+            jobId: ID for job being marked
+            statusName: Status to change job to
+        """
+        # Pull JobStatus for jobId
         prevStatus = self.getJobStatusName(jobId)
 
         query = self.session.query(Job).filter(Job.job_id == jobId)
@@ -181,6 +189,8 @@ class JobTrackerInterface(BaseInterface):
         return prerequisiteJobs
 
     def checkJobDependencies(self,jobId):
+        """ For specified job, check which of its dependencies are ready to be started, and add them to the queue """
+
         # raise exception if current job is not actually finished
         if self.getJobStatus(jobId) != self.getJobStatusId('finished'):
             raise ValueError('Current job not finished, unable to check dependencies')

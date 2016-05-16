@@ -94,6 +94,21 @@ class BaseTestValidator(unittest.TestCase):
 
     def run_test(self, jobId, statusId, statusName, fileSize, stagingRows,
                  errorStatus, numErrors, rowErrorsPresent = None):
+        """ Runs a validation test
+
+        Args:
+            jobId: ID of job for this validation
+            statusId: Expected HTTP status code for this test
+            statusName: Expected status in job tracker, False if job should not exist
+            fileSize: Expected file size of error report, False if error report should not exist
+            stagingRows: Expected number of rows in staging table, False if table should not exist
+            errorStatus: Expected status in file table of error DB, False if file object should not exist
+            numErrors: Expected number of errors
+            rowErrorsPresent: Checks flag for whether row errors occurred, None to skip the check
+
+        Returns:
+
+        """
         response = self.validateJob(jobId, self.useThreads)
         jobTracker = self.jobTracker
         stagingDb = self.stagingDb
@@ -212,6 +227,19 @@ class BaseTestValidator(unittest.TestCase):
     @staticmethod
     def addFileColumn(fileId, fieldTypeId, columnName,
             description, required, session):
+        """ Add information for one field
+
+        Args:
+            fileId: Which file this field is part of
+            fieldTypeId: Data type found in this field
+            columnName: Name of field
+            description: Description of field
+            required: True if field is required
+            session: session object to be used for queries
+
+        Returns:
+
+        """
         column = FileColumn(file_id=fileId, field_types_id=fieldTypeId,
             name=columnName, description=description, required=required)
         session.add(column)
@@ -219,6 +247,7 @@ class BaseTestValidator(unittest.TestCase):
         return column
 
     def getResponseInfo(self, response):
+        """ Format response object in readable form """
         info = 'status_code: {}'.format(response.status_code)
         if response.content_type.endswith(('+json', '/json')):
             json = response.json

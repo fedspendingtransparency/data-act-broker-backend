@@ -47,6 +47,12 @@ The available rule types are as follows:
 * Set membership - checks that value is one of an allowed set of values
 * Minimum length - checks that the field has at least the number of characters specified
 * Conditional requirement - checks that the field is populated if another specified rule passes
+* Sum - Checks that a field is equal to a sum of other fields
+* Sum to value - Checks that a set of fields sums to a specified value
+* Require one of - Checks that at least one of a set of fields is populated
+* TAS - Check that a TAS number is present in CARS file
+* Field match - Checks that a set of field values is present in another file
+* Conditional rule - Checks first rule if and only if second rule passes
 
 ## Class Descriptions
 
@@ -69,20 +75,17 @@ The available rule types are as follows:
 * `StagingTable` - Used to create a new table for each job and manage writes to that table
 * `InterfaceHolder` - Container that holds one interface for each database as a static variable to ensure that redundant connections are not created
 
-### Models
-* `validationModels` - Holds all the ORM objects for the validation database
-
 ### Scripts
 
 The `/dataactvalidator/scripts` folder contains the install scripts needed to setup the validator for a local install. For complete instructions on running your own copy of the validator and other DATA Act broker components, please refer to the [documentation in the DATA Act core responsitory](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
 
 ## Test Cases
-To run the validator unit tests, navigate to the main project's test folder (`data-act-validator/tests`) and type the following:
+To run the validator unit tests, navigate to the main project's test folder (`data-act-broker-backend/tests`) and type the following:
 
         $ python runTests.py
 
 To generate a test coverage report from the command line:
 
-1. Make sure you're in the tests folder (`data-act-validator/tests`).
+1. Make sure you're in the tests folder (`data-act-broker-backend/tests`).
 2. Run the tests using the `coverage` command: `coverage run runTests.py`.
 3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
