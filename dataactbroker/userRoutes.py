@@ -48,7 +48,7 @@ def add_user_routes(app,system_email,bcrypt):
 
 
     @app.route("/v1/list_users_with_status/", methods = ["POST"])
-    @permissions_check(permissionList=["website_admin"])
+    @permissions_check(permissionList=["website_admin", "agency_admin"])
     def list_users_with_status():
         """ Expects request to have key 'status', will list all users with that status """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
