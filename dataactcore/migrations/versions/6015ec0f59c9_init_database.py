@@ -202,3 +202,8 @@ def upgrade_validation():
 def downgrade_validation():
     pass
 
+def upgrade_staging():
+    pass
+
+def downgrade_staging():
+    pass
