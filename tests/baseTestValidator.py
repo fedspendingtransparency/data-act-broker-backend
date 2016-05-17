@@ -11,8 +11,8 @@ from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
-from dataactvalidator.scripts.setupStagingDB import setupStagingDB
 from dataactcore.scripts.setupValidationDB import setupValidationDB
+from dataactcore.scripts.setupStagingDB import setupStagingDB
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
@@ -127,6 +127,9 @@ class BaseTestValidator(unittest.TestCase):
         else:
             self.assertTrue(stagingDb.tableExists(tableName))
             self.assertEqual(stagingDb.countRows(tableName), stagingRows)
+            # Check that field name map table is populated
+            fieldMap = self.interfaces.stagingDb.getFieldNameMap(tableName)
+            self.assertIsNotNone(fieldMap)
 
         errorInterface = self.errorInterface
         if errorStatus is not False:
@@ -149,6 +152,7 @@ class BaseTestValidator(unittest.TestCase):
         if rowErrorsPresent is not None:
             # If no value provided, skip this check
             self.assertEqual(self.interfaces.errorDb.getRowErrorsPresent(jobId), rowErrorsPresent)
+
         return response
 
     def validateJob(self, jobId, useThreads):
