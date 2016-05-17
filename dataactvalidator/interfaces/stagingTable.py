@@ -83,7 +83,7 @@ class StagingTable(object):
             else:
                 classFieldDict[newKey] = Column(fieldTypeName)
             # First record will hold field names
-            fieldNameMap[newKey] = key
+            fieldNameMap[str(newKey)] = str(key)
         # Add column for row number
         classFieldDict["row"] = Column(Integer, nullable=False)
 
