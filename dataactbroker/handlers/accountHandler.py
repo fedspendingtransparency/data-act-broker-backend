@@ -164,10 +164,18 @@ class AccountHandler:
             """
             threadedDatabase =  UserHandler()
             try:
-                for user in threadedDatabase.getUsersByType("website_admin") :
+                for user in threadedDatabase.getUsersByType("website_admin"):
                     emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY]':agency,'[REG_EMAIL]' : userEmail,'[URL]':link}
                     newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=threadedDatabase)
                     newEmail.send()
+                for user in threadedDatabase.getUsersByType("agency_admin"):
+                    if user.agency == agency:
+                        emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY]': agency,
+                             '[REG_EMAIL]': userEmail, '[URL]': link}
+                        newEmail = sesEmail(user.email, system_email, templateType="account_creation", parameters=emailTemplate,
+                                database=threadedDatabase)
+                        newEmail.send()
+
             finally:
                 InterfaceHolder.closeOne(threadedDatabase)
 
