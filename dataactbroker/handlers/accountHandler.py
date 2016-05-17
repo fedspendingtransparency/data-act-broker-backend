@@ -2,6 +2,7 @@ from flask import session as flaskSession
 from threading import Thread
 import re
 import time
+from flask import session
 from dateutil.parser import parse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -356,8 +357,14 @@ class AccountHandler:
             # Missing a required field, return 400
             exc = ResponseException("Request body must include status", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
+
+        current_user = self.interfaces.userDb.getUserByUID(session["name"])
+
         try:
-            users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"))
+            if self.interfaces.userDb.hasPermission(current_user, "agency_admin"):
+                users = self.interfaces.userDb.getUsersByStatusByAgency(requestDict.getValue("status"), current_user.agency)
+            else:
+                users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"))
         except ValueError as e:
             # Client provided a bad status
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)

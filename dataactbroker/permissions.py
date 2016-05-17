@@ -16,10 +16,10 @@ def permissions_check(f=None,permissionList=[]):
                 userDb = UserHandler()
                 try:
                     user = userDb.getUserByUID(session["name"])
-                    validUser = True
+                    validUser = False
                     for permission in permissionList :
-                        if(not userDb.hasPermission(user, permission)) :
-                            validUser = False
+                        if(userDb.hasPermission(user, permission)) :
+                            validUser = True
                 finally:
                     InterfaceHolder.closeOne(userDb)
                 if(validUser) :

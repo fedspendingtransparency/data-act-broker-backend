@@ -2,7 +2,7 @@ import uuid
 import time
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm import joinedload
-from sqlalchemy import func
+from sqlalchemy import func, and_
 from dataactcore.models.userModel import User, PermissionType
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
@@ -192,6 +192,17 @@ class UserHandler(UserInterface):
         """
         statusId = self.getUserStatusId(status)
         return self.session.query(User).filter(User.user_status_id == statusId).all()
+
+    def getUsersByStatusByAgency(self, status, agency):
+        """ Return list of all users with specified status within the specified agency
+
+        Arguments:
+            status - Status to check against
+        Returns:
+            list of User objects
+        """
+        statusId = self.getUserStatusId(status)
+        return self.session.query(User).filter(and_(User.user_status_id == statusId,User.agency == agency)).all()
 
     def getStatusOfUser(self,user):
         """ Given a user object return their status as a string
