@@ -1,14 +1,13 @@
 import os.path
-from os.path import expanduser, normpath, dirname
+from os.path import expanduser, normpath, dirname, abspath
 import yaml
 import re
-import inspect
 
 # set the location of the DATA Act broker config file
-CONFIG_PATH = os.path.join(dirname(__file__), 'config.yml')
+CONFIG_PATH = os.path.join(dirname(abspath(__file__)), 'config.yml')
 # set the location of the Alembic config file
-ALEMBIC_PATH = os.path.join(dirname(__file__), 'alembic.ini')
-MIGRATION_PATH = os.path.join(dirname(__file__), 'migrations')
+ALEMBIC_PATH = os.path.join(dirname(abspath(__file__)), 'alembic.ini')
+MIGRATION_PATH = os.path.join(dirname(abspath(__file__)), 'migrations')
 
 try:
     with open(CONFIG_PATH) as c:
@@ -24,7 +23,7 @@ CONFIG_LOGGING = CONFIG_ALL['logging']
 CONFIG_JOB_QUEUE = CONFIG_ALL['job-queue']
 
 # Get path to installation
-CONFIG_BROKER['path'] = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
+CONFIG_BROKER['path'] = dirname(dirname(abspath(__file__)))
 
 # for backward-compatibility, differentiate between local runs and AWS
 if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
