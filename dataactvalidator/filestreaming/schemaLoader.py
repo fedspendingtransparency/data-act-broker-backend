@@ -1,4 +1,5 @@
 import csv
+import os
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 from dataactvalidator.filestreaming.loaderUtils import LoaderUtils
 from fieldCleaner import FieldCleaner
@@ -9,6 +10,8 @@ class SchemaLoader(object):
     This class will load a schema file and writes the set of validation rules to validation database.
 
     """
+    fieldFiles = {"appropriations":"appropFields.csv","award":"awardFields.csv","award_financial":"awardFinancialFields.csv","program_activity":"programActivityFields.csv"}
+    ruleFiles = {"appropriations":"appropRules.csv","award_financial":"awardFinancialRules.csv","program_activity":"programActivityRules.csv"}
 
     @staticmethod
     def loadFields(fileTypeName,schemaFileName):
@@ -81,16 +84,19 @@ class SchemaLoader(object):
                 fileId = validationDb.getFileId(record["file"])
                 validationDb.addMultiFieldRule(fileId,record["rule_type"],record["rule_text_one"],record["rule_text_two"],record["description"],record["rule_label"],record["rule_timing"])
 
+    @classmethod
+    def loadAllFromPath(cls,path):
+        # Load field definitions into validation DB
+        for key in cls.fieldFiles:
+            filepath = os.path.join(path,cls.fieldFiles[key])
+            cls.loadFields(key,filepath)
+        # Load rules files
+        for key in cls.ruleFiles:
+            filepath = os.path.join(path,cls.ruleFiles[key])
+            cls.loadRules(key,filepath)
+        # Load cross file validation rules
+        filePath = os.path.join(path,"crossFileRules.csv")
+        cls.loadCrossRules(filePath)
+
 if __name__ == '__main__':
-    # Load field definitions and rules into validation DB
-    SchemaLoader.loadFields("appropriations","../config/appropFields.csv")
-    SchemaLoader.loadFields("award","../config/awardFields.csv")
-    SchemaLoader.loadFields("award_financial","../config/awardFinancialFields.csv")
-    SchemaLoader.loadFields("program_activity","../config/programActivityFields.csv")
-    # Load rules files
-    SchemaLoader.loadRules("appropriations","../config/appropRules.csv")
-    #SchemaLoader.loadRules("award","../config/awardRules.csv")
-    SchemaLoader.loadRules("award_financial","../config/awardFinancialRules.csv")
-    SchemaLoader.loadRules("program_activity","../config/programActivityRules.csv")
-    # Load cross file validation rules
-    SchemaLoader.loadCrossRules("../config/crossFileRules.csv")
+    SchemaLoader.loadAllFromPath("../config/")
