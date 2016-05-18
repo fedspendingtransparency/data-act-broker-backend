@@ -98,6 +98,7 @@ def createApp():
 
 @timeout(1, 'DynamoDB is not running')
 def checkDynamo():
+    """ Get information about the session table in Dynamo """
     SessionTable.getTable().describe()
 
 def runApp():

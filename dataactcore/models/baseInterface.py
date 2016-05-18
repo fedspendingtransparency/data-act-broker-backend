@@ -97,7 +97,18 @@ class BaseInterface(object):
         return response
 
     def getIdFromDict(self, model, dictName, fieldName, fieldValue, idField):
-        """ Populate a static dictionary to hold an id to name dictionary for specified model """
+        """ Populate a static dictionary to hold an id to name dictionary for specified model
+
+        Args:
+            model - Model to populate dictionary for
+            dictName - Name of dictionary to be populated
+            fieldName - Field that will be used to populate keys of dictionary
+            fieldValue - Value being queried for (None to just set up dict without returning)
+            idField - Field that will be used to populate values of dictionary
+
+        Returns:
+            Value in idField that corresponds to specified fieldValue in fieldName
+        """
         dict = getattr(model, dictName)
         if(dict == None):
             dict = {}

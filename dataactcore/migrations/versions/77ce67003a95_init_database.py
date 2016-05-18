@@ -125,3 +125,9 @@ def upgrade_user_manager():
 
 def downgrade_user_manager():
     pass
+
+def upgrade_staging():
+    pass
+
+def downgrade_staging():
+    pass

@@ -26,10 +26,13 @@ class FileHandler:
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
     def __init__(self,request,interfaces = None,isLocal= False,serverPath =""):
-        """
+        """ Create the File Handler
 
         Arguments:
-        request - HTTP request object for this route
+            request - HTTP request object for this route
+            interfaces - InterfaceHolder object to databases
+            isLocal - True if this is a local installation that will not use AWS
+            serverPath - If isLocal is True, this is used as the path to local files
         """
         self.request = request
         if(interfaces != None):
@@ -39,6 +42,11 @@ class FileHandler:
         self.serverPath = serverPath
 
     def addInterfaces(self,interfaces):
+        """ Add connections to databases
+
+        Args:
+            interfaces: InterfaceHolder object to DBs
+        """
         self.interfaces = interfaces
         self.jobManager = interfaces.jobDb
 
@@ -77,7 +85,8 @@ class FileHandler:
         Flask request should include keys from FILE_TYPES class variable above
 
         Arguments:
-        name -- User ID from the session handler
+            name -- User ID from the session handler
+            CreateCredentials - If True, will create temporary credentials for S3 uploads
 
         Returns:
         Flask response returned will have key_url and key_id for each key in the request
@@ -175,7 +184,11 @@ class FileHandler:
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
     def checkSubmissionPermission(self,submission):
-        """ Check if current user has permisson to access submission and return user object. """
+        """ Check if current user has permisson to access submission and return user object.
+
+        Args:
+            submission - Submission model object
+        """
         userId = LoginSession.getName(session)
         user = self.interfaces.userDb.getUserByUID(userId)
         # Check that user has permission to see this submission, user must either own the submission or be an admin
@@ -295,7 +308,7 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
     def uploadFile(self):
-        """saves a file and returns the saved path"""
+        """ Saves a file and returns the saved path.  Should only be used for local installs. """
         try:
             if(self.isLocal):
                 uploadedFile = request.files['file']
@@ -321,6 +334,7 @@ class FileHandler:
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
     def getRss(self):
+        """ Returns a signed URL to the RSS document.  If local returns local path to RSS. """
         response = {}
         if self.isLocal:
             response["rss_url"] = os.path.join(self.serverPath, CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"])

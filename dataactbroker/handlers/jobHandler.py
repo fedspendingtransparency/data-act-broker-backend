@@ -282,6 +282,5 @@ class JobHandler(JobTrackerInterface):
 
     def getFormattedDatetimeBySubmissionId(self, submissionId):
         """ Given a submission ID, return MM/DD/YYYY for the datetime of that submission """
-        # TODO refactor datetime_utc to use one of the Date formats in postgres, change here and where it is created
         datetime = self.getSubmissionById(submissionId).datetime_utc
         return datetime.strftime("%m/%d/%Y")
