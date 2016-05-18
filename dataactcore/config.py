@@ -2,6 +2,7 @@ import os.path
 from os.path import expanduser, normpath, dirname
 import yaml
 import re
+import inspect
 
 # set the location of the DATA Act broker config file
 CONFIG_PATH = os.path.join(dirname(__file__), 'config.yml')
@@ -21,6 +22,9 @@ CONFIG_SERVICES = CONFIG_ALL['services']
 CONFIG_DB = CONFIG_ALL['db']
 CONFIG_LOGGING = CONFIG_ALL['logging']
 CONFIG_JOB_QUEUE = CONFIG_ALL['job-queue']
+
+# Get path to installation
+CONFIG_BROKER['path'] = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
 
 # for backward-compatibility, differentiate between local runs and AWS
 if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":

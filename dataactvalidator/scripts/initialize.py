@@ -3,6 +3,7 @@ import os.path
 import argparse
 import dataactvalidator
 from dataactcore.scripts.setupAllDB import setupAllDB
+from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.scripts.loadTas import loadTas
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 
@@ -46,7 +47,8 @@ def initialize():
 
 def loadValidator():
     """Load validator fields and rules from config."""
-    validator_config_path = os.path.join(os.path.dirname(dataactvalidator.__file__), "config")
+    basePath = CONFIG_BROKER["path"]
+    validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
     SchemaLoader.loadAllFromPath(validator_config_path)
 
 def setupDB():
