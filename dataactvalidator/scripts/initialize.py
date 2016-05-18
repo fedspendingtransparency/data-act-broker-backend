@@ -2,8 +2,8 @@ import os
 import os.path
 import argparse
 import dataactvalidator
-from dataactcore.scripts.setupStagingDB import setupStagingDB
-from dataactvalidator.scripts.setupValidationDB import setupValidationDB
+from dataactcore.scripts.setupAllDB import setupAllDB
+from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.scripts.loadTas import loadTas
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 
@@ -16,6 +16,7 @@ def options():
     parser.add_argument("-t", "--loadTas", action="store_true", help="Loads valid TAS combinations from Central Accounting Reporting Systems (CARS)")
     parser.add_argument("-db", "--setupDB", action="store_true", help="Creates the validator database schema")
     parser.add_argument("-s", "--start", action="store_true", help="Starts the validator")
+    parser.add_argument("-d", "--deploy", action="store_true", help="Run steps needed to deploy on AWS")
     args = parser.parse_args()
     optionsDict = vars(args)
 
@@ -28,6 +29,9 @@ def options():
     if(noArgs):
         print ("Please enter an argument.")
 
+def deploy():
+    """ Run steps needed for deploying on AWS, currently this is the same as local initialization """
+    initialize()
 
 def initialize():
     print ("Setting up validator databases...")
@@ -41,28 +45,14 @@ def initialize():
     loadTas(tas)
     print ("The validator has been initialized. You may now run the validator with the -start argument.")
 
-
 def loadValidator():
     """Load validator fields and rules from config."""
-    validator_config_path = os.path.join(
-    os.path.dirname(dataactvalidator.__file__), "config")
-    appropriationsFields = os.path.join(validator_config_path, "appropFields.csv")
-    try:
-        SchemaLoader.loadFields("appropriations", appropriationsFields)
-    except IOError:
-        print("Can't open file: {}".format(appropriationsFields))
-
-
-    appropriationsRules = os.path.join(validator_config_path, "appropRules.csv")
-    try:
-        SchemaLoader.loadRules("appropriations", appropriationsRules)
-    except IOError:
-        print("Can't open file: {}".format(appropriationsRules))
-
+    basePath = CONFIG_BROKER["path"]
+    validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
+    SchemaLoader.loadAllFromPath(validator_config_path)
 
 def setupDB():
-    setupValidationDB()
-    setupStagingDB()
+    setupAllDB()
 
 def start():
     from dataactvalidator.app import runApp

@@ -11,8 +11,8 @@ from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
+from dataactcore.scripts.setupValidationDB import setupValidationDB
 from dataactcore.scripts.setupStagingDB import setupStagingDB
-from dataactvalidator.scripts.setupValidationDB import setupValidationDB
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
