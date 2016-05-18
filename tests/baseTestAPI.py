@@ -108,7 +108,7 @@ class BaseTestAPI(unittest.TestCase):
 
         # Set the specified account to be expired
         expiredUser = userDb.getUserByEmail(test_users['expired_lock_email'])
-        today = today = parse(time.strftime("%c"))
+        today = parse(time.strftime("%c"))
         expiredUser.last_login_date = (today-timedelta(days=120)).strftime("%c")
         userDb.session.commit()
 

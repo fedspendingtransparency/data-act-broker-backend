@@ -514,8 +514,8 @@ class AccountHandler:
         """
         today = parse(time.strftime("%c"))
         daysActive = (today-user.last_login_date).days
-        secondsActive = (today-user.last_login_date).seconds
-        if daysActive > self.INACTIVITY_THRESHOLD or (daysActive == self.INACTIVITY_THRESHOLD and secondsActive > 0):
+        # secondsActive = (today-user.last_login_date).seconds
+        if daysActive >= self.INACTIVITY_THRESHOLD:
             self.lockAccount(user)
             return True
         return False
