@@ -428,6 +428,9 @@ class Validator(object):
             return Validator.validateTAS(fieldsToCheck, tasFields, record, interfaces, fileType)
         elif(ruleType == "SUM_TO_VALUE"):
             return Validator.validateSum(rule.rule_text_1, rule.rule_text_2, record)
+        elif(ruleType =="SUM"):
+            print("Checking sum against " + str(rule.rule_text_1) + " for record: " + str(record))
+            return Validator.validateSum(record[rule.rule_text_1], rule.rule_text_2, record)
         elif(ruleType == "REQUIRE_ONE_OF_SET"):
             return Validator.requireOne(record,rule.rule_text_1.split(','),interfaces)
         else:
@@ -494,7 +497,8 @@ class Validator(object):
 
         # Validate each field we are summing is a decimal and store their values in an array
         for field in Validator.cleanSplit(fields_to_sum, True):
-            entry = record[field]
+            print("Checking for " + str(field) + " in record: " + str(record))
+            entry = record[str(field)]
             if Validator.checkType(entry, 'DECIMAL'):
                 decimalValues.append(Validator.getType(entry, 'DECIMAL'))
             else:
