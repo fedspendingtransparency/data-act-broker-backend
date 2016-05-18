@@ -1,9 +1,8 @@
 import unittest
 from decimal import *
 
-from dataactcore.models.baseInterface import BaseInterface
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
-from dataactvalidator.models.validationModels import FieldType, RuleType, FileColumn, Rule, MultiFieldRule, \
+from dataactcore.models.validationModels import FieldType, RuleType, FileColumn, Rule, MultiFieldRule, \
     MultiFieldRuleType
 from dataactvalidator.validation_handlers.validator import Validator
 from baseTestValidator import BaseTestValidator

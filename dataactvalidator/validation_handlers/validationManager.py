@@ -24,7 +24,7 @@ class ValidationManager:
     Outer level class, called by flask route
     """
     reportHeaders = ["Field name", "Error message", "Row number", "Value provided"]
-    crossFileReportHeaders = ["Field names", "Error message", "Values provided"]
+    crossFileReportHeaders = ["Source File", "Field names", "Error message", "Values provided", "Row number"]
 
     def __init__(self,isLocal =True,directory=""):
         # Initialize instance variables
@@ -202,6 +202,7 @@ class ValidationManager:
                     #    print("Validating row " + str(rowNumber))
                     try :
                         record = reader.getNextRecord()
+                        record["row"] = rowNumber
                         if(reader.isFinished and len(record) < 2):
                             # This is the last line and is empty, don't record an error
                             rowNumber -= 1 # Don't count this row
@@ -277,6 +278,7 @@ class ValidationManager:
                 errorDb.recordRowError(jobId,"cross_file",failure[0],failure[1],None)
             writer.finishBatch()
         errorDb.writeAllRowErrors(jobId)
+        interfaces.jobDb.markStatus(jobId,"finished")
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to staging database

@@ -6,44 +6,44 @@ EndingPeriodOfAvailability,Conditional per Validation Rule,string,4,A1
 AvailabilityTypeCode,Conditional per Validation Rule,string,1,"A1, A21"
 MainAccountCode,Required,string,4,A1
 SubAccountCode,Required,string,3,A1
-AwardIdFieldType,Required,string,2,
-PIID(FPDS),Conditional per Award Type,string,50,"C11, C13"
-AwardingAgencyCode(FPDS),Required,string,4,C11
-ParentAwardId,Conditional per Award Type,string,50,"C10, C11, C13"
-ParentAwardAwardingAgencyCode(FPDS),Conditional per Award Type,string,4,"C10, C11, C13"
-FainAwardNumber,Conditional per Validation Rule,string,30,"C8, C9, C14"
+PIID,Conditional per Award Type,string,50,"C11, C12"
+ParentAwardId,Conditional per Award Type,string,50,"C11, C12"
+FAIN,Conditional per Validation Rule,string,30,"C8, C9, C14"
 URI,Conditional per Validation Rule,string,70,"C8, C9, C14"
 ProgramActivityName,Optional,string,164,B9
-ProgramActivityCode,Optional,integer,4,B10
-ObjectClass,Required,numeric,4,B11
-ByDirectReimbursableFundingSource,Conditional per Validation Rule,string,1,"B12, C16"
-DebitCreditIndicator,Conditional per Validation Rule,string,1,"B13, C16"
-ObligationsIncurredTotalByAward_CPE,Required,numeric,21,"C15, A17"
-UnpaidObligationsByAward_FYB,Optional,numeric,21,"A16, A17"
-UnpaidObligationsByAward_CPE,Optional,numeric,21,"C1, C2, A17"
-ObligationsUndeliveredOrdersUnpaidTotal_FYB,Optional,numeric,21,"A16, A17"
-ObligationsUndeliveredOrdersUnpaidTotal_CPE,Optional,numeric,21,"C2, C3, A17"
-USSGL480100UndeliveredOrdersObligationsUnpaid_FYB ,Optional,numeric,21,"A16, A17"
-USSGL480100UndeliveredOrdersObligationsUnpaid_CPE,Optional,numeric,21,"C3, A17"
-USSGL483100UndeliveredOrdersObligationsTransferredUnpaid_CPE,Optional,numeric,21,"C3, A17"
-USSGL488100UpwardAdjustmentsofPriorYearUndeliveredOrdersObligationsUnpaid_CPE,Optional,numeric,21,"C3, A17"
-ObligationsDeliveredOrdersUnpaidTotal_FYB,Optional,numeric,21,"A16, A17"
-ObligationsDeliveredOrdersUnpaidTotal_CPE,Optional,numeric,21,"C2, C4, A17"
-USSGL490100DeliveredOrdersObligationsUnpaid_FYB ,Optional,numeric,21,"A16, A17"
-USSGL490100DeliveredOrdersObligationsUnpaid_CPE,Optional,numeric,21,"C4, A17"
-USSGL493100DeliveredOrdersObligationsTransferredUnpaid_CPE,Optional,numeric,21,"C4, A17"
-USSGL498100Upward AdjustmentsofPriorYearDeliveredOrdersObligationsUnpaid_CPE,Optional,numeric,21,"C4, A17"
-OutlayAmountByAward_FYB,Optional,numeric,21,"A16, A17"
-OutlayAmountByAward_CPE,Optional,numeric,21,"C5, A17"
-OutlaysUndeliveredOrdersPrepaidTotal_FYB,Optional,numeric,21,"A16, A17"
-OutlaysUndeliveredOrdersPrepaidTotal_CPE,Optional,numeric,21,"C5, C6, A17"
-USSGL480200UndeliveredOrdersObligationsPrepaidAdvanced_FYB ,Optional,numeric,21,"A16, A17"
-USSGL480200UndeliveredOrdersObligationsPrepaidAdvanced_CPE,Optional,numeric,21,"C6, A17"
-USSGL483200UndeliveredOrdersObligationsTransferredPrepaidAdvanced_CPE,Optional,numeric,21,"C6, A17"
-USSGL488200UpwardAdjustmentsofPriorYearUndeliveredOrdersObligationsPrepaidAdvanced_CPE,Optional,numeric,21,"C6, A17"
-OutlaysDeliveredOrdersPaidTotal_FYB,Optional,numeric,21,"A16, A17"
-OutlaysDeliveredOrdersPaidTotal_CPE,Optional,numeric,21,"C5, C7, A17"
-USSGL490200DeliveredOrdersObligationsPaid_CPE,Optional,numeric,21,"C7, A17"
-USSGL490800AuthorityOutlayedNotYetDisbursed_FYB,Optional,numeric,21,"A16, A17"
-USSGL490800AuthorityOutlayedNotYetDisbursed_CPE,Optional,numeric,21,"C7, A17"
-USSGL498200UpwardAdjustmentsofPriorYearDeliveredOrdersObligationsPaid_CPE,Optional,numeric,21,"C7, A17"
+ProgramActivityCode,Optional,string,4,B10
+ObjectClass,Required,integer,4,B11
+ByDirectReimbursableFundingSource,Conditional per Validation Rule,string,1,B12
+TransactionObligatedAmount,Conditional per Validation Rule,numeric,21,C17
+USSGL480100_UndeliveredOrdersObligationsUnpaid_FYB ,Optional,numeric,21,"A16, C3"
+USSGL480100_UndeliveredOrdersObligationsUnpaid_CPE,Optional,numeric,21,C3
+USSGL483100_UndeliveredOrdersObligationsTransferredUnpaid_CPE,Optional,numeric,21,C3
+USSGL488100_UpwardAdjustmentsOfPriorYearUndeliveredOrdersObligationsUnpaid_CPE,Optional,numeric,21,C3
+ObligationsUndeliveredOrdersUnpaidTotal_FYB,Optional,numeric,21,"A16, C3"
+ObligationsUndeliveredOrdersUnpaidTotal_CPE,Optional,numeric,21,C3
+USSGL490100_DeliveredOrdersObligationsUnpaid_FYB ,Optional,numeric,21,"A16, C4"
+USSGL490100_DeliveredOrdersObligationsUnpaid_CPE,Optional,numeric,21,C4
+USSGL493100_DeliveredOrdersObligationsTransferredUnpaid_CPE,Optional,numeric,21,C4
+USSGL498100_UpwardAdjustmentsOfPriorYearDeliveredOrdersObligationsUnpaid_CPE,Optional,numeric,21,C4
+ObligationsDeliveredOrdersUnpaidTotal_FYB,Optional,numeric,21,"A16, C4"
+ObligationsDeliveredOrdersUnpaidTotal_CPE,Optional,numeric,21,C4
+USSGL480200_UndeliveredOrdersObligationsPrepaidAdvanced_FYB ,Optional,numeric,21,"A16, C6"
+USSGL480200_UndeliveredOrdersObligationsPrepaidAdvanced_CPE,Optional,numeric,21,C6
+USSGL483200_UndeliveredOrdersObligationsTransferredPrepaidAdvanced_CPE,Optional,numeric,21,C6
+USSGL488200_UpwardAdjustmentsOfPriorYearUndeliveredOrdersObligationsPrepaidAdvanced_CPE,Optional,numeric,21,C6
+GrossOutlaysUndeliveredOrdersPrepaidTotal_FYB,Optional,numeric,21,"A16, C5, C6"
+GrossOutlaysUndeliveredOrdersPrepaidTotal_CPE,Optional,numeric,21,"C5, C6"
+USSGL490200_DeliveredOrdersObligationsPaid_CPE,Optional,numeric,21,C7
+USSGL490800_AuthorityOutlayedNotYetDisbursed_FYB,Optional,numeric,21,A16
+USSGL490800_AuthorityOutlayedNotYetDisbursed_CPE,Optional,numeric,21,C7
+USSGL498200_UpwardAdjustmentsOfPriorYearDeliveredOrdersObligationsPaid_CPE,Optional,numeric,21,C7
+GrossOutlaysDeliveredOrdersPaidTotal_FYB,Optional,numeric,21,"A16, C5, C7"
+GrossOutlaysDeliveredOrdersPaidTotal_CPE,Optional,numeric,21,"C5, C7"
+GrossOutlayAmountByAward_FYB,Optional,numeric,21,"A16, C5"
+GrossOutlayAmountByAward_CPE,Optional,numeric,21,C5
+ObligationsIncurredTotalByAward_CPE,Optional,numeric,21,
+USSGL487100_DownwardAdjustmentsOfPriorYearUnpaidUndeliveredOrdersObligationsRecoveries_CPE,Optional,numeric,21,C3
+USSGL497100_DownwardAdjustmentsOfPriorYearUnpaidDeliveredOrdersObligationsRecoveries_CPE,Optional,numeric,21,C4
+USSGL487200_DownwardAdjustmentsOfPriorYearPrepaidAdvancedUndeliveredOrdersObligationsRefundsCollected_CPE,Optional,numeric,21,C6
+USSGL497200_DownwardAdjustmentsOfPriorYearPaidDeliveredOrdersObligationsRefundsCollected_CPE,Optional,numeric,21,C7
+DeobligationsRecoveriesRefundsOfPriorYearByAward_CPE,Optional,numeric,21,B13

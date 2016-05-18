@@ -44,7 +44,7 @@ class JobStatus(Base):
     status = relationship("Status", uselist=False)
     type_id = Column(Integer, ForeignKey("type.type_id"))
     type = relationship("Type", uselist=False)
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE"))
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_job_status_submission_id"))
     submission = relationship("Submission", uselist=False, cascade="delete")
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"), nullable=True)
     file_type = relationship("FileType", uselist=False)
