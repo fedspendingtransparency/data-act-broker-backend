@@ -36,6 +36,7 @@ def runTests(argv=''):
     suite.addTests(unittest.makeSuite(FileTypeTests))
 
     # to run a single test:
+    #suite.addTest(FileTests('test_bad_quarter_or_month'))
     #suite.addTest(UserTests('test_registration'))
     #suite.addTest(FileTypeTests('test_award_valid'))
 

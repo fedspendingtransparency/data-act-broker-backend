@@ -47,11 +47,21 @@ class JobHandler(JobTrackerInterface):
         for key in cls.metaDataFieldMap:
             if requestDict.exists(key):
                 if(key == "reporting_period_start_date" or key == "reporting_period_end_date"):
-                    # Create a date object from formatted string, assuming "MM/DD/YYYY"
+                    reportDate = requestDict.getValue(key)
+                    # Check if this is specified by quarter or month
+                    if(reportDate[0] == "Q"):
+                        if key == "reporting_period_start_date":
+                            isStart = True
+                        else:
+                            isStart = False
+                        reportDate = "".join([cls.quarterToMonth(reportDate[0:2], isStart),reportDate[2:]])
+
+                    # Create a date object from formatted string, assuming "MM/YYYY"
                     try:
-                        submissionData[cls.metaDataFieldMap[key]] = JobHandler.createDate(requestDict.getValue(key))
-                    except Exception as e:
-                        raise ResponseException("Submission dates must be formatted as MM/DD/YYYY, hit error: " + str(e),StatusCode.CLIENT_ERROR,type(e))
+                        submissionData[cls.metaDataFieldMap[key]] = JobHandler.createDate(reportDate)
+                    except ValueError as e:
+                        # Bad value, must be MM/YYYY
+                        raise ResponseException("Date must be provided as MM/YYYY or Q#/YYYY",StatusCode.CLIENT_ERROR,ValueError)
                 else:
                     submissionData[cls.metaDataFieldMap[key]] = requestDict.getValue(key)
             else:
@@ -60,12 +70,56 @@ class JobHandler(JobTrackerInterface):
         return submissionData, existingSubmissionId
 
     @staticmethod
+    def quarterToMonth(quarter, isStart):
+        """ Translate quarter as 'Q#' to a 2 digit month
+
+        Args:
+            quarter: Q followed by 1,2,3, or 4
+            isStart: True if we want first month of quarter
+
+        Returns:
+            Two character string representing month
+        """
+        # If does not start with Q, this is an error
+        if quarter[0] != "Q":
+            raise ResponseException("Cannot translate quarter that does not begin with Q",StatusCode.CLIENT_ERROR,ValueError)
+
+        # Specified by quarter, translate to months
+        if quarter[1] == "1":
+            if isStart:
+                month = "10"
+            else:
+                month = "12"
+        elif quarter[1] == "2":
+            if isStart:
+                month = "01"
+            else:
+                month = "03"
+        elif quarter[1] == "3":
+            if isStart:
+                month = "04"
+            else:
+                month = "06"
+        elif quarter[1] == "4":
+            if isStart:
+                month = "07"
+            else:
+                month = "09"
+        else:
+            raise ResponseException("Invalid quarter, must be 1-4",StatusCode.CLIENT_ERROR,ValueError)
+        return month
+
+    @staticmethod
     def createDate(dateString):
-        """ Create a date object from a string in "MM/DD/YYYY" """
+        """ Create a date object from a string in "MM/YYYY" """
         if dateString is None:
             return None
         dateParts = dateString.split("/")
-        return date(year = int(dateParts[2]),month = int(dateParts[0]),day = int(dateParts[1]))
+        if len(dateParts) > 2:
+            # Cannot include day now
+            raise ResponseException("Please format dates as MM/YYYY",StatusCode.CLIENT_ERROR,ValueError)
+        # Defaulting day to 1, this will not be used
+        return date(year = int(dateParts[1]),month = int(dateParts[0]),day=1)
 
     def createSubmission(self, userId, requestDict):
         """ Create a new submission
