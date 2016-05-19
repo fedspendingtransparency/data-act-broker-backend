@@ -2,7 +2,6 @@ from flask import session as flaskSession
 from threading import Thread
 import re
 import time
-from flask import session
 from dateutil.parser import parse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -375,7 +374,7 @@ class AccountHandler:
             exc = ResponseException("Request body must include status", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
 
-        current_user = self.interfaces.userDb.getUserByUID(session["name"])
+        current_user = self.interfaces.userDb.getUserByUID(flaskSession["name"])
 
         try:
             if self.interfaces.userDb.hasPermission(current_user, "agency_admin"):
@@ -418,7 +417,6 @@ class AccountHandler:
         submissionIdList = []
         for submission in submissions:
             submissionIdList.append(submission.submission_id)
-        print "DEBUG: Submission Count => " + str(len(submissionIdList))
         return JsonResponse.create(StatusCode.OK,{"submission_id_list": submissionIdList})
 
     def setNewPassword(self, session):
@@ -514,7 +512,6 @@ class AccountHandler:
         """
         today = parse(time.strftime("%c"))
         daysActive = (today-user.last_login_date).days
-        # secondsActive = (today-user.last_login_date).seconds
         if daysActive >= self.INACTIVITY_THRESHOLD:
             self.lockAccount(user)
             return True
