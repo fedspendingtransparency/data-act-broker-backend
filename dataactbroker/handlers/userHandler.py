@@ -58,6 +58,13 @@ class UserHandler(UserInterface):
         self.session.delete(oldToken)
         self.session.commit()
 
+    def getUsers(self, agency=None):
+        """ Return all users in the database """
+        query = self.session.query(User)
+        if agency is not None:
+            return query.filter(User.agency == agency)
+        return query.order_by(User.user_status_id).all()
+
     def getUserByUID(self,uid):
         """ Return a User object that matches specified uid
 
@@ -230,6 +237,20 @@ class UserHandler(UserInterface):
                 userList.append(user)
         return userList
 
+    def getUserPermissions(self, user):
+        """ Get name for specified permissions for this user
+
+        Arguments:
+            user
+        Returns:
+            array of permission names
+        """
+        all_permissions = self.getPermissionList()
+        user_permissions = []
+        for permission in all_permissions:
+            if self.hasPermission(user, permission.name):
+                user_permissions.append(permission.name)
+        return user_permissions
 
     def hasPermission(self, user, permissionName):
         """ Checks if user has specified permission
@@ -370,7 +391,7 @@ class UserHandler(UserInterface):
         user.password_hash = None
         self.session.commit()
 
-    def getPermssionList(self):
+    def getPermissionList(self):
         """ Gets the permission list
 
         Returns:

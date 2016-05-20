@@ -43,13 +43,18 @@ def add_user_routes(app,system_email,bcrypt):
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.checkEmailConfirmationToken, getSession = True)
 
-
     @app.route("/v1/confirm_password_token/", methods = ["POST"])
     def checkPasswordToken():
         """ Expects request to have email  """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.checkPasswordToken, getSession = True)
 
+    @app.route("/v1/list_users/", methods=["POST"])
+    @permissions_check(permissionList=["website_admin", "agency_admin"])
+    def list_users():
+        """ list all users """
+        accountManager = AccountHandler(request,bcrypt = bcrypt)
+        return RouteUtils.run_instance_function(accountManager, accountManager.listUsers)
 
     @app.route("/v1/list_users_with_status/", methods = ["POST"])
     @permissions_check(permissionList=["website_admin"])

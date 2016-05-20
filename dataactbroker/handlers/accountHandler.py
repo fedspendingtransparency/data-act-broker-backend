@@ -358,6 +358,27 @@ class AccountHandler:
         self.interfaces.userDb.changeStatus(user,requestDict.getValue("new_status"))
         return JsonResponse.create(StatusCode.OK,{"message":"Status change successful"})
 
+    def listUsers(self):
+        """ List all users ordered by status. Associated request body must have key 'filter_by' """
+        user = self.interfaces.userDb.getUserByUID(LoginSession.getName(flaskSession))
+        isAgencyAdmin = True if self.interfaces.userDb.hasPermission(user, "agency_admin") else False
+        try:
+            if isAgencyAdmin:
+                users = self.interfaces.userDb.getUsers(agency=user.agency)
+            else:
+                users = self.interfaces.userDb.getUsers()
+        except ValueError as e:
+            # Client provided a bad status
+            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
+            return JsonResponse.error(exc,exc.status)
+        userInfo = []
+        for user in users:
+            thisInfo = {"name":user.name, "title":user.title,  "agency":user.agency, "email":user.email, "id":user.user_id,
+                        "is_active":user.is_active, "permissions": ", ".join(self.interfaces.userDb.getUserPermissions(user)),
+                        "status": user.user_status.name}
+            userInfo.append(thisInfo)
+        return JsonResponse.create(StatusCode.OK,{"users":userInfo})
+
     def listUsersWithStatus(self):
         """ List all users with the specified status.  Associated request body must have key 'status' """
         requestDict = RequestDictionary(self.request)
