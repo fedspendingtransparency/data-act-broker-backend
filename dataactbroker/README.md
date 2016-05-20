@@ -126,7 +126,8 @@ Example output:
     "name": "John",
     "title":"Developer",
     "agency": "Department of Labor",
-    "permissions" : [0,1]
+    "permissions" : [0,1],
+    "skip_guide": False
 }
 ```
 
@@ -138,6 +139,26 @@ Permissions for the DATA Act Broker are list based. Each integer in the list cor
 |User| 0|
 |Admin  |1|
 
+
+#### POST "/v1/set_skip_guide/"
+Sets skip_guide parameter for current user, which controls whether the submission guide should be displayed.  A call to this route should have JSON or form-urlencoded with key "skip_guide", value should be either true or false.
+
+Example input:
+
+```json
+{
+   "skip_guide": True
+}
+```
+
+Example output:
+
+```json
+{
+  "message": "skip_guide set successfully",
+  "skip_guide": True
+}
+```
 
 #### POST "/v1/register/"
 Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.  This route can only be called after the `confirm_email_token` route. After a successful submission this route will require

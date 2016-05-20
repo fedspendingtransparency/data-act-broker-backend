@@ -2,7 +2,7 @@ import uuid
 import time
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm import joinedload
-from sqlalchemy import func
+from sqlalchemy import func, and_
 from dataactcore.models.userModel import User, PermissionType
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
@@ -199,6 +199,17 @@ class UserHandler(UserInterface):
         """
         statusId = self.getUserStatusId(status)
         return self.session.query(User).filter(User.user_status_id == statusId).all()
+
+    def getUsersByStatusByAgency(self, status, agency):
+        """ Return list of all users with specified status within the specified agency
+
+        Arguments:
+            status - Status to check against
+        Returns:
+            list of User objects
+        """
+        statusId = self.getUserStatusId(status)
+        return self.session.query(User).filter(and_(User.user_status_id == statusId,User.agency == agency)).all()
 
     def getStatusOfUser(self,user):
         """ Given a user object return their status as a string
@@ -400,7 +411,7 @@ class UserHandler(UserInterface):
         queryResult = self.session.query(PermissionType).all()
         return queryResult
 
-    def createUserWithPassword(self,email,password,bcrypt,admin=False):
+    def createUserWithPassword(self,email,password,bcrypt,permission=1):
         """ This directly creates a valid user in the database with password and permissions set.  Not used during normal
         behavior of the app, but useful for configuration and testing.
 
@@ -414,10 +425,7 @@ class UserHandler(UserInterface):
         self.session.add(user)
         self.setPassword(user,password,bcrypt)
         self.changeStatus(user,"approved")
-        if(admin):
-            self.setPermission(user,2)
-        else:
-            self.setPermission(user,1)
+        self.setPermission(user,permission)
         self.session.commit()
 
     def loadEmailTemplate(self, subject, contents, emailType):

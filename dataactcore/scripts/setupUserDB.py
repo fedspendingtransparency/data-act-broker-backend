@@ -29,7 +29,8 @@ def insertCodes():
     # insert user permission types
     typeList = [
         (0, 'agency_user', 'This user is allowed to upload data to be validated'),
-        (1, 'website_admin', 'This user is allowed to manage user accounts')]
+        (1, 'website_admin', 'This user is allowed to manage user accounts'),
+        (2, 'agency_admin', 'This user is allowed to manage user accounts within their agency')]
     for t in typeList:
         type = PermissionType(permission_type_id=t[0], name=t[1], description=t[2])
         userDb.session.merge(type)

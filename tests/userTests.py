@@ -24,6 +24,14 @@ class UserTests(BaseTestAPI):
             if i == 0:
                 cls.submission_id = sub.submission_id
 
+        # Add submissions for agency user
+        jobDb.deleteSubmissionsForUserId(cls.agency_user_id)
+        for i in range(0,6):
+            sub = Submission(user_id = cls.agency_user_id)
+            sub.agency_name = "testAgency"
+            jobDb.session.add(sub)
+            jobDb.session.commit()
+
         # Add job to first submission
         job = Job(submission_id=cls.submission_id, job_status_id=3, job_type_id=1, file_type_id=1)
         jobDb.session.add(job)
@@ -147,7 +155,7 @@ class UserTests(BaseTestAPI):
         emails = []
         for admin in agencyUsers:
             emails.append(admin.email)
-        self.assertEqual(len(agencyUsers), 13)
+        self.assertEqual(len(agencyUsers), 14)
         for email in ["realEmail@agency.gov", "waiting@agency.gov",
             "impatient@agency.gov", "watchingPaintDry@agency.gov",
             "approved@agency.gov", "nefarious@agency.gov",]:
@@ -158,10 +166,22 @@ class UserTests(BaseTestAPI):
         """Test listing user's submissions."""
         self.logout()
         self.login_approved_user()
-        response = self.app.get("/v1/list_submissions/", headers={"x-session-id":self.session_id})
+        response = self.app.get("/v1/list_submissions/", headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
-        self.assertIn("submission_id_list", response.json)
-        self.assertEqual(len(response.json["submission_id_list"]), 5)
+        self.assertIn("submissions", response.json)
+        self.assertEqual(len(response.json["submissions"]), 5)
+        self.logout()
+
+        self.login_agency_user()
+        response = self.app.get("/v1/list_submissions/", headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.OK)
+        self.assertIn("submissions", response.json)
+        self.assertEqual(len(response.json["submissions"]), 6)
+
+        response = self.app.get("/v1/list_submissions/?filter_by=agency", headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.OK)
+        self.assertIn("submissions", response.json)
+        self.assertEqual(len(response.json["submissions"]), 5)
         self.logout()
 
     def test_list_users_with_status_non_admin(self):
@@ -216,7 +236,21 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK)
 
+        # Test password reset for unapproved user and locked user
         userDb = self.userDb
+        user = userDb.getUserByEmail(email)
+        user.user_status_id = userDb.getUserStatusId("awaiting_approval")
+        userDb.session.commit()
+        response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+        self.check_response(response, StatusCode.CLIENT_ERROR)
+
+        user.user_status_id = userDb.getUserStatusId("approved")
+        user.is_active = False
+        userDb.session.commit()
+        response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+        self.check_response(response, StatusCode.CLIENT_ERROR)
+
+        # Test route to confirm tokens
         token = sesEmail.createToken(
             self.test_users["password_reset_email"], userDb, "password_reset")
         postJson = {"token": token}
@@ -260,3 +294,14 @@ class UserTests(BaseTestAPI):
         self.check_response(response, StatusCode.OK)
         self.assertEqual(response.json["name"], "Mr. Manager")
         self.assertEqual(response.json["agency"], "Unknown")
+        self.assertEqual(response.json["skip_guide"], False)
+
+    def test_skip_guide(self):
+        """ Set skip guide to True and check value in DB """
+        self.login_approved_user()
+        params = {"skip_guide":True}
+        response = self.app.post_json("/v1/set_skip_guide/", params, headers={"x-session-id":self.session_id})
+        self.check_response(response,StatusCode.OK,"skip_guide set successfully")
+        self.assertTrue(response.json["skip_guide"])
+        user = self.userDb.getUserByEmail(self.test_users['approved_email'])
+        self.assertTrue(user.skip_guide)
