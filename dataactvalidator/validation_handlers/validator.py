@@ -224,8 +224,7 @@ class Validator(object):
         for rule in multiFieldRules:
             if not Validator.evaluateMultiFieldRule(rule,record,interfaces,fileType):
                 recordFailed = True
-                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule,record)])
-
+                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces)])
 
         return (not recordFailed), failedRules
 
@@ -443,18 +442,22 @@ class Validator(object):
             # Negate the rule specified
             conditionalRule = interfaces.validationDb.getMultiFieldRuleByLabel(rule.rule_text_1)
             return not cls.evaluateMultiFieldRule(conditionalRule,record,interfaces,fileType)
-        elif(ruleType == "CONDITIONAL_REQUIRED"):
+        elif(ruleType == "REQUIRED_CONDITIONAL"):
             # Field in rule_text_1 is required if rule in rule_text_2 is satisfied
             conditionalRule = interfaces.validationDb.getMultiFieldRuleByLabel(rule.rule_text_2)
             if cls.evaluateMultiFieldRule(conditionalRule,record,interfaces,fileType):
                 # Return True if field populated
-                field = rule.rule_text_1
+                field = FieldCleaner.cleanName(rule.rule_text_1)
                 if field in record and cls.isFieldPopulated(record[field]):
                     return True
                 else:
+                    print("Value is " + str(record[field]))
                     return False
+            else:
+                # Conditional rule failed, so field is not required and rule passes
+                return True
         else:
-            raise ResponseException("Bad rule type for multi-field rule",StatusCode.INTERNAL_ERROR)
+            raise ResponseException("".join(["Bad rule type for multi-field rule: ",str(ruleType)]),StatusCode.INTERNAL_ERROR)
 
     @staticmethod
     def cleanSplit(string, toLower = True):
@@ -472,29 +475,35 @@ class Validator(object):
         return stringList
 
     @staticmethod
-    def getMultiValues(rule,record):
+    def getMultiValues(rule,record,interfaces):
         """ Create string out of values for all fields involved in this rule
 
         Args:
             rule: Rule to return fields for
             record: Record to pull values from
-
+            interfaces: InterfaceHolder for DBs
         Returns:
             One string including all values involved in this rule check
         """
         ruletext1 = Validator.cleanSplit(rule.rule_text_1, True)
         ruletext2 = Validator.cleanSplit(rule.rule_text_2, True)
-        fields = ruletext1 + ruletext2 #TODO try catch
+        ruleType = interfaces.validationDb.getMultiFieldRuleTypeById(rule.multi_field_rule_type_id)
+        if ruleType == "CAR_MATCH" or ruleType == "REQUIRED_CONDITIONAL" or ruleType == "REQUIRE_ONE_OF_SET":
+            fields = ruletext1
+        elif ruleType == "NOT":
+            fields = []
+        elif ruleType == "SUM_TO_VALUE":
+            fields = ruletext2
+        else:
+            fields = ruletext1 + ruletext2
         output = ""
         for field in fields:
-            try:
-                value = record[field]
-                if(value == None):
-                    # For concatenating fields, represent None with an empty string
-                    value = ""
-                output = "".join([output,field,": ",value,", "])
-            except:
-                continue
+            value = record[field]
+            if(value == None):
+                # For concatenating fields, represent None with an empty string
+                value = ""
+            output = "".join([output,field,": ",value,", "])
+
         return output[:-2]
 
     @staticmethod

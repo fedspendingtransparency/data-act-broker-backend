@@ -72,7 +72,7 @@ class SchemaLoader(object):
                         validationDb.addRule(columnId,str(record["rule_type"]),str(record["rule_text_one"]),str(record["description"]))
                 else:
                     # Write to multi_field_rule table
-                    validationDb.addMultiFieldRule(fileId,str(record["rule_type"]),str(record["rule_text_one"]),str(record["rule_text_two"]),str(record["description"]))
+                    validationDb.addMultiFieldRule(fileId,str(record["rule_type"]),str(record["rule_text_one"]),str(record["rule_text_two"]),str(record["description"]),ruleTiming = str(record["rule_timing"]),ruleLabel=str(record["rule_label"]))
 
     @staticmethod
     def loadCrossRules(filename):
