@@ -414,10 +414,20 @@ class AccountHandler:
         """ List all submission IDs associated with the current user ID """
         userId = LoginSession.getName(flaskSession)
         submissions = self.interfaces.jobDb.getSubmissionsByUserId(userId)
-        submissionIdList = []
+        submissionDetails = []
         for submission in submissions:
-            submissionIdList.append(submission.submission_id)
-        return JsonResponse.create(StatusCode.OK,{"submission_id_list": submissionIdList})
+            jobIds = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
+            total_size = 0
+            for jobId in jobIds:
+                file_size = self.interfaces.jobDb.getFileSize(jobId)
+                total_size += file_size if file_size is not None else 0
+
+            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id).title()
+            error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
+            submissionDetails.append(
+                {"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
+                 "size": total_size, "status": status, "error": error_count})
+        return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
 
     def setNewPassword(self, session):
         """ Set a new password for a user, request should have keys "user_email" and "password" """
