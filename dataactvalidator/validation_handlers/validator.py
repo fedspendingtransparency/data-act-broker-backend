@@ -99,10 +99,10 @@ class Validator(object):
                     # Have to get file column IDs for source and target tables
                     targetColId = interfaces.validationDb.getColumnId(field,targetType)
                     if isinstance(thisRecord,dict):
-                        matchDict[field] = thisRecord[str(field)]
+                        matchDict[str(field)] = str(thisRecord[str(field)])
                     else:
                         sourceColId = interfaces.validationDb.getColumnId(field,fileType)
-                        matchDict[field] = getattr(thisRecord,str(sourceColId))
+                        matchDict[str(field)] = str(getattr(thisRecord,str(sourceColId)))
                     query = query.filter(getattr(targetTable.c,str(targetColId)) == matchDict[field])
                 # Make sure at least one in target table record matches
                 if not query.first():
