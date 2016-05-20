@@ -57,6 +57,10 @@ class JobTrackerInterface(BaseInterface):
         query = self.session.query(Job).options(joinedload("file_type")).filter(Job.job_id == jobId)
         return self.checkJobUnique(query).file_type.name
 
+    def getFileSize(self,jobId):
+        """ Get size of the file associated with this job """
+        return self.getJobById(jobId).file_size
+
     def getSubmissionId(self,jobId):
         """ Find submission that this job is part of """
         return self.getJobById(jobId).submission_id
@@ -236,3 +240,25 @@ class JobTrackerInterface(BaseInterface):
         job = self.getJobById(jobId)
         job.number_of_rows = int(numRows)
         self.session.commit()
+
+    def getSubmissionStatus(self,submissionId):
+        jobIds = self.getJobsBySubmission(submissionId)
+        statuses = {"started": 0, "in_progress": 0, "has_errors": 0, "validated": 0}
+        for jobId in jobIds:
+            job = self.getJobById(jobId)
+            job_status = job.job_status.name
+            if job_status == "invalid" or job_status == "failed":
+                statuses["has_errors"] += 1
+            if job_status == "waiting":
+                statuses["started"] += 1
+            if job_status == "running":
+                statuses["in_progress"] += 1
+            if job_status == "finished":
+                statuses["validated"] += 1
+        if statuses["has_errors"] != 0:
+            return "has errors"
+        if statuses["started"] == len(jobIds):
+            return "started"
+        if statuses["validated"] == len(jobIds):
+            return "validated"
+        return "validation in progress"

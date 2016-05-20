@@ -1,7 +1,5 @@
 from dataactbroker.scripts.setupEmails import setupEmails
-from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
-from dataactcore.scripts.setupErrorDB import setupErrorDB
-from dataactcore.scripts.setupUserDB import setupUserDB
+from dataactcore.scripts.setupAllDB import setupAllDB
 from dataactcore.utils.responseException import ResponseException
 from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.aws.session import SessionTable
@@ -17,6 +15,7 @@ def options():
     parser.add_argument("-i", "--initialize", action="store_true", help="Runs all of the setup options")
     parser.add_argument("-a", "--createAdmin", action="store_true", help="Creates admin user")
     parser.add_argument("-s", "--start", action="store_true", help="Starts the broker")
+    parser.add_argument("-d", "--deploy", action="store_true", help="Deploy on AWS")
     args = parser.parse_args()
     optionsDict = vars(args)
 
@@ -29,6 +28,9 @@ def options():
     if noArgs:
         print ("Please enter an argument.")
 
+def deploy():
+    """ Run steps needed for deployment on AWS, currently this is just DB setup """
+    setupDB()
 
 def initialize():
     """ Set up databases and dynamo and create an admin user """
@@ -43,9 +45,7 @@ def initialize():
 
 def setupDB():
     """ Setup all databases used by API """
-    setupJobTrackerDB()
-    setupErrorDB()
-    setupUserDB()
+    setupAllDB()
     setupEmails()
 
 
@@ -60,7 +60,7 @@ def createAdmin():
 
         if type(e.wrappedException) is NoResultFound:
             userDb.createUserWithPassword(
-                adminEmail, adminPass, Bcrypt(), admin=True)
+                adminEmail, adminPass, Bcrypt(), permission=2)
             user = userDb.getUserByEmail(adminEmail)
             userDb.addUserInfo(user, "Admin", "System", "System Admin")
     userDb.session.close()

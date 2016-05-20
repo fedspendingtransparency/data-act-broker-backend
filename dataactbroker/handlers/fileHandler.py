@@ -1,4 +1,5 @@
 import os
+import time
 from flask import session, request
 from datetime import datetime
 from werkzeug import secure_filename
@@ -109,6 +110,9 @@ class FileHandler:
                 # If filetype not included in request, and this is an update to an existing submission, skip it
                 if not safeDictionary.exists(fileType):
                     if existingSubmission:
+                        submission = self.jobManager.getSubmissionById(submissionId)
+                        submission.updated_at = time.strftime("%c")
+                        self.jobManager.session.commit()
                         continue
                     else:
                         # This is a new submission, all files are required
