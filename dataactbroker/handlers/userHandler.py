@@ -400,7 +400,13 @@ class UserHandler(UserInterface):
         self.session.commit()
 
     def loadEmailTemplate(self, subject, contents, emailType):
-        """Upsert a broker e-mail template."""
+        """ Upsert a broker e-mail template.
+
+        Args:
+            subject - Subject line
+            contents - Body of email, can include tags to be replaced
+            emailType - Type of template, if there is already an entry for this type it will be overwritten
+        """
         emailId = self.session.query(
             EmailTemplateType.email_template_type_id).filter(
             EmailTemplateType.name == emailType).one()

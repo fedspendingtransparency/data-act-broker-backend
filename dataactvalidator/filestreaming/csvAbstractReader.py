@@ -19,10 +19,12 @@ class CsvAbstractReader(object):
     def openFile(self,region,bucket,filename,csvSchema,bucketName,errorFilename):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
-            bucket : the S3 Bucket
+            region: AWS region where the bucket is located (not used if instantiated as CsvLocalReader)
+            bucket: the S3 Bucket (not used if instantiated as CsvLocalReader)
             filename: The file path for the CSV file in S3
-            writer: An implementation of csvAbstractWriter to send header errors to
-        Returns:
+            csvSchema: list of FileColumn objects for this file type
+            bucketName: bucket to send errors to
+            errorFilename: filename for error report
         """
 
 
@@ -44,6 +46,10 @@ class CsvAbstractReader(object):
         # make sure we have not finished reading the file
 
         if(self.isFinished) :
+            # Write header error for no header row
+            with self.getWriter(bucketName, errorFilename, ["Error Type"], self.isLocal) as writer:
+                writer.write(["No header row"])
+                writer.finishBatch()
             raise ResponseException("CSV file must have a header",StatusCode.CLIENT_ERROR,ValueError,ValidationError.singleRow)
 
         duplicatedHeaders = []

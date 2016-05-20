@@ -22,7 +22,7 @@ dataactbroker/
 The `/dataactbroker/scripts` folder contains the install scripts needed to setup the broker API for a local install. For complete instructions on running your own copy of the API and other DATA Act broker components, please refer to the [documentation in the DATA Act core responsitory](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
 
 ### Handlers
-The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py`, `fileRoutes.py`, and 'userRoutes.py' files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tag is defined in `dataactbroker/permissions.py`.
+The `dataactbroker/handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py`, `fileRoutes.py`, and 'userRoutes.py' files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tag is defined in `dataactbroker/permissions.py`.
 
 `accountHandler.py` contains the functions to check logins and to log users out.
 
@@ -555,14 +555,12 @@ Example output:
 
 ## Test Cases
 
-To run the broker API unit tests, navigate to the main project folder (`data-act-broker`) and type the following:
+To run the broker API unit tests, navigate to the project's test folder (`data-act-broker-backend/tests`) and type the following:
 
-        $ python tests/runTests.py
-
-Before running test cases, [make sure the validator is running](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md#run-broker-backend-applications "run the DATA Act broker backend apps").
+        $ python runTests.py
 
 To generate a test coverage report from the command line:
 
-1. Make sure you're in the main project folder (`data-act-broker`).
-2. Run the tests using the `coverage` command: `coverage run tests/runTests.py`.
+1. Make sure you're in the project's test folder (`data-act-broker-backend/tests`).
+2. Run the tests using the `coverage` command: `coverage run runTests.py`.
 3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
