@@ -380,7 +380,15 @@ class Validator(object):
         return False
 
     @staticmethod
-    def conditionalRequired(data,rule,datatype,interfaces,record):
+    def isFieldPopulated(data):
+        """ Field is considered to be populated if not None and not entirely whitespace """
+        if data is not None and str(data).strip() != "":
+            return True
+        else:
+            return False
+
+    @classmethod
+    def conditionalRequired(cls, data,rule,datatype,interfaces,record):
         """ If conditional rule passes, data must not be empty
 
         Args:
@@ -396,14 +404,13 @@ class Validator(object):
         conditionalDataType = interfaces.validationDb.getFieldTypeById(conditionalTypeId)
         # If conditional rule passes, check that data is not empty
         if Validator.evaluateRule(record[conditionalRule.file_column.name],conditionalRule,conditionalDataType,interfaces,record):
-            result = not (data is None or data == "")
-            return result
+            return cls.isFieldPopulated(data)
         else:
             # If conditional rule fails, this field is not required, so the condtional requirement passes
             return True
 
-    @staticmethod
-    def evaluateMultiFieldRule(rule, record, interfaces, fileType):
+    @classmethod
+    def evaluateMultiFieldRule(cls, rule, record, interfaces, fileType):
         """ Check a rule involving more than one field of a record
 
         Args:
@@ -418,20 +425,34 @@ class Validator(object):
         ruleType = rule.multi_field_rule_type.name.upper()
         if(ruleType == "CAR_MATCH"):
             # Look for an entry in car table that matches all fields
-            fieldsToCheck = Validator.cleanSplit(rule.rule_text_1)
-            tasFields = Validator.cleanSplit(rule.rule_text_2)
+            fieldsToCheck = cls.cleanSplit(rule.rule_text_1)
+            tasFields = cls.cleanSplit(rule.rule_text_2)
             if(len(fieldsToCheck) != len(tasFields)):
                 raise ResponseException("Number of fields to check does not match number of fields checked against",StatusCode.CLIENT_ERROR,ValueError)
-            return Validator.validateTAS(fieldsToCheck, tasFields, record, interfaces, fileType)
+            return cls.validateTAS(fieldsToCheck, tasFields, record, interfaces, fileType)
         elif(ruleType == "SUM_TO_VALUE"):
-            return Validator.validateSum(rule.rule_text_1, rule.rule_text_2, record)
+            return cls.validateSum(rule.rule_text_1, rule.rule_text_2, record)
         elif(ruleType =="SUM_FIELDS"):
             value = record[FieldCleaner.cleanName(rule.rule_text_1)]
             if value is None or value =="":
                 value = 0
-            return Validator.validateSum(value, rule.rule_text_2, record)
+            return cls.validateSum(value, rule.rule_text_2, record)
         elif(ruleType == "REQUIRE_ONE_OF_SET"):
-            return Validator.requireOne(record,rule.rule_text_1.split(','),interfaces)
+            return cls.requireOne(record,rule.rule_text_1.split(','),interfaces)
+        elif(ruleType == "NOT"):
+            # Negate the rule specified
+            conditionalRule = interfaces.validationDb.getMultiFieldRuleByLabel(rule.rule_text_1)
+            return not cls.evaluateMultiFieldRule(conditionalRule,record,interfaces,fileType)
+        elif(ruleType == "CONDITIONAL_REQUIRED"):
+            # Field in rule_text_1 is required if rule in rule_text_2 is satisfied
+            conditionalRule = interfaces.validationDb.getMultiFieldRuleByLabel(rule.rule_text_2)
+            if cls.evaluateMultiFieldRule(conditionalRule,record,interfaces,fileType):
+                # Return True if field populated
+                field = rule.rule_text_1
+                if field in record and cls.isFieldPopulated(record[field]):
+                    return True
+                else:
+                    return False
         else:
             raise ResponseException("Bad rule type for multi-field rule",StatusCode.INTERNAL_ERROR)
 

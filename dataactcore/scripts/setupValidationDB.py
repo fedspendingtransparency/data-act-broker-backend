@@ -72,7 +72,9 @@ def insertCodes():
         (4, 'GREATER', 'Check if field is greater than specified value'),
         (5, 'SUM_TO_VALUE', 'Sum a set of fields and compare to specified value'),
         (6, 'REQUIRE_ONE_OF_SET', 'At least one of these fields must be present'),
-        (7, 'SUM_FIELDS', 'Field is equal to the sum of other fields')
+        (7, 'SUM_FIELDS', 'Field is equal to the sum of other fields'),
+        (8, 'REQUIRED_CONDITIONAL', 'field is required if secondary rule passes'),
+        (9, 'NOT', 'passes if and only if specified rule fails')
         ]
     for m in mfrTypeList:
         mfrt = MultiFieldRuleType(
