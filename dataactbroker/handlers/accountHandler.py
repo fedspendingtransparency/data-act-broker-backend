@@ -172,10 +172,18 @@ class AccountHandler:
             """
             threadedDatabase =  UserHandler()
             try:
-                for user in threadedDatabase.getUsersByType("website_admin") :
+                for user in threadedDatabase.getUsersByType("website_admin"):
                     emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY]':agency,'[REG_EMAIL]' : userEmail,'[URL]':link}
                     newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=threadedDatabase)
                     newEmail.send()
+                for user in threadedDatabase.getUsersByType("agency_admin"):
+                    if user.agency == agency:
+                        emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY]': agency,
+                             '[REG_EMAIL]': userEmail, '[URL]': link}
+                        newEmail = sesEmail(user.email, system_email, templateType="account_creation", parameters=emailTemplate,
+                                database=threadedDatabase)
+                        newEmail.send()
+
             finally:
                 InterfaceHolder.closeOne(threadedDatabase)
 
@@ -365,8 +373,14 @@ class AccountHandler:
             # Missing a required field, return 400
             exc = ResponseException("Request body must include status", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
+
+        current_user = self.interfaces.userDb.getUserByUID(flaskSession["name"])
+
         try:
-            users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"))
+            if self.interfaces.userDb.hasPermission(current_user, "agency_admin"):
+                users = self.interfaces.userDb.getUsersByStatusByAgency(requestDict.getValue("status"), current_user.agency)
+            else:
+                users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"))
         except ValueError as e:
             # Client provided a bad status
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
@@ -377,14 +391,43 @@ class AccountHandler:
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
+    def listSubmissionsByCurrentUserAgency(self):
+        """ List all submission IDs associated with the current user's agency """
+        userId = LoginSession.getName(flaskSession)
+        user = self.interfaces.userDb.getUserByUID(userId)
+        submissions = self.interfaces.jobDb.getSubmissionsByUserAgency(user)
+        submissionDetails = []
+        for submission in submissions:
+            jobIds = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
+            total_size = 0
+            for jobId in jobIds:
+                file_size = self.interfaces.jobDb.getFileSize(jobId)
+                total_size += file_size if file_size is not None else 0
+
+            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id).title()
+            error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
+            submissionDetails.append({"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
+                                      "size": total_size, "status": status, "error": error_count})
+        return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
+
     def listSubmissionsByCurrentUser(self):
         """ List all submission IDs associated with the current user ID """
         userId = LoginSession.getName(flaskSession)
         submissions = self.interfaces.jobDb.getSubmissionsByUserId(userId)
-        submissionIdList = []
+        submissionDetails = []
         for submission in submissions:
-            submissionIdList.append(submission.submission_id)
-        return JsonResponse.create(StatusCode.OK,{"submission_id_list": submissionIdList})
+            jobIds = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
+            total_size = 0
+            for jobId in jobIds:
+                file_size = self.interfaces.jobDb.getFileSize(jobId)
+                total_size += file_size if file_size is not None else 0
+
+            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id).title()
+            error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
+            submissionDetails.append(
+                {"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
+                 "size": total_size, "status": status, "error": error_count})
+        return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
 
     def setNewPassword(self, session):
         """ Set a new password for a user, request should have keys "user_email" and "password" """
@@ -465,7 +508,7 @@ class AccountHandler:
         for permission in self.interfaces.userDb.getPermssionList():
             if(self.interfaces.userDb.hasPermission(user, permission.name)):
                 permissionList.append(permission.permission_type_id)
-        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList})
+        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList, "skip_guide":user.skip_guide})
 
     def isUserActive(self, user, checkExpiration=False):
         """ Checks if user's account is still active
@@ -484,8 +527,7 @@ class AccountHandler:
         """
         today = parse(time.strftime("%c"))
         daysActive = (today-user.last_login_date).days
-        secondsActive = (today-user.last_login_date).seconds
-        if daysActive > self.INACTIVITY_THRESHOLD or (daysActive == self.INACTIVITY_THRESHOLD and secondsActive > 0):
+        if daysActive >= self.INACTIVITY_THRESHOLD:
             self.lockAccount(user)
             return True
         return False
@@ -523,3 +565,31 @@ class AccountHandler:
         """
         user.is_active = False
         self.interfaces.userDb.session.commit()
+
+    def setSkipGuide(self, session):
+        """ Set current user's skip guide parameter """
+        uid =  session["name"]
+        userDb = self.interfaces.userDb
+        user =  userDb.getUserByUID(uid)
+        requestDict = RequestDictionary(self.request)
+        if not requestDict.exists("skip_guide"):
+            exc = ResponseException("Must include skip_guide parameter", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+        skipGuide = requestDict.getValue("skip_guide")
+        if type(skipGuide) == type(True):
+            # param is a bool
+            user.skip_guide = skipGuide
+        elif type(skipGuide) == type("string"):
+            # param is a string, allow "true" or "false"
+            if skipGuide.lower() == "true":
+                user.skip_guide = True
+            elif skipGuide.lower() == "false":
+                user.skip_guide = False
+            else:
+                exc = ResponseException("skip_guide must be true or false", StatusCode.CLIENT_ERROR)
+                return JsonResponse.error(exc, exc.status)
+        else:
+            exc = ResponseException("skip_guide must be a boolean", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+        userDb.session.commit()
+        return JsonResponse.create(StatusCode.OK,{"message":"skip_guide set successfully","skip_guide":skipGuide})

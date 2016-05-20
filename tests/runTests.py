@@ -36,8 +36,8 @@ def runTests(argv=''):
     suite.addTests(unittest.makeSuite(FileTypeTests))
 
     # to run a single test:
-    #suite.addTest(UserTests('test_registration'))
-    #suite.addTest(FileTypeTests('test_award_fin_mixed'))
+    #suite.addTest(UserTests('test_skip_guide'))
+    #suite.addTest(FileTypeTests('test_award_valid'))
 
     print("{} tests in suite".format(suite.countTestCases()))
 

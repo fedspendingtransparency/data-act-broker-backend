@@ -60,7 +60,7 @@ def createAdmin():
 
         if type(e.wrappedException) is NoResultFound:
             userDb.createUserWithPassword(
-                adminEmail, adminPass, Bcrypt(), admin=True)
+                adminEmail, adminPass, Bcrypt(), permission=2)
             user = userDb.getUserByEmail(adminEmail)
             userDb.addUserInfo(user, "Admin", "System", "System Admin")
     userDb.session.close()

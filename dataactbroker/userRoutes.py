@@ -52,18 +52,11 @@ def add_user_routes(app,system_email,bcrypt):
 
 
     @app.route("/v1/list_users_with_status/", methods = ["POST"])
-    @permissions_check(permissionList=["website_admin"])
+    @permissions_check(permissionList=["website_admin", "agency_admin"])
     def list_users_with_status():
         """ Expects request to have key 'status', will list all users with that status """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.listUsersWithStatus)
-
-    @app.route("/v1/list_submissions/", methods = ["GET"])
-    @permissions_check
-    def list_submissions():
-        """ List submission IDs associated with the current user """
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.listSubmissionsByCurrentUser)
 
     @app.route("/v1/set_password/", methods=["POST"])
     @permissions_check(permissionList=["check_password_token"])
@@ -84,3 +77,10 @@ def add_user_routes(app,system_email,bcrypt):
         """ gets the current user information """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.getCurrentUser, getSession = True)
+
+    @app.route("/v1/set_skip_guide/", methods=["POST"])
+    @permissions_check
+    def set_skip_guide():
+        """ Sets skip_guide param for current user """
+        accountManager = AccountHandler(request,bcrypt = bcrypt)
+        return RouteUtils.run_instance_function(accountManager, accountManager.setSkipGuide, getSession = True)
