@@ -155,7 +155,7 @@ class UserTests(BaseTestAPI):
         emails = []
         for admin in agencyUsers:
             emails.append(admin.email)
-        self.assertEqual(len(agencyUsers), 13)
+        self.assertEqual(len(agencyUsers), 14)
         for email in ["realEmail@agency.gov", "waiting@agency.gov",
             "impatient@agency.gov", "watchingPaintDry@agency.gov",
             "approved@agency.gov", "nefarious@agency.gov",]:
