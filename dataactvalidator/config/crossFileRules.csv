@@ -1,5 +1,5 @@
-rule_type,rule_text_one,rule_text_two,description,file,rule_label,rule_timing,file_type
-field_match,"fain, uri",award,Check that all fain award number and URI pairs in file C are present in file D2,award_financial,C8,3,award_financial
-field_match,"fain, uri",award_financial,Check that all fain award number and URI pairs in file D2 are present in file C,award,C9,2,award
-rule_if,C9,C9B,Rule C9 only applies if FederalActionObligation is greater than 0,award,,3,award
-greater,0,federalactionobligation,Check if federalactionobligation is greater than 0,award,C9B,2,award
+rule_type,rule_text_one,rule_text_two,description,file,rule_label,rule_timing
+field_match,"fain, uri",award,Check that all fain award number and URI pairs in file C are present in file D2,award_financial,C8,3
+field_match,"fain, uri",award_financial,Check that all fain award number and URI pairs in file D2 are present in file C,award,C9,2
+rule_if,C9,C9B,Rule C9 only applies if FederalActionObligation is greater than 0,award,,3
+greater,0,federalactionobligation,Check if federalactionobligation is greater than 0,award,C9B,2

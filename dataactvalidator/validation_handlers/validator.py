@@ -1,7 +1,4 @@
-import re
-from sqlalchemy import MetaData, Table, inspect
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.engine import reflection
+from sqlalchemy import MetaData, Table
 from decimal import *
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -428,9 +425,11 @@ class Validator(object):
             return Validator.validateTAS(fieldsToCheck, tasFields, record, interfaces, fileType)
         elif(ruleType == "SUM_TO_VALUE"):
             return Validator.validateSum(rule.rule_text_1, rule.rule_text_2, record)
-        elif(ruleType =="SUM"):
-            print("Checking sum against " + str(rule.rule_text_1) + " for record: " + str(record))
-            return Validator.validateSum(record[rule.rule_text_1], rule.rule_text_2, record)
+        elif(ruleType =="SUM_FIELDS"):
+            value = record[FieldCleaner.cleanName(rule.rule_text_1)]
+            if value is None or value =="":
+                value = 0
+            return Validator.validateSum(value, rule.rule_text_2, record)
         elif(ruleType == "REQUIRE_ONE_OF_SET"):
             return Validator.requireOne(record,rule.rule_text_1.split(','),interfaces)
         else:
@@ -490,16 +489,17 @@ class Validator(object):
         decimalValues = []
 
         # Validate that our sum is a decimal
-        if Validator.checkType(value, 'DECIMAL'):
+        if Validator.checkType(str(value), 'DECIMAL'):
             decimalSum = Validator.getType(value, 'DECIMAL')
         else:
             return False
 
         # Validate each field we are summing is a decimal and store their values in an array
         for field in Validator.cleanSplit(fields_to_sum, True):
-            print("Checking for " + str(field) + " in record: " + str(record))
-            entry = record[str(field)]
-            if Validator.checkType(entry, 'DECIMAL'):
+            entry = record[FieldCleaner.cleanName(field)]
+            if entry is None or entry == "":
+                decimalValues.append(0)
+            elif Validator.checkType(entry, 'DECIMAL'):
                 decimalValues.append(Validator.getType(entry, 'DECIMAL'))
             else:
                 return False
