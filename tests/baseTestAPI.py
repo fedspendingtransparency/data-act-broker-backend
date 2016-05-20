@@ -69,6 +69,11 @@ class BaseTestAPI(unittest.TestCase):
             test_users['inactive_email'] = 'data.act.tester.4@gmail.com'
             test_users['password_lock_email'] = 'data.act.test.5@gmail.com'
             test_users['expired_lock_email'] = 'data.act.test.6@gmail.com'
+            test_users['agency_admin_email'] = 'data.act.test.7@gmail.com'
+
+            # This email is for a regular agency_user email that is to be used for testing functionality
+            # expected by a normal, base user
+            test_users['agency_user'] = 'data.act.test.8@gmail.com'
         if 'approved_email' not in test_users:
             test_users['approved_email'] = 'approved@agency.gov'
         if 'submission_email' not in test_users:
@@ -105,6 +110,16 @@ class BaseTestAPI(unittest.TestCase):
             test_users["password_lock_email"], user_password, Bcrypt())
         userDb.createUserWithPassword(
             test_users['expired_lock_email'], user_password, Bcrypt())
+        userDb.createUserWithPassword(
+            test_users['agency_admin_email'], admin_password, Bcrypt(), permission=4)
+        userDb.createUserWithPassword(
+            test_users['agency_user'], user_password, Bcrypt())
+
+        # Set the Agency for the agency user
+        agencyUser = userDb.getUserByEmail(test_users['agency_user'])
+        agencyUser.agency = "testAgency"
+        userDb.session.commit()
+        cls.agency_user_id = agencyUser.user_id
 
         # Set the specified account to be expired
         expiredUser = userDb.getUserByEmail(test_users['expired_lock_email'])
@@ -184,12 +199,30 @@ class BaseTestAPI(unittest.TestCase):
         self.session_id = response.headers["x-session-id"]
         return response
 
+    def login_agency_user(self):
+        """Log an agency user (non-admin) into broker."""
+        #TODO: put user data in pytest fixture; put credentials in config file
+        user = {"username": self.test_users['agency_user'],
+            "password": self.user_password}
+        response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
+        self.session_id = response.headers["x-session-id"]
+        return response
+
     def login_admin_user(self):
         """Log an admin user into broker."""
         #TODO: put user data in pytest fixture; put credentials in config file
         user = {"username": self.test_users['admin_email'],
             "password": self.admin_password}
         response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
+        self.session_id = response.headers["x-session-id"]
+        return response
+
+    def login_agency_admin_user(self):
+        """ Log an agency admin user into broker. """
+        # TODO: put user data in pytest fixture; put credentials in config file
+        user = {"username": self.test_users['agency_admin_email'],
+                "password": self.admin_password}
+        response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
         self.session_id = response.headers["x-session-id"]
         return response
 

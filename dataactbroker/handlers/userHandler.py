@@ -390,7 +390,7 @@ class UserHandler(UserInterface):
         queryResult = self.session.query(PermissionType).all()
         return queryResult
 
-    def createUserWithPassword(self,email,password,bcrypt,admin=False):
+    def createUserWithPassword(self,email,password,bcrypt,permission=1):
         """ This directly creates a valid user in the database with password and permissions set.  Not used during normal
         behavior of the app, but useful for configuration and testing.
 
@@ -404,10 +404,7 @@ class UserHandler(UserInterface):
         self.session.add(user)
         self.setPassword(user,password,bcrypt)
         self.changeStatus(user,"approved")
-        if(admin):
-            self.setPermission(user,2)
-        else:
-            self.setPermission(user,1)
+        self.setPermission(user,permission)
         self.session.commit()
 
     def loadEmailTemplate(self, subject, contents, emailType):

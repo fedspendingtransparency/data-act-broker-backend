@@ -24,6 +24,14 @@ class UserTests(BaseTestAPI):
             if i == 0:
                 cls.submission_id = sub.submission_id
 
+        # Add submissions for agency user
+        jobDb.deleteSubmissionsForUserId(cls.agency_user_id)
+        for i in range(0,6):
+            sub = Submission(user_id = cls.agency_user_id)
+            sub.agency_name = "testAgency"
+            jobDb.session.add(sub)
+            jobDb.session.commit()
+
         # Add job to first submission
         job = Job(submission_id=cls.submission_id, job_status_id=3, job_type_id=1, file_type_id=1)
         jobDb.session.add(job)
@@ -158,10 +166,22 @@ class UserTests(BaseTestAPI):
         """Test listing user's submissions."""
         self.logout()
         self.login_approved_user()
-        response = self.app.get("/v1/list_submissions/", headers={"x-session-id":self.session_id})
+        response = self.app.get("/v1/list_submissions/", headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         self.assertIn("submission_id_list", response.json)
         self.assertEqual(len(response.json["submission_id_list"]), 5)
+        self.logout()
+
+        self.login_agency_user()
+        response = self.app.get("/v1/list_submissions/", headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.OK)
+        self.assertIn("submission_id_list", response.json)
+        self.assertEqual(len(response.json["submission_id_list"]), 6)
+
+        response = self.app.get("/v1/list_submissions/?filter_by=agency", headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.OK)
+        self.assertIn("submissions", response.json)
+        self.assertEqual(len(response.json["submissions"]), 5)
         self.logout()
 
     def test_list_users_with_status_non_admin(self):

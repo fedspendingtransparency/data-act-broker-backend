@@ -408,7 +408,7 @@ class AccountHandler:
             error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
             submissionDetails.append({"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
                                       "size": total_size, "status": status, "error": error_count})
-        return JsonResponse.create(StatusCode.OK, {"recent": submissionDetails})
+        return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
 
     def listSubmissionsByCurrentUser(self):
         """ List all submission IDs associated with the current user ID """
