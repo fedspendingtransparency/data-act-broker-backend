@@ -451,7 +451,6 @@ class Validator(object):
                 if field in record and cls.isFieldPopulated(record[field]):
                     return True
                 else:
-                    print("Value is " + str(record[field]))
                     return False
             else:
                 # Conditional rule failed, so field is not required and rule passes
