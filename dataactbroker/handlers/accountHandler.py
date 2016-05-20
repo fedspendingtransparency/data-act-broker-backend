@@ -460,7 +460,7 @@ class AccountHandler:
         for permission in self.interfaces.userDb.getPermssionList():
             if(self.interfaces.userDb.hasPermission(user, permission.name)):
                 permissionList.append(permission.permission_type_id)
-        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList})
+        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList, "skip_guide":user.skip_guide})
 
     def isUserActive(self, user, checkExpiration=False):
         """ Checks if user's account is still active
@@ -518,3 +518,31 @@ class AccountHandler:
         """
         user.is_active = False
         self.interfaces.userDb.session.commit()
+
+    def setSkipGuide(self, session):
+        """ Set current user's skip guide parameter """
+        uid =  session["name"]
+        userDb = self.interfaces.userDb
+        user =  userDb.getUserByUID(uid)
+        requestDict = RequestDictionary(self.request)
+        if not requestDict.exists("skip_guide"):
+            exc = ResponseException("Must include skip_guide parameter", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+        skipGuide = requestDict.getValue("skip_guide")
+        if type(skipGuide) == type(True):
+            # param is a bool
+            user.skip_guide = skipGuide
+        elif type(skipGuide) == type("string"):
+            # param is a string, allow "true" or "false"
+            if skipGuide.lower() == "true":
+                user.skip_guide = True
+            elif skipGuide.lower() == "false":
+                user.skip_guide = False
+            else:
+                exc = ResponseException("skip_guide must be true or false", StatusCode.CLIENT_ERROR)
+                return JsonResponse.error(exc, exc.status)
+        else:
+            exc = ResponseException("skip_guide must be a boolean", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+        userDb.session.commit()
+        return JsonResponse.create(StatusCode.OK,{"message":"skip_guide set successfully","skip_guide":skipGuide})

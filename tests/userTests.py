@@ -260,3 +260,14 @@ class UserTests(BaseTestAPI):
         self.check_response(response, StatusCode.OK)
         self.assertEqual(response.json["name"], "Mr. Manager")
         self.assertEqual(response.json["agency"], "Unknown")
+        self.assertEqual(response.json["skip_guide"], False)
+
+    def test_skip_guide(self):
+        """ Set skip guide to True and check value in DB """
+        self.login_approved_user()
+        params = {"skip_guide":True}
+        response = self.app.post_json("/v1/set_skip_guide/", params, headers={"x-session-id":self.session_id})
+        self.check_response(response,StatusCode.OK,"skip_guide set successfully")
+        self.assertTrue(response.json["skip_guide"])
+        user = self.userDb.getUserByEmail(self.test_users['approved_email'])
+        self.assertTrue(user.skip_guide)

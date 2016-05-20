@@ -84,3 +84,10 @@ def add_user_routes(app,system_email,bcrypt):
         """ gets the current user information """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.getCurrentUser, getSession = True)
+
+    @app.route("/v1/set_skip_guide/", methods=["POST"])
+    @permissions_check
+    def set_skip_guide():
+        """ Sets skip_guide param for current user """
+        accountManager = AccountHandler(request,bcrypt = bcrypt)
+        return RouteUtils.run_instance_function(accountManager, accountManager.setSkipGuide, getSession = True)
