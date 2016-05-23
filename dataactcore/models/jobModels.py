@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime
+from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from dataactcore.utils.timeStampMixin import TimeStampBase
@@ -33,6 +33,7 @@ class Submission(Base):
     agency_name = Column(Text)
     reporting_start_date = Column(Date)
     reporting_end_date = Column(Date)
+    is_quarter_format = Column(Boolean, nullable = False, default = "False", server_default= "False")
     jobs = None
 
 class Job(Base):

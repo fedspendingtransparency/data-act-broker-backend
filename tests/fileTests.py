@@ -32,7 +32,7 @@ class FileTests(BaseTestAPI):
 
         # setup submission/jobs data for test_check_status
         cls.status_check_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id, agency = "Department of the Treasury", startDate = "04/2016", endDate = "04/2016")
+            cls.jobTracker, cls.submission_user_id, agency = "Department of the Treasury", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
 
         cls.jobIdDict = cls.setupJobsForStatusCheck(cls.interfaces,
             cls.status_check_submission_id)
@@ -62,7 +62,7 @@ class FileTests(BaseTestAPI):
                     "award_financial":"test2.csv", "award":"test3.csv",
                     "program_activity":"test4.csv", "agency_name": "Department of the Treasury",
                     "reporting_period_start_date":"01/2001",
-                    "reporting_period_end_date":"01/2001"}
+                    "reporting_period_end_date":"01/2001", "is_quarter":True}
             else:
                 # If local must use full destination path
                 filePath = CONFIG_BROKER["broker_files"]
@@ -70,7 +70,7 @@ class FileTests(BaseTestAPI):
                     "award_financial":os.path.join(filePath,"test2.csv"), "award":os.path.join(filePath,"test3.csv"),
                     "program_activity":os.path.join(filePath,"test4.csv"), "agency_name": "Department of the Treasury",
                     "reporting_period_start_date":"01/2001",
-                    "reporting_period_end_date":"01/2001"}
+                    "reporting_period_end_date":"01/2001", "is_quarter":True}
             self.submitFilesResponse = self.app.post_json("/v1/submit_files/", self.filenames, headers={"x-session-id":self.session_id})
             self.updateSubmissionId = self.submitFilesResponse.json["submission_id"]
         return self.submitFilesResponse
@@ -131,14 +131,14 @@ class FileTests(BaseTestAPI):
             updateJson = {"existing_submission_id": self.updateSubmissionId,
                 "award_financial":"updated.csv",
                 "reporting_period_start_date":"02/2016",
-                "reporting_period_end_date":"Q2/2016"}
+                "reporting_period_end_date":"03/2016"}
         else:
             # If local must use full destination path
             filePath = CONFIG_BROKER["broker_files"]
             updateJson = {"existing_submission_id": self.updateSubmissionId,
                 "award_financial": os.path.join(filePath,"updated.csv"),
                 "reporting_period_start_date":"02/2016",
-                "reporting_period_end_date":"Q2/2016"}
+                "reporting_period_end_date":"03/2016"}
         updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id":self.session_id})
         self.assertEqual(updateResponse.status_code, 200)
         self.assertEqual(updateResponse.headers.get("Content-Type"), "application/json")
@@ -153,14 +153,6 @@ class FileTests(BaseTestAPI):
 
     def test_bad_quarter_or_month(self):
         """ Test file submissions for Q5, 13, and AB, and year of ABCD """
-        updateJson = {"existing_submission_id": self.updateSubmissionId,
-            "award_financial":"updated.csv",
-            "reporting_period_start_date":"Q1/2016",
-            "reporting_period_end_date":"Q5/2016"}
-        updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id":self.session_id}, expect_errors = True)
-        self.assertEqual(updateResponse.status_code, 400)
-        self.assertIn("Invalid quarter",updateResponse.json["message"])
-
         updateJson = {"existing_submission_id": self.updateSubmissionId,
             "award_financial":"updated.csv",
             "reporting_period_start_date":"12/2016",
@@ -269,8 +261,8 @@ class FileTests(BaseTestAPI):
 
         # Check submission metadata
         self.assertEqual(json["agency_name"], "Department of the Treasury")
-        self.assertEqual(json["reporting_period_start_date"], "04/2016")
-        self.assertEqual(json["reporting_period_end_date"], "04/2016")
+        self.assertEqual(json["reporting_period_start_date"], "Q1/2016")
+        self.assertEqual(json["reporting_period_end_date"], "Q3/2016")
 
         # Check submission level info
         self.assertEqual(json["number_of_errors"],12)
@@ -343,13 +335,13 @@ class FileTests(BaseTestAPI):
             True, "appropriations")
 
     @staticmethod
-    def insertSubmission(jobTracker, submission_user_id, submission=None, agency = None, startDate = None, endDate = None):
+    def insertSubmission(jobTracker, submission_user_id, submission=None, agency = None, startDate = None, endDate = None, is_quarter = False):
         """Insert one submission into job tracker and get submission ID back."""
         if submission:
             sub = Submission(submission_id=submission,
-                datetime_utc=datetime.utcnow(), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
+                datetime_utc=datetime.utcnow(), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter)
         else:
-            sub = Submission(datetime_utc=datetime.utcnow(), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate))
+            sub = Submission(datetime_utc=datetime.utcnow(), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter)
         jobTracker.session.add(sub)
         jobTracker.session.commit()
         return sub.submission_id
