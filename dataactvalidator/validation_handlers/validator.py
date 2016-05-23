@@ -154,7 +154,6 @@ class Validator(object):
             rulePassed = int(record[rule.rule_text_2]) > int(rule.rule_text_1)
 
         elif ruleType == "sum_by_tas":
-            print('sum by tas!')
             rulePassed = True
 
         return rulePassed,failures
