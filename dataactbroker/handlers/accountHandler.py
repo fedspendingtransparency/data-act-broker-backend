@@ -365,7 +365,7 @@ class AccountHandler:
                     emailTemplate = { '[URL]':link,'[EMAIL]':system_email}
                     newEmail = sesEmail(user.email, system_email,templateType="account_approved",parameters=emailTemplate,database=self.interfaces.userDb)
                     newEmail.send()
-                elif (requestDict.getValue("new_status") == "denied"):
+                elif (requestDict.getValue("status") == "denied"):
                     emailTemplate = {}
                     newEmail = sesEmail(user.email, system_email,templateType="account_rejected",parameters=emailTemplate,database=self.interfaces.userDb)
                     newEmail.send()
