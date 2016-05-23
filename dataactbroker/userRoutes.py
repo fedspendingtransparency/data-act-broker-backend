@@ -23,13 +23,12 @@ def add_user_routes(app,system_email,bcrypt):
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager,accountManager.register, getSystemEmail = True, getSession = True)
 
-
-    @app.route("/v1/change_status/", methods = ["POST"])
-    @permissions_check(permissionList=["website_admin"])
-    def change_status():
-        """ Expects request to have keys 'user_email' and 'new_status' """
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.changeStatus,getSystemEmail = True)
+    @app.route("/v1/update_user/", methods=["POST"])
+    @permissions_check(permissionList=["website_admin", "agency_admin"])
+    def update_user():
+        """ Updates editable fields for the specified user """
+        accountManager = AccountHandler(request, bcrypt=bcrypt)
+        return RouteUtils.run_instance_function(accountManager, accountManager.updateUser, getSystemEmail = True)
 
     @app.route("/v1/confirm_email/", methods = ["POST"])
     def confirm():

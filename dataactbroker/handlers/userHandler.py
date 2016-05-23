@@ -456,3 +456,8 @@ class UserHandler(UserInterface):
         """
         user.last_login_date = time.strftime("%c")
         self.session.commit()
+
+    def setUserActive(self, user, is_active):
+        """ Sets the is_active field for the specified user """
+        user.is_active = is_active
+        self.session.commit()
