@@ -48,7 +48,7 @@ class FieldCleaner:
         Returns:
             Cleaned version of string
         """
-        result = data.lower().strip()
+        result = str(data).lower().strip()
         if(removeSpaces):
             result = result.replace(" ","_")
         return result

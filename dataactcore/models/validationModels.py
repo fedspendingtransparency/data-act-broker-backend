@@ -32,16 +32,6 @@ class RuleType(Base):
 
     TYPE_DICT = None
 
-class MultiFieldRuleType(Base):
-    __tablename__ = "multi_field_rule_type"
-
-    multi_field_rule_type_id = Column(Integer, primary_key=True)
-    name = Column(Text)
-    description = Column(Text)
-
-    session = None
-    TYPE_DICT = None
-
 class FileColumn(Base):
     __tablename__ = "file_columns"
 
@@ -68,6 +58,13 @@ class Rule(Base):
     rule_timing_id = Column(Integer, ForeignKey("rule_timing.rule_timing_id", name="fk_rule_timing_id"), nullable=False, default=1)
     rule_timing = relationship("RuleTiming", uselist=False)
     rule_label = Column(Text)
+    file_id = Column(Integer, ForeignKey("file_type.file_id"), nullable=True)
+    file_type = relationship(
+        "FileType", foreign_keys="Rule.file_id", uselist=False)
+    target_file_id = Column(Integer, ForeignKey(
+        "file_type.file_id", name="fk_target_file_id"), nullable=True)
+    target_file_type = relationship(
+        "FileType", foreign_keys="Rule.target_file_id", uselist=False)
 
 class RuleTiming(Base):
     __tablename__ = "rule_timing"
@@ -77,26 +74,6 @@ class RuleTiming(Base):
 
     TIMING_DICT = None
 
-class MultiFieldRule(Base):
-    __tablename__ = "multi_field_rule"
-    multi_field_rule_id = Column(Integer, primary_key=True)
-    file_id = Column(Integer, ForeignKey("file_type.file_id"), nullable=True)
-    multi_field_rule_type_id  = Column(Integer, ForeignKey("multi_field_rule_type.multi_field_rule_type_id"), nullable=True)
-    rule_text_1 = Column(Text, nullable=True)
-    rule_text_2 = Column(Text, nullable=True)
-    description = Column(Text, nullable=True)
-    multi_field_rule_type = relationship("MultiFieldRuleType", uselist=False)
-    file_type = relationship(
-        "FileType", foreign_keys="MultiFieldRule.file_id", uselist=False)
-    rule_timing_id = Column(Integer, ForeignKey("rule_timing.rule_timing_id", name="fk_multi_field_rule_timing_id"), nullable=False, server_default='1')
-    rule_timing = relationship("RuleTiming", uselist=False)
-    rule_label = Column(Text)
-    target_file_id = Column(Integer, ForeignKey(
-        "file_type.file_id", name="fk_target_file_id"), nullable=True)
-    target_file_type = relationship(
-        "FileType", foreign_keys="MultiFieldRule.target_file_id", uselist=False)
-
-    
 class TASLookup(Base) :
     __tablename__ = "tas_lookup"
     tas_id = Column(Integer, primary_key=True)
