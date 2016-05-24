@@ -152,6 +152,10 @@ class Validator(object):
                 # Must provide a record for this rule
                 raise ValueError("Cannot apply greater rule without a record")
             rulePassed = int(record[rule.rule_text_2]) > int(rule.rule_text_1)
+
+        elif ruleType == "sum_by_tas":
+            rulePassed = True
+
         return rulePassed,failures
 
     @staticmethod
