@@ -252,8 +252,8 @@ class UserHandler(UserInterface):
         user_permissions = []
         for permission in all_permissions:
             if self.hasPermission(user, permission.name):
-                user_permissions.append(permission.name)
-        return user_permissions
+                user_permissions.append(str(permission.name))
+        return sorted(user_permissions, key=str.lower)
 
     def hasPermission(self, user, permissionName):
         """ Checks if user has specified permission

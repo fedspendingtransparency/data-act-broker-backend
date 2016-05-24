@@ -447,7 +447,7 @@ class AccountHandler:
         userInfo = []
         for user in users:
             thisInfo = {"name":user.name, "title":user.title,  "agency":user.agency, "email":user.email, "id":user.user_id,
-                        "is_active":user.is_active, "permissions": ", ".join(self.interfaces.userDb.getUserPermissions(user)),
+                        "is_active":user.is_active, "permissions": ",".join(self.interfaces.userDb.getUserPermissions(user)),
                         "status": user.user_status.name}
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
