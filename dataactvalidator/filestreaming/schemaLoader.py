@@ -82,7 +82,14 @@ class SchemaLoader(object):
             reader = csv.DictReader(ruleFile)
             for record in reader:
                 fileId = validationDb.getFileId(record["file"])
-                validationDb.addMultiFieldRule(fileId,record["rule_type"],record["rule_text_one"],record["rule_text_two"],record["description"],record["rule_label"],record["rule_timing"])
+                if record["target_file"]:
+                    targetFileId = validationDb.getFileId(record["target_file"])
+                else:
+                    targetFileId = None
+                validationDb.addMultiFieldRule(
+                    fileId, record["rule_type"], record["rule_text_one"],
+                    record["rule_text_two"], record["description"],
+                    record["rule_label"], record["rule_timing"], targetFileId)
 
     @classmethod
     def loadAllFromPath(cls,path):

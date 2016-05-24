@@ -86,10 +86,16 @@ class MultiFieldRule(Base):
     rule_text_2 = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
     multi_field_rule_type = relationship("MultiFieldRuleType", uselist=False)
-    file_type = relationship("FileType", uselist=False)
+    file_type = relationship(
+        "FileType", foreign_keys="MultiFieldRule.file_id", uselist=False)
     rule_timing_id = Column(Integer, ForeignKey("rule_timing.rule_timing_id", name="fk_multi_field_rule_timing_id"), nullable=False, server_default='1')
     rule_timing = relationship("RuleTiming", uselist=False)
     rule_label = Column(Text)
+    target_file_id = Column(Integer, ForeignKey(
+        "file_type.file_id", name="fk_target_file_id"), nullable=True)
+    target_file_type = relationship(
+        "FileType", foreign_keys="MultiFieldRule.target_file_id", uselist=False)
+
     
 class TASLookup(Base) :
     __tablename__ = "tas_lookup"

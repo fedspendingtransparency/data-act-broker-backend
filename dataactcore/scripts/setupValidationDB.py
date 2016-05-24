@@ -74,7 +74,8 @@ def insertCodes():
         (6, 'REQUIRE_ONE_OF_SET', 'At least one of these fields must be present'),
         (7, 'SUM_FIELDS', 'Field is equal to the sum of other fields'),
         (8, 'REQUIRED_CONDITIONAL', 'field is required if secondary rule passes'),
-        (9, 'NOT', 'passes if and only if specified rule fails')
+        (9, 'NOT', 'passes if and only if specified rule fails'),
+        (10, 'SUM_BY_TAS', 'Check if two fields summed by TAS are equal')
         ]
     for m in mfrTypeList:
         mfrt = MultiFieldRuleType(
