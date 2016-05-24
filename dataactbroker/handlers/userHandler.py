@@ -62,7 +62,7 @@ class UserHandler(UserInterface):
         """ Return all users in the database """
         query = self.session.query(User)
         if agency is not None:
-            return query.filter(User.agency == agency)
+            query = query.filter(User.agency == agency)
         return query.order_by(User.user_status_id).all()
 
     def getUserByUID(self,uid):
