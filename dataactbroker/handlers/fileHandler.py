@@ -105,6 +105,7 @@ class FileHandler:
                 # Check if user has permission to specified submission
                 self.checkSubmissionPermission(self.jobManager.getSubmissionById(submissionId))
 
+            # Build fileNameMap to be used in creating jobs
             for fileType in FileHandler.FILE_TYPES :
                 # If filetype not included in request, and this is an update to an existing submission, skip it
                 if not safeDictionary.exists(fileType):
@@ -143,6 +144,9 @@ class FileHandler:
             return JsonResponse.create(StatusCode.OK,responseDict)
         except (ValueError , TypeError, NotImplementedError) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+        except ResponseException as e:
+            # Call error route directly, status code depends on exception
+            return JsonResponse.error(e,e.status)
         except Exception as e:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
@@ -219,8 +223,8 @@ class FileHandler:
             submissionInfo = {}
             submissionInfo["jobs"] = []
             submissionInfo["agency_name"] = submission.agency_name
-            submissionInfo["reporting_period_start_date"] = submission.reporting_start_date.strftime("%m/%d/%Y")
-            submissionInfo["reporting_period_end_date"] = submission.reporting_end_date.strftime("%m/%d/%Y")
+            submissionInfo["reporting_period_start_date"] = self.interfaces.jobDb.getStartDate(submission)
+            submissionInfo["reporting_period_end_date"] = self.interfaces.jobDb.getEndDate(submission)
             submissionInfo["created_on"] = self.interfaces.jobDb.getFormattedDatetimeBySubmissionId(submissionId)
             # Include number of errors in submission
             submissionInfo["number_of_errors"] = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobs)

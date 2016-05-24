@@ -361,6 +361,18 @@ class ValidatorValidationInterface(BaseInterface):
         """
         return self.getIdFromDict(MultiFieldRuleType,"TYPE_DICT","name",typeName.upper(),"multi_field_rule_type_id")
 
+    def getMultiFieldRuleTypeById(self,typeId):
+        """ Get rule name for specified id
+
+        Args:
+            typeId: multi_field_rule_type_id
+
+        Returns:
+            Name of multi filed rule type
+        """
+        # Populate rule type dict
+        return self.getNameFromDict(MultiFieldRuleType, "TYPE_DICT", "name", typeId, "multi_field_rule_type_id")
+
     def populateFile(self,column):
         """ Populate file object in the ORM for the specified FileColumn object
 

@@ -67,12 +67,12 @@ class SchemaLoader(object):
                         raise Exception("".join([str(e),"Failed on field ",FieldCleaner.cleanName(record["field_name"])," and file ",fileTypeName]))
                     # Write to rule table
                     if "rule_timing" in record and "rule_label" in record:
-                        validationDb.addRule(columnId,record["rule_type"],record["rule_text_one"],record["description"],record["rule_timing"],record["rule_label"])
+                        validationDb.addRule(columnId,str(record["rule_type"]),str(record["rule_text_one"]),str(record["description"]),str(record["rule_timing"]),str(record["rule_label"]))
                     else:
-                        validationDb.addRule(columnId,record["rule_type"],record["rule_text_one"],record["description"])
+                        validationDb.addRule(columnId,str(record["rule_type"]),str(record["rule_text_one"]),str(record["description"]))
                 else:
                     # Write to multi_field_rule table
-                    validationDb.addMultiFieldRule(fileId,record["rule_type"],record["rule_text_one"],record["rule_text_two"],record["description"])
+                    validationDb.addMultiFieldRule(fileId,str(record["rule_type"]),str(record["rule_text_one"]),str(record["rule_text_two"]),str(record["description"]),ruleTiming = str(record["rule_timing"]),ruleLabel=str(record["rule_label"]))
 
     @staticmethod
     def loadCrossRules(filename):

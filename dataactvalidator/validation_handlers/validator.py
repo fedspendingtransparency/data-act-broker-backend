@@ -1,7 +1,4 @@
-import re
-from sqlalchemy import MetaData, Table, inspect
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.engine import reflection
+from sqlalchemy import MetaData, Table
 from decimal import *
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -231,8 +228,7 @@ class Validator(object):
         for rule in multiFieldRules:
             if not Validator.evaluateMultiFieldRule(rule,record,interfaces,fileType):
                 recordFailed = True
-                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule,record)])
-
+                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces)])
 
         return (not recordFailed), failedRules
 
@@ -387,7 +383,15 @@ class Validator(object):
         return False
 
     @staticmethod
-    def conditionalRequired(data,rule,datatype,interfaces,record):
+    def isFieldPopulated(data):
+        """ Field is considered to be populated if not None and not entirely whitespace """
+        if data is not None and str(data).strip() != "":
+            return True
+        else:
+            return False
+
+    @classmethod
+    def conditionalRequired(cls, data,rule,datatype,interfaces,record):
         """ If conditional rule passes, data must not be empty
 
         Args:
@@ -403,14 +407,13 @@ class Validator(object):
         conditionalDataType = interfaces.validationDb.getFieldTypeById(conditionalTypeId)
         # If conditional rule passes, check that data is not empty
         if Validator.evaluateRule(record[conditionalRule.file_column.name],conditionalRule,conditionalDataType,interfaces,record):
-            result = not (data is None or data == "")
-            return result
+            return cls.isFieldPopulated(data)
         else:
             # If conditional rule fails, this field is not required, so the condtional requirement passes
             return True
 
-    @staticmethod
-    def evaluateMultiFieldRule(rule, record, interfaces, fileType):
+    @classmethod
+    def evaluateMultiFieldRule(cls, rule, record, interfaces, fileType):
         """ Check a rule involving more than one field of a record
 
         Args:
@@ -425,17 +428,39 @@ class Validator(object):
         ruleType = rule.multi_field_rule_type.name.upper()
         if(ruleType == "CAR_MATCH"):
             # Look for an entry in car table that matches all fields
-            fieldsToCheck = Validator.cleanSplit(rule.rule_text_1)
-            tasFields = Validator.cleanSplit(rule.rule_text_2)
+            fieldsToCheck = cls.cleanSplit(rule.rule_text_1)
+            tasFields = cls.cleanSplit(rule.rule_text_2)
             if(len(fieldsToCheck) != len(tasFields)):
                 raise ResponseException("Number of fields to check does not match number of fields checked against",StatusCode.CLIENT_ERROR,ValueError)
-            return Validator.validateTAS(fieldsToCheck, tasFields, record, interfaces, fileType)
+            return cls.validateTAS(fieldsToCheck, tasFields, record, interfaces, fileType)
         elif(ruleType == "SUM_TO_VALUE"):
-            return Validator.validateSum(rule.rule_text_1, rule.rule_text_2, record)
+            return cls.validateSum(rule.rule_text_1, rule.rule_text_2, record)
+        elif(ruleType =="SUM_FIELDS"):
+            value = record[FieldCleaner.cleanName(rule.rule_text_1)]
+            if value is None or value =="":
+                value = 0
+            return cls.validateSum(value, rule.rule_text_2, record)
         elif(ruleType == "REQUIRE_ONE_OF_SET"):
-            return Validator.requireOne(record,rule.rule_text_1.split(','),interfaces)
+            return cls.requireOne(record,rule.rule_text_1.split(','),interfaces)
+        elif(ruleType == "NOT"):
+            # Negate the rule specified
+            conditionalRule = interfaces.validationDb.getMultiFieldRuleByLabel(rule.rule_text_1)
+            return not cls.evaluateMultiFieldRule(conditionalRule,record,interfaces,fileType)
+        elif(ruleType == "REQUIRED_CONDITIONAL"):
+            # Field in rule_text_1 is required if rule in rule_text_2 is satisfied
+            conditionalRule = interfaces.validationDb.getMultiFieldRuleByLabel(rule.rule_text_2)
+            if cls.evaluateMultiFieldRule(conditionalRule,record,interfaces,fileType):
+                # Return True if field populated
+                field = FieldCleaner.cleanName(rule.rule_text_1)
+                if field in record and cls.isFieldPopulated(record[field]):
+                    return True
+                else:
+                    return False
+            else:
+                # Conditional rule failed, so field is not required and rule passes
+                return True
         else:
-            raise ResponseException("Bad rule type for multi-field rule",StatusCode.INTERNAL_ERROR)
+            raise ResponseException("".join(["Bad rule type for multi-field rule: ",str(ruleType)]),StatusCode.INTERNAL_ERROR)
 
     @staticmethod
     def cleanSplit(string, toLower = True):
@@ -453,29 +478,35 @@ class Validator(object):
         return stringList
 
     @staticmethod
-    def getMultiValues(rule,record):
+    def getMultiValues(rule,record,interfaces):
         """ Create string out of values for all fields involved in this rule
 
         Args:
             rule: Rule to return fields for
             record: Record to pull values from
-
+            interfaces: InterfaceHolder for DBs
         Returns:
             One string including all values involved in this rule check
         """
         ruletext1 = Validator.cleanSplit(rule.rule_text_1, True)
         ruletext2 = Validator.cleanSplit(rule.rule_text_2, True)
-        fields = ruletext1 + ruletext2 #TODO try catch
+        ruleType = interfaces.validationDb.getMultiFieldRuleTypeById(rule.multi_field_rule_type_id)
+        if ruleType == "CAR_MATCH" or ruleType == "REQUIRED_CONDITIONAL" or ruleType == "REQUIRE_ONE_OF_SET":
+            fields = ruletext1
+        elif ruleType == "NOT":
+            fields = []
+        elif ruleType == "SUM_TO_VALUE":
+            fields = ruletext2
+        else:
+            fields = ruletext1 + ruletext2
         output = ""
         for field in fields:
-            try:
-                value = record[field]
-                if(value == None):
-                    # For concatenating fields, represent None with an empty string
-                    value = ""
-                output = "".join([output,field,": ",value,", "])
-            except:
-                continue
+            value = record[field]
+            if(value == None):
+                # For concatenating fields, represent None with an empty string
+                value = ""
+            output = "".join([output,field,": ",value,", "])
+
         return output[:-2]
 
     @staticmethod
@@ -491,15 +522,17 @@ class Validator(object):
         decimalValues = []
 
         # Validate that our sum is a decimal
-        if Validator.checkType(value, 'DECIMAL'):
+        if Validator.checkType(str(value), 'DECIMAL'):
             decimalSum = Validator.getType(value, 'DECIMAL')
         else:
             return False
 
         # Validate each field we are summing is a decimal and store their values in an array
         for field in Validator.cleanSplit(fields_to_sum, True):
-            entry = record[field]
-            if Validator.checkType(entry, 'DECIMAL'):
+            entry = record[FieldCleaner.cleanName(field)]
+            if entry is None or entry == "":
+                decimalValues.append(0)
+            elif Validator.checkType(entry, 'DECIMAL'):
                 decimalValues.append(Validator.getType(entry, 'DECIMAL'))
             else:
                 return False

@@ -31,7 +31,6 @@ class RuleType(Base):
     description = Column(Text)
 
     TYPE_DICT = None
-    TYPE_LIST = ["TYPE", "EQUAL","NOT EQUAL","LESS","GREATER","LENGTH","IN_SET","SUM"]
 
 class MultiFieldRuleType(Base):
     __tablename__ = "multi_field_rule_type"
@@ -42,7 +41,6 @@ class MultiFieldRuleType(Base):
 
     session = None
     TYPE_DICT = None
-    TYPE_LIST = ["CAR_MATCH", "SUM_TO_VALUE"]
 
 class FileColumn(Base):
     __tablename__ = "file_columns"
