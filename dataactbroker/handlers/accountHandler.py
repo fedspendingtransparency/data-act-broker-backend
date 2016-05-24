@@ -113,7 +113,6 @@ class AccountHandler:
                 LoginSession.logout(session)
                 raise ve
             except Exception as e:
-                print e
                 LoginSession.logout(session)
                 raise ValueError("Invalid username and/or password")
 
