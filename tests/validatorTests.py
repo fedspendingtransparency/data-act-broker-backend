@@ -240,11 +240,11 @@ class ValidatorTests(BaseTestValidator):
         rule10.rule_type = sumToValueRule
         rule10.rule_text_1 = "46"
         rule10.rule_text_2 = "test2,test4,test5"
-        rule10.rule_timing_id = 1
+        rule10.rule_timing_id = 4
 
         vvi = ValidatorValidationInterface()
         fileId = vvi.getFileId("award")
-        vvi.addRule(fileId, "SUM_TO_VALUE", rule10.rule_text_1, rule10.rule_text_2, "Evaluates the sum of fields to a number")
+        vvi.addRule(None, "SUM_TO_VALUE", rule10.rule_text_1, rule10.rule_text_2, "Evaluates the sum of fields to a number",rule10.rule_timing_id,fileId = fileId)
 
         rules = [rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9]
         record = {

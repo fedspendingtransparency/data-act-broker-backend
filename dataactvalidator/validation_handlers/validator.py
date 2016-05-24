@@ -227,7 +227,6 @@ class Validator(object):
         multiFieldRules = interfaces.validationDb.getMultiFieldRulesByFile(fileType)
         for rule in multiFieldRules:
             if not Validator.evaluateRule(record,rule,None,interfaces,record):
-                print("Failed rule: " + rule.description)
                 recordFailed = True
                 failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces)])
 
@@ -385,6 +384,11 @@ class Validator(object):
         return Validator.validateSum(record[rule.rule_text_1], rule.rule_text_2, record)
 
     @classmethod
+    def rule_sum_to_value(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that data sums to value in specified field"""
+        return Validator.validateSum(rule.rule_text_1, rule.rule_text_2, record)
+
+    @classmethod
     def rule_type(cls, data, value, rule, datatype, interfaces, record):
         """Type checks happen earlier, but type rule is still included in rule set, so skip it"""
         return True
@@ -447,10 +451,16 @@ class Validator(object):
         """
         # Get rule object for conditional rule
         conditionalRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
-        conditionalTypeId = conditionalRule.file_column.field_types_id
-        conditionalDataType = interfaces.validationDb.getFieldTypeById(conditionalTypeId)
+        if conditionalRule.file_column is not None:
+            # This is a single field rule
+            conditionalTypeId = conditionalRule.file_column.field_types_id
+            conditionalDataType = interfaces.validationDb.getFieldTypeById(conditionalTypeId)
+            conditionalData = record[conditionalRule.file_column.name]
+        else:
+            conditionalDataType = None
+            conditionalData = record
         # If conditional rule passes, check that data is not empty
-        if Validator.evaluateRule(record[conditionalRule.file_column.name],conditionalRule,conditionalDataType,interfaces,record):
+        if Validator.evaluateRule(conditionalData,conditionalRule,conditionalDataType,interfaces,record):
             return cls.isFieldPopulated(data)
         else:
             # If conditional rule fails, this field is not required, so the condtional requirement passes
@@ -485,7 +495,7 @@ class Validator(object):
         """Passes if the specified rule fails"""
         # Negate the rule specified
         conditionalRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
-        return not cls.evaluateRule(data, value, conditionalRule, datatype, interfaces, record)
+        return not cls.evaluateRule(data, conditionalRule, datatype, interfaces, record)
 
     @staticmethod
     def cleanSplit(string, toLower = True):
