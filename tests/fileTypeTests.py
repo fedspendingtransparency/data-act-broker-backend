@@ -31,8 +31,8 @@ class FileTypeTests(BaseTestValidator):
         s3FileNameAwardMixedDelimiter = cls.uploadFile("awardMixedDelimiter.csv", user)
         s3FileNameCrossAwardFin = cls.uploadFile("cross_file_C.csv", user)
         s3FileNameCrossAward = cls.uploadFile("cross_file_D2.csv", user)
-        s3FileNameCrossApprop = cls.uploadFile("cross_file_A.csv", user)
-        s3FileNameCrossPgmAct = cls.uploadFile("cross_file_B.csv", user)
+        # s3FileNameCrossApprop = cls.uploadFile("cross_file_A.csv", user)
+        # s3FileNameCrossPgmAct = cls.uploadFile("cross_file_B.csv", user)
 
         # Create submissions and get IDs back
         submissionIDs = {}
@@ -51,8 +51,8 @@ class FileTypeTests(BaseTestValidator):
             "awardValid": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[8]), s3FileNameAwardValid, 1],
             "awardMixed": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[9]), s3FileNameAwardMixed, 1],
             "awardMixedDelimiter": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[10]), s3FileNameAwardMixedDelimiter, 1],
-            "crossApprop": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossApprop, 3],
-            "crossPgmAct": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossPgmAct, 4],
+            # "crossApprop": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossApprop, 3],
+            # "crossPgmAct": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossPgmAct, 4],
             "crossAwardFin": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossAwardFin, 2],
             "crossAward": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossAward, 1],
             "crossFile": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("validation")), str(submissionIDs[11]), None, None]
@@ -150,10 +150,10 @@ class FileTypeTests(BaseTestValidator):
         self.assertEqual(awardFinResponse.status_code, 200, msg=str(awardFinResponse.json))
         awardResponse = self.validateJob(self.jobIdDict["crossAward"],self.useThreads)
         self.assertEqual(awardResponse.status_code, 200, msg=str(awardResponse.json))
-        appropResponse = self.validateJob(self.jobIdDict["crossApprop"], self.useThreads)
-        self.assertEqual(appropResponse.status_code, 200, msg=str(appropResponse.json))
-        pgmActResponse = self.validateJob(self.jobIdDict["crossPgmAct"], self.useThreads)
-        self.assertEqual(pgmActResponse.status_code, 200, msg=str(pgmActResponse.json))
+        # appropResponse = self.validateJob(self.jobIdDict["crossApprop"], self.useThreads)
+        # self.assertEqual(appropResponse.status_code, 200, msg=str(appropResponse.json))
+        # pgmActResponse = self.validateJob(self.jobIdDict["crossPgmAct"], self.useThreads)
+        # self.assertEqual(pgmActResponse.status_code, 200, msg=str(pgmActResponse.json))
         crossFileResponse = self.validateJob(crossId, self.useThreads)
         self.assertEqual(crossFileResponse.status_code, 200, msg=str(crossFileResponse.json))
 

@@ -1,4 +1,0 @@
-AllocationTransferAgencyIdentifier,AgencyIdentifier,BeginningPeriodOfAvailability,EndingPeriodOfAvailability,AvailabilityTypeCode,MainAccountCode,SubAccountCode,BudgetAuthorityUnobligatedBalanceBroughtForward_FYB,AdjustmentsToUnobligatedBalanceBroughtForward_CPE,BudgetAuthorityAppropriatedAmount_CPE,BorrowingAuthorityAmountTotal_CPE,ContractAuthorityAmountTotal_CPE,SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE,OtherBudgetaryResourcesAmount_CPE,BudgetAuthorityAvailableAmountTotal_CPE,GrossOutlayAmountByTAS_CPE,ObligationsIncurredTotalByTAS_CPE,DeobligationsRecoveriesRefundsByTAS_CPE,UnobligatedBalance_CPE,StatusOfBudgetaryResourcesTotal_CPE
-19,72,0,0,X,306,0,89000,4444444,76555,234434,123,0,333,111,3000000,9000000,33444,30009.12,99999
-28,28,0,0,X,8007,0,89000,4444444,76555,234434,123,0,333,111,24000005.9,1234567,33444,30009.12,99999
-69,21,0,0,X,2065,5,89000,4444444,76555,234434,123,0,333,111,99999,7654321.55,33444,30009.12,99999
