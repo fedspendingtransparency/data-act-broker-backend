@@ -96,7 +96,7 @@ class AccountHandler:
 
                     LoginSession.login(session,user.user_id)
                     permissionList = []
-                    for permission in self.interfaces.userDb.getPermssionList():
+                    for permission in self.interfaces.userDb.getPermissionList():
                         if(self.interfaces.userDb.hasPermission(user, permission.name)):
                             permissionList.append(permission.permission_type_id)
                     self.interfaces.userDb.updateLastLogin(user)
@@ -113,8 +113,8 @@ class AccountHandler:
                 LoginSession.logout(session)
                 raise ve
             except Exception as e:
-                    LoginSession.logout(session)
-                    raise ValueError("Invalid username and/or password")
+                LoginSession.logout(session)
+                raise ValueError("Invalid username and/or password")
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
@@ -324,6 +324,71 @@ class AccountHandler:
             #failure but alert UI of issue
             return JsonResponse.create(StatusCode.OK,{"errorCode":errorCode,"message":message})
 
+    def updateUser(self, system_email):
+        """
+        Update editable fields for specified user. Editable fields for a user:
+        * is_active
+        * user_status_id
+        * permissions
+
+        Args:
+            None: Request body should contain the following keys:
+                * uid (integer)
+                * status (string)
+                * permissions (comma separated string)
+                * is_active (boolean)
+
+        Returns: JSON response object with either an exception or success message
+
+        """
+        requestDict = RequestDictionary(self.request)
+
+        # throw an exception if nothing is provided in the request
+        if not requestDict.exists("uid") or not (requestDict.exists("status") or requestDict.exists("permissions") or
+                    requestDict.exists("is_active")):
+            # missing required fields, return 400
+            exc = ResponseException("Request body must include uid and at least one of the following: status, permissions, is_active",
+                                    StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+
+        # Find user that matches specified uid
+        user = self.interfaces.userDb.getUserByUID(int(requestDict.getValue("uid")))
+
+        if requestDict.exists("status"):
+            #check if the user is waiting
+            if(self.interfaces.userDb.checkStatus(user,"awaiting_approval")):
+                if(requestDict.getValue("status") == "approved"):
+                    # Grant agency_user permission to newly approved users
+                    self.interfaces.userDb.grantPermission(user,"agency_user")
+                    link=  AccountHandler.FRONT_END
+                    emailTemplate = { '[URL]':link,'[EMAIL]':system_email}
+                    newEmail = sesEmail(user.email, system_email,templateType="account_approved",parameters=emailTemplate,database=self.interfaces.userDb)
+                    newEmail.send()
+                elif (requestDict.getValue("status") == "denied"):
+                    emailTemplate = {}
+                    newEmail = sesEmail(user.email, system_email,templateType="account_rejected",parameters=emailTemplate,database=self.interfaces.userDb)
+                    newEmail.send()
+            # Change user's status
+            self.interfaces.userDb.changeStatus(user,requestDict.getValue("status"))
+
+        if requestDict.exists("permissions"):
+            permissions_list = requestDict.getValue("permissions").split(',')
+
+            # Remove all existing permissions for user
+            user_permissions = self.interfaces.userDb.getUserPermissions(user)
+            for permission in user_permissions:
+                self.interfaces.userDb.removePermission(user, permission)
+
+            # Grant specified permissions
+            for permission in permissions_list:
+                self.interfaces.userDb.grantPermission(user, permission)
+
+        # Activate/deactivate user
+        if requestDict.exists("is_active"):
+            is_active = bool(requestDict.getValue("is_active"))
+            self.interfaces.userDb.setUserActive(user, is_active)
+
+        return JsonResponse.create(StatusCode.OK, {"message": "User successfully updated"})
 
     def changeStatus(self,system_email):
         """
@@ -366,6 +431,27 @@ class AccountHandler:
         self.interfaces.userDb.changeStatus(user,requestDict.getValue("new_status"))
         return JsonResponse.create(StatusCode.OK,{"message":"Status change successful"})
 
+    def listUsers(self):
+        """ List all users ordered by status. Associated request body must have key 'filter_by' """
+        user = self.interfaces.userDb.getUserByUID(LoginSession.getName(flaskSession))
+        isAgencyAdmin = True if self.interfaces.userDb.hasPermission(user, "agency_admin") else False
+        try:
+            if isAgencyAdmin:
+                users = self.interfaces.userDb.getUsers(agency=user.agency)
+            else:
+                users = self.interfaces.userDb.getUsers()
+        except ValueError as e:
+            # Client provided a bad status
+            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
+            return JsonResponse.error(exc,exc.status)
+        userInfo = []
+        for user in users:
+            thisInfo = {"name":user.name, "title":user.title,  "agency":user.agency, "email":user.email, "id":user.user_id,
+                        "is_active":user.is_active, "permissions": ", ".join(self.interfaces.userDb.getUserPermissions(user)),
+                        "status": user.user_status.name}
+            userInfo.append(thisInfo)
+        return JsonResponse.create(StatusCode.OK,{"users":userInfo})
+
     def listUsersWithStatus(self):
         """ List all users with the specified status.  Associated request body must have key 'status' """
         requestDict = RequestDictionary(self.request)
@@ -378,7 +464,7 @@ class AccountHandler:
 
         try:
             if self.interfaces.userDb.hasPermission(current_user, "agency_admin"):
-                users = self.interfaces.userDb.getUsersByStatusByAgency(requestDict.getValue("status"), current_user.agency)
+                users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"), current_user.agency)
             else:
                 users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"))
         except ValueError as e:
@@ -505,7 +591,7 @@ class AccountHandler:
         uid =  session["name"]
         user =  self.interfaces.userDb.getUserByUID(uid)
         permissionList = []
-        for permission in self.interfaces.userDb.getPermssionList():
+        for permission in self.interfaces.userDb.getPermissionList():
             if(self.interfaces.userDb.hasPermission(user, permission.name)):
                 permissionList.append(permission.permission_type_id)
         return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList, "skip_guide":user.skip_guide})

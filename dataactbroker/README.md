@@ -185,26 +185,6 @@ Example output:
 }
 ```
 
-#### POST "/v1/change_status/"
-Changes a user's status, used to approve or deny users.  This route requires an admin user to be logged in.  A call to this route should have JSON or form-urlencoded with keys "uid" and "new_status".  For typical usage, "new_status" should be either "approved" or "denied".
-
-Example input:
-
-```json
-{
-   "uid":"1234",
-   "new_status":"approved"
-}
-```
-
-Example output:
-
-```json
-{
-  "message":"Status change successful"
-}
-```
-
 #### POST "/v1/confirm_email/"
 Create a new user and sends a confirmation email to their email address.  A call to this route should have JSON or form-urlencoded with key "email".
 
@@ -308,7 +288,36 @@ The following is a table with all of the messages and error code
 | LINK_VALID   |0|success|
 
 
+#### POST "/v1/list_users/"
+List all users. Requires an admin login. For a Website Admin, all users will be returned. For an Agency Admin, only users within that agency will be returned.
 
+Example output (Agency Admin):
+```json
+{
+  "users":[
+    {
+      "status": "approved",
+      "name": "user1",
+      "title": "User Title",
+      "permissions": "agency_admin",
+      "agency": "Data Act Agency",
+      "is_active": true,
+      "email": "agency@admin.gov",
+      "id": 1
+    },
+    {
+      "status": "awaiting_confirmation",
+      "name": "user2",
+      "title": "User Title",
+      "permissions": "agency_user",
+      "agency": "Data Act Agency",
+      "is_active": true,
+      "email": "agency@user.gov",
+      "id": 2
+    }
+    ]
+}
+```
 
 #### POST "/v1/list_users_with_status/"
 List all users with specified status, typically used to review users that have applied for an account.  Requires an admin login.  A call to this route should have JSON or form-urlencoded with key "status".
@@ -330,7 +339,7 @@ Example output:
 ```
 
 #### GET "/v1/list_submissions/"
-List all submissions by currently logged in user.
+List all submissions by currently logged in user. If "?filter_by=agency" is appended to the route, then all submissions for the current user's agency will be returned.
 
 Example input:
 
@@ -340,7 +349,22 @@ Example output:
 
 ```json
 {
-  "submission_id_list":[1,2,3]
+  "submissions": [
+    {
+      "status": "Validation In Progress",
+      "submission_id": 8,
+      "last_modified": "05/17/2016",
+      "error": 0,
+      "size": 15021
+    },
+    {
+      "status": "Has Errors",
+      "submission_id": 4,
+      "last_modified": "05/16/2016",
+      "error": 0,
+      "size": 0
+    }
+  ]
 }
 ```
 
@@ -382,6 +406,27 @@ Example output:
 }
 ```
 
+#### POST "/v1/update_user/"
+Update editable fields for the specified user. A call to this route should have JSON or form-urlencoded with keys "uid" and at least one from "status", "permissions", "is_active".
+
+Example input:
+
+```json
+{
+    "uid": 1,
+    "status": "approved",
+    "permissions": "agency_user",
+    "is_active": true
+}
+```
+
+Example output:
+
+```json
+{
+    "message": "User successfully updated"
+}
+```
 
 ### File Routes
 
@@ -410,7 +455,7 @@ Example Output:
 ```
 
 #### POST "/v1/submit_files/"
-This route is used to retrieve S3 URLs to upload files. Data should be JSON with keys: ["appropriations", "award\_financial", "award", "program\_activity"], each with a filename as a value, and submission metadata keys: ["agency_name","reporting_period_start_date","reporting_period_end_date","existing_submission_id"].  If an existing submission ID is provided, all other keys are optional and any data provided will be used to correct information in the existing submission.
+This route is used to retrieve S3 URLs to upload files. Data should be JSON with keys: ["appropriations", "award\_financial", "award", "program\_activity"], each with a filename as a value, and submission metadata keys: ["agency_name","reporting_period_start_date","reporting_period_end_date","is_quarter","existing_submission_id"].  If an existing submission ID is provided, all other keys are optional and any data provided will be used to correct information in the existing submission.
 
 This route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key\_id containing the job id. A returning submission\_id will also exist which acts as identifier for the submission.
 
@@ -430,6 +475,7 @@ Example input:
   "agency_name":"Name of the agency",
   "reporting_period_start_date":"03/31/2016",
   "reporting_period_end_date":"03/31/2016",
+  "is_quarter":False,
   "existing_submission_id: 7 (leave out if not correcting an existing submission)
 }
 ```

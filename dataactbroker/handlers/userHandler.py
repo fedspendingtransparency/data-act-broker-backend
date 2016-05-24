@@ -58,6 +58,13 @@ class UserHandler(UserInterface):
         self.session.delete(oldToken)
         self.session.commit()
 
+    def getUsers(self, agency=None):
+        """ Return all users in the database """
+        query = self.session.query(User)
+        if agency is not None:
+            query = query.filter(User.agency == agency)
+        return query.order_by(User.user_status_id).all()
+
     def getUserByUID(self,uid):
         """ Return a User object that matches specified uid
 
@@ -182,7 +189,7 @@ class UserHandler(UserInterface):
         emailId = self.session.query(EmailTemplateType.email_template_type_id).filter(EmailTemplateType.name == emailType).one()
         return self.session.query(EmailTemplate).filter(EmailTemplate.template_type_id == emailId).one()
 
-    def getUsersByStatus(self,status):
+    def getUsersByStatus(self,status,agency=None):
         """ Return list of all users with specified status
 
         Arguments:
@@ -191,18 +198,10 @@ class UserHandler(UserInterface):
             list of User objects
         """
         statusId = self.getUserStatusId(status)
-        return self.session.query(User).filter(User.user_status_id == statusId).all()
-
-    def getUsersByStatusByAgency(self, status, agency):
-        """ Return list of all users with specified status within the specified agency
-
-        Arguments:
-            status - Status to check against
-        Returns:
-            list of User objects
-        """
-        statusId = self.getUserStatusId(status)
-        return self.session.query(User).filter(and_(User.user_status_id == statusId,User.agency == agency)).all()
+        query = self.session.query(User).filter(User.user_status_id == statusId)
+        if agency is not None:
+            query = query.filter(User.agency == agency)
+        return query.all()
 
     def getStatusOfUser(self,user):
         """ Given a user object return their status as a string
@@ -241,6 +240,20 @@ class UserHandler(UserInterface):
                 userList.append(user)
         return userList
 
+    def getUserPermissions(self, user):
+        """ Get name for specified permissions for this user
+
+        Arguments:
+            user
+        Returns:
+            array of permission names
+        """
+        all_permissions = self.getPermissionList()
+        user_permissions = []
+        for permission in all_permissions:
+            if self.hasPermission(user, permission.name):
+                user_permissions.append(permission.name)
+        return user_permissions
 
     def hasPermission(self, user, permissionName):
         """ Checks if user has specified permission
@@ -381,7 +394,7 @@ class UserHandler(UserInterface):
         user.password_hash = None
         self.session.commit()
 
-    def getPermssionList(self):
+    def getPermissionList(self):
         """ Gets the permission list
 
         Returns:
@@ -434,4 +447,9 @@ class UserHandler(UserInterface):
         """ This updates the last login date to today's datetime for the user to the current date upon successful login.
         """
         user.last_login_date = time.strftime("%c")
+        self.session.commit()
+
+    def setUserActive(self, user, is_active):
+        """ Sets the is_active field for the specified user """
+        user.is_active = is_active
         self.session.commit()
