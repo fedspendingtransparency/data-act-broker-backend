@@ -18,7 +18,6 @@ class JobStatus(Base):
 class JobType(Base):
     __tablename__ = "job_type"
     JOB_TYPE_DICT = None
-    JOB_TYPE_LIST = ["file_upload", "csv_record_validation","db_transfer","validation","external_validation"]
 
     job_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
