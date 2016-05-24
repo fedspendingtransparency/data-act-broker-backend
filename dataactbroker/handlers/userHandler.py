@@ -189,7 +189,7 @@ class UserHandler(UserInterface):
         emailId = self.session.query(EmailTemplateType.email_template_type_id).filter(EmailTemplateType.name == emailType).one()
         return self.session.query(EmailTemplate).filter(EmailTemplate.template_type_id == emailId).one()
 
-    def getUsersByStatus(self,status):
+    def getUsersByStatus(self,status,agency=None):
         """ Return list of all users with specified status
 
         Arguments:
@@ -198,18 +198,10 @@ class UserHandler(UserInterface):
             list of User objects
         """
         statusId = self.getUserStatusId(status)
-        return self.session.query(User).filter(User.user_status_id == statusId).all()
-
-    def getUsersByStatusByAgency(self, status, agency):
-        """ Return list of all users with specified status within the specified agency
-
-        Arguments:
-            status - Status to check against
-        Returns:
-            list of User objects
-        """
-        statusId = self.getUserStatusId(status)
-        return self.session.query(User).filter(and_(User.user_status_id == statusId,User.agency == agency)).all()
+        query = self.session.query(User).filter(User.user_status_id == statusId)
+        if agency is not None:
+            query = query.filter(User.agency == agency)
+        return query.all()
 
     def getStatusOfUser(self,user):
         """ Given a user object return their status as a string

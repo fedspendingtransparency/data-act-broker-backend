@@ -464,7 +464,7 @@ class AccountHandler:
 
         try:
             if self.interfaces.userDb.hasPermission(current_user, "agency_admin"):
-                users = self.interfaces.userDb.getUsersByStatusByAgency(requestDict.getValue("status"), current_user.agency)
+                users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"), current_user.agency)
             else:
                 users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"))
         except ValueError as e:
