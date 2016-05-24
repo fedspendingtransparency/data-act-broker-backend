@@ -272,7 +272,7 @@ class ValidatorValidationInterface(BaseInterface):
             ruleTextOne: definition of rule
             ruleTextTwo: definition of rule
             description: readable explanation of rule
-            ruleLabel: description of rule
+            ruleLabel: a label used to refer to the rule
             targetFileId: the file this rule validates against (applicable only for certain cross-file rules)
             ruleTiming: rule timing id
 
