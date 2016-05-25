@@ -254,8 +254,6 @@ class JobTrackerInterface(BaseInterface):
         for status_name in self.getJobStatusNames():
             statuses[status_name] = 0
 
-        print "DEBUG: " + str(statuses)
-
         for jobId in jobIds:
             job = self.getJobById(jobId)
             job_status = job.job_status.name
