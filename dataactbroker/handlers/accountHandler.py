@@ -493,7 +493,7 @@ class AccountHandler:
             status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
             error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
             submissionDetails.append({"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
-                                      "size": total_size, "status": status, "error": error_count})
+                                      "size": total_size, "status": status, "errors": error_count})
         return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
 
     def listSubmissionsByCurrentUser(self):
@@ -512,7 +512,7 @@ class AccountHandler:
             error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
             submissionDetails.append(
                 {"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
-                 "size": total_size, "status": status, "error": error_count})
+                 "size": total_size, "status": status, "errors": error_count})
         return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
 
     def setNewPassword(self, session):
