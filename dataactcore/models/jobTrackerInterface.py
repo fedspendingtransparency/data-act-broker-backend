@@ -152,10 +152,10 @@ class JobTrackerInterface(BaseInterface):
 
     def getJobStatusNames(self):
         """ Get All Job Status names """
-        job_status_names = []
-        for job_status in self.session.query(JobStatus.name):
-            job_status_names.append(str(job_status.name))
-        return job_status_names
+
+        # This populates the DICT
+        self.getJobStatusId(None)
+        return JobStatus.JOB_STATUS_DICT.keys()
 
     def getJobStatus(self,jobId):
         """ Get status for specified job
@@ -250,9 +250,8 @@ class JobTrackerInterface(BaseInterface):
 
     def getSubmissionStatus(self,submissionId):
         jobIds = self.getJobsBySubmission(submissionId)
-        statuses = {}
-        for status_name in self.getJobStatusNames():
-            statuses[status_name] = 0
+        status_names = self.getJobStatusNames()
+        statuses = dict(zip(status_names,[0]*len(status_names)))
 
         for jobId in jobIds:
             job = self.getJobById(jobId)
