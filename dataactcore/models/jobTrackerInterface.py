@@ -150,6 +150,13 @@ class JobTrackerInterface(BaseInterface):
         if prevStatus != 'finished' and statusName == 'finished':
             self.checkJobDependencies(jobId)
 
+    def getJobStatusNames(self):
+        """ Get All Job Status names """
+        job_status_names = []
+        for job_status in self.session.query(JobStatus.name):
+            job_status_names.append(str(job_status.name))
+        return job_status_names
+
     def getJobStatus(self,jobId):
         """ Get status for specified job
 
@@ -243,22 +250,27 @@ class JobTrackerInterface(BaseInterface):
 
     def getSubmissionStatus(self,submissionId):
         jobIds = self.getJobsBySubmission(submissionId)
-        statuses = {"started": 0, "in_progress": 0, "has_errors": 0, "validated": 0}
+        statuses = {}
+        for status_name in self.getJobStatusNames():
+            statuses[status_name] = 0
+
+        print "DEBUG: " + str(statuses)
+
         for jobId in jobIds:
             job = self.getJobById(jobId)
             job_status = job.job_status.name
-            if job_status == "invalid" or job_status == "failed":
-                statuses["has_errors"] += 1
-            if job_status == "waiting":
-                statuses["started"] += 1
-            if job_status == "running":
-                statuses["in_progress"] += 1
-            if job_status == "finished":
-                statuses["validated"] += 1
-        if statuses["has_errors"] != 0:
-            return "has errors"
-        if statuses["started"] == len(jobIds):
-            return "started"
-        if statuses["validated"] == len(jobIds):
-            return "validated"
-        return "validation in progress"
+            statuses[job_status] += 1
+
+        if statuses["failed"] != 0:
+            return "failed"
+        if statuses["invalid"] != 0:
+            return "invalid"
+        if statuses["running"] != 0:
+            return "running"
+        if statuses["waiting"] != 0:
+            return "waiting"
+        if statuses["ready"] != 0:
+            return "ready"
+        if statuses["finished"] == len(jobIds):
+            return "finished"
+        return "unknown"
