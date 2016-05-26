@@ -386,6 +386,8 @@ class AccountHandler:
         # Activate/deactivate user
         if requestDict.exists("is_active"):
             is_active = bool(requestDict.getValue("is_active"))
+            if not self.isUserActive(user) and is_active:
+                self.sendResetPasswordEmail(user, system_email, inactive_user_override=True)
             self.interfaces.userDb.setUserActive(user, is_active)
 
         return JsonResponse.create(StatusCode.OK, {"message": "User successfully updated"})
@@ -558,23 +560,33 @@ class AccountHandler:
         except Exception as e:
             exc = ResponseException("Unknown Error",StatusCode.CLIENT_ERROR,ValueError)
             return JsonResponse.error(exc,exc.status)
+
+        email = requestDict.getValue("email")
+        LoginSession.logout(session)
+        self.sendResetPasswordEmail(user, system_email, email)
+
+        # Return success message
+        return JsonResponse.create(StatusCode.OK,{"message":"Password reset"})
+
+    def sendResetPasswordEmail(self, user, system_email, email=None, inactive_user_override=False):
+        if email is None:
+            email = user.email
+
         # User must be approved and active to reset password
         if user.user_status_id != self.interfaces.userDb.getUserStatusId("approved"):
             raise ResponseException("User must be approved before resetting password", StatusCode.CLIENT_ERROR)
-        elif not user.is_active:
+        elif not inactive_user_override and not user.is_active:
             raise ResponseException("User is locked, cannot reset password", StatusCode.CLIENT_ERROR)
 
-        LoginSession.logout(session)
         self.interfaces.userDb.session.commit()
-        email = requestDict.getValue("email")
         # Send email with token
-        emailToken = sesEmail.createToken(email,self.interfaces.userDb,"password_reset")
-        link= "".join([ AccountHandler.FRONT_END,'#/forgotpassword/',emailToken])
-        emailTemplate = { '[URL]':link}
-        newEmail = sesEmail(user.email, system_email,templateType="reset_password",parameters=emailTemplate,database=self.interfaces.userDb)
+        emailToken = sesEmail.createToken(email, self.interfaces.userDb, "password_reset")
+        link = "".join([AccountHandler.FRONT_END, '#/forgotpassword/', emailToken])
+        emailTemplate = {'[URL]': link}
+        templateType = "unlock_account" if inactive_user_override else "reset_password"
+        newEmail = sesEmail(user.email, system_email, templateType=templateType,
+                            parameters=emailTemplate, database=self.interfaces.userDb)
         newEmail.send()
-        # Return success message
-        return JsonResponse.create(StatusCode.OK,{"message":"Password reset"})
 
     def getCurrentUser(self,session):
         """
@@ -596,7 +608,7 @@ class AccountHandler:
                 permissionList.append(permission.permission_type_id)
         return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList, "skip_guide":user.skip_guide})
 
-    def isUserActive(self, user, checkExpiration=False):
+    def isUserActive(self, user):
         """ Checks if user's account is still active
 
         Args:
