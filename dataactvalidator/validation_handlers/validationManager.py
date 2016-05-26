@@ -272,8 +272,8 @@ class ValidationManager:
 
     def runCrossValidation(self, jobId, interfaces):
         """ Cross file validation job, test all rules with matching rule_timing """
-        # Select all rules from multi-field rule table
-        rules = interfaces.validationDb.getMultiFieldRulesByTiming("cross-file")
+        # Select all cross-file rules from rule table
+        rules = interfaces.validationDb.getRulesByTiming("cross_file")
         # Validate cross validation rules
         submissionId = interfaces.jobDb.getSubmissionId(jobId)
         failures = Validator.crossValidate(rules,submissionId)

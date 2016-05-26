@@ -41,13 +41,13 @@ class SchemaLoader(object):
                         length = record["field_length"].strip()
                         if(len(length) > 0):
                             # If there are non-whitespace characters here, create a length rule
-                            database.addRule(columnId,"LENGTH",length,"Field must be no longer than specified limit")
+                            database.addRule(columnId,"LENGTH",length,"","Field must be no longer than specified limit")
                 else :
                    raise ValueError('CSV File does not follow schema')
 
     @staticmethod
     def loadRules(fileTypeName, filename):
-        """ Populate rule and multi_field_rule tables from rule rile
+        """ Populate rule table from rule rile
 
         Args:
             filename: File with rule specifications
@@ -65,18 +65,23 @@ class SchemaLoader(object):
                         columnId = validationDb.getColumnId(FieldCleaner.cleanName(record["field_name"]),fileTypeName)
                     except Exception as e:
                         raise Exception("".join([str(e),"Failed on field ",FieldCleaner.cleanName(record["field_name"])," and file ",fileTypeName]))
-                    # Write to rule table
-                    if "rule_timing" in record and "rule_label" in record:
-                        validationDb.addRule(columnId,str(record["rule_type"]),str(record["rule_text_one"]),str(record["description"]),str(record["rule_timing"]),str(record["rule_label"]))
-                    else:
-                        validationDb.addRule(columnId,str(record["rule_type"]),str(record["rule_text_one"]),str(record["description"]))
                 else:
-                    # Write to multi_field_rule table
-                    validationDb.addMultiFieldRule(fileId,str(record["rule_type"]),str(record["rule_text_one"]),str(record["rule_text_two"]),str(record["description"]),ruleTiming = str(record["rule_timing"]),ruleLabel=str(record["rule_label"]))
+                    # Multi field rules don't get a file_column
+                    columnId = None
+                # Write to rule table
+                try:
+                    if "target_file_id" in record:
+                        targetFileId = record["target_file_id"]
+                    else:
+                        targetFileId = None
+                    validationDb.addRule(columnId,str(record["rule_type"]),str(record["rule_text_one"]), str(record["rule_text_two"]),str(record["description"]),str(record["rule_timing"]),str(record["rule_label"]),targetFileId = targetFileId, fileId = fileId)
+                except KeyError as e:
+                    # Rule definition is missing some required fields
+                    raise ValueError("Rule definitions must include the following fields: rule_type, rule_text_one, rule_text_two, description, rule_timing, rule_label")
 
     @staticmethod
     def loadCrossRules(filename):
-        """ Populate multifield rule table with cross file validation rules """
+        """ Populate rule table with cross file validation rules """
         validationDb = ValidatorValidationInterface()
         with open(filename, 'rU') as ruleFile:
             reader = csv.DictReader(ruleFile)
@@ -86,10 +91,10 @@ class SchemaLoader(object):
                     targetFileId = validationDb.getFileId(record["target_file"])
                 else:
                     targetFileId = None
-                validationDb.addMultiFieldRule(
+                validationDb.addRule(
                     fileId, record["rule_type"], record["rule_text_one"],
-                    record["rule_text_two"], record["description"],
-                    record["rule_label"], record["rule_timing"], targetFileId)
+                    record["rule_text_two"], record["description"], record["rule_timing"],
+                    record["rule_label"], targetFileId, fileId = fileId)
 
     @classmethod
     def loadAllFromPath(cls,path):

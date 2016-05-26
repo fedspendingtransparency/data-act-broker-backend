@@ -2,8 +2,7 @@ import unittest
 from decimal import *
 
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
-from dataactcore.models.validationModels import FieldType, RuleType, FileColumn, Rule, MultiFieldRule, \
-    MultiFieldRuleType
+from dataactcore.models.validationModels import FieldType, RuleType, FileColumn, Rule
 from dataactvalidator.validation_handlers.validator import Validator
 from baseTestValidator import BaseTestValidator
 
@@ -177,7 +176,7 @@ class ValidatorTests(BaseTestValidator):
         setRule.name = "IN_SET"
         sumRule = RuleType()
         sumRule.name = "SUM"
-        sumToValueRule = MultiFieldRuleType()
+        sumToValueRule = RuleType()
         sumToValueRule.name = "SUM_TO_VALUE"
 
         schema = self.schema
@@ -237,15 +236,15 @@ class ValidatorTests(BaseTestValidator):
         rule9.rule_text_2 = "test2,test4,test5"
         rule9.rule_timing_id = 1
 
-        rule10 = MultiFieldRule()
+        rule10 = Rule()
         rule10.rule_type = sumToValueRule
         rule10.rule_text_1 = "46"
         rule10.rule_text_2 = "test2,test4,test5"
-        rule10.rule_timing_id = 1
+        rule10.rule_timing_id = 4
 
         vvi = ValidatorValidationInterface()
         fileId = vvi.getFileId("award")
-        vvi.addMultiFieldRule(fileId, "SUM_TO_VALUE", rule10.rule_text_1, rule10.rule_text_2, "Evaluates the sum of fields to a number")
+        vvi.addRule(None, "SUM_TO_VALUE", rule10.rule_text_1, rule10.rule_text_2, "Evaluates the sum of fields to a number",rule10.rule_timing_id,fileId = fileId)
 
         rules = [rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9]
         record = {
