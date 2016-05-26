@@ -248,6 +248,7 @@ class Validator(object):
         fileId = validationInterface.getFileId(fileType)
         returnList =[]
         for rule in rules :
+            # Look for single field rules that apply to this field and file, and are timed to run during record-level validation
             if(rule.file_column is not None and rule.file_column.name == fieldName and rule.file_column.file_id == fileId and rule.rule_timing_id == validationInterface.getRuleTimingIdByName("file_validation")) :
                 returnList.append(rule)
         return returnList
