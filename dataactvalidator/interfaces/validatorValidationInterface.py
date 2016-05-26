@@ -1,7 +1,7 @@
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType ,FieldType, MultiFieldRule, MultiFieldRuleType, RuleTiming
+from dataactcore.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType, FieldType, MultiFieldRule, MultiFieldRuleType, RuleTiming
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.config import CONFIG_DB
 
@@ -37,6 +37,7 @@ class ValidatorValidationInterface(BaseInterface):
         return ValidatorValidationInterface.dbName
 
     def getSession(self):
+        """ Return current session object """
         return self.session
 
     def deleteTAS(self) :
@@ -262,7 +263,7 @@ class ValidatorValidationInterface(BaseInterface):
         self.session.commit()
         return True
 
-    def addMultiFieldRule(self,fileId, ruleTypeText, ruleTextOne, ruleTextTwo, description, ruleLabel = None, ruleTiming = 1):
+    def addMultiFieldRule(self, fileId, ruleTypeText, ruleTextOne, ruleTextTwo, description, ruleLabel=None, ruleTiming=1, targetFileId=None):
         """
 
         Args:
@@ -271,13 +272,16 @@ class ValidatorValidationInterface(BaseInterface):
             ruleTextOne: definition of rule
             ruleTextTwo: definition of rule
             description: readable explanation of rule
+            ruleLabel: a label used to refer to the rule
+            targetFileId: the file this rule validates against (applicable only for certain cross-file rules)
+            ruleTiming: rule timing id
 
         Returns:
             True if successful
         """
-        newRule = MultiFieldRule(file_id = fileId, multi_field_rule_type_id = self.getMultiFieldRuleType(ruleTypeText),
-                                 rule_text_1 = ruleTextOne, rule_text_2 = ruleTextTwo, description = description,
-                                 rule_label = ruleLabel, rule_timing_id = ruleTiming)
+        newRule = MultiFieldRule(file_id=fileId, multi_field_rule_type_id=self.getMultiFieldRuleType(ruleTypeText),
+                                 rule_text_1=ruleTextOne, rule_text_2=ruleTextTwo, description=description,
+                                 rule_label=ruleLabel, rule_timing_id=ruleTiming, target_file_id=targetFileId)
         self.session.add(newRule)
         self.session.commit()
         return True
@@ -357,6 +361,18 @@ class ValidatorValidationInterface(BaseInterface):
         """
         return self.getIdFromDict(MultiFieldRuleType,"TYPE_DICT","name",typeName.upper(),"multi_field_rule_type_id")
 
+    def getMultiFieldRuleTypeById(self,typeId):
+        """ Get rule name for specified id
+
+        Args:
+            typeId: multi_field_rule_type_id
+
+        Returns:
+            Name of multi filed rule type
+        """
+        # Populate rule type dict
+        return self.getNameFromDict(MultiFieldRuleType, "TYPE_DICT", "name", typeId, "multi_field_rule_type_id")
+
     def populateFile(self,column):
         """ Populate file object in the ORM for the specified FileColumn object
 
@@ -376,13 +392,16 @@ class ValidatorValidationInterface(BaseInterface):
         return self.getIdFromDict(RuleTiming,"TIMING_DICT","name",timingName.lower(),"rule_timing_id")
 
     def getRuleByLabel(self,label):
+        """ Find rule based on label provided in rules file """
         query = self.session.query(Rule).options(joinedload("file_column")).filter(Rule.rule_label == label)
         return self.runUniqueQuery(query,"No rule with that label","Multiple rules have that label")
 
     def getFieldTypeById(self, id):
+        """ Return name of field type based on id """
         return self.getNameFromDict(FieldType,"TYPE_DICT","name",id,"field_type_id")
 
     def getFieldNameByColId(self, id):
+        """ Return field name based on a column ID.  Used to map staging database columns to matching field names. """
         int(id) # Raise appropriate error if id is not an int
         query = self.session.query(FileColumn).filter(FileColumn.file_column_id == id)
         column = self.runUniqueQuery(query,"No column found with that ID", "Multiple columns found with that ID")

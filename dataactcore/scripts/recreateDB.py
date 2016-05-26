@@ -1,4 +1,3 @@
-import types
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.scripts.setupUserDB import setupUserDB

@@ -1,5 +1,5 @@
-from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.config import CONFIG_DB
+from dataactcore.models.stagingInterface import StagingInterface
+from dataactcore.models.stagingModels import FieldNameMap
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.interfaces.validatorJobTrackerInterface import ValidatorJobTrackerInterface
@@ -7,23 +7,8 @@ from sqlalchemy import MetaData, Table
 from sqlalchemy.exc import NoSuchTableError
 
 
-class ValidatorStagingInterface(BaseInterface):
+class ValidatorStagingInterface(StagingInterface):
     """ Manages all interaction with the staging database """
-
-    dbConfig = CONFIG_DB
-    dbName = dbConfig['staging_db_name']
-    Session = None
-    engine = None
-    session = None
-
-    def __init__(self):
-        self.dbName = self.dbConfig['staging_db_name']
-        super(ValidatorStagingInterface, self).__init__()
-
-    @staticmethod
-    def getDbName():
-        """ Return database name"""
-        return ValidatorStagingInterface.dbName
 
     def dropTable(self,table):
         """
@@ -74,3 +59,19 @@ class ValidatorStagingInterface(BaseInterface):
     def getTableNameBySubmissionId(submissionId, fileType):
         """ Get staging table name based on submission ID and file type """
         return "".join(["submission",str(submissionId),str(fileType)])
+
+    def getFieldNameMap(self, tableName):
+        """ Return the dict mapping column IDs to field names """
+        query = self.session.query(FieldNameMap).filter(FieldNameMap.table_name == tableName)
+        return self.runUniqueQuery(query,"No map for that table", "Conflicting maps for that table").column_to_field_map
+
+    def addFieldNameMap(self, tableName, fieldNameMap):
+        """ Add dict for field names to staging DB
+
+        Args:
+            tableName: Table map is being added for
+            fieldNameMap: Dict with column IDs as keys and field names as values
+        """
+        newMap = FieldNameMap(table_name = tableName, column_to_field_map = str(fieldNameMap))
+        self.session.add(newMap)
+        self.session.commit()

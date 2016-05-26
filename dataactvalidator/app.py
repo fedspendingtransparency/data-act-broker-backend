@@ -81,7 +81,7 @@ def createApp():
             thread = Thread(target=ThreadedFunction, args= (jobId,))
 
             try :
-                jobTracker.markStatus(jobId,"running")
+                jobTracker.markJobStatus(jobId,"running")
             except Exception as e:
                 open("errorLog","a").write(str(e) + "\n")
                 exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))

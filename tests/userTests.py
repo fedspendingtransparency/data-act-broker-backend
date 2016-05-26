@@ -1,6 +1,6 @@
 from baseTestAPI import BaseTestAPI
 from dataactbroker.handlers.aws.sesEmail import sesEmail
-from dataactcore.models.jobModels import Submission, JobStatus
+from dataactcore.models.jobModels import Submission, Job
 from dataactcore.utils.statusCode import StatusCode
 
 class UserTests(BaseTestAPI):
@@ -24,8 +24,16 @@ class UserTests(BaseTestAPI):
             if i == 0:
                 cls.submission_id = sub.submission_id
 
+        # Add submissions for agency user
+        jobDb.deleteSubmissionsForUserId(cls.agency_user_id)
+        for i in range(0,6):
+            sub = Submission(user_id = cls.agency_user_id)
+            sub.agency_name = "testAgency"
+            jobDb.session.add(sub)
+            jobDb.session.commit()
+
         # Add job to first submission
-        job = JobStatus(submission_id = cls.submission_id,status_id = 3,type_id = 1, file_type_id = 1)
+        job = Job(submission_id=cls.submission_id, job_status_id=3, job_type_id=1, file_type_id=1)
         jobDb.session.add(job)
         jobDb.session.commit()
         cls.uploadId = job.job_id
@@ -58,11 +66,14 @@ class UserTests(BaseTestAPI):
         postJson = {"email": email, "name": "user", "agency": "agency", "title": "title", "password": self.user_password}
         response = self.app.post_json("/v1/register/", postJson, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK, "Registration successful")
-        # Check that re-registration is an error
+        # Check that session does not allow another registration
+        response = self.app.post_json("/v1/register/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+        self.check_response(response, StatusCode.LOGIN_REQUIRED)
+        # Check that re-registration with same token is an error
         tokenJson = {"token": self.registerToken}
         self.app.post_json("/v1/confirm_email_token/", tokenJson, headers={"x-session-id":self.session_id})
         response = self.app.post_json("/v1/register/", postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.assertEqual(response.status_code,400)
+        self.assertEqual(response.status_code,401)
 
     def test_registration_empty(self):
         """Test user registration with no user."""
@@ -89,37 +100,37 @@ class UserTests(BaseTestAPI):
     def test_status_change(self):
         """Test user status change."""
         status_change_user_id = self.status_change_user_id
-        deniedInput = {"uid": status_change_user_id, "new_status": "denied"}
-        approvedInput = {"uid": status_change_user_id, "new_status": "approved"}
-        awaitingInput = {"uid": status_change_user_id, "new_status": "awaiting_approval"}
-        emailConfirmed = {"uid": status_change_user_id, "new_status": "email_confirmed"}
+        deniedInput = {"uid": status_change_user_id, "status": "denied"}
+        approvedInput = {"uid": status_change_user_id, "status": "approved"}
+        awaitingInput = {"uid": status_change_user_id, "status": "awaiting_approval"}
+        emailConfirmed = {"uid": status_change_user_id, "status": "email_confirmed"}
 
-        response = self.app.post_json("/v1/change_status/", awaitingInput, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK, "Status change successful")
-        response = self.app.post_json("/v1/change_status/", approvedInput, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK, "Status change successful")
-        response = self.app.post_json("/v1/change_status/", awaitingInput, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK, "Status change successful")
-        response = self.app.post_json("/v1/change_status/", deniedInput, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK, "Status change successful")
+        response = self.app.post_json("/v1/update_user/", awaitingInput, headers={"x-session-id":self.session_id})
+        self.check_response(response, StatusCode.OK, "User successfully updated")
+        response = self.app.post_json("/v1/update_user/", approvedInput, headers={"x-session-id":self.session_id})
+        self.check_response(response, StatusCode.OK, "User successfully updated")
+        response = self.app.post_json("/v1/update_user/", awaitingInput, headers={"x-session-id":self.session_id})
+        self.check_response(response, StatusCode.OK, "User successfully updated")
+        response = self.app.post_json("/v1/update_user/", deniedInput, headers={"x-session-id":self.session_id})
+        self.check_response(response, StatusCode.OK, "User successfully updated")
 
         # Set back to email_confirmed for register test
-        response = self.app.post_json("/v1/change_status/", emailConfirmed, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK, "Status change successful")
+        response = self.app.post_json("/v1/update_user/", emailConfirmed, headers={"x-session-id":self.session_id})
+        self.check_response(response, StatusCode.OK, "User successfully updated")
 
     def test_status_change_bad_uid(self):
         """Test status change with bad user id."""
         self.logout()
         self.login_admin_user()
-        badUserId = {"uid": -100, "new_status": "denied"}
-        response = self.app.post_json("/v1/change_status/",
+        badUserId = {"uid": -100, "status": "denied"}
+        response = self.app.post_json("/v1/update_user/",
             badUserId, expect_errors=True, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.CLIENT_ERROR, "No users with that uid")
 
     def test_status_change_bad_status(self):
         """Test user status change with invalid status."""
-        badInput = {"uid": self.status_change_user_id, "new_status": "badInput"}
-        response = self.app.post_json("/v1/change_status/",
+        badInput = {"uid": self.status_change_user_id, "status": "badInput"}
+        response = self.app.post_json("/v1/update_user/",
             badInput, expect_errors=True, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.CLIENT_ERROR)
 
@@ -144,7 +155,7 @@ class UserTests(BaseTestAPI):
         emails = []
         for admin in agencyUsers:
             emails.append(admin.email)
-        self.assertEqual(len(agencyUsers), 13)
+        self.assertEqual(len(agencyUsers), 14)
         for email in ["realEmail@agency.gov", "waiting@agency.gov",
             "impatient@agency.gov", "watchingPaintDry@agency.gov",
             "approved@agency.gov", "nefarious@agency.gov",]:
@@ -155,10 +166,22 @@ class UserTests(BaseTestAPI):
         """Test listing user's submissions."""
         self.logout()
         self.login_approved_user()
-        response = self.app.get("/v1/list_submissions/", headers={"x-session-id":self.session_id})
+        response = self.app.get("/v1/list_submissions/", headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
-        self.assertIn("submission_id_list", response.json)
-        self.assertEqual(len(response.json["submission_id_list"]), 5)
+        self.assertIn("submissions", response.json)
+        self.assertEqual(len(response.json["submissions"]), 5)
+        self.logout()
+
+        self.login_agency_user()
+        response = self.app.get("/v1/list_submissions/", headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.OK)
+        self.assertIn("submissions", response.json)
+        self.assertEqual(len(response.json["submissions"]), 6)
+
+        response = self.app.get("/v1/list_submissions/?filter_by=agency", headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.OK)
+        self.assertIn("submissions", response.json)
+        self.assertEqual(len(response.json["submissions"]), 5)
         self.logout()
 
     def test_list_users_with_status_non_admin(self):
@@ -213,7 +236,21 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK)
 
+        # Test password reset for unapproved user and locked user
         userDb = self.userDb
+        user = userDb.getUserByEmail(email)
+        user.user_status_id = userDb.getUserStatusId("awaiting_approval")
+        userDb.session.commit()
+        response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+        self.check_response(response, StatusCode.CLIENT_ERROR)
+
+        user.user_status_id = userDb.getUserStatusId("approved")
+        user.is_active = False
+        userDb.session.commit()
+        response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+        self.check_response(response, StatusCode.CLIENT_ERROR)
+
+        # Test route to confirm tokens
         token = sesEmail.createToken(
             self.test_users["password_reset_email"], userDb, "password_reset")
         postJson = {"token": token}
@@ -226,6 +263,11 @@ class UserTests(BaseTestAPI):
         self.check_response(response, StatusCode.OK, "Password successfully changed")
         user = userDb.getUserByEmail(email)
         self.assertTrue(user.password_hash)
+
+        # Call again, should error
+        postJson = {"user_email": email, "password": self.user_password}
+        response = self.app.post_json("/v1/set_password/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+        self.check_response(response, StatusCode.LOGIN_REQUIRED)
 
     def test_check_password_token(self):
         """Test password reset with valid token."""
@@ -252,3 +294,32 @@ class UserTests(BaseTestAPI):
         self.check_response(response, StatusCode.OK)
         self.assertEqual(response.json["name"], "Mr. Manager")
         self.assertEqual(response.json["agency"], "Unknown")
+        self.assertEqual(response.json["skip_guide"], False)
+
+    def test_skip_guide(self):
+        """ Set skip guide to True and check value in DB """
+        self.login_approved_user()
+        params = {"skip_guide":True}
+        response = self.app.post_json("/v1/set_skip_guide/", params, headers={"x-session-id":self.session_id})
+        self.check_response(response,StatusCode.OK,"skip_guide set successfully")
+        self.assertTrue(response.json["skip_guide"])
+        user = self.userDb.getUserByEmail(self.test_users['approved_email'])
+        self.assertTrue(user.skip_guide)
+
+    def test_update_user(self):
+        """ Test user update """
+        agency_user = self.agency_user_id
+        input = {"uid": agency_user, "status": "approved", "is_active": False, "permissions": "agency_admin"}
+
+        response = self.app.post_json("/v1/update_user/", input, headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.OK, "User successfully updated")
+
+        badInput = {"uid": agency_user}
+        response = self.app.post_json("/v1/update_user/", badInput, expect_errors=True,
+                                      headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.CLIENT_ERROR)
+
+        moreBadInput = {"status": "approved", "is_active": False, "permissions": "agency_admin"}
+        response = self.app.post_json("/v1/update_user/", moreBadInput, expect_errors=True,
+                                      headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.CLIENT_ERROR)

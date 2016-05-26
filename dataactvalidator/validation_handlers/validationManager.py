@@ -39,12 +39,16 @@ class ValidationManager:
             jobId: Job to be updated
             jobTracker: Interface object for job tracker
             status: New status for specified job
+            errorDb: Interface object for error database
+            filename: Filename of file to be validated
+            fileError: Type of error that occurred if this is an invalid or failed status
+            extraInfo: Dict of extra fields to attach to exception
         """
         try :
             if(filename != None and (status == "invalid" or status == "failed")):
                 # Mark the file error that occurred
                 errorDb.writeFileError(jobId,filename,fileError,extraInfo)
-            jobTracker.markStatus(jobId,status)
+            jobTracker.markJobStatus(jobId,status)
         except ResponseException as e:
             # Could not get a unique job ID in the database, either a bad job ID was passed in or the record of that job was lost.
             # Either way, cannot mark status of a job that does not exist
@@ -69,10 +73,12 @@ class ValidationManager:
     @staticmethod
     def testJobID(jobId,interfaces) :
         """
-        args
-        jobId: job to be tested
-        returns the jobId
-        True if the job is ready, if the job is not ready an exception will be raised
+        args:
+            jobId: job to be tested
+            interfaces: InterfaceHolder to the databases
+
+        returns:
+            True if the job is ready, if the job is not ready an exception will be raised
         """
         if(not (interfaces.jobDb.runChecks(jobId))):
             raise ResponseException("Checks failed on Job ID",StatusCode.CLIENT_ERROR)
@@ -97,9 +103,9 @@ class ValidationManager:
         errorDb = interfaces.errorDb
         try:
             jobType = interfaces.jobDb.checkJobType(jobId)
-            if jobType == interfaces.jobDb.getTypeId("csv_record_validation"):
+            if jobType == interfaces.jobDb.getJobTypeId("csv_record_validation"):
                 self.runValidation(jobId,interfaces)
-            elif jobType == interfaces.jobDb.getTypeId("validation"):
+            elif jobType == interfaces.jobDb.getJobTypeId("validation"):
                 self.runCrossValidation(jobId, interfaces)
             else:
                 raise ResponseException("Bad job type for validator", StatusCode.INTERNAL_ERROR)
@@ -128,14 +134,20 @@ class ValidationManager:
         return CsvS3Reader()
 
     def getWriter(self,regionName,bucketName,fileName,header):
-        """
-        Gets the write type based on if its a local install or not.
+        """ Gets the write type based on if its a local install or not.
+
+        Args:
+            regionName - AWS region to write to, not used for local
+            bucketName - AWS bucket to write to, not used for local
+            fileName - File to be written
+            header - Column headers for file to be written
         """
         if(self.isLocal):
             return CsvLocalWriter(fileName,header)
         return CsvS3Writer(regionName,bucketName,fileName,header)
 
     def getFileName(self,path):
+        """ Return full path of error report based on provided name """
         if(self.isLocal):
             return "".join([self.directory,path])
         return "".join(["errors/",path])
@@ -163,7 +175,7 @@ class ValidationManager:
         errorFileName = self.getFileName(jobTracker.getReportPath(jobId))
 
         # Create File Status object
-        interfaces.errorDb.createFileStatusIfNeeded(jobId,fileName)
+        interfaces.errorDb.createFileIfNeeded(jobId,fileName)
 
         validationDB = interfaces.validationDb
         fieldList = validationDB.getFieldsByFileList(fileType)
@@ -184,8 +196,6 @@ class ValidationManager:
             # Pull file
             reader.openFile(regionName, bucketName, fileName,fieldList,bucketName,errorFileName)
             # Create staging table
-            # While not done, pull one row and put it into staging if it passes
-            # the Validator
 
             tableName = interfaces.stagingDb.getTableName(jobId)
             # Create staging table
@@ -253,7 +263,7 @@ class ValidationManager:
             # Write leftover records
             tableObject.endBatch()
             # Mark validation as finished in job tracker
-            jobTracker.markStatus(jobId,"finished")
+            jobTracker.markJobStatus(jobId,"finished")
             errorInterface.writeAllRowErrors(jobId)
         finally:
             #ensure the file always closes
@@ -278,13 +288,13 @@ class ValidationManager:
                 errorDb.recordRowError(jobId,"cross_file",failure[0],failure[1],None)
             writer.finishBatch()
         errorDb.writeAllRowErrors(jobId)
-        interfaces.jobDb.markStatus(jobId,"finished")
+        interfaces.jobDb.markJobStatus(jobId,"finished")
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to staging database
         Args:
         request -- HTTP request containing the jobId
-        sessions -- A SessionHolder object used to query the databases
+        interfaces -- InterfaceHolder object to the databases
         Returns:
         Http response object
         """
@@ -324,10 +334,10 @@ class ValidationManager:
             return JsonResponse.error(exc,exc.status,table=tableName)
 
         try:
-            jobTracker.markStatus(jobId,"running")
-            if jobType == interfaces.jobDb.getTypeId("csv_record_validation"):
+            jobTracker.markJobStatus(jobId,"running")
+            if jobType == interfaces.jobDb.getJobTypeId("csv_record_validation"):
                 self.runValidation(jobId,interfaces)
-            elif jobType == interfaces.jobDb.getTypeId("validation"):
+            elif jobType == interfaces.jobDb.getJobTypeId("validation"):
                 self.runCrossValidation(jobId, interfaces)
             else:
                 raise ResponseException("Bad job type for validator", StatusCode.INTERNAL_ERROR)
