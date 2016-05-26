@@ -92,7 +92,7 @@ class SchemaLoader(object):
                 else:
                     targetFileId = None
                 validationDb.addRule(
-                    fileId, record["rule_type"], record["rule_text_one"],
+                    None, record["rule_type"], record["rule_text_one"],
                     record["rule_text_two"], record["description"], record["rule_timing"],
                     record["rule_label"], targetFileId, fileId = fileId)
 
