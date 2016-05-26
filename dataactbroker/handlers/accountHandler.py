@@ -387,7 +387,7 @@ class AccountHandler:
         if requestDict.exists("is_active"):
             is_active = bool(requestDict.getValue("is_active"))
             if not self.isUserActive(user) and is_active:
-                self.sendResetPasswordEmail(user, system_email, inactive_user_override=True)
+                self.sendResetPasswordEmail(user, system_email, unlock_user=True)
             self.interfaces.userDb.setUserActive(user, is_active)
 
         return JsonResponse.create(StatusCode.OK, {"message": "User successfully updated"})
@@ -568,22 +568,26 @@ class AccountHandler:
         # Return success message
         return JsonResponse.create(StatusCode.OK,{"message":"Password reset"})
 
-    def sendResetPasswordEmail(self, user, system_email, email=None, inactive_user_override=False):
+    def sendResetPasswordEmail(self, user, system_email, email=None, unlock_user=False):
         if email is None:
             email = user.email
 
         # User must be approved and active to reset password
         if user.user_status_id != self.interfaces.userDb.getUserStatusId("approved"):
             raise ResponseException("User must be approved before resetting password", StatusCode.CLIENT_ERROR)
-        elif not inactive_user_override and not user.is_active:
+        elif not unlock_user and not user.is_active:
             raise ResponseException("User is locked, cannot reset password", StatusCode.CLIENT_ERROR)
+
+        # If unlocking a user, wipe out current password
+        if unlock_user:
+            UserHandler().clearPassword(user)
 
         self.interfaces.userDb.session.commit()
         # Send email with token
         emailToken = sesEmail.createToken(email, self.interfaces.userDb, "password_reset")
         link = "".join([AccountHandler.FRONT_END, '#/forgotpassword/', emailToken])
         emailTemplate = {'[URL]': link}
-        templateType = "unlock_account" if inactive_user_override else "reset_password"
+        templateType = "unlock_account" if unlock_user else "reset_password"
         newEmail = sesEmail(user.email, system_email, templateType=templateType,
                             parameters=emailTemplate, database=self.interfaces.userDb)
         newEmail.send()
