@@ -48,6 +48,8 @@ class BaseInterface(object):
             self.connection.close()
             self.engine.dispose()
         except AttributeError:
+            pass
+        except KeyError:
             # KeyError will occur in Python 3 on engine dispose
             pass
 
