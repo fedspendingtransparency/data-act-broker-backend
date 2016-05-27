@@ -1,13 +1,13 @@
 """add_cgac
 
-Revision ID: ad1598e13a42
+Revision ID: 849e1ac35007
 Revises: 3a79d7a4d1c1
-Create Date: 2016-05-27 12:40:02.639000
+Create Date: 2016-05-27 14:12:36.252000
 
 """
 
 # revision identifiers, used by Alembic.
-revision = 'ad1598e13a42'
+revision = '849e1ac35007'
 down_revision = '3a79d7a4d1c1'
 branch_labels = None
 depends_on = None
@@ -69,7 +69,7 @@ def upgrade_validation():
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('cgac_id', sa.Integer(), nullable=False),
-    sa.Column('cgac_code', sa.Text(), nullable=False, unique=True),
+    sa.Column('cgac_code', sa.Text(), nullable=False),
     sa.Column('agency_name', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('cgac_id')
     )
