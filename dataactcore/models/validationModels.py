@@ -84,3 +84,9 @@ class TASLookup(Base) :
     availability_type_code = Column(Text, nullable=True, index=True)
     main_account_code = Column(Text, nullable=True, index=True)
     sub_account_code = Column(Text, nullable=True, index=True)
+
+class CGAC(Base):
+    __tablename__ = "cgac"
+    cgac_id = Column(Integer, primary_key=True)
+    cgac_code = Column(Text, nullable=False,index=True,unique=True)
+    agency_name = Column(Text)
