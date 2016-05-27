@@ -443,10 +443,10 @@ class UserHandler(UserInterface):
         self.session.merge(template)
         self.session.commit()
 
-    def updateLastLogin(self, user):
+    def updateLastLogin(self, user, unlock_user=False):
         """ This updates the last login date to today's datetime for the user to the current date upon successful login.
         """
-        user.last_login_date = time.strftime("%c")
+        user.last_login_date = time.strftime("%c") if not unlock_user else None
         self.session.commit()
 
     def setUserActive(self, user, is_active):
