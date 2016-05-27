@@ -386,6 +386,11 @@ class AccountHandler:
         # Activate/deactivate user
         if requestDict.exists("is_active"):
             is_active = bool(requestDict.getValue("is_active"))
+            if not self.isUserActive(user) and is_active:
+                # Reset password count to 0
+                self.resetPasswordCount(user)
+                # Reset last login date so the account isn't expired
+                self.interfaces.userDb.updateLastLogin(user, unlock_user=True)
             self.interfaces.userDb.setUserActive(user, is_active)
 
         return JsonResponse.create(StatusCode.OK, {"message": "User successfully updated"})
