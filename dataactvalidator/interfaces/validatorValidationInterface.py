@@ -1,7 +1,8 @@
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.validationModels import TASLookup, Rule, RuleType, FileColumn, FileType, FieldType, RuleTiming
+from dataactcore.models.validationModels import Rule, RuleType, FileColumn, FileType, FieldType, RuleTiming
+from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.config import CONFIG_DB
 
