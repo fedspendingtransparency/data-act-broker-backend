@@ -74,8 +74,8 @@ class LoaderUtils:
                         padLength = options["pad_to_length"]
                         row[field] = cls.padToLength(row[field],padLength)
                     if "skip_duplicates" in options:
-                        if row[field] in valuePresent[field]:
-                            # Value already exists, skip it
+                        if len(row[field].strip()) == 0 or row[field] in valuePresent[field]:
+                            # Value not provided or already exists, skip it
                             skipInsert = True
                         else:
                             # Insert new value

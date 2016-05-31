@@ -1,7 +1,9 @@
 from sqlalchemy import MetaData, Table
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from decimal import *
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.models import domainModels
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
@@ -409,6 +411,39 @@ class Validator(object):
     def rule_required_conditional(cls, data, value, rule, datatype, interfaces, record):
         """Checks that data is present if specified rule passes"""
         return Validator.conditionalRequired(data,rule,datatype,interfaces,record)
+
+    @classmethod
+    def rule_exists_in_table(cls, data, value, rule, datatype, interfaces, record):
+        """ Check that field value exists in specified table, rule_text_1 is table, rule_text_2 is column to check against """
+        ruleTextOne = str(rule.rule_text_1).split(",")
+        if len(ruleTextOne) != 2:
+            # Bad rule definition
+            raise ResponseException("exists_in_table rule incorrectly defined, must have both table and field in rule_text_one",StatusCode.INTERNAL_ERROR,ValueError)
+        # Not putting model name through FieldCleaner because model names will have uppercase
+        model = getattr(domainModels,str(ruleTextOne[0]).strip())
+        field = FieldCleaner.cleanString(ruleTextOne[1])
+        # Pad data to correct length
+        try:
+            padLength = int(FieldCleaner.cleanString(rule.rule_text_2))
+        except ValueError as e:
+            # Need an integer in rule_text_two
+            raise ResponseException("Need an integer width in rule_text_two for exists_in_table rules",StatusCode.INTERNAL_ERROR,ValueError)
+        paddedData = FieldCleaner.cleanString(data).zfill(padLength)
+
+        # Build query for model and field specified
+        query = interfaces.validationDb.session.query(model).filter(getattr(model,field) == paddedData)
+        try:
+            # Check that value exists in table, should be unique
+            interfaces.validationDb.runUniqueQuery(query,"Data not found in table", "Conflicting entries found for this data")
+            # If unique result found, rule passed
+            return True
+        except ResponseException as e:
+            # If exception is no result found, rule failed
+            if type(e.wrappedException) == type(NoResultFound()):
+                return False
+            else:
+                # This is an unexpected exception, so re-raise it
+                raise
 
     @staticmethod
     def requireOne(record, fields, interfaces):

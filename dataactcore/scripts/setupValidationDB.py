@@ -55,7 +55,8 @@ def insertCodes():
         (15, 'REQUIRE_ONE_OF_SET', 'At least one of these fields must be present'),
         (16, 'SUM_FIELDS', 'Field is equal to the sum of other fields'),
         (17, 'NOT', 'passes if and only if specified rule fails'),
-        (18, 'SUM_BY_TAS', 'Check if two fields summed by TAS are equal')
+        (18, 'SUM_BY_TAS', 'Check if two fields summed by TAS are equal'),
+        (19, 'EXISTS_IN_TABLE', 'Check that value exists in specified table')
         ]
     for r in ruleTypeList:
         ruleType = RuleType(rule_type_id=r[0], name=r[1], description=r[2])

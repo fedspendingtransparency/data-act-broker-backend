@@ -3,6 +3,7 @@ import os
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
+from dataactvalidator.filestreaming.loadFile import loadDomainValues
 from dataactvalidator.scripts.loadTas import loadTas
 from baseTestValidator import BaseTestValidator
 import unittest
@@ -84,6 +85,8 @@ class FileTypeTests(BaseTestValidator):
         SchemaLoader.loadRules("program_activity","../dataactvalidator/config/programActivityRules.csv")
         SchemaLoader.loadRules("award_financial","../dataactvalidator/config/awardFinancialRules.csv")
         SchemaLoader.loadCrossRules("../dataactvalidator/config/crossFileRules.csv")
+        # Load domain values tables
+        loadDomainValues("../dataactvalidator/config/")
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
                 or force_tas_load):
             # TAS table is empty, load it
@@ -99,7 +102,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 6736, 4, "complete", 48, True)
+            jobId, 200, "finished", 6908, 4, "complete", 50, True)
 
     def test_program_valid(self):
         """Test valid job."""
@@ -111,7 +114,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 18430, 4, "complete", 110, True)
+            jobId, 200, "finished", 18602, 4, "complete", 112, True)
 
     def test_award_fin_valid(self):
         """Test valid job."""
@@ -123,7 +126,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 13169, 6, "complete", 74, True)
+            jobId, 200, "finished", 13341, 6, "complete", 76, True)
 
     def test_award_valid(self):
         """Test valid job."""

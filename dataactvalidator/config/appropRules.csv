@@ -5,3 +5,5 @@ SUM_FIELDS,FALSE,,BudgetAuthorityAvailableAmountTotal_CPE,"BudgetAuthorityApprop
 SUM_FIELDS,FALSE,,OtherBudgetaryResourcesAmount_CPE,"ContractAuthorityAmountTotal_CPE, BorrowingAuthorityAmountTotal_CPE, SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE",OtherBudgetaryResourcesAmount_CPE = ContractAuthorityAmountTotal_CPE + BorrowingAuthorityAmountTotal_CPE + SpendingAuthorityfromOffsettingCollectionsAmountTotal_CPE,A3,4
 SUM_FIELDS,FALSE,,StatusOfBudgetaryResourcesTotal_CPE,"ObligationsIncurredTotalByTAS_CPE, UnobligatedBalance_CPE",StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE + UnobligatedBalance_CPE,A4,4
 SUM_FIELDS,FALSE,,StatusOfBudgetaryResourcesTotal_CPE,BudgetAuthorityAvailableAmountTotal_CPE,StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE,A24,4
+EXISTS_IN_TABLE,TRUE,AllocationTransferAgencyIdentifier,"CGAC, cgac_code",3,Check that this is a valid agency code,A20,1
+EXISTS_IN_TABLE,TRUE,AgencyIdentifier,"CGAC, cgac_code",3,Check that this is a valid agency code,A20,1
