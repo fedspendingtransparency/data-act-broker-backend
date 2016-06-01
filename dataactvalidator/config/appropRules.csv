@@ -6,5 +6,5 @@ SUM_FIELDS,FALSE,,OtherBudgetaryResourcesAmount_CPE,"ContractAuthorityAmountTota
 SUM_FIELDS,FALSE,,StatusOfBudgetaryResourcesTotal_CPE,"ObligationsIncurredTotalByTAS_CPE, UnobligatedBalance_CPE",StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE + UnobligatedBalance_CPE,A4,4
 SUM_FIELDS,FALSE,,StatusOfBudgetaryResourcesTotal_CPE,BudgetAuthorityAvailableAmountTotal_CPE,StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE,A24,4
 EXISTS_IN_TABLE,TRUE,AllocationTransferAgencyIdentifier,"CGAC, cgac_code",3,Check that this is a valid agency code,A20,1
-EXISTS_IN_TABLE,TRUE,AgencyIdentifier,"CGAC, cgac_code",3,Check that this is a valid agency code,A20,1
-REQUIRED_SET_CONDITIONAL,FALSE,,A16B,budgetauthorityunobligatedbalancebroughtforward_fyb,FYB fields are required if reporting period end date is within Q1,A16,2
+EXISTS_IN_TABLE,TRUE,AgencyIdentifier,"CGAC, cgac_code",3,Check that this is a valid agency code,A20_2,1
+REQUIRED_SET_CONDITIONAL,FALSE,,A16_2,budgetauthorityunobligatedbalancebroughtforward_fyb,FYB fields are required if reporting period end date is within Q1,A16,2
