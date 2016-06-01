@@ -20,4 +20,4 @@ REQUIRED_SET_CONDITIONAL,FALSE,,A16_B2,"ussgl480100_undeliveredordersobligations
 EXISTS_IN_TABLE,TRUE,ObjectClass,"ObjectClass, object_class_code",,"Must be valid 3-digit object class as defined in OMB Circular A-11 Section 83.6, or a 4-digit code which includes a 1-digit prefix that distinguishes direct, reimbursable, and allocation obligations. Do not include decimal points when reporting in the Schema.",B11,1
 MIN_LENGTH,TRUE,ObjectClass,4,,"Checks if object class is 4 digits, if so will check consistency with direct reimbursable flag",B11_2,2
 CHECK_PREFIX,TRUE,ObjectClass,ByDirectReimbursableFundingSource,"{""1"":""D"",""2"":""R""}",Check that 1 digit prefix is consistent with value for ByDirectReimbursableFundingSource,B11_3,2
-RULE_IF,TRUE,ObjectClass,B11_3,B11_2,"If object class is 4 digits, check that 1 digit prefix is consistent with value for ByDirectReimbursableFundingSource",,1
+RULE_IF,TRUE,ObjectClass,B11_3,B11_2,"If object class is 4 digits, check that 1 digit prefix is consistent with value for ByDirectReimbursableFundingSource",B11_4,1
