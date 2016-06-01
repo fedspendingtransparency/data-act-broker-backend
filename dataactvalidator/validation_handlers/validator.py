@@ -445,6 +445,11 @@ class Validator(object):
                 # This is an unexpected exception, so re-raise it
                 raise
 
+    @classmethod
+    def rule_required_set_conditional(cls, data, value, rule, datatype, interfaces, record):
+        """ If conditional rule passes, require all fields in rule_text_one """
+        return Validator.conditionalRequired(data,rule,datatype,interfaces,record)
+
     @staticmethod
     def requireOne(record, fields, interfaces):
         """ Require at least one of the specified fields to be present
@@ -475,7 +480,7 @@ class Validator(object):
             return False
 
     @classmethod
-    def conditionalRequired(cls, data,rule,datatype,interfaces,record):
+    def conditionalRequired(cls, data,rule,datatype,interfaces,record, isList = False):
         """ If conditional rule passes, data must not be empty
 
         Args:
@@ -497,7 +502,16 @@ class Validator(object):
             conditionalData = record
         # If conditional rule passes, check that data is not empty
         if Validator.evaluateRule(conditionalData,conditionalRule,conditionalDataType,interfaces,record):
-            return cls.isFieldPopulated(data)
+            if isList:
+                # rule_text_2 is a list of fields
+                fieldList = rule.rule_text_2.split(",")
+                for field in fieldList:
+                    if not cls.isFieldPopulated(record[FieldCleaner.cleanName(field)]):
+                        # If any are empty, rule fails
+                        return False
+            else:
+                # data is value from a single field
+                return cls.isFieldPopulated(data)
         else:
             # If conditional rule fails, this field is not required, so the condtional requirement passes
             return True
