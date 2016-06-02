@@ -96,6 +96,7 @@ class LoaderUtils:
         Returns:
             padded string of length padLength
         """
+        data = data.strip()
 
         if len(data) < padLength:
             numZeros = padLength - len(data)

@@ -416,7 +416,7 @@ class Validator(object):
 
     @classmethod
     def rule_exists_in_table(cls, data, value, rule, datatype, interfaces, record):
-        """ Check that field value exists in specified table, rule_text_1 is table, rule_text_2 is column to check against """
+        """ Check that field value exists in specified table, rule_text_1 has table and column to check against, rule_text_2 is length to pad to """
         ruleTextOne = str(rule.rule_text_1).split(",")
         if len(ruleTextOne) != 2:
             # Bad rule definition
@@ -439,6 +439,39 @@ class Validator(object):
 
         # Build query for model and field specified
         query = interfaces.validationDb.session.query(model).filter(getattr(model,field) == paddedData)
+        try:
+            # Check that value exists in table, should be unique
+            interfaces.validationDb.runUniqueQuery(query,"Data not found in table", "Conflicting entries found for this data")
+            # If unique result found, rule passed
+            return True
+        except ResponseException as e:
+            # If exception is no result found, rule failed
+            if type(e.wrappedException) == type(NoResultFound()):
+                return False
+            else:
+                # This is an unexpected exception, so re-raise it
+                raise
+
+    @classmethod
+    def rule_set_exists_in_table(cls, data, value, rule, datatype, interfaces, record):
+        """ Check that set of values exists in specified table, rule_text_1 is table, rule_text_2 is dict mapping
+        columns in record to columns in domain values table """
+        # Load mapping from record fields to domain value fields
+        fieldMap = json.loads(rule.rule_text_2)
+        # Get values for fields in record into new dict between table columns and values to check for
+        valueDict = {}
+        for field in fieldMap:
+            valueDict[fieldMap[field]] = record[field]
+
+        # Parse out model object
+        model = getattr(domainModels,str(rule.rule_text_1))
+
+        # Filter query by each field
+        query = interfaces.validationDb.session.query(model)
+        for field in valueDict:
+            query = query.filter(getattr(model,field) == valueDict[field])
+
+        # NoResultFound is return False, other exceptions should be reraised
         try:
             # Check that value exists in table, should be unique
             interfaces.validationDb.runUniqueQuery(query,"Data not found in table", "Conflicting entries found for this data")
@@ -644,6 +677,8 @@ class Validator(object):
             fields = []
         elif ruleType == "SUM_TO_VALUE":
             fields = ruletext2
+        elif ruleType == "SET_EXISTS_IN_TABLE":
+            fields = json.loads(rule.rule_text_2).keys()
         else:
             fields = ruletext1 + ruletext2
         output = ""

@@ -48,9 +48,12 @@ def runTests(argv=''):
         runner = unittest.TextTestRunner(verbosity=2)
 
     if PROFILE:
-        global runner
-        global suite
-        cProfile.run("runner.run(suite)","stats")
+        # Creating globals to be accessible to cProfile
+        global profileRunner
+        global profileSuite
+        profileRunner = runner
+        profileSuite = suite
+        cProfile.run("profileRunner.run(profileSuite)","stats")
         stats = pstats.Stats("stats")
         stats.sort_stats("tottime").print_stats(100)
     else: 
