@@ -13,7 +13,7 @@ class User(Base):
     username = Column(Text)
     email = Column(Text)
     name = Column(Text)
-    agency = Column(Text)
+    cgac_code = Column(Text)
     title = Column(Text)
     permissions = Column(Integer)
     user_status_id = Column(Integer, ForeignKey("user_status.user_status_id"))
