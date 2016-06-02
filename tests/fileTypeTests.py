@@ -31,6 +31,8 @@ class FileTypeTests(BaseTestValidator):
         s3FileNameAwardMixedDelimiter = cls.uploadFile("awardMixedDelimiter.csv", user)
         s3FileNameCrossAwardFin = cls.uploadFile("cross_file_C.csv", user)
         s3FileNameCrossAward = cls.uploadFile("cross_file_D2.csv", user)
+        # s3FileNameCrossApprop = cls.uploadFile("cross_file_A.csv", user)
+        # s3FileNameCrossPgmAct = cls.uploadFile("cross_file_B.csv", user)
 
         # Create submissions and get IDs back
         submissionIDs = {}
@@ -40,18 +42,20 @@ class FileTypeTests(BaseTestValidator):
         # Create jobs
         jobDb = cls.jobTracker
         jobInfoList = {
-            "valid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[1]), s3FileNameValid, 3],
-            "mixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[2]), s3FileNameMixed, 3],
-            "programValid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[4]), s3FileNameProgramValid, 4],
-            "programMixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[5]), s3FileNameProgramMixed, 4],
-            "awardFinValid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[6]), s3FileNameAwardFinValid, 2],
-            "awardFinMixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[7]), s3FileNameAwardFinMixed, 2],
-            "awardValid": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[8]), s3FileNameAwardValid, 1],
-            "awardMixed": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[9]), s3FileNameAwardMixed, 1],
-            "awardMixedDelimiter": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[10]), s3FileNameAwardMixedDelimiter, 1],
-            "crossAwardFin": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossAwardFin, 2],
-            "crossAward": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossAward, 1],
-            "crossFile": [str(jobDb.getStatusId("ready")), str(jobDb.getTypeId("validation")), str(submissionIDs[11]), None, None]
+            "valid": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[1]), s3FileNameValid, 3],
+            "mixed": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[2]), s3FileNameMixed, 3],
+            "programValid": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[4]), s3FileNameProgramValid, 4],
+            "programMixed": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[5]), s3FileNameProgramMixed, 4],
+            "awardFinValid": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[6]), s3FileNameAwardFinValid, 2],
+            "awardFinMixed": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[7]), s3FileNameAwardFinMixed, 2],
+            "awardValid": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[8]), s3FileNameAwardValid, 1],
+            "awardMixed": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[9]), s3FileNameAwardMixed, 1],
+            "awardMixedDelimiter": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[10]), s3FileNameAwardMixedDelimiter, 1],
+            # "crossApprop": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossApprop, 3],
+            # "crossPgmAct": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossPgmAct, 4],
+            "crossAwardFin": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossAwardFin, 2],
+            "crossAward": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossAward, 1],
+            "crossFile": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("validation")), str(submissionIDs[11]), None, None]
         }
 
         jobIdDict = {}
@@ -95,7 +99,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 4110, 4, "complete", 40, True)
+            jobId, 200, "finished", 6736, 4, "complete", 48, True)
 
     def test_program_valid(self):
         """Test valid job."""
@@ -107,7 +111,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 9247, 4, "complete", 88, True)
+            jobId, 200, "finished", 18430, 4, "complete", 110, True)
 
     def test_award_fin_valid(self):
         """Test valid job."""
@@ -119,7 +123,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 5808, 6, "complete", 53, True)
+            jobId, 200, "finished", 13181, 6, "complete", 74, True)
 
     def test_award_valid(self):
         """Test valid job."""
@@ -141,20 +145,28 @@ class FileTypeTests(BaseTestValidator):
 
     def test_cross_file(self):
         crossId = self.jobIdDict["crossFile"]
-        # Run jobs for C and D2, then cross file validation job
+        # Run jobs for A, B, C, and D2, then cross file validation job
         awardFinResponse = self.validateJob(self.jobIdDict["crossAwardFin"],self.useThreads)
-        self.assertEqual(awardFinResponse.status_code, 200,msg=str(awardFinResponse.json))
+        self.assertEqual(awardFinResponse.status_code, 200, msg=str(awardFinResponse.json))
         awardResponse = self.validateJob(self.jobIdDict["crossAward"],self.useThreads)
-        self.assertEqual(awardResponse.status_code, 200,msg=str(awardResponse.json))
-        crossFileResponse = self.validateJob(crossId,self.useThreads)
-        self.assertEqual(crossFileResponse.status_code, 200,msg=str(crossFileResponse.json))
+        self.assertEqual(awardResponse.status_code, 200, msg=str(awardResponse.json))
+        # appropResponse = self.validateJob(self.jobIdDict["crossApprop"], self.useThreads)
+        # self.assertEqual(appropResponse.status_code, 200, msg=str(appropResponse.json))
+        # pgmActResponse = self.validateJob(self.jobIdDict["crossPgmAct"], self.useThreads)
+        # self.assertEqual(pgmActResponse.status_code, 200, msg=str(pgmActResponse.json))
+        crossFileResponse = self.validateJob(crossId, self.useThreads)
+        self.assertEqual(crossFileResponse.status_code, 200, msg=str(crossFileResponse.json))
+
+        # TODO: once SUM_BY_TAS rule is implemented, check for specific types
+        # of cross-file validation error. Do we need to split into more discrete tests?
+
         # Check number of cross file validation errors in DB for this job
         self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId),2)
         # Check cross file job complete
         self.waitOnJob(self.interfaces.jobDb, crossId, "finished", self.useThreads)
         # Check that cross file validation report exists and is the right size
         jobTracker = self.interfaces.jobDb
-        fileSize = 410
+        fileSize = 402
         reportPath = jobTracker.getCrossFileReportPath(jobTracker.getSubmissionId(crossId))
         if self.local:
             path = "".join(

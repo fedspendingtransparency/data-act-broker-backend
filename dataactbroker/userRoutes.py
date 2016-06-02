@@ -5,8 +5,12 @@ from dataactbroker.routeUtils import RouteUtils
 
 
 def add_user_routes(app,system_email,bcrypt):
-    """ Create routes related to file submission for flask app
+    """ Create routes related to user management
 
+        Args:
+            app - Flask app to add routes to
+            system_email - Sender address to use for emails
+            bcrypt - Password hashing Bcrypt associated with app
     """
 
     RouteUtils.SYSTEM_EMAIL = system_email # Set the system email to be used
@@ -19,13 +23,19 @@ def add_user_routes(app,system_email,bcrypt):
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager,accountManager.register, getSystemEmail = True, getSession = True)
 
-
-    @app.route("/v1/change_status/", methods = ["POST"])
+    @app.route("/v1/change_status/", methods=["POST"])
     @permissions_check(permissionList=["website_admin"])
     def change_status():
         """ Expects request to have keys 'user_email' and 'new_status' """
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.changeStatus,getSystemEmail = True)
+        accountManager = AccountHandler(request, bcrypt=bcrypt)
+        return RouteUtils.run_instance_function(accountManager, accountManager.changeStatus, getSystemEmail=True)
+
+    @app.route("/v1/update_user/", methods=["POST"])
+    @permissions_check(permissionList=["website_admin", "agency_admin"])
+    def update_user():
+        """ Updates editable fields for the specified user """
+        accountManager = AccountHandler(request, bcrypt=bcrypt)
+        return RouteUtils.run_instance_function(accountManager, accountManager.updateUser, getSystemEmail = True)
 
     @app.route("/v1/confirm_email/", methods = ["POST"])
     def confirm():
@@ -39,34 +49,32 @@ def add_user_routes(app,system_email,bcrypt):
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.checkEmailConfirmationToken, getSession = True)
 
-
     @app.route("/v1/confirm_password_token/", methods = ["POST"])
     def checkPasswordToken():
         """ Expects request to have email  """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.checkPasswordToken, getSession = True)
 
+    @app.route("/v1/list_users/", methods=["POST"])
+    @permissions_check(permissionList=["website_admin", "agency_admin"])
+    def list_users():
+        """ list all users """
+        accountManager = AccountHandler(request,bcrypt = bcrypt)
+        return RouteUtils.run_instance_function(accountManager, accountManager.listUsers)
 
     @app.route("/v1/list_users_with_status/", methods = ["POST"])
-    @permissions_check(permissionList=["website_admin"])
+    @permissions_check(permissionList=["website_admin", "agency_admin"])
     def list_users_with_status():
         """ Expects request to have key 'status', will list all users with that status """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.listUsersWithStatus)
-
-    @app.route("/v1/list_submissions/", methods = ["GET"])
-    @permissions_check
-    def list_submissions():
-        """ List submission IDs associated with the current user """
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.listSubmissionsByCurrentUser)
 
     @app.route("/v1/set_password/", methods=["POST"])
     @permissions_check(permissionList=["check_password_token"])
     def set_password():
         """ Set a new password for specified user """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.setNewPassword)
+        return RouteUtils.run_instance_function(accountManager, accountManager.setNewPassword, getSession = True)
 
     @app.route("/v1/reset_password/", methods=["POST"])
     def reset_password():
@@ -80,3 +88,10 @@ def add_user_routes(app,system_email,bcrypt):
         """ gets the current user information """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.getCurrentUser, getSession = True)
+
+    @app.route("/v1/set_skip_guide/", methods=["POST"])
+    @permissions_check
+    def set_skip_guide():
+        """ Sets skip_guide param for current user """
+        accountManager = AccountHandler(request,bcrypt = bcrypt)
+        return RouteUtils.run_instance_function(accountManager, accountManager.setSkipGuide, getSession = True)

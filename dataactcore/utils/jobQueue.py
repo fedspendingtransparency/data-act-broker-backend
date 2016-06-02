@@ -21,7 +21,7 @@ class JobQueue:
 
 		@self.jobQueue.task(name='jobQueue.enqueue')
 		def enqueue(jobID):
-		    # Don't need to worry about the response currently
+			# Don't need to worry about the response currently
 		    url = ''.join([validatorUrl, '/validate/'])
 		    params = {
 		        'job_id': jobID

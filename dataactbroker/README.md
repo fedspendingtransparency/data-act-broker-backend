@@ -22,7 +22,7 @@ dataactbroker/
 The `/dataactbroker/scripts` folder contains the install scripts needed to setup the broker API for a local install. For complete instructions on running your own copy of the API and other DATA Act broker components, please refer to the [documentation in the DATA Act core responsitory](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
 
 ### Handlers
-The `dataactbroker\handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py`, `fileRoutes.py`, and 'userRoutes.py' files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tag is defined in `dataactbroker/permissions.py`.
+The `dataactbroker/handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py`, `fileRoutes.py`, and 'userRoutes.py' files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tag is defined in `dataactbroker/permissions.py`.
 
 `accountHandler.py` contains the functions to check logins and to log users out.
 
@@ -126,7 +126,8 @@ Example output:
     "name": "John",
     "title":"Developer",
     "agency": "Department of Labor",
-    "permissions" : [0,1]
+    "permissions" : [0,1],
+    "skip_guide": False
 }
 ```
 
@@ -138,6 +139,26 @@ Permissions for the DATA Act Broker are list based. Each integer in the list cor
 |User| 0|
 |Admin  |1|
 
+
+#### POST "/v1/set_skip_guide/"
+Sets skip_guide parameter for current user, which controls whether the submission guide should be displayed.  A call to this route should have JSON or form-urlencoded with key "skip_guide", value should be either true or false.
+
+Example input:
+
+```json
+{
+   "skip_guide": True
+}
+```
+
+Example output:
+
+```json
+{
+  "message": "skip_guide set successfully",
+  "skip_guide": True
+}
+```
 
 #### POST "/v1/register/"
 Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.  This route can only be called after the `confirm_email_token` route. After a successful submission this route will require
@@ -161,26 +182,6 @@ Example output:
 ```json
 {
   "message":"Registration successful"
-}
-```
-
-#### POST "/v1/change_status/"
-Changes a user's status, used to approve or deny users.  This route requires an admin user to be logged in.  A call to this route should have JSON or form-urlencoded with keys "uid" and "new_status".  For typical usage, "new_status" should be either "approved" or "denied".
-
-Example input:
-
-```json
-{
-   "uid":"1234",
-   "new_status":"approved"
-}
-```
-
-Example output:
-
-```json
-{
-  "message":"Status change successful"
 }
 ```
 
@@ -287,7 +288,36 @@ The following is a table with all of the messages and error code
 | LINK_VALID   |0|success|
 
 
+#### POST "/v1/list_users/"
+List all users. Requires an admin login. For a Website Admin, all users will be returned. For an Agency Admin, only users within that agency will be returned.
 
+Example output (Agency Admin):
+```json
+{
+  "users":[
+    {
+      "status": "approved",
+      "name": "user1",
+      "title": "User Title",
+      "permissions": "agency_admin",
+      "agency": "Data Act Agency",
+      "is_active": true,
+      "email": "agency@admin.gov",
+      "id": 1
+    },
+    {
+      "status": "awaiting_confirmation",
+      "name": "user2",
+      "title": "User Title",
+      "permissions": "agency_user",
+      "agency": "Data Act Agency",
+      "is_active": true,
+      "email": "agency@user.gov",
+      "id": 2
+    }
+    ]
+}
+```
 
 #### POST "/v1/list_users_with_status/"
 List all users with specified status, typically used to review users that have applied for an account.  Requires an admin login.  A call to this route should have JSON or form-urlencoded with key "status".
@@ -309,7 +339,7 @@ Example output:
 ```
 
 #### GET "/v1/list_submissions/"
-List all submissions by currently logged in user.
+List all submissions by currently logged in user. If "?filter_by=agency" is appended to the route, then all submissions for the current user's agency will be returned.
 
 Example input:
 
@@ -319,7 +349,22 @@ Example output:
 
 ```json
 {
-  "submission_id_list":[1,2,3]
+  "submissions": [
+    {
+      "status": "Validation In Progress",
+      "submission_id": 8,
+      "last_modified": "05/17/2016",
+      "error": 0,
+      "size": 15021
+    },
+    {
+      "status": "Has Errors",
+      "submission_id": 4,
+      "last_modified": "05/16/2016",
+      "error": 0,
+      "size": 0
+    }
+  ]
 }
 ```
 
@@ -361,6 +406,27 @@ Example output:
 }
 ```
 
+#### POST "/v1/update_user/"
+Update editable fields for the specified user. A call to this route should have JSON or form-urlencoded with keys "uid" and at least one from "status", "permissions", "is_active".
+
+Example input:
+
+```json
+{
+    "uid": 1,
+    "status": "approved",
+    "permissions": "agency_user",
+    "is_active": true
+}
+```
+
+Example output:
+
+```json
+{
+    "message": "User successfully updated"
+}
+```
 
 ### File Routes
 
@@ -389,7 +455,7 @@ Example Output:
 ```
 
 #### POST "/v1/submit_files/"
-This route is used to retrieve S3 URLs to upload files. Data should be JSON with keys: ["appropriations", "award\_financial", "award", "program\_activity"], each with a filename as a value, and submission metadata keys: ["agency_name","reporting_period_start_date","reporting_period_end_date","existing_submission_id"].  If an existing submission ID is provided, all other keys are optional and any data provided will be used to correct information in the existing submission.
+This route is used to retrieve S3 URLs to upload files. Data should be JSON with keys: ["appropriations", "award\_financial", "award", "program\_activity"], each with a filename as a value, and submission metadata keys: ["agency_name","reporting_period_start_date","reporting_period_end_date","is_quarter","existing_submission_id"].  If an existing submission ID is provided, all other keys are optional and any data provided will be used to correct information in the existing submission.
 
 This route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key\_id containing the job id. A returning submission\_id will also exist which acts as identifier for the submission.
 
@@ -409,6 +475,7 @@ Example input:
   "agency_name":"Name of the agency",
   "reporting_period_start_date":"03/31/2016",
   "reporting_period_end_date":"03/31/2016",
+  "is_quarter":False,
   "existing_submission_id: 7 (leave out if not correcting an existing submission)
 }
 ```
@@ -555,14 +622,12 @@ Example output:
 
 ## Test Cases
 
-To run the broker API unit tests, navigate to the main project folder (`data-act-broker`) and type the following:
+To run the broker API unit tests, navigate to the project's test folder (`data-act-broker-backend/tests`) and type the following:
 
-        $ python tests/runTests.py
-
-Before running test cases, [make sure the validator is running](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md#run-broker-backend-applications "run the DATA Act broker backend apps").
+        $ python runTests.py
 
 To generate a test coverage report from the command line:
 
-1. Make sure you're in the main project folder (`data-act-broker`).
-2. Run the tests using the `coverage` command: `coverage run tests/runTests.py`.
+1. Make sure you're in the project's test folder (`data-act-broker-backend/tests`).
+2. Run the tests using the `coverage` command: `coverage run runTests.py`.
 3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.

@@ -76,7 +76,7 @@ def createApp():
         add_login_routes(app, bcrypt)
 
         add_file_routes(app, CONFIG_BROKER['aws_create_temp_credentials'],
-            local, broker_file_path)
+            local, broker_file_path, bcrypt)
         add_user_routes(app, app.config['SYSTEM_EMAIL'], bcrypt)
 
         SessionTable.LOCAL_PORT = CONFIG_DB['dynamo_port']
@@ -98,6 +98,7 @@ def createApp():
 
 @timeout(1, 'DynamoDB is not running')
 def checkDynamo():
+    """ Get information about the session table in Dynamo """
     SessionTable.getTable().describe()
 
 def runApp():

@@ -43,5 +43,7 @@ def runMigrations(alembicDbName):
         if "relation" and "already exists" in e.message:
             raise Exception("Cannot run initial db migration if tables "
                             "already exist. " + e.message)
+        else:
+            raise
     finally:
         logging.disable(logging.NOTSET)

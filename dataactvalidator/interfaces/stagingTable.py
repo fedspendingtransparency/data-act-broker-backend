@@ -52,6 +52,8 @@ class StagingTable(object):
         primaryAssigned = False
         # Create empty dict for field names and values
         classFieldDict = {"__tablename__":tableName}
+        # Create dict to hold record for field names
+        fieldNameMap = {}
         # Add each column
         for key in fields:
             # Build column statement for this key
@@ -80,6 +82,8 @@ class StagingTable(object):
                 classFieldDict[newKey] = Column(fieldTypeName, nullable=False)
             else:
                 classFieldDict[newKey] = Column(fieldTypeName)
+            # First record will hold field names
+            fieldNameMap[str(newKey)] = str(key)
         # Add column for row number
         classFieldDict["row"] = Column(Integer, nullable=False)
 
@@ -94,6 +98,9 @@ class StagingTable(object):
 
         # Create table
         self.orm.__table__.create(self.interface.engine)
+
+        # Add field name map to table
+        self.interface.addFieldNameMap(tableName,fieldNameMap)
 
     def endBatch(self):
         """ Called at end of process to send the last batch """
@@ -134,9 +141,10 @@ class StagingTable(object):
 
         # Need to translate the provided record to use column IDs instead of field names for keys
         idRecord = {}
+        # Mark if header
         for key in record:
             if key == "row":
-                idRecord["row"] = record[key]
+                idRecord[key] = record[key]
             else:
                 idRecord[str(self.interfaces.validationDb.getColumnId(key,fileType))] = record[key]
 

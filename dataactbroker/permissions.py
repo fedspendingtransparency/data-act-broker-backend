@@ -20,6 +20,10 @@ def permissions_check(f=None,permissionList=[]):
                     for permission in permissionList :
                         if(not userDb.hasPermission(user, permission)) :
                             validUser = False
+                        else:
+                            validUser = True
+                            break
+
                 finally:
                     InterfaceHolder.closeOne(userDb)
                 if(validUser) :

@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from dataactcore.models.jobModels import JobStatus,JobDependency,Submission, FileType
+from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -14,24 +14,20 @@ class JobHandler(JobTrackerInterface):
     engine -- sqlalchemy engine for generating connections and sessions
     connection -- sqlalchemy connection for executing direct SQL statements
     session -- sqlalchemy session for ORM usage
-    waitingStatus -- status_id for "waiting"
-    runningStatus -- status_id for "running"
-    finishedStatus -- status_id for "finished"
-    fileUploadType -- type_id for "file_upload"
-    dbUploadType -- type_id for "db_upload"
-    validationType -- type_id for "validation"
-    externalValidationType -- type_id for "external_validation"
     """
 
-    # Available instance variables:  session, waitingStatus, runningStatus, fileUploadType, dbUploadType, validationType, externalValidationTYpe
-
-    metaDataFieldMap = {"agency_name":"agency_name","reporting_period_start_date":"reporting_start_date","reporting_period_end_date":"reporting_end_date"}
+    fiscalStartMonth = 10
+    metaDataFieldMap = {"agency_name":"agency_name","reporting_period_start_date":"reporting_start_date","reporting_period_end_date":"reporting_end_date","is_quarter":"is_quarter_format"}
 
     def getSubmissionById(self,submissionId):
         """ Return submission object that matches ID """
         query = self.session.query(Submission).filter(Submission.submission_id == submissionId)
         result = self.runUniqueQuery(query,"No submission with that ID","Multiple submissions with that ID")
         return result
+
+    def getSubmissionsByUserAgency(self,user,limit=5):
+        """ Returns all submissions associated with the specified user's agency """
+        return self.session.query(Submission).filter(Submission.agency_name == user.agency).order_by(Submission.updated_at.desc()).limit(limit).all()
 
     def getSubmissionsByUserId(self,userId):
         """ Returns all submissions associated with the specified user ID """
@@ -56,11 +52,14 @@ class JobHandler(JobTrackerInterface):
         for key in cls.metaDataFieldMap:
             if requestDict.exists(key):
                 if(key == "reporting_period_start_date" or key == "reporting_period_end_date"):
-                    # Create a date object from formatted string, assuming "MM/DD/YYYY"
+                    reportDate = requestDict.getValue(key)
+
+                    # Create a date object from formatted string, assuming "MM/YYYY"
                     try:
-                        submissionData[cls.metaDataFieldMap[key]] = JobHandler.createDate(requestDict.getValue(key))
-                    except Exception as e:
-                        raise ResponseException("Submission dates must be formatted as MM/DD/YYYY, hit error: " + str(e),StatusCode.CLIENT_ERROR,type(e))
+                        submissionData[cls.metaDataFieldMap[key]] = JobHandler.createDate(reportDate)
+                    except ValueError as e:
+                        # Bad value, must be MM/YYYY
+                        raise ResponseException("Date must be provided as MM/YYYY",StatusCode.CLIENT_ERROR,ValueError)
                 else:
                     submissionData[cls.metaDataFieldMap[key]] = requestDict.getValue(key)
             else:
@@ -68,13 +67,97 @@ class JobHandler(JobTrackerInterface):
                     raise ResponseException(key + " is required",StatusCode.CLIENT_ERROR,ValueError)
         return submissionData, existingSubmissionId
 
+    def getStartDate(self, submission):
+        """ Return formatted start date """
+        if submission.is_quarter_format:
+            quarter = self.monthToQuarter(submission.reporting_start_date.month, True)
+            year = submission.reporting_start_date.year
+            if quarter == "Q1":
+                # First quarter is part of next fiscal year
+                year += 1
+            return "".join([quarter,"/",str(year)])
+        else:
+            return submission.reporting_start_date.strftime("%m/%Y")
+
+    def getEndDate(self, submission):
+        """ Return formatted end date """
+        if submission.is_quarter_format:
+            quarter = self.monthToQuarter(submission.reporting_end_date.month, False)
+            year = submission.reporting_end_date.year
+            if quarter == "Q1":
+                # First quarter is part of next fiscal year
+                year += 1
+            return "".join([quarter,"/",str(year)])
+        else:
+            return submission.reporting_end_date.strftime("%m/%Y")
+
+    @classmethod
+    def monthToQuarter(cls, month, isStart):
+        """ Convert month as int to a two character quarter """
+        # Base off fiscal year beginning
+        baseMonth =  cls.fiscalStartMonth
+        if not isStart:
+            # Quarters end two months after they start
+            baseMonth += 2
+        monthsIntoFiscalYear = (month - baseMonth) % 12
+        if (monthsIntoFiscalYear % 3) != 0:
+            # Not a valid month for a quarter
+            raise ResponseException("Not a valid month to be in quarter format", StatusCode.INTERNAL_ERROR, ValueError)
+        quartersFromStart = monthsIntoFiscalYear / 3
+        quarter = quartersFromStart + 1
+        return "".join(["Q",str(quarter)])
+
+    @staticmethod
+    def quarterToMonth(quarter, isStart):
+        """ Translate quarter as 'Q#' to a 2 digit month
+
+        Args:
+            quarter: Q followed by 1,2,3, or 4
+            isStart: True if we want first month of quarter
+
+        Returns:
+            Two character string representing month
+        """
+        # If does not start with Q, this is an error
+        if quarter[0] != "Q":
+            raise ResponseException("Cannot translate quarter that does not begin with Q",StatusCode.CLIENT_ERROR,ValueError)
+
+        # Specified by quarter, translate to months
+        if quarter[1] == "1":
+            if isStart:
+                month = "10"
+            else:
+                month = "12"
+        elif quarter[1] == "2":
+            if isStart:
+                month = "01"
+            else:
+                month = "03"
+        elif quarter[1] == "3":
+            if isStart:
+                month = "04"
+            else:
+                month = "06"
+        elif quarter[1] == "4":
+            if isStart:
+                month = "07"
+            else:
+                month = "09"
+        else:
+            raise ResponseException("Invalid quarter, must be 1-4",StatusCode.CLIENT_ERROR,ValueError)
+        return month
+
     @staticmethod
     def createDate(dateString):
-        """ Create a date object from a string in "MM/DD/YYYY" """
+        """ Create a date object from a string in "MM/YYYY" """
         if dateString is None:
             return None
         dateParts = dateString.split("/")
-        return date(year = int(dateParts[2]),month = int(dateParts[0]),day = int(dateParts[1]))
+        if len(dateParts) > 2:
+            # Cannot include day now
+            raise ResponseException("Please format dates as MM/YYYY",StatusCode.CLIENT_ERROR,ValueError)
+        # Defaulting day to 1, this will not be used
+        return date(year = int(dateParts[1]),month = int(dateParts[0]),day=1)
 
     def createSubmission(self, userId, requestDict):
         """ Create a new submission
@@ -124,19 +207,19 @@ class JobHandler(JobTrackerInterface):
 
         if(existingSubmission):
             # Find cross-file and external validation jobs and mark them as waiting
-            valQuery = self.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.type_id == self.getTypeId("validation"))
+            valQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.job_type_id == self.getJobTypeId("validation"))
             valJob = self.runUniqueQuery(valQuery,"No cross-file validation job found","Conflicting jobs found")
-            valJob.status_id = self.getStatusId("waiting")
-            extQuery = self.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.type_id == self.getTypeId("external_validation"))
+            valJob.job_status_id = self.getJobStatusId("waiting")
+            extQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.job_type_id == self.getJobTypeId("external_validation"))
             extJob = self.runUniqueQuery(valQuery,"No external validation job found","Conflicting jobs found")
-            extJob.status_id = self.getStatusId("waiting")
+            extJob.job_status_id = self.getJobStatusId("waiting")
             self.session.commit()
         else:
             # Create validation job
-            validationJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("validation"), submission_id = submissionId)
+            validationJob = Job(job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("validation"), submission_id=submissionId)
             self.session.add(validationJob)
             # Create external validation job
-            externalJob = JobStatus(status_id = self.getStatusId("waiting"), type_id = self.getTypeId("external_validation"), submission_id = submissionId)
+            externalJob = Job(job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("external_validation"), submission_id=submissionId)
             self.session.add(externalJob)
             self.session.flush()
             # Create dependencies for validation jobs
@@ -169,8 +252,6 @@ class JobHandler(JobTrackerInterface):
         # Dictionary of upload ids by filename to return to client
         uploadDict = {}
 
-
-
         for fileType, filePath, filename in filenames:
             fileTypeQuery = self.session.query(FileType.file_type_id).filter(FileType.name == fileType)
             fileTypeResult = self.runUniqueQuery(fileTypeQuery,"No matching file type", "Multiple matching file types")
@@ -178,22 +259,22 @@ class JobHandler(JobTrackerInterface):
 
             if existingSubmission:
                 # Find existing upload job and mark as running
-                uploadQuery = self.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.file_type_id == fileTypeId).filter(JobStatus.type_id == self.getTypeId("file_upload"))
+                uploadQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.file_type_id == fileTypeId).filter(Job.job_type_id == self.getJobTypeId("file_upload"))
                 uploadJob = self.runUniqueQuery(uploadQuery,"No upload job found for this file","Conflicting jobs found")
                 # Mark as running and set new file name and path
-                uploadJob.status_id = self.getStatusId("running")
+                uploadJob.job_status_id = self.getJobStatusId("running")
                 uploadJob.original_filename = filename
                 uploadJob.filename = filePath
                 self.session.commit()
             else:
                 # Create upload job, mark as running since frontend should be doing this upload
-                uploadJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("running"), type_id = self.getTypeId("file_upload"), submission_id = submissionId)
+                uploadJob = Job(original_filename=filename, filename=filePath, file_type_id=fileTypeId, job_status_id=self.getJobStatusId("running"), job_type_id=self.getJobTypeId("file_upload"), submission_id=submissionId)
                 self.session.add(uploadJob)
 
             if existingSubmission:
-                valQuery = self.session.query(JobStatus).filter(JobStatus.submission_id == submissionId).filter(JobStatus.file_type_id == fileTypeId).filter(JobStatus.type_id == self.getTypeId("csv_record_validation"))
+                valQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.file_type_id == fileTypeId).filter(Job.job_type_id == self.getJobTypeId("csv_record_validation"))
                 valJob = self.runUniqueQuery(valQuery,"No validation job found for this file","Conflicting jobs found")
-                valJob.status_id = self.getStatusId("waiting")
+                valJob.job_status_id = self.getJobStatusId("waiting")
                 valJob.original_filename = filename
                 valJob.filename = filePath
                 # Reset file size and number of rows to be set during validation of new file
@@ -202,11 +283,11 @@ class JobHandler(JobTrackerInterface):
                 # Reset number of errors
                 errorDb = ErrorHandler()
                 errorDb.resetErrorsByJobId(valJob.job_id)
-                errorDb.resetFileStatusByJobId(valJob.job_id)
+                errorDb.resetFileByJobId(valJob.job_id)
                 self.session.commit()
             else:
                 # Create parse into DB job
-                valJob = JobStatus(original_filename = filename, filename = filePath, file_type_id = fileTypeId, status_id = self.getStatusId("waiting"), type_id = self.getTypeId("csv_record_validation"), submission_id = submissionId)
+                valJob = Job(original_filename=filename, filename=filePath, file_type_id=fileTypeId, job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("csv_record_validation"), submission_id=submissionId)
                 self.session.add(valJob)
                 self.session.flush()
             if not existingSubmission:
@@ -228,10 +309,10 @@ class JobHandler(JobTrackerInterface):
         Returns:
         True if file upload, False otherwise
         """
-        query = self.session.query(JobStatus.type_id).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job.job_type_id).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         # Got single job, check type
-        if(result.type_id == self.getTypeId("file_upload")):
+        if(result.job_type_id == self.getJobTypeId("file_upload")):
             # Correct type
             return True
         # Did not confirm correct type
@@ -244,7 +325,7 @@ class JobHandler(JobTrackerInterface):
         jobId -- job_id to mark as finished
 
         """
-        JobTrackerInterface.markStatus(self, jobId, 'finished')
+        JobTrackerInterface.markJobStatus(self, jobId, 'finished')
 
     def getUserForSubmission(self,submission):
         """ Takes a submission object and returns the user ID """
@@ -263,7 +344,7 @@ class JobHandler(JobTrackerInterface):
 
     def getJobById(self,jobId):
         """ Given a job ID, return the corresponding job """
-        query = self.session.query(JobStatus).filter(JobStatus.job_id == jobId)
+        query = self.session.query(Job).filter(Job.job_id == jobId)
         result = self.runUniqueQuery(query,"No job with that ID","Multiple jobs with conflicting ID")
         return result
 
@@ -289,6 +370,5 @@ class JobHandler(JobTrackerInterface):
 
     def getFormattedDatetimeBySubmissionId(self, submissionId):
         """ Given a submission ID, return MM/DD/YYYY for the datetime of that submission """
-        # TODO refactor datetime_utc to use one of the Date formats in postgres, change here and where it is created
         datetime = self.getSubmissionById(submissionId).datetime_utc
         return datetime.strftime("%m/%d/%Y")
