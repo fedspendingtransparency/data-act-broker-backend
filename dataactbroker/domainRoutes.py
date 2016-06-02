@@ -12,5 +12,5 @@ def add_domain_routes(app,isLocal,bcrypt):
     @permissions_check
     def list_agencies():
         """ List all CGAC Agencies """
-        validationHandler = ValidationHandler
+        validationHandler = ValidationHandler()
         return RouteUtils.run_instance_function(validationHandler, validationHandler.listAgencies)

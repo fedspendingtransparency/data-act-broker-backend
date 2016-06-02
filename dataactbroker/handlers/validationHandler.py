@@ -11,6 +11,20 @@ class ValidationHandler(ValidationInterface):
     session -- sqlalchemy session for ORM usage
     """
 
+    def __init__(self,interfaces = None):
+        if interfaces is not None:
+            self.interfaces = interfaces
+            self.validationManager = interfaces.validationDb
+
+    def addInterfaces(self, interfaces):
+        """ Add connections to databases
+
+        Args:
+            interfaces: InterfaceHolder object to DBs
+        """
+        self.interfaces = interfaces
+        self.validationManager = interfaces.validationDb
+
     def listAgencies(self):
         agencies = self.validationManager.getAllAgencies()
         agency_list = []
