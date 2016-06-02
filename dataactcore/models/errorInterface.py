@@ -1,6 +1,6 @@
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.errorModels import Status, ErrorType, FileStatus, ErrorData
+from dataactcore.models.errorModels import FileStatus, ErrorType, File, ErrorMetadata
 from dataactcore.config import CONFIG_DB
 
 
@@ -22,51 +22,53 @@ class ErrorInterface(BaseInterface):
         return ErrorInterface.dbName
 
     def getSession(self):
+        """ Return current active session """
         return self.session
 
-    def getStatusId(self,statusName):
-        """Get status ID for given name."""
+    def getFileStatusId(self,statusName):
+        """Get file status ID for given name."""
         return self.getIdFromDict(
-            Status, "STATUS_DICT", "name", statusName, "status_id")
+            FileStatus, "FILE_STATUS_DICT", "name", statusName, "file_status_id")
 
     def getTypeId(self,typeName):
+        """Get type ID for given name """
         return self.getIdFromDict(
             ErrorType, "TYPE_DICT", "name", typeName, "error_type_id")
 
-    def getFileStatusByJobId(self, jobId):
-        """ Get the File Status object with the specified job ID
+    def getFileByJobId(self, jobId):
+        """ Get the File object with the specified job ID
 
         Args:
-            jobId: job to get file status for
+            jobId: job to get file for
 
         Returns:
-            A File Status model object
+            A File model object
         """
-        query = self.session.query(FileStatus).filter(FileStatus.job_id == jobId)
+        query = self.session.query(File).filter(File.job_id == jobId)
         return self.runUniqueQuery(query,"No file for that job ID", "Multiple files have been associated with that job ID")
 
-    def checkStatusByJobId(self, jobId):
-        """ Query status for specified job
+    def checkFileStatusByJobId(self, jobId):
+        """ Query file status for specified job
 
         Args:
             jobId: job to check status for
 
         Returns:
-            Status ID of specified job
+            File Status ID of specified job
         """
-        return self.getFileStatusByJobId(jobId).status_id
+        return self.getFileByJobId(jobId).file_status_id
 
-    def getStatusLabelByJobId(self, jobId):
-        """ Query status label for specified job
+    def getFileStatusLabelByJobId(self, jobId):
+        """ Query file status label for specified job
 
         Args:
             jobId: job to check status for
 
         Returns:
-            Status label of specified job (string)
+            File status label (aka name) for specified job (string)
         """
-        query = self.session.query(FileStatus).options(joinedload("status")).filter(FileStatus.job_id == jobId)
-        return self.runUniqueQuery(query,"No file for that job ID", "Multiple files have been associated with that job ID").status.name
+        query = self.session.query(File).options(joinedload("file_status")).filter(File.job_id == jobId)
+        return self.runUniqueQuery(query,"No file for that job ID", "Multiple files have been associated with that job ID").file_status.name
 
     def checkNumberOfErrorsByJobId(self, jobId):
         """ Get the total number of errors for a specified job
@@ -77,7 +79,7 @@ class ErrorInterface(BaseInterface):
         Returns:
             Number of errors for specified job
         """
-        queryResult = self.session.query(ErrorData).filter(ErrorData.job_id == jobId).all()
+        queryResult = self.session.query(ErrorMetadata).filter(ErrorMetadata.job_id == jobId).all()
         numErrors = 0
         for result in queryResult:
             # For each row that matches jobId, add the number of that type of error
@@ -85,12 +87,12 @@ class ErrorInterface(BaseInterface):
         return numErrors
 
     def resetErrorsByJobId(self, jobId):
-        """ Clear all entries in ErrorData for a specified job
+        """ Clear all entries in ErrorMetadata for a specified job
 
         Args:
             jobId: job to reset
         """
-        self.session.query(ErrorData).filter(ErrorData.job_id == jobId).delete()
+        self.session.query(ErrorMetadata).filter(ErrorMetadata.job_id == jobId).delete()
         self.session.commit()
 
     def sumNumberOfErrorsForJobList(self,jobIdList):
@@ -109,24 +111,26 @@ class ErrorInterface(BaseInterface):
         return errorSum
 
     def getMissingHeadersByJobId(self, jobId):
-        return self.getFileStatusByJobId(jobId).headers_missing
+        """ Get a comma delimited string of all missing headers for specified job """
+        return self.getFileByJobId(jobId).headers_missing
 
     def getDuplicatedHeadersByJobId(self, jobId):
-        return self.getFileStatusByJobId(jobId).headers_duplicated
+        """ Get a comma delimited string of all duplicated headers for specified job """
+        return self.getFileByJobId(jobId).headers_duplicated
 
     def getErrorType(self,jobId):
         """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
-        if self.getStatusLabelByJobId(jobId) == "header_error":
+        if self.getFileStatusLabelByJobId(jobId) == "header_error":
             # Header errors occurred, return that
             return "header_errors"
-        elif self.getFileStatusByJobId(jobId).row_errors_present:
+        elif self.getFileByJobId(jobId).row_errors_present:
             # Row errors occurred
             return "row_errors"
         else:
             # No errors occurred during validation
             return "none"
 
-    def resetFileStatusByJobId(self, jobId):
-        """ Delete file status for job ID """
-        self.session.query(FileStatus).filter(FileStatus.job_id == jobId).delete()
+    def resetFileByJobId(self, jobId):
+        """ Delete file for job ID """
+        self.session.query(File).filter(File.job_id == jobId).delete()
         self.session.commit()

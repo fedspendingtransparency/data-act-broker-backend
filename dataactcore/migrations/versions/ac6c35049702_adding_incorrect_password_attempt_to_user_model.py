@@ -74,3 +74,8 @@ def downgrade_validation():
     pass
     ### end Alembic commands ###
 
+def upgrade_staging():
+    pass
+
+def downgrade_staging():
+    pass

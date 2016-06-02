@@ -121,8 +121,6 @@ class FieldCleaner:
         return length
 
 if __name__ == '__main__':
-    #FieldCleaner.cleanFile("programActivityRaw.csv","programActivityFields.csv")
-    #FieldCleaner.cleanFile("awardFinFields.csv","awardFinancialFields.csv")
     FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")
     FieldCleaner.cleanFile("../config/awardFinancialFieldsRaw.csv","../config/awardFinancialFields.csv")
     FieldCleaner.cleanFile("../config/programActivityFieldsRaw.csv","../config/programActivityFields.csv")

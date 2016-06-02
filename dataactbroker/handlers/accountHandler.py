@@ -18,12 +18,17 @@ class AccountHandler:
     """
     # Handles login process, compares username and password provided
     FRONT_END = ""
+    INACTIVITY_THRESHOLD = 120 # Days a user's account can be unused before being marked as inactive
+    ALLOWED_PASSWORD_ATTEMPTS = 3 # Number of allowed login attempts before account is locked
     # Instance fields include request, response, logFlag, and logFile
 
     def __init__(self,request, interfaces = None, bcrypt = None):
-        """
+        """ Creates the Login Handler
 
-        Creates the Login Handler
+        Args:
+            request - Flask request object
+            interfaces - InterfaceHolder object for databases
+            bcrypt - Bcrypt object associated with app
         """
         self.request = request
         self.bcrypt = bcrypt
@@ -32,7 +37,11 @@ class AccountHandler:
             self.userManager = interfaces.userDb
 
     def addInterfaces(self,interfaces):
-        """ Add interfaces to an existing account handler """
+        """ Add interfaces to an existing account handler
+
+        Args:
+            interfaces - InterfaceHolder object for databases
+        """
         self.interfaces = interfaces
         self.userManager = interfaces.userDb
 
@@ -87,7 +96,7 @@ class AccountHandler:
 
                     LoginSession.login(session,user.user_id)
                     permissionList = []
-                    for permission in self.interfaces.userDb.getPermssionList():
+                    for permission in self.interfaces.userDb.getPermissionList():
                         if(self.interfaces.userDb.hasPermission(user, permission.name)):
                             permissionList.append(permission.permission_type_id)
                     self.interfaces.userDb.updateLastLogin(user)
@@ -104,8 +113,8 @@ class AccountHandler:
                 LoginSession.logout(session)
                 raise ve
             except Exception as e:
-                    LoginSession.logout(session)
-                    raise ValueError("Invalid username and/or password")
+                LoginSession.logout(session)
+                raise ValueError("Invalid username and/or password")
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
@@ -163,10 +172,18 @@ class AccountHandler:
             """
             threadedDatabase =  UserHandler()
             try:
-                for user in threadedDatabase.getUsersByType("website_admin") :
+                for user in threadedDatabase.getUsersByType("website_admin"):
                     emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY]':agency,'[REG_EMAIL]' : userEmail,'[URL]':link}
                     newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=threadedDatabase)
                     newEmail.send()
+                for user in threadedDatabase.getUsersByType("agency_admin"):
+                    if user.agency == agency:
+                        emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY]': agency,
+                             '[REG_EMAIL]': userEmail, '[URL]': link}
+                        newEmail = sesEmail(user.email, system_email, templateType="account_creation", parameters=emailTemplate,
+                                database=threadedDatabase)
+                        newEmail.send()
+
             finally:
                 InterfaceHolder.closeOne(threadedDatabase)
 
@@ -201,7 +218,9 @@ class AccountHandler:
         newEmail = sesEmail(user.email, system_email,templateType="account_creation_user",parameters=emailTemplate,database=self.interfaces.userDb)
         newEmail.send()
 
+        # Logout and delete token
         LoginSession.logout(session)
+        self.interfaces.userDb.deleteToken(session["token"])
         # Mark user as awaiting approval
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
@@ -256,6 +275,7 @@ class AccountHandler:
             exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         token = requestFields.getValue("token")
+        session["token"] = token
         success,message,errorCode = sesEmail.checkToken(token,self.interfaces.userDb,"validate_email")
         if(success):
             #mark session that email can be filled out
@@ -292,6 +312,8 @@ class AccountHandler:
             exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         token = requestFields.getValue("token")
+        # Save token to be deleted after reset
+        session["token"] = token
         success,message,errorCode = sesEmail.checkToken(token,self.interfaces.userDb,"password_reset")
         if(success):
             #mark session that password can be filled out
@@ -302,6 +324,76 @@ class AccountHandler:
             #failure but alert UI of issue
             return JsonResponse.create(StatusCode.OK,{"errorCode":errorCode,"message":message})
 
+    def updateUser(self, system_email):
+        """
+        Update editable fields for specified user. Editable fields for a user:
+        * is_active
+        * user_status_id
+        * permissions
+
+        Args:
+            None: Request body should contain the following keys:
+                * uid (integer)
+                * status (string)
+                * permissions (comma separated string)
+                * is_active (boolean)
+
+        Returns: JSON response object with either an exception or success message
+
+        """
+        requestDict = RequestDictionary(self.request)
+
+        # throw an exception if nothing is provided in the request
+        if not requestDict.exists("uid") or not (requestDict.exists("status") or requestDict.exists("permissions") or
+                    requestDict.exists("is_active")):
+            # missing required fields, return 400
+            exc = ResponseException("Request body must include uid and at least one of the following: status, permissions, is_active",
+                                    StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+
+        # Find user that matches specified uid
+        user = self.interfaces.userDb.getUserByUID(int(requestDict.getValue("uid")))
+
+        if requestDict.exists("status"):
+            #check if the user is waiting
+            if(self.interfaces.userDb.checkStatus(user,"awaiting_approval")):
+                if(requestDict.getValue("status") == "approved"):
+                    # Grant agency_user permission to newly approved users
+                    self.interfaces.userDb.grantPermission(user,"agency_user")
+                    link=  AccountHandler.FRONT_END
+                    emailTemplate = { '[URL]':link,'[EMAIL]':system_email}
+                    newEmail = sesEmail(user.email, system_email,templateType="account_approved",parameters=emailTemplate,database=self.interfaces.userDb)
+                    newEmail.send()
+                elif (requestDict.getValue("status") == "denied"):
+                    emailTemplate = {}
+                    newEmail = sesEmail(user.email, system_email,templateType="account_rejected",parameters=emailTemplate,database=self.interfaces.userDb)
+                    newEmail.send()
+            # Change user's status
+            self.interfaces.userDb.changeStatus(user,requestDict.getValue("status"))
+
+        if requestDict.exists("permissions"):
+            permissions_list = requestDict.getValue("permissions").split(',')
+
+            # Remove all existing permissions for user
+            user_permissions = self.interfaces.userDb.getUserPermissions(user)
+            for permission in user_permissions:
+                self.interfaces.userDb.removePermission(user, permission)
+
+            # Grant specified permissions
+            for permission in permissions_list:
+                self.interfaces.userDb.grantPermission(user, permission)
+
+        # Activate/deactivate user
+        if requestDict.exists("is_active"):
+            is_active = bool(requestDict.getValue("is_active"))
+            if not self.isUserActive(user) and is_active:
+                # Reset password count to 0
+                self.resetPasswordCount(user)
+                # Reset last login date so the account isn't expired
+                self.interfaces.userDb.updateLastLogin(user, unlock_user=True)
+            self.interfaces.userDb.setUserActive(user, is_active)
+
+        return JsonResponse.create(StatusCode.OK, {"message": "User successfully updated"})
 
     def changeStatus(self,system_email):
         """
@@ -344,6 +436,27 @@ class AccountHandler:
         self.interfaces.userDb.changeStatus(user,requestDict.getValue("new_status"))
         return JsonResponse.create(StatusCode.OK,{"message":"Status change successful"})
 
+    def listUsers(self):
+        """ List all users ordered by status. Associated request body must have key 'filter_by' """
+        user = self.interfaces.userDb.getUserByUID(LoginSession.getName(flaskSession))
+        isAgencyAdmin = True if self.interfaces.userDb.hasPermission(user, "agency_admin") else False
+        try:
+            if isAgencyAdmin:
+                users = self.interfaces.userDb.getUsers(agency=user.agency)
+            else:
+                users = self.interfaces.userDb.getUsers()
+        except ValueError as e:
+            # Client provided a bad status
+            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
+            return JsonResponse.error(exc,exc.status)
+        userInfo = []
+        for user in users:
+            thisInfo = {"name":user.name, "title":user.title,  "agency":user.agency, "email":user.email, "id":user.user_id,
+                        "is_active":user.is_active, "permissions": ",".join(self.interfaces.userDb.getUserPermissions(user)),
+                        "status": user.user_status.name}
+            userInfo.append(thisInfo)
+        return JsonResponse.create(StatusCode.OK,{"users":userInfo})
+
     def listUsersWithStatus(self):
         """ List all users with the specified status.  Associated request body must have key 'status' """
         requestDict = RequestDictionary(self.request)
@@ -351,8 +464,14 @@ class AccountHandler:
             # Missing a required field, return 400
             exc = ResponseException("Request body must include status", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
+
+        current_user = self.interfaces.userDb.getUserByUID(flaskSession["name"])
+
         try:
-            users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"))
+            if self.interfaces.userDb.hasPermission(current_user, "agency_admin"):
+                users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"), current_user.agency)
+            else:
+                users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"))
         except ValueError as e:
             # Client provided a bad status
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
@@ -363,16 +482,45 @@ class AccountHandler:
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
+    def listSubmissionsByCurrentUserAgency(self):
+        """ List all submission IDs associated with the current user's agency """
+        userId = LoginSession.getName(flaskSession)
+        user = self.interfaces.userDb.getUserByUID(userId)
+        submissions = self.interfaces.jobDb.getSubmissionsByUserAgency(user)
+        submissionDetails = []
+        for submission in submissions:
+            jobIds = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
+            total_size = 0
+            for jobId in jobIds:
+                file_size = self.interfaces.jobDb.getFileSize(jobId)
+                total_size += file_size if file_size is not None else 0
+
+            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
+            error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
+            submissionDetails.append({"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
+                                      "size": total_size, "status": status, "errors": error_count})
+        return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
+
     def listSubmissionsByCurrentUser(self):
         """ List all submission IDs associated with the current user ID """
         userId = LoginSession.getName(flaskSession)
         submissions = self.interfaces.jobDb.getSubmissionsByUserId(userId)
-        submissionIdList = []
+        submissionDetails = []
         for submission in submissions:
-            submissionIdList.append(submission.submission_id)
-        return JsonResponse.create(StatusCode.OK,{"submission_id_list": submissionIdList})
+            jobIds = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
+            total_size = 0
+            for jobId in jobIds:
+                file_size = self.interfaces.jobDb.getFileSize(jobId)
+                total_size += file_size if file_size is not None else 0
 
-    def setNewPassword(self):
+            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
+            error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
+            submissionDetails.append(
+                {"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
+                 "size": total_size, "status": status, "errors": error_count})
+        return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
+
+    def setNewPassword(self, session):
         """ Set a new password for a user, request should have keys "user_email" and "password" """
         requestDict = RequestDictionary(self.request)
         if(not (requestDict.exists("user_email") and requestDict.exists("password"))):
@@ -387,7 +535,9 @@ class AccountHandler:
         user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("user_email"))
         # Set new password
         self.interfaces.userDb.setPassword(user,requestDict.getValue("password"),self.bcrypt)
-
+        # Invalidate token
+        self.interfaces.userDb.deleteToken(session["token"])
+        session["reset"] = None
         # Return success message
         return JsonResponse.create(StatusCode.OK,{"message":"Password successfully changed"})
 
@@ -413,6 +563,11 @@ class AccountHandler:
         except Exception as e:
             exc = ResponseException("Unknown Error",StatusCode.CLIENT_ERROR,ValueError)
             return JsonResponse.error(exc,exc.status)
+        # User must be approved and active to reset password
+        if user.user_status_id != self.interfaces.userDb.getUserStatusId("approved"):
+            raise ResponseException("User must be approved before resetting password", StatusCode.CLIENT_ERROR)
+        elif not user.is_active:
+            raise ResponseException("User is locked, cannot reset password", StatusCode.CLIENT_ERROR)
 
         LoginSession.logout(session)
         self.interfaces.userDb.session.commit()
@@ -441,35 +596,91 @@ class AccountHandler:
         uid =  session["name"]
         user =  self.interfaces.userDb.getUserByUID(uid)
         permissionList = []
-        for permission in self.interfaces.userDb.getPermssionList():
+        for permission in self.interfaces.userDb.getPermissionList():
             if(self.interfaces.userDb.hasPermission(user, permission.name)):
                 permissionList.append(permission.permission_type_id)
-        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList})
+        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList, "skip_guide":user.skip_guide})
 
-    def isUserActive(self, user):
+    def isUserActive(self, user, checkExpiration=False):
+        """ Checks if user's account is still active
+
+        Args:
+            user: User object to check
+        """
         return user.is_active
 
     def isAccountExpired(self, user):
+        """ Checks user's last login date against inactivity threshold, marks account as inactive if expired
+
+        Args:
+            user: User object to check
+
+        """
         today = parse(time.strftime("%c"))
         daysActive = (today-user.last_login_date).days
-        secondsActive = (today-user.last_login_date).seconds
-        if daysActive > 120 or (daysActive == 120 and secondsActive > 0):
+        if daysActive >= self.INACTIVITY_THRESHOLD:
             self.lockAccount(user)
             return True
         return False
 
     def resetPasswordCount(self, user):
+        """ Resets the number of failed attempts when a user successfully logs in
+
+        Args:
+            user: User object to be changed
+        """
         if user.incorrect_password_attempts != 0:
             user.incorrect_password_attempts = 0
             self.interfaces.userDb.session.commit()
 
     def incrementPasswordCount(self, user):
-        if user.incorrect_password_attempts < 3:
+        """ Records a failed attempt to log in.  If number of failed attempts is higher than threshold, locks account.
+
+        Args:
+            user: User object to be changed
+
+        Returns:
+
+        """
+        if user.incorrect_password_attempts < self.ALLOWED_PASSWORD_ATTEMPTS:
             user.incorrect_password_attempts += 1
-            if user.incorrect_password_attempts == 3:
+            if user.incorrect_password_attempts == self.ALLOWED_PASSWORD_ATTEMPTS:
                 self.lockAccount(user)
             self.interfaces.userDb.session.commit()
 
     def lockAccount(self, user):
+        """ Lock this user's account by marking it as inactive
+
+        Args:
+            user: User object to be locked
+        """
         user.is_active = False
         self.interfaces.userDb.session.commit()
+
+    def setSkipGuide(self, session):
+        """ Set current user's skip guide parameter """
+        uid =  session["name"]
+        userDb = self.interfaces.userDb
+        user =  userDb.getUserByUID(uid)
+        requestDict = RequestDictionary(self.request)
+        if not requestDict.exists("skip_guide"):
+            exc = ResponseException("Must include skip_guide parameter", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+        skipGuide = requestDict.getValue("skip_guide")
+        if type(skipGuide) == type(True):
+            # param is a bool
+            user.skip_guide = skipGuide
+        elif type(skipGuide) == type("string"):
+            # param is a string, allow "true" or "false"
+            if skipGuide.lower() == "true":
+                user.skip_guide = True
+            elif skipGuide.lower() == "false":
+                user.skip_guide = False
+            else:
+                exc = ResponseException("skip_guide must be true or false", StatusCode.CLIENT_ERROR)
+                return JsonResponse.error(exc, exc.status)
+        else:
+            exc = ResponseException("skip_guide must be a boolean", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+        userDb.session.commit()
+        return JsonResponse.create(StatusCode.OK,{"message":"skip_guide set successfully","skip_guide":skipGuide})

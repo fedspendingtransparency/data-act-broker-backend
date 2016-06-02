@@ -1,7 +1,5 @@
 from dataactbroker.scripts.setupEmails import setupEmails
-from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
-from dataactcore.scripts.setupErrorDB import setupErrorDB
-from dataactcore.scripts.setupUserDB import setupUserDB
+from dataactcore.scripts.setupAllDB import setupAllDB
 from dataactcore.utils.responseException import ResponseException
 from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.aws.session import SessionTable
@@ -12,11 +10,12 @@ from sqlalchemy.orm.exc import NoResultFound
 
 
 def options():
-
+    """ Run functions based on arguments provided """
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--initialize", action="store_true", help="Runs all of the setup options")
     parser.add_argument("-a", "--createAdmin", action="store_true", help="Creates admin user")
     parser.add_argument("-s", "--start", action="store_true", help="Starts the broker")
+    parser.add_argument("-d", "--deploy", action="store_true", help="Deploy on AWS")
     args = parser.parse_args()
     optionsDict = vars(args)
 
@@ -29,8 +28,12 @@ def options():
     if noArgs:
         print ("Please enter an argument.")
 
+def deploy():
+    """ Run steps needed for deployment on AWS, currently this is just DB setup """
+    setupDB()
 
 def initialize():
+    """ Set up databases and dynamo and create an admin user """
     print ("Setting up databases...")
     setupDB()
     print ("Setting up DynamoDB session table...")
@@ -41,9 +44,8 @@ def initialize():
 
 
 def setupDB():
-    setupJobTrackerDB()
-    setupErrorDB()
-    setupUserDB()
+    """ Setup all databases used by API """
+    setupAllDB()
     setupEmails()
 
 
@@ -58,17 +60,19 @@ def createAdmin():
 
         if type(e.wrappedException) is NoResultFound:
             userDb.createUserWithPassword(
-                adminEmail, adminPass, Bcrypt(), admin=True)
+                adminEmail, adminPass, Bcrypt(), permission=2)
             user = userDb.getUserByEmail(adminEmail)
             userDb.addUserInfo(user, "Admin", "System", "System Admin")
     userDb.session.close()
 
 
 def setupSessionTable():
+    """ Create Dynamo session table """
     SessionTable.createTable(CONFIG_BROKER['local'], CONFIG_DB['dynamo_port'])
 
 
 def start():
+    """ Launches the app """
     from dataactbroker.app import runApp
     runApp()
 

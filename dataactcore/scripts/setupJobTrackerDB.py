@@ -1,4 +1,4 @@
-from dataactcore.models.jobModels import Status, Type, FileType
+from dataactcore.models.jobModels import JobStatus, JobType, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_DB
@@ -24,7 +24,7 @@ def insertCodes():
         (5, 'invalid', 'job is invalid'),
         (6, 'failed', 'job failed to complete')]
     for s in statusList:
-        status = Status(status_id=s[0], name=s[1], description=s[2])
+        status = JobStatus(job_status_id=s[0], name=s[1], description=s[2])
         jobDb.session.merge(status)
 
     typeList = [(1, 'file_upload', 'file must be uploaded to S3'),
@@ -33,7 +33,7 @@ def insertCodes():
         (4, 'validation', 'new information must be validated'),
         (5, 'external_validation', 'new information must be validated against external sources')]
     for t in typeList:
-        thisType = Type(type_id=t[0],name=t[1], description=t[2])
+        thisType = JobType(job_type_id=t[0],name=t[1], description=t[2])
         jobDb.session.merge(thisType)
 
     fileTypeList = [(1, 'award', ''),
