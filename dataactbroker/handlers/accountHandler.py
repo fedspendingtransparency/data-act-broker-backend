@@ -101,7 +101,8 @@ class AccountHandler:
                         if(self.interfaces.userDb.hasPermission(user, permission.name)):
                             permissionList.append(permission.permission_type_id)
                     self.interfaces.userDb.updateLastLogin(user)
-                    return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),"name":user.name,"title":user.title ,"agency":user.agency, "permissions" : permissionList})
+                    agency = self.validationManager.getAgencyName(user.cgac_code)
+                    return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),"name":user.name,"title":user.title ,"agency":agency, "permissions" : permissionList})
                 else :
                     # increase incorrect password attempt count by 1
                     # if this is the 3rd incorrect attempt, lock account

@@ -12,6 +12,7 @@ from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
+from dataactcore.scripts.setupValidationDB import setupValidationDB
 from dataactcore.config import CONFIG_BROKER
 import dataactcore.config
 from dataactbroker.scripts.setupEmails import setupEmails
@@ -52,6 +53,8 @@ class BaseTestAPI(unittest.TestCase):
         setupJobTrackerDB()
         # drop and re-create test error db/tables
         setupErrorDB()
+        # drop and re-create test validation db/tables
+        setupValidationDB()
         # load e-mail templates
         setupEmails()
 
