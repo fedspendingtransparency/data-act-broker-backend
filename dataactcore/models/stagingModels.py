@@ -68,8 +68,8 @@ class ObjectClassProgramActivity(Base):
     availabilitytypecode = Column(Text)
     beginningperiodofavailability = Column(Text)
     bydirectreimbursablefundingsource = Column(Text, nullable=False)
-    deobligationsrecoveriesrefundsprioryrbyprogobjectclass_cpe = Column(
-        Numeric, nullable=False, key="deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe")
+    deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe = Column(
+        "deobligationsrecoveriesrefundsprioryrbyprogobjectclass_cpe", Numeric, nullable=False)
     endingperiodofavailability = Column(Text)
     grossoutlayamountbyprogramobjectclass_cpe = Column(Numeric, nullable=False)
     grossoutlayamountbyprogramobjectclass_fyb = Column(Numeric, nullable=False)
@@ -89,39 +89,44 @@ class ObjectClassProgramActivity(Base):
     subaccountcode = Column(Text, nullable=False)
     ussgl480100_undeliveredordersobligationsunpaid_cpe = Column(Numeric, nullable=False)
     ussgl480100_undeliveredordersobligationsunpaid_fyb = Column(Numeric, nullable=False)
-    ussgl480200_undeliveredordersobligationsprepaidadv_cpe = Column(
-        Numeric, nullable=False, key="ussgl480200_undeliveredordersobligationsprepaidadvanced_cpe")
-    ussgl480200_undeliveredordersobligationsprepaidadv_fyb = Column(
-        Numeric, nullable=False, key="ussgl480200_undeliveredordersobligationsprepaidadvanced_fyb")
-    ussgl483100_undeliveredordersobligtransferredunpaid_cpe = Column(
-        Numeric, nullable=False, key="ussgl483100_undeliveredordersobligationstransferredunpaid_cpe")
-    ussgl483200_undeliveredordersobligtransferredppdadv_cpe = Column(
-        Numeric, nullable=False, key="ussgl483200_undeliveredordersobligationstransferredprepaidadvanced_cpe")
-    ussgl487100_downadjsprioryrunpaidundelivordersobligrec_cpe = Column(
-        Numeric, nullable=False, key="ussgl487100_downwardadjustmentsofprioryearunpaidundeliveredordersobligationsrecoveries_cpe")
-    ussgl487200_downadjsprioryrppdadvundelivordersobligref_cpe = Column(
-        Numeric, nullable=False, key="ussgl487200_downwardadjustmentsofprioryearprepaidadvancedundeliveredordersobligationsrefundscollected_cpe")
-    ussgl488100_upadjsprioryearundelivordersobligunpaid_cpe = Column(
-        Numeric, nullable=False, key="ussgl488100_upwardadjustmentsofprioryearundeliveredordersobligationsunpaid_cpe")
-    ussgl488200_upadjsprioryrundelivordersobligprepaidadv_cpe = Column(
-        Numeric, nullable=False, key="ussgl488200_upwardadjustmentsofprioryearundeliveredordersobligationsprepaidadvanced_cpe")
+    ussgl480200_undeliveredordersobligationsprepaidadvanced_cpe = Column(
+        "ussgl480200_undeliveredordersobligationsprepaidadv_cpe", Numeric, nullable=False)
+    ussgl480200_undeliveredordersobligationsprepaidadvanced_fyb = Column(
+        "ussgl480200_undeliveredordersobligationsprepaidadv_fyb", Numeric, nullable=False)
+    ussgl483100_undeliveredordersobligationstransferredunpaid_cpe = Column(
+        "ussgl483100_undeliveredordersobligtransferredunpaid_cpe", Numeric, nullable=False)
+    ussgl483200_undeliveredordersobligationstransferredprepaidadvanced_cpe = Column(
+        "ussgl483200_undeliveredordersobligtransferredppdadv_cpe", Numeric, nullable=False)
+    ussgl487100_downwardadjustmentsofprioryearunpaidundeliveredordersobligationsrecoveries_cpe = Column(
+        "ussgl487100_downadjsprioryrunpaidundelivordersobligrec_cpe", Numeric, nullable=False)
+    ussgl487200_downwardadjustmentsofprioryearprepaidadvancedundeliveredordersobligationsrefundscollected_cpe = Column(
+        "ussgl487200_downadjsprioryrppdadvundelivordersobligref_cpe", Numeric, nullable=False)
+    ussgl488100_upwardadjustmentsofprioryearundeliveredordersobligationsunpaid_cpe = Column(
+        "ussgl488100_upadjsprioryearundelivordersobligunpaid_cpe", Numeric, nullable=False)
+    ussgl488200_upwardadjustmentsofprioryearundeliveredordersobligationsprepaidadvanced_cpe = Column(
+        "ussgl488200_upadjsprioryrundelivordersobligprepaidadv_cpe", Numeric, nullable=False)
     ussgl490100_deliveredordersobligationsunpaid_cpe = Column(Numeric, nullable=False)
     ussgl490100_deliveredordersobligationsunpaid_fyb = Column(Numeric, nullable=False)
     ussgl490200_deliveredordersobligationspaid_cpe = Column(Numeric, nullable=False)
     ussgl490800_authorityoutlayednotyetdisbursed_cpe = Column(Numeric, nullable=False)
     ussgl490800_authorityoutlayednotyetdisbursed_fyb = Column(Numeric, nullable=False)
-    ussgl493100_deliveredordersobligstransferredunpaid_cpe = Column(
-        Numeric, nullable=False, key="ussgl493100_deliveredordersobligationstransferredunpaid_cpe")
-    ussgl497100_downadjsprioryrunpaiddelivordersobligrec_cpe = Column(
-        Numeric, nullable=False, key="ussgl497100_downwardadjustmentsofprioryearunpaiddeliveredordersobligationsrecoveries_cpe")
-    ussgl497200_downadjsprioryrpaiddelivordersobligrefclt_cpe = Column(
-        Numeric, nullable=False, key="ussgl497200_downwardadjustmentsofprioryearpaiddeliveredordersobligationsrefundscollected_cpe")
-    ussgl498100_upadjsprioryeardeliveredordersobligunpaid_cpe = Column(
-        Numeric, nullable=False, key="ussgl498100_upwardadjustmentsofprioryeardeliveredordersobligationsunpaid_cpe")
-    ussgl498200_upadjsprioryrdelivordersobligpaid_cpe = Column(
-        Numeric, nullable=False, key="ussgl498200_upwardadjustmentsofprioryeardeliveredordersobligationspaid_cpe")
+    ussgl493100_deliveredordersobligationstransferredunpaid_cpe = Column(
+        "ussgl493100_deliveredordersobligstransferredunpaid_cpe", Numeric, nullable=False)
+    ussgl497100_downwardadjustmentsofprioryearunpaiddeliveredordersobligationsrecoveries_cpe = Column(
+        "ussgl497100_downadjsprioryrunpaiddelivordersobligrec_cpe", Numeric, nullable=False)
+    ussgl497200_downwardadjustmentsofprioryearpaiddeliveredordersobligationsrefundscollected_cpe = Column(
+        "ussgl497200_downadjsprioryrpaiddelivordersobligrefclt_cpe", Numeric, nullable=False)
+    ussgl498100_upwardadjustmentsofprioryeardeliveredordersobligationsunpaid_cpe = Column(
+        "ussgl498100_upadjsprioryeardeliveredordersobligunpaid_cpe", Numeric, nullable=False)
+    ussgl498200_upwardadjustmentsofprioryeardeliveredordersobligationspaid_cpe = Column(
+        "ussgl498200_upadjsprioryrdelivordersobligpaid_cpe", Numeric, nullable=False)
     tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
-    Index("ix_oc_pa_tas_oc_pa", "tas", "objectclass", "programactivitycode", unique=False)
+
+Index("ix_oc_pa_tas_oc_pa",
+      ObjectClassProgramActivity.tas,
+      ObjectClassProgramActivity.objectclass,
+      ObjectClassProgramActivity.programactivitycode,
+      unique=False)
 
 class AwardFinancial(Base):
     """Model for the award_financial table."""
@@ -135,7 +140,7 @@ class AwardFinancial(Base):
     bydirectreimbursablefundingsource = Column(Text)
     deobligationsrecoveriesrefundsofprioryearbyaward_cpe = Column(Numeric)
     endingperiodofavailability = Column(Text)
-    fain = Column(Text)
+    fain = Column(Text, index=True)
     grossoutlayamountbyaward_cpe = Column(Numeric)
     grossoutlayamountbyaward_fyb = Column(Numeric)
     grossoutlaysdeliveredorderspaidtotal_cpe = Column(Numeric)
@@ -150,46 +155,51 @@ class AwardFinancial(Base):
     obligationsundeliveredordersunpaidtotal_cpe = Column(Numeric)
     obligationsundeliveredordersunpaidtotal_fyb = Column(Numeric)
     parentawardid = Column(Text)
-    piid = Column(Text)
+    piid = Column(Text, index=True)
     programactivitycode = Column(Text)
     programactivityname = Column(Text)
     subaccountcode = Column(Text, nullable=False)
     transactionobligatedamount = Column(Numeric)
-    uri = Column(Text)
+    uri = Column(Text, index=True)
     ussgl480100_undeliveredordersobligationsunpaid_cpe = Column(Numeric)
     ussgl480100_undeliveredordersobligationsunpaid_fyb = Column(Numeric)
-    ussgl480200_undeliveredordersobligationsprepaidadv_cpe = Column(
-        Numeric, key="ussgl480200_undeliveredordersobligationsprepaidadvanced_cpe")
+    ussgl480200_undeliveredordersobligationsprepaidadvanced_cpe = Column(
+        "ussgl480200_undeliveredordersobligationsprepaidadv_cpe", Numeric)
     ussgl480200_undeliveredordersobligationsprepaidadvanced_fyb = Column(Numeric)
-    ussgl483100_undeliveredordersobligtransferredunpaid_cpe = Column(
-        Numeric, key="ussgl483100_undeliveredordersobligationstransferredunpaid_cpe")
-    ussgl483200_undeliveredordersobligtransferredppdadv_cpe = Column(
-        Numeric, key="ussgl483200_undeliveredordersobligationstransferredprepaidadvanced_cpe")
-    ussgl487100_downadjsprioryrunpaidundelivordersobligrec_cpe = Column(
-        Numeric, key="ussgl487100_downwardadjustmentsofprioryearunpaidundeliveredordersobligationsrecoveries_cpe")
-    ussgl487200_downadjsprioryrppdadvundelivordersobligref_cpe = Column(
-        Numeric, key="ussgl487200_downwardadjustmentsofprioryearprepaidadvancedundeliveredordersobligationsrefundscollected_cpe")
-    ussgl488100_upadjsprioryearundelivordersobligunpaid_cpe = Column(
-        Numeric, key="ussgl488100_upwardadjustmentsofprioryearundeliveredordersobligationsunpaid_cpe")
-    ussgl488200_upadjsprioryrundelivordersobligprepaidadv_cpe = Column(
-        Numeric, key="ussgl488200_upwardadjustmentsofprioryearundeliveredordersobligationsprepaidadvanced_cpe")
+    ussgl483100_undeliveredordersobligationstransferredunpaid_cpe = Column(
+        "ussgl483100_undeliveredordersobligtransferredunpaid_cpe", Numeric)
+    ussgl483200_undeliveredordersobligationstransferredprepaidadvanced_cpe = Column(
+        "ussgl483200_undeliveredordersobligtransferredppdadv_cpe", Numeric)
+    ussgl487100_downwardadjustmentsofprioryearunpaidundeliveredordersobligationsrecoveries_cpe = Column(
+        "ussgl487100_downadjsprioryrunpaidundelivordersobligrec_cpe", Numeric)
+    ussgl487200_downwardadjustmentsofprioryearprepaidadvancedundeliveredordersobligationsrefundscollected_cpe = Column(
+        "ussgl487200_downadjsprioryrppdadvundelivordersobligref_cpe", Numeric)
+    ussgl488100_upwardadjustmentsofprioryearundeliveredordersobligationsunpaid_cpe = Column(
+        "ussgl488100_upadjsprioryearundelivordersobligunpaid_cpe", Numeric)
+    ussgl488200_upwardadjustmentsofprioryearundeliveredordersobligationsprepaidadvanced_cpe = Column(
+        "ussgl488200_upadjsprioryrundelivordersobligprepaidadv_cpe", Numeric)
     ussgl490100_deliveredordersobligationsunpaid_cpe = Column(Numeric)
     ussgl490100_deliveredordersobligationsunpaid_fyb = Column(Numeric)
     ussgl490200_deliveredordersobligationspaid_cpe = Column(Numeric)
     ussgl490800_authorityoutlayednotyetdisbursed_cpe = Column(Numeric)
     ussgl490800_authorityoutlayednotyetdisbursed_fyb = Column(Numeric)
-    ussgl493100_deliveredordersobligstransferredunpaid_cpe = Column(
-        Numeric, key="ussgl493100_deliveredordersobligationstransferredunpaid_cpe")
-    ussgl497100_downadjsprioryrunpaiddelivordersobligrec_cpe = Column(
-        Numeric, key="ussgl497100_downwardadjustmentsofprioryearunpaiddeliveredordersobligationsrecoveries_cpe")
-    ussgl497200_downadjsprioryrpaiddelivordersobligrefclt_cpe = Column(
-        Numeric, key="ussgl497200_downwardadjustmentsofprioryearpaiddeliveredordersobligationsrefundscollected_cpe")
-    ussgl498100_upadjsprioryeardeliveredordersobligunpaid_cpe = Column(
-        Numeric, key="USSGL498100_UpwardAdjustmentsOfPriorYearDeliveredOrdersObligationsUnpaid_CPE")
-    ussgl498200_upadjsprioryrdelivordersobligpaid_cpe = Column(
-        Numeric, key="ussgl498200_upwardadjustmentsofprioryeardeliveredordersobligationspaid_cpe")
+    ussgl493100_deliveredordersobligationstransferredunpaid_cpe = Column(
+        "ussgl493100_deliveredordersobligstransferredunpaid_cpe", Numeric)
+    ussgl497100_downwardadjustmentsofprioryearunpaiddeliveredordersobligationsrecoveries_cpe = Column(
+        "ussgl497100_downadjsprioryrunpaiddelivordersobligrec_cpe", Numeric)
+    ussgl497200_downwardadjustmentsofprioryearpaiddeliveredordersobligationsrefundscollected_cpe = Column(
+        "ussgl497200_downadjsprioryrpaiddelivordersobligrefclt_cpe", Numeric)
+    USSGL498100_UpwardAdjustmentsOfPriorYearDeliveredOrdersObligationsUnpaid_cpe  = Column(
+        "ussgl498100_upadjsprioryeardeliveredordersobligunpaid_cpe", Numeric)
+    ussgl498200_upwardadjustmentsofprioryeardeliveredordersobligationspaid_cpe = Column(
+        "ussgl498200_upadjsprioryrdelivordersobligpaid_cpe", Numeric, key="")
     tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
-    Index("ix_award_financial_tas_oc_pa", "tas", "objectclass", "programactivitycode", unique=False)
+
+Index("ix_award_financial_tas_oc_pa",
+      AwardFinancial.tas,
+      AwardFinancial.objectclass,
+      AwardFinancial.programactivitycode,
+      unique=False)
 
 class AwardFinancialAssistance(Base):
     """Model for the award_financial_assistance table."""
@@ -215,7 +225,7 @@ class AwardFinancialAssistance(Base):
     cfda_title = Column(Text)
     correctionlatedeleteindicator = Column(Text)
     facevalueloanguarantee = Column(Numeric)
-    fain = Column(Text)
+    fain = Column(Text, index=True)
     federalactionobligation = Column(Numeric)
     fiscalyearandquartercorrection = Column(Text)
     fundingagencycode = Column(Text)
@@ -255,7 +265,4 @@ class AwardFinancialAssistance(Base):
     recordtype = Column(Integer)
     sai_number = Column(Text)
     totalfundingamount = Column(Numeric)
-    uri = Column(Text)
-
-
-
+    uri = Column(Text, index=True)

@@ -1,8 +1,8 @@
 """add_staging_models
 
 Revision ID: 0ca165244b69
-Revises: 3a79d7a4d1c1
-Create Date: 2016-05-31 14:33:30.072016
+Revises: 849e1ac35007
+Create Date: 2016-06-01 14:06:54.136660
 
 """
 
@@ -14,7 +14,7 @@ depends_on = None
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+
 
 def upgrade(engine_name):
     globals()["upgrade_%s" % engine_name]()
@@ -57,6 +57,7 @@ def downgrade_validation():
 
 
 def upgrade_staging():
+
     # create appropriation table (file A)
     op.create_table('appropriation',
     sa.Column('created_at', sa.DateTime(), nullable=True),
@@ -97,8 +98,7 @@ def upgrade_staging():
     sa.Column('availabilitytypecode', sa.Text(), nullable=True),
     sa.Column('beginningperiodofavailability', sa.Text(), nullable=True),
     sa.Column('bydirectreimbursablefundingsource', sa.Text(), nullable=False),
-    sa.Column('deobligationsrecoveriesrefundsprioryrbyprogobjectclass_cpe', sa.Numeric(),
-              nullable=False),
+    sa.Column('deobligationsrecoveriesrefundsprioryrbyprogobjectclass_cpe', sa.Numeric(), nullable=False),
     sa.Column('endingperiodofavailability', sa.Text(), nullable=True),
     sa.Column('grossoutlayamountbyprogramobjectclass_cpe', sa.Numeric(), nullable=False),
     sa.Column('grossoutlayamountbyprogramobjectclass_fyb', sa.Numeric(), nullable=False),
@@ -122,13 +122,10 @@ def upgrade_staging():
     sa.Column('ussgl480200_undeliveredordersobligationsprepaidadv_fyb', sa.Numeric(), nullable=False),
     sa.Column('ussgl483100_undeliveredordersobligtransferredunpaid_cpe', sa.Numeric(), nullable=False),
     sa.Column('ussgl483200_undeliveredordersobligtransferredppdadv_cpe', sa.Numeric(), nullable=False),
-    sa.Column('ussgl487100_downadjsprioryrunpaidundelivordersobligrec_cpe', sa.Numeric(),
-              nullable=False),
-    sa.Column('ussgl487200_downadjsprioryrppdadvundelivordersobligref_cpe', sa.Numeric(),
-              nullable=False),
+    sa.Column('ussgl487100_downadjsprioryrunpaidundelivordersobligrec_cpe', sa.Numeric(), nullable=False),
+    sa.Column('ussgl487200_downadjsprioryrppdadvundelivordersobligref_cpe', sa.Numeric(), nullable=False),
     sa.Column('ussgl488100_upadjsprioryearundelivordersobligunpaid_cpe', sa.Numeric(), nullable=False),
-    sa.Column('ussgl488200_upadjsprioryrundelivordersobligprepaidadv_cpe', sa.Numeric(),
-              nullable=False),
+    sa.Column('ussgl488200_upadjsprioryrundelivordersobligprepaidadv_cpe', sa.Numeric(), nullable=False),
     sa.Column('ussgl490100_deliveredordersobligationsunpaid_cpe', sa.Numeric(), nullable=False),
     sa.Column('ussgl490100_deliveredordersobligationsunpaid_fyb', sa.Numeric(), nullable=False),
     sa.Column('ussgl490200_deliveredordersobligationspaid_cpe', sa.Numeric(), nullable=False),
@@ -136,20 +133,16 @@ def upgrade_staging():
     sa.Column('ussgl490800_authorityoutlayednotyetdisbursed_fyb', sa.Numeric(), nullable=False),
     sa.Column('ussgl493100_deliveredordersobligstransferredunpaid_cpe', sa.Numeric(), nullable=False),
     sa.Column('ussgl497100_downadjsprioryrunpaiddelivordersobligrec_cpe', sa.Numeric(), nullable=False),
-    sa.Column('ussgl497200_downadjsprioryrpaiddelivordersobligrefclt_cpe', sa.Numeric(),
-              nullable=False),
-    sa.Column('ussgl498100_upadjsprioryeardeliveredordersobligunpaid_cpe', sa.Numeric(),
-              nullable=False),
+    sa.Column('ussgl497200_downadjsprioryrpaiddelivordersobligrefclt_cpe', sa.Numeric(), nullable=False),
+    sa.Column('ussgl498100_upadjsprioryeardeliveredordersobligunpaid_cpe', sa.Numeric(), nullable=False),
     sa.Column('ussgl498200_upadjsprioryrdelivordersobligpaid_cpe', sa.Numeric(), nullable=False),
     sa.Column('tas', sa.Text(), nullable=False),
     sa.PrimaryKeyConstraint('object_class_program_activity_id')
     )
-
-    # add tas/object class/program activity code index
-    op.create_index(op.f('ix_oc_pa_tas_oc_pa'), 'object_class_program_activity',
+    op.create_index('ix_oc_pa_tas_oc_pa', 'object_class_program_activity',
                     ['tas', 'objectclass', 'programactivitycode'], unique=False)
 
-    # Create award_financial table (file C)
+    # create award_financial table (file C)
     op.create_table('award_financial',
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
@@ -205,10 +198,11 @@ def upgrade_staging():
     sa.Column('tas', sa.Text(), nullable=False),
     sa.PrimaryKeyConstraint('award_financial_id')
     )
-
-    # add tas/object class/program activity code index
-    op.create_index(op.f('ix_award_financial_tas_oc_pa'), 'award_financial',
-                    ['tas', 'objectclass', 'programactivitycode'], unique=False),
+    op.create_index(op.f('ix_award_financial_fain'), 'award_financial', ['fain'], unique=False)
+    op.create_index(op.f('ix_award_financial_piid'), 'award_financial', ['piid'], unique=False)
+    op.create_index(op.f('ix_award_financial_uri'), 'award_financial', ['uri'], unique=False)
+    op.create_index('ix_award_financial_tas_oc_pa', 'award_financial', ['tas', 'objectclass', 'programactivitycode'],
+                    unique=False)
 
     # create award_financial_assistance table (file D2)
     op.create_table('award_financial_assistance',
@@ -277,6 +271,8 @@ def upgrade_staging():
     sa.Column('uri', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('award_financial_assistance_id')
     )
+    op.create_index(op.f('ix_award_financial_assistance_fain'), 'award_financial_assistance', ['fain'], unique=False)
+    op.create_index(op.f('ix_award_financial_assistance_uri'), 'award_financial_assistance', ['uri'], unique=False)
 
 
 def downgrade_staging():
@@ -284,6 +280,5 @@ def downgrade_staging():
     op.drop_table('award_financial_assistance')
     op.drop_table('award_financial')
     op.drop_table('object_class_program_activity')
-    #op.drop_index(op.f('ix_appropriation_tas'), table_name='appropriation')
     op.drop_table('appropriation')
 
