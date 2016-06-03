@@ -12,7 +12,7 @@ fain,FALSE,str,30,"C8, C9, C14"
 uri,FALSE,str,70,"C8, C9, C14"
 programactivityname,FALSE,str,164,B9
 programactivitycode,FALSE,str,4,B10
-objectclass,TRUE,int,4,B11
+objectclass,TRUE,str,4,B11
 bydirectreimbursablefundingsource,FALSE,str,1,B12
 transactionobligatedamount,FALSE,float,21,C17
 ussgl480100_undeliveredordersobligationsunpaid_fyb,FALSE,float,21,"A16, C3"
