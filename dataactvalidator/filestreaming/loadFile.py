@@ -12,7 +12,7 @@ def loadObjectClass(filename):
 def loadProgramActivity(filename):
     LoaderUtils.loadCsv(filename, ProgramActivity, ValidatorValidationInterface(), {"year":"budget_year","agency_id":"agency_id",
         "alloc_id":"allocation_transfer_id","account":"account_number","pa_code":"program_activity_code","pa_name":"program_activity_name"},
-        {"program_activity_code":{"pad_to_length":4},"agency_id":{"pad_to_length":3},"account_number":{"pad_to_length":4}})
+        {"program_activity_code":{"pad_to_length":4},"agency_id":{"pad_to_length":3},"account_number":{"pad_to_length":4},"allocation_transfer_id":{"pad_to_length":3}})
 
 def loadDomainValues(basePath):
     loadCgac(os.path.join(basePath,"cgac.csv"))

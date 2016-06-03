@@ -461,7 +461,24 @@ class Validator(object):
         # Get values for fields in record into new dict between table columns and values to check for
         valueDict = {}
         for field in fieldMap:
-            valueDict[fieldMap[field]] = record[field]
+            if "skip_if_below" in fieldMap[field]:
+                try:
+                    if int(record[field]) < fieldMap[field]["skip_if_below"]:
+                        # Don't apply rule to records in this case (e.g. program activity before 2016)
+                        return True
+                except (TypeError, ValueError):
+                    # Could not cast as an int, this is a failure for this record
+                    return False
+            if "pad_to_length" in fieldMap[field]:
+                # Pad with leading zeros if needed
+                try:
+                    fieldValue = cls.padToLength(record[field],fieldMap[field]["pad_to_length"])
+                except ValueError as e:
+                    # If we cannot pad this value, it is not matchable (usually too long), so the rule has failed
+                    return False
+            else:
+                fieldValue = record[field]
+            valueDict[fieldMap[field]["target_field"]] = fieldValue
 
         # Parse out model object
         model = getattr(domainModels,str(rule.rule_text_1))
@@ -484,6 +501,33 @@ class Validator(object):
             else:
                 # This is an unexpected exception, so re-raise it
                 raise
+
+    @staticmethod
+    def padToLength(data,padLength):
+        """ Pad data with leading zeros
+
+        Args:
+            data: string to be padded
+            padLength: length of string after padding
+
+        Returns:
+            padded string of length padLength
+        """
+        if data is None:
+            # Convert None to empty string so it can be padded with zeros
+            data = ""
+        data = data.strip()
+
+        if len(data) < padLength:
+            numZeros = padLength - len(data)
+            zeros = "0" * numZeros
+            result = zeros + str(data)
+            return result
+        elif len(data) > padLength:
+            raise ValueError("".join(["Value is too long: ",str(data)]))
+        else:
+            # Data is correct length already
+            return data
 
     @classmethod
     def rule_required_set_conditional(cls, data, value, rule, datatype, interfaces, record):
@@ -741,6 +785,9 @@ class Validator(object):
         query = interfaces.validationDb.session.query(TASLookup)
 
         for i in range(0,len(fieldsToCheck)):
+            if i == 1:
+                # TODO remove temp skip
+                continue
             data = record[str(fieldsToCheck[i])]
             if(data == None):
                 # Set data to empty string so it can be padded with leading zeros
@@ -749,7 +796,7 @@ class Validator(object):
             # Pad field with leading zeros
             length = interfaces.validationDb.getColumnLength(field, fileType)
             data = data.zfill(length)
-            query = query.filter(TASLookup.__dict__[tasFields[i]] == data)
+            query = query.filter(TASLookup.__dict__[tasFields[i]] == str(data))
 
         queryResult = query.all()
         if(len(queryResult) == 0):
