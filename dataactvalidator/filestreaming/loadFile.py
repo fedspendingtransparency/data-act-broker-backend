@@ -21,4 +21,4 @@ def loadDomainValues(basePath):
     loadProgramActivity(os.path.join(basePath,"program_activity.csv"))
 
 if __name__ == '__main__':
-    loadDomainValues(os.path.join([CONFIG_BROKER["path"],"dataactvalidator","config"]))
+    loadDomainValues(os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config"))
