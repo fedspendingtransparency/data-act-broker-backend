@@ -73,7 +73,7 @@ class AccountHandler:
             password = safeDictionary.getValue('password')
 
             try:
-                user  = self.interfaces.userDb.getUserByEmail(username)
+                user = self.interfaces.userDb.getUserByEmail(username)
             except Exception as e:
                 raise ValueError("Invalid username and/or password")
 
@@ -101,8 +101,7 @@ class AccountHandler:
                         if(self.interfaces.userDb.hasPermission(user, permission.name)):
                             permissionList.append(permission.permission_type_id)
                     self.interfaces.userDb.updateLastLogin(user)
-                    agency = self.validationManager.getAgencyName(user.cgac_code)
-                    return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),"name":user.name,"title":user.title ,"agency":agency, "permissions" : permissionList})
+                    return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),"name":user.name,"title":user.title ,"cgac_code":user.cgac_code, "permissions" : permissionList})
                 else :
                     # increase incorrect password attempt count by 1
                     # if this is the 3rd incorrect attempt, lock account
@@ -173,15 +172,14 @@ class AccountHandler:
             link  -- (string) the broker email link
             """
             threadedDatabase =  UserHandler()
-            agency = self.validationManager.getAgencyName(cgac_code)
             try:
                 for user in threadedDatabase.getUsersByType("website_admin"):
-                    emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY]':agency,'[REG_EMAIL]' : userEmail,'[URL]':link}
+                    emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY]':cgac_code,'[REG_EMAIL]' : userEmail,'[URL]':link}
                     newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=threadedDatabase)
                     newEmail.send()
                 for user in threadedDatabase.getUsersByType("agency_admin"):
                     if user.cgac_code == cgac_code:
-                        emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY]': agency,
+                        emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY]': cgac_code,
                              '[REG_EMAIL]': userEmail, '[URL]': link}
                         newEmail = sesEmail(user.email, system_email, templateType="account_creation", parameters=emailTemplate,
                                 database=threadedDatabase)
@@ -191,9 +189,9 @@ class AccountHandler:
                 InterfaceHolder.closeOne(threadedDatabase)
 
         requestFields = RequestDictionary(self.request)
-        if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("agency") and requestFields.exists("title") and requestFields.exists("password"))):
+        if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("cgac_code") and requestFields.exists("title") and requestFields.exists("password"))):
             # Missing a required field, return 400
-            exc = ResponseException("Request body must include email, name, agency, title, and password", StatusCode.CLIENT_ERROR)
+            exc = ResponseException("Request body must include email, name, cgac_code, title, and password", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
 
         if(not self.checkPassword(requestFields.getValue("password"))):
@@ -455,8 +453,7 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
         userInfo = []
         for user in users:
-            agency = self.validationManager.getAgencyName(user.cgac_code)
-            thisInfo = {"name":user.name, "title":user.title,  "agency":agency, "email":user.email, "id":user.user_id,
+            thisInfo = {"name":user.name, "title":user.title,  "cgac_code":user.cgac_code, "email":user.email, "id":user.user_id,
                         "is_active":user.is_active, "permissions": ",".join(self.interfaces.userDb.getUserPermissions(user)),
                         "status": user.user_status.name}
             userInfo.append(thisInfo)
@@ -483,8 +480,7 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
         userInfo = []
         for user in users:
-            agency = self.validationManager.getAgencyName(user.cgac_code)
-            thisInfo = {"name":user.name, "title":user.title,  "agency":agency, "email":user.email, "id":user.user_id }
+            thisInfo = {"name":user.name, "title":user.title,  "cgac_code":user.cgac_code, "email":user.email, "id":user.user_id }
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
@@ -619,8 +615,7 @@ class AccountHandler:
         for permission in self.interfaces.userDb.getPermissionList():
             if(self.interfaces.userDb.hasPermission(user, permission.name)):
                 permissionList.append(permission.permission_type_id)
-        agency = self.validationManager.getAgencyName(user.cgac_code)
-        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":agency,"title":user.title, "permissions" : permissionList, "skip_guide":user.skip_guide})
+        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"cgac_code":user.cgac_code,"title":user.title, "permissions" : permissionList, "skip_guide":user.skip_guide})
 
     def isUserActive(self, user):
         """ Checks if user's account is still active
