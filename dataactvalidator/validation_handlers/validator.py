@@ -183,6 +183,9 @@ class Validator(object):
             currentData = record[fieldName]
             if(currentData != None):
                 currentData = currentData.strip()
+                if (Validator.checkType(currentData, "INT") or Validator.checkType(currentData, "DECIMAL") or
+                        Validator.checkType(currentData, "LONG")):
+                    currentData = currentData.replace(",", "")
 
             if(currentData == None or len(currentData) == 0):
                 if(currentSchema.required ):
