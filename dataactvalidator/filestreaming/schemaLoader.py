@@ -68,16 +68,26 @@ class SchemaLoader(object):
                 else:
                     # Multi field rules don't get a file_column
                     columnId = None
+                # Look up rule timing id
+                try:
+                    ruleTimingId = validationDb.getRuleTimingIdByName(
+                        FieldCleaner.cleanName(record["rule_timing"]))
+                except Exception as e:
+                    raise Exception("".join(
+                        [str(e), " Rule load failed on timing value ", FieldCleaner.cleanName(record["rule_timing"]), " and file ",
+                         fileTypeName]))
+                # Target file info is applicable to cross-file rules only
+                targetFileId = None
                 # Write to rule table
                 try:
-                    if "target_file_id" in record:
-                        targetFileId = record["target_file_id"]
-                    else:
-                        targetFileId = None
-                    validationDb.addRule(columnId,str(record["rule_type"]),str(record["rule_text_one"]), str(record["rule_text_two"]),str(record["description"]),str(record["rule_timing"]),str(record["rule_label"]),targetFileId = targetFileId, fileId = fileId)
-                except KeyError as e:
-                    # Rule definition is missing some required fields
-                    raise ValueError("Rule definitions must include the following fields: rule_type, rule_text_one, rule_text_two, description, rule_timing, rule_label")
+                    validationDb.addRule(columnId,
+                        str(record["rule_type"]), str(record["rule_text_one"]),
+                        str(record["rule_text_two"]), str(record["description"]),
+                        ruleTimingId, str(record["rule_label"]),
+                        targetFileId=targetFileId, fileId=fileId)
+                except Exception as e:
+                    raise Exception('{}: rule insert failed (file={}, rule={}'.format(
+                        e, fileTypeName, record["description"]))
 
     @staticmethod
     def loadCrossRules(filename):
@@ -91,10 +101,23 @@ class SchemaLoader(object):
                     targetFileId = validationDb.getFileId(record["target_file"])
                 else:
                     targetFileId = None
-                validationDb.addRule(
-                    None, record["rule_type"], record["rule_text_one"],
-                    record["rule_text_two"], record["description"], record["rule_timing"],
-                    record["rule_label"], targetFileId, fileId = fileId)
+                # Look up rule timing id
+                try:
+                    ruleTimingId = validationDb.getRuleTimingIdByName(
+                        FieldCleaner.cleanName(record["rule_timing"]))
+                except Exception as e:
+                    raise Exception("".join(
+                        [str(e), "Cross-file rule load failed on timing value ", FieldCleaner.cleanName(record["rule_timing"]),
+                         " and file ",
+                         fileTypeName]))
+                try:
+                    validationDb.addRule(
+                        None, record["rule_type"], record["rule_text_one"],
+                        record["rule_text_two"], record["description"], ruleTimingId,
+                        record["rule_label"], targetFileId, fileId = fileId)
+                except Exception as e:
+                    raise Exception('{}: cross-file rule insert failed (rule={}'.format(
+                        e, record["description"]))
 
     @classmethod
     def loadAllFromPath(cls,path):

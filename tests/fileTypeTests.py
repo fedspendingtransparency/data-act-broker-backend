@@ -1,8 +1,11 @@
 from __future__ import print_function
 import os
+from os.path import join
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.domainModels import TASLookup
+from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
+from dataactvalidator.filestreaming.loadFile import loadDomainValues
 from dataactvalidator.scripts.loadTas import loadTas
 from baseTestValidator import BaseTestValidator
 import unittest
@@ -76,14 +79,16 @@ class FileTypeTests(BaseTestValidator):
     def load_definitions(interfaces, force_tas_load):
         """Load file definitions."""
         # TODO: introduce flexibility re: test file location
-        SchemaLoader.loadFields("appropriations","../dataactvalidator/config/appropFields.csv")
-        SchemaLoader.loadFields("program_activity","../dataactvalidator/config/programActivityFields.csv")
-        SchemaLoader.loadFields("award_financial","../dataactvalidator/config/awardFinancialFields.csv")
-        SchemaLoader.loadFields("award","../dataactvalidator/config/awardFields.csv")
-        SchemaLoader.loadRules("appropriations","../dataactvalidator/config/appropRules.csv")
-        SchemaLoader.loadRules("program_activity","../dataactvalidator/config/programActivityRules.csv")
-        SchemaLoader.loadRules("award_financial","../dataactvalidator/config/awardFinancialRules.csv")
-        SchemaLoader.loadCrossRules("../dataactvalidator/config/crossFileRules.csv")
+        SchemaLoader.loadFields("appropriations",join(CONFIG_BROKER["path"],"dataactvalidator","config","appropFields.csv"))
+        SchemaLoader.loadFields("program_activity",join(CONFIG_BROKER["path"],"dataactvalidator","config","programActivityFields.csv"))
+        SchemaLoader.loadFields("award_financial",join(CONFIG_BROKER["path"],"dataactvalidator","config","awardFinancialFields.csv"))
+        SchemaLoader.loadFields("award",join(CONFIG_BROKER["path"],"dataactvalidator","config","awardFields.csv"))
+        SchemaLoader.loadRules("appropriations",join(CONFIG_BROKER["path"],"dataactvalidator","config","appropRules.csv"))
+        SchemaLoader.loadRules("program_activity",join(CONFIG_BROKER["path"],"dataactvalidator","config","programActivityRules.csv"))
+        SchemaLoader.loadRules("award_financial",join(CONFIG_BROKER["path"],"dataactvalidator","config","awardFinancialRules.csv"))
+        SchemaLoader.loadCrossRules(join(CONFIG_BROKER["path"],"dataactvalidator","config","crossFileRules.csv"))
+        # Load domain values tables
+        loadDomainValues("../dataactvalidator/config/")
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
                 or force_tas_load):
             # TAS table is empty, load it
@@ -99,7 +104,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 6736, 4, "complete", 48, True)
+            jobId, 200, "finished", 6908, 4, "complete", 50, True)
 
     def test_program_valid(self):
         """Test valid job."""
@@ -111,7 +116,8 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 18430, 4, "complete", 110, True)
+            jobId, 200, "finished", 20172, 4, "complete", 120, True)
+
 
     def test_award_fin_valid(self):
         """Test valid job."""
@@ -123,7 +129,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 13169, 6, "complete", 74, True)
+            jobId, 200, "finished", 16011, 6, "complete", 84, True)
 
     def test_award_valid(self):
         """Test valid job."""

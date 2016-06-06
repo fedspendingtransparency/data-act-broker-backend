@@ -1,7 +1,10 @@
+import json
 from sqlalchemy import MetaData, Table
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from decimal import *
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.models import domainModels
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
@@ -403,12 +406,106 @@ class Validator(object):
     @classmethod
     def rule_min_length(cls, data, value, rule, datatype, interfaces, record):
         """Checks that data is at least the minimum length"""
-        return len(data.strip()) >= Validator.getIntFromString(value)
+        result =  len(data.strip()) >= Validator.getIntFromString(value)
+        return result
 
     @classmethod
     def rule_required_conditional(cls, data, value, rule, datatype, interfaces, record):
         """Checks that data is present if specified rule passes"""
         return Validator.conditionalRequired(data,rule,datatype,interfaces,record)
+
+    @classmethod
+    def rule_exists_in_table(cls, data, value, rule, datatype, interfaces, record):
+        """ Check that field value exists in specified table, rule_text_1 is table, rule_text_2 is column to check against """
+        ruleTextOne = str(rule.rule_text_1).split(",")
+        if len(ruleTextOne) != 2:
+            # Bad rule definition
+            raise ResponseException("exists_in_table rule incorrectly defined, must have both table and field in rule_text_one",StatusCode.INTERNAL_ERROR,ValueError)
+        # Not putting model name through FieldCleaner because model names will have uppercase
+        model = getattr(domainModels,str(ruleTextOne[0]).strip())
+        field = FieldCleaner.cleanString(ruleTextOne[1])
+        ruleTextTwo = FieldCleaner.cleanString(rule.rule_text_2)
+        if len(ruleTextTwo) == 0:
+            # Skip padding
+            paddedData = FieldCleaner.cleanString(data)
+        else:
+            # Pad data to correct length
+            try:
+                padLength = int(ruleTextTwo)
+            except ValueError as e:
+                # Need an integer in rule_text_two
+                raise ResponseException("Need an integer width in rule_text_two for exists_in_table rules",StatusCode.INTERNAL_ERROR,ValueError)
+            paddedData = FieldCleaner.cleanString(data).zfill(padLength)
+
+        # Build query for model and field specified
+        query = interfaces.validationDb.session.query(model).filter(getattr(model,field) == paddedData)
+        try:
+            # Check that value exists in table, should be unique
+            interfaces.validationDb.runUniqueQuery(query,"Data not found in table", "Conflicting entries found for this data")
+            # If unique result found, rule passed
+            return True
+        except ResponseException as e:
+            # If exception is no result found, rule failed
+            if type(e.wrappedException) == type(NoResultFound()):
+                return False
+            else:
+                # This is an unexpected exception, so re-raise it
+                raise
+
+    @classmethod
+    def rule_required_set_conditional(cls, data, value, rule, datatype, interfaces, record):
+        """ If conditional rule passes, require all fields in rule_text_one """
+        return Validator.conditionalRequired(data,rule,datatype,interfaces,record)
+
+    @classmethod
+    def rule_check_prefix(cls, data, value, rule, datatype, interfaces, record):
+        """ Check that 1-digit prefix is consistent with reimbursable flag """
+        dataString = FieldCleaner.cleanString(data)
+
+        # Load target field and dict to compare with
+        targetField = FieldCleaner.cleanName(rule.rule_text_1)
+        prefixMap = json.loads(str(rule.rule_text_2))
+
+        # Check that character and value are consistent with dict in rule_text_2
+        if dataString[0] not in prefixMap:
+            # Unknown prefix, this is a failure
+            return False
+        if prefixMap[dataString[0]] == record[targetField]:
+            # Matches the value in target field, rule passes
+            return True
+        else:
+            return False
+
+    @classmethod
+    def rule_rule_if(cls, data, value, rule, datatype, interfaces, record):
+        """ Apply rule in rule_text_1 if rule in rule_text_2 passes """
+        # Get rule object for conditional rule
+        conditionalRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_2)
+        if conditionalRule.file_column is not None:
+            # This is a single field rule
+            conditionalTypeId = conditionalRule.file_column.field_types_id
+            conditionalDataType = interfaces.validationDb.getFieldTypeById(conditionalTypeId)
+            conditionalData = record[conditionalRule.file_column.name]
+        else:
+            conditionalDataType = None
+            conditionalData = record
+        # If conditional rule passes, check primary rule passes
+        if Validator.evaluateRule(conditionalData,conditionalRule,conditionalDataType,interfaces,record):
+            # Get rule object for primary rule
+            primaryRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
+            if primaryRule.file_column is not None:
+                # This is a single field rule
+                primaryTypeId = primaryRule.file_column.field_types_id
+                primaryDataType = interfaces.validationDb.getFieldTypeById(primaryTypeId)
+                primaryData = record[primaryRule.file_column.name]
+            else:
+                primaryDataType = None
+                primaryData = record
+            # Return result of primary rule
+            return Validator.evaluateRule(primaryData,primaryRule,primaryDataType,interfaces,record)
+        else:
+            # If conditional rule fails, overall rule passes without checking primary
+            return True
 
     @staticmethod
     def requireOne(record, fields, interfaces):
@@ -440,7 +537,7 @@ class Validator(object):
             return False
 
     @classmethod
-    def conditionalRequired(cls, data,rule,datatype,interfaces,record):
+    def conditionalRequired(cls, data,rule,datatype,interfaces,record, isList = False):
         """ If conditional rule passes, data must not be empty
 
         Args:
@@ -462,7 +559,16 @@ class Validator(object):
             conditionalData = record
         # If conditional rule passes, check that data is not empty
         if Validator.evaluateRule(conditionalData,conditionalRule,conditionalDataType,interfaces,record):
-            return cls.isFieldPopulated(data)
+            if isList:
+                # rule_text_2 is a list of fields
+                fieldList = rule.rule_text_2.split(",")
+                for field in fieldList:
+                    if not cls.isFieldPopulated(record[FieldCleaner.cleanName(field)]):
+                        # If any are empty, rule fails
+                        return False
+            else:
+                # data is value from a single field
+                return cls.isFieldPopulated(data)
         else:
             # If conditional rule fails, this field is not required, so the condtional requirement passes
             return True
