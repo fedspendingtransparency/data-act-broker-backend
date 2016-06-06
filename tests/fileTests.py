@@ -18,6 +18,7 @@ class FileTests(BaseTestAPI):
     updateSubmissionId = None
     filesSubmitted = False
     submitFilesResponse = None
+    status_check_time = {"year":2016,"month":01,"day":02,"hour":03,"minute":04,"second":05}
 
     @classmethod
     def setUpClass(cls):
@@ -269,6 +270,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["number_of_rows"],667)
         # Check that submission was created today, this test may fail if run right at midnight UTC
         self.assertEqual(json["created_on"],datetime.utcnow().strftime("%m/%d/%Y"))
+        self.assertEqual(json["last_updated"],self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id).updated_at.strftime("%Y-%m-%dT%H:%M:%S"))
 
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
