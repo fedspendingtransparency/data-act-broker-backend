@@ -469,7 +469,12 @@ class Validator(object):
         if dataString[0] not in prefixMap:
             # Unknown prefix, this is a failure
             return False
-        if prefixMap[dataString[0]].lower() == record[targetField].lower():
+        source = prefixMap[dataString[0]]
+        target = record[targetField]
+        source = source.lower() if source is not None else source
+        target = target.lower() if target is not None else target
+
+        if source == target:
             # Matches the value in target field, rule passes
             return True
         else:
