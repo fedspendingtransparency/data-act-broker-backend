@@ -123,10 +123,11 @@ class FieldCleaner:
         return length
 
     @staticmethod
-    def cleanRow(row):
+    def cleanRow(row, fileType, validationInterface):
         for key in row.keys():
+            field_type = validationInterface.getColumn(key, fileType).field_type.name
             value = row[key]
-            if value is not None:
+            if value is not None and field_type in ["INT", "DECIMAL", "LONG"]:
                 tempValue = value.replace(",","")
                 if FieldCleaner.isNumeric(tempValue):
                     row[key] = tempValue
