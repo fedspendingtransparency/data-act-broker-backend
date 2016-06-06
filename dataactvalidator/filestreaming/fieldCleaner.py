@@ -1,4 +1,6 @@
 import csv
+from decimal import *
+
 
 class FieldCleaner:
     """ This class takes a field definition file and cleans it, producing a field definition file that can be read by schemaLoader """
@@ -119,6 +121,32 @@ class FieldCleaner:
         if(length <= 0):
             raise ValueError("Length must be positive")
         return length
+
+    @staticmethod
+    def cleanRow(row):
+        for key in row.keys():
+            value = row[key]
+            if value is not None:
+                tempValue = value.replace(",","")
+                if FieldCleaner.isNumeric(tempValue):
+                    row[key] = tempValue
+        return row
+
+    @staticmethod
+    def isNumeric(data):
+        try:
+            int(data)
+            return True
+        except:
+            try:
+                Decimal(data)
+                return True
+            except:
+                try:
+                    long(data)
+                    return True
+                except:
+                    return False
 
 if __name__ == '__main__':
     FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")

@@ -183,9 +183,6 @@ class Validator(object):
             currentData = record[fieldName]
             if(currentData != None):
                 currentData = currentData.strip()
-                if (Validator.checkType(currentData, "INT") or Validator.checkType(currentData, "DECIMAL") or
-                        Validator.checkType(currentData, "LONG")):
-                    currentData = currentData.replace(",", "")
 
             if(currentData == None or len(currentData) == 0):
                 if(currentSchema.required ):
@@ -231,8 +228,7 @@ class Validator(object):
         for rule in multiFieldRules:
             if not Validator.evaluateRule(record,rule,None,interfaces,record):
                 recordFailed = True
-                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces)])
-
+                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.rule_type.name)]), Validator.getMultiValues(rule, record, interfaces)])
         return (not recordFailed), failedRules
 
     @staticmethod
