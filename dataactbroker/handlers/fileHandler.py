@@ -222,7 +222,7 @@ class FileHandler:
             # Build dictionary of submission info with info about each job
             submissionInfo = {}
             submissionInfo["jobs"] = []
-            submissionInfo["agency_name"] = submission.agency_name
+            submissionInfo["cgac_code"] = submission.cgac_code
             submissionInfo["reporting_period_start_date"] = self.interfaces.jobDb.getStartDate(submission)
             submissionInfo["reporting_period_end_date"] = self.interfaces.jobDb.getEndDate(submission)
             submissionInfo["created_on"] = self.interfaces.jobDb.getFormattedDatetimeBySubmissionId(submissionId)
