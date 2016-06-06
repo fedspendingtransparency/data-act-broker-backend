@@ -43,7 +43,7 @@ def setupEmails():
     userDb.loadEmailTemplate("DATA Act Broker - Password Reset", template, "reset_password")
 
     #Admin Email
-    template = "This email is to notify you that the following person has requested an account for the DATA Act Broker:<br /><br />Name: [REG_NAME]<br /><br />Title:  [REG_TITLE]<br /><br />Agency:  [REG_AGENCY]<br /><br />Email: [REG_EMAIL]<br /><br /><br /><br />To approve or deny this user for access to the Data Broker, please click <a href='[URL]'>here</a>.<br /><br />This action must be taken within 24 hours. <br /><br />Thank you for your prompt attention.<br /><br />DATA Act Broker Helpdesk<br />DATABroker@fiscal.treasury.gov"
+    template = "This email is to notify you that the following person has requested an account for the DATA Act Broker:<br /><br />Name: [REG_NAME]<br /><br />Title:  [REG_TITLE]<br /><br />Agency Name:  [REG_AGENCY_NAME]<br /><br />CGAC Code: [REG_CGAC_CODE]<br /><br />Email: [REG_EMAIL]<br /><br /><br /><br />To approve or deny this user for access to the Data Broker, please click <a href='[URL]'>here</a>.<br /><br />This action must be taken within 24 hours. <br /><br />Thank you for your prompt attention.<br /><br />DATA Act Broker Helpdesk<br />DATABroker@fiscal.treasury.gov"
     userDb.loadEmailTemplate("New Data Broker registration - Action Required", template, "account_creation")
 
     #User Email When finished submitting

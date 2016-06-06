@@ -35,6 +35,7 @@ class AccountHandler:
         if(interfaces != None):
             self.interfaces = interfaces
             self.userManager = interfaces.userDb
+            self.validationManager = interfaces.validationDb
 
     def addInterfaces(self,interfaces):
         """ Add interfaces to an existing account handler
@@ -72,7 +73,7 @@ class AccountHandler:
             password = safeDictionary.getValue('password')
 
             try:
-                user  = self.interfaces.userDb.getUserByEmail(username)
+                user = self.interfaces.userDb.getUserByEmail(username)
             except Exception as e:
                 raise ValueError("Invalid username and/or password")
 
@@ -100,7 +101,10 @@ class AccountHandler:
                         if(self.interfaces.userDb.hasPermission(user, permission.name)):
                             permissionList.append(permission.permission_type_id)
                     self.interfaces.userDb.updateLastLogin(user)
-                    return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),"name":user.name,"title":user.title ,"agency":user.agency, "permissions" : permissionList})
+                    agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+                    return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),
+                                                              "name":user.name,"title":user.title,"agency_name":agency_name,
+                                                              "cgac_code":user.cgac_code, "permissions" : permissionList})
                 else :
                     # increase incorrect password attempt count by 1
                     # if this is the 3rd incorrect attempt, lock account
@@ -148,7 +152,7 @@ class AccountHandler:
     def register(self,system_email,session):
         """
 
-        Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', and 'title'
+        Save user's information into user database.  Associated request body should have keys 'email', 'name', 'cgac_code', and 'title'
 
         arguments:
 
@@ -159,7 +163,7 @@ class AccountHandler:
         Returns message that registration is successful or error message that fields are not valid
 
         """
-        def ThreadedFunction (from_email="",username="",title="",agency="",userEmail="" ,link="") :
+        def ThreadedFunction (from_email="",username="",title="",cgac_code="",userEmail="" ,link="") :
             """
             This inner function sends emails in a new thread as there could be lots of admins
 
@@ -172,14 +176,17 @@ class AccountHandler:
             """
             threadedDatabase =  UserHandler()
             try:
+                agency_name = self.interfaces.validationDb.getAgencyName(cgac_code)
+                agency_name = "Unknown" if agency_name is None else agency_name
                 for user in threadedDatabase.getUsersByType("website_admin"):
-                    emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY]':agency,'[REG_EMAIL]' : userEmail,'[URL]':link}
+                    emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
+                                     '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : userEmail,'[URL]':link}
                     newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=threadedDatabase)
                     newEmail.send()
                 for user in threadedDatabase.getUsersByType("agency_admin"):
-                    if user.agency == agency:
-                        emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY]': agency,
-                             '[REG_EMAIL]': userEmail, '[URL]': link}
+                    if user.cgac_code == cgac_code:
+                        emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY_NAME]': agency_name,
+                             '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]': userEmail, '[URL]': link}
                         newEmail = sesEmail(user.email, system_email, templateType="account_creation", parameters=emailTemplate,
                                 database=threadedDatabase)
                         newEmail.send()
@@ -188,9 +195,9 @@ class AccountHandler:
                 InterfaceHolder.closeOne(threadedDatabase)
 
         requestFields = RequestDictionary(self.request)
-        if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("agency") and requestFields.exists("title") and requestFields.exists("password"))):
+        if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("cgac_code") and requestFields.exists("title") and requestFields.exists("password"))):
             # Missing a required field, return 400
-            exc = ResponseException("Request body must include email, name, agency, title, and password", StatusCode.CLIENT_ERROR)
+            exc = ResponseException("Request body must include email, name, cgac_code, title, and password", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
 
         if(not self.checkPassword(requestFields.getValue("password"))):
@@ -204,12 +211,12 @@ class AccountHandler:
             exc = ResponseException("User already registered",StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         # Add user info to database
-        self.interfaces.userDb.addUserInfo(user,requestFields.getValue("name"),requestFields.getValue("agency"),requestFields.getValue("title"))
+        self.interfaces.userDb.addUserInfo(user,requestFields.getValue("name"),requestFields.getValue("cgac_code"),requestFields.getValue("title"))
         self.interfaces.userDb.setPassword(user,requestFields.getValue("password"),self.bcrypt)
 
         userLink= "".join([AccountHandler.FRONT_END, '#/login?redirect=/admin'])
         # Send email to approver list
-        emailThread = Thread(target=ThreadedFunction, kwargs=dict(from_email=system_email,username=user.name,title=user.title,agency=user.agency,userEmail=user.email,link=userLink))
+        emailThread = Thread(target=ThreadedFunction, kwargs=dict(from_email=system_email,username=user.name,title=user.title,cgac_code=user.cgac_code,userEmail=user.email,link=userLink))
         emailThread.start()
 
         #email user
@@ -443,7 +450,7 @@ class AccountHandler:
         isAgencyAdmin = True if self.interfaces.userDb.hasPermission(user, "agency_admin") else False
         try:
             if isAgencyAdmin:
-                users = self.interfaces.userDb.getUsers(agency=user.agency)
+                users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code)
             else:
                 users = self.interfaces.userDb.getUsers()
         except ValueError as e:
@@ -452,9 +459,10 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
         userInfo = []
         for user in users:
-            thisInfo = {"name":user.name, "title":user.title,  "agency":user.agency, "email":user.email, "id":user.user_id,
-                        "is_active":user.is_active, "permissions": ",".join(self.interfaces.userDb.getUserPermissions(user)),
-                        "status": user.user_status.name}
+            agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+            thisInfo = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
+                        "email":user.email, "id":user.user_id, "is_active":user.is_active,
+                        "permissions": ",".join(self.interfaces.userDb.getUserPermissions(user)), "status": user.user_status.name}
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
@@ -470,7 +478,7 @@ class AccountHandler:
 
         try:
             if self.interfaces.userDb.hasPermission(current_user, "agency_admin"):
-                users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"), current_user.agency)
+                users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"), current_user.cgac_code)
             else:
                 users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"))
         except ValueError as e:
@@ -479,7 +487,9 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
         userInfo = []
         for user in users:
-            thisInfo = {"name":user.name, "title":user.title,  "agency":user.agency, "email":user.email, "id":user.user_id }
+            agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+            thisInfo = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
+                        "email":user.email, "id":user.user_id }
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
@@ -620,7 +630,10 @@ class AccountHandler:
         for permission in self.interfaces.userDb.getPermissionList():
             if(self.interfaces.userDb.hasPermission(user, permission.name)):
                 permissionList.append(permission.permission_type_id)
-        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList, "skip_guide":user.skip_guide})
+        agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency_name": agency_name,
+                                                  "cgac_code":user.cgac_code,"title":user.title,
+                                                  "permissions": permissionList, "skip_guide":user.skip_guide})
 
     def isUserActive(self, user):
         """ Checks if user's account is still active
