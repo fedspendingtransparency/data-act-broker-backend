@@ -1,6 +1,6 @@
 rule_type,rule_text_one,rule_text_two,description,file,rule_label,rule_timing,target_file
-field_match,"fain, uri",award,Check that all fain award number and URI pairs in file C are present in file D2,award_financial,C8,3,
-field_match,"fain, uri",award_financial,Check that all fain award number and URI pairs in file D2 are present in file C,award,C9,2,
-rule_if,C9,C9_2,Rule C9 only applies if FederalActionObligation is greater than 0,award,,3,
-greater,0,federalactionobligation,Check if federalactionobligation is greater than 0,award,C9_2,2,
-sum_by_tas,grossoutlayamountbytas_cpe,grossoutlayamountbyprogramobjectclass_cpe,"GrossOutlayAmountByTAS_CPE (file A) = sum of all GrossOutlayAmountByProgramObjectClass (file B) {When not disaggregated by Program Activity and Object Class, this value is the sum of all Gross Outlay Amounts reported in file B, by TAS/Subaccount}",appropriations,A18,3,award_financial
+field_match,"fain, uri",award,Check that all fain award number and URI pairs in file C are present in file D2,award_financial,C8,cross_file,
+field_match,"fain, uri",award_financial,Check that all fain award number and URI pairs in file D2 are present in file C,award,C9,prerequisite,
+rule_if,C9,C9_2,Rule C9 only applies if FederalActionObligation is greater than 0,award,,cross_file,
+greater,0,federalactionobligation,Check if federalactionobligation is greater than 0,award,C9_2,prerequisite,
+sum_by_tas,grossoutlayamountbytas_cpe,grossoutlayamountbyprogramobjectclass_cpe,"GrossOutlayAmountByTAS_CPE (file A) = sum of all GrossOutlayAmountByProgramObjectClass (file B) {When not disaggregated by Program Activity and Object Class, this value is the sum of all Gross Outlay Amounts reported in file B, by TAS/Subaccount}",appropriations,A18,cross_file,award_financial

@@ -44,7 +44,7 @@ def initialize():
     tas = os.path.join(validator_config_path, "all_tas_betc.csv")
     loadTas(tas)
     # Load other domain values files
-    loadDomainValues("../config/")
+    loadDomainValues(os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config"))
     print ("The validator has been initialized. You may now run the validator with the -start argument.")
 
 def loadValidator():

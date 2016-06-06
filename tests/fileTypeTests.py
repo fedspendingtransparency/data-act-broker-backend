@@ -1,7 +1,9 @@
 from __future__ import print_function
 import os
+from os.path import join
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.domainModels import TASLookup
+from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.loadFile import loadDomainValues
 from dataactvalidator.scripts.loadTas import loadTas
@@ -77,14 +79,14 @@ class FileTypeTests(BaseTestValidator):
     def load_definitions(interfaces, force_tas_load):
         """Load file definitions."""
         # TODO: introduce flexibility re: test file location
-        SchemaLoader.loadFields("appropriations","../dataactvalidator/config/appropFields.csv")
-        SchemaLoader.loadFields("program_activity","../dataactvalidator/config/programActivityFields.csv")
-        SchemaLoader.loadFields("award_financial","../dataactvalidator/config/awardFinancialFields.csv")
-        SchemaLoader.loadFields("award","../dataactvalidator/config/awardFields.csv")
-        SchemaLoader.loadRules("appropriations","../dataactvalidator/config/appropRules.csv")
-        SchemaLoader.loadRules("program_activity","../dataactvalidator/config/programActivityRules.csv")
-        SchemaLoader.loadRules("award_financial","../dataactvalidator/config/awardFinancialRules.csv")
-        SchemaLoader.loadCrossRules("../dataactvalidator/config/crossFileRules.csv")
+        SchemaLoader.loadFields("appropriations",join(CONFIG_BROKER["path"],"dataactvalidator","config","appropFields.csv"))
+        SchemaLoader.loadFields("program_activity",join(CONFIG_BROKER["path"],"dataactvalidator","config","programActivityFields.csv"))
+        SchemaLoader.loadFields("award_financial",join(CONFIG_BROKER["path"],"dataactvalidator","config","awardFinancialFields.csv"))
+        SchemaLoader.loadFields("award",join(CONFIG_BROKER["path"],"dataactvalidator","config","awardFields.csv"))
+        SchemaLoader.loadRules("appropriations",join(CONFIG_BROKER["path"],"dataactvalidator","config","appropRules.csv"))
+        SchemaLoader.loadRules("program_activity",join(CONFIG_BROKER["path"],"dataactvalidator","config","programActivityRules.csv"))
+        SchemaLoader.loadRules("award_financial",join(CONFIG_BROKER["path"],"dataactvalidator","config","awardFinancialRules.csv"))
+        SchemaLoader.loadCrossRules(join(CONFIG_BROKER["path"],"dataactvalidator","config","crossFileRules.csv"))
         # Load domain values tables
         loadDomainValues("../dataactvalidator/config/")
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
