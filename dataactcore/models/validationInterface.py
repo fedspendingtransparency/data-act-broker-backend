@@ -27,3 +27,7 @@ class ValidationInterface(BaseInterface):
     def getAllAgencies(self):
         """ Return all agencies """
         return self.session.query(CGAC).all()
+
+    def getAgencyName(self, cgac_code):
+        agency = self.session.query(CGAC).filter(CGAC.cgac_code == cgac_code).one()
+        return agency.agency_name
