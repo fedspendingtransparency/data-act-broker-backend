@@ -18,7 +18,6 @@ class FileTests(BaseTestAPI):
     updateSubmissionId = None
     filesSubmitted = False
     submitFilesResponse = None
-    status_check_time = {"year":2016,"month":01,"day":02,"hour":03,"minute":04,"second":05}
 
     @classmethod
     def setUpClass(cls):
