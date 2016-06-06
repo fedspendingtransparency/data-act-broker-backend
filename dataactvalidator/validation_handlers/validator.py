@@ -232,7 +232,6 @@ class Validator(object):
             if not Validator.evaluateRule(record,rule,None,interfaces,record):
                 recordFailed = True
                 failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces)])
-
         return (not recordFailed), failedRules
 
     @staticmethod
@@ -375,12 +374,12 @@ class Validator(object):
     @classmethod
     def rule_equal(cls, data, value, rule, datatype, interfaces, record):
         """Checks that data is equal to specified value"""
-        return Validator.getType(data,datatype) == Validator.getType(value,datatype)
+        return Validator.getType(data.lower(),datatype) == Validator.getType(value.lower(),datatype)
 
     @classmethod
     def rule_not_equal(cls, data, value, rule, datatype, interfaces, record):
         """Checks that data is not equal to specified value"""
-        return not (Validator.getType(data,datatype) == Validator.getType(value,datatype))
+        return not (Validator.getType(data.lower(),datatype) == Validator.getType(value.lower(),datatype))
 
     @classmethod
     def rule_sum(cls, data, value, rule, datatype, interfaces, record):
@@ -400,13 +399,13 @@ class Validator(object):
     @classmethod
     def rule_in_set(cls, data, value, rule, datatype, interfaces, record):
         """Checks that data is one of a set of valid values"""
-        setList = Validator.cleanSplit(value,toLower = False)
-        return (data in setList)
+        setList = Validator.cleanSplit(value)
+        return data.lower() in setList
 
     @classmethod
     def rule_min_length(cls, data, value, rule, datatype, interfaces, record):
         """Checks that data is at least the minimum length"""
-        result =  len(data.strip()) >= Validator.getIntFromString(value)
+        result = len(data.strip()) >= Validator.getIntFromString(value)
         return result
 
     @classmethod
@@ -470,7 +469,7 @@ class Validator(object):
         if dataString[0] not in prefixMap:
             # Unknown prefix, this is a failure
             return False
-        if prefixMap[dataString[0]] == record[targetField]:
+        if prefixMap[dataString[0]].lower() == record[targetField].lower():
             # Matches the value in target field, rule passes
             return True
         else:
@@ -605,7 +604,7 @@ class Validator(object):
         return not cls.evaluateRule(data, conditionalRule, datatype, interfaces, record)
 
     @staticmethod
-    def cleanSplit(string, toLower = True):
+    def cleanSplit(string, toLower=True):
         """ Split string on commas and remove whitespace around each element
 
         Args:
