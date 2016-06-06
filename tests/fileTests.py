@@ -32,7 +32,7 @@ class FileTests(BaseTestAPI):
 
         # setup submission/jobs data for test_check_status
         cls.status_check_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id, cgac_code = "Department of the Treasury", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
+            cls.jobTracker, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
 
         cls.jobIdDict = cls.setupJobsForStatusCheck(cls.interfaces,
             cls.status_check_submission_id)
@@ -60,7 +60,7 @@ class FileTests(BaseTestAPI):
             if(CONFIG_BROKER["use_aws"]):
                 self.filenames = {"appropriations":"test1.csv",
                     "award_financial":"test2.csv", "award":"test3.csv",
-                    "program_activity":"test4.csv", "cgac_code": "Department of the Treasury",
+                    "program_activity":"test4.csv", "cgac_code": "SYS",
                     "reporting_period_start_date":"01/2001",
                     "reporting_period_end_date":"01/2001", "is_quarter":True}
             else:
@@ -68,7 +68,7 @@ class FileTests(BaseTestAPI):
                 filePath = CONFIG_BROKER["broker_files"]
                 self.filenames = {"appropriations":os.path.join(filePath,"test1.csv"),
                     "award_financial":os.path.join(filePath,"test2.csv"), "award":os.path.join(filePath,"test3.csv"),
-                    "program_activity":os.path.join(filePath,"test4.csv"), "cgac_code": "Department of the Treasury",
+                    "program_activity":os.path.join(filePath,"test4.csv"), "cgac_code": "SYS",
                     "reporting_period_start_date":"01/2001",
                     "reporting_period_end_date":"01/2001", "is_quarter":True}
             self.submitFilesResponse = self.app.post_json("/v1/submit_files/", self.filenames, headers={"x-session-id":self.session_id})
@@ -147,7 +147,7 @@ class FileTests(BaseTestAPI):
         self.assertIn("updated.csv", json["award_financial_key"])
         submissionId = json["submission_id"]
         submission = self.interfaces.jobDb.getSubmissionById(submissionId)
-        self.assertEqual(submission.cgac_code,"Department of the Treasury") # Should not have changed agency name
+        self.assertEqual(submission.cgac_code,"SYS") # Should not have changed agency name
         self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"),"02/2016")
         self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"),"03/2016")
 
@@ -260,7 +260,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(ruleErrorData["rule_failed"],"Header three value must be real")
 
         # Check submission metadata
-        self.assertEqual(json["cgac_code"], "Department of the Treasury")
+        self.assertEqual(json["cgac_code"], "SYS")
         self.assertEqual(json["reporting_period_start_date"], "Q1/2016")
         self.assertEqual(json["reporting_period_end_date"], "Q3/2016")
 

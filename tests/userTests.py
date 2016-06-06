@@ -28,7 +28,7 @@ class UserTests(BaseTestAPI):
         jobDb.deleteSubmissionsForUserId(cls.agency_user_id)
         for i in range(0,6):
             sub = Submission(user_id = cls.agency_user_id)
-            sub.cgac_code = "testAgency"
+            sub.cgac_code = "SYS"
             jobDb.session.add(sub)
             jobDb.session.commit()
 
@@ -53,7 +53,7 @@ class UserTests(BaseTestAPI):
     def test_registration_no_token(self):
         """Test without token."""
         self.logout()
-        postJson = {"email": "user@agency.gov", "name": "user", "cgac_code": "agency", "title": "title", "password": "userPass"}
+        postJson = {"email": "user@agency.gov", "name": "user", "cgac_code": "SYS", "title": "title", "password": "userPass"}
         response = self.app.post_json("/v1/check_status/",
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.LOGIN_REQUIRED)
@@ -63,7 +63,7 @@ class UserTests(BaseTestAPI):
         self.logout()
         email = self.test_users["change_user_email"]
         self.setUpToken(email)
-        postJson = {"email": email, "name": "user", "cgac_code": "agency", "title": "title", "password": self.user_password}
+        postJson = {"email": email, "name": "user", "cgac_code": "SYS", "title": "title", "password": self.user_password}
         response = self.app.post_json("/v1/register/", postJson, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK, "Registration successful")
         # Check that session does not allow another registration
@@ -90,7 +90,7 @@ class UserTests(BaseTestAPI):
         self.logout()
         self.setUpToken("user@agency.gov")
         postJson = {"email": "fake@notreal.faux",
-                "name": "user", "cgac_code": "agency",
+                "name": "user", "cgac_code": "SYS",
                 "title":"title", "password": self.user_password}
         response = self.app.post_json("/v1/register/",
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
@@ -293,7 +293,7 @@ class UserTests(BaseTestAPI):
         response = self.app.get("/v1/current_user/", headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK)
         self.assertEqual(response.json["name"], "Mr. Manager")
-        self.assertEqual(response.json["cgac_code"], "Unknown")
+        self.assertEqual(response.json["cgac_code"], "SYS")
         self.assertEqual(response.json["skip_guide"], False)
 
     def test_skip_guide(self):
