@@ -19,7 +19,7 @@ def add_user_routes(app,system_email,bcrypt):
     #check the session to make sure register is set to prevent any one from using route
     @permissions_check(permissionList=["check_email_token"])
     def register_user():
-        """ Expects request to have keys 'email', 'name', 'agency', and 'title' """
+        """ Expects request to have keys 'email', 'name', 'cgac_code', and 'title' """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager,accountManager.register, getSystemEmail = True, getSession = True)
 

@@ -21,7 +21,7 @@ class LoginTests(BaseTestAPI):
         self.assertIn("user_id", json)
         self.assertIn("title", json)
         self.assertIn("name", json)
-        self.assertIn("agency", json)
+        self.assertIn("cgac_code", json)
         self.assertIn("permissions", json)
 
     def test_inactive_login(self):
