@@ -81,13 +81,12 @@ def downgrade_validation():
     op.drop_column('rule', 'target_file_id')
     op.drop_column('rule', 'file_id')
     op.create_table('multi_field_rule_type',
-    sa.Column('multi_field_rule_type_id', sa.INTEGER(), server_default=sa.text(u"nextval('multi_field_rule_type_multi_field_rule_type_id_seq'::regclass)"), nullable=False),
+    sa.Column('multi_field_rule_type_id', sa.INTEGER(), autoincrement=True, nullable=False),
     sa.Column('name', sa.TEXT(), autoincrement=False, nullable=True),
     sa.Column('description', sa.TEXT(), autoincrement=False, nullable=True),
     sa.Column('created_at', postgresql.TIMESTAMP(), autoincrement=False, nullable=True),
     sa.Column('updated_at', postgresql.TIMESTAMP(), autoincrement=False, nullable=True),
     sa.PrimaryKeyConstraint('multi_field_rule_type_id', name=u'multi_field_rule_type_pkey'),
-    postgresql_ignore_search_path=False
     )
     op.create_table('multi_field_rule',
     sa.Column('multi_field_rule_id', sa.INTEGER(), nullable=False),
