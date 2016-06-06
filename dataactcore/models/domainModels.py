@@ -20,3 +20,9 @@ class CGAC(Base):
     cgac_id = Column(Integer, primary_key=True)
     cgac_code = Column(Text, nullable=False,index=True,unique=True)
     agency_name = Column(Text)
+
+class ObjectClass(Base):
+    __tablename__ = "object_class"
+    object_class_id = Column(Integer, primary_key=True)
+    object_class_code = Column(Text,nullable=False,index=True,unique=True)
+    object_class_name = Column(Text)
