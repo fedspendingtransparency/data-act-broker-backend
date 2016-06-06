@@ -231,7 +231,7 @@ class Validator(object):
         for rule in multiFieldRules:
             if not Validator.evaluateRule(record,rule,None,interfaces,record):
                 recordFailed = True
-                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.rule_type.name)]), Validator.getMultiValues(rule, record, interfaces)])
+                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces)])
         return (not recordFailed), failedRules
 
     @staticmethod

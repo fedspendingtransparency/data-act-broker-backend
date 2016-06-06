@@ -135,18 +135,10 @@ class FieldCleaner:
     @staticmethod
     def isNumeric(data):
         try:
-            int(data)
+            float(data)
             return True
         except:
-            try:
-                Decimal(data)
-                return True
-            except:
-                try:
-                    long(data)
-                    return True
-                except:
-                    return False
+            return False
 
 if __name__ == '__main__':
     FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")
