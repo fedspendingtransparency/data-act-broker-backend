@@ -1,6 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from dataactcore.utils.timeStampMixin import TimeStampBase
-from sqlalchemy import Column, Integer, Text, Boolean
+from dataactcore.models.stagingModels import concatTas
+from sqlalchemy import Column, Integer, Text, Boolean, Index
 
 Base = declarative_base(cls=TimeStampBase)
 
@@ -26,3 +27,24 @@ class ObjectClass(Base):
     object_class_id = Column(Integer, primary_key=True)
     object_class_code = Column(Text,nullable=False,index=True,unique=True)
     object_class_name = Column(Text)
+
+class SF133(Base):
+    __tablename__ = "sf_133"
+    sf133_id = Column(Integer,primary_key=True)
+    agencyidentifier = Column(Text, nullable=False)
+    allocationtransferagencyidentifier = Column(Text)
+    availabilitytypecode = Column(Text)
+    beginningperiodofavailability = Column(Text)
+    endingperiodofavailability = Column(Text)
+    mainaccountcode = Column(Text, nullable=False)
+    subaccountcode = Column(Text, nullable=False)
+    tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas, index=True)
+    fiscal_year = Column(Text)
+    period = Column(Text)
+    line = Column(Integer,nullable=False)
+    amount = Column(Text,nullable=False,default=0,server_default="0")
+
+Index("ix_sf_133_tas",
+  SF133.tas,
+  SF133.line,
+  unique=True)

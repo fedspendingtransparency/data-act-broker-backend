@@ -29,6 +29,16 @@ class CsvS3Reader(CsvAbstractReader):
 
         super(CsvS3Reader,self).openFile(region,bucket,filename,csvSchema,bucketName,errorFilename)
 
+    def downloadFile(self,region,bucket,filename,targetLocation):
+        """ After opening a file, download entire file to filename """
+        print("Downloading file: " + str(region) + " " + str(bucket) + " " + str(filename) + " to " + str(targetLocation))
+        s3connection = boto.s3.connect_to_region(region)
+        s3Bucket = s3connection.lookup(bucket)
+        self.s3File = s3Bucket.get_key(filename)
+        if(self.s3File == None):
+            raise ValueError("".join(["Filename provided not found on S3: ",str(filename)]))
+        self.s3File.get_contents_to_filename(targetLocation)
+
     def close(self):
         """ Don't need to close file when streaming from S3 """
         pass
