@@ -12,6 +12,7 @@ from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
+from dataactcore.scripts.setupValidationDB import setupValidationDB
 from dataactcore.config import CONFIG_BROKER
 import dataactcore.config
 from dataactbroker.scripts.setupEmails import setupEmails
@@ -52,6 +53,8 @@ class BaseTestAPI(unittest.TestCase):
         setupJobTrackerDB()
         # drop and re-create test error db/tables
         setupErrorDB()
+        # drop and re-create test validation db/tables
+        setupValidationDB()
         # load e-mail templates
         setupEmails()
 
@@ -117,7 +120,7 @@ class BaseTestAPI(unittest.TestCase):
 
         # Set the Agency for the agency user
         agencyUser = userDb.getUserByEmail(test_users['agency_user'])
-        agencyUser.agency = "testAgency"
+        agencyUser.cgac_code = "SYS"
         userDb.session.commit()
         cls.agency_user_id = agencyUser.user_id
 
@@ -145,7 +148,7 @@ class BaseTestAPI(unittest.TestCase):
         admin = userDb.getUserByEmail(test_users['admin_email'])
         userDb.setPassword(admin, admin_password, Bcrypt())
         admin.name = "Mr. Manager"
-        admin.agency = "Unknown"
+        admin.cgac_code = "SYS"
         userDb.session.commit()
 
         #set up status changed user

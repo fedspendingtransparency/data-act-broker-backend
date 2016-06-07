@@ -104,7 +104,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 6913, 4, "complete", 50, True)
+            jobId, 200, "finished", 6912, 4, "complete", 50, True)
 
     def test_program_valid(self):
         """Test valid job."""
