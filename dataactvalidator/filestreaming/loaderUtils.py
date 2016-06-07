@@ -1,4 +1,5 @@
 import csv
+from sqlalchemy.exc import IntegrityError
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.validation_handlers.validator import Validator
 
@@ -83,7 +84,14 @@ class LoaderUtils:
                             valuePresent[field][row[field]] = True
                     record = model(**row)
                 if not skipInsert:
-                    interface.session.merge(record)
+                    try:
+                        interface.session.merge(record)
+                    except IntegrityError as e:
+                        # Hit a duplicate value that violates index, skip this one
+                        print("".join(["Warning: Skipping this row: ",str(row)]))
+                        print("".join(["Due to error: ",str(e)]))
+                        interface.session.rollback()
+                        continue
             interface.session.commit()
 
 

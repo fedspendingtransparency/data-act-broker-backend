@@ -37,7 +37,7 @@ class ProgramActivity(Base):
     program_activity_code = Column(Text,nullable=False)
     program_activity_name = Column(Text,nullable=False)
 
-Index("ix_oc_pa_tas_oc_pa",
+Index("ix_pa_tas_pa",
       ProgramActivity.budget_year,
       ProgramActivity.agency_id,
       ProgramActivity.allocation_transfer_id,

@@ -518,16 +518,10 @@ class Validator(object):
             data = ""
         data = data.strip()
 
-        if len(data) < padLength:
-            numZeros = padLength - len(data)
-            zeros = "0" * numZeros
-            result = zeros + str(data)
-            return result
-        elif len(data) > padLength:
-            raise ValueError("".join(["Value is too long: ",str(data)]))
+        if len(data) <= padLength:
+            return data.zfill(padLength)
         else:
-            # Data is correct length already
-            return data
+            raise ValueError("".join(["Value is too long: ",str(data)]))
 
     @classmethod
     def rule_required_set_conditional(cls, data, value, rule, datatype, interfaces, record):
