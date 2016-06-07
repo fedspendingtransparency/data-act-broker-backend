@@ -1,12 +1,8 @@
 import os
 from dataactvalidator.filestreaming.loaderUtils import LoaderUtils
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
-<<<<<<< HEAD
 from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
-from dataactcore.models.domainModels import CGAC,ObjectClass,SF133
-=======
-from dataactcore.models.domainModels import CGAC,ObjectClass,ProgramActivity
->>>>>>> db-559-program-activity
+from dataactcore.models.domainModels import CGAC,ObjectClass,ProgramActivity,SF133
 from dataactcore.config import CONFIG_BROKER
 
 def loadCgac(filename):
