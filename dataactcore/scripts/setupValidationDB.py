@@ -58,7 +58,8 @@ def insertCodes():
         (18, 'SUM_BY_TAS', 'Check if two fields summed by TAS are equal'),
         (19, 'EXISTS_IN_TABLE', 'Check that value exists in specified table'),
         (20, 'REQUIRED_SET_CONDITIONAL', 'Check that all fields in set are present if conditional rule passes'),
-        (21, 'CHECK_PREFIX', 'Check first character against a value in another field')
+        (21, 'CHECK_PREFIX', 'Check first character against a value in another field'),
+        (22, 'SET_EXISTS_IN_TABLE', 'Check whether set of values exists in specified table')
         ]
     for r in ruleTypeList:
         ruleType = RuleType(rule_type_id=r[0], name=r[1], description=r[2])

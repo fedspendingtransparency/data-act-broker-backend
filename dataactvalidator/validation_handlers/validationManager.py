@@ -16,6 +16,7 @@ from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 
 class ValidationManager:
@@ -214,8 +215,8 @@ class ValidationManager:
                     rowNumber += 1
                     #if (rowNumber % 1000) == 0:
                     #    print("Validating row " + str(rowNumber))
-                    try:
-                        record = reader.getNextRecord()
+                    try :
+                        record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, validationDB)
                         record["row"] = rowNumber
                         if reader.isFinished and len(record) < 2:
                             # This is the last line and is empty, don't record an error
