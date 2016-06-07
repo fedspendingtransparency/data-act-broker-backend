@@ -36,9 +36,6 @@ class JobTests(BaseTestValidator):
             "wrong_type": {"filename": "", "status": "ready", "jobType": "external_validation", "submissionLocalId": 4, "fileType": 1},
             "not_ready": {"filename": "", "status": "finished", "jobType": "csv_record_validation", "submissionLocalId": 5, "fileType": 1},
             "empty": {"filename": "testEmpty.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 10, "fileType": 1},
-            "many": {"filename": "testMany.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 11, "fileType": 3},
-            "many_bad": {"filename": "testManyBadValues.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 11, "fileType": 4},
-            "rules": {"filename": "testRules.csv", "status":"ready", "jobType": "csv_record_validation", "submissionLocalId": 16, "fileType": 3}
         }
 
         # Upload needed files to S3
