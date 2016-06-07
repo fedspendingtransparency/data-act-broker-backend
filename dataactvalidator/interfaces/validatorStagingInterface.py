@@ -1,8 +1,6 @@
 from dataactcore.models.stagingInterface import StagingInterface
 from dataactcore.models.stagingModels import FieldNameMap
-from dataactcore.utils.responseException import ResponseException
-from dataactcore.utils.statusCode import StatusCode
-from dataactvalidator.interfaces.validatorJobTrackerInterface import ValidatorJobTrackerInterface
+from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity, AwardFinancial, AwardFinancialAssistance
 from sqlalchemy import MetaData, Table
 from sqlalchemy.exc import NoSuchTableError
 
@@ -39,27 +37,6 @@ class ValidatorStagingInterface(StagingInterface):
         self.session.close()
         return rows
 
-    @classmethod
-    def getTableName(cls, jobId):
-        """ Get the staging table name based on the job ID """
-        # Get submission ID and file type
-        jobDb = ValidatorJobTrackerInterface()
-        submissionId = jobDb.getSubmissionId(jobId)
-        jobType = jobDb.getJobType(jobId)
-        if jobType == "csv_record_validation":
-            fileType = jobDb.getFileType(jobId)
-        elif jobType == "validation":
-            fileType = "_cross_file"
-        else:
-            raise ResponseException("Unknown Job Type",StatusCode.CLIENT_ERROR,ValueError)
-        # Get table name based on submissionId and fileType
-        return cls.getTableNameBySubmissionId(submissionId, fileType)
-
-    @staticmethod
-    def getTableNameBySubmissionId(submissionId, fileType):
-        """ Get staging table name based on submission ID and file type """
-        return "".join(["submission",str(submissionId),str(fileType)])
-
     def getFieldNameMap(self, tableName):
         """ Return the dict mapping column IDs to field names """
         query = self.session.query(FieldNameMap).filter(FieldNameMap.table_name == tableName)
@@ -75,3 +52,49 @@ class ValidatorStagingInterface(StagingInterface):
         newMap = FieldNameMap(table_name = tableName, column_to_field_map = str(fieldNameMap))
         self.session.add(newMap)
         self.session.commit()
+
+    def insertSubmissionRecordByFileType(self, record, fileType):
+        """Insert a submitted file row into staging.
+
+        Args:
+            record: record to insert (Dict)
+            submissionId: submissionId associated with this record (int)
+            fileType: originating file type of the record (string)
+        """
+        if fileType == "award":
+            rec = AwardFinancialAssistance(**record)
+        elif fileType == "award_financial":
+            rec = AwardFinancial(**record)
+        elif fileType == "appropriations":
+            rec = Appropriation(**record)
+        elif fileType == "program_activity":
+            rec = ObjectClassProgramActivity(**record)
+        self.session.add(rec)
+        self.session.commit()
+
+    def getSubmissionRecordsByFileType(self, submissionId, fileType):
+        """Return records for a specific submission and file type.
+
+        Args:
+            submissionId: the submission to retrieve records for (int)
+            fileType: the file type to pull (string)
+
+        Returns:
+            Query
+        """
+        if fileType == "award":
+            recs = self.session.query(AwardFinancialAssistance).filter_by(
+                submission_id=submissionId)
+        elif fileType == "award_financial":
+            recs = self.session.query(AwardFinancial).filter_by(
+                submission_id=submissionId)
+        elif fileType == "appropriations":
+            recs = self.session.query(Appropriation).filter_by(
+                submission_id=submissionId)
+        elif fileType == "program_activity":
+            recs = self.session.query(ObjectClassProgramActivity).filter_by(
+                submission_id=submissionId)
+        else:
+            raise ValueError(
+                "No staging table found for fileType {}".format(fileType))
+        return recs
