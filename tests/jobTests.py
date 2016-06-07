@@ -31,20 +31,12 @@ class JobTests(BaseTestValidator):
                 jobTracker, userId=cls.userId)
 
         csvFiles = {
-            "valid": {"filename": "testValid.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 1, "fileType": 1},
             "bad_upload": {"filename": "", "status": "ready", "jobType": "file_upload", "submissionLocalId": 2, "fileType": 1},
             "bad_prereq": {"filename": "", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId" :2,  "fileType": 1},
             "wrong_type": {"filename": "", "status": "ready", "jobType": "external_validation", "submissionLocalId": 4, "fileType": 1},
             "not_ready": {"filename": "", "status": "finished", "jobType": "csv_record_validation", "submissionLocalId": 5, "fileType": 1},
-            "valid_upload": {"filename": "", "status": "finished", "jobType": "file_upload", "submissionLocalId": 6, "fileType": 1},
-            "valid_prereq": {"filename": "testPrereq.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 6, "fileType": 1},
-            "bad_values": {"filename": "testBadValues.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 8, "fileType": 1},
-            "mixed": {"filename": "testMixed.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 9, "fileType": 1},
             "empty": {"filename": "testEmpty.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 10, "fileType": 1},
-            "missing_header": {"filename": "testMissingHeader.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 11, "fileType": 1},
-            "bad_header": {"filename": "testBadHeader.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 12, "fileType": 2},
             "many": {"filename": "testMany.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 11, "fileType": 3},
-            "odd_characters": {"filename": "testOddCharacters.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId":14, "fileType": 2},
             "many_bad": {"filename": "testManyBadValues.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 11, "fileType": 4},
             "rules": {"filename": "testRules.csv", "status":"ready", "jobType": "csv_record_validation", "submissionLocalId": 16, "fileType": 3}
         }
@@ -77,10 +69,7 @@ class JobTests(BaseTestValidator):
         dependencies = [
             JobDependency(
                 job_id = str(jobIdDict["bad_prereq"]),
-                prerequisite_id = str(jobIdDict["bad_upload"])),
-            JobDependency(
-                job_id = str(jobIdDict["valid_prereq"]),
-                prerequisite_id = str(jobIdDict["valid_upload"]))
+                prerequisite_id = str(jobIdDict["bad_upload"]))
         ]
 
         for dependency in dependencies:
@@ -125,38 +114,9 @@ class JobTests(BaseTestValidator):
 
         cls.jobIdDict = jobIdDict
 
-    def test_valid_job(self):
-        """Test valid job."""
-        jobId = self.jobIdDict["valid"]
-        response = self.run_test(
-            jobId, 200, "finished", 52, 1, "complete", 0, False)
-
-    def test_rules(self):
-        """Test rules, should have one type failure and four value failures."""
-        jobId = self.jobIdDict["rules"]
-        response = self.run_test(
-            jobId, 200, "finished", 350, 1, "complete", 5, True)
-
-    def test_bad_values_job(self):
-        """Test a job with bad values."""
-        jobId = self.jobIdDict["bad_values"]
-        response = self.run_test(
-            jobId, 200, "finished", 5894, 0, "complete", 90, True)
-
-    def test_many_bad_values_job(self):
-        # Test job with many bad values
-        if self.includeLongTests:
-            jobId = self.jobIdDict["many_bad"]
-            response = self.run_test(
-                jobId, 200, "finished", 151665643, 0, "complete", 2302930, True)
-        else:
-            self.skipTest("includeLongTests flag is off")
-
-    def test_mixed_job(self):
-        """Test mixed job."""
-        jobId = self.jobIdDict["mixed"]
-        response = self.run_test(
-            jobId, 200, "finished", 99, 3, "complete", 1, True)
+    def tearDown(self):
+        super(JobTests, self).tearDown()
+        # TODO: drop tables, etc.
 
     def test_empty(self):
         """Test empty file."""
@@ -172,60 +132,11 @@ class JobTests(BaseTestValidator):
             self.assertEqual(
                 response.json["message"], "CSV file must have a header")
 
-    def test_missing_header(self):
-        """Test missing header in first row."""
-        jobId = self.jobIdDict["missing_header"]
-        if self.useThreads:
-            status = 200
-        else:
-            status = 400
-
-        response = self.run_test(
-            jobId, status, "invalid", False, False, "header_error", 0, False)
-
-        if not self.useThreads:
-            self.assertIn("Errors in header row", response.json["message"])
-
-    def test_bad_header(self):
-        """ Ignore bad header value in first row, then fail on a duplicate header """
-        jobId = self.jobIdDict["bad_header"]
-        if self.useThreads:
-            status = 200
-        else:
-            status = 400
-
-        response = self.run_test(
-            jobId, status, "invalid", False, False, "header_error", 0, False)
-
-        if not self.useThreads:
-            self.assertIn("Errors in header row", response.json["message"])
-
-    def test_many_rows(self):
-        """Test many rows."""
-        if self.includeLongTests:
-            jobId = self.jobIdDict["many"]
-            response = self.run_test(
-                jobId, 200, "finished", 52, 22380, "complete", 0, False)
-        else:
-            self.skipTest("includeLongTests flag is off")
-
-    def test_odd_characters(self):
-        """Test potentially problematic characters."""
-        jobId = self.jobIdDict["odd_characters"]
-        response = self.run_test(
-            jobId, 200, "finished", 99, 6, "complete", 1, True)
-
     def test_bad_id_job(self):
         """Test job ID not found in job table."""
         jobId = -1
         response = self.run_test(
             jobId, 400, False, False, False, False, 0, None)
-
-    def test_prereq_job(self):
-        """Test job with prerequisites finished."""
-        jobId = self.jobIdDict["valid_prereq"]
-        response = self.run_test(
-            jobId, 200, "finished", 52, 4, "complete", 0, False)
 
     def test_bad_prereq_job(self):
         """Test job with unfinished prerequisites."""
@@ -239,15 +150,34 @@ class JobTests(BaseTestValidator):
         response = self.run_test(
             jobId, 400, "ready", False, False, "job_error", 0, None)
 
+    # removing long tests because 1) we don't run them and 2) the file formats need updated
+    # TODO: add a compliant file for this test if we want to use it
+    # def test_many_bad_values_job(self):
+    #     # Test job with many bad values
+    #     if self.includeLongTests:
+    #         jobId = self.jobIdDict["many_bad"]
+    #         response = self.run_test(
+    #             jobId, 200, "finished", 151665643, 0, "complete", 2302930, True)
+    #     else:
+    #         self.skipTest("includeLongTests flag is off")
+
+    # removing long tests because 1) we don't run them and 2) the file formats need updated
+    # TODO: add a compliant file for this test if we want to use it
+    # def test_many_rows(self):
+    #     """Test many rows."""
+    #     if self.includeLongTests:
+    #         jobId = self.jobIdDict["many"]
+    #         response = self.run_test(
+    #             jobId, 200, "finished", 52, 22380, "complete", 0, False)
+    #     else:
+    #         self.skipTest("includeLongTests flag is off")
+
     # TODO uncomment this test if we start limiting the validator to only jobs that are "ready"
     #def test_finished_job(self):
     #    """ Test job that is already finished """
     #    jobId = self.jobIdDict["finished"]
     #    self.run_test(jobId,400,"finished",False,False,"job_error",0)
 
-    def tearDown(self):
-        super(JobTests, self).tearDown()
-        # TODO: drop tables, etc.
 
 if __name__ == '__main__':
     unittest.main()
