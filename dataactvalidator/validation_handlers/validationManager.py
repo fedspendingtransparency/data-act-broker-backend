@@ -311,7 +311,6 @@ class ValidationManager:
         """
         # Create connection to job tracker database
         self.filename = None
-        tableName = ""
         jobId = None
         jobTracker = None
 
@@ -337,13 +336,13 @@ class ValidationManager:
                 # Error occurred while trying to get and check job ID
                 e.errorType = ValidationError.jobError
             interfaces.errorDb.writeFileError(jobId, self.filename, e.errorType, e.extraInfo)
-            return JsonResponse.error(e, e.status, table=tableName)
+            return JsonResponse.error(e, e.status)
         except Exception as e:
             exc = ResponseException(str(e), StatusCode.INTERNAL_ERROR,type(e))
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
             self.markJob(jobId, jobTracker, "failed", interfaces.errorDb,
                 self.filename, ValidationError.unknownError)
-            return JsonResponse.error(exc, exc.status, table=tableName)
+            return JsonResponse.error(exc, exc.status)
 
         try:
             jobTracker.markJobStatus(jobId, "running")
@@ -355,28 +354,28 @@ class ValidationManager:
                 raise ResponseException("Bad job type for validator",
                     StatusCode.INTERNAL_ERROR)
             interfaces.errorDb.markFileComplete(jobId, self.filename)
-            return JsonResponse.create(StatusCode.OK, {"table":tableName})
+            return JsonResponse.create(StatusCode.OK, {"message":"Validation complete"})
         except ResponseException as e:
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
             self.markJob(jobId, jobTracker, "invalid", interfaces.errorDb,
-                self.filename,e.errorType,e.extraInfo)
-            return JsonResponse.error(e,e.status,table=tableName)
+                self.filename,e.errorType, e.extraInfo)
+            return JsonResponse.error(e, e.status)
         except ValueError as e:
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
             # Problem with CSV headers
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e), ValidationError.unknownError) #"Internal value error"
             self.markJob(jobId,jobTracker, "invalid", interfaces.errorDb, self.filename, ValidationError.unknownError)
-            return JsonResponse.error(exc, exc.status, table=tableName)
+            return JsonResponse.error(exc, exc.status)
         except Error as e:
             CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             # CSV file not properly formatted (usually too much in one field)
             exc = ResponseException("Internal error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
             self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,ValidationError.unknownError)
-            return JsonResponse.error(exc, exc.status, table=tableName)
+            return JsonResponse.error(exc, exc.status)
         except Exception as e:
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
             exc = ResponseException(str(e), StatusCode.INTERNAL_ERROR, type(e),
                 ValidationError.unknownError)
             self.markJob(jobId, jobTracker, "failed", interfaces.errorDb,
                 self.filename, ValidationError.unknownError)
-            return JsonResponse.error(exc, exc.status, table=tableName)
+            return JsonResponse.error(exc, exc.status)
