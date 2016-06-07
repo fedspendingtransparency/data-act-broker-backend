@@ -122,12 +122,11 @@ class BaseTestValidator(unittest.TestCase):
             response.headers.get("Content-Type"), "application/json")
 
         # Get staging records associated with this job
-        fileType = jobTracker.getFileType(jobId)
-        submissionId = jobTracker.getSubmissionId(jobId)
-        stagingQuery = stagingDb.getSubmissionRecordsByFileType(
-            fileType, submissionId)
-
         if stagingRows:
+            fileType = jobTracker.getFileType(jobId)
+            submissionId = jobTracker.getSubmissionId(jobId)
+            stagingQuery = stagingDb.getSubmissionRecordsByFileType(
+                submissionId, fileType)
             self.assertEqual(stagingQuery.count(), stagingRows)
 
         errorInterface = self.errorInterface
