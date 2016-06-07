@@ -91,21 +91,19 @@ class Validator(object):
             for thisRecord in sourceRecords:
                 # Build query to filter for each field to match
                 matchDict = {}
-                # query = stagingDb.session.query(targetTable)
                 for field in fieldsToCheck:
-                    # Have to get file column IDs for source and target tables
                     sourceValue = thisRecord[str(field)]
                     matchDict[str(field)] = sourceValue
-                    filter = {field: sourceValue}
-                    query = targetQuery.filter_by(**filter)
+                count = targetQuery.filter_by(**matchDict).count()
 
                 # Make sure at least one in target table record matches
-                if query.count() < 1:
+                if count < 1:
                     # Fields don't match target file, add to failures
                     rulePassed = False
                     dictString = str(matchDict)[1:-1] # Remove braces
                     rowNumber = thisRecord["row"]
-                    failures.append([fileType,", ".join(fieldsToCheck),rule.description,dictString,rowNumber])
+                    failures.append([fileType,", ".join(fieldsToCheck),
+                                     rule.description, dictString, rowNumber])
 
         elif ruleType == "rule_if":
             # Get all records from source table
