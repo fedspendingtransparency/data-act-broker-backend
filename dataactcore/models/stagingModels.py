@@ -61,6 +61,12 @@ class Appropriation(Base):
     unobligatedbalance_cpe = Column(Numeric, nullable=False)
     tas = Column(Text, index=True, nullable=False, default=concatTas, onupdate=concatTas)
 
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(Appropriation, self).__init__(**cleanKwargs)
+
 class ObjectClassProgramActivity(Base):
     """Model for the object_class_program_activity table."""
     __tablename__ = "object_class_program_activity"
@@ -127,6 +133,12 @@ class ObjectClassProgramActivity(Base):
     ussgl498200_upwardadjustmentsofprioryeardeliveredordersobligationspaid_cpe = Column(
         "ussgl498200_upadjsprioryrdelivordersobligpaid_cpe", Numeric, nullable=False)
     tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
+
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(ObjectClassProgramActivity, self).__init__(**cleanKwargs)
 
 Index("ix_oc_pa_tas_oc_pa",
       ObjectClassProgramActivity.tas,
@@ -204,6 +216,12 @@ class AwardFinancial(Base):
         "ussgl498200_upadjsprioryrdelivordersobligpaid_cpe", Numeric)
     tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
 
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(AwardFinancial, self).__init__(**cleanKwargs)
+
 Index("ix_award_financial_tas_oc_pa",
       AwardFinancial.tas,
       AwardFinancial.objectclass,
@@ -278,3 +296,10 @@ class AwardFinancialAssistance(Base):
     sai_number = Column(Text)
     totalfundingamount = Column(Numeric)
     uri = Column(Text, index=True)
+
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(AwardFinancialAssistance, self).__init__(**cleanKwargs)
+
