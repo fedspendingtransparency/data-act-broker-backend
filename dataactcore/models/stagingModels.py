@@ -23,13 +23,6 @@ def concatTas(context):
     tas = '{}{}{}{}{}{}{}'.format(tas1, tas2, tas3, tas4, tas5, tas6, tas7)
     return tas
 
-class FieldNameMap(Base):
-    """Model for the field_name_map table."""
-    __tablename__ = "field_name_map"
-
-    field_name_map_id = Column(Integer, primary_key=True)
-    table_name = Column(Text)
-    column_to_field_map = Column(Text)
 
 class Appropriation(Base):
     """Model for the appropriation table."""
@@ -302,4 +295,3 @@ class AwardFinancialAssistance(Base):
         # so get rid of any extraneous kwargs before instantiating
         cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(AwardFinancialAssistance, self).__init__(**cleanKwargs)
-
