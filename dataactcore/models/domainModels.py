@@ -1,6 +1,9 @@
 from sqlalchemy.ext.declarative import declarative_base
 from dataactcore.utils.timeStampMixin import TimeStampBase
+<<<<<<< HEAD
 from dataactcore.models.stagingModels import concatTas
+=======
+>>>>>>> db-559-program-activity
 from sqlalchemy import Column, Integer, Text, Boolean, Index
 
 Base = declarative_base(cls=TimeStampBase)
@@ -48,3 +51,22 @@ Index("ix_sf_133_tas",
   SF133.tas,
   SF133.line,
   unique=True)
+
+class ProgramActivity(Base):
+    __tablename__ = "program_activity"
+    program_activity_id = Column(Integer, primary_key=True)
+    budget_year = Column(Text,nullable=False)
+    agency_id = Column(Text,nullable=False)
+    allocation_transfer_id = Column(Text)
+    account_number = Column(Text,nullable=False)
+    program_activity_code = Column(Text,nullable=False)
+    program_activity_name = Column(Text,nullable=False)
+
+Index("ix_pa_tas_pa",
+      ProgramActivity.budget_year,
+      ProgramActivity.agency_id,
+      ProgramActivity.allocation_transfer_id,
+      ProgramActivity.account_number,
+      ProgramActivity.program_activity_code,
+      ProgramActivity.program_activity_name,
+      unique=True)

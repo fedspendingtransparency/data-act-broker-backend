@@ -17,7 +17,7 @@ class JobHandler(JobTrackerInterface):
     """
 
     fiscalStartMonth = 10
-    metaDataFieldMap = {"agency_name":"agency_name","reporting_period_start_date":"reporting_start_date","reporting_period_end_date":"reporting_end_date","is_quarter":"is_quarter_format"}
+    metaDataFieldMap = {"cgac_code":"cgac_code","reporting_period_start_date":"reporting_start_date","reporting_period_end_date":"reporting_end_date","is_quarter":"is_quarter_format"}
 
     def getSubmissionById(self,submissionId):
         """ Return submission object that matches ID """
@@ -27,7 +27,7 @@ class JobHandler(JobTrackerInterface):
 
     def getSubmissionsByUserAgency(self,user,limit=5):
         """ Returns all submissions associated with the specified user's agency """
-        return self.session.query(Submission).filter(Submission.agency_name == user.agency).order_by(Submission.updated_at.desc()).limit(limit).all()
+        return self.session.query(Submission).filter(Submission.cgac_code == user.cgac_code).order_by(Submission.updated_at.desc()).limit(limit).all()
 
     def getSubmissionsByUserId(self,userId):
         """ Returns all submissions associated with the specified user ID """

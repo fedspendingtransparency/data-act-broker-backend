@@ -1,5 +1,7 @@
 import csv
+from sqlalchemy.exc import IntegrityError
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
+from dataactvalidator.validation_handlers.validator import Validator
 
 class LoaderUtils:
     @staticmethod
@@ -75,7 +77,7 @@ class LoaderUtils:
                     options = fieldOptions[field]
                     if "pad_to_length" in options:
                         padLength = options["pad_to_length"]
-                        row[field] = cls.padToLength(row[field],padLength)
+                        row[field] = Validator.padToLength(row[field],padLength)
                     if "skip_duplicates" in options:
                         if len(row[field].strip()) == 0 or row[field] in valuePresent[field]:
                             # Value not provided or already exists, skip it
@@ -85,28 +87,14 @@ class LoaderUtils:
                             valuePresent[field][row[field]] = True
                     record = model(**row)
                 if not skipInsert:
-                    interface.session.merge(record)
+                    try:
+                        interface.session.merge(record)
+                    except IntegrityError as e:
+                        # Hit a duplicate value that violates index, skip this one
+                        print("".join(["Warning: Skipping this row: ",str(row)]))
+                        print("".join(["Due to error: ",str(e)]))
+                        interface.session.rollback()
+                        continue
             interface.session.commit()
 
-    @staticmethod
-    def padToLength(data,padLength):
-        """ Pad data with leading zeros
 
-        Args:
-            data: string to be padded
-            padLength: length of string after padding
-
-        Returns:
-            padded string of length padLength
-        """
-
-        if len(data) < padLength:
-            numZeros = padLength - len(data)
-            zeros = "0" * numZeros
-            result = zeros + str(data)
-            return result
-        elif len(data) > padLength:
-            raise ValueError("".join(["Value is too long: ",str(data)]))
-        else:
-            # Data is correct length already
-            return data

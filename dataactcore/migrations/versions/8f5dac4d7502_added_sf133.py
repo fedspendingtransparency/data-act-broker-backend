@@ -8,7 +8,7 @@ Create Date: 2016-06-07 10:27:07.294000
 
 # revision identifiers, used by Alembic.
 revision = '8f5dac4d7502'
-down_revision = 'e7f8f4d5a1a2'
+down_revision = '64227a34252e'
 branch_labels = None
 depends_on = None
 
@@ -79,7 +79,7 @@ def upgrade_validation():
     sa.Column('tas', sa.Text(), nullable=False),
     sa.Column('period', sa.Text(), nullable=True),
     sa.Column('line', sa.Integer(), nullable=False),
-    sa.Column('amount', sa.Integer(), server_default='0', nullable=False),
+    sa.Column('amount', sa.Text(), server_default='0', nullable=False),
     sa.PrimaryKeyConstraint('sf133_id')
     )
     op.create_index('ix_sf_133_tas', 'sf_133', ['tas', 'line'], unique=True)

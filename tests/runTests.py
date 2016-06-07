@@ -37,7 +37,7 @@ def runTests(argv=''):
 
     # to run a single test:
     #suite.addTest(FileTests('test_bad_quarter_or_month'))
-    #suite.addTest(FileTypeTests('test_award_valid'))
+    #suite.addTest(FileTypeTests('test_program_valid'))
 
     print("{} tests in suite".format(suite.countTestCases()))
 
@@ -48,7 +48,12 @@ def runTests(argv=''):
         runner = unittest.TextTestRunner(verbosity=2)
 
     if PROFILE:
-        cProfile.run("runner.run(suite)","stats")
+        # Creating globals to be accessible to cProfile
+        global profileRunner
+        global profileSuite
+        profileRunner = runner
+        profileSuite = suite
+        cProfile.run("profileRunner.run(profileSuite)","stats")
         stats = pstats.Stats("stats")
         stats.sort_stats("tottime").print_stats(100)
     else: 
