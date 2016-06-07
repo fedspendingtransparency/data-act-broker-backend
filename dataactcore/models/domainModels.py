@@ -1,9 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base
 from dataactcore.utils.timeStampMixin import TimeStampBase
-<<<<<<< HEAD
 from dataactcore.models.stagingModels import concatTas
-=======
->>>>>>> db-559-program-activity
 from sqlalchemy import Column, Integer, Text, Boolean, Index
 
 Base = declarative_base(cls=TimeStampBase)

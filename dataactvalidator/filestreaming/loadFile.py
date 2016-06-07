@@ -21,20 +21,26 @@ def loadProgramActivity(filename):
         {"program_activity_code":{"pad_to_length":4},"agency_id":{"pad_to_length":3},"account_number":{"pad_to_length":4},"allocation_transfer_id":{"pad_to_length":3}})
 
 
-def loadDomainValues(basePath):
+def loadDomainValues(basePath, localSFPath = None):
+    """ Load all domain value files, localSFPath is used to point to a SF-133 file, if not provided it will be downloaded from S3  """
     loadCgac(os.path.join(basePath,"cgac.csv"))
     loadObjectClass(os.path.join(basePath,"object_class.csv"))
 
     # SF 133 is kept on S3, so need to download that
     reader = CsvS3Reader()
-    # Download files if using aws, if not they will need to already be in broker_files location
-    if(CONFIG_BROKER["use_aws"]):
-        print("Pulling values from config: " + str(CONFIG_BROKER["aws_region"]) + " " + str(CONFIG_BROKER["aws_bucket"]) + " " + str(CONFIG_BROKER["sf_133_folder"]) + " " + str(CONFIG_BROKER["sf_133_file_one"]))
-        reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file_one"]]),os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_one"]))
-        reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file_two"]]),os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_two"]))
 
-    loadSF133(os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_one"]))
-    loadSF133(os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_two"]),True)
+    if localSFPath is not None:
+        # Load SF 133 from same path
+        loadSF133(localSFPath)
+    else:
+        # Download files if using aws, if not they will need to already be in broker_files location
+        if(CONFIG_BROKER["use_aws"]):
+            print("Pulling values from config: " + str(CONFIG_BROKER["aws_region"]) + " " + str(CONFIG_BROKER["aws_bucket"]) + " " + str(CONFIG_BROKER["sf_133_folder"]) + " " + str(CONFIG_BROKER["sf_133_file_one"]))
+            reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file_one"]]),os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_one"]))
+            reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file_two"]]),os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_two"]))
+
+        loadSF133(os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_one"]))
+        loadSF133(os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_two"]),True)
 
     loadProgramActivity(os.path.join(basePath,"program_activity.csv"))
 
