@@ -533,7 +533,7 @@ class AccountHandler:
             submissionDetails.append(
                 {"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
                  "size": total_size, "status": status, "errors": error_count, "reporting_start_date": submission.reporting_start_date,
-                                      "reporting_end_date": submission.reporting_end_date, "user": {"user_id": userId,
+                                      "reporting_end_date": submission.reporting_end_date, "user": {"user_id": str(userId),
                                                                                                     "name": user.name}})
         return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
 
