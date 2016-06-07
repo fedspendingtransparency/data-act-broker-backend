@@ -36,6 +36,9 @@ class Appropriation(Base):
     __tablename__ = "appropriation"
 
     appropriation_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, nullable=False, index=True)
+    job_id = Column(Integer, nullable=False, index=True)
+    row = Column(Integer, nullable=False)
     adjustmentstounobligatedbalancebroughtforward_cpe = Column(Numeric, nullable=False)
     agencyidentifier = Column(Text, nullable=False)
     allocationtransferagencyidentifier = Column(Text)
@@ -63,6 +66,9 @@ class ObjectClassProgramActivity(Base):
     __tablename__ = "object_class_program_activity"
 
     object_class_program_activity_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, nullable=False, index=True)
+    job_id = Column(Integer, nullable=False, index=True)
+    row = Column(Integer, nullable=False)
     agencyidentifier = Column(Text, nullable=False)
     allocationtransferagencyidentifier = Column(Text)
     availabilitytypecode = Column(Text)
@@ -133,6 +139,9 @@ class AwardFinancial(Base):
     __tablename__ = "award_financial"
 
     award_financial_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, nullable=False, index=True)
+    job_id = Column(Integer, nullable=False, index=True)
+    row = Column(Integer, nullable=False)
     agencyidentifier = Column(Text, nullable=False)
     allocationtransferagencyidentifier = Column(Text)
     availabilitytypecode = Column(Text)
@@ -189,10 +198,10 @@ class AwardFinancial(Base):
         "ussgl497100_downadjsprioryrunpaiddelivordersobligrec_cpe", Numeric)
     ussgl497200_downwardadjustmentsofprioryearpaiddeliveredordersobligationsrefundscollected_cpe = Column(
         "ussgl497200_downadjsprioryrpaiddelivordersobligrefclt_cpe", Numeric)
-    USSGL498100_UpwardAdjustmentsOfPriorYearDeliveredOrdersObligationsUnpaid_cpe  = Column(
+    ussgl498100_upwardadjustmentsofprioryeardeliveredordersobligationsunpaid_cpe  = Column(
         "ussgl498100_upadjsprioryeardeliveredordersobligunpaid_cpe", Numeric)
     ussgl498200_upwardadjustmentsofprioryeardeliveredordersobligationspaid_cpe = Column(
-        "ussgl498200_upadjsprioryrdelivordersobligpaid_cpe", Numeric, key="")
+        "ussgl498200_upadjsprioryrdelivordersobligpaid_cpe", Numeric)
     tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
 
 Index("ix_award_financial_tas_oc_pa",
@@ -206,6 +215,9 @@ class AwardFinancialAssistance(Base):
     __tablename__ = "award_financial_assistance"
 
     award_financial_assistance_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, nullable=False, index=True)
+    job_id = Column(Integer, nullable=False, index=True)
+    row = Column(Integer, nullable=False)
     actiondate = Column(Text, nullable=False)
     actiontype = Column(Text)
     assistancetype = Column(Text, nullable=False)
