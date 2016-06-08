@@ -79,7 +79,7 @@ def upgrade_validation():
     sa.Column('tas', sa.Text(), nullable=False),
     sa.Column('period', sa.Text(), nullable=True),
     sa.Column('line', sa.Integer(), nullable=False),
-    sa.Column('amount', sa.Text(), server_default='0', nullable=False),
+    sa.Column('amount', sa.Numeric(), server_default='0', nullable=False),
     sa.PrimaryKeyConstraint('sf133_id')
     )
     op.create_index('ix_sf_133_tas', 'sf_133', ['tas', 'line'], unique=True)

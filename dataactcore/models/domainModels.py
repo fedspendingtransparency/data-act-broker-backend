@@ -1,7 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from dataactcore.utils.timeStampMixin import TimeStampBase
 from dataactcore.models.stagingModels import concatTas
-from sqlalchemy import Column, Integer, Text, Boolean, Index
+from sqlalchemy import Column, Integer, Text, Boolean, Index, Numeric
 
 Base = declarative_base(cls=TimeStampBase)
 
@@ -42,7 +42,7 @@ class SF133(Base):
     fiscal_year = Column(Text)
     period = Column(Text)
     line = Column(Integer,nullable=False)
-    amount = Column(Text,nullable=False,default=0,server_default="0")
+    amount = Column(Numeric,nullable=False,default=0,server_default="0")
 
 Index("ix_sf_133_tas",
   SF133.tas,
