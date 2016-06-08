@@ -1,6 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base
 from dataactcore.utils.timeStampMixin import TimeStampBase
-from sqlalchemy import Column, Integer, Text, Boolean
+from sqlalchemy import Column, Integer, Text, Boolean, Index
 
 Base = declarative_base(cls=TimeStampBase)
 
@@ -26,3 +26,22 @@ class ObjectClass(Base):
     object_class_id = Column(Integer, primary_key=True)
     object_class_code = Column(Text,nullable=False,index=True,unique=True)
     object_class_name = Column(Text)
+
+class ProgramActivity(Base):
+    __tablename__ = "program_activity"
+    program_activity_id = Column(Integer, primary_key=True)
+    budget_year = Column(Text,nullable=False)
+    agency_id = Column(Text,nullable=False)
+    allocation_transfer_id = Column(Text)
+    account_number = Column(Text,nullable=False)
+    program_activity_code = Column(Text,nullable=False)
+    program_activity_name = Column(Text,nullable=False)
+
+Index("ix_pa_tas_pa",
+      ProgramActivity.budget_year,
+      ProgramActivity.agency_id,
+      ProgramActivity.allocation_transfer_id,
+      ProgramActivity.account_number,
+      ProgramActivity.program_activity_code,
+      ProgramActivity.program_activity_name,
+      unique=True)

@@ -419,7 +419,7 @@ class Validator(object):
 
     @classmethod
     def rule_exists_in_table(cls, data, value, rule, datatype, interfaces, record):
-        """ Check that field value exists in specified table, rule_text_1 is table, rule_text_2 is column to check against """
+        """ Check that field value exists in specified table, rule_text_1 has table and column to check against, rule_text_2 is length to pad to """
         ruleTextOne = str(rule.rule_text_1).split(",")
         if len(ruleTextOne) != 2:
             # Bad rule definition
@@ -454,6 +454,77 @@ class Validator(object):
             else:
                 # This is an unexpected exception, so re-raise it
                 raise
+
+    @classmethod
+    def rule_set_exists_in_table(cls, data, value, rule, datatype, interfaces, record):
+        """ Check that set of values exists in specified table, rule_text_1 is table, rule_text_2 is dict mapping
+        columns in record to columns in domain values table """
+        # Load mapping from record fields to domain value fields
+        fieldMap = json.loads(rule.rule_text_2)
+        # Get values for fields in record into new dict between table columns and values to check for
+        valueDict = {}
+        for field in fieldMap:
+            if "skip_if_below" in fieldMap[field]:
+                try:
+                    if int(record[field]) < fieldMap[field]["skip_if_below"]:
+                        # Don't apply rule to records in this case (e.g. program activity before 2016)
+                        return True
+                except (TypeError, ValueError):
+                    # Could not cast as an int, this is a failure for this record
+                    return False
+            if "pad_to_length" in fieldMap[field]:
+                # Pad with leading zeros if needed
+                try:
+                    fieldValue = cls.padToLength(record[field],fieldMap[field]["pad_to_length"])
+                except ValueError as e:
+                    # If we cannot pad this value, it is not matchable (usually too long), so the rule has failed
+                    return False
+            else:
+                fieldValue = record[field]
+            valueDict[fieldMap[field]["target_field"]] = fieldValue
+
+        # Parse out model object
+        model = getattr(domainModels,str(rule.rule_text_1))
+
+        # Filter query by each field
+        query = interfaces.validationDb.session.query(model)
+        for field in valueDict:
+            query = query.filter(getattr(model,field) == valueDict[field])
+
+        # NoResultFound is return False, other exceptions should be reraised
+        try:
+            # Check that value exists in table, should be unique
+            interfaces.validationDb.runUniqueQuery(query,"Data not found in table", "Conflicting entries found for this data")
+            # If unique result found, rule passed
+            return True
+        except ResponseException as e:
+            # If exception is no result found, rule failed
+            if type(e.wrappedException) == type(NoResultFound()):
+                return False
+            else:
+                # This is an unexpected exception, so re-raise it
+                raise
+
+    @staticmethod
+    def padToLength(data,padLength):
+        """ Pad data with leading zeros
+
+        Args:
+            data: string to be padded
+            padLength: length of string after padding
+
+        Returns:
+            padded string of length padLength
+        """
+        if data is None:
+            # Convert None to empty string so it can be padded with zeros
+            data = ""
+        data = data.strip()
+
+        if len(data) <= padLength:
+            return data.zfill(padLength)
+        else:
+            raise ValueError("".join(["Value is too long: ",str(data)]))
 
     @classmethod
     def rule_required_set_conditional(cls, data, value, rule, datatype, interfaces, record):
@@ -652,6 +723,8 @@ class Validator(object):
             fields = []
         elif ruleType == "SUM_TO_VALUE":
             fields = ruletext2
+        elif ruleType == "SET_EXISTS_IN_TABLE":
+            fields = json.loads(rule.rule_text_2).keys()
         else:
             fields = ruletext1 + ruletext2
         output = ""
@@ -714,6 +787,9 @@ class Validator(object):
         query = interfaces.validationDb.session.query(TASLookup)
 
         for i in range(0,len(fieldsToCheck)):
+            if i == 1:
+                # TODO remove temp skip
+                continue
             data = record[str(fieldsToCheck[i])]
             if(data == None):
                 # Set data to empty string so it can be padded with leading zeros
@@ -722,7 +798,7 @@ class Validator(object):
             # Pad field with leading zeros
             length = interfaces.validationDb.getColumnLength(field, fileType)
             data = data.zfill(length)
-            query = query.filter(TASLookup.__dict__[tasFields[i]] == data)
+            query = query.filter(TASLookup.__dict__[tasFields[i]] == str(data))
 
         queryResult = query.all()
         if(len(queryResult) == 0):

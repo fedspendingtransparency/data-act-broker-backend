@@ -306,6 +306,22 @@ class ValidatorValidationInterface(BaseInterface):
         column = self.session.query(FileColumn).filter(FileColumn.name == fieldName.lower()).filter(FileColumn.file_id == fileId)
         return self.runUniqueQuery(column,"No field found with that name for that file type", "Multiple fields with that name for that file type").file_column_id
 
+    def getColumn(self, fieldName, fileType):
+        """ Find file column given field name and file type
+
+        Args:
+            fieldName: Field to search for
+            fileId: Which file this field is associated with
+
+        Returns:
+            Column object for file column if found, otherwise raises exception
+        """
+        fileId = self.getFileId(fileType)
+        column = self.session.query(FileColumn).filter(FileColumn.name == fieldName.lower()).filter(
+            FileColumn.file_id == fileId)
+        return self.runUniqueQuery(column, "No field found with that name for that file type",
+                                   "Multiple fields with that name for that file type")
+
     def getColumnLength(self,fieldName, fileId):
         """ If there is a length rule for this field, return the max length.  Otherwise, return None. """
         columnId = self.getColumnId(fieldName,fileId)
