@@ -205,7 +205,6 @@ class ValidationManager:
 
             errorInterface = interfaces.errorDb
             stagingInterface = interfaces.stagingDb
-            # TODO: do we need to delete existing staging records for this job?
 
             # While not done, pull one row and put it into staging if it passes
             # the Validator
@@ -270,6 +269,8 @@ class ValidationManager:
                 # Write unfinished batch
                 writer.finishBatch()
 
+            # Commit valid records to the database
+            stagingInterface.session.commit()
             # Write number of rows to job table
             jobTracker.setNumberOfRowsById(jobId,rowNumber)
             # Mark validation as finished in job tracker
