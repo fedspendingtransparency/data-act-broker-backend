@@ -510,8 +510,8 @@ class AccountHandler:
             error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
             submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
             submissionDetails.append({"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
-                                      "size": total_size, "status": status, "errors": error_count, "reporting_start_date": submission.reporting_start_date,
-                                      "reporting_end_date": submission.reporting_end_date, "user": {"user_id": submission.user_id,
+                                      "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
+                                      "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": submission.user_id,
                                                                                                     "name": submission_user_name}})
         return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
 
@@ -532,8 +532,8 @@ class AccountHandler:
             error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
             submissionDetails.append(
                 {"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
-                 "size": total_size, "status": status, "errors": error_count, "reporting_start_date": submission.reporting_start_date,
-                                      "reporting_end_date": submission.reporting_end_date, "user": {"user_id": str(userId),
+                 "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
+                                      "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": str(userId),
                                                                                                     "name": user.name}})
         return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
 
