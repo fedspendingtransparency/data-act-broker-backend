@@ -374,12 +374,16 @@ class Validator(object):
     @classmethod
     def rule_equal(cls, data, value, rule, datatype, interfaces, record):
         """Checks that data is equal to specified value"""
-        return Validator.getType(data.lower(),datatype) == Validator.getType(value.lower(),datatype)
+        data = data.lower() if isinstance(data, str) else data
+        value = value.lower() if isinstance(value, str) else value
+        return Validator.getType(data,datatype) == Validator.getType(value,datatype)
 
     @classmethod
     def rule_not_equal(cls, data, value, rule, datatype, interfaces, record):
         """Checks that data is not equal to specified value"""
-        return not (Validator.getType(data.lower(),datatype) == Validator.getType(value.lower(),datatype))
+        data = data.lower() if isinstance(data, str) else data
+        value = value.lower() if isinstance(value, str) else value
+        return not (Validator.getType(data,datatype) == Validator.getType(value,datatype))
 
     @classmethod
     def rule_sum(cls, data, value, rule, datatype, interfaces, record):
