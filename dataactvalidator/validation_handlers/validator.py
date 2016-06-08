@@ -374,11 +374,15 @@ class Validator(object):
     @classmethod
     def rule_equal(cls, data, value, rule, datatype, interfaces, record):
         """Checks that data is equal to specified value"""
+        data = data.lower() if isinstance(data, str) else data
+        value = value.lower() if isinstance(value, str) else value
         return Validator.getType(data,datatype) == Validator.getType(value,datatype)
 
     @classmethod
     def rule_not_equal(cls, data, value, rule, datatype, interfaces, record):
         """Checks that data is not equal to specified value"""
+        data = data.lower() if isinstance(data, str) else data
+        value = value.lower() if isinstance(value, str) else value
         return not (Validator.getType(data,datatype) == Validator.getType(value,datatype))
 
     @classmethod
@@ -399,13 +403,13 @@ class Validator(object):
     @classmethod
     def rule_in_set(cls, data, value, rule, datatype, interfaces, record):
         """Checks that data is one of a set of valid values"""
-        setList = Validator.cleanSplit(value,toLower = False)
-        return (data in setList)
+        setList = Validator.cleanSplit(value)
+        return data.lower() in setList
 
     @classmethod
     def rule_min_length(cls, data, value, rule, datatype, interfaces, record):
         """Checks that data is at least the minimum length"""
-        result =  len(data.strip()) >= Validator.getIntFromString(value)
+        result = len(data.strip()) >= Validator.getIntFromString(value)
         return result
 
     @classmethod
@@ -540,7 +544,12 @@ class Validator(object):
         if dataString[0] not in prefixMap:
             # Unknown prefix, this is a failure
             return False
-        if prefixMap[dataString[0]] == record[targetField]:
+        source = prefixMap[dataString[0]]
+        target = record[targetField]
+        source = source.lower() if source is not None else source
+        target = target.lower() if target is not None else target
+
+        if source == target:
             # Matches the value in target field, rule passes
             return True
         else:
@@ -675,7 +684,7 @@ class Validator(object):
         return not cls.evaluateRule(data, conditionalRule, datatype, interfaces, record)
 
     @staticmethod
-    def cleanSplit(string, toLower = True):
+    def cleanSplit(string, toLower=True):
         """ Split string on commas and remove whitespace around each element
 
         Args:
