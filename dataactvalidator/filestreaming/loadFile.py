@@ -11,9 +11,9 @@ def loadCgac(filename):
 def loadObjectClass(filename):
     LoaderUtils.loadCsv(filename,ObjectClass,ValidatorValidationInterface(),{"max_oc_code":"object_class_code","max_object_class_name":"object_class_name"},{"object_class_code":{"skip_duplicates":True}})
 
-def loadSF133(filename,skipClear = False):
+def loadSF133(filename):
     """ Load SF133 files, set skipClear to True for second file """
-    LoaderUtils.loadCsv(filename,SF133,ValidatorValidationInterface(),{"ata":"allocationtransferagencyidentifier","aid":"agencyidentifier","availability_type_code":"availabilitytypecode","bpoa":"beginningperiodofavailability","epoa":"endingperiodofavailability","main_account":"mainaccountcode","sub_account":"subaccountcode","fiscal_year":"fiscal_year","period":"period","line_num":"line","amount_summed":"amount"},{"allocationtransferagencyidentifier":{"pad_to_length":3},"agencyidentifier":{"pad_to_length":3},"mainaccountcode":{"pad_to_length":4},"subaccountcode":{"pad_to_length":3}},skipClear=skipClear)
+    LoaderUtils.loadCsv(filename,SF133,ValidatorValidationInterface(),{"ata":"allocationtransferagencyidentifier","aid":"agencyidentifier","availability_type_code":"availabilitytypecode","bpoa":"beginningperiodofavailability","epoa":"endingperiodofavailability","main_account":"mainaccountcode","sub_account":"subaccountcode","fiscal_year":"fiscal_year","period":"period","line_num":"line","amount_summed":"amount"},{"allocationtransferagencyidentifier":{"pad_to_length":3},"agencyidentifier":{"pad_to_length":3},"mainaccountcode":{"pad_to_length":4},"subaccountcode":{"pad_to_length":3}})
 
 def loadProgramActivity(filename):
     LoaderUtils.loadCsv(filename, ProgramActivity, ValidatorValidationInterface(), {"year":"budget_year","agency_id":"agency_id",
@@ -35,11 +35,9 @@ def loadDomainValues(basePath, localSFPath = None):
     else:
         # Download files if using aws, if not they will need to already be in broker_files location
         if(CONFIG_BROKER["use_aws"]):
-            reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file_one"]]),os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_one"]))
-            reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file_two"]]),os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_two"]))
+            reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file"]]),os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file"]))
 
-        loadSF133(os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_one"]))
-        loadSF133(os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_two"]),True)
+        loadSF133(os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file"]))
 
     loadProgramActivity(os.path.join(basePath,"program_activity.csv"))
 

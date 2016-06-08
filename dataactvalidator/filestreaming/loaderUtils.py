@@ -24,7 +24,7 @@ class LoaderUtils:
         return True
 
     @classmethod
-    def loadCsv(cls,filename,model,interface,fieldMap,fieldOptions,skipClear = False):
+    def loadCsv(cls,filename,model,interface,fieldMap,fieldOptions):
         """ Loads a table based on a csv
 
         Args:
@@ -35,13 +35,10 @@ class LoaderUtils:
             fieldOptions: dict with keys of attribute names, value contains a dict with options for that attribute.
                 Current options are "pad_to_length" which if present will pad the field with leading zeros up to
                 specified length, and "skip_duplicate" which ignores subsequent lines that repeat values.
-            skipClear: If true will not clear existing records from table.  This should only be used for files split into
-            multiple parts
         """
-        if not skipClear:
-            # Delete all records currently in table
-            interface.session.query(model).delete()
-            interface.session.commit()
+        # Delete all records currently in table
+        interface.session.query(model).delete()
+        interface.session.commit()
         valuePresent = {}
         # Open csv
         with open(filename,'rU') as csvfile:
