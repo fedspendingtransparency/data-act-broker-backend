@@ -35,7 +35,6 @@ def loadDomainValues(basePath, localSFPath = None):
     else:
         # Download files if using aws, if not they will need to already be in broker_files location
         if(CONFIG_BROKER["use_aws"]):
-            print("Pulling values from config: " + str(CONFIG_BROKER["aws_region"]) + " " + str(CONFIG_BROKER["aws_bucket"]) + " " + str(CONFIG_BROKER["sf_133_folder"]) + " " + str(CONFIG_BROKER["sf_133_file_one"]))
             reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file_one"]]),os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_one"]))
             reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file_two"]]),os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file_two"]))
 
