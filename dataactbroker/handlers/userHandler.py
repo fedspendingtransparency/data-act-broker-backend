@@ -403,7 +403,7 @@ class UserHandler(UserInterface):
         queryResult = self.session.query(PermissionType).all()
         return queryResult
 
-    def createUserWithPassword(self,email,password,bcrypt,permission=1):
+    def createUserWithPassword(self,email,password,bcrypt,permission=1,cgac_code="SYS"):
         """ This directly creates a valid user in the database with password and permissions set.  Not used during normal
         behavior of the app, but useful for configuration and testing.
 
@@ -418,6 +418,7 @@ class UserHandler(UserInterface):
         self.setPassword(user,password,bcrypt)
         self.changeStatus(user,"approved")
         self.setPermission(user,permission)
+        user.cgac_code = cgac_code
         self.session.commit()
 
     def loadEmailTemplate(self, subject, contents, emailType):
