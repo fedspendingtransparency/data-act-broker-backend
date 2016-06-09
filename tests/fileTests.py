@@ -39,12 +39,12 @@ class FileTests(BaseTestAPI):
 
         # setup submission/jobs data for test_error_report
         cls.error_report_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id)
+            cls.jobTracker, cls.submission_user_id, cgac_code = "SYS")
         cls.setupJobsForReports(cls.jobTracker, cls.error_report_submission_id)
 
         # setup file status data for test_metrics
         cls.test_metrics_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id)
+            cls.jobTracker, cls.submission_user_id, cgac_code = "SYS")
         cls.setupFileData(cls.jobTracker, cls.errorDatabase,
             cls.test_metrics_submission_id)
 
