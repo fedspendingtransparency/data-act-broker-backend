@@ -71,4 +71,18 @@ class RuleTiming(Base):
 
     TIMING_DICT = None
 
+class RuleSql(Base):
+    __tablename__ = "rule_sql"
+
+    rule_sql_id = Column(Integer, primary_key=True)
+    rule_sql = Column(Text, nullable=False)
+    rule_number = Column(Text)
+    rule_description = Column(Text, nullable=False)
+    rule_error_message = Column(Text, nullable=False)
+    rule_critical = Column(Boolean, nullable=False)
+    file_id = Column(Integer, ForeignKey("file_type.file_id"), nullable=True)
+    file = relationship("FileType", uselist=False)
+
+
+
 
