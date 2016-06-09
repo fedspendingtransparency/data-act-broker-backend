@@ -35,6 +35,7 @@ class AccountHandler:
         if(interfaces != None):
             self.interfaces = interfaces
             self.userManager = interfaces.userDb
+            self.validationManager = interfaces.validationDb
 
     def addInterfaces(self,interfaces):
         """ Add interfaces to an existing account handler
@@ -72,7 +73,7 @@ class AccountHandler:
             password = safeDictionary.getValue('password')
 
             try:
-                user  = self.interfaces.userDb.getUserByEmail(username)
+                user = self.interfaces.userDb.getUserByEmail(username)
             except Exception as e:
                 raise ValueError("Invalid username and/or password")
 
@@ -100,7 +101,10 @@ class AccountHandler:
                         if(self.interfaces.userDb.hasPermission(user, permission.name)):
                             permissionList.append(permission.permission_type_id)
                     self.interfaces.userDb.updateLastLogin(user)
-                    return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),"name":user.name,"title":user.title ,"agency":user.agency, "permissions" : permissionList})
+                    agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+                    return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),
+                                                              "name":user.name,"title":user.title,"agency_name":agency_name,
+                                                              "cgac_code":user.cgac_code, "permissions" : permissionList})
                 else :
                     # increase incorrect password attempt count by 1
                     # if this is the 3rd incorrect attempt, lock account
@@ -148,7 +152,7 @@ class AccountHandler:
     def register(self,system_email,session):
         """
 
-        Save user's information into user database.  Associated request body should have keys 'email', 'name', 'agency', and 'title'
+        Save user's information into user database.  Associated request body should have keys 'email', 'name', 'cgac_code', and 'title'
 
         arguments:
 
@@ -159,7 +163,7 @@ class AccountHandler:
         Returns message that registration is successful or error message that fields are not valid
 
         """
-        def ThreadedFunction (from_email="",username="",title="",agency="",userEmail="" ,link="") :
+        def ThreadedFunction (from_email="",username="",title="",cgac_code="",userEmail="" ,link="") :
             """
             This inner function sends emails in a new thread as there could be lots of admins
 
@@ -172,14 +176,17 @@ class AccountHandler:
             """
             threadedDatabase =  UserHandler()
             try:
+                agency_name = self.interfaces.validationDb.getAgencyName(cgac_code)
+                agency_name = "Unknown" if agency_name is None else agency_name
                 for user in threadedDatabase.getUsersByType("website_admin"):
-                    emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY]':agency,'[REG_EMAIL]' : userEmail,'[URL]':link}
+                    emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
+                                     '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : userEmail,'[URL]':link}
                     newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=threadedDatabase)
                     newEmail.send()
                 for user in threadedDatabase.getUsersByType("agency_admin"):
-                    if user.agency == agency:
-                        emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY]': agency,
-                             '[REG_EMAIL]': userEmail, '[URL]': link}
+                    if user.cgac_code == cgac_code:
+                        emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY_NAME]': agency_name,
+                             '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]': userEmail, '[URL]': link}
                         newEmail = sesEmail(user.email, system_email, templateType="account_creation", parameters=emailTemplate,
                                 database=threadedDatabase)
                         newEmail.send()
@@ -188,9 +195,9 @@ class AccountHandler:
                 InterfaceHolder.closeOne(threadedDatabase)
 
         requestFields = RequestDictionary(self.request)
-        if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("agency") and requestFields.exists("title") and requestFields.exists("password"))):
+        if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("cgac_code") and requestFields.exists("title") and requestFields.exists("password"))):
             # Missing a required field, return 400
-            exc = ResponseException("Request body must include email, name, agency, title, and password", StatusCode.CLIENT_ERROR)
+            exc = ResponseException("Request body must include email, name, cgac_code, title, and password", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
 
         if(not self.checkPassword(requestFields.getValue("password"))):
@@ -204,12 +211,12 @@ class AccountHandler:
             exc = ResponseException("User already registered",StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         # Add user info to database
-        self.interfaces.userDb.addUserInfo(user,requestFields.getValue("name"),requestFields.getValue("agency"),requestFields.getValue("title"))
+        self.interfaces.userDb.addUserInfo(user,requestFields.getValue("name"),requestFields.getValue("cgac_code"),requestFields.getValue("title"))
         self.interfaces.userDb.setPassword(user,requestFields.getValue("password"),self.bcrypt)
 
         userLink= "".join([AccountHandler.FRONT_END, '#/login?redirect=/admin'])
         # Send email to approver list
-        emailThread = Thread(target=ThreadedFunction, kwargs=dict(from_email=system_email,username=user.name,title=user.title,agency=user.agency,userEmail=user.email,link=userLink))
+        emailThread = Thread(target=ThreadedFunction, kwargs=dict(from_email=system_email,username=user.name,title=user.title,cgac_code=user.cgac_code,userEmail=user.email,link=userLink))
         emailThread.start()
 
         #email user
@@ -391,6 +398,7 @@ class AccountHandler:
                 self.resetPasswordCount(user)
                 # Reset last login date so the account isn't expired
                 self.interfaces.userDb.updateLastLogin(user, unlock_user=True)
+                self.sendResetPasswordEmail(user, system_email, unlock_user=True)
             self.interfaces.userDb.setUserActive(user, is_active)
 
         return JsonResponse.create(StatusCode.OK, {"message": "User successfully updated"})
@@ -442,7 +450,7 @@ class AccountHandler:
         isAgencyAdmin = True if self.interfaces.userDb.hasPermission(user, "agency_admin") else False
         try:
             if isAgencyAdmin:
-                users = self.interfaces.userDb.getUsers(agency=user.agency)
+                users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code)
             else:
                 users = self.interfaces.userDb.getUsers()
         except ValueError as e:
@@ -451,9 +459,10 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
         userInfo = []
         for user in users:
-            thisInfo = {"name":user.name, "title":user.title,  "agency":user.agency, "email":user.email, "id":user.user_id,
-                        "is_active":user.is_active, "permissions": ",".join(self.interfaces.userDb.getUserPermissions(user)),
-                        "status": user.user_status.name}
+            agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+            thisInfo = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
+                        "email":user.email, "id":user.user_id, "is_active":user.is_active,
+                        "permissions": ",".join(self.interfaces.userDb.getUserPermissions(user)), "status": user.user_status.name}
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
@@ -469,7 +478,7 @@ class AccountHandler:
 
         try:
             if self.interfaces.userDb.hasPermission(current_user, "agency_admin"):
-                users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"), current_user.agency)
+                users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"), current_user.cgac_code)
             else:
                 users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"))
         except ValueError as e:
@@ -478,7 +487,9 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
         userInfo = []
         for user in users:
-            thisInfo = {"name":user.name, "title":user.title,  "agency":user.agency, "email":user.email, "id":user.user_id }
+            agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+            thisInfo = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
+                        "email":user.email, "id":user.user_id }
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
@@ -497,13 +508,17 @@ class AccountHandler:
 
             status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
             error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
+            submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
             submissionDetails.append({"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
-                                      "size": total_size, "status": status, "errors": error_count})
+                                      "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
+                                      "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": submission.user_id,
+                                                                                                    "name": submission_user_name}})
         return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
 
     def listSubmissionsByCurrentUser(self):
         """ List all submission IDs associated with the current user ID """
         userId = LoginSession.getName(flaskSession)
+        user = self.interfaces.userDb.getUserByUID(userId)
         submissions = self.interfaces.jobDb.getSubmissionsByUserId(userId)
         submissionDetails = []
         for submission in submissions:
@@ -517,7 +532,9 @@ class AccountHandler:
             error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
             submissionDetails.append(
                 {"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
-                 "size": total_size, "status": status, "errors": error_count})
+                 "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
+                                      "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": str(userId),
+                                                                                                    "name": user.name}})
         return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
 
     def setNewPassword(self, session):
@@ -563,23 +580,37 @@ class AccountHandler:
         except Exception as e:
             exc = ResponseException("Unknown Error",StatusCode.CLIENT_ERROR,ValueError)
             return JsonResponse.error(exc,exc.status)
+
+        email = requestDict.getValue("email")
+        LoginSession.logout(session)
+        self.sendResetPasswordEmail(user, system_email, email)
+
+        # Return success message
+        return JsonResponse.create(StatusCode.OK,{"message":"Password reset"})
+
+    def sendResetPasswordEmail(self, user, system_email, email=None, unlock_user=False):
+        if email is None:
+            email = user.email
+
         # User must be approved and active to reset password
         if user.user_status_id != self.interfaces.userDb.getUserStatusId("approved"):
             raise ResponseException("User must be approved before resetting password", StatusCode.CLIENT_ERROR)
-        elif not user.is_active:
+        elif not unlock_user and not user.is_active:
             raise ResponseException("User is locked, cannot reset password", StatusCode.CLIENT_ERROR)
 
-        LoginSession.logout(session)
+        # If unlocking a user, wipe out current password
+        if unlock_user:
+            UserHandler().clearPassword(user)
+
         self.interfaces.userDb.session.commit()
-        email = requestDict.getValue("email")
         # Send email with token
-        emailToken = sesEmail.createToken(email,self.interfaces.userDb,"password_reset")
-        link= "".join([ AccountHandler.FRONT_END,'#/forgotpassword/',emailToken])
-        emailTemplate = { '[URL]':link}
-        newEmail = sesEmail(user.email, system_email,templateType="reset_password",parameters=emailTemplate,database=self.interfaces.userDb)
+        emailToken = sesEmail.createToken(email, self.interfaces.userDb, "password_reset")
+        link = "".join([AccountHandler.FRONT_END, '#/forgotpassword/', emailToken])
+        emailTemplate = {'[URL]': link}
+        templateType = "unlock_account" if unlock_user else "reset_password"
+        newEmail = sesEmail(user.email, system_email, templateType=templateType,
+                            parameters=emailTemplate, database=self.interfaces.userDb)
         newEmail.send()
-        # Return success message
-        return JsonResponse.create(StatusCode.OK,{"message":"Password reset"})
 
     def getCurrentUser(self,session):
         """
@@ -599,9 +630,12 @@ class AccountHandler:
         for permission in self.interfaces.userDb.getPermissionList():
             if(self.interfaces.userDb.hasPermission(user, permission.name)):
                 permissionList.append(permission.permission_type_id)
-        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency":user.agency,"title":user.title, "permissions" : permissionList, "skip_guide":user.skip_guide})
+        agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency_name": agency_name,
+                                                  "cgac_code":user.cgac_code,"title":user.title,
+                                                  "permissions": permissionList, "skip_guide":user.skip_guide})
 
-    def isUserActive(self, user, checkExpiration=False):
+    def isUserActive(self, user):
         """ Checks if user's account is still active
 
         Args:

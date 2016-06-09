@@ -19,16 +19,9 @@ def add_user_routes(app,system_email,bcrypt):
     #check the session to make sure register is set to prevent any one from using route
     @permissions_check(permissionList=["check_email_token"])
     def register_user():
-        """ Expects request to have keys 'email', 'name', 'agency', and 'title' """
+        """ Expects request to have keys 'email', 'name', 'cgac_code', and 'title' """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager,accountManager.register, getSystemEmail = True, getSession = True)
-
-    @app.route("/v1/change_status/", methods=["POST"])
-    @permissions_check(permissionList=["website_admin"])
-    def change_status():
-        """ Expects request to have keys 'user_email' and 'new_status' """
-        accountManager = AccountHandler(request, bcrypt=bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.changeStatus, getSystemEmail=True)
 
     @app.route("/v1/update_user/", methods=["POST"])
     @permissions_check(permissionList=["website_admin", "agency_admin"])

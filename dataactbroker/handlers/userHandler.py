@@ -58,12 +58,12 @@ class UserHandler(UserInterface):
         self.session.delete(oldToken)
         self.session.commit()
 
-    def getUsers(self, agency=None):
+    def getUsers(self, cgac_code=None):
         """ Return all users in the database """
         query = self.session.query(User)
-        if agency is not None:
-            query = query.filter(User.agency == agency)
-        return query.order_by(User.user_status_id).all()
+        if cgac_code is not None:
+            query = query.filter(User.cgac_code == cgac_code)
+        return query.all()
 
     def getUserByUID(self,uid):
         """ Return a User object that matches specified uid
@@ -119,18 +119,18 @@ class UserHandler(UserInterface):
         return result
 
 
-    def addUserInfo(self,user,name,agency,title):
+    def addUserInfo(self,user,name,cgac_code,title):
         """ Called after registration, add all info to user.
 
         Arguments:
             user - User object
             name - Name of user
-            agency - Agency of user
+            cgac_code - CGAC Code of the agency of user
             title - Title of user
         """
         # Add info to user ORM
         user.name = name
-        user.agency = agency
+        user.cgac_code = cgac_code
         user.title = title
         self.session.commit()
 
@@ -189,7 +189,7 @@ class UserHandler(UserInterface):
         emailId = self.session.query(EmailTemplateType.email_template_type_id).filter(EmailTemplateType.name == emailType).one()
         return self.session.query(EmailTemplate).filter(EmailTemplate.template_type_id == emailId).one()
 
-    def getUsersByStatus(self,status,agency=None):
+    def getUsersByStatus(self,status,cgac_code=None):
         """ Return list of all users with specified status
 
         Arguments:
@@ -199,8 +199,8 @@ class UserHandler(UserInterface):
         """
         statusId = self.getUserStatusId(status)
         query = self.session.query(User).filter(User.user_status_id == statusId)
-        if agency is not None:
-            query = query.filter(User.agency == agency)
+        if cgac_code is not None:
+            query = query.filter(User.cgac_code == cgac_code)
         return query.all()
 
     def getStatusOfUser(self,user):
@@ -403,7 +403,7 @@ class UserHandler(UserInterface):
         queryResult = self.session.query(PermissionType).all()
         return queryResult
 
-    def createUserWithPassword(self,email,password,bcrypt,permission=1):
+    def createUserWithPassword(self,email,password,bcrypt,permission=1,cgac_code="SYS"):
         """ This directly creates a valid user in the database with password and permissions set.  Not used during normal
         behavior of the app, but useful for configuration and testing.
 
@@ -418,6 +418,7 @@ class UserHandler(UserInterface):
         self.setPassword(user,password,bcrypt)
         self.changeStatus(user,"approved")
         self.setPermission(user,permission)
+        user.cgac_code = cgac_code
         self.session.commit()
 
     def loadEmailTemplate(self, subject, contents, emailType):

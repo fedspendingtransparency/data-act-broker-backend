@@ -62,7 +62,7 @@ def createAdmin():
             userDb.createUserWithPassword(
                 adminEmail, adminPass, Bcrypt(), permission=2)
             user = userDb.getUserByEmail(adminEmail)
-            userDb.addUserInfo(user, "Admin", "System", "System Admin")
+            userDb.addUserInfo(user, "Admin", "SYS", "System Admin")
     userDb.session.close()
 
 

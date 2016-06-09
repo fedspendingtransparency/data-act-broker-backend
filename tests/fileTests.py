@@ -32,19 +32,19 @@ class FileTests(BaseTestAPI):
 
         # setup submission/jobs data for test_check_status
         cls.status_check_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id, agency = "Department of the Treasury", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
+            cls.jobTracker, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
 
         cls.jobIdDict = cls.setupJobsForStatusCheck(cls.interfaces,
             cls.status_check_submission_id)
 
         # setup submission/jobs data for test_error_report
         cls.error_report_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id)
+            cls.jobTracker, cls.submission_user_id, cgac_code = "SYS")
         cls.setupJobsForReports(cls.jobTracker, cls.error_report_submission_id)
 
         # setup file status data for test_metrics
         cls.test_metrics_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id)
+            cls.jobTracker, cls.submission_user_id, cgac_code = "SYS")
         cls.setupFileData(cls.jobTracker, cls.errorDatabase,
             cls.test_metrics_submission_id)
 
@@ -60,7 +60,7 @@ class FileTests(BaseTestAPI):
             if(CONFIG_BROKER["use_aws"]):
                 self.filenames = {"appropriations":"test1.csv",
                     "award_financial":"test2.csv", "award":"test3.csv",
-                    "program_activity":"test4.csv", "agency_name": "Department of the Treasury",
+                    "program_activity":"test4.csv", "cgac_code": "SYS",
                     "reporting_period_start_date":"01/2001",
                     "reporting_period_end_date":"01/2001", "is_quarter":True}
             else:
@@ -68,7 +68,7 @@ class FileTests(BaseTestAPI):
                 filePath = CONFIG_BROKER["broker_files"]
                 self.filenames = {"appropriations":os.path.join(filePath,"test1.csv"),
                     "award_financial":os.path.join(filePath,"test2.csv"), "award":os.path.join(filePath,"test3.csv"),
-                    "program_activity":os.path.join(filePath,"test4.csv"), "agency_name": "Department of the Treasury",
+                    "program_activity":os.path.join(filePath,"test4.csv"), "cgac_code": "SYS",
                     "reporting_period_start_date":"01/2001",
                     "reporting_period_end_date":"01/2001", "is_quarter":True}
             self.submitFilesResponse = self.app.post_json("/v1/submit_files/", self.filenames, headers={"x-session-id":self.session_id})
@@ -147,7 +147,7 @@ class FileTests(BaseTestAPI):
         self.assertIn("updated.csv", json["award_financial_key"])
         submissionId = json["submission_id"]
         submission = self.interfaces.jobDb.getSubmissionById(submissionId)
-        self.assertEqual(submission.agency_name,"Department of the Treasury") # Should not have changed agency name
+        self.assertEqual(submission.cgac_code,"SYS") # Should not have changed agency name
         self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"),"02/2016")
         self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"),"03/2016")
 
@@ -260,7 +260,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(ruleErrorData["rule_failed"],"Header three value must be real")
 
         # Check submission metadata
-        self.assertEqual(json["agency_name"], "Department of the Treasury")
+        self.assertEqual(json["cgac_code"], "SYS")
         self.assertEqual(json["reporting_period_start_date"], "Q1/2016")
         self.assertEqual(json["reporting_period_end_date"], "Q3/2016")
 
@@ -269,6 +269,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["number_of_rows"],667)
         # Check that submission was created today, this test may fail if run right at midnight UTC
         self.assertEqual(json["created_on"],datetime.utcnow().strftime("%m/%d/%Y"))
+        self.assertEqual(json["last_updated"],self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id).updated_at.strftime("%Y-%m-%dT%H:%M:%S"))
 
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
@@ -335,13 +336,13 @@ class FileTests(BaseTestAPI):
             True, "appropriations")
 
     @staticmethod
-    def insertSubmission(jobTracker, submission_user_id, submission=None, agency = None, startDate = None, endDate = None, is_quarter = False):
+    def insertSubmission(jobTracker, submission_user_id, submission=None, cgac_code = None, startDate = None, endDate = None, is_quarter = False):
         """Insert one submission into job tracker and get submission ID back."""
         if submission:
             sub = Submission(submission_id=submission,
-                datetime_utc=datetime.utcnow(), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter)
+                datetime_utc=datetime.utcnow(), user_id=submission_user_id, cgac_code = cgac_code, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter)
         else:
-            sub = Submission(datetime_utc=datetime.utcnow(), user_id=submission_user_id, agency_name = agency, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter)
+            sub = Submission(datetime_utc=datetime.utcnow(), user_id=submission_user_id, cgac_code = cgac_code, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter)
         jobTracker.session.add(sub)
         jobTracker.session.commit()
         return sub.submission_id

@@ -17,6 +17,7 @@ from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactvalidator.interfaces.stagingTable import StagingTable
+from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 
 class ValidationManager:
@@ -211,7 +212,7 @@ class ValidationManager:
                     #if (rowNumber % 1000) == 0:
                     #    print("Validating row " + str(rowNumber))
                     try :
-                        record = reader.getNextRecord()
+                        record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, validationDB)
                         record["row"] = rowNumber
                         if(reader.isFinished and len(record) < 2):
                             # This is the last line and is empty, don't record an error
@@ -272,8 +273,8 @@ class ValidationManager:
 
     def runCrossValidation(self, jobId, interfaces):
         """ Cross file validation job, test all rules with matching rule_timing """
-        # Select all rules from multi-field rule table
-        rules = interfaces.validationDb.getMultiFieldRulesByTiming("cross-file")
+        # Select all cross-file rules from rule table
+        rules = interfaces.validationDb.getRulesByTiming("cross_file")
         # Validate cross validation rules
         submissionId = interfaces.jobDb.getSubmissionId(jobId)
         failures = Validator.crossValidate(rules,submissionId)

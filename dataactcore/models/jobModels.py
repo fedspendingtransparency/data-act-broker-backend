@@ -29,7 +29,7 @@ class Submission(Base):
     submission_id = Column(Integer, primary_key=True)
     datetime_utc = Column(DateTime)
     user_id = Column(Integer, nullable=False) # This refers to the users table in the User DB
-    agency_name = Column(Text)
+    cgac_code = Column(Text)
     reporting_start_date = Column(Date)
     reporting_end_date = Column(Date)
     is_quarter_format = Column(Boolean, nullable = False, default = "False", server_default= "False")

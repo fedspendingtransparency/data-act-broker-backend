@@ -195,8 +195,8 @@ class FileHandler:
         """
         userId = LoginSession.getName(session)
         user = self.interfaces.userDb.getUserByUID(userId)
-        # Check that user has permission to see this submission, user must either own the submission or be an admin
-        if(submission.user_id != userId and not self.interfaces.userDb.hasPermission(user,"website_admin")):
+        # Check that user has permission to see this submission, user must be within the agency of the submission
+        if(submission.cgac_code != user.cgac_code and submission.user_id != user.user_id):
             raise ResponseException("User does not have permission to view that submission",StatusCode.CLIENT_ERROR)
         return user
 
@@ -222,14 +222,14 @@ class FileHandler:
             # Build dictionary of submission info with info about each job
             submissionInfo = {}
             submissionInfo["jobs"] = []
-            submissionInfo["agency_name"] = submission.agency_name
+            submissionInfo["cgac_code"] = submission.cgac_code
             submissionInfo["reporting_period_start_date"] = self.interfaces.jobDb.getStartDate(submission)
             submissionInfo["reporting_period_end_date"] = self.interfaces.jobDb.getEndDate(submission)
             submissionInfo["created_on"] = self.interfaces.jobDb.getFormattedDatetimeBySubmissionId(submissionId)
             # Include number of errors in submission
             submissionInfo["number_of_errors"] = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobs)
             submissionInfo["number_of_rows"] = self.interfaces.jobDb.sumNumberOfRowsForJobList(jobs)
-
+            submissionInfo["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
 
             for jobId in jobs:
                 jobInfo = {}
