@@ -1,4 +1,5 @@
 import csv
+from sqlalchemy.exc import IntegrityError
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 from dataactvalidator.filestreaming.loaderUtils import LoaderUtils
 
@@ -43,16 +44,23 @@ class TASLoader(object):
                 #Check if record exists
                 if(not (LoaderUtils.compareRecords(record,lastRecord,TASLoader.FILE_SCHEMA))) :
                     if(LoaderUtils.checkRecord(record,TASLoader.FILE_SCHEMA)) :
-                        if(database.addTAS(record["ATA"],
-                            record["AID"],
-                            record["BPOA"],
-                            record["EPOA"],
-                            record["A"],
-                            record["MAIN"],
-                            record["SUB"])) :
-                            totalTASAdded += 1
-                        else :
+                        try:
+                            if(database.addTAS(record["ATA"],
+                                record["AID"],
+                                record["BPOA"],
+                                record["EPOA"],
+                                record["A"],
+                                record["MAIN"],
+                                record["SUB"])) :
+                                totalTASAdded += 1
+                            else :
+                                totalExistingTAS += 1
+                        except IntegrityError as e:
+                            # Hit a duplicate value that violates index, skip this one
                             totalExistingTAS += 1
+                            print("".join(["Warning: Skipping this row: ",str(record)]))
+                            print("".join(["Due to error: ",str(e)]))
+                            database.session.rollback()
                     else :
                        raise ValueError('CSV File does not follow schema')
                 else :
