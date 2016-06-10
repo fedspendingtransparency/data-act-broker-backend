@@ -269,8 +269,6 @@ class ValidationManager:
                 # Write unfinished batch
                 writer.finishBatch()
 
-            # Commit valid records to the database
-            stagingInterface.session.commit()
             # Write number of rows to job table
             jobTracker.setNumberOfRowsById(jobId,rowNumber)
             # Mark validation as finished in job tracker

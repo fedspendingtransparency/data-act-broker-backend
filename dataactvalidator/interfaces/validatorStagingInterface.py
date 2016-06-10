@@ -22,6 +22,7 @@ class ValidatorStagingInterface(StagingInterface):
         elif fileType == "program_activity":
             rec = ObjectClassProgramActivity(**record)
         self.session.add(rec)
+        self.session.commit()
 
     def getSubmissionRecordsByFileType(self, submissionId, fileType):
         """Return records for a specific submission and file type.
