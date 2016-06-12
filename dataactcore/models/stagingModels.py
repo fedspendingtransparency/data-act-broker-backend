@@ -162,7 +162,7 @@ class AwardFinancial(Base):
     grossoutlaysundeliveredordersprepaidtotal_cpe = Column(Numeric)
     grossoutlaysundeliveredordersprepaidtotal_fyb = Column(Numeric)
     mainaccountcode = Column(Text, nullable=False)
-    objectclass = Column(Integer, nullable=False)
+    objectclass = Column(Text, nullable=False)
     obligationsdeliveredordersunpaidtotal_cpe = Column(Numeric)
     obligationsdeliveredordersunpaidtotal_fyb = Column(Numeric)
     obligationsincurredtotalbyaward_cpe = Column(Numeric)
