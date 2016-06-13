@@ -44,6 +44,7 @@ class FileColumn(Base):
 
 class Rule(Base):
     __tablename__ = "rule"
+
     rule_id = Column(Integer, primary_key=True)
     file_column_id = Column(Integer, ForeignKey("file_columns.file_column_id"), nullable=True)
     rule_type_id  = Column(Integer, ForeignKey("rule_type.rule_type_id"), nullable=True)
@@ -74,6 +75,7 @@ class RuleTiming(Base):
 
 class RuleSeverity(Base):
     __tablename__ = "rule_severity"
+
     rule_severity_id = Column(Integer, primary_key=True)
     name = Column(Text, nullable=False)
     description = Column(Text, nullable=False)
