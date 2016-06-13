@@ -406,6 +406,7 @@ class FileTests(BaseTestAPI):
         jobValues["awardFin"] = [2, 2, 2, "awardFin.csv", 100, 100]
         jobValues["appropriations"] = [3, 2, 2, "approp.csv", 2345, 567]
         jobValues["program_activity"] = [4, 2, 2, "programActivity.csv", None, None]
+        jobValues["cross_file"] = [None,4,4,2,None,None,None]
         jobIdDict = {}
 
         for jobKey, values in jobValues.items():
