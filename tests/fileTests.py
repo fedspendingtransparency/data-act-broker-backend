@@ -230,7 +230,6 @@ class FileTests(BaseTestAPI):
             if str(job["job_id"]) == str(jobIdDict["appropriations"]):
                 # Found the job to be checked
                 appropJob = job
-                break
             elif str(job["job_id"]) == str(jobIdDict["cross_file"]):
                 # Found cross file job
                 crossJob = job
