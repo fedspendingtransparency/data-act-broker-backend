@@ -120,7 +120,6 @@ class BaseTestAPI(unittest.TestCase):
 
         # Set the Agency for the agency user
         agencyUser = userDb.getUserByEmail(test_users['agency_user'])
-        agencyUser.cgac_code = "SYS"
         userDb.session.commit()
         cls.agency_user_id = agencyUser.user_id
 

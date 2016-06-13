@@ -16,6 +16,16 @@ class TASLookup(Base) :
     main_account_code = Column(Text, nullable=True, index=True)
     sub_account_code = Column(Text, nullable=True, index=True)
 
+Index("ix_tas",
+      TASLookup.allocation_transfer_agency,
+      TASLookup.agency_identifier,
+      TASLookup.beginning_period_of_availability,
+      TASLookup.ending_period_of_availability,
+      TASLookup.availability_type_code,
+      TASLookup.main_account_code,
+      TASLookup.sub_account_code,
+      unique=True)
+
 class CGAC(Base):
     __tablename__ = "cgac"
     cgac_id = Column(Integer, primary_key=True)
