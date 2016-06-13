@@ -33,11 +33,11 @@ def loadDomainValues(basePath, localSFPath = None):
         # Load SF 133 from same path
         loadSF133(localSFPath)
     else:
-        # Download files if using aws, if not they will need to already be in broker_files location
+        # Download files if using aws, if not they will need to already be in config folder
         if(CONFIG_BROKER["use_aws"]):
-            reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file"]]),os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file"]))
+            reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file"]]),os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config",CONFIG_BROKER["sf_133_file"]))
 
-        loadSF133(os.path.join(CONFIG_BROKER["broker_files"],CONFIG_BROKER["sf_133_file"]))
+        loadSF133(os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config",CONFIG_BROKER["sf_133_file"]))
 
     loadProgramActivity(os.path.join(basePath,"program_activity.csv"))
 
