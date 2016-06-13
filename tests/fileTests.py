@@ -225,13 +225,19 @@ class FileTests(BaseTestAPI):
         jobIdDict = {k: str(self.jobIdDict[k]) for k in self.jobIdDict.keys()}
         jobList = json["jobs"]
         appropJob = None
+        crossJob = None
         for job in jobList:
             if str(job["job_id"]) == str(jobIdDict["appropriations"]):
                 # Found the job to be checked
                 appropJob = job
                 break
-        # Must have an approp job
+            elif str(job["job_id"]) == str(jobIdDict["cross_file"]):
+                # Found cross file job
+                crossJob = job
+
+        # Must have an approp job and cross-file job
         self.assertNotEqual(appropJob, None)
+        self.assertNotEqual(crossJob, None)
         # And that job must have the following
         self.assertEqual(appropJob["job_status"],"ready")
         self.assertEqual(appropJob["job_type"],"csv_record_validation")
