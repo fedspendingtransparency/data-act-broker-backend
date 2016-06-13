@@ -88,3 +88,12 @@ def add_user_routes(app,system_email,bcrypt):
         """ Sets skip_guide param for current user """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.setSkipGuide, getSession = True)
+
+    @app.route("/v1/email_users/", methods=["POST"])
+    @permissions_check
+    def email_users():
+        """
+        Sends email notifications to users that their submission is ready for review & publish viewing
+        """
+        accountManager = AccountHandler(request, bcrypt=bcrypt)
+        return RouteUtils.run_instance_function(accountManager, accountManager.emailUsers, getSystemEmail=True)

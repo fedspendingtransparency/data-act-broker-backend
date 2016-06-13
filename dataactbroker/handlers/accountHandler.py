@@ -447,7 +447,7 @@ class AccountHandler:
     def listUsers(self):
         """ List all users ordered by status. Associated request body must have key 'filter_by' """
         user = self.interfaces.userDb.getUserByUID(LoginSession.getName(flaskSession))
-        isAgencyAdmin = True if self.interfaces.userDb.hasPermission(user, "agency_admin") else False
+        isAgencyAdmin =  self.interfaces.userDb.hasPermission(user, "agency_admin")
         try:
             if isAgencyAdmin:
                 users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code)
@@ -712,3 +712,27 @@ class AccountHandler:
             return JsonResponse.error(exc, exc.status)
         userDb.session.commit()
         return JsonResponse.create(StatusCode.OK,{"message":"skip_guide set successfully","skip_guide":skipGuide})
+
+    def emailUsers(self, system_email):
+        """ Send email notification to list of users """
+        requestDict = RequestDictionary(self.request)
+        if not (requestDict.exists("users") and requestDict.exists("submission_id")):
+            exc = ResponseException("Email users route requires 'users' and 'submission_id'", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+
+        user_ids = requestDict.getValue("users")
+        submission_id = requestDict.getValue("submission_id")
+        users = []
+
+        for user_id in user_ids:
+            users.append(self.userManager.getUserByUID(user_id))
+
+        for user in users:
+            link = "".join([AccountHandler.FRONT_END, '#/reviewData/', submission_id])
+            agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+            emailTemplate = {'[REG_NAME]': user.name, '[REG_TITLE]': user.title, '[REG_AGENCY_NAME]': agency_name,
+                                 '[REG_CGAC_CODE]': user.cgac_code, '[REG_EMAIL]': user.email, '[URL]': link}
+            newEmail = sesEmail(user.email, system_email, templateType="review_submission", parameters=emailTemplate,
+                            database=UserHandler())
+            newEmail.send()
+

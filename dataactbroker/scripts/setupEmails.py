@@ -68,6 +68,10 @@ def setupEmails():
     template = "Your account has been unlocked and requires your password to be reset. Please click the following link <a href='[URL]'>here</a> to start the processs. The link will expire in 24 hours. <br/> <br/> If you did not request your account to be unlocked, please notify the DATA Act Broker Helpdesk (DATABroker@fiscal.treasury.gov) <br /><br />DATA Act Broker Helpdesk<br /><br />DATABroker@fiscal.treasury.gov"
     userDb.loadEmailTemplate("DATA Act Broker - Password Reset", template, "unlock_account")
 
+    #Submission Review
+    template = "TEMP CONTENT"
+    userDb.loadEmailTemplate("DATA Act Broker - Notification", template, "review_submission")
+
     InterfaceHolder.closeOne(userDb)
 
 if __name__ == '__main__':
