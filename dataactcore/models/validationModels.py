@@ -65,24 +65,34 @@ class Rule(Base):
 
 class RuleTiming(Base):
     __tablename__ = "rule_timing"
+
     rule_timing_id = Column(Integer, primary_key=True)
     name = Column(Text,nullable=False)
     description = Column(Text, nullable=False)
 
     TIMING_DICT = None
 
+class RuleSeverity(Base):
+    __tablename__ = "rule_severity"
+    rule_severity_id = Column(Integer, primary_key=True)
+    name = Column(Text, nullable=False)
+    description = Column(Text, nullable=False)
+
+    SEVERITY_DICT = None
+
 class RuleSql(Base):
     __tablename__ = "rule_sql"
 
     rule_sql_id = Column(Integer, primary_key=True)
     rule_sql = Column(Text, nullable=False)
-    rule_number = Column(Text)
+    rule_label = Column(Text)
     rule_description = Column(Text, nullable=False)
     rule_error_message = Column(Text, nullable=False)
-    rule_critical_flag = Column(Boolean, nullable=False)
-    rule_crossfile_flag = Column(Boolean, nullable=False)
+    rule_cross_file_flag = Column(Boolean, nullable=False)
     file_id = Column(Integer, ForeignKey("file_type.file_id"), nullable=True)
     file = relationship("FileType", uselist=False)
+    rule_severity_id = Column(Integer, ForeignKey("rule_severity.rule_severity_id"), nullable=False)
+    rule_severity = relationship("RuleSeverity", uselist=False)
 
 
 
