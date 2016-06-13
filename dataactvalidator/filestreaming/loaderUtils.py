@@ -95,6 +95,7 @@ class LoaderUtils:
                 if not skipInsert:
                     try:
                         interface.session.merge(record)
+                        interface.session.commit()
                     except IntegrityError as e:
                         # Hit a duplicate value that violates index, skip this one
                         print("".join(["Warning: Skipping this row: ",str(row)]))
