@@ -37,4 +37,5 @@ scripts/all_tas_betc.csv
 shared-local-instance.db
 dataactcore/scripts/dropMany.py
 runDynamo.py
-dataactvalidator/config/sf133.csv
+dataactvalidator/config/sf_133.csv
+
