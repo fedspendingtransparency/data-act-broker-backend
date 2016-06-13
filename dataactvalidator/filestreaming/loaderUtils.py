@@ -70,8 +70,17 @@ class LoaderUtils:
             for row in reader:
                 skipInsert = False
                 for field in fieldOptions:
+                    if row[field] is None:
+                        # If field is empty set to an empty string
+                        row[field] = ""
                     # For each field with options present, modify according to those options
                     options = fieldOptions[field]
+                    if "strip_commas" in options:
+                        # Remove commas from numeric fields
+                        row[field] = row[field].replace(",","")
+                        if row[field] == "":
+                            # If empty, set to 0
+                            row[field] = "0"
                     if "pad_to_length" in options:
                         padLength = options["pad_to_length"]
                         row[field] = Validator.padToLength(row[field],padLength)
@@ -86,6 +95,7 @@ class LoaderUtils:
                 if not skipInsert:
                     try:
                         interface.session.merge(record)
+                        interface.session.commit()
                     except IntegrityError as e:
                         # Hit a duplicate value that violates index, skip this one
                         print("".join(["Warning: Skipping this row: ",str(row)]))

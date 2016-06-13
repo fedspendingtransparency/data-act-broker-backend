@@ -181,7 +181,9 @@ You will need to run two scripts to setup the broker's backend components. These
         $ python dataactbroker/scripts/initialize.py -i
         $ python dataactvalidator/scripts/initialize.py -i
 
-**Note:** If you're using a local DynamoDB, make sure it's running before executing these scripts.
+**Important Notes:**
+* If you're using a local DynamoDB, make sure it's running before executing these scripts.
+* By default, the broker installs with a small sample of [GTAS financial data](https://www.fiscal.treasury.gov/fsservices/gov/acctg/gtas/gtas_home.htm "GTAS"), which is used during the validation process. If you'd like to install the broker using real GTAS data for your agency, replace `dataactvalidator/config/sf_133.csv` (use the same format). This is only necessary for local installs.
 
 ### Run Broker Backend Applications
 
