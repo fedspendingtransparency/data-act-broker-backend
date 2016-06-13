@@ -73,7 +73,8 @@ def upgrade_validation():
     sa.Column('rule_number', sa.Text(), nullable=True),
     sa.Column('rule_description', sa.Text(), nullable=False),
     sa.Column('rule_error_message', sa.Text(), nullable=False),
-    sa.Column('rule_critical', sa.Boolean(), nullable=False),
+    sa.Column('rule_critical_flag', sa.Boolean(), nullable=False),
+    sa.Column('rule_crossfile_flag', sa.Boolean(), nullable=False),
     sa.Column('file_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['file_id'], ['file_type.file_id'], ),
     sa.PrimaryKeyConstraint('rule_sql_id')

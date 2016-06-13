@@ -79,7 +79,8 @@ class RuleSql(Base):
     rule_number = Column(Text)
     rule_description = Column(Text, nullable=False)
     rule_error_message = Column(Text, nullable=False)
-    rule_critical = Column(Boolean, nullable=False)
+    rule_critical_flag = Column(Boolean, nullable=False)
+    rule_crossfile_flag = Column(Boolean, nullable=False)
     file_id = Column(Integer, ForeignKey("file_type.file_id"), nullable=True)
     file = relationship("FileType", uselist=False)
 
