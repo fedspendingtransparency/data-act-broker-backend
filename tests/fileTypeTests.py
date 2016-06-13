@@ -88,7 +88,7 @@ class FileTypeTests(BaseTestValidator):
         SchemaLoader.loadRules("award_financial",join(CONFIG_BROKER["path"],"dataactvalidator","config","awardFinancialRules.csv"))
         SchemaLoader.loadCrossRules(join(CONFIG_BROKER["path"],"dataactvalidator","config","crossFileRules.csv"))
         # Load domain values tables
-        loadDomainValues(join(CONFIG_BROKER["path"],"dataactvalidator","config"),join(CONFIG_BROKER["path"],"tests","sf133.csv"))
+        loadDomainValues(join(CONFIG_BROKER["path"],"dataactvalidator","config"),join(CONFIG_BROKER["path"],"tests","sf_133.csv"))
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
                 or force_tas_load):
             # TAS table is empty, load it
