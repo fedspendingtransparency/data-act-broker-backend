@@ -807,3 +807,10 @@ class Validator(object):
         else:
             # Multiple instances of same TAS, something is going wrong
             raise ResponseException("TAS check is malfunctioning",StatusCode.INTERNAL_ERROR)
+
+    @staticmethod
+    def validateFileBySql(submissionId,fileType,interfaces):
+        # Pull all SQL rules for this file type
+        # For each rule, execute sql for rule
+        # Build error list
+        pass

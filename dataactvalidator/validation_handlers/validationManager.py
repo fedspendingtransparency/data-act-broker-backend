@@ -256,6 +256,22 @@ class ValidationManager:
                                 errorMsg = error
                             writer.write([fieldName,errorMsg,str(rowNumber),failedValue])
                             errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber)
+                # Do SQL validations for this file
+                sqlFailures = Validator.validateFileBySql(interfaces.jobDb.getSubmissionId(jobId),fileType,interfaces)
+                for failure in sqlFailures:
+                    # TODO are the failures from sql in this format
+                    fieldName = failure[0]
+                    error = failure[1]
+                    failedValue = failure[2]
+                    try:
+                        # If error is an int, it's one of our prestored messages
+                        errorType = int(error)
+                        errorMsg = ValidationError.getErrorMessage(errorType)
+                    except ValueError:
+                        # If not, treat it literally
+                        errorMsg = error
+                    writer.write([fieldName,errorMsg,str(rowNumber),failedValue])
+                    errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber)
                 # Write unfinished batch
                 writer.finishBatch()
 
