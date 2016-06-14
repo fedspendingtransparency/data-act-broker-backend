@@ -1,14 +1,14 @@
 """add_sql_rule_table
 
 Revision ID: 94f7bda375e2
-Revises: a21dbed90f9f
+Revises: dca05fe50cec
 Create Date: 2016-06-13 13:29:11.441319
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '94f7bda375e2'
-down_revision = 'a21dbed90f9f'
+down_revision = 'dca05fe50cec'
 branch_labels = None
 depends_on = None
 
