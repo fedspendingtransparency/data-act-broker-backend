@@ -1,14 +1,14 @@
 """additional_staging_columns
 
 Revision ID: cef049fbce75
-Revises: 64227a34252e
+Revises: 94f7bda375e2
 Create Date: 2016-06-06 12:55:47.659135
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'cef049fbce75'
-down_revision = '64227a34252e'
+down_revision = '94f7bda375e2'
 branch_labels = None
 depends_on = None
 
