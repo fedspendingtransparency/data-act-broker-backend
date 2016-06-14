@@ -51,7 +51,7 @@ class Validator(object):
             sourceRecords = [record]
         else:
             # If no record provided, get list of all entries in first table
-            sourceRecords = stagingDb.getSubmissionRecordsByFileType(submissionId, fileType).all()
+            sourceRecords = stagingDb.getSubmissionsByFileType(submissionId, fileType).all()
             sourceRecords = [r.__dict__ for r in sourceRecords]
         return sourceRecords
 
@@ -84,7 +84,7 @@ class Validator(object):
             # Can apply rule to a specified record or all records in first table
             sourceRecords = cls.getRecordsIfNone(
                 submissionId, fileType, stagingDb, record)
-            targetQuery = stagingDb.getSubmissionRecordsByFileType(
+            targetQuery = stagingDb.getSubmissionsByFileType(
                 submissionId, targetType)
             fieldsToCheck = cls.cleanSplit(rule.rule_text_1, True)
             # For each entry, check for the presence of matching values in second table

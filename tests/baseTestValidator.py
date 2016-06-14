@@ -125,7 +125,7 @@ class BaseTestValidator(unittest.TestCase):
         if stagingRows:
             fileType = jobTracker.getFileType(jobId)
             submissionId = jobTracker.getSubmissionId(jobId)
-            stagingQuery = stagingDb.getSubmissionRecordsByFileType(
+            stagingQuery = stagingDb.getSubmissionsByFileType(
                 submissionId, fileType)
             self.assertEqual(stagingQuery.count(), stagingRows)
 

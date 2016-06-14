@@ -24,7 +24,7 @@ class ValidatorStagingInterface(StagingInterface):
         self.session.add(rec)
         self.session.commit()
 
-    def getSubmissionRecordsByFileType(self, submissionId, fileType):
+    def getSubmissionsByFileType(self, submissionId, fileType):
         """Return records for a specific submission and file type.
 
         Args:
