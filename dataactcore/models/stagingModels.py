@@ -23,19 +23,15 @@ def concatTas(context):
     tas = '{}{}{}{}{}{}{}'.format(tas1, tas2, tas3, tas4, tas5, tas6, tas7)
     return tas
 
-class FieldNameMap(Base):
-    """Model for the field_name_map table."""
-    __tablename__ = "field_name_map"
-
-    field_name_map_id = Column(Integer, primary_key=True)
-    table_name = Column(Text)
-    column_to_field_map = Column(Text)
 
 class Appropriation(Base):
     """Model for the appropriation table."""
     __tablename__ = "appropriation"
 
     appropriation_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, nullable=False, index=True)
+    job_id = Column(Integer, nullable=False, index=True)
+    row = Column(Integer, nullable=False)
     adjustmentstounobligatedbalancebroughtforward_cpe = Column(Numeric, nullable=False)
     agencyidentifier = Column(Text, nullable=False)
     allocationtransferagencyidentifier = Column(Text)
@@ -58,11 +54,20 @@ class Appropriation(Base):
     unobligatedbalance_cpe = Column(Numeric, nullable=False)
     tas = Column(Text, index=True, nullable=False, default=concatTas, onupdate=concatTas)
 
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(Appropriation, self).__init__(**cleanKwargs)
+
 class ObjectClassProgramActivity(Base):
     """Model for the object_class_program_activity table."""
     __tablename__ = "object_class_program_activity"
 
     object_class_program_activity_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, nullable=False, index=True)
+    job_id = Column(Integer, nullable=False, index=True)
+    row = Column(Integer, nullable=False)
     agencyidentifier = Column(Text, nullable=False)
     allocationtransferagencyidentifier = Column(Text)
     availabilitytypecode = Column(Text)
@@ -122,6 +127,12 @@ class ObjectClassProgramActivity(Base):
         "ussgl498200_upadjsprioryrdelivordersobligpaid_cpe", Numeric, nullable=False)
     tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
 
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(ObjectClassProgramActivity, self).__init__(**cleanKwargs)
+
 Index("ix_oc_pa_tas_oc_pa",
       ObjectClassProgramActivity.tas,
       ObjectClassProgramActivity.objectclass,
@@ -133,6 +144,9 @@ class AwardFinancial(Base):
     __tablename__ = "award_financial"
 
     award_financial_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, nullable=False, index=True)
+    job_id = Column(Integer, nullable=False, index=True)
+    row = Column(Integer, nullable=False)
     agencyidentifier = Column(Text, nullable=False)
     allocationtransferagencyidentifier = Column(Text)
     availabilitytypecode = Column(Text)
@@ -148,7 +162,7 @@ class AwardFinancial(Base):
     grossoutlaysundeliveredordersprepaidtotal_cpe = Column(Numeric)
     grossoutlaysundeliveredordersprepaidtotal_fyb = Column(Numeric)
     mainaccountcode = Column(Text, nullable=False)
-    objectclass = Column(Integer, nullable=False)
+    objectclass = Column(Text, nullable=False)
     obligationsdeliveredordersunpaidtotal_cpe = Column(Numeric)
     obligationsdeliveredordersunpaidtotal_fyb = Column(Numeric)
     obligationsincurredtotalbyaward_cpe = Column(Numeric)
@@ -189,11 +203,17 @@ class AwardFinancial(Base):
         "ussgl497100_downadjsprioryrunpaiddelivordersobligrec_cpe", Numeric)
     ussgl497200_downwardadjustmentsofprioryearpaiddeliveredordersobligationsrefundscollected_cpe = Column(
         "ussgl497200_downadjsprioryrpaiddelivordersobligrefclt_cpe", Numeric)
-    USSGL498100_UpwardAdjustmentsOfPriorYearDeliveredOrdersObligationsUnpaid_cpe  = Column(
+    ussgl498100_upwardadjustmentsofprioryeardeliveredordersobligationsunpaid_cpe  = Column(
         "ussgl498100_upadjsprioryeardeliveredordersobligunpaid_cpe", Numeric)
     ussgl498200_upwardadjustmentsofprioryeardeliveredordersobligationspaid_cpe = Column(
-        "ussgl498200_upadjsprioryrdelivordersobligpaid_cpe", Numeric, key="")
+        "ussgl498200_upadjsprioryrdelivordersobligpaid_cpe", Numeric)
     tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
+
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(AwardFinancial, self).__init__(**cleanKwargs)
 
 Index("ix_award_financial_tas_oc_pa",
       AwardFinancial.tas,
@@ -206,6 +226,9 @@ class AwardFinancialAssistance(Base):
     __tablename__ = "award_financial_assistance"
 
     award_financial_assistance_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, nullable=False, index=True)
+    job_id = Column(Integer, nullable=False, index=True)
+    row = Column(Integer, nullable=False)
     actiondate = Column(Text, nullable=False)
     actiontype = Column(Text)
     assistancetype = Column(Text, nullable=False)
@@ -266,3 +289,9 @@ class AwardFinancialAssistance(Base):
     sai_number = Column(Text)
     totalfundingamount = Column(Numeric)
     uri = Column(Text, index=True)
+
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(AwardFinancialAssistance, self).__init__(**cleanKwargs)
