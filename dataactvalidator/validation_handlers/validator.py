@@ -762,9 +762,6 @@ class Validator(object):
         query = interfaces.validationDb.session.query(TASLookup)
 
         for i in range(0,len(fieldsToCheck)):
-            if i == 1:
-                # TODO remove temp skip
-                continue
             data = record[str(fieldsToCheck[i])]
             if(data == None):
                 # Set data to empty string so it can be padded with leading zeros

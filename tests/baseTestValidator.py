@@ -87,7 +87,7 @@ class BaseTestValidator(unittest.TestCase):
         dropDatabase(cls.interfaces.jobDb.dbName)
         dropDatabase(cls.interfaces.errorDb.dbName)
         dropDatabase(cls.interfaces.stagingDb.dbName)
-        dropDatabase(cls.interfaces.validationDb.dbName)
+        dropDatabase(cls.interfaces.validationDb.dbName) 
 
     def tearDown(self):
         """Tear down broker unit tests."""
