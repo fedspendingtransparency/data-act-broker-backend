@@ -9,7 +9,6 @@ def add_domain_routes(app,isLocal,bcrypt):
     """
 
     @app.route("/v1/list_agencies/", methods = ["GET"])
-    @permissions_check
     def list_agencies():
         """ List all CGAC Agencies """
         domainHandler = DomainHandler()

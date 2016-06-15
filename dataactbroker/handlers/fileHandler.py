@@ -195,8 +195,8 @@ class FileHandler:
         """
         userId = LoginSession.getName(session)
         user = self.interfaces.userDb.getUserByUID(userId)
-        # Check that user has permission to see this submission, user must either own the submission or be an admin
-        if(submission.user_id != userId and not self.interfaces.userDb.hasPermission(user,"website_admin")):
+        # Check that user has permission to see this submission, user must be within the agency of the submission
+        if(submission.cgac_code != user.cgac_code and submission.user_id != user.user_id):
             raise ResponseException("User does not have permission to view that submission",StatusCode.CLIENT_ERROR)
         return user
 
@@ -233,7 +233,7 @@ class FileHandler:
 
             for jobId in jobs:
                 jobInfo = {}
-                if(self.jobManager.getJobType(jobId) != "csv_record_validation"):
+                if self.jobManager.getJobType(jobId) != "csv_record_validation" and self.jobManager.getJobType(jobId) != "validation":
                     continue
                 jobInfo["job_id"] = jobId
                 jobInfo["job_status"] = self.jobManager.getJobStatusName(jobId)

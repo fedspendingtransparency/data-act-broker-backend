@@ -67,7 +67,7 @@ class BaseTestValidator(unittest.TestCase):
         setupErrorDB()
         # drop and re-create test staging db
         setupStagingDB()
-        # drop and re-create test vaidation db
+        # drop and re-create test validation db
         setupValidationDB()
 
         cls.interfaces = InterfaceHolder()
@@ -87,7 +87,7 @@ class BaseTestValidator(unittest.TestCase):
         dropDatabase(cls.interfaces.jobDb.dbName)
         dropDatabase(cls.interfaces.errorDb.dbName)
         dropDatabase(cls.interfaces.stagingDb.dbName)
-        dropDatabase(cls.interfaces.validationDb.dbName)
+        dropDatabase(cls.interfaces.validationDb.dbName) 
 
     def tearDown(self):
         """Tear down broker unit tests."""
@@ -121,15 +121,13 @@ class BaseTestValidator(unittest.TestCase):
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
 
-        tableName = response.json["table"]
-        if type(stagingRows) == type(False) and not stagingRows:
-            self.assertFalse(stagingDb.tableExists(tableName))
-        else:
-            self.assertTrue(stagingDb.tableExists(tableName))
-            self.assertEqual(stagingDb.countRows(tableName), stagingRows)
-            # Check that field name map table is populated
-            fieldMap = self.interfaces.stagingDb.getFieldNameMap(tableName)
-            self.assertIsNotNone(fieldMap)
+        # Get staging records associated with this job
+        if stagingRows:
+            fileType = jobTracker.getFileType(jobId)
+            submissionId = jobTracker.getSubmissionId(jobId)
+            stagingQuery = stagingDb.getSubmissionsByFileType(
+                submissionId, fileType)
+            self.assertEqual(stagingQuery.count(), stagingRows)
 
         errorInterface = self.errorInterface
         if errorStatus is not False:

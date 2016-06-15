@@ -28,7 +28,6 @@ CONFIG_BROKER['path'] = dirname(dirname(abspath(__file__)))
 # for backward-compatibility, differentiate between local runs and AWS
 if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
     CONFIG_BROKER['local'] = False
-    CONFIG_BROKER['broker_files'] = None
     # AWS flag is on, so make sure all needed AWS info is present
     required_aws_keys = ['aws_bucket',
         'aws_role', 'aws_region', 'aws_create_temp_credentials']
@@ -48,18 +47,6 @@ else:
     CONFIG_BROKER['aws_create_temp_credentials'] = None
     CONFIG_BROKER['aws_region'] = None
 
-    # if not using AWS and no broker file path specified,
-    # default to `data_act_broker` in user's home dir
-    broker_files = CONFIG_BROKER['broker_files']
-    if not broker_files:
-        broker_files = os.path.join(expanduser('~'), 'data_act_broker')
-    elif len(os.path.splitext(broker_files)[1]):
-        # if config's broker_files is set to a actual filename
-        # just use the directory
-        broker_files = os.path.split(broker_files)[0]
-    normpath(broker_files)
-    CONFIG_BROKER['broker_files'] = broker_files
-
     # if not using AWS and no error report path specified,
     # default to `data_act_broker` in user's home dir
     error_report_path = CONFIG_SERVICES['error_report_path']
@@ -76,6 +63,18 @@ else:
     if not CONFIG_DB['dynamo_port']:
         CONFIG_DB['dynamo_port'] = 8000
     # TODO: can we test that local dynamo is up and running? if not, route calls hang
+
+# if no broker file path specified,
+# default to `data_act_broker` in user's home dir
+broker_files = CONFIG_BROKER['broker_files']
+if not broker_files:
+    broker_files = os.path.join(expanduser('~'), 'data_act_broker')
+elif len(os.path.splitext(broker_files)[1]):
+    # if config's broker_files is set to a actual filename
+    # just use the directory
+    broker_files = os.path.split(broker_files)[0]
+normpath(broker_files)
+CONFIG_BROKER['broker_files'] = broker_files
 
 # normalize logging path, if given
 log_path = CONFIG_LOGGING['log_files']
