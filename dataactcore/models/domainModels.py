@@ -48,7 +48,7 @@ class SF133(Base):
     endingperiodofavailability = Column(Text)
     mainaccountcode = Column(Text, nullable=False)
     subaccountcode = Column(Text, nullable=False)
-    tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas, index=True)
+    tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
     fiscal_year = Column(Text)
     period = Column(Text)
     line = Column(Integer,nullable=False)
