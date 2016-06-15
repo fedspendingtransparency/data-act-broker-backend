@@ -725,8 +725,8 @@ class AccountHandler:
     def emailUsers(self, system_email, session):
         """ Send email notification to list of users """
         requestDict = RequestDictionary(self.request)
-        if not (requestDict.exists("users") and requestDict.exists("submission_id")):
-            exc = ResponseException("Email users route requires 'users' and 'submission_id'", StatusCode.CLIENT_ERROR)
+        if not (requestDict.exists("users") and requestDict.exists("submission_id") and requestDict.exists("email_template")):
+            exc = ResponseException("Email users route requires users, email_template, and submission_id", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
 
         uid = session["name"]
@@ -734,7 +734,12 @@ class AccountHandler:
 
         user_ids = requestDict.getValue("users")
         submission_id = requestDict.getValue("submission_id")
+        # Check if submission id is valid
         self.jobManager.getSubmissionById(submission_id)
+
+        template_type = requestDict.getValue("email_template")
+        # Check if email template type is valid
+        self.userManager.getEmailTemplate(template_type)
 
         users = []
 
@@ -742,10 +747,11 @@ class AccountHandler:
         emailTemplate = {'[REV_USER_NAME]': current_user.name, '[REV_URL]': link}
 
         for user_id in user_ids:
+            # Check if user id is valid, if so add User object to array
             users.append(self.userManager.getUserByUID(user_id))
 
         for user in users:
-            newEmail = sesEmail(user.email, system_email, templateType="review_submission", parameters=emailTemplate,
+            newEmail = sesEmail(user.email, system_email, templateType=template_type, parameters=emailTemplate,
                             database=UserHandler())
             newEmail.send()
 
