@@ -75,3 +75,16 @@ class ValidatorStagingInterface(StagingInterface):
         newMap = FieldNameMap(table_name = tableName, column_to_field_map = str(fieldNameMap))
         self.session.add(newMap)
         self.session.commit()
+
+    def clearFileBySubmission(self, submissionId, fileType):
+        """ Remove existing records for a submission ID and file type, done for updated submissions
+
+        Args:
+            submissionId: (int) ID of submission to be cleared
+            fileType: (str) File type to clear
+        """
+        # Get model name based on file type
+        model = None
+        # Delete existing records for this model
+        self.session.query(model).filter(model == submissionId).delete()
+        self.session.commit()

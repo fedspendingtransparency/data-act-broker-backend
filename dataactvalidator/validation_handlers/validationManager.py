@@ -263,6 +263,7 @@ class ValidationManager:
                     fieldName = failure[0]
                     error = failure[1]
                     failedValue = failure[2]
+                    row = failure[3]
                     try:
                         # If error is an int, it's one of our prestored messages
                         errorType = int(error)
@@ -270,7 +271,7 @@ class ValidationManager:
                     except ValueError:
                         # If not, treat it literally
                         errorMsg = error
-                    writer.write([fieldName,errorMsg,str(rowNumber),failedValue])
+                    writer.write([fieldName,errorMsg,str(row),failedValue])
                     errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber)
                 # Write unfinished batch
                 writer.finishBatch()

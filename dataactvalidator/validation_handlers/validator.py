@@ -5,6 +5,7 @@ from decimal import *
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.models import domainModels
+from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
@@ -168,9 +169,13 @@ class Validator(object):
         fileType -- name of file type to check against
 
         Returns:
-        True if validation passed, False if failed, and list of failed rules, each with field, description of failure, and value that failed
+        Tuple of three values:
+        True if type check passed, False if type failed
+        List of failed rules, each with field, description of failure, and value that failed
+        True if validation passed, False if failed
         """
         recordFailed = False
+        recordTypeFailure = False
         failedRules = []
         for fieldName in csvSchema :
             if(csvSchema[fieldName].required and  not fieldName in record ):
@@ -199,7 +204,8 @@ class Validator(object):
 
             # Always check the type in the schema
             if(not checkRequiredOnly and not Validator.checkType(currentData,currentSchema.field_type.name) ) :
-                recordFailed = True
+                recordTypeFailure = True
+                typeFailed = True
                 failedRules.append([fieldName, ValidationError.typeError, currentData])
                 # Don't check value rules if type failed
                 continue
@@ -213,6 +219,7 @@ class Validator(object):
                 if(currentRule.rule_type.name == "TYPE"):
                     if(not Validator.checkType(currentData,currentRule.rule_text_1) ) :
                         recordFailed = True
+                        recordTypeFailure = True
                         typeFailed = True
                         failedRules.append([fieldName, ValidationError.typeError, currentData])
             if(typeFailed):
@@ -232,7 +239,7 @@ class Validator(object):
             if not Validator.evaluateRule(record,rule,None,interfaces,record):
                 recordFailed = True
                 failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces)])
-        return (not recordFailed), failedRules
+        return (not recordTypeFailure), failedRules, recordFailed
 
     @staticmethod
     def getRules(fieldName, fileType,rules,validationInterface) :
@@ -811,6 +818,23 @@ class Validator(object):
     @staticmethod
     def validateFileBySql(submissionId,fileType,interfaces):
         # Pull all SQL rules for this file type
+        fileId = interfaces.validationDb.getFileId(fileType)
+        rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).all()
+        errors = []
         # For each rule, execute sql for rule
-        # Build error list
-        pass
+        for rule in rules:
+            failures = interfaces.validationDb.connection.execute(rule.rule_sql.format(submissionId))
+            # Build error list
+            for failure in failures:
+                row = failure["row"]
+                errorMsg = rule.rule_description
+                values = ""
+                fieldNames = ""
+                for field in failure:
+                    if field == "row":
+                        # Row handled separately, skip
+                        continue
+                    values = ", ".join([values, "{}: {}".format(field,failure[field])])
+                    fieldNames = ", ".join([fieldNames,field])
+                errors.append([fieldNames,errorMsg,values,row])
+        return errors
