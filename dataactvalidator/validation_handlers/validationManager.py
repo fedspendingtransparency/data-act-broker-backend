@@ -16,7 +16,6 @@ from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
-from dataactvalidator.interfaces.stagingTable import StagingTable
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 
@@ -34,7 +33,7 @@ class ValidationManager:
         self.directory = directory
 
     @staticmethod
-    def markJob(jobId,jobTracker,status,errorDb,filename = None, fileError = ValidationError.unknownError, extraInfo = None) :
+    def markJob(jobId,jobTracker,status,errorDb,filename=None, fileError = ValidationError.unknownError, extraInfo = None):
         """ Update status of a job in job tracker database
         Args:
             jobId: Job to be updated
@@ -45,15 +44,17 @@ class ValidationManager:
             fileError: Type of error that occurred if this is an invalid or failed status
             extraInfo: Dict of extra fields to attach to exception
         """
-        try :
-            if(filename != None and (status == "invalid" or status == "failed")):
+        try:
+            if filename != None and (status == "invalid" or status == "failed"):
                 # Mark the file error that occurred
-                errorDb.writeFileError(jobId,filename,fileError,extraInfo)
-            jobTracker.markJobStatus(jobId,status)
+                errorDb.writeFileError(jobId, filename, fileError, extraInfo)
+            jobTracker.markJobStatus(jobId, status)
         except ResponseException as e:
-            # Could not get a unique job ID in the database, either a bad job ID was passed in or the record of that job was lost.
+            # Could not get a unique job ID in the database, either a bad job ID was passed in
+            # or the record of that job was lost.
             # Either way, cannot mark status of a job that does not exist
-            open("databaseErrors.log","a").write("".join(["Could not mark status ",str(status)," for job ID ",str(jobId),"\n"]))
+            open("databaseErrors.log", "a").write("".join(
+                ["Could not mark status ", str(status), " for job ID ", str(jobId), "\n"]))
 
     @staticmethod
     def getJobID(request):
@@ -64,15 +65,15 @@ class ValidationManager:
             job ID, or raises exception if job ID not found in request
         """
         requestDict = RequestDictionary(request)
-        if(requestDict.exists("job_id")):
+        if requestDict.exists("job_id"):
             jobId = requestDict.getValue("job_id")
             return jobId
         else:
-                # Request does not have a job ID, can't validate
-            raise ResponseException("No job ID specified in request",StatusCode.CLIENT_ERROR)
+            # Request does not have a job ID, can't validate
+            raise ResponseException("No job ID specified in request", StatusCode.CLIENT_ERROR)
 
     @staticmethod
-    def testJobID(jobId,interfaces) :
+    def testJobID(jobId, interfaces):
         """
         args:
             jobId: job to be tested
@@ -81,13 +82,12 @@ class ValidationManager:
         returns:
             True if the job is ready, if the job is not ready an exception will be raised
         """
-        if(not (interfaces.jobDb.runChecks(jobId))):
-            raise ResponseException("Checks failed on Job ID",StatusCode.CLIENT_ERROR)
+        if not interfaces.jobDb.runChecks(jobId):
+            raise ResponseException("Checks failed on Job ID", StatusCode.CLIENT_ERROR)
 
         return True
 
-
-    def threadedValidateJob(self,jobId) :
+    def threadedValidateJob(self, jobId):
         """
         args
         jobId -- (Integer) a valid jobId
@@ -105,24 +105,28 @@ class ValidationManager:
         try:
             jobType = interfaces.jobDb.checkJobType(jobId)
             if jobType == interfaces.jobDb.getJobTypeId("csv_record_validation"):
-                self.runValidation(jobId,interfaces)
+                self.runValidation(jobId, interfaces)
             elif jobType == interfaces.jobDb.getJobTypeId("validation"):
                 self.runCrossValidation(jobId, interfaces)
             else:
-                raise ResponseException("Bad job type for validator", StatusCode.INTERNAL_ERROR)
+                raise ResponseException("Bad job type for validator",
+                                        StatusCode.INTERNAL_ERROR)
             self.runValidation(jobId, interfaces)
-            errorDb.markFileComplete(jobId,self.filename)
+            errorDb.markFileComplete(jobId, self.filename)
             return
         except ResponseException as e:
-            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId,jobTracker,"invalid",errorDb,self.filename,e.errorType,e.extraInfo)
+            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
+            self.markJob(jobId, jobTracker, "invalid", errorDb, self.filename,
+                         e.errorType, e.extraInfo)
         except ValueError as e:
-            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId,jobTracker,"invalid",errorDb,self.filename,ValidationError.unknownError)
+            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
+            self.markJob(jobId, jobTracker, "invalid", errorDb, self.filename,
+                         ValidationError.unknownError)
         except Exception as e:
-            #Something unknown happened we may need to try again!
-            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId,jobTracker,"failed",errorDb,self.filename,ValidationError.unknownError)
+            # Something unknown happened we may need to try again!
+            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
+            self.markJob(jobId,jobTracker, "failed", errorDb, self.filename,
+                         ValidationError.unknownError)
         finally:
             interfaces.close()
 
@@ -130,11 +134,11 @@ class ValidationManager:
         """
         Gets the reader type based on if its local install or not.
         """
-        if(self.isLocal):
+        if self.isLocal:
             return CsvLocalReader()
         return CsvS3Reader()
 
-    def getWriter(self,regionName,bucketName,fileName,header):
+    def getWriter(self, regionName, bucketName, fileName, header):
         """ Gets the write type based on if its a local install or not.
 
         Args:
@@ -143,15 +147,15 @@ class ValidationManager:
             fileName - File to be written
             header - Column headers for file to be written
         """
-        if(self.isLocal):
-            return CsvLocalWriter(fileName,header)
-        return CsvS3Writer(regionName,bucketName,fileName,header)
+        if self.isLocal:
+            return CsvLocalWriter(fileName, header)
+        return CsvS3Writer(regionName, bucketName, fileName, header)
 
     def getFileName(self,path):
         """ Return full path of error report based on provided name """
-        if(self.isLocal):
-            return "".join([self.directory,path])
-        return "".join(["errors/",path])
+        if self.isLocal:
+            return "".join([self.directory, path])
+        return "".join(["errors/", path])
 
     def runValidation(self, jobId, interfaces):
         """ Run validations for specified job
@@ -161,11 +165,17 @@ class ValidationManager:
         Returns:
             True if successful
         """
+
         jobTracker = interfaces.jobDb
+        submissionId = jobTracker.getSubmissionId(jobId)
+
         rowNumber = 1
         fileType = jobTracker.getFileType(jobId)
+        # Clear existing records for this submission
+        interfaces.stagingDb.clearFileBySubmission(submissionId,fileType)
+
         # If local, make the error report directory
-        if(self.isLocal and not os.path.exists(self.directory)):
+        if self.isLocal and not os.path.exists(self.directory):
             os.makedirs(self.directory)
         # Get bucket name and file name
         fileName = jobTracker.getFileName(jobId)
@@ -180,14 +190,14 @@ class ValidationManager:
 
         validationDB = interfaces.validationDb
         fieldList = validationDB.getFieldsByFileList(fileType)
-        csvSchema  = validationDB.getFieldsByFile(fileType)
+        csvSchema = validationDB.getFieldsByFile(fileType)
         rules = validationDB.getRulesByFile(fileType)
 
         reader = self.getReader()
 
         # Get file size and write to jobs table
-        if(CONFIG_BROKER["use_aws"]):
-            fileSize =  s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId))
+        if CONFIG_BROKER["use_aws"]:
+            fileSize = s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId))
         else:
             fileSize = os.path.getsize(jobTracker.getFileName(jobId))
         jobTracker.setFileSizeById(jobId, fileSize)
@@ -195,28 +205,26 @@ class ValidationManager:
 
         try:
             # Pull file
-            reader.openFile(regionName, bucketName, fileName,fieldList,bucketName,errorFileName)
-            # Create staging table
+            reader.openFile(regionName, bucketName, fileName, fieldList,
+                            bucketName, errorFileName)
 
-            tableName = interfaces.stagingDb.getTableName(jobId)
-            # Create staging table
-            tableObject = StagingTable(interfaces)
-            tableObject.createTable(fileType,fileName,jobId,tableName)
             errorInterface = interfaces.errorDb
+            stagingInterface = interfaces.stagingDb
 
             # While not done, pull one row and put it into staging if it passes
             # the Validator
-            with self.getWriter(regionName, bucketName, errorFileName, self.reportHeaders) as writer:
-                while(not reader.isFinished):
+            with self.getWriter(regionName, bucketName, errorFileName,
+                                self.reportHeaders) as writer:
+                while not reader.isFinished:
                     rowNumber += 1
                     #if (rowNumber % 1000) == 0:
                     #    print("Validating row " + str(rowNumber))
                     try :
                         record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, validationDB)
                         record["row"] = rowNumber
-                        if(reader.isFinished and len(record) < 2):
+                        if reader.isFinished and len(record) < 2:
                             # This is the last line and is empty, don't record an error
-                            rowNumber -= 1 # Don't count this row
+                            rowNumber -= 1  # Don't count this row
                             break
                     except ResponseException as e:
                         if reader.isFinished and reader.extraLine:
@@ -229,13 +237,19 @@ class ValidationManager:
                             errorInterface.setRowErrorsPresent(jobId, True)
                         continue
                     valid, failures = Validator.validate(record,rules,csvSchema,fileType,interfaces)
-                    if(valid) :
+                    if valid:
                         try:
-                            tableObject.insert(record,fileType)
+                            record["job_id"] = jobId
+                            record["submission_id"] = submissionId
+                            # temporary fix b/c we can't use '+4' as a column alias :(
+                            if "primaryplaceofperformancezip+4" in record:
+                                record["primaryplaceofperformancezipplus4"] = record["primaryplaceofperformancezip+4"]
+                            stagingInterface.insertSubmissionRecordByFileType(record, fileType)
                         except ResponseException as e:
                             # Write failed, move to next record
                             writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber),""])
-                            errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.writeError,rowNumber)
+                            errorInterface.recordRowError(jobId, self.filename,
+                                "Formatting Error",ValidationError.writeError, rowNumber)
                             errorInterface.setRowErrorsPresent(jobId, True)
                             continue
 
@@ -272,19 +286,19 @@ class ValidationManager:
                         # If not, treat it literally
                         errorMsg = error
                     writer.write([fieldName,errorMsg,str(row),failedValue])
-                    errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber)
+                    errorInterface.recordRowError(jobId,self.filename,fieldName,
+                                                  error,rowNumber)
+
                 # Write unfinished batch
                 writer.finishBatch()
 
             # Write number of rows to job table
             jobTracker.setNumberOfRowsById(jobId,rowNumber)
-            # Write leftover records
-            tableObject.endBatch()
             # Mark validation as finished in job tracker
             jobTracker.markJobStatus(jobId,"finished")
             errorInterface.writeAllRowErrors(jobId)
         finally:
-            #ensure the file always closes
+            # Ensure the file always closes
             reader.close()
         return True
 
@@ -300,13 +314,15 @@ class ValidationManager:
         errorFileName = self.getFileName(interfaces.jobDb.getCrossFileReportPath(submissionId))
         errorDb = interfaces.errorDb
 
-        with self.getWriter(regionName, bucketName, errorFileName, self.crossFileReportHeaders) as writer:
+        with self.getWriter(regionName, bucketName, errorFileName,
+                            self.crossFileReportHeaders) as writer:
             for failure in failures:
                 writer.write(failure)
-                errorDb.recordRowError(jobId,"cross_file",failure[0],failure[1],None)
+                errorDb.recordRowError(jobId, "cross_file",
+                    failure[0], failure[1],  None)
             writer.finishBatch()
         errorDb.writeAllRowErrors(jobId)
-        interfaces.jobDb.markJobStatus(jobId,"finished")
+        interfaces.jobDb.markJobStatus(jobId, "finished")
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to staging database
@@ -318,67 +334,71 @@ class ValidationManager:
         """
         # Create connection to job tracker database
         self.filename = None
-        tableName = ""
         jobId = None
         jobTracker = None
 
         try:
             jobTracker = interfaces.jobDb
             requestDict = RequestDictionary(request)
-            tableName = ""
-            if(requestDict.exists("job_id")):
+            if requestDict.exists("job_id"):
                 jobId = requestDict.getValue("job_id")
             else:
                 # Request does not have a job ID, can't validate
-                raise ResponseException("No job ID specified in request",StatusCode.CLIENT_ERROR)
+                raise ResponseException("No job ID specified in request",
+                                        StatusCode.CLIENT_ERROR)
 
             # Check that job exists and is ready
-            if(not (jobTracker.runChecks(jobId))):
-                raise ResponseException("Checks failed on Job ID",StatusCode.CLIENT_ERROR)
-            tableName = interfaces.stagingDb.getTableName(jobId)
+            if not jobTracker.runChecks(jobId):
+                raise ResponseException("Checks failed on Job ID",
+                                        StatusCode.CLIENT_ERROR)
             jobType = interfaces.jobDb.checkJobType(jobId)
 
         except ResponseException as e:
-            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
-            if(e.errorType == None):
+            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
+            if e.errorType == None:
                 # Error occurred while trying to get and check job ID
                 e.errorType = ValidationError.jobError
-            interfaces.errorDb.writeFileError(jobId,self.filename,e.errorType,e.extraInfo)
-            return JsonResponse.error(e,e.status,table=tableName)
+            interfaces.errorDb.writeFileError(jobId, self.filename, e.errorType, e.extraInfo)
+            return JsonResponse.error(e, e.status)
         except Exception as e:
-            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId,jobTracker,"failed",interfaces.errorDb,self.filename,ValidationError.unknownError)
-            return JsonResponse.error(exc,exc.status,table=tableName)
+            exc = ResponseException(str(e), StatusCode.INTERNAL_ERROR,type(e))
+            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
+            self.markJob(jobId, jobTracker, "failed", interfaces.errorDb,
+                self.filename, ValidationError.unknownError)
+            return JsonResponse.error(exc, exc.status)
 
         try:
-            jobTracker.markJobStatus(jobId,"running")
+            jobTracker.markJobStatus(jobId, "running")
             if jobType == interfaces.jobDb.getJobTypeId("csv_record_validation"):
-                self.runValidation(jobId,interfaces)
+                self.runValidation(jobId, interfaces)
             elif jobType == interfaces.jobDb.getJobTypeId("validation"):
                 self.runCrossValidation(jobId, interfaces)
             else:
-                raise ResponseException("Bad job type for validator", StatusCode.INTERNAL_ERROR)
-            interfaces.errorDb.markFileComplete(jobId,self.filename)
-            return  JsonResponse.create(StatusCode.OK,{"table":tableName})
+                raise ResponseException("Bad job type for validator",
+                    StatusCode.INTERNAL_ERROR)
+            interfaces.errorDb.markFileComplete(jobId, self.filename)
+            return JsonResponse.create(StatusCode.OK, {"message":"Validation complete"})
         except ResponseException as e:
-            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,e.errorType,e.extraInfo)
-            return JsonResponse.error(e,e.status,table=tableName)
+            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
+            self.markJob(jobId, jobTracker, "invalid", interfaces.errorDb,
+                self.filename,e.errorType, e.extraInfo)
+            return JsonResponse.error(e, e.status)
         except ValueError as e:
-            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
+            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
             # Problem with CSV headers
-            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError) #"Internal value error"
-            self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,ValidationError.unknownError)
-            return JsonResponse.error(exc,exc.status,table=tableName)
+            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e), ValidationError.unknownError) #"Internal value error"
+            self.markJob(jobId,jobTracker, "invalid", interfaces.errorDb, self.filename, ValidationError.unknownError)
+            return JsonResponse.error(exc, exc.status)
         except Error as e:
             CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             # CSV file not properly formatted (usually too much in one field)
             exc = ResponseException("Internal error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
             self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,ValidationError.unknownError)
-            return JsonResponse.error(exc,exc.status,table=tableName)
+            return JsonResponse.error(exc, exc.status)
         except Exception as e:
-            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
-            exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e),ValidationError.unknownError)
-            self.markJob(jobId,jobTracker,"failed",interfaces.errorDb,self.filename,ValidationError.unknownError)
-            return JsonResponse.error(exc,exc.status,table=tableName)
+            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
+            exc = ResponseException(str(e), StatusCode.INTERNAL_ERROR, type(e),
+                ValidationError.unknownError)
+            self.markJob(jobId, jobTracker, "failed", interfaces.errorDb,
+                self.filename, ValidationError.unknownError)
+            return JsonResponse.error(exc, exc.status)

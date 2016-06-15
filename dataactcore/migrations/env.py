@@ -138,7 +138,8 @@ def run_migrations_online():
                 connection=rec['connection'],
                 upgrade_token="%s_upgrades" % name,
                 downgrade_token="%s_downgrades" % name,
-                target_metadata=target_metadata.get(name)
+                target_metadata=target_metadata.get(name),
+                compare_type=True # instruct autogen to detect col type changes
             )
             context.run_migrations(engine_name=name)
 

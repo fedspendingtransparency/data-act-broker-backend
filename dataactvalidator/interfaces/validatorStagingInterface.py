@@ -1,80 +1,44 @@
 from dataactcore.models.stagingInterface import StagingInterface
-from dataactcore.models.stagingModels import FieldNameMap
+from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity, AwardFinancial, AwardFinancialAssistance
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactvalidator.interfaces.validatorJobTrackerInterface import ValidatorJobTrackerInterface
-from sqlalchemy import MetaData, Table
-from sqlalchemy.exc import NoSuchTableError
-
 
 class ValidatorStagingInterface(StagingInterface):
     """ Manages all interaction with the staging database """
+    MODEL_MAP = {"award":AwardFinancialAssistance,"award_financial":AwardFinancial,"appropriations":Appropriation,"program_activity":ObjectClassProgramActivity}
 
-    def dropTable(self,table):
-        """
+    def insertSubmissionRecordByFileType(self, record, fileType):
+        """Insert a submitted file row into staging.
 
         Args:
-            table: Table to be dropped
+            record: record to insert (Dict)
+            submissionId: submissionId associated with this record (int)
+            fileType: originating file type of the record (string)
+        """
+
+        rec = self.getModel(fileType)(**record)
+        self.session.add(rec)
+        self.session.commit()
+
+    def getModel(self,fileType):
+        """ Get model object for specified file type """
+        if fileType not in self.MODEL_MAP:
+            raise ResponseException("Not a valid file type: {}".format(fileType),StatusCode.INTERNAL_ERROR,KeyError)
+        return self.MODEL_MAP[fileType]
+
+    def getSubmissionsByFileType(self, submissionId, fileType):
+        """Return records for a specific submission and file type.
+
+        Args:
+            submissionId: the submission to retrieve records for (int)
+            fileType: the file type to pull (string)
 
         Returns:
-            True if successful
+            Query
         """
-
-        metadata = MetaData()
-        stagingTable = Table(table, metadata, autoload_with=self.engine)
-        stagingTable.drop(bind=self.engine)
-
-    def tableExists(self,table):
-        """ True if table exists, false otherwise """
-        return self.engine.dialect.has_table(self.engine.connect(),table)
-
-    def countRows(self,table):
-        """ Returns number of rows in the specified table """
-        metadata = MetaData()
-        try:
-            stagingTable = Table(table, metadata, autoload_with=self.engine)
-        except NoSuchTableError:
-            return 0
-        rows = self.session.query(stagingTable).count()
-        self.session.close()
-        return rows
-
-    @classmethod
-    def getTableName(cls, jobId):
-        """ Get the staging table name based on the job ID """
-        # Get submission ID and file type
-        jobDb = ValidatorJobTrackerInterface()
-        submissionId = jobDb.getSubmissionId(jobId)
-        jobType = jobDb.getJobType(jobId)
-        if jobType == "csv_record_validation":
-            fileType = jobDb.getFileType(jobId)
-        elif jobType == "validation":
-            fileType = "_cross_file"
-        else:
-            raise ResponseException("Unknown Job Type",StatusCode.CLIENT_ERROR,ValueError)
-        # Get table name based on submissionId and fileType
-        return cls.getTableNameBySubmissionId(submissionId, fileType)
-
-    @staticmethod
-    def getTableNameBySubmissionId(submissionId, fileType):
-        """ Get staging table name based on submission ID and file type """
-        return "".join(["submission",str(submissionId),str(fileType)])
-
-    def getFieldNameMap(self, tableName):
-        """ Return the dict mapping column IDs to field names """
-        query = self.session.query(FieldNameMap).filter(FieldNameMap.table_name == tableName)
-        return self.runUniqueQuery(query,"No map for that table", "Conflicting maps for that table").column_to_field_map
-
-    def addFieldNameMap(self, tableName, fieldNameMap):
-        """ Add dict for field names to staging DB
-
-        Args:
-            tableName: Table map is being added for
-            fieldNameMap: Dict with column IDs as keys and field names as values
-        """
-        newMap = FieldNameMap(table_name = tableName, column_to_field_map = str(fieldNameMap))
-        self.session.add(newMap)
-        self.session.commit()
+        return self.session.query(self.getModel(fileType)).filter_by(
+            submission_id = submissionId
+        )
 
     def clearFileBySubmission(self, submissionId, fileType):
         """ Remove existing records for a submission ID and file type, done for updated submissions
@@ -84,7 +48,7 @@ class ValidatorStagingInterface(StagingInterface):
             fileType: (str) File type to clear
         """
         # Get model name based on file type
-        model = None
+        model = self.getModel(fileType)
         # Delete existing records for this model
-        self.session.query(model).filter(model == submissionId).delete()
+        self.session.query(model).filter(model.submission_id == submissionId).delete()
         self.session.commit()
