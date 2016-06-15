@@ -727,7 +727,7 @@ class AccountHandler:
         submission_id = requestDict.getValue("submission_id")
         users = []
 
-        link = "".join([AccountHandler.FRONT_END, '#/reviewData/', submission_id])
+        link = "".join([AccountHandler.FRONT_END, '#/reviewData/', str(submission_id)])
         emailTemplate = {'[REV_USER_NAME]': current_user.name, '[REV_URL]': link}
 
         for user_id in user_ids:
@@ -738,3 +738,4 @@ class AccountHandler:
                             database=UserHandler())
             newEmail.send()
 
+        return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})

@@ -14,7 +14,8 @@ def setupEmails():
         ('reset_password', ''),
         ('account_creation', ''),
         ('account_creation_user', ''),
-        ('unlock_account', '')
+        ('unlock_account', ''),
+        ('review_submission','')
     ]
     for t in typeList:
         emailId = userDb.session.query(
