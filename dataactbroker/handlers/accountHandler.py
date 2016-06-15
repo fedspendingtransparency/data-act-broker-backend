@@ -447,7 +447,7 @@ class AccountHandler:
     def listUsers(self):
         """ List all users ordered by status. Associated request body must have key 'filter_by' """
         user = self.interfaces.userDb.getUserByUID(LoginSession.getName(flaskSession))
-        isAgencyAdmin =  self.interfaces.userDb.hasPermission(user, "agency_admin")
+        isAgencyAdmin = self.userManager.hasPermission(user, "agency_admin") and not self.userManager.hasPermission(user, "website_admin")
         try:
             if isAgencyAdmin:
                 users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code)
