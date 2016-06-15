@@ -96,4 +96,4 @@ def add_user_routes(app,system_email,bcrypt):
         Sends email notifications to users that their submission is ready for review & publish viewing
         """
         accountManager = AccountHandler(request, bcrypt=bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.emailUsers, getSystemEmail=True)
+        return RouteUtils.run_instance_function(accountManager, accountManager.emailUsers, getSystemEmail=True, getSession = True)

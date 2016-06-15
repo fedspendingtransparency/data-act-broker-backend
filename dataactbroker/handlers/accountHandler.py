@@ -713,25 +713,27 @@ class AccountHandler:
         userDb.session.commit()
         return JsonResponse.create(StatusCode.OK,{"message":"skip_guide set successfully","skip_guide":skipGuide})
 
-    def emailUsers(self, system_email):
+    def emailUsers(self, system_email, session):
         """ Send email notification to list of users """
         requestDict = RequestDictionary(self.request)
         if not (requestDict.exists("users") and requestDict.exists("submission_id")):
             exc = ResponseException("Email users route requires 'users' and 'submission_id'", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
 
+        uid = session["name"]
+        current_user = self.interfaces.userDb.getUserByUID(uid)
+
         user_ids = requestDict.getValue("users")
         submission_id = requestDict.getValue("submission_id")
         users = []
+
+        link = "".join([AccountHandler.FRONT_END, '#/reviewData/', submission_id])
+        emailTemplate = {'[REV_USER_NAME]': current_user.name, '[REV_URL]': link}
 
         for user_id in user_ids:
             users.append(self.userManager.getUserByUID(user_id))
 
         for user in users:
-            link = "".join([AccountHandler.FRONT_END, '#/reviewData/', submission_id])
-            agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
-            emailTemplate = {'[REG_NAME]': user.name, '[REG_TITLE]': user.title, '[REG_AGENCY_NAME]': agency_name,
-                                 '[REG_CGAC_CODE]': user.cgac_code, '[REG_EMAIL]': user.email, '[URL]': link}
             newEmail = sesEmail(user.email, system_email, templateType="review_submission", parameters=emailTemplate,
                             database=UserHandler())
             newEmail.send()
