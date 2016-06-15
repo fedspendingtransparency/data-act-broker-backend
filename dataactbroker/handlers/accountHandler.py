@@ -36,6 +36,7 @@ class AccountHandler:
             self.interfaces = interfaces
             self.userManager = interfaces.userDb
             self.validationManager = interfaces.validationDb
+            self.jobManager = interfaces.jobDb
 
     def addInterfaces(self,interfaces):
         """ Add interfaces to an existing account handler
@@ -45,6 +46,8 @@ class AccountHandler:
         """
         self.interfaces = interfaces
         self.userManager = interfaces.userDb
+        self.validationManager = interfaces.validationDb
+        self.jobManager = interfaces.jobDb
 
     def checkPassword(self,password):
         """Checks to make sure the password is valid"""
@@ -731,6 +734,8 @@ class AccountHandler:
 
         user_ids = requestDict.getValue("users")
         submission_id = requestDict.getValue("submission_id")
+        self.jobManager.getSubmissionById(submission_id)
+
         users = []
 
         link = "".join([AccountHandler.FRONT_END, '#/reviewData/', str(submission_id)])
