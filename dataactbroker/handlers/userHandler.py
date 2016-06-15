@@ -186,8 +186,13 @@ class UserHandler(UserInterface):
         Returns:
             EmailTemplate object
         """
-        emailId = self.session.query(EmailTemplateType.email_template_type_id).filter(EmailTemplateType.name == emailType).one()
-        return self.session.query(EmailTemplate).filter(EmailTemplate.template_type_id == emailId).one()
+        type_query = self.session.query(EmailTemplateType.email_template_type_id).filter(EmailTemplateType.name == emailType)
+        type_result = self.runUniqueQuery(type_query, "No email template type with that name", "Multiple email templates type with that name")
+
+        template_query = self.session.query(EmailTemplate).filter(EmailTemplate.template_type_id == type_result.email_template_type_id)
+        template_result = self.runUniqueQuery(template_query, "No email template with that template type",
+                                              "Multiple email templates with that template type")
+        return template_result
 
     def getUsersByStatus(self,status,cgac_code=None):
         """ Return list of all users with specified status

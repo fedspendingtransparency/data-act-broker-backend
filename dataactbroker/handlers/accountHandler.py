@@ -36,6 +36,7 @@ class AccountHandler:
             self.interfaces = interfaces
             self.userManager = interfaces.userDb
             self.validationManager = interfaces.validationDb
+            self.jobManager = interfaces.jobDb
 
     def addInterfaces(self,interfaces):
         """ Add interfaces to an existing account handler
@@ -45,6 +46,8 @@ class AccountHandler:
         """
         self.interfaces = interfaces
         self.userManager = interfaces.userDb
+        self.validationManager = interfaces.validationDb
+        self.jobManager = interfaces.jobDb
 
     def checkPassword(self,password):
         """Checks to make sure the password is valid"""
@@ -447,7 +450,7 @@ class AccountHandler:
     def listUsers(self):
         """ List all users ordered by status. Associated request body must have key 'filter_by' """
         user = self.interfaces.userDb.getUserByUID(LoginSession.getName(flaskSession))
-        isAgencyAdmin = True if self.interfaces.userDb.hasPermission(user, "agency_admin") else False
+        isAgencyAdmin = self.userManager.hasPermission(user, "agency_admin") and not self.userManager.hasPermission(user, "website_admin")
         try:
             if isAgencyAdmin:
                 users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code)
@@ -718,3 +721,38 @@ class AccountHandler:
             return JsonResponse.error(exc, exc.status)
         userDb.session.commit()
         return JsonResponse.create(StatusCode.OK,{"message":"skip_guide set successfully","skip_guide":skipGuide})
+
+    def emailUsers(self, system_email, session):
+        """ Send email notification to list of users """
+        requestDict = RequestDictionary(self.request)
+        if not (requestDict.exists("users") and requestDict.exists("submission_id") and requestDict.exists("email_template")):
+            exc = ResponseException("Email users route requires users, email_template, and submission_id", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+
+        uid = session["name"]
+        current_user = self.interfaces.userDb.getUserByUID(uid)
+
+        user_ids = requestDict.getValue("users")
+        submission_id = requestDict.getValue("submission_id")
+        # Check if submission id is valid
+        self.jobManager.getSubmissionById(submission_id)
+
+        template_type = requestDict.getValue("email_template")
+        # Check if email template type is valid
+        self.userManager.getEmailTemplate(template_type)
+
+        users = []
+
+        link = "".join([AccountHandler.FRONT_END, '#/reviewData/', str(submission_id)])
+        emailTemplate = {'[REV_USER_NAME]': current_user.name, '[REV_URL]': link}
+
+        for user_id in user_ids:
+            # Check if user id is valid, if so add User object to array
+            users.append(self.userManager.getUserByUID(user_id))
+
+        for user in users:
+            newEmail = sesEmail(user.email, system_email, templateType=template_type, parameters=emailTemplate,
+                            database=UserHandler())
+            newEmail.send()
+
+        return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})

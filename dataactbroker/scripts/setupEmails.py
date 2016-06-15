@@ -14,7 +14,8 @@ def setupEmails():
         ('reset_password', ''),
         ('account_creation', ''),
         ('account_creation_user', ''),
-        ('unlock_account', '')
+        ('unlock_account', ''),
+        ('review_submission','')
     ]
     for t in typeList:
         emailId = userDb.session.query(
@@ -67,6 +68,10 @@ def setupEmails():
     #Unlock account email
     template = "Your account has been unlocked and requires your password to be reset. Please click the following link <a href='[URL]'>here</a> to start the processs. The link will expire in 24 hours. <br/> <br/> If you did not request your account to be unlocked, please notify the DATA Act Broker Helpdesk (DATABroker@fiscal.treasury.gov) <br /><br />DATA Act Broker Helpdesk<br /><br />DATABroker@fiscal.treasury.gov"
     userDb.loadEmailTemplate("DATA Act Broker - Password Reset", template, "unlock_account")
+
+    #Submission Review
+    template = "[REV_USER_NAME] has shared a DATA Act broker submission with you. Click <a href='[REV_URL]'>here</a> to review their submission. For questions or comments, please email the DATA Act Broker Helpdesk (DATABroker@fiscal.treasury.gov)."
+    userDb.loadEmailTemplate("DATA Act Broker - Submission Ready for Review", template, "review_submission")
 
     InterfaceHolder.closeOne(userDb)
 
