@@ -125,9 +125,8 @@ class BaseTestValidator(unittest.TestCase):
         if stagingRows:
             fileType = jobTracker.getFileType(jobId)
             submissionId = jobTracker.getSubmissionId(jobId)
-            stagingQuery = stagingDb.getSubmissionsByFileType(
-                submissionId, fileType)
-            self.assertEqual(stagingQuery.count(), stagingRows)
+            numRows = stagingDb.getNumberOfValidRecordsForSubmission(submissionId,fileType)
+            self.assertEqual(numRows, stagingRows)
 
         errorInterface = self.errorInterface
         if errorStatus is not False:

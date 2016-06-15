@@ -236,11 +236,12 @@ class ValidationManager:
                             errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
                             errorInterface.setRowErrorsPresent(jobId, True)
                         continue
-                    valid, failures = Validator.validate(record,rules,csvSchema,fileType,interfaces)
+                    passedValidations, failures, valid  = Validator.validate(record,rules,csvSchema,fileType,interfaces)
                     if valid:
                         try:
                             record["job_id"] = jobId
                             record["submission_id"] = submissionId
+                            record["valid_record"] = passedValidations
                             # temporary fix b/c we can't use '+4' as a column alias :(
                             if "primaryplaceofperformancezip+4" in record:
                                 record["primaryplaceofperformancezipplus4"] = record["primaryplaceofperformancezip+4"]
@@ -253,7 +254,7 @@ class ValidationManager:
                             errorInterface.setRowErrorsPresent(jobId, True)
                             continue
 
-                    else:
+                    if not passedValidations:
                         # For each failure, record it in error report and metadata
                         if failures:
                             errorInterface.setRowErrorsPresent(jobId, True)

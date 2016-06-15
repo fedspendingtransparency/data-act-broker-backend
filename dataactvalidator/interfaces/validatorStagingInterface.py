@@ -52,3 +52,9 @@ class ValidatorStagingInterface(StagingInterface):
         # Delete existing records for this model
         self.session.query(model).filter(model.submission_id == submissionId).delete()
         self.session.commit()
+
+    def getNumberOfValidRecordsForSubmission(self,submissionId, fileType):
+        """ Get number of valid records for submission """
+        model = self.getModel(fileType)
+        # Get number of valid records
+        return self.session.query(model).filter(model.submission_id == submissionId).filter(model.valid_record == True).count()

@@ -145,9 +145,9 @@ class Validator(object):
 
         Returns:
         Tuple of three values:
-        True if type check passed, False if type failed
-        List of failed rules, each with field, description of failure, and value that failed
         True if validation passed, False if failed
+        List of failed rules, each with field, description of failure, and value that failed
+        True if type check passed, False if type failed
         """
         recordFailed = False
         recordTypeFailure = False
@@ -180,7 +180,7 @@ class Validator(object):
             # Always check the type in the schema
             if(not checkRequiredOnly and not Validator.checkType(currentData,currentSchema.field_type.name) ) :
                 recordTypeFailure = True
-                typeFailed = True
+                recordFailed = True
                 failedRules.append([fieldName, ValidationError.typeError, currentData])
                 # Don't check value rules if type failed
                 continue
@@ -214,7 +214,7 @@ class Validator(object):
             if not Validator.evaluateRule(record,rule,None,interfaces,record):
                 recordFailed = True
                 failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces)])
-        return (not recordTypeFailure), failedRules, recordFailed
+        return  (not recordFailed), failedRules, (not recordTypeFailure)
 
     @staticmethod
     def getRules(fieldName, fileType,rules,validationInterface) :
