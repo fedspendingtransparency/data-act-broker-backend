@@ -798,7 +798,7 @@ class Validator(object):
         errors = []
         # For each rule, execute sql for rule
         for rule in rules:
-            failures = interfaces.validationDb.connection.execute(rule.rule_sql.format(submissionId))
+            failures = interfaces.stagingDb.connection.execute(rule.rule_sql.format(submissionId))
             # Build error list
             for failure in failures:
                 row = failure["row"]
@@ -812,4 +812,13 @@ class Validator(object):
                     values = ", ".join([values, "{}: {}".format(field,failure[field])])
                     fieldNames = ", ".join([fieldNames,field])
                 errors.append([fieldNames,errorMsg,values,row])
+            # Pull where clause out of rule
+            wherePosition = rule.rule_sql.lower().find("where")
+            whereClause = rule.rule_sql[wherePosition:]
+            # Find table to apply this to
+            model = interfaces.stagingDb.getModel(fileType)
+            tableName = model.__tablename__
+            # Update valid_record to false for all that fail this rule
+            updateQuery = "UPDATE {} SET valid_record = false {}".format(tableName,whereClause)
+            interfaces.stagingDb.connection.execute(updateQuery)
         return errors
