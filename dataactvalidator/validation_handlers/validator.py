@@ -794,7 +794,7 @@ class Validator(object):
     def validateFileBySql(submissionId,fileType,interfaces):
         # Pull all SQL rules for this file type
         fileId = interfaces.validationDb.getFileId(fileType)
-        rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).all()
+        rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(RuleSql.rule_cross_file_flag == False).all()
         errors = []
         # For each rule, execute sql for rule
         for rule in rules:
@@ -802,7 +802,7 @@ class Validator(object):
             # Build error list
             for failure in failures:
                 row = failure["row"]
-                errorMsg = rule.rule_description
+                errorMsg = rule.rule_error_msg
                 values = ""
                 fieldNames = ""
                 for field in failure:
