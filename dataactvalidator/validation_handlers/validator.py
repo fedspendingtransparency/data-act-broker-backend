@@ -491,7 +491,7 @@ class Validator(object):
             valueDict[fieldMap[field]["target_field"]] = fieldValue
 
         if not noBlankSkipFields and blankSkip:
-            # This set of fields was all blank and at least one was present, so skip rule
+            # This set of fields was all blank and at least one field is marked as "skip_if_blank", so skip rule
             return True
 
 
