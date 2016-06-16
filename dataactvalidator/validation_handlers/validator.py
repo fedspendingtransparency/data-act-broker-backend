@@ -445,7 +445,14 @@ class Validator(object):
         fieldMap = json.loads(rule.rule_text_2)
         # Get values for fields in record into new dict between table columns and values to check for
         valueDict = {}
+        blankSkip = True
+        noBlankSkipFields = True
         for field in fieldMap:
+            if "skip_if_blank" in fieldMap[field]:
+                noBlankSkipFields = False
+                # If all these are blank, rule passes
+                if record[field] is not None and record[field].strip != "":
+                    blankSkip = False
             if "skip_if_below" in fieldMap[field]:
                 try:
                     if int(record[field]) < fieldMap[field]["skip_if_below"]:
@@ -464,6 +471,11 @@ class Validator(object):
             else:
                 fieldValue = record[field]
             valueDict[fieldMap[field]["target_field"]] = fieldValue
+
+        if not noBlankSkipFields and blankSkip:
+            # This set of fields was all blank and at least one was present, so skip rule
+            return True
+
 
         # Parse out model object
         model = getattr(domainModels,str(rule.rule_text_1))
