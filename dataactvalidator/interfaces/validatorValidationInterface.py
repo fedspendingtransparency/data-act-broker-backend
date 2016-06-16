@@ -1,7 +1,7 @@
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.validationModels import Rule, RuleType, FileColumn, FileType, FieldType, RuleTiming
+from dataactcore.models.validationModels import Rule, RuleType, FileColumn, FileType, FieldType, RuleTiming, RuleSeverity, RuleSql
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.config import CONFIG_DB
@@ -268,6 +268,35 @@ class ValidatorValidationInterface(BaseInterface):
         self.session.commit()
         return True
 
+    def addSqlRule(self, ruleSql, ruleLabel, ruleDescription, ruleErrorMsg,
+        fileId, ruleSeverity, crossFileFlag=False):
+        """Insert SQL-based validation rule.
+
+        Args:
+            ruleSql = the validation expressed as SQL
+            ruleLabel = rule label used in the DATA Act standard
+            ruleDescription = rule description
+            ruleErrorMsg = the rule's standard error message
+            crossFileFlag = indicates whether or not the rule is cross-file
+            fileType = file type that the rule applies to
+            severityName = severity of the rule
+
+        Returns:
+            ID of new rule
+        """
+        newRule = RuleSql(rule_sql=ruleSql, rule_label=ruleLabel,
+                rule_description=ruleDescription, rule_error_message=ruleErrorMsg,
+                rule_cross_file_flag=crossFileFlag, file_id=fileId, rule_severity=ruleSeverity)
+        self.session.add(newRule)
+        self.session.commit()
+        return True
+
+    def deleteSqlRules(self):
+        """Delete existing rules in the SQL rules table."""
+        self.session.query(RuleSql).delete()
+        self.session.commit()
+        return True
+
     def getMultiFieldRulesByFile(self, fileType):
         """ Uses rule_timing to specify multi field rules
 
@@ -390,3 +419,10 @@ class ValidatorValidationInterface(BaseInterface):
         query = self.session.query(FileColumn).filter(FileColumn.file_column_id == id)
         column = self.runUniqueQuery(query,"No column found with that ID", "Multiple columns found with that ID")
         return column.name
+
+    def getRuleSeverityByName(self, ruleSeverityName):
+        """Return rule severity based on name."""
+        query = self.session.query(RuleSeverity).filter(RuleSeverity.name == ruleSeverityName)
+        query = self.runUniqueQuery(query, "No rule severity found with name {}".format(ruleSeverityName),
+            "Multiple rule severities found with name {}".format(ruleSeverityName))
+        return query
