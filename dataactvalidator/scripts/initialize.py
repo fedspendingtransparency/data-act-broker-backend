@@ -6,7 +6,7 @@ from dataactcore.scripts.setupAllDB import setupAllDB
 from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.scripts.loadTas import loadTas
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
-
+from dataactvalidator.filestreaming.loadFile import loadDomainValues
 
 def options():
 
@@ -43,6 +43,8 @@ def initialize():
     os.path.dirname(dataactvalidator.__file__), "config")
     tas = os.path.join(validator_config_path, "all_tas_betc.csv")
     loadTas(tas)
+    # Load other domain values files
+    loadDomainValues(os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config"))
     print ("The validator has been initialized. You may now run the validator with the -start argument.")
 
 def loadValidator():

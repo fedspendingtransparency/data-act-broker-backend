@@ -1,9 +1,12 @@
+import json
 from sqlalchemy import MetaData, Table
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from decimal import *
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.models import domainModels
 from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactcore.models.validationModels import TASLookup
+from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
@@ -18,7 +21,7 @@ class Validator(object):
         """ Evaluate all rules for cross file validation
 
         Args:
-            rules -- List of MultiFieldRule objects
+            rules -- List of Rule objects
             submissionId -- ID of submission to run cross-file validation
         """
         failures = []
@@ -61,7 +64,7 @@ class Validator(object):
         """ Evaluate specified rule against all records to which it applies
 
         Args:
-            rule - Rule or MultiFieldRule object to be tested
+            rule - Rule object to be tested
             submissionId - ID of submission being tested
             record - Some rule types are applied to only a single record.  For those rules, include the record as a dict here.
 
@@ -73,7 +76,7 @@ class Validator(object):
         failures = [] # Can get multiple failures for these rule types
         rulePassed = True # Set to false on first failures
         # Get rule type
-        ruleType = rule.multi_field_rule_type.name.lower()
+        ruleType = rule.rule_type.name.lower()
         fileType = rule.file_type.name
         interfaces = InterfaceHolder()
         stagingDb = interfaces.stagingDb
@@ -132,8 +135,8 @@ class Validator(object):
             # Can apply rule to a specified record or all records in first table
             sourceRecords = cls.getRecordsIfNone(sourceTable,stagingDb,record)
             # Get both rules, condition to check and rule to apply based on condition
-            condition = interfaces.validationDb.getMultiFieldRuleByLabel(rule.rule_text_2)
-            conditionalRule = interfaces.validationDb.getMultiFieldRuleByLabel(rule.rule_text_1)
+            condition = interfaces.validationDb.getRuleByLabel(rule.rule_text_2)
+            conditionalRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
             # Apply first rule for all records that pass second rule
             for record in sourceRecords:
                 # Record is a tuple, we need it to be a dict with field names as keys
@@ -226,10 +229,9 @@ class Validator(object):
         # Check all multi field rules for this file type
         multiFieldRules = interfaces.validationDb.getMultiFieldRulesByFile(fileType)
         for rule in multiFieldRules:
-            if not Validator.evaluateMultiFieldRule(rule,record,interfaces,fileType):
+            if not Validator.evaluateRule(record,rule,None,interfaces,record):
                 recordFailed = True
                 failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces)])
-
         return (not recordFailed), failedRules
 
     @staticmethod
@@ -248,7 +250,8 @@ class Validator(object):
         fileId = validationInterface.getFileId(fileType)
         returnList =[]
         for rule in rules :
-            if(rule.file_column.name == fieldName and rule.file_column.file_id == fileId and rule.rule_timing_id == validationInterface.getRuleTimingIdByName("file_validation")) :
+            # Look for single field rules that apply to this field and file, and are timed to run during record-level validation
+            if(rule.file_column is not None and rule.file_column.name == fieldName and rule.file_column.file_id == fileId and rule.rule_timing_id == validationInterface.getRuleTimingIdByName("file_validation")) :
                 returnList.append(rule)
         return returnList
 
@@ -263,6 +266,9 @@ class Validator(object):
         Returns:
             True if data is of specified type, False otherwise
         """
+        if datatype is None:
+            # If no type specified, don't need to check anything
+            return True
         if(data.strip() == ""):
             # An empty string matches all types
             return True
@@ -308,6 +314,9 @@ class Validator(object):
         Returns:
             Data in specified type
         """
+        if datatype is None:
+            # If no type specified, don't try to process data
+            return data
         if(datatype =="INT") :
             return int(float(data))
         if(datatype =="DECIMAL") :
@@ -318,8 +327,8 @@ class Validator(object):
             return long(data)
         raise ValueError("Data Type Invalid")
 
-    @staticmethod
-    def evaluateRule(data,rule,datatype,interfaces,record):
+    @classmethod
+    def evaluateRule(cls,data,rule,datatype,interfaces,record):
         """ Checks data against specified rule
 
         Args:
@@ -335,31 +344,259 @@ class Validator(object):
         if data is None:
             # Treat blank as an empty string
             data = ""
-        value1 = rule.rule_text_1
+        value = rule.rule_text_1
         currentRuleType = rule.rule_type.name
-        if(currentRuleType =="LENGTH") :
-            return len(data.strip()) <= Validator.getIntFromString(value1)
-        elif(currentRuleType =="LESS") :
-            return Validator.getType(data,datatype) < Validator.getType(value1,datatype)
-        elif(currentRuleType =="GREATER") :
-            return Validator.getType(data,datatype) > Validator.getType(value1,datatype)
-        elif(currentRuleType =="EQUAL") :
-            return Validator.getType(data,datatype) == Validator.getType(value1,datatype)
-        elif(currentRuleType =="NOT EQUAL") :
-            return not (Validator.getType(data,datatype) == Validator.getType(value1,datatype))
-        elif(currentRuleType =="SUM"):
-            return Validator.validateSum(record[rule.rule_text_1], rule.rule_text_2, record)
-        elif(currentRuleType == "TYPE"):
-            # Type checks happen earlier, but type rule is still included in rule set, so skip it
+        # Call specific rule function
+        ruleFunction = "_".join(["rule",str(currentRuleType).lower()])
+        ruleFunction = FieldCleaner.cleanString(ruleFunction)
+        try:
+            ruleMethod = getattr(cls, str(ruleFunction))
+            return ruleMethod(data, value, rule, datatype, interfaces, record)
+        except AttributeError as e:
+            # Unrecognized rule type
+            raise ResponseException(str(e), StatusCode.INTERNAL_ERROR, ValueError)
+
+    @classmethod
+    def rule_length(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that data is shorter than specified length"""
+        return len(data.strip()) <= Validator.getIntFromString(value)
+
+    @classmethod
+    def rule_less(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that data is less than specified value"""
+        return Validator.getType(data,datatype) < Validator.getType(value,datatype)
+
+    @classmethod
+    def rule_greater(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that data is greater than specified value"""
+        return Validator.getType(data,datatype) > Validator.getType(value,datatype)
+
+    @classmethod
+    def rule_equal(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that data is equal to specified value"""
+        data = data.lower() if isinstance(data, str) else data
+        value = value.lower() if isinstance(value, str) else value
+        return Validator.getType(data,datatype) == Validator.getType(value,datatype)
+
+    @classmethod
+    def rule_not_equal(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that data is not equal to specified value"""
+        data = data.lower() if isinstance(data, str) else data
+        value = value.lower() if isinstance(value, str) else value
+        return not (Validator.getType(data,datatype) == Validator.getType(value,datatype))
+
+    @classmethod
+    def rule_sum(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that data sums to value in specified field"""
+        return Validator.validateSum(record[rule.rule_text_1], rule.rule_text_2, record)
+
+    @classmethod
+    def rule_sum_to_value(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that data sums to value in specified field"""
+        return Validator.validateSum(rule.rule_text_1, rule.rule_text_2, record)
+
+    @classmethod
+    def rule_type(cls, data, value, rule, datatype, interfaces, record):
+        """Type checks happen earlier, but type rule is still included in rule set, so skip it"""
+        return True
+
+    @classmethod
+    def rule_in_set(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that data is one of a set of valid values"""
+        setList = Validator.cleanSplit(value)
+        return data.lower() in setList
+
+    @classmethod
+    def rule_min_length(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that data is at least the minimum length"""
+        result = len(data.strip()) >= Validator.getIntFromString(value)
+        return result
+
+    @classmethod
+    def rule_required_conditional(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that data is present if specified rule passes"""
+        return Validator.conditionalRequired(data,rule,datatype,interfaces,record)
+
+    @classmethod
+    def rule_exists_in_table(cls, data, value, rule, datatype, interfaces, record):
+        """ Check that field value exists in specified table, rule_text_1 has table and column to check against, rule_text_2 is length to pad to """
+        ruleTextOne = str(rule.rule_text_1).split(",")
+        if len(ruleTextOne) != 2:
+            # Bad rule definition
+            raise ResponseException("exists_in_table rule incorrectly defined, must have both table and field in rule_text_one",StatusCode.INTERNAL_ERROR,ValueError)
+        # Not putting model name through FieldCleaner because model names will have uppercase
+        model = getattr(domainModels,str(ruleTextOne[0]).strip())
+        field = FieldCleaner.cleanString(ruleTextOne[1])
+        ruleTextTwo = FieldCleaner.cleanString(rule.rule_text_2)
+        if len(ruleTextTwo) == 0:
+            # Skip padding
+            paddedData = FieldCleaner.cleanString(data)
+        else:
+            # Pad data to correct length
+            try:
+                padLength = int(ruleTextTwo)
+            except ValueError as e:
+                # Need an integer in rule_text_two
+                raise ResponseException("Need an integer width in rule_text_two for exists_in_table rules",StatusCode.INTERNAL_ERROR,ValueError)
+            paddedData = FieldCleaner.cleanString(data).zfill(padLength)
+
+        # Build query for model and field specified
+        query = interfaces.validationDb.session.query(model).filter(getattr(model,field) == paddedData)
+        try:
+            # Check that value exists in table, should be unique
+            interfaces.validationDb.runUniqueQuery(query,"Data not found in table", "Conflicting entries found for this data")
+            # If unique result found, rule passed
             return True
-        elif(currentRuleType == "IN_SET"):
-            setList = Validator.cleanSplit(value1,toLower = False)
-            return (data in setList)
-        elif(currentRuleType == "MIN LENGTH"):
-            return len(data.strip()) >= Validator.getIntFromString(value1)
-        elif(currentRuleType == "REQUIRED_CONDITIONAL"):
-            return Validator.conditionalRequired(data,rule,datatype,interfaces,record)
-        raise ValueError("Rule Type Invalid")
+        except ResponseException as e:
+            # If exception is no result found, rule failed
+            if type(e.wrappedException) == type(NoResultFound()):
+                return False
+            else:
+                # This is an unexpected exception, so re-raise it
+                raise
+
+    @classmethod
+    def rule_set_exists_in_table(cls, data, value, rule, datatype, interfaces, record):
+        """ Check that set of values exists in specified table, rule_text_1 is table, rule_text_2 is dict mapping
+        columns in record to columns in domain values table """
+        # Load mapping from record fields to domain value fields
+        fieldMap = json.loads(rule.rule_text_2)
+        # Get values for fields in record into new dict between table columns and values to check for
+        valueDict = {}
+        blankSkip = True
+        noBlankSkipFields = True
+        for field in fieldMap:
+            if "skip_if_blank" in fieldMap[field]:
+                noBlankSkipFields = False
+                # If all these are blank, rule passes
+                if record[field] is not None and record[field].strip() != "":
+                    blankSkip = False
+            if "skip_if_below" in fieldMap[field]:
+                try:
+                    if int(record[field]) < fieldMap[field]["skip_if_below"]:
+                        # Don't apply rule to records in this case (e.g. program activity before 2016)
+                        return True
+                except (TypeError, ValueError):
+                    # Could not cast as an int, this is a failure for this record
+                    return False
+            if "pad_to_length" in fieldMap[field]:
+                # Pad with leading zeros if needed
+                try:
+                    fieldValue = cls.padToLength(record[field],fieldMap[field]["pad_to_length"])
+                except ValueError as e:
+                    # If we cannot pad this value, it is not matchable (usually too long), so the rule has failed
+                    return False
+            else:
+                fieldValue = record[field]
+            valueDict[fieldMap[field]["target_field"]] = fieldValue
+
+        if not noBlankSkipFields and blankSkip:
+            # This set of fields was all blank and at least one field is marked as "skip_if_blank", so skip rule
+            return True
+
+
+        # Parse out model object
+        model = getattr(domainModels,str(rule.rule_text_1))
+
+        # Filter query by each field
+        query = interfaces.validationDb.session.query(model)
+        for field in valueDict:
+            query = query.filter(getattr(model,field) == valueDict[field])
+
+        # NoResultFound is return False, other exceptions should be reraised
+        try:
+            # Check that value exists in table, should be unique
+            interfaces.validationDb.runUniqueQuery(query,"Data not found in table", "Conflicting entries found for this data")
+            # If unique result found, rule passed
+            return True
+        except ResponseException as e:
+            # If exception is no result found, rule failed
+            if type(e.wrappedException) == type(NoResultFound()):
+                return False
+            else:
+                # This is an unexpected exception, so re-raise it
+                raise
+
+    @staticmethod
+    def padToLength(data,padLength):
+        """ Pad data with leading zeros
+
+        Args:
+            data: string to be padded
+            padLength: length of string after padding
+
+        Returns:
+            padded string of length padLength
+        """
+        if data is None:
+            # Convert None to empty string so it can be padded with zeros
+            data = ""
+        data = data.strip()
+
+        if len(data) <= padLength:
+            return data.zfill(padLength)
+        else:
+            raise ValueError("".join(["Value is too long: ",str(data)]))
+
+    @classmethod
+    def rule_required_set_conditional(cls, data, value, rule, datatype, interfaces, record):
+        """ If conditional rule passes, require all fields in rule_text_one """
+        return Validator.conditionalRequired(data,rule,datatype,interfaces,record)
+
+    @classmethod
+    def rule_check_prefix(cls, data, value, rule, datatype, interfaces, record):
+        """ Check that 1-digit prefix is consistent with reimbursable flag """
+        dataString = FieldCleaner.cleanString(data)
+
+        # Load target field and dict to compare with
+        targetField = FieldCleaner.cleanName(rule.rule_text_1)
+        prefixMap = json.loads(str(rule.rule_text_2))
+
+        # Check that character and value are consistent with dict in rule_text_2
+        if dataString[0] not in prefixMap:
+            # Unknown prefix, this is a failure
+            return False
+        source = prefixMap[dataString[0]]
+        target = record[targetField]
+        source = source.lower() if source is not None else source
+        target = target.lower() if target is not None else target
+
+        if source == target:
+            # Matches the value in target field, rule passes
+            return True
+        else:
+            return False
+
+    @classmethod
+    def rule_rule_if(cls, data, value, rule, datatype, interfaces, record):
+        """ Apply rule in rule_text_1 if rule in rule_text_2 passes """
+        # Get rule object for conditional rule
+        conditionalRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_2)
+        if conditionalRule.file_column is not None:
+            # This is a single field rule
+            conditionalTypeId = conditionalRule.file_column.field_types_id
+            conditionalDataType = interfaces.validationDb.getFieldTypeById(conditionalTypeId)
+            conditionalData = record[conditionalRule.file_column.name]
+        else:
+            conditionalDataType = None
+            conditionalData = record
+        # If conditional rule passes, check primary rule passes
+        if Validator.evaluateRule(conditionalData,conditionalRule,conditionalDataType,interfaces,record):
+            # Get rule object for primary rule
+            primaryRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
+            if primaryRule.file_column is not None:
+                # This is a single field rule
+                primaryTypeId = primaryRule.file_column.field_types_id
+                primaryDataType = interfaces.validationDb.getFieldTypeById(primaryTypeId)
+                primaryData = record[primaryRule.file_column.name]
+            else:
+                primaryDataType = None
+                primaryData = record
+            # Return result of primary rule
+            return Validator.evaluateRule(primaryData,primaryRule,primaryDataType,interfaces,record)
+        else:
+            # If conditional rule fails, overall rule passes without checking primary
+            return True
 
     @staticmethod
     def requireOne(record, fields, interfaces):
@@ -391,7 +628,7 @@ class Validator(object):
             return False
 
     @classmethod
-    def conditionalRequired(cls, data,rule,datatype,interfaces,record):
+    def conditionalRequired(cls, data,rule,datatype,interfaces,record, isList = False):
         """ If conditional rule passes, data must not be empty
 
         Args:
@@ -403,73 +640,72 @@ class Validator(object):
         """
         # Get rule object for conditional rule
         conditionalRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
-        conditionalTypeId = conditionalRule.file_column.field_types_id
-        conditionalDataType = interfaces.validationDb.getFieldTypeById(conditionalTypeId)
+        if conditionalRule.file_column is not None:
+            # This is a single field rule
+            conditionalTypeId = conditionalRule.file_column.field_types_id
+            conditionalDataType = interfaces.validationDb.getFieldTypeById(conditionalTypeId)
+            conditionalData = record[conditionalRule.file_column.name]
+        else:
+            conditionalDataType = None
+            conditionalData = record
         # If conditional rule passes, check that data is not empty
-        if Validator.evaluateRule(record[conditionalRule.file_column.name],conditionalRule,conditionalDataType,interfaces,record):
-            return cls.isFieldPopulated(data)
+        if Validator.evaluateRule(conditionalData,conditionalRule,conditionalDataType,interfaces,record):
+            if isList:
+                # rule_text_2 is a list of fields
+                fieldList = rule.rule_text_2.split(",")
+                for field in fieldList:
+                    if not cls.isFieldPopulated(record[FieldCleaner.cleanName(field)]):
+                        # If any are empty, rule fails
+                        return False
+            else:
+                # data is value from a single field
+                return cls.isFieldPopulated(data)
         else:
             # If conditional rule fails, this field is not required, so the condtional requirement passes
             return True
 
+
     @classmethod
-    def evaluateMultiFieldRule(cls, rule, record, interfaces, fileType):
-        """ Check a rule involving more than one field of a record
+    def rule_car_match(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that record has a valid TAS"""
+        # Look for an entry in car table that matches all fields
+        fieldsToCheck = cls.cleanSplit(rule.rule_text_1)
+        tasFields = cls.cleanSplit(rule.rule_text_2)
+        if(len(fieldsToCheck) != len(tasFields)):
+            raise ResponseException("Number of fields to check does not match number of fields checked against",StatusCode.CLIENT_ERROR,ValueError)
+        return cls.validateTAS(fieldsToCheck, tasFields, record, interfaces, rule.file_type.name)
 
-        Args:
-            rule: MultiFieldRule object to check against
-            record: Record to be checked
-            interfaces: InterfaceHolder object to the databases
-            fileType: File type being checked
+    @classmethod
+    def rule_sum_fields(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that set of fields sums to value in other field"""
+        valueToMatch = record[FieldCleaner.cleanName(rule.rule_text_1)]
+        if valueToMatch is None or valueToMatch == "":
+            valueToMatch = 0
+        return cls.validateSum(valueToMatch, rule.rule_text_2, record)
 
-        Returns:
-            True if rule passes, False otherwise
-        """
-        ruleType = rule.multi_field_rule_type.name.upper()
-        if(ruleType == "CAR_MATCH"):
-            # Look for an entry in car table that matches all fields
-            fieldsToCheck = cls.cleanSplit(rule.rule_text_1)
-            tasFields = cls.cleanSplit(rule.rule_text_2)
-            if(len(fieldsToCheck) != len(tasFields)):
-                raise ResponseException("Number of fields to check does not match number of fields checked against",StatusCode.CLIENT_ERROR,ValueError)
-            return cls.validateTAS(fieldsToCheck, tasFields, record, interfaces, fileType)
-        elif(ruleType == "SUM_TO_VALUE"):
-            return cls.validateSum(rule.rule_text_1, rule.rule_text_2, record)
-        elif(ruleType =="SUM_FIELDS"):
-            value = record[FieldCleaner.cleanName(rule.rule_text_1)]
-            if value is None or value =="":
-                value = 0
-            return cls.validateSum(value, rule.rule_text_2, record)
-        elif(ruleType == "REQUIRE_ONE_OF_SET"):
-            return cls.requireOne(record,rule.rule_text_1.split(','),interfaces)
-        elif(ruleType == "NOT"):
-            # Negate the rule specified
-            conditionalRule = interfaces.validationDb.getMultiFieldRuleByLabel(rule.rule_text_1)
-            return not cls.evaluateMultiFieldRule(conditionalRule,record,interfaces,fileType)
-        elif(ruleType == "REQUIRED_CONDITIONAL"):
-            # Field in rule_text_1 is required if rule in rule_text_2 is satisfied
-            conditionalRule = interfaces.validationDb.getMultiFieldRuleByLabel(rule.rule_text_2)
-            if cls.evaluateMultiFieldRule(conditionalRule,record,interfaces,fileType):
-                # Return True if field populated
-                field = FieldCleaner.cleanName(rule.rule_text_1)
-                if field in record and cls.isFieldPopulated(record[field]):
-                    return True
-                else:
-                    return False
-            else:
-                # Conditional rule failed, so field is not required and rule passes
-                return True
-        else:
-            raise ResponseException("".join(["Bad rule type for multi-field rule: ",str(ruleType)]),StatusCode.INTERNAL_ERROR)
+    @classmethod
+    def rule_require_one_of_set(cls, data, value, rule, datatype, interfaces, record):
+        """Checks that record at least one of this set of fields populated"""
+        return cls.requireOne(record,rule.rule_text_1.split(','),interfaces)
+
+    @classmethod
+    def rule_not(cls, data, value, rule, datatype, interfaces, record):
+        """Passes if the specified rule fails"""
+        # Negate the rule specified
+        conditionalRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
+        return not cls.evaluateRule(data, conditionalRule, datatype, interfaces, record)
 
     @staticmethod
-    def cleanSplit(string, toLower = True):
+    def cleanSplit(string, toLower=True):
         """ Split string on commas and remove whitespace around each element
 
         Args:
             string - String to be split
             toLower - If True, also changes string to lowercase
         """
+        if string is None:
+            # Convert None to empty list
+            return []
         stringList = string.split(",")
         for i in range(0,len(stringList)):
             stringList[i] = stringList[i].strip()
@@ -490,18 +726,25 @@ class Validator(object):
         """
         ruletext1 = Validator.cleanSplit(rule.rule_text_1, True)
         ruletext2 = Validator.cleanSplit(rule.rule_text_2, True)
-        ruleType = interfaces.validationDb.getMultiFieldRuleTypeById(rule.multi_field_rule_type_id)
-        if ruleType == "CAR_MATCH" or ruleType == "REQUIRED_CONDITIONAL" or ruleType == "REQUIRE_ONE_OF_SET":
+        ruleType = interfaces.validationDb.getRuleTypeById(rule.rule_type_id)
+        if ruleType == "CAR_MATCH" or ruleType == "REQUIRE_ONE_OF_SET":
             fields = ruletext1
+        elif ruleType == "REQUIRED_CONDITIONAL":
+            fields = [rule.file_column.name]
         elif ruleType == "NOT":
             fields = []
         elif ruleType == "SUM_TO_VALUE":
             fields = ruletext2
+        elif ruleType == "SET_EXISTS_IN_TABLE":
+            fields = json.loads(rule.rule_text_2).keys()
         else:
             fields = ruletext1 + ruletext2
         output = ""
         for field in fields:
-            value = record[field]
+            try:
+                value = record[str(field)]
+            except KeyError as e:
+                raise KeyError("Field " + str(field) + " not found while checking rule type " + str(ruleType))
             if(value == None):
                 # For concatenating fields, represent None with an empty string
                 value = ""
@@ -564,7 +807,7 @@ class Validator(object):
             # Pad field with leading zeros
             length = interfaces.validationDb.getColumnLength(field, fileType)
             data = data.zfill(length)
-            query = query.filter(TASLookup.__dict__[tasFields[i]] == data)
+            query = query.filter(TASLookup.__dict__[tasFields[i]] == str(data))
 
         queryResult = query.all()
         if(len(queryResult) == 0):

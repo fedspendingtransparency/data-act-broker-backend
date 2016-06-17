@@ -13,7 +13,8 @@ def setupEmails():
         ('account_rejected', ''),
         ('reset_password', ''),
         ('account_creation', ''),
-        ('account_creation_user', '')
+        ('account_creation_user', ''),
+        ('unlock_account', '')
     ]
     for t in typeList:
         emailId = userDb.session.query(
@@ -42,7 +43,7 @@ def setupEmails():
     userDb.loadEmailTemplate("DATA Act Broker - Password Reset", template, "reset_password")
 
     #Admin Email
-    template = "This email is to notify you that the following person has requested an account for the DATA Act Broker:<br /><br />Name: [REG_NAME]<br /><br />Title:  [REG_TITLE]<br /><br />Agency:  [REG_AGENCY]<br /><br />Email: [REG_EMAIL]<br /><br /><br /><br />To approve or deny this user for access to the Data Broker, please click <a href='[URL]'>here</a>.<br /><br />This action must be taken within 24 hours. <br /><br />Thank you for your prompt attention.<br /><br />DATA Act Broker Helpdesk<br />DATABroker@fiscal.treasury.gov"
+    template = "This email is to notify you that the following person has requested an account for the DATA Act Broker:<br /><br />Name: [REG_NAME]<br /><br />Title:  [REG_TITLE]<br /><br />Agency Name:  [REG_AGENCY_NAME]<br /><br />CGAC Code: [REG_CGAC_CODE]<br /><br />Email: [REG_EMAIL]<br /><br /><br /><br />To approve or deny this user for access to the Data Broker, please click <a href='[URL]'>here</a>.<br /><br />This action must be taken within 24 hours. <br /><br />Thank you for your prompt attention.<br /><br />DATA Act Broker Helpdesk<br />DATABroker@fiscal.treasury.gov"
     userDb.loadEmailTemplate("New Data Broker registration - Action Required", template, "account_creation")
 
     #User Email When finished submitting
@@ -62,6 +63,10 @@ def setupEmails():
         "The DATA Act Implementation Team <br />"
         "[EMAIL]")
     userDb.loadEmailTemplate("DATA Act Broker - Registration", template, "account_creation_user")
+
+    #Unlock account email
+    template = "Your account has been unlocked and requires your password to be reset. Please click the following link <a href='[URL]'>here</a> to start the processs. The link will expire in 24 hours. <br/> <br/> If you did not request your account to be unlocked, please notify the DATA Act Broker Helpdesk (DATABroker@fiscal.treasury.gov) <br /><br />DATA Act Broker Helpdesk<br /><br />DATABroker@fiscal.treasury.gov"
+    userDb.loadEmailTemplate("DATA Act Broker - Password Reset", template, "unlock_account")
 
     InterfaceHolder.closeOne(userDb)
 
