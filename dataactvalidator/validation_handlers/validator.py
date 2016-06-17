@@ -451,7 +451,7 @@ class Validator(object):
             if "skip_if_blank" in fieldMap[field]:
                 noBlankSkipFields = False
                 # If all these are blank, rule passes
-                if record[field] is not None and record[field].strip != "":
+                if record[field] is not None and record[field].strip() != "":
                     blankSkip = False
             if "skip_if_below" in fieldMap[field]:
                 try:
