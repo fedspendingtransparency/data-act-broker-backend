@@ -221,7 +221,7 @@ class ValidationManager:
                     #    print("Validating row " + str(rowNumber))
                     try :
                         record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, validationDB)
-                        record["row"] = rowNumber
+                        record["row_number"] = rowNumber
                         if reader.isFinished and len(record) < 2:
                             # This is the last line and is empty, don't record an error
                             rowNumber -= 1  # Don't count this row
