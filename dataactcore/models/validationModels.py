@@ -56,6 +56,7 @@ class Rule(Base):
     rule_timing_id = Column(Integer, ForeignKey("rule_timing.rule_timing_id", name="fk_rule_timing_id"), nullable=False, default=1)
     rule_timing = relationship("RuleTiming", uselist=False)
     rule_label = Column(Text)
+    original_label = Column(Text)
     file_id = Column(Integer, ForeignKey("file_type.file_id"), nullable=True)
     file_type = relationship(
         "FileType", foreign_keys="Rule.file_id", uselist=False)

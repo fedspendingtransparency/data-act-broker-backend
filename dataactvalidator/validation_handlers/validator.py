@@ -788,7 +788,7 @@ class Validator(object):
             field = fieldsToCheck[i].lower()
             # Pad field with leading zeros
             length = interfaces.validationDb.getColumnLength(field, fileType)
-            data = data.zfill(length)
+            data = data.strip().zfill(length)
             query = query.filter(TASLookup.__dict__[tasFields[i]] == str(data))
 
         queryResult = query.all()
