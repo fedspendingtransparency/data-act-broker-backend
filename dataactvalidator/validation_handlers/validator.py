@@ -41,7 +41,7 @@ class Validator(object):
         Args:
             submissionId - ID of submission being validated (int)
             fileType - fileType of source record(s) being validated (string)
-            stagingDb - staging db interface
+            stagingDb - staging db interface (staging tables are in the validation db)
             record - set to none if we want all table records for submission
 
         Returns:

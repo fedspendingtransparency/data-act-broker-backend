@@ -1,8 +1,6 @@
 from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean
-from sqlalchemy.ext.declarative import declarative_base
-from dataactcore.utils.timeStampMixin import TimeStampBase
+from dataactcore.models.base import Base
 
-Base = declarative_base(cls=TimeStampBase)
 
 def concatTas(context):
     """Create a concatenated TAS string for insert into database."""
