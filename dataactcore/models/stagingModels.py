@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean
-from dataactcore.models.base import Base
+from dataactcore.models.validationBase import Base
 
 
 def concatTas(context):

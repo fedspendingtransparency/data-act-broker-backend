@@ -2,7 +2,7 @@
 
 from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
-from dataactcore.models.base import Base
+from dataactcore.models.validationBase import Base
 # the following lines import models that are maintained in
 # separate files but live in the validation database.
 # they're imported here so alembic will see them.
