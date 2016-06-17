@@ -63,22 +63,6 @@ class ValidatorJobTrackerInterface(JobTrackerInterface):
 
         return True
 
-    def addStagingTable(self,jobId,stagingTable):
-        """
-
-        Args:
-            jobId: Job to write table name for
-            stagingTable: Name of staging table for this job
-
-        Returns:
-            True if successful
-        """
-        query = self.session.query(Job).filter(Job.job_id == jobId)
-        result = self.checkJobUnique(query)
-        result.staging_table = stagingTable
-        self.session.commit()
-        return True
-
     def checkJobType(self,jobId):
         """ Job should be of type csv_record_validation, or this is the wrong service
 

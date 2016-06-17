@@ -101,14 +101,6 @@ class JobTests(BaseTestValidator):
             validationDb.session.add(rule)
         validationDb.session.commit()
 
-        # If staging already has corresponding job tables, drop them
-        for k, v in jobIdDict.items():
-            try:
-                cls.stagingDb.dropTable("job{}".format(v))
-            except Exception as e:
-                cls.stagingDb.session.close()
-                cls.stagingDb.session = cls.stagingDb.Session()
-
         cls.jobIdDict = jobIdDict
 
     def tearDown(self):
