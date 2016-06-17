@@ -1,9 +1,7 @@
-from sqlalchemy.ext.declarative import declarative_base
-from dataactcore.utils.timeStampMixin import TimeStampBase
 from dataactcore.models.stagingModels import concatTas
 from sqlalchemy import Column, Integer, Text, Boolean, Index, Numeric
+from dataactcore.models.validationBase import Base
 
-Base = declarative_base(cls=TimeStampBase)
 
 class TASLookup(Base) :
     __tablename__ = "tas_lookup"
@@ -48,7 +46,7 @@ class SF133(Base):
     endingperiodofavailability = Column(Text)
     mainaccountcode = Column(Text, nullable=False)
     subaccountcode = Column(Text, nullable=False)
-    tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas, index=True)
+    tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
     fiscal_year = Column(Text)
     period = Column(Text)
     line = Column(Integer,nullable=False)

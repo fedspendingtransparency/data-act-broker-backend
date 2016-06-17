@@ -165,10 +165,15 @@ class ValidationManager:
         Returns:
             True if successful
         """
+
         jobTracker = interfaces.jobDb
         submissionId = jobTracker.getSubmissionId(jobId)
+
         rowNumber = 1
         fileType = jobTracker.getFileType(jobId)
+        # Clear existing records for this submission
+        interfaces.stagingDb.clearFileBySubmission(submissionId,fileType)
+
         # If local, make the error report directory
         if self.isLocal and not os.path.exists(self.directory):
             os.makedirs(self.directory)
@@ -206,7 +211,7 @@ class ValidationManager:
             errorInterface = interfaces.errorDb
             stagingInterface = interfaces.stagingDb
 
-            # While not done, pull one row and put it into staging if it passes
+            # While not done, pull one row and put it into staging table if it passes
             # the Validator
             with self.getWriter(regionName, bucketName, errorFileName,
                                 self.reportHeaders) as writer:
@@ -216,7 +221,7 @@ class ValidationManager:
                     #    print("Validating row " + str(rowNumber))
                     try :
                         record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, validationDB)
-                        record["row"] = rowNumber
+                        record["row_number"] = rowNumber
                         if reader.isFinished and len(record) < 2:
                             # This is the last line and is empty, don't record an error
                             rowNumber -= 1  # Don't count this row
@@ -231,11 +236,12 @@ class ValidationManager:
                             errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
                             errorInterface.setRowErrorsPresent(jobId, True)
                         continue
-                    valid, failures = Validator.validate(record,rules,csvSchema,fileType,interfaces)
+                    passedValidations, failures, valid  = Validator.validate(record,rules,csvSchema,fileType,interfaces)
                     if valid:
                         try:
                             record["job_id"] = jobId
                             record["submission_id"] = submissionId
+                            record["valid_record"] = passedValidations
                             # temporary fix b/c we can't use '+4' as a column alias :(
                             if "primaryplaceofperformancezip+4" in record:
                                 record["primaryplaceofperformancezipplus4"] = record["primaryplaceofperformancezip+4"]
@@ -248,7 +254,7 @@ class ValidationManager:
                             errorInterface.setRowErrorsPresent(jobId, True)
                             continue
 
-                    else:
+                    if not passedValidations:
                         # For each failure, record it in error report and metadata
                         if failures:
                             errorInterface.setRowErrorsPresent(jobId, True)
@@ -263,9 +269,27 @@ class ValidationManager:
                             except ValueError:
                                 # If not, treat it literally
                                 errorMsg = error
-                            writer.write([fieldName, errorMsg, str(rowNumber), failedValue])
-                            errorInterface.recordRowError(jobId, self.filename,
-                                fieldName, error, rowNumber)
+                            writer.write([fieldName,errorMsg,str(rowNumber),failedValue])
+                            errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber)
+                # Do SQL validations for this file
+                sqlFailures = Validator.validateFileBySql(interfaces.jobDb.getSubmissionId(jobId),fileType,interfaces)
+                for failure in sqlFailures:
+                    # TODO are the failures from sql in this format
+                    fieldName = failure[0]
+                    error = failure[1]
+                    failedValue = failure[2]
+                    row = failure[3]
+                    try:
+                        # If error is an int, it's one of our prestored messages
+                        errorType = int(error)
+                        errorMsg = ValidationError.getErrorMessage(errorType)
+                    except ValueError:
+                        # If not, treat it literally
+                        errorMsg = error
+                    writer.write([fieldName,errorMsg,str(row),failedValue])
+                    errorInterface.recordRowError(jobId,self.filename,fieldName,
+                                                  error,rowNumber)
+
                 # Write unfinished batch
                 writer.finishBatch()
 
@@ -302,7 +326,7 @@ class ValidationManager:
         interfaces.jobDb.markJobStatus(jobId, "finished")
 
     def validateJob(self, request,interfaces):
-        """ Gets file for job, validates each row, and sends valid rows to staging database
+        """ Gets file for job, validates each row, and sends valid rows to a staging table
         Args:
         request -- HTTP request containing the jobId
         interfaces -- InterfaceHolder object to the databases
