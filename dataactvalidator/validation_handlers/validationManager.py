@@ -211,7 +211,7 @@ class ValidationManager:
             errorInterface = interfaces.errorDb
             stagingInterface = interfaces.stagingDb
 
-            # While not done, pull one row and put it into staging if it passes
+            # While not done, pull one row and put it into staging table if it passes
             # the Validator
             with self.getWriter(regionName, bucketName, errorFileName,
                                 self.reportHeaders) as writer:
@@ -221,7 +221,7 @@ class ValidationManager:
                     #    print("Validating row " + str(rowNumber))
                     try :
                         record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, validationDB)
-                        record["row"] = rowNumber
+                        record["row_number"] = rowNumber
                         if reader.isFinished and len(record) < 2:
                             # This is the last line and is empty, don't record an error
                             rowNumber -= 1  # Don't count this row
@@ -326,7 +326,7 @@ class ValidationManager:
         interfaces.jobDb.markJobStatus(jobId, "finished")
 
     def validateJob(self, request,interfaces):
-        """ Gets file for job, validates each row, and sends valid rows to staging database
+        """ Gets file for job, validates each row, and sends valid rows to a staging table
         Args:
         request -- HTTP request containing the jobId
         interfaces -- InterfaceHolder object to the databases

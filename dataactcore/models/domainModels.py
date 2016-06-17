@@ -1,9 +1,7 @@
-from sqlalchemy.ext.declarative import declarative_base
-from dataactcore.utils.timeStampMixin import TimeStampBase
 from dataactcore.models.stagingModels import concatTas
 from sqlalchemy import Column, Integer, Text, Boolean, Index, Numeric
+from dataactcore.models.validationBase import Base
 
-Base = declarative_base(cls=TimeStampBase)
 
 class TASLookup(Base) :
     __tablename__ = "tas_lookup"

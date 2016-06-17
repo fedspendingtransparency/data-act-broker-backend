@@ -31,7 +31,7 @@ def insertCodes():
         (2, 'required_error', 'A required value was not provided'),
         (3, 'value_error', 'The value provided was invalid'),
         (4, 'read_error', 'Could not parse this record correctly'),
-        (5, 'write_error', 'Could not write this record into the staging database'),
+        (5, 'write_error', 'Could not write this record into the staging table'),
         (6, 'rule_failed', 'A rule failed for this value')]
     for e in errorList:
         error = ErrorType(error_type_id=e[0], name=e[1], description=e[2])

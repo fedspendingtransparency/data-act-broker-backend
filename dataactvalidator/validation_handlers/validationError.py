@@ -11,7 +11,7 @@ class ValidationError:
     headerError = 3
     readErrorMsg = "Could not parse this record correctly"
     readError = 4
-    writeErrorMsg = "Could not write this record into the staging database"
+    writeErrorMsg = "Could not write this record into the staging table"
     writeError = 5
     unknownErrorMsg = "An unknown error has occurred with this file"
     unknownError = 6

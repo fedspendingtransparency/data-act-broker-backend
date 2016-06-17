@@ -19,7 +19,7 @@ Example input: None
 Example output: `Validator is running`
 
 ##### POST `/validate/`
-Called to apply validation rules to a specified job ID.  Expects a JSON with key "job_id" specifying which job to validate.  Valid records will be written to the staging database, and errors will be listed in the error report and summarized in the error database.
+Called to apply validation rules to a specified job ID.  Expects a JSON with key "job_id" specifying which job to validate.  Records will be written to a set of tables in the validation database, and errors will be listed in the error report and summarized in the error database.
 
 Example input: `{"job_id":3664}`
 Example output: None (status 200 if successful)
@@ -35,7 +35,7 @@ The validation process begins with a call to one of the above routes from either
 
 The file location on S3 is specified in the job tracker, and the validator streams the file record by record from S3.  The first row is the headers, which are checked against the file specification to ensure that all headers in the file are known fields and that no required fields are missing.
 
-Each record is checked against the set of rules for the fields present in the file.  If a record passes all rules, it goes into the staging database.  Otherwise, each failed rule goes into the error report, and a running sum is kept of error occurrences for each rule, which are written to the error database after all rows have been checked.  Finally, the job is marked as finished in the job tracker, the file is marked completed in the error database.
+Each record is checked against the set of rules for the fields present in the file.  With the exception of records that fail a data type check, each record goes into a staging table in the validation database. Data that fails any validation rule is written to the error report, and a running sum is kept of error occurrences for each rule, which are written to the error database after all rows have been checked.  Finally, the job is marked as finished in the job tracker, the file is marked completed in the error database.
 
 ## Available Validations
 The available rule types are as follows:
@@ -71,8 +71,7 @@ The available rule types are as follows:
 
 ### Interfaces
 
-* `ErrorInterface`, `JobTrackerInterface`, `StagingInterface`, `ValidationInterface` - These classes control communication with their respective databases
-* `StagingTable` - Used to create a new table for each job and manage writes to that table
+* `ErrorInterface`, `JobTrackerInterface`, `ValidationInterface` - These classes control communication with their respective databases
 * `InterfaceHolder` - Container that holds one interface for each database as a static variable to ensure that redundant connections are not created
 
 ### Scripts

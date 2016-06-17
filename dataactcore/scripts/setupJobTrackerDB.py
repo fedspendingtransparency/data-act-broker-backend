@@ -28,8 +28,8 @@ def insertCodes():
         jobDb.session.merge(status)
 
     typeList = [(1, 'file_upload', 'file must be uploaded to S3'),
-        (2, 'csv_record_validation', 'do record level validation and add to staging DB'),
-        (3, 'db_transfer', 'information must be moved from production DB to staging DB'),
+        (2, 'csv_record_validation', 'do record level validation and add to staging table'),
+        (3, 'db_transfer', 'information must be moved from production DB to staging table'),
         (4, 'validation', 'new information must be validated'),
         (5, 'external_validation', 'new information must be validated against external sources')]
     for t in typeList:

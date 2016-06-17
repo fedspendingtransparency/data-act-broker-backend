@@ -41,7 +41,7 @@ class Validator(object):
         Args:
             submissionId - ID of submission being validated (int)
             fileType - fileType of source record(s) being validated (string)
-            stagingDb - staging db interface
+            stagingDb - staging db interface (staging tables are in the validation db)
             record - set to none if we want all table records for submission
 
         Returns:
@@ -102,7 +102,7 @@ class Validator(object):
                     # Fields don't match target file, add to failures
                     rulePassed = False
                     dictString = str(matchDict)[1:-1] # Remove braces
-                    rowNumber = thisRecord["row"]
+                    rowNumber = thisRecord["row_number"]
                     failures.append([fileType,", ".join(fieldsToCheck),
                                      rule.description, dictString, rowNumber])
 
@@ -157,7 +157,7 @@ class Validator(object):
                 return False, [[fieldName, ValidationError.requiredError, ""]]
 
         for fieldName in record :
-            if fieldName == "row":
+            if fieldName == "row_number":
                 # Skip row number, nothing to validate on that
                 continue
             checkRequiredOnly = False
@@ -451,7 +451,7 @@ class Validator(object):
             if "skip_if_blank" in fieldMap[field]:
                 noBlankSkipFields = False
                 # If all these are blank, rule passes
-                if record[field] is not None and record[field].strip != "":
+                if record[field] is not None and record[field].strip() != "":
                     blankSkip = False
             if "skip_if_below" in fieldMap[field]:
                 try:
@@ -841,12 +841,12 @@ class Validator(object):
             failures = interfaces.validationDb.connection.execute(rule.rule_sql.format(submissionId))
             # Build error list
             for failure in failures:
-                row = failure["row"]
+                row = failure["row_number"]
                 errorMsg = rule.rule_error_msg
                 values = ""
                 fieldNames = ""
                 for field in failure:
-                    if field == "row":
+                    if field == "row_number":
                         # Row handled separately, skip
                         continue
                     values = ", ".join([values, "{}: {}".format(field,failure[field])])

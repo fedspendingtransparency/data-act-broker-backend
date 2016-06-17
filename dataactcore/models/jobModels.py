@@ -48,7 +48,6 @@ class Job(Base):
     submission = relationship("Submission", uselist=False, cascade="delete")
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"), nullable=True)
     file_type = relationship("FileType", uselist=False)
-    staging_table = Column(Text, nullable=True)
     original_filename = Column(Text, nullable=True)
     file_size = Column(Integer)
     number_of_rows = Column(Integer)
