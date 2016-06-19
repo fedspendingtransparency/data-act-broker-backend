@@ -172,6 +172,9 @@ class SchemaLoader(object):
         # Load cross file validation rules
         filePath = os.path.join(path,"crossFileRules.csv")
         cls.loadCrossRules(filePath)
+        # Load SQL validation rules
+        filePath = os.path.join(path, "sqlRules.csv")
+        cls.loadSqlRules(filePath)
 
 if __name__ == '__main__':
     SchemaLoader.loadAllFromPath("../config/")
