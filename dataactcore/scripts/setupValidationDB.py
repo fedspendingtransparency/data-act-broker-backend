@@ -1,7 +1,6 @@
 from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_DB
-from dataactcore.models import validationModels
-from dataactcore.models.validationModels import FileType, RuleType, FieldType, RuleTiming
+from dataactcore.models.validationModels import FileType, RuleType, FieldType, RuleTiming, RuleSeverity
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 
 def setupValidationDB():
@@ -76,6 +75,15 @@ def insertCodes():
     for f in fieldTypeList:
         fieldType = FieldType(field_type_id=f[0], name=f[1], description=f[2])
         validatorDb.session.merge(fieldType)
+
+    # insert rule severity
+    severityList = [
+        (1, 'warning', 'warning'),
+        (2, 'fatal', 'fatal error')
+    ]
+    for s in severityList:
+        ruleSeverity = RuleSeverity(rule_severity_id=s[0], name=s[1], description=s[2])
+        validatorDb.session.merge(ruleSeverity)
 
     validatorDb.session.commit()
     validatorDb.session.close()
