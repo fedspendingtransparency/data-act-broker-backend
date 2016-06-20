@@ -854,11 +854,12 @@ class Validator(object):
                 errors.append([fieldNames,errorMsg,values,row])
             # Pull where clause out of rule
             wherePosition = rule.rule_sql.lower().find("where")
-            whereClause = rule.rule_sql[wherePosition:]
+            whereClause = rule.rule_sql[wherePosition:].format(submissionId)
             # Find table to apply this to
             model = interfaces.stagingDb.getModel(fileType)
             tableName = model.__tablename__
+            print("Updating table: " + str(tableName))
             # Update valid_record to false for all that fail this rule
-            updateQuery = "UPDATE {} SET valid_record = false {}".format(tableName,whereClause)
+            updateQuery = "UPDATE {} as af SET valid_record = false {}".format(tableName,whereClause)
             interfaces.stagingDb.connection.execute(updateQuery)
         return errors

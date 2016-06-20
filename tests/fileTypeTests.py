@@ -78,15 +78,8 @@ class FileTypeTests(BaseTestValidator):
     @staticmethod
     def load_definitions(interfaces, force_tas_load):
         """Load file definitions."""
-        # TODO: introduce flexibility re: test file location
-        SchemaLoader.loadFields("appropriations",join(CONFIG_BROKER["path"],"dataactvalidator","config","appropFields.csv"))
-        SchemaLoader.loadFields("program_activity",join(CONFIG_BROKER["path"],"dataactvalidator","config","programActivityFields.csv"))
-        SchemaLoader.loadFields("award_financial",join(CONFIG_BROKER["path"],"dataactvalidator","config","awardFinancialFields.csv"))
-        SchemaLoader.loadFields("award",join(CONFIG_BROKER["path"],"dataactvalidator","config","awardFields.csv"))
-        SchemaLoader.loadRules("appropriations",join(CONFIG_BROKER["path"],"dataactvalidator","config","appropRules.csv"))
-        SchemaLoader.loadRules("program_activity",join(CONFIG_BROKER["path"],"dataactvalidator","config","programActivityRules.csv"))
-        SchemaLoader.loadRules("award_financial",join(CONFIG_BROKER["path"],"dataactvalidator","config","awardFinancialRules.csv"))
-        SchemaLoader.loadCrossRules(join(CONFIG_BROKER["path"],"dataactvalidator","config","crossFileRules.csv"))
+        SchemaLoader.loadAllFromPath(join(CONFIG_BROKER["path"],"dataactvalidator","config"))
+
         # Load domain values tables
         loadDomainValues(join(CONFIG_BROKER["path"],"dataactvalidator","config"),join(CONFIG_BROKER["path"],"tests","sf_133.csv"))
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
