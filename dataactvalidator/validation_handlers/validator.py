@@ -832,6 +832,22 @@ class Validator(object):
 
     @staticmethod
     def validateFileBySql(submissionId,fileType,interfaces):
+        """ Check all SQL rules
+
+        Args:
+            submissionId: submission to be checked
+            fileType: file type being checked
+            interfaces: database interface objects
+
+        Returns:
+            List of errors found, each element has:
+             field names
+             error message
+             values in fields involved
+             row number
+        """
+        # Skip Sql validation
+        return []
         # Pull all SQL rules for this file type
         fileId = interfaces.validationDb.getFileId(fileType)
         rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(RuleSql.rule_cross_file_flag == False).all()
