@@ -248,7 +248,7 @@ class ValidatorValidationInterface(BaseInterface):
         rules = query.all()
         return rules
 
-    def addRule(self, columnId, ruleTypeText, ruleTextOne, ruleTextTwo, description, rule_timing = 1, rule_label = None, targetFileId = None, fileId = None):
+    def addRule(self, columnId, ruleTypeText, ruleTextOne, ruleTextTwo, description, rule_timing = 1, rule_label = None, targetFileId = None, fileId = None, originalLabel = None):
         """
 
         Args:
@@ -263,7 +263,7 @@ class ValidatorValidationInterface(BaseInterface):
             # Use default value if timing is unspecified
             rule_timing = 1
         newRule = Rule(file_column_id = columnId, rule_type_id = self.getRuleType(ruleTypeText), rule_text_1 = ruleTextOne, rule_text_2 = ruleTextTwo,
-                       description = description, rule_timing_id = rule_timing, rule_label = rule_label, target_file_id = targetFileId, file_id = fileId)
+                       description = description, rule_timing_id = rule_timing, rule_label = rule_label, target_file_id = targetFileId, file_id = fileId, original_label = originalLabel)
         self.session.add(newRule)
         self.session.commit()
         return True

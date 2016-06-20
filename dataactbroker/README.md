@@ -597,14 +597,16 @@ Example output:
     "error_name": "type_error",
     "error_description": "The value provided was of the wrong type",
     "occurrences": 27,
-    "rule_failed": ""
+    "rule_failed": "",
+    "original_label":""
     },
     {
     "field_name": "availabilitytypecode",
     "error_name": "rule_failed",
     "error_description": "",
     "occurrences": 27,
-    "rule_failed": "Failed rule: Indicator must be X, F, A, or blank"
+    "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
+    "original_label":"A21"
     }
     ]
     },
@@ -616,14 +618,16 @@ Example output:
           "error_name": "rule_failed",
           "field_name": "award_financial",
           "occurrences": "11",
-          "rule_failed": "fain, uri"
+          "rule_failed": "fain, uri",
+          "original_label":""
         },
         {
           "error_description": "A rule failed for this value",
           "error_name": "rule_failed",
           "field_name": "award",
           "occurrences": "10",
-          "rule_failed": "fain, uri"
+          "rule_failed": "fain, uri",
+          "original_label":""
         }
       ],
       "missing_headers": [],

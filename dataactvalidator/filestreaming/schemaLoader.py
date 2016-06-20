@@ -84,7 +84,7 @@ class SchemaLoader(object):
                         str(record["rule_type"]), str(record["rule_text_one"]),
                         str(record["rule_text_two"]), str(record["description"]),
                         ruleTimingId, str(record["rule_label"]),
-                        targetFileId=targetFileId, fileId=fileId)
+                        targetFileId=targetFileId, fileId=fileId, originalLabel=record["original_label"])
                 except Exception as e:
                     raise Exception('{}: rule insert failed (file={}, rule={}'.format(
                         e, fileTypeName, record["description"]))
@@ -114,7 +114,7 @@ class SchemaLoader(object):
                     validationDb.addRule(
                         None, record["rule_type"], record["rule_text_one"],
                         record["rule_text_two"], record["description"], ruleTimingId,
-                        record["rule_label"], targetFileId, fileId = fileId)
+                        record["rule_label"], targetFileId, fileId = fileId, originalLabel=record["original_label"])
                 except Exception as e:
                     raise Exception('{}: cross-file rule insert failed (rule={}'.format(
                         e, record["description"]))
