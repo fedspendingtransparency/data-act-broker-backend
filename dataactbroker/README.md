@@ -618,7 +618,7 @@ Example output:
           "error_name": "rule_failed",
           "field_name": "award_financial",
           "occurrences": "11",
-          "rule_failed": "fain, uri",
+          "rule_failed": "Must have either a piid, fain, or uri",
           "original_label":""
         },
         {
@@ -626,7 +626,7 @@ Example output:
           "error_name": "rule_failed",
           "field_name": "award",
           "occurrences": "10",
-          "rule_failed": "fain, uri",
+          "rule_failed": "Must have either a piid, fain, or uri",
           "original_label":""
         }
       ],
