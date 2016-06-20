@@ -252,11 +252,15 @@ class JobTrackerInterface(BaseInterface):
         jobIds = self.getJobsBySubmission(submissionId)
         status_names = self.getJobStatusNames()
         statuses = dict(zip(status_names,[0]*len(status_names)))
+        skip_count = 0
 
         for jobId in jobIds:
             job = self.getJobById(jobId)
-            job_status = job.job_status.name
-            statuses[job_status] += 1
+            if job.job_type.name != "external_validation":
+                job_status = job.job_status.name
+                statuses[job_status] += 1
+            else:
+                skip_count += 1
 
         if statuses["failed"] != 0:
             return "failed"
@@ -268,6 +272,6 @@ class JobTrackerInterface(BaseInterface):
             return "waiting"
         if statuses["ready"] != 0:
             return "ready"
-        if statuses["finished"] == len(jobIds):
+        if statuses["finished"] == len(jobIds)-skip_count: # need to account for the jobs that were skipped above
             return "finished"
         return "unknown"
