@@ -1,6 +1,6 @@
 rule_type,is_single_field,field_name,rule_text_one,rule_text_two,description,rule_label,rule_timing,original_label
 car_match,FALSE,,"allocationtransferagencyidentifier, agencyidentifier, beginningperiodofavailability, endingperiodofavailability, availabilitytypecode, mainaccountcode, subaccountcode","allocation_transfer_agency, agency_identifier, beginning_period_of_availability, ending_period_of_availability, availability_type_code, main_account_code, sub_account_code",TAS fields must match CARS file,A1_C,multi_field,A1
-REQUIRE_ONE_OF_SET,FALSE,,"piid, fain, uri",,"Must have either a piid, fain, or uri",NONE,multi_field,
+REQUIRE_ONE_OF_SET,FALSE,,"piid, fain, uri",,"Must have either a piid, fain, or uri",C14,multi_field,
 SUM_FIELDS,FALSE,,ObligationsUndeliveredOrdersUnpaidTotal_FYB,USSGL480100_UndeliveredOrdersObligationsUnpaid_FYB,ObligationsUndeliveredOrdersUnpaidTotal (FYB) = USSGL(4801 + 4831 + 4871 + 4881). This applies to the award level.,C3,multi_field,C3
 SUM_FIELDS,FALSE,,ObligationsDeliveredOrdersUnpaidTotal_FYB,USSGL490100_DeliveredOrdersObligationsUnpaid_FYB,ObligationsDeliveredOrdersUnpaidTotal (FYB) = USSGL(4901 + 4931 + 4971 + 4981). This applies to the award level.,C4,multi_field,C4
 SUM_FIELDS,FALSE,,GrossOutlayAmountByAward_FYB,"GrossOutlaysUndeliveredOrdersPrepaidTotal_FYB, GrossOutlaysDeliveredOrdersPaidTotal_FYB",GrossOutlayAmountByAward (FYB) = GrossOutlaysUndeliveredOrdersPrepaidTotal (FYB) + GrossOutlaysDeliveredOrdersPaidTotal (FYB),C5,multi_field,C5
