@@ -15,6 +15,7 @@ class Validator(object):
     Checks individual records against specified validation tests
     """
     BOOLEAN_VALUES = ["TRUE","FALSE","YES","NO","1","0"]
+    tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op"}
 
     @classmethod
     def crossValidate(cls,rules, submissionId):
@@ -830,8 +831,8 @@ class Validator(object):
             # Multiple instances of same TAS, something is going wrong
             raise ResponseException("TAS check is malfunctioning",StatusCode.INTERNAL_ERROR)
 
-    @staticmethod
-    def validateFileBySql(submissionId,fileType,interfaces):
+    @classmethod
+    def validateFileBySql(cls,submissionId,fileType,interfaces):
         # Pull all SQL rules for this file type
         fileId = interfaces.validationDb.getFileId(fileType)
         rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(RuleSql.rule_cross_file_flag == False).all()
@@ -842,15 +843,22 @@ class Validator(object):
             # Build error list
             for failure in failures:
                 row = failure["row_number"]
-                errorMsg = rule.rule_error_msg
-                values = ""
-                fieldNames = ""
-                for field in failure:
+                errorMsg = rule.rule_error_message
+                values = None
+                fieldNames = None
+                # failure is a RowProxy, which does not quite act the same as a dict
+                for field in failure.keys():
                     if field == "row_number":
                         # Row handled separately, skip
                         continue
-                    values = ", ".join([values, "{}: {}".format(field,failure[field])])
-                    fieldNames = ", ".join([fieldNames,field])
+                    if values is None:
+                        values = "{}: {}".format(field,failure[field])
+                    else:
+                        values = ", ".join([values, "{}: {}".format(field,failure[field])])
+                    if fieldNames is None:
+                        fieldNames = field
+                    else:
+                        fieldNames = ", ".join([fieldNames,field])
                 errors.append([fieldNames,errorMsg,values,row])
             # Pull where clause out of rule
             wherePosition = rule.rule_sql.lower().find("where")
@@ -858,8 +866,8 @@ class Validator(object):
             # Find table to apply this to
             model = interfaces.stagingDb.getModel(fileType)
             tableName = model.__tablename__
-            print("Updating table: " + str(tableName))
+            tableAbbrev = cls.tableAbbreviations[tableName]
             # Update valid_record to false for all that fail this rule
-            updateQuery = "UPDATE {} as af SET valid_record = false {}".format(tableName,whereClause)
+            updateQuery = "UPDATE {} as {} SET valid_record = false {}".format(tableName,tableAbbrev,whereClause)
             interfaces.stagingDb.connection.execute(updateQuery)
         return errors
