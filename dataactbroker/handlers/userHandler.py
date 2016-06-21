@@ -384,7 +384,8 @@ class UserHandler(UserInterface):
         # Generate hash with bcrypt and store it
         newSalt =  uuid.uuid4().hex
         user.salt = newSalt
-        user.password_hash = bcrypt.generate_password_hash(password+newSalt,UserHandler.HASH_ROUNDS)
+        hash = bcrypt.generate_password_hash(password+newSalt,UserHandler.HASH_ROUNDS)
+        user.password_hash = hash.decode("utf-8")
         self.session.commit()
         return True
 

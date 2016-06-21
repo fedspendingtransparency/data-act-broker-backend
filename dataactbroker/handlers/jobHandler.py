@@ -105,7 +105,7 @@ class JobHandler(JobTrackerInterface):
             raise ResponseException("Not a valid month to be in quarter format", StatusCode.INTERNAL_ERROR, ValueError)
         quartersFromStart = monthsIntoFiscalYear / 3
         quarter = quartersFromStart + 1
-        return "".join(["Q",str(quarter)])
+        return "".join(["Q",str(int(quarter))])
 
     @staticmethod
     def quarterToMonth(quarter, isStart):

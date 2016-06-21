@@ -274,7 +274,7 @@ class Validator(object):
                 return False
         if(datatype == "LONG"):
             try:
-                long(data)
+                int(data)
                 return True
             except:
                 return False
@@ -306,7 +306,7 @@ class Validator(object):
         if(datatype == "STRING" or datatype =="BOOLEAN") :
             return data
         if(datatype == "LONG"):
-            return long(data)
+            return int(data)
         raise ValueError("Data Type Invalid")
 
     @classmethod

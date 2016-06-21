@@ -173,6 +173,7 @@ class BaseTestAPI(unittest.TestCase):
         cls.jobTracker = cls.interfaces.jobDb
         cls.errorDatabase = cls.interfaces.errorDb
         cls.userDb = cls.interfaces.userDb
+        cls.validationDb = cls.interfaces.validationDb
         cls.local = CONFIG_BROKER['local']
 
     def setUp(self):
@@ -188,6 +189,7 @@ class BaseTestAPI(unittest.TestCase):
         dropDatabase(cls.interfaces.userDb.dbName)
         dropDatabase(cls.interfaces.jobDb.dbName)
         dropDatabase(cls.interfaces.errorDb.dbName)
+        dropDatabase(cls.interfaces.validationDb.dbName)
 
     def tearDown(self):
         """Tear down broker unit tests."""

@@ -35,10 +35,10 @@ class CsvAbstractWriter(object):
         for data in dataList:
             if data is None:
                 data = ""
-            byteList.append(str(data).encode("UTF-8"))
+            byteList.append(str(data).encode("utf-8"))
         self.rows.append(byteList)
         if(len(self.rows) > self.BATCH_SIZE):
-            ioStream = io.BytesIO()
+            ioStream = io.StringIO()
             csvFormatter = csv.writer(ioStream)
             csvFormatter.writerows(self.rows)
             self._write(ioStream.getvalue())
@@ -46,7 +46,7 @@ class CsvAbstractWriter(object):
 
     def finishBatch(self):
         """ Write the last unfinished batch """
-        ioStream = io.BytesIO()
+        ioStream = io.StringIO()
         csvFormatter = csv.writer(ioStream)
         csvFormatter.writerows(self.rows)
         self._write(ioStream.getvalue())

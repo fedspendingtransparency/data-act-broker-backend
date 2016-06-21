@@ -130,11 +130,11 @@ class ValidatorTests(BaseTestValidator):
 
     def test_type_conversion(self):
         """Test data type conversions."""
-        self.assertIsInstance(Validator.getType("1234.0", "STRING"), basestring)
+        self.assertIsInstance(Validator.getType("1234.0", "STRING"), str)
         self.assertIsInstance(Validator.getType("10", "INT"), int)
-        self.assertIsInstance(Validator.getType("YES", "BOOLEAN"), basestring)
+        self.assertIsInstance(Validator.getType("YES", "BOOLEAN"), str)
         self.assertIsInstance(Validator.getType("1234.2", "DECIMAL"), Decimal)
-        self.assertIsInstance(Validator.getType("400000000001", "LONG"), long)
+        self.assertIsInstance(Validator.getType("400000000001", "LONG"), int)
 
     def test_schema_optional_field(self):
         """Test optional fields."""

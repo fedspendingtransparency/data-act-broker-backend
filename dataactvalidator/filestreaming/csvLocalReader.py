@@ -47,7 +47,7 @@ class CsvLocalReader(CsvAbstractReader):
         """
         Gets the next packet from the file returns true if successful
         """
-        packet  = self.file.read(CsvAbstractReader.BUFFER_SIZE).decode('utf-8')
+        packet  = self.file.read(CsvAbstractReader.BUFFER_SIZE)
         success = True
         if(packet == ""):
             success = False
