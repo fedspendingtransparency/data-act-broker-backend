@@ -8,6 +8,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.config import CONFIG_BROKER
 from dataactbroker.handlers.aws.session import LoginSession
 
@@ -197,8 +198,10 @@ class FileHandler:
         user = self.interfaces.userDb.getUserByUID(userId)
         # Check that user has permission to see this submission, user must be within the agency of the submission, or be
         # the original user, or be in the 'SYS' agency
-        if(submission.cgac_code.lower().strip() != user.cgac_code.lower().strip() and submission.user_id != user.user_id
-           and user.cgac_code.lower().strip() != "sys"):
+        submissionCgac = StringCleaner.cleanString(submission.cgac_code)
+        userCgac = StringCleaner.cleanString(user.cgac_code)
+        if(submissionCgac != userCgac and submission.user_id != user.user_id
+           and userCgac != "sys"):
             raise ResponseException("User does not have permission to view that submission",
                 StatusCode.CLIENT_ERROR)
         return user
