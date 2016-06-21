@@ -197,8 +197,8 @@ class FileHandler:
         user = self.interfaces.userDb.getUserByUID(userId)
         # Check that user has permission to see this submission, user must be within the agency of the submission, or be
         # the original user, or be in the 'SYS' agency
-        if(submission.cgac_code != user.cgac_code and submission.user_id != user.user_id
-           and user.cgac_code != "SYS"):
+        if(submission.cgac_code.lower().strip() != user.cgac_code.lower().strip() and submission.user_id != user.user_id
+           and user.cgac_code.lower().strip() != "sys"):
             raise ResponseException("User does not have permission to view that submission",
                 StatusCode.CLIENT_ERROR)
         return user
