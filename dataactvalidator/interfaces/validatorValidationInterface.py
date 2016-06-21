@@ -321,6 +321,10 @@ class ValidatorValidationInterface(BaseInterface):
         timingId = self.getRuleTimingIdByName(timing)
         return self.session.query(Rule).filter(Rule.rule_timing_id == timingId).all()
 
+    def getColumnById(self, file_column_id):
+        """ Get File Column object from ID """
+        return self.session.query(FileColumn).filter(FileColumn.file_column_id == file_column_id).first()
+
     def getColumnId(self, fieldName, fileType):
         """ Find file column given field name and file type
 
