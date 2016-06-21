@@ -17,6 +17,7 @@ from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
+from dataactcore.models.validationModels import RuleSql
 
 
 class ValidationManager:
@@ -312,6 +313,9 @@ class ValidationManager:
         # Validate cross validation rules
         submissionId = interfaces.jobDb.getSubmissionId(jobId)
         failures = Validator.crossValidate(rules,submissionId)
+        # Run the sql-based cross file validations
+        rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.rule_cross_file_flag == True).all()
+        failures.extend(Validator.crossValidateSql(rules, submissionId))
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
         errorFileName = self.getFileName(interfaces.jobDb.getCrossFileReportPath(submissionId))
@@ -321,6 +325,7 @@ class ValidationManager:
                             self.crossFileReportHeaders) as writer:
             for failure in failures:
                 writer.write(failure)
+                print("failure: " + str(failure) + " length: " + str(len(failure)))
                 errorDb.recordRowError(jobId, "cross_file",
                     failure[0], failure[2], failure[4], failure[5])
             writer.finishBatch()

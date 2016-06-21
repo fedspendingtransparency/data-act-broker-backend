@@ -33,6 +33,36 @@ class Validator(object):
         # Return list of cross file validation failures
         return failures
 
+    @classmethod
+    def crossValidateSql(cls, rules, submissionId):
+        """ Evaluate all sql-based rules for cross file validation
+
+        Args:
+            rules -- List of Rule objects
+            submissionId -- ID of submission to run cross-file validation
+        """
+        failures = []
+        # Put each rule through evaluate, appending all failures into list
+        interfaces = InterfaceHolder()
+        for rule in rules:
+            failedRows = interfaces.validationDb.connection.execute(
+                rule.rule_sql.format(submissionId))
+            if failedRows.rowcount:
+                # get list of fields involved in this validation
+                # note: row_number is metadata, not a field being
+                # validated, so exclude it
+                cols = failedRows.keys()
+                cols.remove('row_number')
+                columnString = ", ".join(str(c) for c in cols)
+                for row in failedRows:
+                    # get list of values for each column
+                    values = ["{}: {}".format(c, str(row[c])) for c in cols]
+                    values = ", ".join(values)
+                    failures.append([rule.file.name, columnString,
+                        str(rule.rule_description), values, row['row_number'],str(rule.original_label)])
+
+        # Return list of cross file validation failures
+        return failures
 
     @staticmethod
     def getRecordsIfNone(submissionId, fileType, stagingDb, record=None):
@@ -831,7 +861,7 @@ class Validator(object):
             raise ResponseException("TAS check is malfunctioning",StatusCode.INTERNAL_ERROR)
 
     @staticmethod
-    def validateFileBySql(submissionId,fileType,interfaces):
+    def validateFileBySql(submissionId, fileType, interfaces):
         """ Check all SQL rules
 
         Args:
@@ -850,7 +880,8 @@ class Validator(object):
         return []
         # Pull all SQL rules for this file type
         fileId = interfaces.validationDb.getFileId(fileType)
-        rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(RuleSql.rule_cross_file_flag == False).all()
+        rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
+            RuleSql.rule_cross_file_flag == False).all()
         errors = []
         # For each rule, execute sql for rule
         for rule in rules:
@@ -865,7 +896,7 @@ class Validator(object):
                     if field == "row_number":
                         # Row handled separately, skip
                         continue
-                    values = ", ".join([values, "{}: {}".format(field,failure[field])])
-                    fieldNames = ", ".join([fieldNames,field])
-                errors.append([fieldNames,errorMsg,values,row])
+                    values = ", ".join([values, "{}: {}".format(field, failure[field])])
+                    fieldNames = ", ".join([fieldNames, field])
+                errors.append([fieldNames, errorMsg, values, row])
         return errors
