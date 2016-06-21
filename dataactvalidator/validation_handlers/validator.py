@@ -856,24 +856,20 @@ class Validator(object):
             failures = interfaces.stagingDb.connection.execute(rule.rule_sql.format(submissionId))
             # Build error list
             for failure in failures:
-                row = failure["row_number"]
                 errorMsg = rule.rule_error_message
-                values = None
-                fieldNames = None
-                # failure is a RowProxy, which does not quite act the same as a dict
-                for field in failure.keys():
-                    if field == "row_number":
-                        # Row handled separately, skip
-                        continue
-                    if values is None:
-                        values = "{}: {}".format(field,failure[field])
-                    else:
-                        values = ", ".join([values, "{}: {}".format(field,failure[field])])
-                    if fieldNames is None:
-                        fieldNames = field
-                    else:
-                        fieldNames = ", ".join([fieldNames,field])
-                errors.append([fieldNames,errorMsg,values,row])
+                # If row_number is present, remove it
+                cols = failure.keys()
+                if "row_number" in cols:
+                    row = failure ["row_number"]
+                    cols.remove("row_number")
+                else:
+                    row = None
+                # Create strings for fields and values
+                valueList = ["{}: {}".format(str(field),str(failure[field])) for field in cols]
+                valueString = ", ".join(valueList)
+                fieldList = [str(field) for field in cols]
+                fieldString = ", ".join(fieldList)
+                errors.append([fieldString,errorMsg,valueString,row])
             # Pull where clause out of rule
             wherePosition = rule.rule_sql.lower().find("where")
             whereClause = rule.rule_sql[wherePosition:].format(submissionId)
