@@ -33,6 +33,36 @@ class Validator(object):
         # Return list of cross file validation failures
         return failures
 
+    @classmethod
+    def crossValidateSql(cls, rules, submissionId):
+        """ Evaluate all sql-based rules for cross file validation
+
+        Args:
+            rules -- List of Rule objects
+            submissionId -- ID of submission to run cross-file validation
+        """
+        failures = []
+        # Put each rule through evaluate, appending all failures into list
+        interfaces = InterfaceHolder()
+        for rule in rules:
+            failedRows = interfaces.validationDb.connection.execute(
+                rule.rule_sql.format(submissionId))
+            if failedRows.rowcount:
+                # get list if fields involved in this validation
+                # note: row_number is metaata, not a field being
+                # validated, so exclude it
+                cols = failedRows.keys()
+                cols.remove('row_number')
+                columnString = ", ".join(str(c) for c in cols)
+                for row in failedRows:
+                    # get list of values for each column
+                    values = ["{}: {}".format(c, str(row[c])) for c in cols]
+                    values = ", ".join(values)
+                    failures.append([rule.file.name, columnString,
+                        str(rule.rule_description), values, row['row_number']])
+
+        # Return list of cross file validation failures
+        return failures
 
     @staticmethod
     def getRecordsIfNone(submissionId, fileType, stagingDb, record=None):
