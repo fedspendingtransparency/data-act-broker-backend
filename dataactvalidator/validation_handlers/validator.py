@@ -48,8 +48,8 @@ class Validator(object):
             failedRows = interfaces.validationDb.connection.execute(
                 rule.rule_sql.format(submissionId))
             if failedRows.rowcount:
-                # get list if fields involved in this validation
-                # note: row_number is metaata, not a field being
+                # get list of fields involved in this validation
+                # note: row_number is metadata, not a field being
                 # validated, so exclude it
                 cols = failedRows.keys()
                 cols.remove('row_number')
