@@ -41,7 +41,7 @@ class SchemaLoader(object):
                         length = record["field_length"].strip()
                         if(len(length) > 0):
                             # If there are non-whitespace characters here, create a length rule
-                            database.addRule(columnId,"LENGTH",length,"","Field must be no longer than specified limit")
+                            database.addRule(columnId,"LENGTH",length,"","Field must be no longer than specified limit",originalLabel="")
                 else :
                    raise ValueError('CSV File does not follow schema')
 
