@@ -118,7 +118,7 @@ class FieldCleaner:
         except:
             # length cannot be cast as int
             raise ValueError("Length must be an integer")
-        if(length <= 0):
+        if int(length) <= 0:
             raise ValueError("Length must be positive")
         return length
 
