@@ -695,9 +695,9 @@ class Validator(object):
                 stringList[i] = stringList[i].lower()
         return stringList
 
-    @staticmethod
-    def getMultiValues(rule,record,interfaces):
-        """ Create string out of values for all fields involved in this rule
+    @classmethod
+    def getValueList(cls,rule,record,interfaces):
+        """ Create list out of values for all fields involved in this rule
 
         Args:
             rule: Rule to return fields for
@@ -709,19 +709,45 @@ class Validator(object):
         ruletext1 = Validator.cleanSplit(rule.rule_text_1, True)
         ruletext2 = Validator.cleanSplit(rule.rule_text_2, True)
         ruleType = interfaces.validationDb.getRuleTypeById(rule.rule_type_id)
-        if ruleType == "CAR_MATCH" or ruleType == "REQUIRE_ONE_OF_SET":
+        if ruleType == "CAR_MATCH" or ruleType == "REQUIRE_ONE_OF_SET" or ruleType == "CHECK_PREFIX":
             fields = ruletext1
-        elif ruleType == "REQUIRED_CONDITIONAL":
-            fields = [rule.file_column.name]
-        elif ruleType == "NOT":
+        elif ruleType == "NOT" or ruleType == "MIN_LENGTH" or ruleType == "REQUIRED_CONDITIONAL":
             fields = []
         elif ruleType == "SUM_TO_VALUE":
             fields = ruletext2
         elif ruleType == "SET_EXISTS_IN_TABLE":
             fields = json.loads(rule.rule_text_2).keys()
+        elif ruleType == "RULE_IF":
+            # Combine fields for both rules
+            ruleOne = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
+            ruleTwo = interfaces.validationDb.getRuleByLabel(rule.rule_text_2)
+            fields = cls.getValueList(ruleOne,record,interfaces) + cls.getValueList(ruleTwo,record,interfaces)
         else:
             fields = ruletext1 + ruletext2
+
+        # Add file column if present
+        fileColId = rule.file_column_id
+        if fileColId is not None:
+            fileColumn = interfaces.validationDb.getColumnById(fileColId)
+            fields.append(fileColumn.name)
+
+        return fields
+
+    @classmethod
+    def getMultiValues(cls,rule,record,interfaces):
+        """ Create string out of values for all fields involved in this rule
+
+        Args:
+            rule: Rule to return fields for
+            record: Record to pull values from
+            interfaces: InterfaceHolder for DBs
+        Returns:
+            One string including all values involved in this rule check
+        """
+        fields = cls.getValueList(rule,record,interfaces)
+
         output = ""
+        outputDict = {}
         for field in fields:
             try:
                 value = record[str(field)]
@@ -730,7 +756,9 @@ class Validator(object):
             if(value == None):
                 # For concatenating fields, represent None with an empty string
                 value = ""
-            output = "".join([output,field,": ",value,", "])
+            if field not in outputDict:
+                outputDict[field] = True
+                output = "".join([output,field,": ",value,", "])
 
         return output[:-2]
 
@@ -804,6 +832,22 @@ class Validator(object):
 
     @staticmethod
     def validateFileBySql(submissionId,fileType,interfaces):
+        """ Check all SQL rules
+
+        Args:
+            submissionId: submission to be checked
+            fileType: file type being checked
+            interfaces: database interface objects
+
+        Returns:
+            List of errors found, each element has:
+             field names
+             error message
+             values in fields involved
+             row number
+        """
+        # Skip Sql validation
+        return []
         # Pull all SQL rules for this file type
         fileId = interfaces.validationDb.getFileId(fileType)
         rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(RuleSql.rule_cross_file_flag == False).all()
