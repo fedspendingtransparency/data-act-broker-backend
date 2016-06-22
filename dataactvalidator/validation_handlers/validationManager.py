@@ -269,7 +269,7 @@ class ValidationManager:
                             except ValueError:
                                 # If not, treat it literally
                                 errorMsg = error
-                            writer.write([fieldName,errorMsg,str(rowNumber),failedValue])
+                            writer.write([fieldName,str(errorMsg),str(rowNumber),failedValue])
                             errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber)
                 # Do SQL validations for this file
                 sqlFailures = Validator.validateFileBySql(interfaces.jobDb.getSubmissionId(jobId),fileType,interfaces)
