@@ -885,22 +885,20 @@ class Validator(object):
         # For each rule, execute sql for rule
         for rule in rules:
             failures = interfaces.stagingDb.connection.execute(rule.rule_sql.format(submissionId))
-            # Build error list
-            for failure in failures:
-                errorMsg = rule.rule_error_message
-                # If row_number is present, remove it
-                cols = failure.keys()
-                if "row_number" in cols:
+            if failures.rowcount:
+                # Create column list (exclude row_number)
+                cols = failures.keys()
+                cols.remove("row_number")
+                # Build error list
+                for failure in failures:
+                    errorMsg = rule.rule_error_message
                     row = failure ["row_number"]
-                    cols.remove("row_number")
-                else:
-                    row = None
-                # Create strings for fields and values
-                valueList = ["{}: {}".format(str(field),str(failure[field])) for field in cols]
-                valueString = ", ".join(valueList)
-                fieldList = [str(field) for field in cols]
-                fieldString = ", ".join(fieldList)
-                errors.append([fieldString,errorMsg,valueString,row])
+                    # Create strings for fields and values
+                    valueList = ["{}: {}".format(str(field),str(failure[field])) for field in cols]
+                    valueString = ", ".join(valueList)
+                    fieldList = [str(field) for field in cols]
+                    fieldString = ", ".join(fieldList)
+                    errors.append([fieldString,errorMsg,valueString,row])
             # Pull where clause out of rule
             wherePosition = rule.rule_sql.lower().find("where")
             whereClause = rule.rule_sql[wherePosition:].format(submissionId)
