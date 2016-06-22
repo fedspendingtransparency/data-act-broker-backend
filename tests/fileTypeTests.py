@@ -78,7 +78,6 @@ class FileTypeTests(BaseTestValidator):
     @staticmethod
     def load_definitions(interfaces, force_tas_load):
         """Load file definitions."""
-        # TODO: introduce flexibility re: test file location
         SchemaLoader.loadAllFromPath(join(CONFIG_BROKER["path"],"dataactvalidator","config"))
         # Load domain values tables
         loadDomainValues(join(CONFIG_BROKER["path"],"dataactvalidator","config"),join(CONFIG_BROKER["path"],"tests","sf_133.csv"))
@@ -121,7 +120,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 17423, 6, "complete", 87, True)
+            jobId, 200, "finished", 17689, 6, "complete", 90, True)
 
     def test_award_valid(self):
         """Test valid job."""
