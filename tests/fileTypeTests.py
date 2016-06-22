@@ -121,7 +121,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 17689, 6, "complete", 90, True)
+            jobId, 200, "finished", 17385, 5, "complete", 88, True)
 
     def test_award_valid(self):
         """Test valid job."""
@@ -154,9 +154,6 @@ class FileTypeTests(BaseTestValidator):
         self.assertEqual(pgmActResponse.status_code, 200, msg=str(pgmActResponse.json))
         crossFileResponse = self.validateJob(crossId, self.useThreads)
         self.assertEqual(crossFileResponse.status_code, 200, msg=str(crossFileResponse.json))
-
-        # TODO: once SUM_BY_TAS rule is implemented, check for specific types
-        # of cross-file validation error. Do we need to split into more discrete tests?
 
         # Check number of cross file validation errors in DB for this job
         self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId), 5)
