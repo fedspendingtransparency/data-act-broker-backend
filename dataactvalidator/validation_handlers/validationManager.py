@@ -325,7 +325,6 @@ class ValidationManager:
                             self.crossFileReportHeaders) as writer:
             for failure in failures:
                 writer.write(failure)
-                print("failure: " + str(failure) + " length: " + str(len(failure)))
                 errorDb.recordRowError(jobId, "cross_file",
                     failure[0], failure[2], failure[4], failure[5])
             writer.finishBatch()
