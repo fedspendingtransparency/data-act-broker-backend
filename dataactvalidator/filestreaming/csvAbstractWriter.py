@@ -31,12 +31,12 @@ class CsvAbstractWriter(object):
         Adds a row of csv into the S3 stream
 
         """
-        byteList = []
+        strList = []
         for data in dataList:
             if data is None:
                 data = ""
-            byteList.append(str(data).encode("utf-8"))
-        self.rows.append(byteList)
+            strList.append(str(data))
+        self.rows.append(strList)
         if(len(self.rows) > self.BATCH_SIZE):
             ioStream = io.StringIO()
             csvFormatter = csv.writer(ioStream)
