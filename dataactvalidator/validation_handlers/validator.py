@@ -185,7 +185,7 @@ class Validator(object):
         failedRules = []
         for fieldName in csvSchema :
             if(csvSchema[fieldName].required and  not fieldName in record ):
-                return False, [[fieldName, ValidationError.requiredError, ""]]
+                return False, [[fieldName, ValidationError.requiredError, ""]], False
 
         for fieldName in record :
             if fieldName == "row_number":
