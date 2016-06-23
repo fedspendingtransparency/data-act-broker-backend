@@ -101,7 +101,7 @@ class RuleSql(Base):
     file = relationship("FileType", uselist=False)
     rule_severity_id = Column(Integer, ForeignKey("rule_severity.rule_severity_id"), nullable=False)
     rule_severity = relationship("RuleSeverity", uselist=False)
-    original_label = Column(Text)
+    query_name = Column(Text)
 
 
 

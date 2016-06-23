@@ -60,7 +60,7 @@ class Validator(object):
                     values = ["{}: {}".format(c, str(row[c])) for c in cols]
                     values = ", ".join(values)
                     failures.append([rule.file.name, columnString,
-                        str(rule.rule_description), values, row['row_number'],str(rule.original_label)])
+                        str(rule.rule_description), values, row['row_number'],str(rule.rule_label)])
 
         # Return list of cross file validation failures
         return failures
@@ -900,7 +900,7 @@ class Validator(object):
                 valueString = ", ".join(valueList)
                 fieldList = [str(field) for field in cols]
                 fieldString = ", ".join(fieldList)
-                errors.append([fieldString,errorMsg,valueString,row])
+                errors.append([fieldString, errorMsg, valueString,row, rule.rule_label])
             # Pull where clause out of rule
             wherePosition = rule.rule_sql.lower().find("where")
             whereClause = rule.rule_sql[wherePosition:].format(submissionId)

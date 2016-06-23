@@ -80,7 +80,7 @@ class SchemaLoader(object):
                     validationDb.addSqlRule(record["rule_sql"],
                         record["rule_label"], record["rule_description"],
                         record["rule_error_message"], fileId, severity,
-                        cross_file_flag, originalLabel = record["original_label"])
+                        cross_file_flag, queryName = record["query_name"])
                 except Exception as e:
                     raise Exception("{}: sql rule insert failed (file={}, label={}, rule={})".format(
                             e, fileId, record["rule_label"], record["rule_description"]))
