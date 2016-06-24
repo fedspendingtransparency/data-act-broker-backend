@@ -60,7 +60,7 @@ class Validator(object):
                     values = ["{}: {}".format(c, str(row[c])) for c in cols]
                     values = ", ".join(values)
                     failures.append([rule.file.name, columnString,
-                        str(rule.rule_description), values, row['row_number']])
+                        str(rule.rule_description), values, row['row_number'],str(rule.rule_label)])
 
         # Return list of cross file validation failures
         return failures
@@ -135,7 +135,7 @@ class Validator(object):
                     dictString = str(matchDict)[1:-1] # Remove braces
                     rowNumber = thisRecord["row_number"]
                     failures.append([fileType,", ".join(fieldsToCheck),
-                                     rule.description, dictString, rowNumber])
+                                     rule.description, dictString, rowNumber, rule.original_label])
 
         elif ruleType == "rule_if":
             # Get all records from source table
@@ -185,7 +185,7 @@ class Validator(object):
         failedRules = []
         for fieldName in csvSchema :
             if(csvSchema[fieldName].required and  not fieldName in record ):
-                return False, [[fieldName, ValidationError.requiredError, ""]], False
+                return False, [[fieldName, ValidationError.requiredError, "", ""]], False
 
         for fieldName in record :
             if fieldName == "row_number":
@@ -202,7 +202,7 @@ class Validator(object):
                 if(currentSchema.required ):
                     # If empty and required return field name and error
                     recordFailed = True
-                    failedRules.append([fieldName, ValidationError.requiredError, ""])
+                    failedRules.append([fieldName, ValidationError.requiredError, "", ""])
                     continue
                 else:
                     # If field is empty and not required its valid
@@ -212,7 +212,7 @@ class Validator(object):
             if(not checkRequiredOnly and not Validator.checkType(currentData,currentSchema.field_type.name) ) :
                 recordTypeFailure = True
                 recordFailed = True
-                failedRules.append([fieldName, ValidationError.typeError, currentData])
+                failedRules.append([fieldName, ValidationError.typeError, currentData,""])
                 # Don't check value rules if type failed
                 continue
 
@@ -227,7 +227,7 @@ class Validator(object):
                         recordFailed = True
                         recordTypeFailure = True
                         typeFailed = True
-                        failedRules.append([fieldName, ValidationError.typeError, currentData])
+                        failedRules.append([fieldName, ValidationError.typeError, currentData,""])
             if(typeFailed):
                 # If type failed, don't do value checks
                 continue
@@ -238,13 +238,13 @@ class Validator(object):
                     continue
                 if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name,interfaces,record)):
                     recordFailed = True
-                    failedRules.append([fieldName,"".join(["Failed rule: ",str(currentRule.description)]), currentData])
+                    failedRules.append([fieldName,"".join(["Failed rule: ",str(currentRule.description)]), currentData, str(currentRule.original_label)])
         # Check all multi field rules for this file type
         multiFieldRules = interfaces.validationDb.getMultiFieldRulesByFile(fileType)
         for rule in multiFieldRules:
             if not Validator.evaluateRule(record,rule,None,interfaces,record):
                 recordFailed = True
-                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces)])
+                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces), str(rule.original_label)])
         return  (not recordFailed), failedRules, (not recordTypeFailure)
 
     @staticmethod
@@ -847,7 +847,7 @@ class Validator(object):
             field = fieldsToCheck[i].lower()
             # Pad field with leading zeros
             length = interfaces.validationDb.getColumnLength(field, fileType)
-            data = data.zfill(length)
+            data = data.strip().zfill(length)
             query = query.filter(TASLookup.__dict__[tasFields[i]] == str(data))
 
         queryResult = query.all()
@@ -898,7 +898,8 @@ class Validator(object):
                     valueString = ", ".join(valueList)
                     fieldList = [str(field) for field in cols]
                     fieldString = ", ".join(fieldList)
-                    errors.append([fieldString,errorMsg,valueString,row])
+                    errors.append([fieldString,errorMsg,valueString,row, rule.rule_label])
+
             # Pull where clause out of rule
             wherePosition = rule.rule_sql.lower().find("where")
             whereClause = rule.rule_sql[wherePosition:].format(submissionId)

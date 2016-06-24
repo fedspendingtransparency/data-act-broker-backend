@@ -46,3 +46,4 @@ class ErrorMetadata(Base):
     occurrences = Column(Integer)
     first_row = Column(Integer)
     rule_failed = Column(Text, nullable=True)
+    original_rule_label = Column(Text, nullable = True)

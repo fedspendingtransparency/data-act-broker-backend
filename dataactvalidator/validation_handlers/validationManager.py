@@ -24,8 +24,8 @@ class ValidationManager:
     """
     Outer level class, called by flask route
     """
-    reportHeaders = ["Field name", "Error message", "Row number", "Value provided"]
-    crossFileReportHeaders = ["Source File", "Field names", "Error message", "Values provided", "Row number"]
+    reportHeaders = ["Field name", "Error message", "Row number", "Value provided", "Rule label"]
+    crossFileReportHeaders = ["Source File", "Field names", "Error message", "Values provided", "Row number", "Rule label"]
 
     def __init__(self,isLocal =True,directory=""):
         # Initialize instance variables
@@ -263,6 +263,7 @@ class ValidationManager:
                             fieldName = failure[0]
                             error = failure[1]
                             failedValue = failure[2]
+                            originalRuleLabel = failure[3]
                             try:
                                 # If error is an int, it's one of our prestored messages
                                 errorType = int(error)
@@ -270,8 +271,8 @@ class ValidationManager:
                             except ValueError:
                                 # If not, treat it literally
                                 errorMsg = error
-                            writer.write([fieldName,errorMsg,str(rowNumber),failedValue])
-                            errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber)
+                            writer.write([fieldName,errorMsg,str(rowNumber),failedValue,originalRuleLabel])
+                            errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber,originalRuleLabel)
                 # Do SQL validations for this file
                 sqlFailures = Validator.validateFileBySql(interfaces.jobDb.getSubmissionId(jobId),fileType,interfaces)
                 for failure in sqlFailures:
@@ -280,6 +281,7 @@ class ValidationManager:
                     error = failure[1]
                     failedValue = failure[2]
                     row = failure[3]
+                    original_label = failure[4]
                     try:
                         # If error is an int, it's one of our prestored messages
                         errorType = int(error)
@@ -287,9 +289,9 @@ class ValidationManager:
                     except ValueError:
                         # If not, treat it literally
                         errorMsg = error
-                    writer.write([fieldName,errorMsg,str(row),failedValue])
+                    writer.write([fieldName,errorMsg,str(row),failedValue,original_label])
                     errorInterface.recordRowError(jobId,self.filename,fieldName,
-                                                  error,rowNumber)
+                                                  error,rowNumber,original_label)
 
                 # Write unfinished batch
                 writer.finishBatch()
@@ -324,7 +326,7 @@ class ValidationManager:
             for failure in failures:
                 writer.write(failure)
                 errorDb.recordRowError(jobId, "cross_file",
-                    failure[0], failure[1],  None)
+                    failure[0], failure[2], failure[4], failure[5])
             writer.finishBatch()
         errorDb.writeAllRowErrors(jobId)
         interfaces.jobDb.markJobStatus(jobId, "finished")

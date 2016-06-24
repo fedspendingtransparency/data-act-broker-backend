@@ -90,50 +90,49 @@ class FileTypeTests(BaseTestValidator):
         """Test valid job."""
         jobId = self.jobIdDict["valid"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 52, 10, "complete", 0, False)
+            jobId, 200, "finished", 63, 10, "complete", 0, False)
 
     def test_approp_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 6917, 4, "complete", 50, True)
+            jobId, 200, "finished", 7024, 4, "complete", 50, True)
 
     def test_program_valid(self):
         """Test valid job."""
         jobId = self.jobIdDict["programValid"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 52, 10, "complete", 0, False)
+            jobId, 200, "finished", 63, 10, "complete", 0, False)
 
     def test_program_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 21153, 4, "complete", 119, True)
-
+            jobId, 200, "finished", 21372, 4, "complete", 119, True)
 
     def test_award_fin_valid(self):
         """Test valid job."""
         jobId = self.jobIdDict["awardFinValid"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 52, 11, "complete", 0, False)
+            jobId, 200, "finished", 63, 11, "complete", 0, False)
 
     def test_award_fin_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 17385, 5, "complete", 88, True)
+            jobId, 200, "finished", 17580, 5, "complete", 88, True)
 
     def test_award_valid(self):
         """Test valid job."""
         jobId = self.jobIdDict["awardValid"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 52, 10, "complete", 0, False)
+            jobId, 200, "finished", 63, 10, "complete", 0, False)
 
     def test_award_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 3194, 5, "complete", 40, True)
+            jobId, 200, "finished", 3245, 5, "complete", 40, True)
 
     def test_award_mixed_delimiter(self):
         """Test mixed job with mixed delimiter"""
@@ -161,7 +160,7 @@ class FileTypeTests(BaseTestValidator):
         self.waitOnJob(self.interfaces.jobDb, crossId, "finished", self.useThreads)
         # Check that cross file validation report exists and is the right size
         jobTracker = self.interfaces.jobDb
-        fileSize = 1639
+        fileSize = 1668
         reportPath = jobTracker.getCrossFileReportPath(jobTracker.getSubmissionId(crossId))
         if self.local:
             path = "".join(
