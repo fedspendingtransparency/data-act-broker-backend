@@ -60,10 +60,19 @@ class SchemaLoader(object):
                 # look up file type id
                 try:
                     fileId = validationDb.getFileId(FieldCleaner.cleanString(record["file_type"]))
-                    targetFileId =  validationDb.getFileId(FieldCleaner.cleanString(record["target_file"]))
                 except Exception as e:
                     raise Exception("{}: file type={}, rule label={}. Rule not loaded.".format(
                         e, record["file_type"], record["rule_label"]))
+                try:
+                    if record["target_file"].strip() == "":
+                        # No target file provided
+                        targetFileId = None
+                    else:
+                        targetFileId =  validationDb.getFileId(FieldCleaner.cleanString(record["target_file"]))
+                except Exception as e:
+                    raise Exception("{}: file type={}, rule label={}. Rule not loaded.".format(
+                        e, record["target_file"], record["rule_label"]))
+
                 # set cross file flag
                 if (FieldCleaner.cleanString(record["rule_cross_file_flag"])
                     in ['true', 't', 'y', 'yes']):
