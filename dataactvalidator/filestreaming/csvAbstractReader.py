@@ -129,6 +129,8 @@ class CsvAbstractReader(object):
         line = self._getLine()
 
         for row in csv.reader([line],dialect='excel', delimiter=self.delimiter):
+            if len(row) != self.columnCount:
+                raise ResponseException("Wrong number of fields in this row", StatusCode.CLIENT_ERROR, ValueError, ValidationError.readError)
             for current, cell in enumerate(row):
                 if(current >= self.columnCount) :
                     raise ResponseException("Record contains too many fields",StatusCode.CLIENT_ERROR,ValueError,ValidationError.readError)
