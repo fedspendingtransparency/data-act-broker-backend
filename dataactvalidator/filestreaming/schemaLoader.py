@@ -41,7 +41,7 @@ class SchemaLoader(object):
                         length = record["field_length"].strip()
                         if(len(length) > 0):
                             # If there are non-whitespace characters here, create a length rule
-                            database.addRule(columnId,"LENGTH",length,"","Field must be no longer than specified limit")
+                            database.addRule(columnId,"LENGTH",length,"","Field must be no longer than specified limit",originalLabel="")
                 else :
                    raise ValueError('CSV File does not follow schema')
 
@@ -80,7 +80,7 @@ class SchemaLoader(object):
                     validationDb.addSqlRule(record["rule_sql"],
                         record["rule_label"], record["rule_description"],
                         record["rule_error_message"], fileId, severity,
-                        cross_file_flag)
+                        cross_file_flag, queryName = record["query_name"])
                 except Exception as e:
                     raise Exception("{}: sql rule insert failed (file={}, label={}, rule={})".format(
                             e, fileId, record["rule_label"], record["rule_description"]))
@@ -124,7 +124,7 @@ class SchemaLoader(object):
                         str(record["rule_type"]), str(record["rule_text_one"]),
                         str(record["rule_text_two"]), str(record["description"]),
                         ruleTimingId, str(record["rule_label"]),
-                        targetFileId=targetFileId, fileId=fileId)
+                        targetFileId=targetFileId, fileId=fileId, originalLabel=record["original_label"])
                 except Exception as e:
                     raise Exception('{}: rule insert failed (file={}, rule={}'.format(
                         e, fileTypeName, record["description"]))
@@ -154,7 +154,7 @@ class SchemaLoader(object):
                     validationDb.addRule(
                         None, record["rule_type"], record["rule_text_one"],
                         record["rule_text_two"], record["description"], ruleTimingId,
-                        record["rule_label"], targetFileId, fileId = fileId)
+                        record["rule_label"], targetFileId, fileId = fileId, originalLabel=record["original_label"])
                 except Exception as e:
                     raise Exception('{}: cross-file rule insert failed (rule={}'.format(
                         e, record["description"]))

@@ -263,6 +263,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(ruleErrorData["error_description"],"A rule failed for this value")
         self.assertEqual(ruleErrorData["occurrences"],"7")
         self.assertEqual(ruleErrorData["rule_failed"],"Header three value must be real")
+        self.assertEqual(ruleErrorData["original_label"],"A1")
 
         # Check submission metadata
         self.assertEqual(json["cgac_code"], "SYS")
@@ -437,7 +438,7 @@ class FileTests(BaseTestAPI):
         interfaces.errorDb.session.add(fileRec)
 
         # Put some entries in error data for approp job
-        ruleError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_three", error_type_id = 6, occurrences = 7, rule_failed = "Header three value must be real")
+        ruleError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_three", error_type_id = 6, occurrences = 7, rule_failed = "Header three value must be real", original_rule_label = "A1")
         reqError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_four", error_type_id = 2, occurrences = 5, rule_failed = "A required value was not provided")
         interfaces.errorDb.session.add(ruleError)
         interfaces.errorDb.session.add(reqError)

@@ -17,6 +17,6 @@ class ErrorHandler(ErrorInterface) :
 
         queryResult = self.session.query(ErrorMetadata).options(joinedload("error_type")).filter(ErrorMetadata.job_id == jobId).all()
         for result in queryResult:
-            recordDict = {"field_name":result.field_name,"error_name": result.error_type.name, "error_description": result.error_type.description, "occurrences": str(result.occurrences), "rule_failed": result.rule_failed}
+            recordDict = {"field_name":result.field_name,"error_name": result.error_type.name, "error_description": result.error_type.description, "occurrences": str(result.occurrences), "rule_failed": result.rule_failed, "original_label":result.original_rule_label}
             resultList.append(recordDict)
         return resultList

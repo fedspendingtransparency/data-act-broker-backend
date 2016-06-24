@@ -61,6 +61,7 @@ class Rule(Base):
     rule_timing_id = Column(Integer, ForeignKey("rule_timing.rule_timing_id", name="fk_rule_timing_id"), nullable=False, default=1)
     rule_timing = relationship("RuleTiming", uselist=False)
     rule_label = Column(Text)
+    original_label = Column(Text)
     file_id = Column(Integer, ForeignKey("file_type.file_id"), nullable=True)
     file_type = relationship(
         "FileType", foreign_keys="Rule.file_id", uselist=False)
@@ -100,5 +101,6 @@ class RuleSql(Base):
     file = relationship("FileType", uselist=False)
     rule_severity_id = Column(Integer, ForeignKey("rule_severity.rule_severity_id"), nullable=False)
     rule_severity = relationship("RuleSeverity", uselist=False)
-    target_file_id = Column(Integer, ForeignKey("file_type.file_id"), nullable=True)
+    target_file_id = Column(Integer, ForeignKey("file_type.file_id", name="fk_target_file"), nullable=True)
     target_file = relationship("FileType", uselist=False)
+    query_name = Column(Text)
