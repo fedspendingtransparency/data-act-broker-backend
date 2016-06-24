@@ -269,7 +269,7 @@ class ValidatorValidationInterface(BaseInterface):
         return True
 
     def addSqlRule(self, ruleSql, ruleLabel, ruleDescription, ruleErrorMsg,
-        fileId, ruleSeverity, crossFileFlag=False, queryName = None):
+        fileId, ruleSeverity, crossFileFlag=False, queryName = None, targetFileId = None):
         """Insert SQL-based validation rule.
 
         Args:
@@ -286,7 +286,7 @@ class ValidatorValidationInterface(BaseInterface):
         """
         newRule = RuleSql(rule_sql=ruleSql, rule_label=ruleLabel,
                 rule_description=ruleDescription, rule_error_message=ruleErrorMsg,
-                rule_cross_file_flag=crossFileFlag, file_id=fileId, rule_severity=ruleSeverity, query_name = queryName)
+                rule_cross_file_flag=crossFileFlag, file_id=fileId, rule_severity=ruleSeverity, query_name = queryName, target_file_id = targetFileId)
         self.session.add(newRule)
         self.session.commit()
         return True

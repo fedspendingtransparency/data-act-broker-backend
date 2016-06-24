@@ -60,6 +60,7 @@ class SchemaLoader(object):
                 # look up file type id
                 try:
                     fileId = validationDb.getFileId(FieldCleaner.cleanString(record["file_type"]))
+                    targetFileId =  validationDb.getFileId(FieldCleaner.cleanString(record["target_file"]))
                 except Exception as e:
                     raise Exception("{}: file type={}, rule label={}. Rule not loaded.".format(
                         e, record["file_type"], record["rule_label"]))
@@ -80,7 +81,7 @@ class SchemaLoader(object):
                     validationDb.addSqlRule(record["rule_sql"],
                         record["rule_label"], record["rule_description"],
                         record["rule_error_message"], fileId, severity,
-                        cross_file_flag, queryName = record["query_name"])
+                        cross_file_flag, queryName = record["query_name"], targetFileId = targetFileId)
                 except Exception as e:
                     raise Exception("{}: sql rule insert failed (file={}, label={}, rule={})".format(
                             e, fileId, record["rule_label"], record["rule_description"]))
