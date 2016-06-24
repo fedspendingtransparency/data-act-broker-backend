@@ -607,6 +607,35 @@ Example output:
     "rule_failed": "Failed rule: Indicator must be X, F, A, or blank"
     }
     ]
+    },
+    {
+      "job_status": "finished",
+      "error_data": [
+        {
+          "error_description": "A rule failed for this value",
+          "error_name": "rule_failed",
+          "field_name": "award_financial",
+          "occurrences": "11",
+          "rule_failed": "fain, uri"
+        },
+        {
+          "error_description": "A rule failed for this value",
+          "error_name": "rule_failed",
+          "field_name": "award",
+          "occurrences": "10",
+          "rule_failed": "fain, uri"
+        }
+      ],
+      "missing_headers": [],
+      "job_id": 599,
+      "file_type": "",
+      "error_type": "none",
+      "job_type": "validation",
+      "filename": null,
+      "file_status": "complete",
+      "number_of_rows": null,
+      "file_size": null,
+      "duplicated_headers": []
     }
   ],
   "agency_name": "Name of the agency",

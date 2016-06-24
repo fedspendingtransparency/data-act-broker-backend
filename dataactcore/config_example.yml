@@ -68,6 +68,9 @@ broker:
     # AWS credentials for uploading files. Ignored if use_aws is false.
     aws_create_temp_credentials: true
 
+    # S3 filenames for SF-133 file, only required if planning to load SF-133 table
+    sf_133_folder: config
+    sf_133_file: sf_133.csv
 
 services:
     # Set to true to turn on tracing rest errors.
@@ -119,7 +122,6 @@ db:
     base_db_name: postgres #This is the default db on the instance. 
     user_db_name: da_user_manager # User manager db
     job_db_name: da_job_tracker # Job tracker db
-    staging_db_name: da_staging # Staging db
     validator_db_name: da_validation # Validation db
     error_db_name: da_error_data # Error data db
     job_queue_db_name: da_job_queue # Job queue db
