@@ -486,6 +486,9 @@ class Validator(object):
                     blankSkip = False
             if "skip_if_below" in fieldMap[field]:
                 try:
+                    if record[field] is None or str(record[field]).strip() == "":
+                        # No year provided, so this should be skipped as not being checkable against post 2016 budgets
+                        return True
                     if int(record[field]) < fieldMap[field]["skip_if_below"]:
                         # Don't apply rule to records in this case (e.g. program activity before 2016)
                         return True
