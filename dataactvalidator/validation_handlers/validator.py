@@ -15,6 +15,7 @@ class Validator(object):
     Checks individual records against specified validation tests
     """
     BOOLEAN_VALUES = ["TRUE","FALSE","YES","NO","1","0"]
+    tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op"}
 
     @classmethod
     def crossValidate(cls,rules, submissionId):
@@ -33,6 +34,36 @@ class Validator(object):
         # Return list of cross file validation failures
         return failures
 
+    @classmethod
+    def crossValidateSql(cls, rules, submissionId):
+        """ Evaluate all sql-based rules for cross file validation
+
+        Args:
+            rules -- List of Rule objects
+            submissionId -- ID of submission to run cross-file validation
+        """
+        failures = []
+        # Put each rule through evaluate, appending all failures into list
+        interfaces = InterfaceHolder()
+        for rule in rules:
+            failedRows = interfaces.validationDb.connection.execute(
+                rule.rule_sql.format(submissionId))
+            if failedRows.rowcount:
+                # get list of fields involved in this validation
+                # note: row_number is metadata, not a field being
+                # validated, so exclude it
+                cols = failedRows.keys()
+                cols.remove('row_number')
+                columnString = ", ".join(str(c) for c in cols)
+                for row in failedRows:
+                    # get list of values for each column
+                    values = ["{}: {}".format(c, str(row[c])) for c in cols]
+                    values = ", ".join(values)
+                    failures.append([rule.file.name, columnString,
+                        str(rule.rule_description), values, row['row_number'],str(rule.rule_label)])
+
+        # Return list of cross file validation failures
+        return failures
 
     @staticmethod
     def getRecordsIfNone(submissionId, fileType, stagingDb, record=None):
@@ -41,7 +72,7 @@ class Validator(object):
         Args:
             submissionId - ID of submission being validated (int)
             fileType - fileType of source record(s) being validated (string)
-            stagingDb - staging db interface
+            stagingDb - staging db interface (staging tables are in the validation db)
             record - set to none if we want all table records for submission
 
         Returns:
@@ -102,9 +133,9 @@ class Validator(object):
                     # Fields don't match target file, add to failures
                     rulePassed = False
                     dictString = str(matchDict)[1:-1] # Remove braces
-                    rowNumber = thisRecord["row"]
+                    rowNumber = thisRecord["row_number"]
                     failures.append([fileType,", ".join(fieldsToCheck),
-                                     rule.description, dictString, rowNumber])
+                                     rule.description, dictString, rowNumber, rule.original_label])
 
         elif ruleType == "rule_if":
             # Get all records from source table
@@ -154,10 +185,10 @@ class Validator(object):
         failedRules = []
         for fieldName in csvSchema :
             if(csvSchema[fieldName].required and  not fieldName in record ):
-                return False, [[fieldName, ValidationError.requiredError, ""]]
+                return False, [[fieldName, ValidationError.requiredError, "", ""]], False
 
         for fieldName in record :
-            if fieldName == "row":
+            if fieldName == "row_number":
                 # Skip row number, nothing to validate on that
                 continue
             checkRequiredOnly = False
@@ -171,7 +202,7 @@ class Validator(object):
                 if(currentSchema.required ):
                     # If empty and required return field name and error
                     recordFailed = True
-                    failedRules.append([fieldName, ValidationError.requiredError, ""])
+                    failedRules.append([fieldName, ValidationError.requiredError, "", ""])
                     continue
                 else:
                     # If field is empty and not required its valid
@@ -181,7 +212,7 @@ class Validator(object):
             if(not checkRequiredOnly and not Validator.checkType(currentData,currentSchema.field_type.name) ) :
                 recordTypeFailure = True
                 recordFailed = True
-                failedRules.append([fieldName, ValidationError.typeError, currentData])
+                failedRules.append([fieldName, ValidationError.typeError, currentData,""])
                 # Don't check value rules if type failed
                 continue
 
@@ -196,7 +227,7 @@ class Validator(object):
                         recordFailed = True
                         recordTypeFailure = True
                         typeFailed = True
-                        failedRules.append([fieldName, ValidationError.typeError, currentData])
+                        failedRules.append([fieldName, ValidationError.typeError, currentData,""])
             if(typeFailed):
                 # If type failed, don't do value checks
                 continue
@@ -207,14 +238,14 @@ class Validator(object):
                     continue
                 if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name,interfaces,record)):
                     recordFailed = True
-                    failedRules.append([fieldName,"".join(["Failed rule: ",str(currentRule.description)]), currentData])
+                    failedRules.append([fieldName,"".join(["Failed rule: ",str(currentRule.description)]), currentData, str(currentRule.original_label)])
         # Check all multi field rules for this file type
         multiFieldRules = interfaces.validationDb.getMultiFieldRulesByFile(fileType)
         for rule in multiFieldRules:
             if not Validator.evaluateRule(record,rule,None,interfaces,record):
                 recordFailed = True
-                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces)])
-        return (not recordFailed), failedRules, (not recordTypeFailure)
+                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces), str(rule.original_label)])
+        return  (not recordFailed), failedRules, (not recordTypeFailure)
 
     @staticmethod
     def getRules(fieldName, fileType,rules,validationInterface) :
@@ -445,9 +476,19 @@ class Validator(object):
         fieldMap = json.loads(rule.rule_text_2)
         # Get values for fields in record into new dict between table columns and values to check for
         valueDict = {}
+        blankSkip = True
+        noBlankSkipFields = True
         for field in fieldMap:
+            if "skip_if_blank" in fieldMap[field]:
+                noBlankSkipFields = False
+                # If all these are blank, rule passes
+                if record[field] is not None and record[field].strip() != "":
+                    blankSkip = False
             if "skip_if_below" in fieldMap[field]:
                 try:
+                    if record[field] is None or str(record[field]).strip() == "":
+                        # No year provided, so this should be skipped as not being checkable against post 2016 budgets
+                        return True
                     if int(record[field]) < fieldMap[field]["skip_if_below"]:
                         # Don't apply rule to records in this case (e.g. program activity before 2016)
                         return True
@@ -464,6 +505,11 @@ class Validator(object):
             else:
                 fieldValue = record[field]
             valueDict[fieldMap[field]["target_field"]] = fieldValue
+
+        if not noBlankSkipFields and blankSkip:
+            # This set of fields was all blank and at least one field is marked as "skip_if_blank", so skip rule
+            return True
+
 
         # Parse out model object
         model = getattr(domainModels,str(rule.rule_text_1))
@@ -683,9 +729,9 @@ class Validator(object):
                 stringList[i] = stringList[i].lower()
         return stringList
 
-    @staticmethod
-    def getMultiValues(rule,record,interfaces):
-        """ Create string out of values for all fields involved in this rule
+    @classmethod
+    def getValueList(cls,rule,record,interfaces):
+        """ Create list out of values for all fields involved in this rule
 
         Args:
             rule: Rule to return fields for
@@ -697,19 +743,45 @@ class Validator(object):
         ruletext1 = Validator.cleanSplit(rule.rule_text_1, True)
         ruletext2 = Validator.cleanSplit(rule.rule_text_2, True)
         ruleType = interfaces.validationDb.getRuleTypeById(rule.rule_type_id)
-        if ruleType == "CAR_MATCH" or ruleType == "REQUIRE_ONE_OF_SET":
+        if ruleType == "CAR_MATCH" or ruleType == "REQUIRE_ONE_OF_SET" or ruleType == "CHECK_PREFIX":
             fields = ruletext1
-        elif ruleType == "REQUIRED_CONDITIONAL":
-            fields = [rule.file_column.name]
-        elif ruleType == "NOT":
+        elif ruleType == "NOT" or ruleType == "MIN_LENGTH" or ruleType == "REQUIRED_CONDITIONAL":
             fields = []
         elif ruleType == "SUM_TO_VALUE":
             fields = ruletext2
         elif ruleType == "SET_EXISTS_IN_TABLE":
             fields = json.loads(rule.rule_text_2).keys()
+        elif ruleType == "RULE_IF":
+            # Combine fields for both rules
+            ruleOne = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
+            ruleTwo = interfaces.validationDb.getRuleByLabel(rule.rule_text_2)
+            fields = cls.getValueList(ruleOne,record,interfaces) + cls.getValueList(ruleTwo,record,interfaces)
         else:
             fields = ruletext1 + ruletext2
+
+        # Add file column if present
+        fileColId = rule.file_column_id
+        if fileColId is not None:
+            fileColumn = interfaces.validationDb.getColumnById(fileColId)
+            fields.append(fileColumn.name)
+
+        return fields
+
+    @classmethod
+    def getMultiValues(cls,rule,record,interfaces):
+        """ Create string out of values for all fields involved in this rule
+
+        Args:
+            rule: Rule to return fields for
+            record: Record to pull values from
+            interfaces: InterfaceHolder for DBs
+        Returns:
+            One string including all values involved in this rule check
+        """
+        fields = cls.getValueList(rule,record,interfaces)
+
         output = ""
+        outputDict = {}
         for field in fields:
             try:
                 value = record[str(field)]
@@ -718,7 +790,9 @@ class Validator(object):
             if(value == None):
                 # For concatenating fields, represent None with an empty string
                 value = ""
-            output = "".join([output,field,": ",value,", "])
+            if field not in outputDict:
+                outputDict[field] = True
+                output = "".join([output,field,": ",value,", "])
 
         return output[:-2]
 
@@ -776,7 +850,7 @@ class Validator(object):
             field = fieldsToCheck[i].lower()
             # Pad field with leading zeros
             length = interfaces.validationDb.getColumnLength(field, fileType)
-            data = data.zfill(length)
+            data = data.strip().zfill(length)
             query = query.filter(TASLookup.__dict__[tasFields[i]] == str(data))
 
         queryResult = query.all()
@@ -790,26 +864,54 @@ class Validator(object):
             # Multiple instances of same TAS, something is going wrong
             raise ResponseException("TAS check is malfunctioning",StatusCode.INTERNAL_ERROR)
 
-    @staticmethod
-    def validateFileBySql(submissionId,fileType,interfaces):
+    @classmethod
+    def validateFileBySql(cls, submissionId, fileType, interfaces):
+        """ Check all SQL rules
+
+        Args:
+            submissionId: submission to be checked
+            fileType: file type being checked
+            interfaces: database interface objects
+
+        Returns:
+            List of errors found, each element has:
+             field names
+             error message
+             values in fields involved
+             row number
+        """
         # Pull all SQL rules for this file type
         fileId = interfaces.validationDb.getFileId(fileType)
-        rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(RuleSql.rule_cross_file_flag == False).all()
+        rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
+            RuleSql.rule_cross_file_flag == False).all()
         errors = []
         # For each rule, execute sql for rule
         for rule in rules:
-            failures = interfaces.validationDb.connection.execute(rule.rule_sql.format(submissionId))
-            # Build error list
-            for failure in failures:
-                row = failure["row"]
-                errorMsg = rule.rule_error_msg
-                values = ""
-                fieldNames = ""
-                for field in failure:
-                    if field == "row":
-                        # Row handled separately, skip
-                        continue
-                    values = ", ".join([values, "{}: {}".format(field,failure[field])])
-                    fieldNames = ", ".join([fieldNames,field])
-                errors.append([fieldNames,errorMsg,values,row])
+            failures = interfaces.stagingDb.connection.execute(rule.rule_sql.format(submissionId))
+            if failures.rowcount:
+                # Create column list (exclude row_number)
+                cols = failures.keys()
+                cols.remove("row_number")
+                # Build error list
+                for failure in failures:
+                    errorMsg = rule.rule_error_message
+                    row = failure ["row_number"]
+                    # Create strings for fields and values
+                    valueList = ["{}: {}".format(str(field),str(failure[field])) for field in cols]
+                    valueString = ", ".join(valueList)
+                    fieldList = [str(field) for field in cols]
+                    fieldString = ", ".join(fieldList)
+                    errors.append([fieldString,errorMsg,valueString,row, rule.rule_label])
+
+            # Pull where clause out of rule
+            wherePosition = rule.rule_sql.lower().find("where")
+            whereClause = rule.rule_sql[wherePosition:].format(submissionId)
+            # Find table to apply this to
+            model = interfaces.stagingDb.getModel(fileType)
+            tableName = model.__tablename__
+            tableAbbrev = cls.tableAbbreviations[tableName]
+            # Update valid_record to false for all that fail this rule
+            updateQuery = "UPDATE {} as {} SET valid_record = false {}".format(tableName,tableAbbrev,whereClause)
+            interfaces.stagingDb.connection.execute(updateQuery)
+
         return errors

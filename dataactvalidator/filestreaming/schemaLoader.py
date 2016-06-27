@@ -41,9 +41,49 @@ class SchemaLoader(object):
                         length = record["field_length"].strip()
                         if(len(length) > 0):
                             # If there are non-whitespace characters here, create a length rule
-                            database.addRule(columnId,"LENGTH",length,"","Field must be no longer than specified limit")
+                            database.addRule(columnId,"LENGTH",length,"","Field must be no longer than specified limit",originalLabel="")
                 else :
                    raise ValueError('CSV File does not follow schema')
+
+    @staticmethod
+    def loadSqlRules(filename):
+        """ Populate SQL rule table from file."""
+        validationDb = ValidatorValidationInterface()
+
+        # delete existing sql rules
+        validationDb.deleteSqlRules()
+
+        # add sql rules in the validator's config folder
+        with open(filename, 'rU') as sqlRuleFile:
+            reader = csv.DictReader(sqlRuleFile)
+            for record in reader:
+                # look up file type id
+                try:
+                    fileId = validationDb.getFileId(FieldCleaner.cleanString(record["file_type"]))
+                except Exception as e:
+                    raise Exception("{}: file type={}, rule label={}. Rule not loaded.".format(
+                        e, record["file_type"], record["rule_label"]))
+                # set cross file flag
+                if (FieldCleaner.cleanString(record["rule_cross_file_flag"])
+                    in ['true', 't', 'y', 'yes']):
+                    cross_file_flag = True
+                else:
+                    cross_file_flag = False
+                # look up severity
+                try:
+                    severity = validationDb.getRuleSeverityByName(record["severity_name"])
+                except Exception as e:
+                    raise Exception("{}: severity={}, rule label={}. Rule not loaded.".format(
+                        e, record["severity_name"], record["rule_label"]))
+                # insert sql rule record
+                try:
+                    validationDb.addSqlRule(record["rule_sql"],
+                        record["rule_label"], record["rule_description"],
+                        record["rule_error_message"], fileId, severity,
+                        cross_file_flag, queryName = record["query_name"])
+                except Exception as e:
+                    raise Exception("{}: sql rule insert failed (file={}, label={}, rule={})".format(
+                            e, fileId, record["rule_label"], record["rule_description"]))
 
     @staticmethod
     def loadRules(fileTypeName, filename):
@@ -84,7 +124,7 @@ class SchemaLoader(object):
                         str(record["rule_type"]), str(record["rule_text_one"]),
                         str(record["rule_text_two"]), str(record["description"]),
                         ruleTimingId, str(record["rule_label"]),
-                        targetFileId=targetFileId, fileId=fileId)
+                        targetFileId=targetFileId, fileId=fileId, originalLabel=record["original_label"])
                 except Exception as e:
                     raise Exception('{}: rule insert failed (file={}, rule={}'.format(
                         e, fileTypeName, record["description"]))
@@ -114,7 +154,7 @@ class SchemaLoader(object):
                     validationDb.addRule(
                         None, record["rule_type"], record["rule_text_one"],
                         record["rule_text_two"], record["description"], ruleTimingId,
-                        record["rule_label"], targetFileId, fileId = fileId)
+                        record["rule_label"], targetFileId, fileId = fileId, originalLabel=record["original_label"])
                 except Exception as e:
                     raise Exception('{}: cross-file rule insert failed (rule={}'.format(
                         e, record["description"]))
@@ -132,6 +172,9 @@ class SchemaLoader(object):
         # Load cross file validation rules
         filePath = os.path.join(path,"crossFileRules.csv")
         cls.loadCrossRules(filePath)
+        # Load SQL validation rules
+        filePath = os.path.join(path, "sqlRules.csv")
+        cls.loadSqlRules(filePath)
 
 if __name__ == '__main__':
     SchemaLoader.loadAllFromPath("../config/")

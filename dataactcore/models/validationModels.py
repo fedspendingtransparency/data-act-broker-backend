@@ -2,7 +2,12 @@
 
 from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
-from dataactcore.models.domainModels import Base
+from dataactcore.models.validationBase import Base
+# the following lines import models that are maintained in
+# separate files but live in the validation database.
+# they're imported here so alembic will see them.
+import dataactcore.models.domainModels as domainModels
+import dataactcore.models.stagingModels as stagingModels
 
 class FileType(Base):
     __tablename__ = "file_type"
@@ -56,6 +61,7 @@ class Rule(Base):
     rule_timing_id = Column(Integer, ForeignKey("rule_timing.rule_timing_id", name="fk_rule_timing_id"), nullable=False, default=1)
     rule_timing = relationship("RuleTiming", uselist=False)
     rule_label = Column(Text)
+    original_label = Column(Text)
     file_id = Column(Integer, ForeignKey("file_type.file_id"), nullable=True)
     file_type = relationship(
         "FileType", foreign_keys="Rule.file_id", uselist=False)
@@ -95,7 +101,7 @@ class RuleSql(Base):
     file = relationship("FileType", uselist=False)
     rule_severity_id = Column(Integer, ForeignKey("rule_severity.rule_severity_id"), nullable=False)
     rule_severity = relationship("RuleSeverity", uselist=False)
-
+    query_name = Column(Text)
 
 
 

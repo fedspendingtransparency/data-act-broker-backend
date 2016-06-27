@@ -43,8 +43,6 @@ class BaseTestAPI(unittest.TestCase):
             cls.num, suite)
         config['validator_db_name'] = 'unittest{}_{}_validator'.format(
             cls.num, suite)
-        config['staging_db_name'] = 'unittest{}_{}_staging'.format(
-            cls.num, suite)
         dataactcore.config.CONFIG_DB = config
 
         # drop and re-create test user db/tables

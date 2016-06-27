@@ -1,7 +1,7 @@
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.validationModels import Rule, RuleType, FileColumn, FileType, FieldType, RuleTiming
+from dataactcore.models.validationModels import Rule, RuleType, FileColumn, FileType, FieldType, RuleTiming, RuleSeverity, RuleSql
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.config import CONFIG_DB
@@ -248,7 +248,7 @@ class ValidatorValidationInterface(BaseInterface):
         rules = query.all()
         return rules
 
-    def addRule(self, columnId, ruleTypeText, ruleTextOne, ruleTextTwo, description, rule_timing = 1, rule_label = None, targetFileId = None, fileId = None):
+    def addRule(self, columnId, ruleTypeText, ruleTextOne, ruleTextTwo, description, rule_timing = 1, rule_label = None, targetFileId = None, fileId = None, originalLabel = None):
         """
 
         Args:
@@ -263,8 +263,37 @@ class ValidatorValidationInterface(BaseInterface):
             # Use default value if timing is unspecified
             rule_timing = 1
         newRule = Rule(file_column_id = columnId, rule_type_id = self.getRuleType(ruleTypeText), rule_text_1 = ruleTextOne, rule_text_2 = ruleTextTwo,
-                       description = description, rule_timing_id = rule_timing, rule_label = rule_label, target_file_id = targetFileId, file_id = fileId)
+                       description = description, rule_timing_id = rule_timing, rule_label = rule_label, target_file_id = targetFileId, file_id = fileId, original_label = originalLabel)
         self.session.add(newRule)
+        self.session.commit()
+        return True
+
+    def addSqlRule(self, ruleSql, ruleLabel, ruleDescription, ruleErrorMsg,
+        fileId, ruleSeverity, crossFileFlag=False, queryName = None):
+        """Insert SQL-based validation rule.
+
+        Args:
+            ruleSql = the validation expressed as SQL
+            ruleLabel = rule label used in the DATA Act standard
+            ruleDescription = rule description
+            ruleErrorMsg = the rule's standard error message
+            crossFileFlag = indicates whether or not the rule is cross-file
+            fileType = file type that the rule applies to
+            severityName = severity of the rule
+
+        Returns:
+            ID of new rule
+        """
+        newRule = RuleSql(rule_sql=ruleSql, rule_label=ruleLabel,
+                rule_description=ruleDescription, rule_error_message=ruleErrorMsg,
+                rule_cross_file_flag=crossFileFlag, file_id=fileId, rule_severity=ruleSeverity, query_name = queryName)
+        self.session.add(newRule)
+        self.session.commit()
+        return True
+
+    def deleteSqlRules(self):
+        """Delete existing rules in the SQL rules table."""
+        self.session.query(RuleSql).delete()
         self.session.commit()
         return True
 
@@ -291,6 +320,10 @@ class ValidatorValidationInterface(BaseInterface):
         """
         timingId = self.getRuleTimingIdByName(timing)
         return self.session.query(Rule).filter(Rule.rule_timing_id == timingId).all()
+
+    def getColumnById(self, file_column_id):
+        """ Get File Column object from ID """
+        return self.session.query(FileColumn).filter(FileColumn.file_column_id == file_column_id).first()
 
     def getColumnId(self, fieldName, fileType):
         """ Find file column given field name and file type
@@ -384,9 +417,9 @@ class ValidatorValidationInterface(BaseInterface):
         """ Return name of field type based on id """
         return self.getNameFromDict(FieldType,"TYPE_DICT","name",id,"field_type_id")
 
-    def getFieldNameByColId(self, id):
-        """ Return field name based on a column ID.  Used to map staging database columns to matching field names. """
-        int(id) # Raise appropriate error if id is not an int
-        query = self.session.query(FileColumn).filter(FileColumn.file_column_id == id)
-        column = self.runUniqueQuery(query,"No column found with that ID", "Multiple columns found with that ID")
-        return column.name
+    def getRuleSeverityByName(self, ruleSeverityName):
+        """Return rule severity based on name."""
+        query = self.session.query(RuleSeverity).filter(RuleSeverity.name == ruleSeverityName)
+        query = self.runUniqueQuery(query, "No rule severity found with name {}".format(ruleSeverityName),
+            "Multiple rule severities found with name {}".format(ruleSeverityName))
+        return query

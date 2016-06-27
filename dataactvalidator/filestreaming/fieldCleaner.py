@@ -1,8 +1,8 @@
 import csv
 from decimal import *
+from dataactcore.utils.stringCleaner import StringCleaner
 
-
-class FieldCleaner:
+class FieldCleaner(StringCleaner):
     """ This class takes a field definition file and cleans it, producing a field definition file that can be read by schemaLoader """
 
     @staticmethod
@@ -38,22 +38,6 @@ class FieldCleaner:
         record['data_type'] = FieldCleaner.cleanType(record['data_type'])
         record['field_length'] = FieldCleaner.cleanLength(record['field_length'])
         return record
-
-    @staticmethod
-    def cleanString(data,removeSpaces = True):
-        """ Change to lowercase, trim whitespace on ends, and replace internal spaces with underscores if desired
-
-        Args:
-            data: String to be cleaned
-            removeSpaces: True if spaces should be replaced with underscores
-
-        Returns:
-            Cleaned version of string
-        """
-        result = str(data).lower().strip()
-        if(removeSpaces):
-            result = result.replace(" ","_")
-        return result
 
     @staticmethod
     def cleanName(name):
@@ -132,14 +116,6 @@ class FieldCleaner:
                 if FieldCleaner.isNumeric(tempValue):
                     row[key] = tempValue
         return row
-
-    @staticmethod
-    def isNumeric(data):
-        try:
-            float(data)
-            return True
-        except:
-            return False
 
 if __name__ == '__main__':
     FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")

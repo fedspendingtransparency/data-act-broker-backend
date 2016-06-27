@@ -1,8 +1,6 @@
 from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean
-from sqlalchemy.ext.declarative import declarative_base
-from dataactcore.utils.timeStampMixin import TimeStampBase
+from dataactcore.models.validationBase import Base
 
-Base = declarative_base(cls=TimeStampBase)
 
 def concatTas(context):
     """Create a concatenated TAS string for insert into database."""
@@ -31,7 +29,7 @@ class Appropriation(Base):
     appropriation_id = Column(Integer, primary_key=True)
     submission_id = Column(Integer, nullable=False, index=True)
     job_id = Column(Integer, nullable=False, index=True)
-    row = Column(Integer, nullable=False)
+    row_number = Column(Integer, nullable=False)
     adjustmentstounobligatedbalancebroughtforward_cpe = Column(Numeric)
     agencyidentifier = Column(Text)
     allocationtransferagencyidentifier = Column(Text)
@@ -68,7 +66,7 @@ class ObjectClassProgramActivity(Base):
     object_class_program_activity_id = Column(Integer, primary_key=True)
     submission_id = Column(Integer, nullable=False, index=True)
     job_id = Column(Integer, nullable=False, index=True)
-    row = Column(Integer, nullable=False)
+    row_number = Column(Integer, nullable=False)
     agencyidentifier = Column(Text)
     allocationtransferagencyidentifier = Column(Text)
     availabilitytypecode = Column(Text)
@@ -148,7 +146,7 @@ class AwardFinancial(Base):
     award_financial_id = Column(Integer, primary_key=True)
     submission_id = Column(Integer, nullable=False, index=True)
     job_id = Column(Integer, nullable=False, index=True)
-    row = Column(Integer, nullable=False)
+    row_number = Column(Integer, nullable=False)
     agencyidentifier = Column(Text)
     allocationtransferagencyidentifier = Column(Text)
     availabilitytypecode = Column(Text)
@@ -231,7 +229,7 @@ class AwardFinancialAssistance(Base):
     award_financial_assistance_id = Column(Integer, primary_key=True)
     submission_id = Column(Integer, nullable=False, index=True)
     job_id = Column(Integer, nullable=False, index=True)
-    row = Column(Integer, nullable=False)
+    row_number = Column(Integer, nullable=False)
     actiondate = Column(Text)
     actiontype = Column(Text)
     assistancetype = Column(Text)

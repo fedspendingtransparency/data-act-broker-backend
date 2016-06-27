@@ -9,7 +9,7 @@ subaccountcode,TRUE,str,3,A1
 programactivityname,TRUE,str,164,B9
 programactivitycode,TRUE,str,4,B10
 objectclass,TRUE,str,4,B11
-bydirectreimbursablefundingsource,TRUE,str,1,B12
+bydirectreimbursablefundingsource,FALSE,str,1,B12
 ussgl480100_undeliveredordersobligationsunpaid_fyb,TRUE,float,21,A16
 ussgl480100_undeliveredordersobligationsunpaid_cpe,TRUE,float,21,B3
 ussgl483100_undeliveredordersobligationstransferredunpaid_cpe,TRUE,float,21,B3
