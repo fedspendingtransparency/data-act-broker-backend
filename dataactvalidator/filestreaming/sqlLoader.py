@@ -15,6 +15,7 @@ class SQLLoader():
     @staticmethod
     def loadSql(filename):
         validationDB = ValidationInterface()
+        filename = os.path.join(SQLLoader.sql_rules_path, filename)
 
         # open csv
         with open(filename, 'rU') as csvfile:
@@ -51,4 +52,4 @@ class SQLLoader():
             validationDB.session.commit()
 
 if __name__ == '__main__':
-    SQLLoader.loadSql(os.path.join(SQLLoader.sql_rules_path, "sqlRules.csv"))
+    SQLLoader.loadSql("sqlRules.csv")
