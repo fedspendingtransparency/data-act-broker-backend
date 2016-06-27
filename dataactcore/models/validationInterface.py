@@ -1,5 +1,6 @@
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.domainModels import CGAC
+from dataactcore.models.validationModels import RuleSeverity, FileType
 from dataactcore.config import CONFIG_DB
 
 
@@ -31,3 +32,13 @@ class ValidationInterface(BaseInterface):
     def getAgencyName(self, cgac_code):
         agency = self.session.query(CGAC).filter(CGAC.cgac_code == cgac_code).first()
         return agency.agency_name if agency is not None else None
+
+    def getRuleSeverityId(self, name):
+        query = self.session.query(RuleSeverity).filter(RuleSeverity.name == name)
+        result = self.runUniqueQuery(query, "No rule severity found for specified name", "Multiple rule severities found for specified name")
+        return result.rule_severity_id
+
+    def getFileTypeId(self, name):
+        query = self.session.query(FileType).filter(FileType.name == name)
+        result = self.runUniqueQuery(query, "No file type found for specified name", "Multiple file types found for specified name")
+        return result.file_id
