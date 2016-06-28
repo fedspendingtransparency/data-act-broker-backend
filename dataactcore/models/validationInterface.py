@@ -1,10 +1,6 @@
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.domainModels import CGAC
-<<<<<<< HEAD
-from dataactcore.models.validationModels import FileType
-=======
 from dataactcore.models.validationModels import RuleSeverity, FileType
->>>>>>> development
 from dataactcore.config import CONFIG_DB
 
 
