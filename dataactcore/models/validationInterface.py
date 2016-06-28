@@ -1,6 +1,10 @@
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.domainModels import CGAC
+<<<<<<< HEAD
 from dataactcore.models.validationModels import FileType
+=======
+from dataactcore.models.validationModels import RuleSeverity, FileType
+>>>>>>> development
 from dataactcore.config import CONFIG_DB
 
 
@@ -46,3 +50,9 @@ class ValidationInterface(BaseInterface):
         fileTypes = self.session.query(FileType.name).all()
         # Convert result into list
         return [fileType.name for fileType in fileTypes]
+
+    def getRuleSeverityId(self, name):
+        query = self.session.query(RuleSeverity).filter(RuleSeverity.name == name)
+        result = self.runUniqueQuery(query, "No rule severity found for specified name", "Multiple rule severities found for specified name")
+        return result.rule_severity_id
+

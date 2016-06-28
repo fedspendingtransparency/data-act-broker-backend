@@ -4,6 +4,7 @@ from os.path import join
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.domainModels import TASLookup
 from dataactcore.config import CONFIG_BROKER
+from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.loadFile import loadDomainValues
 from dataactvalidator.scripts.loadTas import loadTas
@@ -79,6 +80,7 @@ class FileTypeTests(BaseTestValidator):
     def load_definitions(interfaces, force_tas_load):
         """Load file definitions."""
         SchemaLoader.loadAllFromPath(join(CONFIG_BROKER["path"],"dataactvalidator","config"))
+        SQLLoader.loadSql("sqlRules.csv")
         # Load domain values tables
         loadDomainValues(join(CONFIG_BROKER["path"],"dataactvalidator","config"),join(CONFIG_BROKER["path"],"tests","sf_133.csv"))
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
@@ -108,7 +110,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 21060, 4, "complete", 118, True)
+            jobId, 200, "finished", 20998, 4, "complete", 118, True)
 
     def test_award_fin_valid(self):
         """Test valid job."""
@@ -120,7 +122,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 17268, 5, "complete", 87, True)
+            jobId, 200, "finished", 17206, 5, "complete", 87, True)
 
     def test_award_valid(self):
         """Test valid job."""
@@ -160,11 +162,13 @@ class FileTypeTests(BaseTestValidator):
         self.waitOnJob(self.interfaces.jobDb, crossId, "finished", self.useThreads)
         # Check that cross file validation report exists and is the right size
         jobTracker = self.interfaces.jobDb
+
         submissionId = jobTracker.getSubmissionId(crossId)
         abFileSize = 1322
         cdFileSize = 423
         abFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")
         cdFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")
+
         if self.local:
             path = "".join(
                 [self.local_file_directory,abFilename])
