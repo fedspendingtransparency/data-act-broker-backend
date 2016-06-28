@@ -67,17 +67,36 @@ class FileHandler:
                     else:
                         path = os.path.join(self.serverPath, self.jobManager.getReportPath(jobId))
                         responseDict["job_"+str(jobId)+"_error_url"] = path
-            if(not self.isLocal):
-                crossFileReport = self.s3manager.getSignedUrl("errors",self.jobManager.getCrossFileReportPath(submissionId),"GET")
-            else:
-                crossFileReport = os.path.join(self.serverPath, self.jobManager.getCrossFileReportPath(submissionId))
-            responseDict["cross_file_error_url"] = crossFileReport
+
+            # For each pair of files, get url for the report
+            fileTypes = self.interfaces.validationDb.getFileTypeList()
+            for source in fileTypes:
+                sourceId = self.interfaces.validationDb.getFileTypeIdByName(source)
+                for target in fileTypes:
+                    targetId = self.interfaces.validationDb.getFileTypeIdByName(target)
+                    if targetId <= sourceId:
+                        # Skip redundant reports
+                        continue
+                    # Retrieve filename
+                    reportName = self.interfaces.errorDb.getCrossReportName(submissionId, source, target)
+                    # If not local, get a signed URL
+                    if self.isLocal:
+                        reportPath = os.path.join(self.serverPath,reportName)
+                    else:
+                        reportPath = self.s3manager.getSignedUrl("errors",reportName,"GET")
+                    # Assign to key based on source and target
+                    responseDict[self.getCrossReportKey(source,target)] = reportPath
+
             return JsonResponse.create(StatusCode.OK,responseDict)
         except ResponseException as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except Exception as e:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+
+    def getCrossReportKey(self,sourceType,targetType):
+        """ Generate a key for cross-file error reports """
+        return "cross_{}-{}".format(sourceType,targetType)
 
     # Submit set of files
     def submit(self,name,CreateCredentials):
@@ -271,7 +290,7 @@ class FileHandler:
                     else:
                         jobInfo["duplicated_headers"] = []
                     jobInfo["error_type"] = self.interfaces.errorDb.getErrorType(jobId)
-                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId)
+                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId,self.jobManager.getJobType(jobId)=='validation',self.interfaces)
                 # File size and number of rows not dependent on error DB
                 # Get file size
                 jobInfo["file_size"] = self.jobManager.getFileSizeById(jobId)

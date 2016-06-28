@@ -1,45 +1,14 @@
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.orm.exc import NoResultFound
-from dataactcore.models.baseInterface import BaseInterface
+from dataactcore.models.validationInterface import ValidationInterface
 from dataactcore.models.validationModels import Rule, RuleType, FileColumn, FileType, FieldType, RuleTiming, RuleSeverity, RuleSql
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.config import CONFIG_DB
 
 
-class ValidatorValidationInterface(BaseInterface):
+class ValidatorValidationInterface(ValidationInterface):
     """ Manages all interaction with the validation database """
-
-    dbConfig = CONFIG_DB
-    dbName = dbConfig['validator_db_name']
-    Session = None
-    engine = None
-    session = None
-
-    def __init__(self):
-        self.dbName = self.dbConfig['validator_db_name']
-        super(ValidatorValidationInterface, self).__init__()
-
-    @classmethod
-    def getCredDict(cls):
-        """ Return db credentials. """
-        credDict = {
-            'username': CONFIG_DB['username'],
-            'password': CONFIG_DB['password'],
-            'host': CONFIG_DB['host'],
-            'port': CONFIG_DB['port'],
-            'dbBaseName': CONFIG_DB['base_db_name']
-        }
-        return credDict
-
-    @staticmethod
-    def getDbName():
-        """ Return database name"""
-        return ValidatorValidationInterface.dbName
-
-    def getSession(self):
-        """ Return current session object """
-        return self.session
 
     def deleteTAS(self) :
         """

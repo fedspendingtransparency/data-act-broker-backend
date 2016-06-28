@@ -60,7 +60,7 @@ class Validator(object):
                     values = ["{}: {}".format(c, str(row[c])) for c in cols]
                     values = ", ".join(values)
                     failures.append([rule.file.name, columnString,
-                        str(rule.rule_description), values, row['row_number'],str(rule.rule_label)])
+                        str(rule.rule_description), values, row['row_number'],str(rule.rule_label),rule.file_id,rule.target_file_id])
 
         # Return list of cross file validation failures
         return failures
@@ -135,7 +135,7 @@ class Validator(object):
                     dictString = str(matchDict)[1:-1] # Remove braces
                     rowNumber = thisRecord["row_number"]
                     failures.append([fileType,", ".join(fieldsToCheck),
-                                     rule.description, dictString, rowNumber, rule.original_label])
+                                     rule.description, dictString, rowNumber, rule.original_label, rule.file_id, rule.target_file_id])
 
         elif ruleType == "rule_if":
             # Get all records from source table
@@ -901,7 +901,7 @@ class Validator(object):
                     valueString = ", ".join(valueList)
                     fieldList = [str(field) for field in cols]
                     fieldString = ", ".join(fieldList)
-                    errors.append([fieldString,errorMsg,valueString,row, rule.rule_label])
+                    errors.append([fieldString,errorMsg,valueString,row, rule.rule_label, fileId, rule.target_file_id])
 
             # Pull where clause out of rule
             wherePosition = rule.rule_sql.lower().find("where")

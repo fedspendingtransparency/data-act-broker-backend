@@ -16,6 +16,9 @@ class FileType(Base):
     name = Column(Text)
     description = Column(Text)
 
+    TYPE_DICT = None
+    TYPE_ID_DICT = None
+
 class FieldType(Base):
     __tablename__ = "field_type"
 

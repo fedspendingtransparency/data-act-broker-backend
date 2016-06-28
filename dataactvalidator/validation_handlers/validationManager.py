@@ -1,6 +1,7 @@
 import os
 import traceback
 import sys
+import copy
 from csv import Error
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.responseException import ResponseException
@@ -276,12 +277,13 @@ class ValidationManager:
                 # Do SQL validations for this file
                 sqlFailures = Validator.validateFileBySql(interfaces.jobDb.getSubmissionId(jobId),fileType,interfaces)
                 for failure in sqlFailures:
-                    # TODO are the failures from sql in this format
                     fieldName = failure[0]
                     error = failure[1]
                     failedValue = failure[2]
                     row = failure[3]
                     original_label = failure[4]
+                    fileTypeId = failure[5]
+                    targetFileId = failure[6]
                     try:
                         # If error is an int, it's one of our prestored messages
                         errorType = int(error)
@@ -291,7 +293,7 @@ class ValidationManager:
                         errorMsg = error
                     writer.write([fieldName,errorMsg,str(row),failedValue,original_label])
                     errorInterface.recordRowError(jobId,self.filename,fieldName,
-                                                  error,rowNumber,original_label)
+                                                  error,rowNumber,original_label, file_type_id=fileTypeId, target_file_id = targetFileId)
 
                 # Write unfinished batch
                 writer.finishBatch()
@@ -318,16 +320,45 @@ class ValidationManager:
         failures.extend(Validator.crossValidateSql(rules, submissionId))
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
-        errorFileName = self.getFileName(interfaces.jobDb.getCrossFileReportPath(submissionId))
         errorDb = interfaces.errorDb
 
-        with self.getWriter(regionName, bucketName, errorFileName,
-                            self.crossFileReportHeaders) as writer:
-            for failure in failures:
-                writer.write(failure)
-                errorDb.recordRowError(jobId, "cross_file",
-                    failure[0], failure[2], failure[4], failure[5])
-            writer.finishBatch()
+        # Get list of file types
+        fileTypes = interfaces.validationDb.getFileTypeList()
+        # Create dict mapping file types to empty lists
+        fileTypeDict = {targetFile:[] for targetFile in fileTypes}
+
+        # Sort failures by source and target file
+        failureDict = {sourceFile:copy.deepcopy(fileTypeDict) for sourceFile in fileTypes}
+
+        for failure in failures:
+            errorDb.recordRowError(jobId, "cross_file",
+                    failure[0], failure[2], failure[4], failure[5], failure[6], failure[7])
+            # Put failure into list for this source and target file
+            sourceType = interfaces.validationDb.getFileTypeById(failure[6])
+            targetType = interfaces.validationDb.getFileTypeById(failure[7])
+            if failure[7] < failure[6]:
+                # Lower ID goes first
+                failureDict[targetType][sourceType].append(failure)
+            elif failure[7] == failure[6]:
+                raise ValueError("Both files in cross file are the same type")
+            else:
+                failureDict[sourceType][targetType].append(failure)
+
+        # For each pair of files create an error report
+        for sourceFile in fileTypes:
+            for targetFile in fileTypes:
+                sourceId = interfaces.validationDb.getFileTypeIdByName(sourceFile)
+                targetId = interfaces.validationDb.getFileTypeIdByName(targetFile)
+                if targetId <= sourceId:
+                    # Only create files in one direction
+                    continue
+                # Get filename for this error report
+                reportFilename = self.getFileName(interfaces.errorDb.getCrossReportName(submissionId, sourceFile,targetFile))
+                with self.getWriter(regionName, bucketName, reportFilename,
+                                    self.crossFileReportHeaders) as writer:
+                    for failure in failureDict[sourceFile][targetFile]:
+                        writer.write(failure[0:6])
+                    writer.finishBatch()
         errorDb.writeAllRowErrors(jobId)
         interfaces.jobDb.markJobStatus(jobId, "finished")
 
