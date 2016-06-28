@@ -15,6 +15,11 @@ class SQLLoader():
     @staticmethod
     def loadSql(filename):
         validationDB = ValidationInterface()
+
+        # Delete all records currently in table
+        validationDB.session.query(RuleSql).delete()
+        validationDB.session.commit()
+
         filename = os.path.join(SQLLoader.sql_rules_path, filename)
 
         # open csv
