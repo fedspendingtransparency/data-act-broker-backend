@@ -1,4 +1,6 @@
-SELECT af.row_number, af.bydirectreimbursablefundingsource
+SELECT
+    af.row_number,
+    af.by_direct_reimbursable_fun
 FROM award_financial AS af
 WHERE af.submission_id = {}
-    AND COALESCE(lower(af.bydirectreimbursablefundingsource),'') NOT IN ('', 'r', 'd')
+AND COALESCE(LOWER(af.by_direct_reimbursable_fun),'') NOT IN ('', 'r', 'd')

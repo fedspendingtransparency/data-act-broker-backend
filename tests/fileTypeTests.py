@@ -110,7 +110,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 21060, 4, "complete", 118, True)
+            jobId, 200, "finished", 20998, 4, "complete", 118, True)
 
     def test_award_fin_valid(self):
         """Test valid job."""
@@ -122,7 +122,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 17268, 5, "complete", 87, True)
+            jobId, 200, "finished", 17206, 5, "complete", 87, True)
 
     def test_award_valid(self):
         """Test valid job."""
@@ -162,7 +162,7 @@ class FileTypeTests(BaseTestValidator):
         self.waitOnJob(self.interfaces.jobDb, crossId, "finished", self.useThreads)
         # Check that cross file validation report exists and is the right size
         jobTracker = self.interfaces.jobDb
-        fileSize = 1668
+        fileSize = 1608
         reportPath = jobTracker.getCrossFileReportPath(jobTracker.getSubmissionId(crossId))
         if self.local:
             path = "".join(
