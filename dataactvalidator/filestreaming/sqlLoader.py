@@ -10,7 +10,7 @@ class SQLLoader():
 
     sql_rules_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "sqlrules")
     headers = ['rule_label', 'rule_description', 'rule_error_message', 'rule_cross_file_flag',
-               'file_type', 'severity_name', 'query_name']
+               'file_type', 'severity_name', 'query_name', 'target_file']
 
     @staticmethod
     def loadSql(filename):
@@ -47,7 +47,7 @@ class SQLLoader():
 
                 # look up file type id
                 try:
-                    fileId = validationDB.getFileId(FieldCleaner.cleanString(row["file_type"]))
+                    fileId = validationDB.getFileTypeIdByName(FieldCleaner.cleanString(row["file_type"]))
                 except Exception as e:
                     raise Exception("{}: file type={}, rule label={}. Rule not loaded.".format(
                         e, row["file_type"], row["rule_label"]))
@@ -56,7 +56,7 @@ class SQLLoader():
                         # No target file provided
                         targetFileId = None
                     else:
-                        targetFileId =  validationDB.getFileId(FieldCleaner.cleanString(row["target_file"]))
+                        targetFileId =  validationDB.getFileTypeIdByName(FieldCleaner.cleanString(row["target_file"]))
                 except Exception as e:
                     raise Exception("{}: file type={}, rule label={}. Rule not loaded.".format(
                         e, row["target_file"], row["rule_label"]))
