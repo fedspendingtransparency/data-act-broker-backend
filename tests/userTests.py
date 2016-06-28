@@ -137,15 +137,20 @@ class UserTests(BaseTestAPI):
     def test_list_users(self):
         """Test getting user list by status."""
         postJson = {"status": "denied"}
-        response = self.app.post_json("/v1/list_users_with_status/", postJson, headers={"x-session-id":self.session_id})
+        response = self.app.post_json("/v1/list_users/", postJson, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK)
         users = response.json["users"]
         self.assertEqual(len(users), 1)
 
+        response = self.app.post_json("/v1/list_users/", headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.OK)
+        users = response.json["users"]
+        self.assertEqual(len(users), 16)
+
     def test_list_users_bad_status(self):
         """Test getting user list with invalid status."""
         postJson = {"status": "lost"}
-        response = self.app.post_json("/v1/list_users_with_status/",
+        response = self.app.post_json("/v1/list_users/",
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.CLIENT_ERROR)
 
