@@ -15,7 +15,7 @@ class Validator(object):
     Checks individual records against specified validation tests
     """
     BOOLEAN_VALUES = ["TRUE","FALSE","YES","NO","1","0"]
-    tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op"}
+    tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op","appropriation":"approp"}
 
     @classmethod
     def crossValidate(cls,rules, submissionId):
