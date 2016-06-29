@@ -1,44 +1,44 @@
-fieldname,required,data_type,field_length,rule_labels
-allocationtransferagencyidentifier,FALSE,str,3,"A1, A20"
-agencyidentifier,TRUE,str,3,"A1, A20"
-beginningperiodofavailability,FALSE,str,4,A1
-endingperiodofavailability,FALSE,str,4,A1
-availabilitytypecode,FALSE,str,1,"A1, A21"
-mainaccountcode,TRUE,str,4,A1
-subaccountcode,TRUE,str,3,A1
-programactivityname,TRUE,str,164,B9
-programactivitycode,TRUE,str,4,B10
-objectclass,TRUE,str,4,B11
-bydirectreimbursablefundingsource,FALSE,str,1,B12
-ussgl480100_undeliveredordersobligationsunpaid_fyb,TRUE,float,21,A16
-ussgl480100_undeliveredordersobligationsunpaid_cpe,TRUE,float,21,B3
-ussgl483100_undeliveredordersobligationstransferredunpaid_cpe,TRUE,float,21,B3
-ussgl488100_upwardadjustmentsofprioryearundeliveredordersobligationsunpaid_cpe,TRUE,float,21,B3
-obligationsundeliveredordersunpaidtotal_fyb,TRUE,float,21,"A16, B3"
-obligationsundeliveredordersunpaidtotal_cpe,TRUE,float,21,B3
-ussgl490100_deliveredordersobligationsunpaid_fyb,TRUE,float,21,"A16, B4"
-ussgl490100_deliveredordersobligationsunpaid_cpe,TRUE,float,21,B4
-ussgl493100_deliveredordersobligationstransferredunpaid_cpe,TRUE,float,21,B4
-ussgl498100_upwardadjustmentsofprioryeardeliveredordersobligationsunpaid_cpe,TRUE,float,21,B4
-obligationsdeliveredordersunpaidtotal_fyb,TRUE,float,21,"A16, B4"
-obligationsdeliveredordersunpaidtotal_cpe,TRUE,float,21,B4
-ussgl480200_undeliveredordersobligationsprepaidadvanced_fyb,TRUE,float,21,"A16, B6"
-ussgl480200_undeliveredordersobligationsprepaidadvanced_cpe,TRUE,float,21,B6
-ussgl483200_undeliveredordersobligationstransferredprepaidadvanced_cpe,TRUE,float,21,B6
-ussgl488200_upwardadjustmentsofprioryearundeliveredordersobligationsprepaidadvanced_cpe,TRUE,float,21,B6
-grossoutlaysundeliveredordersprepaidtotal_fyb,TRUE,float,21,"A16, B5, B6"
-grossoutlaysundeliveredordersprepaidtotal_cpe,TRUE,float,21,"B5, B6, A18"
-ussgl490200_deliveredordersobligationspaid_cpe,TRUE,float,21,B7
-ussgl490800_authorityoutlayednotyetdisbursed_fyb,TRUE,float,21,"A16, B7"
-ussgl490800_authorityoutlayednotyetdisbursed_cpe,TRUE,float,21,B7
-ussgl498200_upwardadjustmentsofprioryeardeliveredordersobligationspaid_cpe,TRUE,float,21,B7
-grossoutlaysdeliveredorderspaidtotal_fyb,TRUE,float,21,"A16, B5, B7"
-grossoutlaysdeliveredorderspaidtotal_cpe,TRUE,float,21,"B5, B7"
-grossoutlayamountbyprogramobjectclass_fyb,TRUE,float,21,"A16, B5"
-grossoutlayamountbyprogramobjectclass_cpe,TRUE,float,21,B5
-obligationsincurredbyprogramobjectclass_cpe,TRUE,float,21,A19
-ussgl487100_downwardadjustmentsofprioryearunpaidundeliveredordersobligationsrecoveries_cpe,TRUE,float,21,B3
-ussgl497100_downwardadjustmentsofprioryearunpaiddeliveredordersobligationsrecoveries_cpe,TRUE,float,21,B4
-ussgl487200_downwardadjustmentsofprioryearprepaidadvancedundeliveredordersobligationsrefundscollected_cpe,TRUE,float,21,B6
-ussgl497200_downwardadjustmentsofprioryearpaiddeliveredordersobligationsrefundscollected_cpe,TRUE,float,21,B7
-deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe,TRUE,float,21,B13
+fieldname,required,data_type,field_length,rule_labels,padded_flag
+allocationtransferagencyidentifier,FALSE,str,3,"A1, A20",TRUE
+agencyidentifier,TRUE,str,3,"A1, A20",TRUE
+beginningperiodofavailability,FALSE,str,4,A1,
+endingperiodofavailability,FALSE,str,4,A1,
+availabilitytypecode,FALSE,str,1,"A1, A21",
+mainaccountcode,TRUE,str,4,A1,TRUE
+subaccountcode,TRUE,str,3,A1,TRUE
+programactivityname,TRUE,str,164,B9,
+programactivitycode,TRUE,str,4,B10,TRUE
+objectclass,TRUE,str,4,B11,
+bydirectreimbursablefundingsource,FALSE,str,1,B12,
+ussgl480100_undeliveredordersobligationsunpaid_fyb,TRUE,float,21,A16,
+ussgl480100_undeliveredordersobligationsunpaid_cpe,TRUE,float,21,B3,
+ussgl483100_undeliveredordersobligationstransferredunpaid_cpe,TRUE,float,21,B3,
+ussgl488100_upwardadjustmentsofprioryearundeliveredordersobligationsunpaid_cpe,TRUE,float,21,B3,
+obligationsundeliveredordersunpaidtotal_fyb,TRUE,float,21,"A16, B3",
+obligationsundeliveredordersunpaidtotal_cpe,TRUE,float,21,B3,
+ussgl490100_deliveredordersobligationsunpaid_fyb,TRUE,float,21,"A16, B4",
+ussgl490100_deliveredordersobligationsunpaid_cpe,TRUE,float,21,B4,
+ussgl493100_deliveredordersobligationstransferredunpaid_cpe,TRUE,float,21,B4,
+ussgl498100_upwardadjustmentsofprioryeardeliveredordersobligationsunpaid_cpe,TRUE,float,21,B4,
+obligationsdeliveredordersunpaidtotal_fyb,TRUE,float,21,"A16, B4",
+obligationsdeliveredordersunpaidtotal_cpe,TRUE,float,21,B4,
+ussgl480200_undeliveredordersobligationsprepaidadvanced_fyb,TRUE,float,21,"A16, B6",
+ussgl480200_undeliveredordersobligationsprepaidadvanced_cpe,TRUE,float,21,B6,
+ussgl483200_undeliveredordersobligationstransferredprepaidadvanced_cpe,TRUE,float,21,B6,
+ussgl488200_upwardadjustmentsofprioryearundeliveredordersobligationsprepaidadvanced_cpe,TRUE,float,21,B6,
+grossoutlaysundeliveredordersprepaidtotal_fyb,TRUE,float,21,"A16, B5, B6",
+grossoutlaysundeliveredordersprepaidtotal_cpe,TRUE,float,21,"B5, B6, A18",
+ussgl490200_deliveredordersobligationspaid_cpe,TRUE,float,21,B7,
+ussgl490800_authorityoutlayednotyetdisbursed_fyb,TRUE,float,21,"A16, B7",
+ussgl490800_authorityoutlayednotyetdisbursed_cpe,TRUE,float,21,B7,
+ussgl498200_upwardadjustmentsofprioryeardeliveredordersobligationspaid_cpe,TRUE,float,21,B7,
+grossoutlaysdeliveredorderspaidtotal_fyb,TRUE,float,21,"A16, B5, B7",
+grossoutlaysdeliveredorderspaidtotal_cpe,TRUE,float,21,"B5, B7",
+grossoutlayamountbyprogramobjectclass_fyb,TRUE,float,21,"A16, B5",
+grossoutlayamountbyprogramobjectclass_cpe,TRUE,float,21,B5,
+obligationsincurredbyprogramobjectclass_cpe,TRUE,float,21,A19,
+ussgl487100_downwardadjustmentsofprioryearunpaidundeliveredordersobligationsrecoveries_cpe,TRUE,float,21,B3,
+ussgl497100_downwardadjustmentsofprioryearunpaiddeliveredordersobligationsrecoveries_cpe,TRUE,float,21,B4,
+ussgl487200_downwardadjustmentsofprioryearprepaidadvancedundeliveredordersobligationsrefundscollected_cpe,TRUE,float,21,B6,
+ussgl497200_downwardadjustmentsofprioryearpaiddeliveredordersobligationsrefundscollected_cpe,TRUE,float,21,B7,
+deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe,TRUE,float,21,B13,

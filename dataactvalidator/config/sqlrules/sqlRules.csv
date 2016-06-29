@@ -14,3 +14,11 @@ A3,OtherBudgetaryResourcesAmount_CPE = ContractAuthorityAmountTotal_CPE + Borrow
 A4,StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE + UnobligatedBalance_CPE,StatusOfBudgetaryResourcesTotal_CPE= ObligationsIncurredTotalByTAS_CPE + UnobligatedBalance_CPE,n,appropriations,fatal,a4_appropriations
 A24,StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE,StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE,n,appropriations,fatal,a24_appropriations
 A21,Indicator must be X or blank,Indicator must be X or blank,n,appropriations,fatal,a21_appropriations
+A20,Must be valid Agency ID in the Common Government-wide Accounting Classification (CGAC),Must be valid Agency ID in the Common Government-wide Accounting Classification (CGAC),n,appropriations,fatal,a20_appropriations_1
+A20,Must be valid Agency ID in the Common Government-wide Accounting Classification (CGAC),Must be valid Agency ID in the Common Government-wide Accounting Classification (CGAC),n,appropriations,fatal,a20_appropriations_2
+A21,Indicator must be X or blank,Indicator must be X or blank,n,program_activity,fatal,a21_object_class_program_activity
+A20,Must be valid Agency ID in the Common Government-wide Accounting Classification (CGAC),Must be valid Agency ID in the Common Government-wide Accounting Classification (CGAC),n,program_activity,fatal,a20_object_class_program_activity_1
+A20,Must be valid Agency ID in the Common Government-wide Accounting Classification (CGAC),Must be valid Agency ID in the Common Government-wide Accounting Classification (CGAC),n,program_activity,fatal,a20_object_class_program_activity_2
+A21,Indicator must be X or blank,Indicator must be X or blank,n,award_financial,fatal,a21_award_financial
+A20,Must be valid Agency ID in the Common Government-wide Accounting Classification (CGAC),Must be valid Agency ID in the Common Government-wide Accounting Classification (CGAC),n,award_financial,fatal,a20_award_financial_1
+A20,Must be valid Agency ID in the Common Government-wide Accounting Classification (CGAC),Must be valid Agency ID in the Common Government-wide Accounting Classification (CGAC),n,award_financial,fatal,a20_award_financial_2
