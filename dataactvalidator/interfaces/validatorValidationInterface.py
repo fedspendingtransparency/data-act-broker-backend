@@ -86,14 +86,15 @@ class ValidatorValidationInterface(BaseInterface):
             return True
         return False
 
-    def addColumnByFileType(self,fileType,fieldName,required,field_type):
+    def addColumnByFileType(self,fileType,fieldName,fieldNameShort,required,field_type):
         """
         Adds a new column to the schema
 
         Args:
         fileType -- One of the set of valid types of files (e.g. Award, AwardFinancial)
 
-        fieldName -- The name of the scheam column
+        fieldName -- The name of the schema column
+        fieldNameShort -- The machine-friendly, short column name
         required --  marks the column if data is allways required
         field_type  -- sets the type of data allowed in the column
 
@@ -106,6 +107,7 @@ class ValidatorValidationInterface(BaseInterface):
         newColumn = FileColumn()
         newColumn.required = False
         newColumn.name = fieldName
+        newColumn.name_short = fieldNameShort
         newColumn.file_id = fileId
         field_type = field_type.upper()
 
@@ -122,7 +124,7 @@ class ValidatorValidationInterface(BaseInterface):
         if field_type in types :
             newColumn.field_types_id =  types[field_type]
         else :
-            raise ValueError("".join(["Type ",field_type," is not vaild for  ",str(fieldName)]))
+            raise ValueError("".join(["Type ",field_type," is not valid for  ",str(fieldName)]))
         #Check Required
         required = required.upper()
         if( required in ["TRUE","FALSE"]) :
