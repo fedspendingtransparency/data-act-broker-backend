@@ -3,6 +3,7 @@ import os
 from os.path import join
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.domainModels import TASLookup
+from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
@@ -123,6 +124,13 @@ class FileTypeTests(BaseTestValidator):
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
             jobId, 200, "finished", 17206, 5, "complete", 87, True)
+        # Test that whitespace is converted to null
+        rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.row_number == 3).filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
+        self.assertIsNone(rowThree.agencyidentifier)
+        self.assertIsNone(rowThree.parentawardid)
+        # And commas removed for numeric
+        rowThirteen = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.row_number == 13).filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
+        self.assertEqual(rowThirteen.deobligationsrecoveriesrefundsofprioryearbyaward_cpe,26000)
 
     def test_award_valid(self):
         """Test valid job."""
