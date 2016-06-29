@@ -3,7 +3,6 @@ from dataactcore.models.errorInterface import ErrorInterface
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.models.userInterface import UserInterface
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
-from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
 from sqlalchemy import MetaData, Table
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import update
@@ -16,7 +15,6 @@ def reset_alembic(alembic_version):
         JobTrackerInterface().engine,
         UserInterface().engine,
         ValidatorValidationInterface().engine,
-        ValidatorStagingInterface().engine
     ]
 
     for e in engine_list:

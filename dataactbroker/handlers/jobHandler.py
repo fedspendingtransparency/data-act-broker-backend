@@ -211,7 +211,7 @@ class JobHandler(JobTrackerInterface):
             valJob = self.runUniqueQuery(valQuery,"No cross-file validation job found","Conflicting jobs found")
             valJob.job_status_id = self.getJobStatusId("waiting")
             extQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.job_type_id == self.getJobTypeId("external_validation"))
-            extJob = self.runUniqueQuery(valQuery,"No external validation job found","Conflicting jobs found")
+            extJob = self.runUniqueQuery(extQuery,"No external validation job found","Conflicting jobs found")
             extJob.job_status_id = self.getJobStatusId("waiting")
             self.session.commit()
         else:

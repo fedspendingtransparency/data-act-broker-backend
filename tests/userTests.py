@@ -323,3 +323,37 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/update_user/", moreBadInput, expect_errors=True,
                                       headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.CLIENT_ERROR)
+
+    def test_email_users(self):
+        """ Test email users """
+        self.login_approved_user()
+        input = {"users": [self.agency_user_id], "submission_id": self.submission_id,
+                 "email_template": "review_submission"}
+        response = self.app.post_json("/v1/email_users/", input, headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.OK, "Emails successfully sent")
+
+        # missing request params
+        badInput = {"users": [self.agency_user_id]}
+        response = self.app.post_json("/v1/email_users/", badInput, expect_errors=True,
+                                      headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.CLIENT_ERROR)
+
+        # invalid submission id
+        badInput = {"users": [self.agency_user_id], "submission_id": -1}
+        response = self.app.post_json("/v1/email_users/", badInput, expect_errors=True,
+                                      headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.CLIENT_ERROR)
+
+        # invalid user id
+        badInput = {"users": [-1], "submission_id": self.submission_id,
+                 "email_template": "review_submission"}
+        response = self.app.post_json("/v1/email_users/", badInput, expect_errors=True,
+                                      headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.CLIENT_ERROR)
+
+        # invalid email template
+        badInput = {"users": [self.agency_user_id], "submission_id": self.submission_id,
+                 "email_template": "not_a_real_template"}
+        response = self.app.post_json("/v1/email_users/", badInput, expect_errors=True,
+                                      headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.CLIENT_ERROR)

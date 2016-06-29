@@ -12,7 +12,6 @@ from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.scripts.setupValidationDB import setupValidationDB
-from dataactcore.scripts.setupStagingDB import setupStagingDB
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
@@ -42,8 +41,6 @@ class BaseTestValidator(unittest.TestCase):
             cls.num, suite)
         config['validator_db_name'] = 'unittest{}_{}_validator'.format(
             cls.num, suite)
-        config['staging_db_name'] = 'unittest{}_{}_staging'.format(
-            cls.num, suite)
         dataactcore.config.CONFIG_DB = config
 
         app = createApp()
@@ -65,9 +62,7 @@ class BaseTestValidator(unittest.TestCase):
         setupJobTrackerDB()
         # drop and re-create test error db/tables
         setupErrorDB()
-        # drop and re-create test staging db
-        setupStagingDB()
-        # drop and re-create test vaidation db
+        # drop and re-create test validation db
         setupValidationDB()
 
         cls.interfaces = InterfaceHolder()
@@ -86,7 +81,6 @@ class BaseTestValidator(unittest.TestCase):
         cls.interfaces.close()
         dropDatabase(cls.interfaces.jobDb.dbName)
         dropDatabase(cls.interfaces.errorDb.dbName)
-        dropDatabase(cls.interfaces.stagingDb.dbName)
         dropDatabase(cls.interfaces.validationDb.dbName)
 
     def tearDown(self):
@@ -101,7 +95,7 @@ class BaseTestValidator(unittest.TestCase):
             statusId: Expected HTTP status code for this test
             statusName: Expected status in job tracker, False if job should not exist
             fileSize: Expected file size of error report, False if error report should not exist
-            stagingRows: Expected number of rows in staging table, False if table should not exist
+            stagingRows: Expected number of rows in validation db staging tables. False if no rows are expected
             errorStatus: Expected status in file table of error DB, False if file object should not exist
             numErrors: Expected number of errors
             rowErrorsPresent: Checks flag for whether row errors occurred, None to skip the check
@@ -121,15 +115,12 @@ class BaseTestValidator(unittest.TestCase):
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
 
-        tableName = response.json["table"]
-        if type(stagingRows) == type(False) and not stagingRows:
-            self.assertFalse(stagingDb.tableExists(tableName))
-        else:
-            self.assertTrue(stagingDb.tableExists(tableName))
-            self.assertEqual(stagingDb.countRows(tableName), stagingRows)
-            # Check that field name map table is populated
-            fieldMap = self.interfaces.stagingDb.getFieldNameMap(tableName)
-            self.assertIsNotNone(fieldMap)
+        # Get staging records associated with this job
+        if stagingRows:
+            fileType = jobTracker.getFileType(jobId)
+            submissionId = jobTracker.getSubmissionId(jobId)
+            numRows = stagingDb.getNumberOfValidRecordsForSubmission(submissionId,fileType)
+            self.assertEqual(numRows, stagingRows)
 
         errorInterface = self.errorInterface
         if errorStatus is not False:

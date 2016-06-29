@@ -4,7 +4,6 @@ from dataactcore.models import errorModels
 from dataactcore.models import jobModels
 from dataactcore.models import userModel
 from dataactcore.models import validationModels
-from dataactcore.models import stagingModels
 from dataactcore.config import CONFIG_DB
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
@@ -31,7 +30,6 @@ db_dict['error_data'] = [CONFIG_DB['error_db_name'], errorModels]
 db_dict['job_tracker'] = [CONFIG_DB['job_db_name'], jobModels]
 db_dict['user_manager'] = [CONFIG_DB['user_db_name'], userModel]
 db_dict['validation'] = [CONFIG_DB['validator_db_name'], validationModels]
-db_dict['staging'] = [CONFIG_DB['staging_db_name'], stagingModels]
 db_names = config.get_main_option('databases')
 for name in re.split(r',\s*', db_names):
     if name not in db_dict:
@@ -138,7 +136,8 @@ def run_migrations_online():
                 connection=rec['connection'],
                 upgrade_token="%s_upgrades" % name,
                 downgrade_token="%s_downgrades" % name,
-                target_metadata=target_metadata.get(name)
+                target_metadata=target_metadata.get(name),
+                compare_type=True # instruct autogen to detect col type changes
             )
             context.run_migrations(engine_name=name)
 

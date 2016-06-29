@@ -2,7 +2,12 @@
 
 from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
-from dataactcore.models.domainModels import Base
+from dataactcore.models.validationBase import Base
+# the following lines import models that are maintained in
+# separate files but live in the validation database.
+# they're imported here so alembic will see them.
+import dataactcore.models.domainModels as domainModels
+import dataactcore.models.stagingModels as stagingModels
 
 class FileType(Base):
     __tablename__ = "file_type"
@@ -44,6 +49,7 @@ class FileColumn(Base):
 
 class Rule(Base):
     __tablename__ = "rule"
+
     rule_id = Column(Integer, primary_key=True)
     file_column_id = Column(Integer, ForeignKey("file_columns.file_column_id"), nullable=True)
     rule_type_id  = Column(Integer, ForeignKey("rule_type.rule_type_id"), nullable=True)
@@ -65,10 +71,36 @@ class Rule(Base):
 
 class RuleTiming(Base):
     __tablename__ = "rule_timing"
+
     rule_timing_id = Column(Integer, primary_key=True)
     name = Column(Text,nullable=False)
     description = Column(Text, nullable=False)
 
     TIMING_DICT = None
+
+class RuleSeverity(Base):
+    __tablename__ = "rule_severity"
+
+    rule_severity_id = Column(Integer, primary_key=True)
+    name = Column(Text, nullable=False)
+    description = Column(Text, nullable=False)
+
+    SEVERITY_DICT = None
+
+class RuleSql(Base):
+    __tablename__ = "rule_sql"
+
+    rule_sql_id = Column(Integer, primary_key=True)
+    rule_sql = Column(Text, nullable=False)
+    rule_label = Column(Text)
+    rule_description = Column(Text, nullable=False)
+    rule_error_message = Column(Text, nullable=False)
+    rule_cross_file_flag = Column(Boolean, nullable=False)
+    file_id = Column(Integer, ForeignKey("file_type.file_id"), nullable=True)
+    file = relationship("FileType", uselist=False)
+    rule_severity_id = Column(Integer, ForeignKey("rule_severity.rule_severity_id"), nullable=False)
+    rule_severity = relationship("RuleSeverity", uselist=False)
+
+
 
 
