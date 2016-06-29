@@ -86,7 +86,7 @@ class ValidatorValidationInterface(BaseInterface):
             return True
         return False
 
-    def addColumnByFileType(self,fileType,fieldName,required,field_type):
+    def addColumnByFileType(self,fileType,fieldName,required,field_type,paddedFlag = "False"):
         """
         Adds a new column to the schema
 
@@ -117,6 +117,12 @@ class ValidatorValidationInterface(BaseInterface):
             field_type = "DECIMAL"
         elif(field_type  == "BOOL"):
             field_type = "BOOLEAN"
+
+        # Translate padded flag to true or false
+        if paddedFlag.lower() == "true":
+            newColumn.padded_flag = True
+        else:
+            newColumn.padded_flag = False
 
         #Check types
         if field_type in types :
@@ -423,3 +429,8 @@ class ValidatorValidationInterface(BaseInterface):
         query = self.runUniqueQuery(query, "No rule severity found with name {}".format(ruleSeverityName),
             "Multiple rule severities found with name {}".format(ruleSeverityName))
         return query
+
+    def isPadded(self, field, fileType):
+        """ Returns padded_flag for specified field and filetype """
+        column = self.getColumn(field, fileType)
+        return column.padded_flag
