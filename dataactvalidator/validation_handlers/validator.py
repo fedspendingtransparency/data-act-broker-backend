@@ -895,7 +895,7 @@ class Validator(object):
                 # Build error list
                 for failure in failures:
                     errorMsg = rule.rule_error_message
-                    row = failure ["row_number"]
+                    row = failure["row_number"]
                     # Create strings for fields and values
                     valueList = ["{}: {}".format(str(field),str(failure[field])) for field in cols]
                     valueString = ", ".join(valueList)
