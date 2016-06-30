@@ -3,6 +3,7 @@ import traceback
 import sys
 import copy
 from csv import Error
+from sqlalchemy import or_, and_
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.validationModels import FileType
 from dataactcore.utils.responseException import ResponseException
@@ -321,10 +322,10 @@ class ValidationManager:
         # use db to get a list of the cross-file combinations
         targetFiles = validationDb.session.query(FileType).subquery()
         crossFileCombos = validationDb.session.query(
-            FileType.name.label('source_file_name'),
-            FileType.file_id.label('source_file_id'),
-            targetFiles.c.name.label('target_file_name'),
-            targetFiles.c.file_id.label('target_file_id')
+            FileType.name.label('first_file_name'),
+            FileType.file_id.label('first_file_id'),
+            targetFiles.c.name.label('second_file_name'),
+            targetFiles.c.file_id.label('second_file_id')
         ).filter(FileType.file_order < targetFiles.c.file_order)
 
         # get all cross file rules from db
@@ -332,13 +333,15 @@ class ValidationManager:
 
         # for each cross-file combo, run associated rules and create error report
         for row in crossFileCombos:
-            comboRules = crossFileRules.filter(
-                RuleSql.file_id==row.source_file_id,
-                RuleSql.target_file_id==row.target_file_id)
+            comboRules = crossFileRules.filter(or_(and_(
+                RuleSql.file_id==row.first_file_id,
+                RuleSql.target_file_id==row.second_file_id), and_(
+                RuleSql.file_id==row.second_file_id,
+                RuleSql.target_file_id==row.first_file_id)))
             # send comboRules to validator.crossValidate sql
             failures = Validator.crossValidateSql(comboRules.all(),submissionId)
             # get error file name
-            reportFilename = self.getFileName(interfaces.errorDb.getCrossReportName(submissionId, row.source_file_name, row.target_file_name))
+            reportFilename = self.getFileName(interfaces.errorDb.getCrossReportName(submissionId, row.first_file_name, row.second_file_name))
 
             # loop through failures to create the error report
             with self.getWriter(regionName, bucketName, reportFilename,
