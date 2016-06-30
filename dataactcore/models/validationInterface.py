@@ -30,8 +30,9 @@ class ValidationInterface(BaseInterface):
         return self.session.query(CGAC).all()
 
     def getAgencyName(self, cgac_code):
-        agency = self.session.query(CGAC).filter(CGAC.cgac_code == cgac_code).first()
-        return agency.agency_name if agency is not None else None
+        query = self.session.query(CGAC).filter(CGAC.cgac_code == cgac_code)
+        result = self.runUniqueQuery(query, "No agency with the specified cgac code", "Multiple agencies found with the specified cgac code")
+        return result.agency_name
 
     def getRuleSeverityId(self, name):
         query = self.session.query(RuleSeverity).filter(RuleSeverity.name == name)
@@ -42,3 +43,8 @@ class ValidationInterface(BaseInterface):
         query = self.session.query(FileType).filter(FileType.name == name)
         result = self.runUniqueQuery(query, "No file type found for specified name", "Multiple file types found for specified name")
         return result.file_id
+
+    def getCGACCode(self, agency_name):
+        query = self.session.query(CGAC).filter(CGAC.agency_name == agency_name)
+        result = self.runUniqueQuery(query, "No CGAC Code found for specified agency name", "Multiple CGAC codes found for specified agency name")
+        return result.cgac_code

@@ -3,6 +3,7 @@ from dataactcore.models.userModel import User
 from dataactcore.models.validationInterface import ValidationInterface
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
+from dataactcore.utils.responseException import ResponseException
 
 def updateCGAC():
     """
@@ -20,11 +21,21 @@ def updateCGAC():
     all_users = userDb.session.query(User).all()
     all_submissions = jobDb.session.query(Submission).all()
 
-    for user in all_users:
-        user.cgac_code = findCGACCode(all_cgac, user.cgac_code)
+    users_to_update = []
 
-    for submission in all_submissions:
-        submission.cgac_code = findCGACCode(all_cgac, submission.cgac_code)
+    for user in all_users:
+        if user.cgac_code != None:
+            users_to_update.append(user)
+
+    for user in users_to_update:
+        if user.user_id == 2:
+            if validAgency(user.cgac_code, validationDb):
+                user.cgac_code = validationDb.getCGACCode(user.cgac_code)
+            if validCGAC(user.cgac_code, validationDb):
+                user_subs = jobDb.getSubmissionsByUserId(user.user_id)
+                if user_subs is not None:
+                    for sub in user_subs:
+                        sub.cgac_code = user.cgac_code
 
     jobDb.session.commit()
     jobDb.session.close()
@@ -32,8 +43,21 @@ def updateCGAC():
     userDb.session.commit()
     userDb.session.close()
 
-    # validationDb.session.commit()
     validationDb.session.close()
+
+def validCGAC(cgac_code, validationDB):
+    try:
+        validationDB.getAgencyName(cgac_code)
+        return True
+    except ResponseException:
+        return False
+
+def validAgency(agency_name, validationDB):
+    try:
+        validationDB.getCGACCode(agency_name)
+        return True
+    except ResponseException:
+        return False
 
 def findCGACCode(all_cgac, agency_name):
     for cgac in all_cgac:

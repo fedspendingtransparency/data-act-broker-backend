@@ -1,7 +1,7 @@
 import traceback
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType
+from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -275,3 +275,6 @@ class JobTrackerInterface(BaseInterface):
         if statuses["finished"] == len(jobIds)-skip_count: # need to account for the jobs that were skipped above
             return "finished"
         return "unknown"
+
+    def getSubmissionsByUserId(self, user_id):
+        return self.session.query(Submission).filter(Submission.user_id == user_id).all()
