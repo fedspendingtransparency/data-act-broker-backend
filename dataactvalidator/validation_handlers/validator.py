@@ -18,23 +18,6 @@ class Validator(object):
     tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op","appropriation":"approp"}
 
     @classmethod
-    def crossValidate(cls,rules, submissionId):
-        """ Evaluate all rules for cross file validation
-
-        Args:
-            rules -- List of Rule objects
-            submissionId -- ID of submission to run cross-file validation
-        """
-        failures = []
-        # Put each rule through evaluate, appending all failures into list
-        for rule in rules:
-            (passed, ruleFailures) = cls.evaluateCrossFileRule(rule, submissionId)
-            if not passed:
-                failures.extend(ruleFailures)
-        # Return list of cross file validation failures
-        return failures
-
-    @classmethod
     def crossValidateSql(cls, rules, submissionId):
         """ Evaluate all sql-based rules for cross file validation
 
@@ -59,8 +42,9 @@ class Validator(object):
                     # get list of values for each column
                     values = ["{}: {}".format(c, str(row[c])) for c in cols]
                     values = ", ".join(values)
-                    failures.append([rule.file.name, columnString,
-                        str(rule.rule_description), values, row['row_number'],str(rule.rule_label)])
+                    targetFileType = interfaces.validationDb.getFileTypeById(rule.target_file_id)
+                    failures.append([rule.file.name, targetFileType, columnString,
+                        str(rule.rule_description), values, row['row_number'],str(rule.rule_label),rule.file_id,rule.target_file_id])
 
         # Return list of cross file validation failures
         return failures
@@ -86,84 +70,6 @@ class Validator(object):
             sourceRecords = stagingDb.getSubmissionsByFileType(submissionId, fileType).all()
             sourceRecords = [r.__dict__ for r in sourceRecords]
         return sourceRecords
-
-    @classmethod
-    def evaluateCrossFileRule(cls, rule, submissionId, record=None):
-        """ Evaluate specified rule against all records to which it applies
-
-        Args:
-            rule - Rule object to be tested
-            submissionId - ID of submission being tested
-            record - Some rule types are applied to only a single record.  For those rules, include the record as a dict here.
-
-        Returns:
-            Tuple of a boolean indicating passed or not, and a list of all failures that occurred.  Each failure is a
-            list containing the type of the source file, the fields involved, a description of the rule, the values for
-            the fields involved, and the row number in the source file where the failure occurred.
-        """
-        failures = [] # Can get multiple failures for these rule types
-        rulePassed = True # Set to false on first failures
-        # Get rule type
-        ruleType = rule.rule_type.name.lower()
-        fileType = rule.file_type.name
-        interfaces = InterfaceHolder()
-        stagingDb = interfaces.stagingDb
-        if ruleType == "field_match":
-            targetType = rule.rule_text_2
-            # Get ORM objects for source and target staging tables
-            # TODO Could try to do a join and see what doesn't match, or otherwise improve performance by avoiding a
-            # TODO new query against second table for every record in first table, possibly index second table at start
-            # Can apply rule to a specified record or all records in first table
-            sourceRecords = cls.getRecordsIfNone(
-                submissionId, fileType, stagingDb, record)
-            targetQuery = stagingDb.getSubmissionsByFileType(
-                submissionId, targetType)
-            fieldsToCheck = cls.cleanSplit(rule.rule_text_1, True)
-            # For each entry, check for the presence of matching values in second table
-            for thisRecord in sourceRecords:
-                # Build query to filter for each field to match
-                matchDict = {}
-                for field in fieldsToCheck:
-                    sourceValue = thisRecord[str(field)]
-                    matchDict[str(field)] = sourceValue
-                count = targetQuery.filter_by(**matchDict).count()
-
-                # Make sure at least one in target table record matches
-                if count < 1:
-                    # Fields don't match target file, add to failures
-                    rulePassed = False
-                    dictString = str(matchDict)[1:-1] # Remove braces
-                    rowNumber = thisRecord["row_number"]
-                    failures.append([fileType,", ".join(fieldsToCheck),
-                                     rule.description, dictString, rowNumber, rule.original_label])
-
-        elif ruleType == "rule_if":
-            # Get all records from source table
-            # Can apply rule to a specified record or all records in first table
-            sourceRecords = cls.getRecordsIfNone(
-                submissionId, fileType, stagingDb, record)
-            # Get both rules, condition to check and rule to apply based on condition
-            condition = interfaces.validationDb.getRuleByLabel(rule.rule_text_2)
-            conditionalRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
-            # Apply first rule for all records that pass second rule
-            for record in sourceRecords:
-                if cls.evaluateCrossFileRule(condition, submissionId, record)[0]:
-                    result = cls.evaluateCrossFileRule(conditionalRule, submissionId, record)
-                    if not result[0]:
-                        # Record if we have seen a failure
-                        rulePassed = False
-                        failures.extend(result[1])
-
-        elif ruleType == "greater":
-            if not record:
-                # Must provide a record for this rule
-                raise ValueError("Cannot apply greater rule without a record")
-            rulePassed = int(record[rule.rule_text_2]) > int(rule.rule_text_1)
-
-        elif ruleType == "sum_by_tas":
-            rulePassed = True
-
-        return rulePassed,failures
 
     @staticmethod
     def validate(record,rules,csvSchema,fileType,interfaces):
@@ -901,7 +807,7 @@ class Validator(object):
                     valueString = ", ".join(valueList)
                     fieldList = [str(field) for field in cols]
                     fieldString = ", ".join(fieldList)
-                    errors.append([fieldString,errorMsg,valueString,row, rule.rule_label])
+                    errors.append([fieldString,errorMsg,valueString,row, rule.rule_label, fileId, rule.target_file_id])
 
             # Pull where clause out of rule
             wherePosition = rule.rule_sql.lower().find("where")
