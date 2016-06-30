@@ -15,6 +15,7 @@ class FileType(Base):
     file_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
+    file_order = Column(Integer, nullable=False, server_default="0")
 
     TYPE_DICT = None
     TYPE_ID_DICT = None
