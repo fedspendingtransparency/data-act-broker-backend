@@ -4,6 +4,7 @@ import sys
 import copy
 from csv import Error
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.models.validationModels import FileType
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
@@ -310,55 +311,44 @@ class ValidationManager:
 
     def runCrossValidation(self, jobId, interfaces):
         """ Cross file validation job, test all rules with matching rule_timing """
-        # Select all cross-file rules from rule table
-        rules = interfaces.validationDb.getRulesByTiming("cross_file")
-        # Validate cross validation rules
+        validationDb = interfaces.validationDb
+        errorDb = interfaces.errorDb
         submissionId = interfaces.jobDb.getSubmissionId(jobId)
-        failures = Validator.crossValidate(rules,submissionId)
-        # Run the sql-based cross file validations
-        rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.rule_cross_file_flag == True).all()
-        failures.extend(Validator.crossValidateSql(rules, submissionId))
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
-        errorDb = interfaces.errorDb
 
-        # Get list of file types
-        fileTypes = interfaces.validationDb.getFileTypeList()
-        # Create dict mapping file types to empty lists
-        fileTypeDict = {targetFile:[] for targetFile in fileTypes}
 
-        # Sort failures by source and target file
-        failureDict = {sourceFile:copy.deepcopy(fileTypeDict) for sourceFile in fileTypes}
+        # use db to get a list of the cross-file combinations
+        targetFiles = validationDb.session.query(FileType).subquery()
+        crossFileCombos = validationDb.session.query(
+            FileType.name.label('source_file_name'),
+            FileType.file_id.label('source_file_id'),
+            targetFiles.c.name.label('target_file_name'),
+            targetFiles.c.file_id.label('target_file_id')
+        ).filter(FileType.file_id < targetFiles.c.file_id)
 
-        for failure in failures:
-            errorDb.recordRowError(jobId, "cross_file",
-                    failure[0], failure[3], failure[5], failure[6], failure[7], failure[8])
-            # Put failure into list for this source and target file
-            sourceType = interfaces.validationDb.getFileTypeById(failure[7])
-            targetType = interfaces.validationDb.getFileTypeById(failure[8])
-            if failure[8] < failure[7]:
-                # Lower ID goes first
-                failureDict[targetType][sourceType].append(failure)
-            elif failure[8] == failure[7]:
-                raise ValueError("Both files in cross file are the same type")
-            else:
-                failureDict[sourceType][targetType].append(failure)
+        # get all cross file rules from db
+        crossFileRules = validationDb.session.query(RuleSql).filter(RuleSql.rule_cross_file_flag==True)
 
-        # For each pair of files create an error report
-        for sourceFile in fileTypes:
-            for targetFile in fileTypes:
-                sourceId = interfaces.validationDb.getFileTypeIdByName(sourceFile)
-                targetId = interfaces.validationDb.getFileTypeIdByName(targetFile)
-                if targetId <= sourceId:
-                    # Only create files in one direction
-                    continue
-                # Get filename for this error report
-                reportFilename = self.getFileName(interfaces.errorDb.getCrossReportName(submissionId, sourceFile,targetFile))
-                with self.getWriter(regionName, bucketName, reportFilename,
+        # for each cross-file combo, run associated rules and create error report
+        for row in crossFileCombos:
+            comboRules = crossFileRules.filter(
+                RuleSql.file_id==row.source_file_id,
+                RuleSql.target_file_id==row.target_file_id)
+            # send comboRules to validator.crossValidate sql
+            failures = Validator.crossValidateSql(comboRules.all(),submissionId)
+            # get error file name
+            reportFilename = self.getFileName(interfaces.errorDb.getCrossReportName(submissionId, row.source_file_name, row.target_file_name))
+
+            # loop through failures to create the error report
+            with self.getWriter(regionName, bucketName, reportFilename,
                                     self.crossFileReportHeaders) as writer:
-                    for failure in failureDict[sourceFile][targetFile]:
-                        writer.write(failure[0:7])
-                    writer.finishBatch()
+                for failure in failures:
+                    writer.write(failure[0:7])
+                    errorDb.recordRowError(jobId, "cross_file",
+                        failure[0], failure[3], failure[5], failure[6], failure[7], failure[8])
+                writer.finishBatch()
+
         errorDb.writeAllRowErrors(jobId)
         interfaces.jobDb.markJobStatus(jobId, "finished")
 
