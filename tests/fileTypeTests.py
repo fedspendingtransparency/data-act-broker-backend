@@ -125,13 +125,12 @@ class FileTypeTests(BaseTestValidator):
         self.passed = self.run_test(
             jobId, 200, "finished", 13413, 5, "complete", 77, True)
         # Test that whitespace is converted to null
-        rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.row_number == 3).filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
+        rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
         self.assertIsNone(rowThree.agencyidentifier)
-        self.assertIsNone(rowThree.parentawardid)
+        self.assertIsNone(rowThree.piid)
         # And commas removed for numeric
-        rowThirteen = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.row_number == 13).filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
+        rowThirteen = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "YYYY").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
         self.assertEqual(rowThirteen.deobligationsrecoveriesrefundsofprioryearbyaward_cpe,26000)
-
 
     def test_award_valid(self):
         """Test valid job."""
@@ -166,23 +165,36 @@ class FileTypeTests(BaseTestValidator):
         self.assertEqual(crossFileResponse.status_code, 200, msg=str(crossFileResponse.json))
 
         # Check number of cross file validation errors in DB for this job
-        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId), 5)
+        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId), 3)
         # Check cross file job complete
         self.waitOnJob(self.interfaces.jobDb, crossId, "finished", self.useThreads)
         # Check that cross file validation report exists and is the right size
         jobTracker = self.interfaces.jobDb
-        fileSize = 1622
-        reportPath = jobTracker.getCrossFileReportPath(jobTracker.getSubmissionId(crossId))
+
+        submissionId = jobTracker.getSubmissionId(crossId)
+        abFileSize = 1339
+        cdFileSize = 89
+        abFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")
+        cdFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")
+
         if self.local:
             path = "".join(
-                [self.local_file_directory,reportPath])
-            self.assertGreater(os.path.getsize(path), fileSize - 5)
-            self.assertLess(os.path.getsize(path), fileSize + 5)
+                [self.local_file_directory,abFilename])
+            self.assertGreater(os.path.getsize(path), abFileSize - 5)
+            self.assertLess(os.path.getsize(path), abFileSize + 5)
+            path = "".join(
+                [self.local_file_directory,cdFilename])
+            self.assertGreater(os.path.getsize(path), cdFileSize - 5)
+            self.assertLess(os.path.getsize(path), cdFileSize + 5)
         else:
             self.assertGreater(s3UrlHandler.getFileSize(
-                "errors/"+reportPath), fileSize - 5)
+                "errors/"+abFilename), abFileSize - 5)
             self.assertLess(s3UrlHandler.getFileSize(
-                "errors/"+reportPath), fileSize + 5)
+                "errors/"+abFilename), abFileSize + 5)
+            self.assertGreater(s3UrlHandler.getFileSize(
+                "errors/"+cdFilename), cdFileSize - 5)
+            self.assertLess(s3UrlHandler.getFileSize(
+                "errors/"+cdFilename), cdFileSize + 5)
 
 if __name__ == '__main__':
     unittest.main()
