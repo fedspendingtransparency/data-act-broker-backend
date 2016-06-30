@@ -325,7 +325,7 @@ class ValidationManager:
             FileType.file_id.label('source_file_id'),
             targetFiles.c.name.label('target_file_name'),
             targetFiles.c.file_id.label('target_file_id')
-        ).filter(FileType.file_id < targetFiles.c.file_id)
+        ).filter(FileType.file_order < targetFiles.c.file_order)
 
         # get all cross file rules from db
         crossFileRules = validationDb.session.query(RuleSql).filter(RuleSql.rule_cross_file_flag==True)
