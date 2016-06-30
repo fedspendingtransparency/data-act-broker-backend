@@ -123,13 +123,13 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 17206, 5, "complete", 77, True)
+            jobId, 200, "finished", 13397, 5, "complete", 77, True)
         # Test that whitespace is converted to null
-        rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.row_number == 3).filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
+        rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
         self.assertIsNone(rowThree.agencyidentifier)
-        self.assertIsNone(rowThree.parentawardid)
+        self.assertIsNone(rowThree.piid)
         # And commas removed for numeric
-        rowThirteen = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.row_number == 13).filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
+        rowThirteen = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "YYYY").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
         self.assertEqual(rowThirteen.deobligationsrecoveriesrefundsofprioryearbyaward_cpe,26000)
 
     def test_award_valid(self):
