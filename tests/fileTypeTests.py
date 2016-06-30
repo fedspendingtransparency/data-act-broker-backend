@@ -164,8 +164,8 @@ class FileTypeTests(BaseTestValidator):
         jobTracker = self.interfaces.jobDb
 
         submissionId = jobTracker.getSubmissionId(crossId)
-        abFileSize = 1262
-        cdFileSize = 423
+        abFileSize = 1325
+        cdFileSize = 457
         abFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")
         cdFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")
 

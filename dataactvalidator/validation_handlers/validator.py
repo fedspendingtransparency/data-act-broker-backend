@@ -59,7 +59,8 @@ class Validator(object):
                     # get list of values for each column
                     values = ["{}: {}".format(c, str(row[c])) for c in cols]
                     values = ", ".join(values)
-                    failures.append([rule.file.name, columnString,
+                    targetFileType = interfaces.validationDb.getFileTypeById(rule.target_file_id)
+                    failures.append([rule.file.name, targetFileType, columnString,
                         str(rule.rule_description), values, row['row_number'],str(rule.rule_label),rule.file_id,rule.target_file_id])
 
         # Return list of cross file validation failures
@@ -134,7 +135,7 @@ class Validator(object):
                     rulePassed = False
                     dictString = str(matchDict)[1:-1] # Remove braces
                     rowNumber = thisRecord["row_number"]
-                    failures.append([fileType,", ".join(fieldsToCheck),
+                    failures.append([fileType,targetType, ", ".join(fieldsToCheck),
                                      rule.description, dictString, rowNumber, rule.original_label, rule.file_id, rule.target_file_id])
 
         elif ruleType == "rule_if":

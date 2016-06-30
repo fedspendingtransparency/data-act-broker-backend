@@ -26,7 +26,7 @@ class ValidationManager:
     Outer level class, called by flask route
     """
     reportHeaders = ["Field name", "Error message", "Row number", "Value provided", "Rule label"]
-    crossFileReportHeaders = ["Source File", "Field names", "Error message", "Values provided", "Row number", "Rule label"]
+    crossFileReportHeaders = ["Source File", "Target File", "Field names", "Error message", "Values provided", "Row number", "Rule label"]
 
     def __init__(self,isLocal =True,directory=""):
         # Initialize instance variables
@@ -332,14 +332,14 @@ class ValidationManager:
 
         for failure in failures:
             errorDb.recordRowError(jobId, "cross_file",
-                    failure[0], failure[2], failure[4], failure[5], failure[6], failure[7])
+                    failure[0], failure[3], failure[5], failure[6], failure[7], failure[8])
             # Put failure into list for this source and target file
-            sourceType = interfaces.validationDb.getFileTypeById(failure[6])
-            targetType = interfaces.validationDb.getFileTypeById(failure[7])
-            if failure[7] < failure[6]:
+            sourceType = interfaces.validationDb.getFileTypeById(failure[7])
+            targetType = interfaces.validationDb.getFileTypeById(failure[8])
+            if failure[8] < failure[7]:
                 # Lower ID goes first
                 failureDict[targetType][sourceType].append(failure)
-            elif failure[7] == failure[6]:
+            elif failure[8] == failure[7]:
                 raise ValueError("Both files in cross file are the same type")
             else:
                 failureDict[sourceType][targetType].append(failure)
@@ -357,7 +357,7 @@ class ValidationManager:
                 with self.getWriter(regionName, bucketName, reportFilename,
                                     self.crossFileReportHeaders) as writer:
                     for failure in failureDict[sourceFile][targetFile]:
-                        writer.write(failure[0:6])
+                        writer.write(failure[0:7])
                     writer.finishBatch()
         errorDb.writeAllRowErrors(jobId)
         interfaces.jobDb.markJobStatus(jobId, "finished")
