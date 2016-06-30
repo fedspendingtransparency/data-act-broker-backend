@@ -30,9 +30,8 @@ class ValidationInterface(BaseInterface):
         return self.session.query(CGAC).all()
 
     def getAgencyName(self, cgac_code):
-        query = self.session.query(CGAC).filter(CGAC.cgac_code == cgac_code)
-        result = self.runUniqueQuery(query, "No agency with the specified cgac code", "Multiple agencies found with the specified cgac code")
-        return result.agency_name
+        agency = self.session.query(CGAC).filter(CGAC.cgac_code == cgac_code).first()
+        return agency.agency_name if agency is not None else None
 
     def getRuleSeverityId(self, name):
         query = self.session.query(RuleSeverity).filter(RuleSeverity.name == name)

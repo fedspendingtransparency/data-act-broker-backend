@@ -46,10 +46,10 @@ def updateCGAC():
     validationDb.session.close()
 
 def validCGAC(cgac_code, validationDB):
-    try:
-        validationDB.getAgencyName(cgac_code)
+    res = validationDB.getAgencyName(cgac_code)
+    if res is not None:
         return True
-    except ResponseException:
+    else:
         return False
 
 def validAgency(agency_name, validationDB):
