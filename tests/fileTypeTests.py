@@ -123,7 +123,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 17222, 5, "complete", 87, True)
+            jobId, 200, "finished", 13397, 5, "complete", 77, True)
         # Test that whitespace is converted to null
         rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.row_number == 3).filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
         self.assertIsNone(rowThree.agencyidentifier)
@@ -131,6 +131,7 @@ class FileTypeTests(BaseTestValidator):
         # And commas removed for numeric
         rowThirteen = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.row_number == 13).filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
         self.assertEqual(rowThirteen.deobligationsrecoveriesrefundsofprioryearbyaward_cpe,26000)
+
 
     def test_award_valid(self):
         """Test valid job."""
