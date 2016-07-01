@@ -106,8 +106,8 @@ class FieldCleaner(StringCleaner):
             raise ValueError("Length must be positive")
         return length
 
-    @staticmethod
-    def cleanRow(row, fileType, validationInterface):
+    @classmethod
+    def cleanRow(cls, row, fileType, validationInterface):
         for key in row.keys():
             field_type = validationInterface.getColumn(key, fileType).field_type.name
             value = row[key]
@@ -121,8 +121,31 @@ class FieldCleaner(StringCleaner):
                 if value == "":
                     # Replace empty strings with null
                     value = None
-                row[key] = value
+
+                row[key] = cls.padField(key,value,fileType,validationInterface)
         return row
+
+    @staticmethod
+    def padField(field,value,fileType,validationInterface):
+        """ Pad value with appropriate number of leading zeros if needed
+
+        Args:
+            field: Name of field
+            value: Value present in row
+            fileType: Type of file data is being loaded for
+            interfaces: InterfaceHolder object
+
+        Returns:
+            Padded value
+        """
+        # Check padded flag for this field and file
+        if value is not None and validationInterface.isPadded(field,fileType):
+            # If padded flag is true, get column length
+            padLength = validationInterface.getColumnLength(field, fileType)
+            # Pad to specified length with leading zeros
+            return value.zfill(padLength)
+        else:
+            return value
 
 if __name__ == '__main__':
     FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")
