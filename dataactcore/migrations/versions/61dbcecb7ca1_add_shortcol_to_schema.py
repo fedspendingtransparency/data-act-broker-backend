@@ -1,14 +1,14 @@
 """add_shortcol_to_schema
 
 Revision ID: 61dbcecb7ca1
-Revises: b64a9cc871cc
+Revises: 500f4c889acc
 Create Date: 2016-06-28 15:27:08.899466
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '61dbcecb7ca1'
-down_revision = 'b64a9cc871cc'
+down_revision = '500f4c889acc'
 branch_labels = None
 depends_on = None
 
