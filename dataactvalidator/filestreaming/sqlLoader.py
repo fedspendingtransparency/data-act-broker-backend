@@ -1,6 +1,5 @@
 import csv
 import os
-from loaderUtils import LoaderUtils
 from dataactcore.models.validationModels import RuleSql
 from dataactcore.models.validationInterface import ValidationInterface
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
