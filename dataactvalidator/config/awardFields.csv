@@ -1,4 +1,4 @@
-fieldname,fieldname_short,required,data_type,field_length,rule_labels
+fieldname,fieldname_short,required,data_type,field_length,rule_labels,padded_flag
 actiondate,action_date,true,str,8,"D3, D4"
 actiontype,action_type,false,str,1,"D1, D2"
 assistancetype,assistance_type,true,str,2,D1
@@ -59,3 +59,4 @@ recordtype,record_type,true,int,1,D1
 sai_number,sai_number,false,str,50,
 totalfundingamount,total_funding_amount,false,float,20,
 uri,uri,false,str,70,"C9, D6, D7"
+

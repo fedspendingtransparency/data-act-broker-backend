@@ -1,21 +1,1 @@
-fieldname,fieldname_short,required,data_type,field_length,rule_labels
-adjustmentstounobligatedbalancebroughtforward_cpe,adjustments_to_unobligated_cpe,true,float,21,"A2, A12, A17"
-agencyidentifier,agency_identifier,true,str,3,"A1, A20"
-allocationtransferagencyidentifier,allocation_transfer_agency,false,str,3,"A1, A20"
-availabilitytypecode,availability_type_code,false,str,1,"A1, A21"
-beginningperiodofavailability,beginning_period_of_availa,false,str,4,A1
-borrowingauthorityamounttotal_cpe,borrowing_authority_amount_cpe,false,float,21,"A3, A10, A17, A25"
-budgetauthorityappropriatedamount_cpe,budget_authority_appropria_cpe,true,float,21,"A2, A8, A17"
-budgetauthorityavailableamounttotal_cpe,budget_authority_available_cpe,true,float,21,"A2, A4, A6, A17, A24"
-budgetauthorityunobligatedbalancebroughtforward_fyb,budget_authority_unobligat_fyb,false,float,21,"A2, A7, A16, A17"
-contractauthorityamounttotal_cpe,contract_authority_amount_cpe,false,float,21,"A3, A9, A17, A26"
-deobligationsrecoveriesrefundsbytas_cpe,deobligations_recoveries_r_cpe,true,float,21,
-endingperiodofavailability,ending_period_of_availabil,false,str,4,A1
-grossoutlayamountbytas_cpe,gross_outlay_amount_by_tas_cpe,true,float,21,"A14, A17, A18"
-mainaccountcode,main_account_code,true,str,4,A1
-obligationsincurredtotalbytas_cpe,obligations_incurred_total_cpe,true,float,21,"A4, A17, A19, A22"
-otherbudgetaryresourcesamount_cpe,other_budgetary_resources_cpe,false,float,21,"A2, A3, A17, A28"
-spendingauthorityfromoffsettingcollectionsamounttotal_cpe,spending_authority_from_of_cpe,false,float,21,"A3, A11, A17, A27"
-statusofbudgetaryresourcestotal_cpe,status_of_budgetary_resour_cpe,true,float,21,"A4,  A17, A23, A24"
-subaccountcode,sub_account_code,true,str,3,A1
-unobligatedbalance_cpe,unobligated_balance_cpe,true,float,21,"A4, A15, A17"
+fieldname,fieldname_short,required,data_type,field_length,rule_labels,padded_flagadjustmentstounobligatedbalancebroughtforward_cpe,adjustments_to_unobligated_cpe,TRUE,float,21,"A2, A12, A17",agencyidentifier,agency_identifier,TRUE,str,3,"A1, A20",TRUEallocationtransferagencyidentifier,allocation_transfer_agency,FALSE,str,3,"A1, A20",TRUEavailabilitytypecode,availability_type_code,FALSE,str,1,"A1, A21",beginningperiodofavailability,beginning_period_of_availa,FALSE,str,4,A1,borrowingauthorityamounttotal_cpe,borrowing_authority_amount_cpe,FALSE,float,21,"A3, A10, A17, A25",budgetauthorityappropriatedamount_cpe,budget_authority_appropria_cpe,TRUE,float,21,"A2, A8, A17",budgetauthorityavailableamounttotal_cpe,budget_authority_available_cpe,TRUE,float,21,"A2, A4, A6, A17, A24",budgetauthorityunobligatedbalancebroughtforward_fyb,budget_authority_unobligat_fyb,FALSE,float,21,"A2, A7, A16, A17",contractauthorityamounttotal_cpe,contract_authority_amount_cpe,FALSE,float,21,"A3, A9, A17, A26",deobligationsrecoveriesrefundsbytas_cpe,deobligations_recoveries_r_cpe,TRUE,float,21,,endingperiodofavailability,ending_period_of_availabil,FALSE,str,4,A1,grossoutlayamountbytas_cpe,gross_outlay_amount_by_tas_cpe,TRUE,float,21,"A14, A17, A18",mainaccountcode,main_account_code,TRUE,str,4,A1,TRUEobligationsincurredtotalbytas_cpe,obligations_incurred_total_cpe,TRUE,float,21,"A4, A17, A19, A22",otherbudgetaryresourcesamount_cpe,other_budgetary_resources_cpe,FALSE,float,21,"A2, A3, A17, A28",spendingauthorityfromoffsettingcollectionsamounttotal_cpe,spending_authority_from_of_cpe,FALSE,float,21,"A3, A11, A17, A27",statusofbudgetaryresourcestotal_cpe,status_of_budgetary_resour_cpe,TRUE,float,21,"A4,  A17, A23, A24",subaccountcode,sub_account_code,TRUE,str,3,A1,TRUEunobligatedbalance_cpe,unobligated_balance_cpe,TRUE,float,21,"A4, A15, A17",

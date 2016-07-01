@@ -46,4 +46,7 @@ class ErrorMetadata(Base):
     occurrences = Column(Integer)
     first_row = Column(Integer)
     rule_failed = Column(Text, nullable=True)
+    file_type_id = Column(Integer)
+    # Second file type id is used in cross file errors
+    target_file_type_id = Column(Integer)
     original_rule_label = Column(Text, nullable = True)
