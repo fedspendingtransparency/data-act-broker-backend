@@ -107,9 +107,9 @@ class FieldCleaner(StringCleaner):
         return length
 
     @classmethod
-    def cleanRow(cls, row, fileType, interfaces):
+    def cleanRow(cls, row, fileType, validationInterface):
         for key in row.keys():
-            field_type = interfaces.validationDb.getColumn(key, fileType).field_type.name
+            field_type = validationInterface.getColumn(key, fileType).field_type.name
             value = row[key]
             if value is not None:
                 # Remove extra whitespace
@@ -122,11 +122,11 @@ class FieldCleaner(StringCleaner):
                     # Replace empty strings with null
                     value = None
 
-                row[key] = cls.padField(key,value,fileType,interfaces)
+                row[key] = cls.padField(key,value,fileType,validationInterface)
         return row
 
     @staticmethod
-    def padField(field,value,fileType,interfaces):
+    def padField(field,value,fileType,validationInterface):
         """ Pad value with appropriate number of leading zeros if needed
 
         Args:
@@ -139,9 +139,9 @@ class FieldCleaner(StringCleaner):
             Padded value
         """
         # Check padded flag for this field and file
-        if value is not None and interfaces.validationDb.isPadded(field,fileType):
+        if value is not None and validationInterface.isPadded(field,fileType):
             # If padded flag is true, get column length
-            padLength = interfaces.validationDb.getColumnLength(field, fileType)
+            padLength = validationInterface.getColumnLength(field, fileType)
             # Pad to specified length with leading zeros
             return value.zfill(padLength)
         else:
