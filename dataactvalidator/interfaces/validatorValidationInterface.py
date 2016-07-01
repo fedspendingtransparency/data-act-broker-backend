@@ -55,7 +55,7 @@ class ValidatorValidationInterface(ValidationInterface):
             return True
         return False
 
-    def addColumnByFileType(self,fileType,fieldName,required,field_type,paddedFlag = "False"):
+    def addColumnByFileType(self, fileType, fieldName, fieldNameShort, required, field_type, paddedFlag = "False"):
         """
         Adds a new column to the schema
 
@@ -90,7 +90,9 @@ class ValidatorValidationInterface(ValidationInterface):
             field_type = "BOOLEAN"
 
         # Translate padded flag to true or false
-        if paddedFlag.lower() == "true":
+        if not paddedFlag:
+            newColumn.padded_flag = False
+        elif paddedFlag.lower() == "true":
             newColumn.padded_flag = True
         else:
             newColumn.padded_flag = False
