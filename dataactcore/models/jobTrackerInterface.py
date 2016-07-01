@@ -275,6 +275,3 @@ class JobTrackerInterface(BaseInterface):
         if statuses["finished"] == len(jobIds)-skip_count: # need to account for the jobs that were skipped above
             return "finished"
         return "unknown"
-
-    def getSubmissionsByUserId(self, user_id):
-        return self.session.query(Submission).filter(Submission.user_id == user_id).all()
