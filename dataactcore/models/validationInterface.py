@@ -52,3 +52,8 @@ class ValidationInterface(BaseInterface):
         result = self.runUniqueQuery(query, "No rule severity found for specified name", "Multiple rule severities found for specified name")
         return result.rule_severity_id
 
+
+    def getCGACCode(self, agency_name):
+        query = self.session.query(CGAC).filter(CGAC.agency_name == agency_name)
+        result = self.runUniqueQuery(query, "No CGAC Code found for specified agency name", "Multiple CGAC codes found for specified agency name")
+        return result.cgac_code
