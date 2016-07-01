@@ -10,7 +10,7 @@ class SQLLoader():
 
     sql_rules_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "sqlrules")
     headers = ['rule_label', 'rule_description', 'rule_error_message', 'rule_cross_file_flag',
-               'file_type', 'severity_name', 'query_name']
+               'file_type', 'severity_name', 'query_name', 'target_file']
 
     @staticmethod
     def loadSql(filename):
@@ -48,10 +48,35 @@ class SQLLoader():
                 sql = " ".join(map(lambda line: FieldCleaner.cleanString(line.replace("\n", ""), removeSpaces=False), sql_file.readlines()))
 
                 rule_sql = RuleSql(rule_sql=sql, rule_label=row['rule_label'], rule_description=row['rule_description'],
-                                   rule_error_message=row['rule_error_message'], rule_cross_file_flag=row['rule_cross_file_flag'],
-                                   query_name=row['query_name'])
+                                   rule_error_message=row['rule_error_message'], query_name=row['query_name'])
+
+                # look up file type id
+                try:
+                    fileId = validationDB.getFileTypeIdByName(FieldCleaner.cleanString(row["file_type"]))
+                except Exception as e:
+                    raise Exception("{}: file type={}, rule label={}. Rule not loaded.".format(
+                        e, row["file_type"], row["rule_label"]))
+                try:
+                    if row["target_file"].strip() == "":
+                        # No target file provided
+                        targetFileId = None
+                    else:
+                        targetFileId =  validationDB.getFileTypeIdByName(FieldCleaner.cleanString(row["target_file"]))
+                except Exception as e:
+                    raise Exception("{}: file type={}, rule label={}. Rule not loaded.".format(
+                        e, row["target_file"], row["rule_label"]))
+
+                # set cross file flag
+                if (FieldCleaner.cleanString(row["rule_cross_file_flag"])
+                    in ['true', 't', 'y', 'yes']):
+                    cross_file_flag = True
+                else:
+                    cross_file_flag = False
+
                 rule_sql.rule_severity_id = validationDB.getRuleSeverityId(row['severity_name'])
-                rule_sql.file_id = validationDB.getFileTypeId(row['file_type'])
+                rule_sql.file_id = fileId
+                rule_sql.target_file_id = targetFileId
+                rule_sql.rule_cross_file_flag = cross_file_flag
 
                 validationDB.session.merge(rule_sql)
             validationDB.session.commit()

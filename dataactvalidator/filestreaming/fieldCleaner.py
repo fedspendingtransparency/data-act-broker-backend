@@ -111,10 +111,17 @@ class FieldCleaner(StringCleaner):
         for key in row.keys():
             field_type = validationInterface.getColumn(key, fileType).field_type.name
             value = row[key]
-            if value is not None and field_type in ["INT", "DECIMAL", "LONG"]:
-                tempValue = value.replace(",","")
-                if FieldCleaner.isNumeric(tempValue):
-                    row[key] = tempValue
+            if value is not None:
+                # Remove extra whitespace
+                value = value.strip()
+                if field_type in ["INT", "DECIMAL", "LONG"]:
+                    tempValue = value.replace(",","")
+                    if FieldCleaner.isNumeric(tempValue):
+                        value = tempValue
+                if value == "":
+                    # Replace empty strings with null
+                    value = None
+                row[key] = value
         return row
 
 if __name__ == '__main__':

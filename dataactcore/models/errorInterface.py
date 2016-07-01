@@ -134,3 +134,7 @@ class ErrorInterface(BaseInterface):
         """ Delete file for job ID """
         self.session.query(File).filter(File.job_id == jobId).delete()
         self.session.commit()
+
+    def getCrossReportName(self, submissionId, sourceFile, targetFile):
+        """ Create error report filename based on source and target file """
+        return "submission_{}_cross_{}_{}.csv".format(submissionId, sourceFile, targetFile)
