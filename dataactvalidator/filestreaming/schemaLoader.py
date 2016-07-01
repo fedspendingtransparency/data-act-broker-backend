@@ -35,7 +35,7 @@ class SchemaLoader(object):
             for record in reader:
                 record = FieldCleaner.cleanRecord(record)
                 if(LoaderUtils.checkRecord(record, ["fieldname","required","data_type"])) :
-                    columnId = database.addColumnByFileType(fileTypeName,FieldCleaner.cleanString(record["fieldname"]),record["required"],record["data_type"])
+                    columnId = database.addColumnByFileType(fileTypeName,FieldCleaner.cleanString(record["fieldname"]),record["required"],record["data_type"],record["padded_flag"])
                     if "field_length" in record:
                         # When a field length is specified, create a rule for it
                         length = record["field_length"].strip()
