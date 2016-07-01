@@ -13,7 +13,7 @@ def loadObjectClass(filename):
 
 def loadSF133(filename):
     """ Load SF133 files, set skipClear to True for second file """
-    LoaderUtils.loadCsv(filename,SF133,ValidatorValidationInterface(),{"ata":"allocationtransferagencyidentifier","aid":"agencyidentifier","availability_type_code":"availabilitytypecode","bpoa":"beginningperiodofavailability","epoa":"endingperiodofavailability","main_account":"mainaccountcode","sub_account":"subaccountcode","fiscal_year":"fiscal_year","period":"period","line_num":"line","amount_summed":"amount"},{"allocationtransferagencyidentifier":{"pad_to_length":3},"agencyidentifier":{"pad_to_length":3},"mainaccountcode":{"pad_to_length":4},"subaccountcode":{"pad_to_length":3},"amount":{"strip_commas":True}})
+    LoaderUtils.loadCsv(filename,SF133,ValidatorValidationInterface(),{"ata":"allocation_transfer_agency","aid":"agency_identifier","availability_type_code":"availability_type_code","bpoa":"beginning_period_of_availa","epoa":"ending_period_of_availabil","main_account":"main_account_code","sub_account":"sub_account_code","fiscal_year":"fiscal_year","period":"period","line_num":"line","amount_summed":"amount"},{"allocation_transfer_agency":{"pad_to_length":3},"agency_identifier":{"pad_to_length":3},"main_account_code":{"pad_to_length":4},"sub_account_code":{"pad_to_length":3},"amount":{"strip_commas":True}})
 
 def loadProgramActivity(filename):
     LoaderUtils.loadCsv(filename, ProgramActivity, ValidatorValidationInterface(), {"year":"budget_year","agency_id":"agency_id",

@@ -15,6 +15,10 @@ class FileType(Base):
     file_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
+    file_order = Column(Integer, nullable=False, server_default="0")
+
+    TYPE_DICT = None
+    TYPE_ID_DICT = None
 
 class FieldType(Base):
     __tablename__ = "field_type"
@@ -46,6 +50,7 @@ class FileColumn(Base):
     description = Column(Text, nullable=True)
     required = Column(Boolean, nullable=True)
     rules = relationship("Rule", cascade = "delete, delete-orphan")
+    padded_flag = Column(Boolean, default=False, server_default="False", nullable=False)
 
 class Rule(Base):
     __tablename__ = "rule"
@@ -97,11 +102,10 @@ class RuleSql(Base):
     rule_description = Column(Text, nullable=False)
     rule_error_message = Column(Text, nullable=False)
     rule_cross_file_flag = Column(Boolean, nullable=False)
-    file_id = Column(Integer, ForeignKey("file_type.file_id"), nullable=True)
-    file = relationship("FileType", uselist=False)
+    file_id = Column(Integer, ForeignKey("file_type.file_id", name="fk_file"), nullable=True)
+    file = relationship("FileType", uselist=False, foreign_keys=[file_id])
     rule_severity_id = Column(Integer, ForeignKey("rule_severity.rule_severity_id"), nullable=False)
     rule_severity = relationship("RuleSeverity", uselist=False)
+    target_file_id = Column(Integer, ForeignKey("file_type.file_id", name="fk_target_file"), nullable=True)
+    target_file = relationship("FileType", uselist=False, foreign_keys=[target_file_id])
     query_name = Column(Text)
-
-
-
