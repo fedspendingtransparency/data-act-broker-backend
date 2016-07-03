@@ -224,7 +224,7 @@ class ValidationManager:
                 while not reader.isFinished:
                     rowNumber += 1
                     if (rowNumber % 100) == 0:
-                        CloudLogger.logError("VALIDATOR_INFO: ","JobId: "+str(jobId)+" Validating row " + str(rowNumber),"")
+                        CloudLogger.logError("VALIDATOR_INFO: ","JobId: "+str(jobId)+" validating/copying row " + str(rowNumber),"")
 
                     try :
                         record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb)
@@ -279,6 +279,7 @@ class ValidationManager:
                                 errorMsg = error
                             writer.write([fieldName,errorMsg,str(rowNumber),failedValue,originalRuleLabel])
                             errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber,originalRuleLabel)
+                CloudLogger.logError("VALIDATOR_INFO: ", "L1 validation complete on jobID: " + str(jobId) + ". Total rows added to staging: " + str(rowNumber), "")
                 # Do SQL validations for this file
                 sqlFailures = Validator.validateFileBySql(interfaces.jobDb.getSubmissionId(jobId),fileType,interfaces)
                 for failure in sqlFailures:
@@ -308,7 +309,6 @@ class ValidationManager:
             # Mark validation as finished in job tracker
             jobTracker.markJobStatus(jobId,"finished")
             errorInterface.writeAllRowErrors(jobId)
-            CloudLogger.logError("VALIDATOR_INFO: ", "runValidation complete on jobID: " + str(jobId) + ". Total rows added to staging: " + str(rowNumber), "")
         finally:
             # Ensure the file always closes
             reader.close()
