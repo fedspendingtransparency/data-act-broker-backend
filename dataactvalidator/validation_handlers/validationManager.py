@@ -170,6 +170,8 @@ class ValidationManager:
             True if successful
         """
 
+        ger.logError("VALIDATOR_INFO: ", "Beginning runValidation on jobID: "+jobId, "")
+
         jobTracker = interfaces.jobDb
         submissionId = jobTracker.getSubmissionId(jobId)
 
@@ -221,8 +223,9 @@ class ValidationManager:
                                 self.reportHeaders) as writer:
                 while not reader.isFinished:
                     rowNumber += 1
-                    #if (rowNumber % 1000) == 0:
-                    #    print("Validating row " + str(rowNumber))
+                    if (rowNumber % 100) == 0:
+                        CloudLogger.logError("VALIDATOR_INFO: ","JobId: "+str(jobId)+" Validating row " + str(rowNumber),"")
+
                     try :
                         record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb)
                         record["row_number"] = rowNumber
@@ -305,6 +308,7 @@ class ValidationManager:
             # Mark validation as finished in job tracker
             jobTracker.markJobStatus(jobId,"finished")
             errorInterface.writeAllRowErrors(jobId)
+            CloudLogger.logError("VALIDATOR_INFO: ", "runValidation complete on jobID: " + str(jobId) + ". Total rows added to staging: " + str(rowNumber), "")
         finally:
             # Ensure the file always closes
             reader.close()
