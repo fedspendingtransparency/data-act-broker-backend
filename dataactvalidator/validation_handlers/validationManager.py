@@ -322,6 +322,7 @@ class ValidationManager:
         submissionId = interfaces.jobDb.getSubmissionId(jobId)
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
+        CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runCrossValidation on submissionID: "+submissionId, "")
 
 
         # use db to get a list of the cross-file combinations
@@ -359,6 +360,7 @@ class ValidationManager:
 
         errorDb.writeAllRowErrors(jobId)
         interfaces.jobDb.markJobStatus(jobId, "finished")
+        CloudLogger.logError("VALIDATOR_INFO: ", "Completed runCrossValidation on submissionID: "+submissionId, "")
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
