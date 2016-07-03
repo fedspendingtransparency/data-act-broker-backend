@@ -170,7 +170,7 @@ class ValidationManager:
             True if successful
         """
 
-        ger.logError("VALIDATOR_INFO: ", "Beginning runValidation on jobID: "+jobId, "")
+        CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runValidation on jobID: "+jobId, "")
 
         jobTracker = interfaces.jobDb
         submissionId = jobTracker.getSubmissionId(jobId)
