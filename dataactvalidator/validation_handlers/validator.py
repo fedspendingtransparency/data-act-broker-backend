@@ -9,6 +9,7 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
+from dataactcore.utils.cloudLogger import CloudLogger
 
 class Validator(object):
     """
@@ -786,6 +787,9 @@ class Validator(object):
              values in fields involved
              row number
         """
+
+        CloudLogger.logError("VALIDATOR_INFO: ", "Beginning SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
+
         # Pull all SQL rules for this file type
         fileId = interfaces.validationDb.getFileId(fileType)
         rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
@@ -793,6 +797,7 @@ class Validator(object):
         errors = []
         # For each rule, execute sql for rule
         for rule in rules:
+            CloudLogger.logError("VALIDATOR_INFO: ", "Running sql_rule_id: "+str(RuleSql.rule_sql_id)+" on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
             failures = interfaces.stagingDb.connection.execute(rule.rule_sql.format(submissionId))
             if failures.rowcount:
                 # Create column list (exclude row_number)
