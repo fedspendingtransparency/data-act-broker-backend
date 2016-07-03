@@ -825,4 +825,6 @@ class Validator(object):
             updateQuery = "UPDATE {} as {} SET valid_record = false {}".format(tableName,tableAbbrev,whereClause)
             interfaces.stagingDb.connection.execute(updateQuery)
 
+            CloudLogger.logError("VALIDATOR_INFO: ", "Completed SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
+
         return errors

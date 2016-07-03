@@ -312,6 +312,7 @@ class ValidationManager:
         finally:
             # Ensure the file always closes
             reader.close()
+            CloudLogger.logError("VALIDATOR_INFO: ", "Completed L1 and SQL rule validations on jobID: " + str(jobId), "")
         return True
 
     def runCrossValidation(self, jobId, interfaces):
