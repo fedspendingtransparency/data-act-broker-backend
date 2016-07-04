@@ -14,7 +14,7 @@ GrossOutlaysDeliveredOrdersPaidTotal_FYB,gross_outlays_delivered_or_fyb,Optional
 GrossOutlaysUndeliveredOrdersPrepaidTotal_CPE,gross_outlays_undelivered_cpe,Optional,numeric,21,"C5, C6"
 GrossOutlaysUndeliveredOrdersPrepaidTotal_FYB,gross_outlays_undelivered_fyb,Optional,numeric,21,"A16, C5, C6"
 MainAccountCode,main_account_code,Required,string,4,A1
-ObjectClass,object_class,Required,integer,4,B11
+ObjectClass,object_class,Required,string,4,B11
 ObligationsDeliveredOrdersUnpaidTotal_CPE,obligations_delivered_orde_cpe,Optional,numeric,21,C4
 ObligationsDeliveredOrdersUnpaidTotal_FYB,obligations_delivered_orde_fyb,Optional,numeric,21,"A16, C4"
 ObligationsIncurredTotalByAward_CPE,obligations_incurred_byawa_cpe,Optional,numeric,21,
