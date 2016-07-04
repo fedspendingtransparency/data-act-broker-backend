@@ -178,6 +178,9 @@ class ValidationManager:
         # Clear existing records for this submission
         interfaces.stagingDb.clearFileBySubmission(submissionId,fileType)
 
+        # Get short to long colname dictionary
+        shortColnames = interfaces.validationDb.getShortToLongColname()
+
         # If local, make the error report directory
         if self.isLocal and not os.path.exists(self.directory):
             os.makedirs(self.directory)
@@ -263,7 +266,11 @@ class ValidationManager:
                         if failures:
                             errorInterface.setRowErrorsPresent(jobId, True)
                         for failure in failures:
-                            fieldName = failure[0]
+                            # map short column names back to long names
+                            if failure[0] in shortColnames:
+                                fieldName = shortColnames[failure[0]]
+                            else:
+                                fieldName = failure[0]
                             error = failure[1]
                             failedValue = failure[2]
                             originalRuleLabel = failure[3]
@@ -279,7 +286,12 @@ class ValidationManager:
                 # Do SQL validations for this file
                 sqlFailures = Validator.validateFileBySql(interfaces.jobDb.getSubmissionId(jobId),fileType,interfaces)
                 for failure in sqlFailures:
-                    fieldName = failure[0]
+                    # convert shorter, machine friendly column names used in the
+                    # SQL validation queries back to their long names
+                    if failure[0] in shortColnames:
+                        fieldName = shortColnames[failure[0]]
+                    else:
+                        fieldName = failure[0]
                     error = failure[1]
                     failedValue = failure[2]
                     row = failure[3]

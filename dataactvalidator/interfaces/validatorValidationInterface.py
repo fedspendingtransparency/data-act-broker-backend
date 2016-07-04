@@ -410,7 +410,7 @@ class ValidatorValidationInterface(ValidationInterface):
         return dict
 
     def getShortToLongColname(self):
-        """Return a dictionary that maps short, machine-friendly schema names to their long verions."""
+        """Return a dictionary that maps short, machine-friendly schema names to their long versions."""
         query = self.session.query(FileColumn.name, FileColumn.name_short)
         dict = {row.name_short: row.name for row in query}
         return dict
