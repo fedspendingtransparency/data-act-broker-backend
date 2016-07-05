@@ -197,7 +197,7 @@ class ValidationManager:
 
         validationDB = interfaces.validationDb
         fieldList = validationDB.getFieldsByFileList(fileType)
-        csvSchema = validationDB.getFieldsByFile(fileType)
+        csvSchema = validationDB.getFieldsByFile(fileType, shortCols=True)
         rules = validationDB.getRulesByFile(fileType)
 
         reader = self.getReader()
@@ -211,8 +211,8 @@ class ValidationManager:
 
 
         try:
-            # Pull file
-            reader.openFile(regionName, bucketName, fileName, fieldList,
+            # Pull file and return info on whether it's using short or long col headers
+            longHeaders = reader.openFile(regionName, bucketName, fileName, fieldList,
                             bucketName, errorFileName)
 
             errorInterface = interfaces.errorDb
@@ -226,8 +226,9 @@ class ValidationManager:
                     rowNumber += 1
                     #if (rowNumber % 1000) == 0:
                     #    print("Validating row " + str(rowNumber))
-                    try :
-                        record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb)
+                    try:
+                        record = FieldCleaner.cleanRow(reader.getNextRecord(),
+                            fileType, interfaces.validationDb)
                         record["row_number"] = rowNumber
                         if reader.isFinished and len(record) < 2:
                             # This is the last line and is empty, don't record an error
@@ -240,18 +241,16 @@ class ValidationManager:
                             rowNumber -= 1
                         else:
                             writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber), ""])
-                            errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
+                            errorInterface.recordRowError(
+                                jobId, self.filename, "Formatting Error", str(rowNumber), ValidationError.readError, rowNumber)
                             errorInterface.setRowErrorsPresent(jobId, True)
                         continue
-                    passedValidations, failures, valid  = Validator.validate(record,rules,csvSchema,fileType,interfaces)
+                    passedValidations, failures, valid = Validator.validate(record,rules,csvSchema,fileType,interfaces)
                     if valid:
                         try:
                             record["job_id"] = jobId
                             record["submission_id"] = submissionId
                             record["valid_record"] = passedValidations
-                            # temporary fix b/c we can't use '+4' as a column alias :(
-                            if "primaryplaceofperformancezip+4" in record:
-                                record["primaryplaceofperformancezipplus4"] = record["primaryplaceofperformancezip+4"]
                             stagingInterface.insertSubmissionRecordByFileType(record, fileType)
                         except ResponseException as e:
                             # Write failed, move to next record

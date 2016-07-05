@@ -65,36 +65,41 @@ class CsvAbstractReader(object):
         # check to see if header contains long or short column names
         # TODO: is there a better way to do this?
         validation_db = ValidatorValidationInterface()
-        shortNameDict = validation_db.getShortToLongColname()
+        longNameDict = validation_db.getLongToShortColname()
         headerNames = line.split(self.delimiter)
         colMatches = 0
         for i, value in enumerate(headerNames):
-            if value in shortNameDict:
+            if value in longNameDict:
                 colMatches += 1
         if colMatches > 15:
-            shortHeaders = True
+            longHeaders = True
         else:
-            shortHeaders = False
+            longHeaders = False
 
-        # set the list of possibleFields depending on whether agency
-        # is using short or long column names
+        # Set the list of possibleFields, converting long col names to their
+        # shorter, machine-readable counterparts that are used in the
+        # staging tables
         possibleFields = {}
         for schema in csvSchema:
-            possibleFields[FieldCleaner.cleanString(schema.name)] = 0
+            #possibleFields[FieldCleaner.cleanString(schema.name)] = 0
+            possibleFields[FieldCleaner.cleanString(schema.name_short)] = 0
 
         for row in csv.reader([line], dialect='excel', delimiter=self.delimiter):
             for cell in row:
-                headerValue = FieldCleaner.cleanString(cell)
-                # if file is using short header names, get the long header
-                if shortHeaders:
-                    headerValue = shortNameDict.get(headerValue, None)
+                submittedHeaderValue = FieldCleaner.cleanString(cell)
+                if longHeaders and submittedHeaderValue in longNameDict:
+                    headerValue = FieldCleaner.cleanString(longNameDict[submittedHeaderValue])
+                elif longHeaders:
+                    headerValue = None
+                else:
+                    headerValue = submittedHeaderValue
                 if not headerValue in possibleFields:
                     # Allow unexpected headers, just mark the header as None so we skip it when reading
                     self.headerDictionary[(current)] = None
                     current += 1
                 elif(possibleFields[headerValue] == 1):
-                    # Add to duplicated header list
-                    duplicatedHeaders.append(headerValue)
+                    # Add header value (as submitted) to duplicated header list
+                    duplicatedHeaders.append(submittedHeaderValue)
                 else:
                     self.headerDictionary[(current)] = headerValue
                     possibleFields[headerValue] = 1
@@ -103,7 +108,9 @@ class CsvAbstractReader(object):
         #Check that all required fields exists
         missingHeaders = []
         for schema in csvSchema :
-            if(possibleFields[FieldCleaner.cleanString(schema.name)] == 0) :
+            #if(possibleFields[FieldCleaner.cleanString(schema.name)] == 0) :
+            if (possibleFields[FieldCleaner.cleanString(schema.name_short)] == 0):
+                # return long colname for error reporting
                 missingHeaders.append(schema.name)
         if(len(missingHeaders) > 0 or len(duplicatedHeaders) > 0):
             # Write header errors if any occurred and raise a header_error exception
@@ -125,6 +132,8 @@ class CsvAbstractReader(object):
                         writer.write(["Missing header", header])
                 writer.finishBatch()
             raise ResponseException("Errors in header row: " + str(errorString), StatusCode.CLIENT_ERROR, ValueError,ValidationError.headerError,**extraInfo)
+
+        return longHeaders
 
     @staticmethod
     def getWriter(bucketName,fileName,header,isLocal, region = None):
@@ -155,6 +164,7 @@ class CsvAbstractReader(object):
                 if(cell == ""):
                     # Use None instead of empty strings for sqlalchemy
                     cell = None
+                # self.headerDictionary uses the short, machine-readable column names
                 if self.headerDictionary[current] is None:
                     # Skip this column as it is unknown
                     continue

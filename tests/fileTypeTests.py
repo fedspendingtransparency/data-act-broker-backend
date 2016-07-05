@@ -154,6 +154,8 @@ class FileTypeTests(BaseTestValidator):
     def test_cross_file(self):
         crossId = self.jobIdDict["crossFile"]
         # Run jobs for A, B, C, and D2, then cross file validation job
+        # Note: test files used for cross validation use the short column names
+        # as a way to ensure those are handled correctly by the validator
         awardFinResponse = self.validateJob(self.jobIdDict["crossAwardFin"],self.useThreads)
         self.assertEqual(awardFinResponse.status_code, 200, msg=str(awardFinResponse.json))
         awardResponse = self.validateJob(self.jobIdDict["crossAward"],self.useThreads)
