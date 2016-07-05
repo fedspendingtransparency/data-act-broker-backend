@@ -165,7 +165,7 @@ class FileTypeTests(BaseTestValidator):
         self.assertEqual(crossFileResponse.status_code, 200, msg=str(crossFileResponse.json))
 
         # Check number of cross file validation errors in DB for this job
-        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId), 3)
+        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId), 5)
         # Check cross file job complete
         self.waitOnJob(self.interfaces.jobDb, crossId, "finished", self.useThreads)
         # Check that cross file validation report exists and is the right size
@@ -173,7 +173,7 @@ class FileTypeTests(BaseTestValidator):
 
         submissionId = jobTracker.getSubmissionId(crossId)
         abFileSize = 1339
-        cdFileSize = 89
+        cdFileSize = 424
         abFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")
         cdFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")
 
