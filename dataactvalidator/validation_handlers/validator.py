@@ -792,7 +792,7 @@ class Validator(object):
         errors = []
         # For each rule, execute sql for rule
         for rule in rules:
-            CloudLogger.logError("VALIDATOR_INFO: ", "Running sql_rule_id: "+str(RuleSql.rule_sql_id)+" on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
+            CloudLogger.logError("VALIDATOR_INFO: ", "Running query: "+str(RuleSql.query_name)+" on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
             failures = interfaces.stagingDb.connection.execute(rule.rule_sql.format(submissionId))
             if failures.rowcount:
                 # Create column list (exclude row_number)
