@@ -1,3 +1,4 @@
+import boto
 import csv
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.statusCode import StatusCode
@@ -6,7 +7,6 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
-from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 
 class CsvAbstractReader(object):
     """
@@ -26,6 +26,12 @@ class CsvAbstractReader(object):
             bucketName: bucket to send errors to
             errorFilename: filename for error report
         """
+
+
+        possibleFields = {}
+        currentFields = {}
+        for schema in  csvSchema:
+                possibleFields[FieldCleaner.cleanString(schema.name)] = 0
 
         self.filename = filename
         self.unprocessed = ''
@@ -61,43 +67,19 @@ class CsvAbstractReader(object):
             raise ResponseException("Error in header row: CSV file must use only '|' or ',' as the delimiter", StatusCode.CLIENT_ERROR, ValueError, ValidationError.headerError)
 
         self.delimiter = "|" if line.count("|") != 0 else ","
-
-        # check to see if header contains long or short column names
-        # TODO: is there a better way to do this?
-        validation_db = ValidatorValidationInterface()
-        shortNameDict = validation_db.getShortToLongColname()
-        headerNames = line.split(self.delimiter)
-        colMatches = 0
-        for i, value in enumerate(headerNames):
-            if value in shortNameDict:
-                colMatches += 1
-        if colMatches > 15:
-            shortHeaders = True
-        else:
-            shortHeaders = False
-
-        # set the list of possibleFields depending on whether agency
-        # is using short or long column names
-        possibleFields = {}
-        for schema in csvSchema:
-            possibleFields[FieldCleaner.cleanString(schema.name)] = 0
-
-        for row in csv.reader([line], dialect='excel', delimiter=self.delimiter):
-            for cell in row:
+        for row in csv.reader([line],dialect='excel', delimiter=self.delimiter):
+            for cell in row :
                 headerValue = FieldCleaner.cleanString(cell)
-                # if file is using short header names, get the long header
-                if shortHeaders:
-                    headerValue = shortNameDict.get(headerValue, None)
-                if not headerValue in possibleFields:
+                if( not headerValue in possibleFields) :
                     # Allow unexpected headers, just mark the header as None so we skip it when reading
                     self.headerDictionary[(current)] = None
                     current += 1
-                elif(possibleFields[headerValue] == 1):
+                elif(possibleFields[headerValue] == 1) :
                     # Add to duplicated header list
                     duplicatedHeaders.append(headerValue)
                 else:
                     self.headerDictionary[(current)] = headerValue
-                    possibleFields[headerValue] = 1
+                    possibleFields[headerValue]  = 1
                     current += 1
         self.columnCount = current
         #Check that all required fields exists
