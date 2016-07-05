@@ -3,5 +3,5 @@ SELECT
     availability_type_code
 FROM object_class_program_activity
 WHERE submission_id = {}
-AND LOWER(COALESCE(availability_type_code,'')) NOT IN ('X','x','')
+AND LOWER(COALESCE(availability_type_code,'')) NOT IN ('x','')
 
