@@ -1,45 +1,14 @@
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.orm.exc import NoResultFound
-from dataactcore.models.baseInterface import BaseInterface
+from dataactcore.models.validationInterface import ValidationInterface
 from dataactcore.models.validationModels import Rule, RuleType, FileColumn, FileType, FieldType, RuleTiming, RuleSeverity, RuleSql
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.config import CONFIG_DB
 
 
-class ValidatorValidationInterface(BaseInterface):
+class ValidatorValidationInterface(ValidationInterface):
     """ Manages all interaction with the validation database """
-
-    dbConfig = CONFIG_DB
-    dbName = dbConfig['validator_db_name']
-    Session = None
-    engine = None
-    session = None
-
-    def __init__(self):
-        self.dbName = self.dbConfig['validator_db_name']
-        super(ValidatorValidationInterface, self).__init__()
-
-    @classmethod
-    def getCredDict(cls):
-        """ Return db credentials. """
-        credDict = {
-            'username': CONFIG_DB['username'],
-            'password': CONFIG_DB['password'],
-            'host': CONFIG_DB['host'],
-            'port': CONFIG_DB['port'],
-            'dbBaseName': CONFIG_DB['base_db_name']
-        }
-        return credDict
-
-    @staticmethod
-    def getDbName():
-        """ Return database name"""
-        return ValidatorValidationInterface.dbName
-
-    def getSession(self):
-        """ Return current session object """
-        return self.session
 
     def deleteTAS(self) :
         """
@@ -86,7 +55,7 @@ class ValidatorValidationInterface(BaseInterface):
             return True
         return False
 
-    def addColumnByFileType(self,fileType,fieldName,required,field_type):
+    def addColumnByFileType(self,fileType,fieldName,required,field_type,paddedFlag = "False"):
         """
         Adds a new column to the schema
 
@@ -117,6 +86,12 @@ class ValidatorValidationInterface(BaseInterface):
             field_type = "DECIMAL"
         elif(field_type  == "BOOL"):
             field_type = "BOOLEAN"
+
+        # Translate padded flag to true or false
+        if paddedFlag.lower() == "true":
+            newColumn.padded_flag = True
+        else:
+            newColumn.padded_flag = False
 
         #Check types
         if field_type in types :
@@ -269,7 +244,7 @@ class ValidatorValidationInterface(BaseInterface):
         return True
 
     def addSqlRule(self, ruleSql, ruleLabel, ruleDescription, ruleErrorMsg,
-        fileId, ruleSeverity, crossFileFlag=False, queryName = None):
+        fileId, ruleSeverity, crossFileFlag=False, queryName = None, targetFileId = None):
         """Insert SQL-based validation rule.
 
         Args:
@@ -286,7 +261,7 @@ class ValidatorValidationInterface(BaseInterface):
         """
         newRule = RuleSql(rule_sql=ruleSql, rule_label=ruleLabel,
                 rule_description=ruleDescription, rule_error_message=ruleErrorMsg,
-                rule_cross_file_flag=crossFileFlag, file_id=fileId, rule_severity=ruleSeverity, query_name = queryName)
+                rule_cross_file_flag=crossFileFlag, file_id=fileId, rule_severity=ruleSeverity, query_name = queryName, target_file_id = targetFileId)
         self.session.add(newRule)
         self.session.commit()
         return True
@@ -423,3 +398,8 @@ class ValidatorValidationInterface(BaseInterface):
         query = self.runUniqueQuery(query, "No rule severity found with name {}".format(ruleSeverityName),
             "Multiple rule severities found with name {}".format(ruleSeverityName))
         return query
+
+    def isPadded(self, field, fileType):
+        """ Returns padded_flag for specified field and filetype """
+        column = self.getColumn(field, fileType)
+        return column.padded_flag

@@ -265,13 +265,20 @@ class FileTests(BaseTestAPI):
         self.assertEqual(ruleErrorData["rule_failed"],"Header three value must be real")
         self.assertEqual(ruleErrorData["original_label"],"A1")
 
+        ruleErrorData = None
+        for data in crossJob["error_data"]:
+            if data["field_name"] == "header_four":
+                ruleErrorData = data
+        self.assertEqual(ruleErrorData["source_file"],"appropriations")
+        self.assertEqual(ruleErrorData["target_file"],"award")
+
         # Check submission metadata
         self.assertEqual(json["cgac_code"], "SYS")
         self.assertEqual(json["reporting_period_start_date"], "Q1/2016")
         self.assertEqual(json["reporting_period_end_date"], "Q3/2016")
 
         # Check submission level info
-        self.assertEqual(json["number_of_errors"],12)
+        self.assertEqual(json["number_of_errors"],17)
         self.assertEqual(json["number_of_rows"],667)
         # Check that submission was created today, this test may fail if run right at midnight UTC
         self.assertEqual(json["created_on"],datetime.utcnow().strftime("%m/%d/%Y"))
@@ -312,11 +319,12 @@ class FileTests(BaseTestAPI):
         postJson = {"submission_id": self.error_report_submission_id}
         response = self.app.post_json(
             "/v1/submission_error_reports/", postJson, headers={"x-session-id":self.session_id})
+        print("Response: " + str(response.json))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
-        self.assertEqual(len(response.json), 5)
-        self.assertIn("cross_file_error_url", response.json)
+        self.assertEqual(len(response.json), 10)
+        self.assertIn("cross_appropriations-program_activity", response.json)
 
     def check_metrics(self, submission_id, exists, type_file) :
         """Get error metrics for specified submission."""
@@ -435,13 +443,23 @@ class FileTests(BaseTestAPI):
                        headers_missing="missing_header_one, missing_header_two",
                        headers_duplicated="duplicated_header_one, duplicated_header_two",
                        row_errors_present=True)
+        crossFile = File(job_id=jobIdDict["cross_file"],
+                       filename="approp.csv",
+                       file_status_id=interfaces.errorDb.getFileStatusId("complete"),
+                       headers_missing="",
+                       headers_duplicated="",
+                       row_errors_present=True)
         interfaces.errorDb.session.add(fileRec)
+        interfaces.errorDb.session.add(crossFile)
 
         # Put some entries in error data for approp job
-        ruleError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_three", error_type_id = 6, occurrences = 7, rule_failed = "Header three value must be real", original_rule_label = "A1")
+        ruleError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_three", error_type_id = 6, occurrences = 7, rule_failed = "Header three value must be real", original_rule_label = "A1", file_type_id = interfaces.validationDb.getFileTypeIdByName("appropriations"), target_file_type_id = interfaces.validationDb.getFileTypeIdByName("award"))
         reqError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_four", error_type_id = 2, occurrences = 5, rule_failed = "A required value was not provided")
         interfaces.errorDb.session.add(ruleError)
         interfaces.errorDb.session.add(reqError)
+        crossError = ErrorMetadata(job_id = jobIdDict["cross_file"], filename = "approp.csv", field_name = "header_four", error_type_id = 2, occurrences = 5, rule_failed = "A required value was not provided", file_type_id = interfaces.validationDb.getFileTypeIdByName("appropriations"), target_file_type_id = interfaces.validationDb.getFileTypeIdByName("award"))
+
+        interfaces.errorDb.session.add(crossError)
         interfaces.errorDb.session.commit()
 
         return jobIdDict

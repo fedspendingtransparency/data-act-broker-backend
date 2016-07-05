@@ -27,13 +27,13 @@ def insertCodes():
 
     # insert file types
     fileTypeList = [
-        (1, 'award', 'award file'),
-        (2, 'award_financial', 'award_financial file'),
-        (3, 'appropriations', 'appropriations file'),
-        (4, 'program_activity','program activity and object class file')
+        (1, 'appropriations', 'appropriations file',1),
+        (2, 'program_activity','program activity and object class file',2),
+        (3, 'award_financial', 'award_financial file',3),
+        (4, 'award', 'award file',4)
         ]
     for f in fileTypeList:
-        fileType = FileType(file_id=f[0], name=f[1], description=f[2])
+        fileType = FileType(file_id=f[0], name=f[1], description=f[2], file_order = f[3])
         validatorDb.session.merge(fileType)
 
     # insert rule types

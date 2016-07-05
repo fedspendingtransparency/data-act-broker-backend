@@ -35,7 +35,7 @@ class SchemaLoader(object):
             for record in reader:
                 record = FieldCleaner.cleanRecord(record)
                 if(LoaderUtils.checkRecord(record, ["fieldname","required","data_type"])) :
-                    columnId = database.addColumnByFileType(fileTypeName,FieldCleaner.cleanString(record["fieldname"]),record["required"],record["data_type"])
+                    columnId = database.addColumnByFileType(fileTypeName,FieldCleaner.cleanString(record["fieldname"]),record["required"],record["data_type"],record["padded_flag"])
                     if "field_length" in record:
                         # When a field length is specified, create a rule for it
                         length = record["field_length"].strip()
@@ -89,36 +89,6 @@ class SchemaLoader(object):
                     raise Exception('{}: rule insert failed (file={}, rule={}'.format(
                         e, fileTypeName, record["description"]))
 
-    @staticmethod
-    def loadCrossRules(filename):
-        """ Populate rule table with cross file validation rules """
-        validationDb = ValidatorValidationInterface()
-        with open(filename, 'rU') as ruleFile:
-            reader = csv.DictReader(ruleFile)
-            for record in reader:
-                fileId = validationDb.getFileId(record["file"])
-                if record["target_file"]:
-                    targetFileId = validationDb.getFileId(record["target_file"])
-                else:
-                    targetFileId = None
-                # Look up rule timing id
-                try:
-                    ruleTimingId = validationDb.getRuleTimingIdByName(
-                        FieldCleaner.cleanName(record["rule_timing"]))
-                except Exception as e:
-                    raise Exception("".join(
-                        [str(e), "Cross-file rule load failed on timing value ", FieldCleaner.cleanName(record["rule_timing"]),
-                         " and file ",
-                         fileTypeName]))
-                try:
-                    validationDb.addRule(
-                        None, record["rule_type"], record["rule_text_one"],
-                        record["rule_text_two"], record["description"], ruleTimingId,
-                        record["rule_label"], targetFileId, fileId = fileId, originalLabel=record["original_label"])
-                except Exception as e:
-                    raise Exception('{}: cross-file rule insert failed (rule={}'.format(
-                        e, record["description"]))
-
     @classmethod
     def loadAllFromPath(cls,path):
         # Load field definitions into validation DB
@@ -129,9 +99,6 @@ class SchemaLoader(object):
         for key in cls.ruleFiles:
             filepath = os.path.join(path,cls.ruleFiles[key])
             cls.loadRules(key,filepath)
-        # Load cross file validation rules
-        filePath = os.path.join(path,"crossFileRules.csv")
-        cls.loadCrossRules(filePath)
 
 if __name__ == '__main__':
     SchemaLoader.loadAllFromPath("../config/")
