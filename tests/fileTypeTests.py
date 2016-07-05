@@ -123,7 +123,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 12668, 5, "complete", 76, True)
+        jobId, 200, "finished", 15340, 5, "complete", 78, True)
         # Test that whitespace is converted to null
         rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
         self.assertIsNone(rowThree.agencyidentifier)
@@ -172,7 +172,7 @@ class FileTypeTests(BaseTestValidator):
         jobTracker = self.interfaces.jobDb
 
         submissionId = jobTracker.getSubmissionId(crossId)
-        abFileSize = 1339
+        abFileSize = 1329
         cdFileSize = 424
         abFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")
         cdFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")
