@@ -132,7 +132,10 @@ class ValidatorErrorInterface(ErrorInterface):
             except ValueError:
                 # For rule failures, it will hold the error message
                 errorMsg = errorDict["errorType"]
-                ruleFailedId = self.getTypeId("rule_failed")
+                if "Field must be no longer than specified limit" in errorMsg:
+                    ruleFailedId = self.getTypeId("length_error")
+                else:
+                    ruleFailedId = self.getTypeId("rule_failed")
                 errorRow = ErrorMetadata(job_id=thisJob, filename=errorDict["filename"], field_name=fieldName, error_type_id=ruleFailedId, rule_failed=errorMsg, occurrences=errorDict["numErrors"], first_row=errorDict["firstRow"], original_rule_label=errorDict["originalRuleLabel"], file_type_id = errorDict["fileTypeId"], target_file_type_id = errorDict["targetFileId"])
             else:
                 # This happens if cast to int was successful
