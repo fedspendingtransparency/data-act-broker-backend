@@ -1,61 +1,62 @@
-fieldname,required,data_type,field_length,rule_labels,padded_flag
-actiontype,FALSE,str,1,"D1, D2",
-correctionlatedeleteindicator,FALSE,str,1,D1,
-recordtype,TRUE,int,1,D1,
-legalentitystatecode,FALSE,str,2,,
-legalentitycongressionaldistrict,FALSE,str,2,,
-primaryplaceofperformancecongressionaldistrict,FALSE,str,2,,
-assistancetype,TRUE,str,2,D1,
-legalentitycountycode,FALSE,str,3,,
-legalentitycountrycode,FALSE,str,3,"D1, D2, D12",
-fundingagencycode,FALSE,str,3,D1,
-fundingofficecode,FALSE,str,3,,
-awardingagencycode,FALSE,str,3,D1,
-awardingofficecode,FALSE,str,3,,
-businesstypes,TRUE,str,3,D1,
-primaryplaceofperformancecountrycode,TRUE,str,3,D1,
-businessfundsindicator,TRUE,str,3,D1,
-legalentityziplast4,FALSE,str,4,"D2, D11",
-fundingsubtieragencycode,FALSE,str,4,D1,
-awardingsubtieragencycode,TRUE,str,4,"D1, D6",
-fiscalyearandquartercorrection,FALSE,str,5,D8,
-legalentitycitycode,FALSE,str,5,,
-legalentityzip5,FALSE,str,5,"D2, D11",
-cfda_number,TRUE,str,7,D13,
-primaryplaceofperformancecode,TRUE,str,7,"D1, D14, D15",
-periodofperformancestartdate,FALSE,str,8,"D3, D18",
-periodofperformancecurrentenddate,FALSE,str,8,"D3, D4, D19",
-actiondate,TRUE,str,8,"D3, D4",
-awardeeorrecipientuniqueidentifier,FALSE,str,9,"D2, D10",
-primaryplaceofperformancezip+4,FALSE,str,10,"D2, D16",
-federalactionobligation,FALSE,float,20,"C12, D20",
-nonfederalfundingamount,FALSE,float,20,,
-totalfundingamount,FALSE,float,20,,
-facevalueloanguarantee,FALSE,float,20,D21,
-originalloansubsidycost,FALSE,float,20,D21,
-awardmodificationamendmentnumber,FALSE,str,25,D6,
-legalentityforeignprovincename,FALSE,str,25,,
-fain,FALSE,str,30,"C9, D2, D5, D6",
-legalentityaddressline3,FALSE,str,35,,
-legalentitycityname,FALSE,str,40,,
-legalentitycountyname,FALSE,str,40,,
-legalentityforeigncityname,FALSE,str,40,D9,
-primaryplaceofperformancecountyname,FALSE,str,40,,
-sai_number,FALSE,str,50,,
-legalentitystatename,FALSE,str,50,,
-legalentityforeignpostalcode,FALSE,str,50,,
-primaryplaceofperformancestatename,FALSE,str,50,,
-uri,FALSE,str,70,"C9, D6, D7",
-fundingagencyname,FALSE,str,100,,
-fundingsubtieragencyname,FALSE,str,100,,
-fundingagencyofficename,FALSE,str,100,,
-awardingagencyname,FALSE,str,100,,
-awardingsubtieragencyname,FALSE,str,100,,
-awardingofficename,FALSE,str,100,,
-cfda_title,FALSE,str,100,,
-primaryplaceofperformancecityname,FALSE,str,100,,
-primaryplaceofperformanceforeignlocationdescription,FALSE,str,100,D17,
-awardeeorrecipientlegalentityname,TRUE,str,120,D22,
-legalentityaddressline1,FALSE,str,150,D2,
-legalentityaddressline2,FALSE,str,150,,
-awarddescription,FALSE,str,4000,D2,
+fieldname,fieldname_short,required,data_type,field_length,rule_labels,padded_flag
+actiondate,action_date,true,str,8,"D3, D4"
+actiontype,action_type,false,str,1,"D1, D2"
+assistancetype,assistance_type,true,str,2,D1
+awarddescription,award_description,false,str,4000,D2
+awardeeorrecipientlegalentityname,awardee_or_recipient_legal,true,str,120,D22
+awardeeorrecipientuniqueidentifier,awardee_or_recipient_uniqu,false,str,9,"D2, D10"
+awardingagencycode,awarding_agency_code,false,str,3,D1
+awardingagencyname,awarding_agency_name,false,str,100,
+awardingofficecode,awarding_office_code,false,str,3,
+awardingofficename,awarding_office_name,false,str,100,
+awardingsubtieragencycode,awarding_sub_tier_agency_c,true,str,4,"D1, D6"
+awardingsubtieragencyname,awarding_sub_tier_agency_n,false,str,100,
+awardmodificationamendmentnumber,award_modification_amendme,false,str,25,D6
+businessfundsindicator,business_funds_indicator,true,str,3,D1
+businesstypes,business_types,true,str,3,D1
+cfda_number,cfda_number,true,str,7,D13
+cfda_title,cfda_title,false,str,100,
+correctionlatedeleteindicator,correction_late_delete_ind,false,str,1,D1
+facevalueloanguarantee,face_value_loan_guarantee,false,float,20,D21
+fain,fain,false,str,30,"C9, D2, D5, D6"
+federalactionobligation,federal_action_obligation,false,float,20,"C12, D20"
+fiscalyearandquartercorrection,fiscal_year_and_quarter_co,false,str,5,D8
+fundingagencycode,funding_agency_code,false,str,3,D1
+fundingagencyname,funding_agency_name,false,str,100,
+fundingagencyofficename,funding_office_name,false,str,100,
+fundingofficecode,funding_office_code,false,str,3,
+fundingsubtieragencycode,funding_sub_tier_agency_co,false,str,4,D1
+fundingsubtieragencyname,funding_sub_tier_agency_na,false,str,100,
+legalentityaddressline1,legal_entity_address_line1,false,str,150,D2
+legalentityaddressline2,legal_entity_address_line2,false,str,150,
+legalentityaddressline3,legal_entity_address_line3,false,str,35,
+legalentitycitycode,legal_entity_city_code,false,str,5,
+legalentitycityname,legal_entity_city_name,false,str,40,
+legalentitycongressionaldistrict,legal_entity_congressional,false,str,2,
+legalentitycountrycode,legal_entity_country_code,false,str,3,"D1, D2, D12"
+legalentitycountycode,legal_entity_county_code,false,str,3,
+legalentitycountyname,legal_entity_county_name,false,str,40,
+legalentityforeigncityname,legal_entity_foreign_city,false,str,40,D9
+legalentityforeignpostalcode,legal_entity_foreign_posta,false,str,50,
+legalentityforeignprovincename,legal_entity_foreign_provi,false,str,25,
+legalentitystatecode,legal_entity_state_code,false,str,2,
+legalentitystatename,legal_entity_state_name,false,str,50,
+legalentityzip5,legal_entity_zip5,false,str,5,"D2, D11"
+legalentityziplast4,legal_entity_zip_last4,false,str,4,"D2, D11"
+nonfederalfundingamount,non_federal_funding_amount,false,float,20,
+originalloansubsidycost,original_loan_subsidy_cost,false,float,20,D21
+periodofperformancecurrentenddate,period_of_performance_curr,false,str,8,"D3, D4, D19"
+periodofperformancestartdate,period_of_performance_star,false,str,8,"D3, D18"
+primaryplaceofperformancecityname,place_of_performance_city,false,str,100,
+primaryplaceofperformancecode,place_of_performance_code,true,str,7,"D1, D14, D15"
+primaryplaceofperformancecongressionaldistrict,place_of_performance_congr,false,str,2,
+primaryplaceofperformancecountrycode,place_of_perform_country_c,true,str,3,D1
+primaryplaceofperformancecountyname,place_of_perform_county_na,false,str,40,
+primaryplaceofperformanceforeignlocationdescription,place_of_performance_forei,false,str,100,D17
+primaryplaceofperformancestatename,place_of_perform_state_nam,false,str,50,
+primaryplaceofperformancezip+4,place_of_performance_zip4a,false,str,10,"D2, D16"
+recordtype,record_type,true,int,1,D1
+sai_number,sai_number,false,str,50,
+totalfundingamount,total_funding_amount,false,float,20,
+uri,uri,false,str,70,"C9, D6, D7"
+

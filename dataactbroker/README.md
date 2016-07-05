@@ -550,7 +550,10 @@ Example output:
 ```
 
 #### POST "/v1/check_status/"
-A call to this route will provide status information on all jobs associated with the specified submission.  The request should have JSON or form-urlencoded with a key "submission\_id".  The response will contain a list of status objects for each job under the key "jobs", and other submission-level data.
+A call to this route will provide status information on all jobs associated with the specified submission.
+The request should have JSON or form-urlencoded with a key "submission\_id".  The response will contain a list of
+status objects for each job under the key "jobs", and other submission-level data.  In error data,
+"original_label" will only be populated when "error_name" is "rule_failed".
 
 Example input:
 
