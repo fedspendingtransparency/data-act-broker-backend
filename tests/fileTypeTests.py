@@ -99,7 +99,11 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
+<<<<<<< HEAD
+            jobId, 200, "finished", 8932, 4, "complete", 50, True)
+=======
             jobId, 200, "finished", 6096, 4, "complete", 46, True)
+>>>>>>> development
 
     def test_program_valid(self):
         """Test valid job."""
@@ -111,7 +115,11 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
+<<<<<<< HEAD
+            jobId, 200, "finished", 18195, 4, "complete", 107, True)
+=======
             jobId, 200, "finished", 16829, 4, "complete", 111, True)
+>>>>>>> development
 
     def test_award_fin_valid(self):
         """Test valid job."""
@@ -123,8 +131,12 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
+<<<<<<< HEAD
+            jobId, 200, "finished", 15543, 5, "complete", 77, True)
+=======
             jobId, 200, "finished", 13686, 5, "complete", 79, True)
 
+>>>>>>> development
         # Test that whitespace is converted to null
         rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
         self.assertIsNone(rowThree.agencyidentifier)
@@ -173,7 +185,7 @@ class FileTypeTests(BaseTestValidator):
         jobTracker = self.interfaces.jobDb
 
         submissionId = jobTracker.getSubmissionId(crossId)
-        abFileSize = 1339
+        abFileSize = 1353
         cdFileSize = 89
         abFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")
         cdFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")
