@@ -453,9 +453,11 @@ class Validator(object):
         """
         if data is None:
             # Convert None to empty string so it can be padded with zeros
-            data = ""
+            return data
         data = data.strip()
-
+        if data == "":
+            # Empty values treated as null
+            return None
         if len(data) <= padLength:
             return data.zfill(padLength)
         else:
@@ -751,14 +753,7 @@ class Validator(object):
 
         for i in range(0,len(fieldsToCheck)):
             data = record[str(fieldsToCheck[i])]
-            if(data == None):
-                # Set data to empty string so it can be padded with leading zeros
-                data = ""
-            field = fieldsToCheck[i].lower()
-            # Pad field with leading zeros
-            length = interfaces.validationDb.getColumnLength(field, fileType)
-            data = data.strip().zfill(length)
-            query = query.filter(TASLookup.__dict__[tasFields[i]] == str(data))
+            query = query.filter(TASLookup.__dict__[tasFields[i]] == data)
 
         queryResult = query.all()
         if(len(queryResult) == 0):
