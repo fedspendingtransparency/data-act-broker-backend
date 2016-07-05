@@ -3,5 +3,5 @@ SELECT
     availability_type_code
 FROM appropriation
 WHERE submission_id = {}
-AND LOWER(COALESCE(availability_type_code,'')) NOT IN ('X','x','')
+AND LOWER(COALESCE(availability_type_code,'')) NOT IN ('x','')
 
