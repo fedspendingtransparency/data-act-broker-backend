@@ -7,8 +7,9 @@ class TASLoader(object):
     """ Loads valid TAS combinations from CARS file """
 
     FILE_SCHEMA = ["ATA","AID","BPOA","EPOA","A","MAIN","SUB"]
-    @staticmethod
-    def loadFields(filename):
+    PAD_LENGTH = {"ATA":3,"AID":3,"MAIN":4,"SUB":3}
+    @classmethod
+    def loadFields(cls,filename):
         """
         Load schema file to create validation rules and removes existing
         schemas
@@ -34,13 +35,14 @@ class TASLoader(object):
                 if(index % 40000 == 0) :
                     print("".join(["Loading ... ",str(index)]))
                 #Pad Record
-                record["ATA"] = record["ATA"].zfill(3)
-                record["AID"] = record["AID"].zfill(3)
-                record["BPOA"] = record["BPOA"].zfill(4)
-                record["EPOA"] = record["EPOA"].zfill(4)
-                record["A"] = record["A"].zfill(1)
-                record["MAIN"] = record["MAIN"].zfill(4)
-                record["SUB"] = record["SUB"].zfill(3)
+                for key in record:
+                    record[key] = record[key].strip()
+                    if record[key] == "":
+                        # Set blanks to None
+                        record[key] = None
+                    if key in cls.PAD_LENGTH and record[key] is not None:
+                        record[key] = record[key].zfill(cls.PAD_LENGTH[key])
+
                 #Check if record exists
                 if(not (LoaderUtils.compareRecords(record,lastRecord,TASLoader.FILE_SCHEMA))) :
                     if(LoaderUtils.checkRecord(record,TASLoader.FILE_SCHEMA)) :
