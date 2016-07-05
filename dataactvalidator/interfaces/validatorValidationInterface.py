@@ -55,14 +55,15 @@ class ValidatorValidationInterface(ValidationInterface):
             return True
         return False
 
-    def addColumnByFileType(self,fileType,fieldName,required,field_type,paddedFlag = "False"):
+    def addColumnByFileType(self, fileType, fieldName, fieldNameShort, required, field_type, paddedFlag = "False"):
         """
         Adds a new column to the schema
 
         Args:
         fileType -- One of the set of valid types of files (e.g. Award, AwardFinancial)
 
-        fieldName -- The name of the scheam column
+        fieldName -- The name of the schema column
+        fieldNameShort -- The machine-friendly, short column name
         required --  marks the column if data is allways required
         field_type  -- sets the type of data allowed in the column
 
@@ -75,6 +76,7 @@ class ValidatorValidationInterface(ValidationInterface):
         newColumn = FileColumn()
         newColumn.required = False
         newColumn.name = fieldName
+        newColumn.name_short = fieldNameShort
         newColumn.file_id = fileId
         field_type = field_type.upper()
 
@@ -88,7 +90,9 @@ class ValidatorValidationInterface(ValidationInterface):
             field_type = "BOOLEAN"
 
         # Translate padded flag to true or false
-        if paddedFlag.lower() == "true":
+        if not paddedFlag:
+            newColumn.padded_flag = False
+        elif paddedFlag.lower() == "true":
             newColumn.padded_flag = True
         else:
             newColumn.padded_flag = False
@@ -97,7 +101,7 @@ class ValidatorValidationInterface(ValidationInterface):
         if field_type in types :
             newColumn.field_types_id =  types[field_type]
         else :
-            raise ValueError("".join(["Type ",field_type," is not vaild for  ",str(fieldName)]))
+            raise ValueError("".join(["Type ",field_type," is not valid for  ",str(fieldName)]))
         #Check Required
         required = required.upper()
         if( required in ["TRUE","FALSE"]) :
@@ -398,6 +402,18 @@ class ValidatorValidationInterface(ValidationInterface):
         query = self.runUniqueQuery(query, "No rule severity found with name {}".format(ruleSeverityName),
             "Multiple rule severities found with name {}".format(ruleSeverityName))
         return query
+
+    def getLongToShortColname(self):
+        """Return a dictionary that maps schema field names to shorter, machine-friendly versions."""
+        query = self.session.query(FileColumn.name, FileColumn.name_short).all()
+        dict = {row.name:row.name_short for row in query}
+        return dict
+
+    def getShortToLongColname(self):
+        """Return a dictionary that maps short, machine-friendly schema names to their long versions."""
+        query = self.session.query(FileColumn.name, FileColumn.name_short).all()
+        dict = {row.name_short: row.name for row in query}
+        return dict
 
     def isPadded(self, field, fileType):
         """ Returns padded_flag for specified field and filetype """

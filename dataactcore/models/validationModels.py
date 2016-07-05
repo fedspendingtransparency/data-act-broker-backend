@@ -47,6 +47,7 @@ class FileColumn(Base):
     field_types_id = Column(Integer, ForeignKey("field_type.field_type_id"), nullable=True)
     field_type = relationship("FieldType", uselist=False)
     name = Column(Text, nullable=True)
+    name_short = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
     required = Column(Boolean, nullable=True)
     rules = relationship("Rule", cascade = "delete, delete-orphan")

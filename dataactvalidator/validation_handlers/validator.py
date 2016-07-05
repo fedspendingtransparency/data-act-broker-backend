@@ -29,6 +29,9 @@ class Validator(object):
         failures = []
         # Put each rule through evaluate, appending all failures into list
         interfaces = InterfaceHolder()
+        # Get short to long colname dictionary
+        shortColnames = interfaces.validationDb.getShortToLongColname()
+
         for rule in rules:
             failedRows = interfaces.validationDb.connection.execute(
                 rule.rule_sql.format(submissionId))
@@ -38,10 +41,10 @@ class Validator(object):
                 # validated, so exclude it
                 cols = failedRows.keys()
                 cols.remove('row_number')
-                columnString = ", ".join(str(c) for c in cols)
+                columnString = ", ".join(shortColnames[c] if c in shortColnames else c for c in cols)
                 for row in failedRows:
                     # get list of values for each column
-                    values = ["{}: {}".format(c, str(row[c])) for c in cols]
+                    values = ["{}: {}".format(shortColnames[c], str(row[c])) if c in shortColnames else "{}: {}".format(c, str(row[c])) for c in cols]
                     values = ", ".join(values)
                     targetFileType = interfaces.validationDb.getFileTypeById(rule.target_file_id)
                     failures.append([rule.file.name, targetFileType, columnString,
@@ -90,7 +93,12 @@ class Validator(object):
         recordFailed = False
         recordTypeFailure = False
         failedRules = []
+
+        # Get short to long colname dictionary
+        shortColnames = interfaces.validationDb.getShortToLongColname()
+
         for fieldName in csvSchema :
+            #todo: check short colnames here
             if(csvSchema[fieldName].required and  not fieldName in record ):
                 return False, [[fieldName, ValidationError.requiredError, "", ""]], False
 
@@ -98,8 +106,11 @@ class Validator(object):
             if fieldName == "row_number":
                 # Skip row number, nothing to validate on that
                 continue
+            elif fieldName in shortColnames:
+                # Change shrot colname to longname for validation
+                fieldName = shortColnames[fieldName]
             checkRequiredOnly = False
-            currentSchema =  csvSchema[fieldName]
+            currentSchema = csvSchema[fieldName]
             ruleSubset = Validator.getRules(fieldName, fileType, rules,interfaces.validationDb)
             currentData = record[fieldName]
             if(currentData != None):
@@ -152,7 +163,7 @@ class Validator(object):
             if not Validator.evaluateRule(record,rule,None,interfaces,record):
                 recordFailed = True
                 failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces), str(rule.original_label)])
-        return  (not recordFailed), failedRules, (not recordTypeFailure)
+        return (not recordFailed), failedRules, (not recordTypeFailure)
 
     @staticmethod
     def getRules(fieldName, fileType,rules,validationInterface) :
@@ -790,6 +801,10 @@ class Validator(object):
         rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
             RuleSql.rule_cross_file_flag == False).all()
         errors = []
+
+        # Get short to long colname dictionary
+        shortColnames = interfaces.validationDb.getShortToLongColname()
+
         # For each rule, execute sql for rule
         for rule in rules:
             CloudLogger.logError("VALIDATOR_INFO: ", "Running query: "+str(RuleSql.query_name)+" on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
@@ -803,11 +818,11 @@ class Validator(object):
                     errorMsg = rule.rule_error_message
                     row = failure["row_number"]
                     # Create strings for fields and values
-                    valueList = ["{}: {}".format(str(field),str(failure[field])) for field in cols]
+                    valueList = ["{}: {}".format(shortColnames[field], str(failure[field])) if field in shortColnames else "{}: {}".format(field, str(failure[field])) for field in cols]
                     valueString = ", ".join(valueList)
-                    fieldList = [str(field) for field in cols]
+                    fieldList = [shortColnames[field] if field in shortColnames else field for field in cols]
                     fieldString = ", ".join(fieldList)
-                    errors.append([fieldString,errorMsg,valueString,row, rule.rule_label, fileId, rule.target_file_id])
+                    errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId, rule.target_file_id])
 
             # Pull where clause out of rule
             wherePosition = rule.rule_sql.lower().find("where")
