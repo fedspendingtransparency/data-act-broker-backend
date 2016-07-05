@@ -170,7 +170,7 @@ class ValidationManager:
             True if successful
         """
 
-        CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runValidation on jobID: "+jobId, "")
+        CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runValidation on jobID: "+str(jobId), "")
 
         jobTracker = interfaces.jobDb
         submissionId = jobTracker.getSubmissionId(jobId)
