@@ -99,7 +99,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 7038, 4, "complete", 50, True)
+            jobId, 200, "finished", 7032, 4, "complete", 50, True)
 
     def test_program_valid(self):
         """Test valid job."""
@@ -111,7 +111,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 18853, 4, "complete", 107, True)
+        jobId, 200, "finished", 18841, 4, "complete", 107, True)
 
     def test_award_fin_valid(self):
         """Test valid job."""
@@ -123,7 +123,8 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 15243, 5, "complete", 77, True)
+        jobId, 200, "finished", 15234, 5, "complete", 77, True)
+
         # Test that whitespace is converted to null
         rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
         self.assertIsNone(rowThree.agencyidentifier)
