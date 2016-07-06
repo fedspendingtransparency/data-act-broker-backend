@@ -85,7 +85,7 @@ class LoaderUtils:
                         padLength = options["pad_to_length"]
                         row[field] = Validator.padToLength(row[field],padLength)
                     if "skip_duplicates" in options:
-                        if len(row[field].strip()) == 0 or row[field] in valuePresent[field]:
+                        if row[field] is None or len(row[field].strip()) == 0 or row[field] in valuePresent[field]:
                             # Value not provided or already exists, skip it
                             skipInsert = True
                         else:

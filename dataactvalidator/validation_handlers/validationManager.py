@@ -170,6 +170,8 @@ class ValidationManager:
             True if successful
         """
 
+        CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runValidation on jobID: "+str(jobId), "")
+
         jobTracker = interfaces.jobDb
         submissionId = jobTracker.getSubmissionId(jobId)
 
@@ -177,6 +179,9 @@ class ValidationManager:
         fileType = jobTracker.getFileType(jobId)
         # Clear existing records for this submission
         interfaces.stagingDb.clearFileBySubmission(submissionId,fileType)
+
+        # Get short to long colname dictionary
+        shortColnames = interfaces.validationDb.getShortToLongColname()
 
         # If local, make the error report directory
         if self.isLocal and not os.path.exists(self.directory):
@@ -221,8 +226,9 @@ class ValidationManager:
                                 self.reportHeaders) as writer:
                 while not reader.isFinished:
                     rowNumber += 1
-                    #if (rowNumber % 1000) == 0:
-                    #    print("Validating row " + str(rowNumber))
+                    if (rowNumber % 100) == 0:
+                        CloudLogger.logError("VALIDATOR_INFO: ","JobId: "+str(jobId)+" loading row " + str(rowNumber),"")
+
                     try :
                         record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb)
                         record["row_number"] = rowNumber
@@ -263,7 +269,11 @@ class ValidationManager:
                         if failures:
                             errorInterface.setRowErrorsPresent(jobId, True)
                         for failure in failures:
-                            fieldName = failure[0]
+                            # map short column names back to long names
+                            if failure[0] in shortColnames:
+                                fieldName = shortColnames[failure[0]]
+                            else:
+                                fieldName = failure[0]
                             error = failure[1]
                             failedValue = failure[2]
                             originalRuleLabel = failure[3]
@@ -276,10 +286,16 @@ class ValidationManager:
                                 errorMsg = error
                             writer.write([fieldName,errorMsg,str(rowNumber),failedValue,originalRuleLabel])
                             errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber,originalRuleLabel)
+                CloudLogger.logError("VALIDATOR_INFO: ", "Loading complete on jobID: " + str(jobId) + ". Total rows added to staging: " + str(rowNumber), "")
                 # Do SQL validations for this file
                 sqlFailures = Validator.validateFileBySql(interfaces.jobDb.getSubmissionId(jobId),fileType,interfaces)
                 for failure in sqlFailures:
-                    fieldName = failure[0]
+                    # convert shorter, machine friendly column names used in the
+                    # SQL validation queries back to their long names
+                    if failure[0] in shortColnames:
+                        fieldName = shortColnames[failure[0]]
+                    else:
+                        fieldName = failure[0]
                     error = failure[1]
                     failedValue = failure[2]
                     row = failure[3]
@@ -308,6 +324,7 @@ class ValidationManager:
         finally:
             # Ensure the file always closes
             reader.close()
+            CloudLogger.logError("VALIDATOR_INFO: ", "Completed L1 and SQL rule validations on jobID: " + str(jobId), "")
         return True
 
     def runCrossValidation(self, jobId, interfaces):
@@ -317,6 +334,7 @@ class ValidationManager:
         submissionId = interfaces.jobDb.getSubmissionId(jobId)
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
+        CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runCrossValidation on submissionID: "+str(submissionId), "")
 
 
         # use db to get a list of the cross-file combinations
@@ -354,6 +372,7 @@ class ValidationManager:
 
         errorDb.writeAllRowErrors(jobId)
         interfaces.jobDb.markJobStatus(jobId, "finished")
+        CloudLogger.logError("VALIDATOR_INFO: ", "Completed runCrossValidation on submissionID: "+str(submissionId), "")
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to a staging table

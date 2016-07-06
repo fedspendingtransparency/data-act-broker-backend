@@ -12,7 +12,7 @@ class FieldCleaner(StringCleaner):
         # Open CSV file for reading each record as a dictionary
         with open(fileIn, "rU") as csvfile:
             reader = csv.DictReader(csvfile)
-            fieldnames = ["fieldname","required","data_type","field_length","rule_labels"]
+            fieldnames = ["fieldname","fieldname_short","required","data_type","field_length","rule_labels"]
             writer = csv.DictWriter(open(fileOut,"w"),fieldnames=fieldnames,lineterminator='\n')
             writer.writeheader()
             for record in reader:
@@ -34,6 +34,9 @@ class FieldCleaner(StringCleaner):
 
         # Clean name, required, type, and length
         record['fieldname'] = FieldCleaner.cleanName(record['fieldname'])
+        # fieldname_short is the machine-friendly name provided with the
+        # schema, so the only change we'll make to it is stripping whitespace
+        record['fieldname_short'] = record['fieldname_short'].strip()
         record['required'] = FieldCleaner.cleanRequired(record['required'])
         record['data_type'] = FieldCleaner.cleanType(record['data_type'])
         record['field_length'] = FieldCleaner.cleanLength(record['field_length'])
