@@ -336,6 +336,8 @@ class ValidationManager:
         regionName = CONFIG_BROKER['aws_region']
         CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runCrossValidation on submissionID: "+str(submissionId), "")
 
+        # Delete existing cross file errors for this submission
+        errorDb.resetErrorsByJobId(jobId)
 
         # use db to get a list of the cross-file combinations
         targetFiles = validationDb.session.query(FileType).subquery()
