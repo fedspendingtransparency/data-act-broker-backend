@@ -90,7 +90,7 @@ class ValidatorErrorInterface(ErrorInterface):
         self.session.commit()
         return True
 
-    def recordRowError(self, jobId, filename, fieldName, errorType, row, original_label, file_type_id = None, target_file_id = None):
+    def recordRowError(self, jobId, filename, fieldName, errorType, row, original_label=None, file_type_id = None, target_file_id = None):
         """ Add this error to running sum of error types
 
         Args:
