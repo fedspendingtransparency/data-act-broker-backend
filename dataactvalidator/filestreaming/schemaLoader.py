@@ -42,7 +42,8 @@ class SchemaLoader(object):
                         FieldCleaner.cleanString(record["fieldname_short"]),
                         record["required"],
                         record["data_type"],
-                        record["padded_flag"])
+                        record["padded_flag"],
+                        record["field_length"])
                     if "field_length" in record:
                         # When a field length is specified, create a rule for it
                         length = record["field_length"].strip()
