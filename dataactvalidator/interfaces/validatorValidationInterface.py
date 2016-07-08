@@ -119,8 +119,6 @@ class ValidatorValidationInterface(ValidationInterface):
 
         # Save
         self.session.add(newColumn)
-        self.session.commit()
-        return newColumn.file_column_id
 
     def getDataTypes(self) :
         """"

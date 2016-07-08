@@ -4,6 +4,7 @@ import sys
 import copy
 from csv import Error
 from sqlalchemy import or_, and_
+from profilehooks import profile
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.validationModels import FileType
 from dataactcore.utils.responseException import ResponseException
@@ -161,6 +162,7 @@ class ValidationManager:
             return "".join([self.directory, path])
         return "".join(["errors/", path])
 
+    @profile
     def readRecord(self,reader,writer,fileType,interfaces,rowNumber,jobId):
         """ Read and process the next record
 
@@ -199,6 +201,7 @@ class ValidationManager:
             return {}, reduceRow, True, False
         return record, reduceRow, False, False
 
+    @profile
     def writeToStaging(self, record, jobId, submissionId, passedValidations, interfaces, writer, rowNumber, fileType):
         """ Write this record to the staging tables
 
@@ -234,6 +237,7 @@ class ValidationManager:
             return True
         return False
 
+    @profile
     def writeErrors(self, failures, interfaces, jobId, shortColnames, writer, rowNumber):
         """ Write errors to error database
 
@@ -269,6 +273,7 @@ class ValidationManager:
             writer.write([fieldName,errorMsg,str(rowNumber),failedValue,originalRuleLabel])
             errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber,originalRuleLabel)
 
+    @profile
     def runValidation(self, jobId, interfaces):
         """ Run validations for specified job
         Args:
@@ -373,6 +378,7 @@ class ValidationManager:
             CloudLogger.logError("VALIDATOR_INFO: ", "Completed L1 and SQL rule validations on jobID: " + str(jobId), "")
         return True
 
+    @profile
     def runSqlValidations(self, interfaces, jobId, fileType, shortColnames, writer, rowNumber):
         """ Run all SQL rules for this file type
 
