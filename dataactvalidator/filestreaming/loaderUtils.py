@@ -1,10 +1,10 @@
 import csv
 from sqlalchemy.exc import IntegrityError
+from profilehooks import profile
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.validation_handlers.validator import Validator
 
 class LoaderUtils:
-    BATCH_SIZE = 100
 
     @staticmethod
     def checkRecord (record, fields) :
@@ -26,6 +26,7 @@ class LoaderUtils:
         return True
 
     @classmethod
+    @profile
     def loadCsv(cls,filename,model,interface,fieldMap,fieldOptions):
         """ Loads a table based on a csv
 
@@ -69,7 +70,6 @@ class LoaderUtils:
             # Open DictReader with attribute names
             reader = csv.DictReader(csvfile,fieldnames = attributeNames)
             # For each row, create instance of model and add it
-            rowsInTransaction = 0
             for row in reader:
                 skipInsert = False
                 for field in fieldOptions:
@@ -97,13 +97,8 @@ class LoaderUtils:
                     record = model(**row)
                 if not skipInsert:
                     try:
-                        #interface.begin_nested()
+                        interface.begin_nested()
                         interface.session.merge(record)
-                        rowsInTransaction += 1
-                        if rowsInTransaction >= cls.BATCH_SIZE:
-                            print("Committing batch")
-                            interface.session.commit()
-                            rowsInTransaction = 0
 
                     except IntegrityError as e:
                         # Hit a duplicate value that violates index, skip this one
