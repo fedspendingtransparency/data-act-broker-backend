@@ -97,7 +97,7 @@ class LoaderUtils:
                     record = model(**row)
                 if not skipInsert:
                     try:
-                        interface.begin_nested()
+                        interface.session.begin_nested()
                         interface.session.merge(record)
 
                     except IntegrityError as e:
