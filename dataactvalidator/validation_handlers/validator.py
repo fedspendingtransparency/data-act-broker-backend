@@ -1,6 +1,7 @@
 import json
 from sqlalchemy.orm.exc import NoResultFound
 from decimal import *
+from profilehooks import profile
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.models import domainModels
@@ -76,6 +77,7 @@ class Validator(object):
         return sourceRecords
 
     @staticmethod
+    @profile
     def validate(record,rules,csvSchema,fileType,interfaces):
         """
         Args:
@@ -142,19 +144,6 @@ class Validator(object):
                 recordFailed = True
                 failedRules.append([fieldName, ValidationError.lengthError, currentData,""])
 
-            #TODO remove once B9 is moved to SQL
-            #Field must pass all rules
-            for currentRule in ruleSubset :
-
-                if(checkRequiredOnly and currentRule.rule_type_id != interfaces.validationDb.getRuleType("REQUIRED_CONDITIONAL")):
-                    # If data is empty, only check conditional required rules
-                    continue
-                if(currentRule.rule_type_id == interfaces.validationDb.getRuleType("LENGTH")):
-                    # Length rules checked separately
-                    continue
-                if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name,interfaces,record)):
-                    recordFailed = True
-                    failedRules.append([fieldName,"".join(["Failed rule: ",str(currentRule.description)]), currentData, str(currentRule.original_label)])
         # TODO remove once B9 is moved to SQL
         # Check all multi field rules for this file type
         multiFieldRules = interfaces.validationDb.getMultiFieldRulesByFile(fileType)

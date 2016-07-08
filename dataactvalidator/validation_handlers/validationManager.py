@@ -331,7 +331,6 @@ class ValidationManager:
                             bucketName, errorFileName)
 
             errorInterface = interfaces.errorDb
-            stagingInterface = interfaces.stagingDb
 
             # While not done, pull one row and put it into staging table if it passes
             # the Validator
