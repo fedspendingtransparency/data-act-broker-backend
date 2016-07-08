@@ -28,7 +28,7 @@ class FileTypeTests(BaseTestValidator):
         # Upload needed files to S3
         s3FileNameValid = cls.uploadFile("appropValid.csv", user)
         s3FileNameMixed = cls.uploadFile("appropMixed.csv", user)
-        s3FileNameProgramValid = cls.uploadFile("programActivityValid.csv", user)
+        s3FileNameProgramValid = cls.uploadFile("file_b_large.csv", user)
         s3FileNameProgramMixed = cls.uploadFile("programActivityMixed.csv", user)
         s3FileNameAwardFinValid = cls.uploadFile("awardFinancialValid.csv", user)
         s3FileNameAwardFinMixed = cls.uploadFile("awardFinancialMixed.csv", user)
