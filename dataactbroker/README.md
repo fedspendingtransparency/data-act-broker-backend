@@ -550,7 +550,10 @@ Example output:
 ```
 
 #### POST "/v1/check_status/"
-A call to this route will provide status information on all jobs associated with the specified submission.  The request should have JSON or form-urlencoded with a key "submission\_id".  The response will contain a list of status objects for each job under the key "jobs", and other submission-level data.
+A call to this route will provide status information on all jobs associated with the specified submission.
+The request should have JSON or form-urlencoded with a key "submission\_id".  The response will contain a list of
+status objects for each job under the key "jobs", and other submission-level data.  In error data,
+"original_label" will only be populated when "error_name" is "rule_failed".
 
 Example input:
 
@@ -597,14 +600,16 @@ Example output:
     "error_name": "type_error",
     "error_description": "The value provided was of the wrong type",
     "occurrences": 27,
-    "rule_failed": ""
+    "rule_failed": "",
+    "original_label":""
     },
     {
     "field_name": "availabilitytypecode",
     "error_name": "rule_failed",
     "error_description": "",
     "occurrences": 27,
-    "rule_failed": "Failed rule: Indicator must be X, F, A, or blank"
+    "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
+    "original_label":"A21"
     }
     ]
     },
@@ -616,14 +621,16 @@ Example output:
           "error_name": "rule_failed",
           "field_name": "award_financial",
           "occurrences": "11",
-          "rule_failed": "fain, uri"
+          "rule_failed": "Must have either a piid, fain, or uri",
+          "original_label":""
         },
         {
           "error_description": "A rule failed for this value",
           "error_name": "rule_failed",
           "field_name": "award",
           "occurrences": "10",
-          "rule_failed": "fain, uri"
+          "rule_failed": "Must have either a piid, fain, or uri",
+          "original_label":""
         }
       ],
       "missing_headers": [],

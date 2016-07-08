@@ -3,7 +3,9 @@ import os
 from os.path import join
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.domainModels import TASLookup
+from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.config import CONFIG_BROKER
+from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.loadFile import loadDomainValues
 from dataactvalidator.scripts.loadTas import loadTas
@@ -79,6 +81,7 @@ class FileTypeTests(BaseTestValidator):
     def load_definitions(interfaces, force_tas_load):
         """Load file definitions."""
         SchemaLoader.loadAllFromPath(join(CONFIG_BROKER["path"],"dataactvalidator","config"))
+        SQLLoader.loadSql("sqlRules.csv")
         # Load domain values tables
         loadDomainValues(join(CONFIG_BROKER["path"],"dataactvalidator","config"),join(CONFIG_BROKER["path"],"tests","sf_133.csv"))
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
@@ -90,49 +93,56 @@ class FileTypeTests(BaseTestValidator):
         """Test valid job."""
         jobId = self.jobIdDict["valid"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 52, 10, "complete", 0, False)
+            jobId, 200, "finished", 63, 10, "complete", 0, False)
 
     def test_approp_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 6917, 4, "complete", 50, True)
+            jobId, 200, "finished", 6330, 4, "complete", 46, True)
 
     def test_program_valid(self):
         """Test valid job."""
         jobId = self.jobIdDict["programValid"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 52, 10, "complete", 0, False)
+            jobId, 200, "finished", 63, 10, "complete", 0, False)
 
     def test_program_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 20844, 4, "complete", 118, True)
+        jobId, 200, "finished", 19291, 4, "complete", 111, True)
 
     def test_award_fin_valid(self):
         """Test valid job."""
         jobId = self.jobIdDict["awardFinValid"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 52, 11, "complete", 0, False)
+            jobId, 200, "finished", 63, 11, "complete", 0, False)
 
     def test_award_fin_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 17076, 5, "complete", 87, True)
+        jobId, 200, "finished", 15340, 5, "complete", 78, True)
+        # Test that whitespace is converted to null
+        rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
+        self.assertIsNone(rowThree.agencyidentifier)
+        self.assertIsNone(rowThree.piid)
+        # And commas removed for numeric
+        rowThirteen = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "YYYY").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
+        self.assertEqual(rowThirteen.deobligationsrecoveriesrefundsofprioryearbyaward_cpe,26000)
 
     def test_award_valid(self):
         """Test valid job."""
         jobId = self.jobIdDict["awardValid"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 52, 10, "complete", 0, False)
+            jobId, 200, "finished", 63, 10, "complete", 0, False)
 
     def test_award_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 3194, 5, "complete", 40, True)
+            jobId, 200, "finished", 3305, 5, "complete", 41, True)
 
     def test_award_mixed_delimiter(self):
         """Test mixed job with mixed delimiter"""
@@ -160,18 +170,31 @@ class FileTypeTests(BaseTestValidator):
         self.waitOnJob(self.interfaces.jobDb, crossId, "finished", self.useThreads)
         # Check that cross file validation report exists and is the right size
         jobTracker = self.interfaces.jobDb
-        fileSize = 1639
-        reportPath = jobTracker.getCrossFileReportPath(jobTracker.getSubmissionId(crossId))
+
+        submissionId = jobTracker.getSubmissionId(crossId)
+        abFileSize = 1329
+        cdFileSize = 424
+        abFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")
+        cdFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")
+
         if self.local:
             path = "".join(
-                [self.local_file_directory,reportPath])
-            self.assertGreater(os.path.getsize(path), fileSize - 5)
-            self.assertLess(os.path.getsize(path), fileSize + 5)
+                [self.local_file_directory,abFilename])
+            self.assertGreater(os.path.getsize(path), abFileSize - 5)
+            self.assertLess(os.path.getsize(path), abFileSize + 5)
+            path = "".join(
+                [self.local_file_directory,cdFilename])
+            self.assertGreater(os.path.getsize(path), cdFileSize - 5)
+            self.assertLess(os.path.getsize(path), cdFileSize + 5)
         else:
             self.assertGreater(s3UrlHandler.getFileSize(
-                "errors/"+reportPath), fileSize - 5)
+                "errors/"+abFilename), abFileSize - 5)
             self.assertLess(s3UrlHandler.getFileSize(
-                "errors/"+reportPath), fileSize + 5)
+                "errors/"+abFilename), abFileSize + 5)
+            self.assertGreater(s3UrlHandler.getFileSize(
+                "errors/"+cdFilename), cdFileSize - 5)
+            self.assertLess(s3UrlHandler.getFileSize(
+                "errors/"+cdFilename), cdFileSize + 5)
 
 if __name__ == '__main__':
     unittest.main()

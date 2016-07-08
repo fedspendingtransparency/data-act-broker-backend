@@ -1,45 +1,14 @@
 from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.orm.exc import NoResultFound
-from dataactcore.models.baseInterface import BaseInterface
+from dataactcore.models.validationInterface import ValidationInterface
 from dataactcore.models.validationModels import Rule, RuleType, FileColumn, FileType, FieldType, RuleTiming, RuleSeverity, RuleSql
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.config import CONFIG_DB
 
 
-class ValidatorValidationInterface(BaseInterface):
+class ValidatorValidationInterface(ValidationInterface):
     """ Manages all interaction with the validation database """
-
-    dbConfig = CONFIG_DB
-    dbName = dbConfig['validator_db_name']
-    Session = None
-    engine = None
-    session = None
-
-    def __init__(self):
-        self.dbName = self.dbConfig['validator_db_name']
-        super(ValidatorValidationInterface, self).__init__()
-
-    @classmethod
-    def getCredDict(cls):
-        """ Return db credentials. """
-        credDict = {
-            'username': CONFIG_DB['username'],
-            'password': CONFIG_DB['password'],
-            'host': CONFIG_DB['host'],
-            'port': CONFIG_DB['port'],
-            'dbBaseName': CONFIG_DB['base_db_name']
-        }
-        return credDict
-
-    @staticmethod
-    def getDbName():
-        """ Return database name"""
-        return ValidatorValidationInterface.dbName
-
-    def getSession(self):
-        """ Return current session object """
-        return self.session
 
     def deleteTAS(self) :
         """
@@ -86,14 +55,15 @@ class ValidatorValidationInterface(BaseInterface):
             return True
         return False
 
-    def addColumnByFileType(self,fileType,fieldName,required,field_type):
+    def addColumnByFileType(self, fileType, fieldName, fieldNameShort, required, field_type, paddedFlag = "False"):
         """
         Adds a new column to the schema
 
         Args:
         fileType -- One of the set of valid types of files (e.g. Award, AwardFinancial)
 
-        fieldName -- The name of the scheam column
+        fieldName -- The name of the schema column
+        fieldNameShort -- The machine-friendly, short column name
         required --  marks the column if data is allways required
         field_type  -- sets the type of data allowed in the column
 
@@ -106,6 +76,7 @@ class ValidatorValidationInterface(BaseInterface):
         newColumn = FileColumn()
         newColumn.required = False
         newColumn.name = fieldName
+        newColumn.name_short = fieldNameShort
         newColumn.file_id = fileId
         field_type = field_type.upper()
 
@@ -118,11 +89,19 @@ class ValidatorValidationInterface(BaseInterface):
         elif(field_type  == "BOOL"):
             field_type = "BOOLEAN"
 
+        # Translate padded flag to true or false
+        if not paddedFlag:
+            newColumn.padded_flag = False
+        elif paddedFlag.lower() == "true":
+            newColumn.padded_flag = True
+        else:
+            newColumn.padded_flag = False
+
         #Check types
         if field_type in types :
             newColumn.field_types_id =  types[field_type]
         else :
-            raise ValueError("".join(["Type ",field_type," is not vaild for  ",str(fieldName)]))
+            raise ValueError("".join(["Type ",field_type," is not valid for  ",str(fieldName)]))
         #Check Required
         required = required.upper()
         if( required in ["TRUE","FALSE"]) :
@@ -248,7 +227,7 @@ class ValidatorValidationInterface(BaseInterface):
         rules = query.all()
         return rules
 
-    def addRule(self, columnId, ruleTypeText, ruleTextOne, ruleTextTwo, description, rule_timing = 1, rule_label = None, targetFileId = None, fileId = None):
+    def addRule(self, columnId, ruleTypeText, ruleTextOne, ruleTextTwo, description, rule_timing = 1, rule_label = None, targetFileId = None, fileId = None, originalLabel = None):
         """
 
         Args:
@@ -263,13 +242,13 @@ class ValidatorValidationInterface(BaseInterface):
             # Use default value if timing is unspecified
             rule_timing = 1
         newRule = Rule(file_column_id = columnId, rule_type_id = self.getRuleType(ruleTypeText), rule_text_1 = ruleTextOne, rule_text_2 = ruleTextTwo,
-                       description = description, rule_timing_id = rule_timing, rule_label = rule_label, target_file_id = targetFileId, file_id = fileId)
+                       description = description, rule_timing_id = rule_timing, rule_label = rule_label, target_file_id = targetFileId, file_id = fileId, original_label = originalLabel)
         self.session.add(newRule)
         self.session.commit()
         return True
 
     def addSqlRule(self, ruleSql, ruleLabel, ruleDescription, ruleErrorMsg,
-        fileId, ruleSeverity, crossFileFlag=False):
+        fileId, ruleSeverity, crossFileFlag=False, queryName = None, targetFileId = None):
         """Insert SQL-based validation rule.
 
         Args:
@@ -286,7 +265,7 @@ class ValidatorValidationInterface(BaseInterface):
         """
         newRule = RuleSql(rule_sql=ruleSql, rule_label=ruleLabel,
                 rule_description=ruleDescription, rule_error_message=ruleErrorMsg,
-                rule_cross_file_flag=crossFileFlag, file_id=fileId, rule_severity=ruleSeverity)
+                rule_cross_file_flag=crossFileFlag, file_id=fileId, rule_severity=ruleSeverity, query_name = queryName, target_file_id = targetFileId)
         self.session.add(newRule)
         self.session.commit()
         return True
@@ -423,3 +402,20 @@ class ValidatorValidationInterface(BaseInterface):
         query = self.runUniqueQuery(query, "No rule severity found with name {}".format(ruleSeverityName),
             "Multiple rule severities found with name {}".format(ruleSeverityName))
         return query
+
+    def getLongToShortColname(self):
+        """Return a dictionary that maps schema field names to shorter, machine-friendly versions."""
+        query = self.session.query(FileColumn.name, FileColumn.name_short).all()
+        dict = {row.name:row.name_short for row in query}
+        return dict
+
+    def getShortToLongColname(self):
+        """Return a dictionary that maps short, machine-friendly schema names to their long versions."""
+        query = self.session.query(FileColumn.name, FileColumn.name_short).all()
+        dict = {row.name_short: row.name for row in query}
+        return dict
+
+    def isPadded(self, field, fileType):
+        """ Returns padded_flag for specified field and filetype """
+        column = self.getColumn(field, fileType)
+        return column.padded_flag
