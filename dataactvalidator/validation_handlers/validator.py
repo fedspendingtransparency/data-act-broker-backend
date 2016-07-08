@@ -137,7 +137,7 @@ class Validator(object):
                 continue
 
             # Check length based on schema
-            if currentSchema.length is not None and (currentData.strip()) > currentSchema.length:
+            if currentSchema.length is not None and currentData is not None and (currentData.strip()) > currentSchema.length:
                 # Length failure, add to failedRules
                 failedRules.append([fieldName, ValidationError.lengthError, currentData,""])
 
