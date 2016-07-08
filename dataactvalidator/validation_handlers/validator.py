@@ -113,8 +113,6 @@ class Validator(object):
                 fieldName = shortColnames[fieldName]
             checkRequiredOnly = False
             currentSchema = csvSchema[fieldName]
-            # TODO remove this line once B9 is moved to SQL
-            ruleSubset = Validator.getRules(fieldName, fileType, rules,interfaces.validationDb)
 
             currentData = record[fieldName]
             if(currentData != None):
