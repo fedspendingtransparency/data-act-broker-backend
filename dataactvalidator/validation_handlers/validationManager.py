@@ -244,9 +244,6 @@ class ValidationManager:
             shortColnames: Dict mapping short names to long names
             writer: CsvWriter object
             rowNumber: Current row number
-
-        Returns:
-
         """
 
         errorInterface = interfaces.errorDb
@@ -360,30 +357,7 @@ class ValidationManager:
 
                 CloudLogger.logError("VALIDATOR_INFO: ", "Loading complete on jobID: " + str(jobId) + ". Total rows added to staging: " + str(rowNumber), "")
                 # Do SQL validations for this file
-                sqlFailures = Validator.validateFileBySql(interfaces.jobDb.getSubmissionId(jobId),fileType,interfaces)
-                for failure in sqlFailures:
-                    # convert shorter, machine friendly column names used in the
-                    # SQL validation queries back to their long names
-                    if failure[0] in shortColnames:
-                        fieldName = shortColnames[failure[0]]
-                    else:
-                        fieldName = failure[0]
-                    error = failure[1]
-                    failedValue = failure[2]
-                    row = failure[3]
-                    original_label = failure[4]
-                    fileTypeId = failure[5]
-                    targetFileId = failure[6]
-                    try:
-                        # If error is an int, it's one of our prestored messages
-                        errorType = int(error)
-                        errorMsg = ValidationError.getErrorMessage(errorType)
-                    except ValueError:
-                        # If not, treat it literally
-                        errorMsg = error
-                    writer.write([fieldName,errorMsg,str(row),failedValue,original_label])
-                    errorInterface.recordRowError(jobId,self.filename,fieldName,
-                                                  error,rowNumber,original_label, file_type_id=fileTypeId, target_file_id = targetFileId)
+                self.runSqlValidations(interfaces, jobId, fileType, shortColnames, writer, rowNumber)
 
                 # Write unfinished batch
                 writer.finishBatch()
@@ -398,6 +372,43 @@ class ValidationManager:
             reader.close()
             CloudLogger.logError("VALIDATOR_INFO: ", "Completed L1 and SQL rule validations on jobID: " + str(jobId), "")
         return True
+
+    def runSqlValidations(self, interfaces, jobId, fileType, shortColnames, writer, rowNumber):
+        """ Run all SQL rules for this file type
+
+        Args:
+            interfaces: InterfaceHolder object
+            jobId: ID of current job
+            fileType: Type of file for current job
+            shortColnames: Dict mapping short field names to long
+            writer: CsvWriter object
+            rowNumber: Current row number
+        """
+        errorInterface = interfaces.errorDb
+        sqlFailures = Validator.validateFileBySql(interfaces.jobDb.getSubmissionId(jobId),fileType,interfaces)
+        for failure in sqlFailures:
+            # convert shorter, machine friendly column names used in the
+            # SQL validation queries back to their long names
+            if failure[0] in shortColnames:
+                fieldName = shortColnames[failure[0]]
+            else:
+                fieldName = failure[0]
+            error = failure[1]
+            failedValue = failure[2]
+            row = failure[3]
+            original_label = failure[4]
+            fileTypeId = failure[5]
+            targetFileId = failure[6]
+            try:
+                # If error is an int, it's one of our prestored messages
+                errorType = int(error)
+                errorMsg = ValidationError.getErrorMessage(errorType)
+            except ValueError:
+                # If not, treat it literally
+                errorMsg = error
+            writer.write([fieldName,errorMsg,str(row),failedValue,original_label])
+            errorInterface.recordRowError(jobId,self.filename,fieldName,
+                                          error,rowNumber,original_label, file_type_id=fileTypeId, target_file_id = targetFileId)
 
     def runCrossValidation(self, jobId, interfaces):
         """ Cross file validation job, test all rules with matching rule_timing """
