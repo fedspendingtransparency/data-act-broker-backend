@@ -139,6 +139,7 @@ class Validator(object):
             # Check length based on schema
             if currentSchema.length is not None and currentData is not None and len(currentData.strip()) > currentSchema.length:
                 # Length failure, add to failedRules
+                recordFailed = True
                 failedRules.append([fieldName, ValidationError.lengthError, currentData,""])
 
             #TODO remove once B9 is moved to SQL
