@@ -1,4 +1,3 @@
-import boto
 import csv
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.statusCode import StatusCode
@@ -7,6 +6,7 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
+from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 
 class CsvAbstractReader(object):
     """
