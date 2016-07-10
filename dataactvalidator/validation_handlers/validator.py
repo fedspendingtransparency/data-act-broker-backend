@@ -9,13 +9,14 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
+from dataactcore.utils.cloudLogger import CloudLogger
 
 class Validator(object):
     """
     Checks individual records against specified validation tests
     """
     BOOLEAN_VALUES = ["TRUE","FALSE","YES","NO","1","0"]
-    tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op"}
+    tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op","appropriation":"approp"}
 
     @classmethod
     def crossValidateSql(cls, rules, submissionId):
@@ -789,6 +790,9 @@ class Validator(object):
              values in fields involved
              row number
         """
+
+        CloudLogger.logError("VALIDATOR_INFO: ", "Beginning SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
+
         # Pull all SQL rules for this file type
         fileId = interfaces.validationDb.getFileId(fileType)
         rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
@@ -800,6 +804,7 @@ class Validator(object):
 
         # For each rule, execute sql for rule
         for rule in rules:
+            CloudLogger.logError("VALIDATOR_INFO: ", "Running query: "+str(RuleSql.query_name)+" on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
             failures = interfaces.stagingDb.connection.execute(rule.rule_sql.format(submissionId))
             if failures.rowcount:
                 # Create column list (exclude row_number)
@@ -808,7 +813,7 @@ class Validator(object):
                 # Build error list
                 for failure in failures:
                     errorMsg = rule.rule_error_message
-                    row = failure ["row_number"]
+                    row = failure["row_number"]
                     # Create strings for fields and values
                     valueList = ["{}: {}".format(shortColnames[field], str(failure[field])) if field in shortColnames else "{}: {}".format(field, str(failure[field])) for field in cols]
                     valueString = ", ".join(valueList)
@@ -826,5 +831,7 @@ class Validator(object):
             # Update valid_record to false for all that fail this rule
             updateQuery = "UPDATE {} as {} SET valid_record = false {}".format(tableName,tableAbbrev,whereClause)
             interfaces.stagingDb.connection.execute(updateQuery)
+
+            CloudLogger.logError("VALIDATOR_INFO: ", "Completed SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
 
         return errors

@@ -36,6 +36,9 @@ class TASLoader(object):
                     print("".join(["Loading ... ",str(index)]))
                 #Pad Record
                 for key in record:
+                    if key not in cls.FILE_SCHEMA:
+                        # Not one of the TAS fields
+                        continue
                     record[key] = record[key].strip()
                     if record[key] == "":
                         # Set blanks to None

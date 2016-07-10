@@ -1,3 +1,4 @@
+import boto
 import csv
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.statusCode import StatusCode
@@ -6,7 +7,6 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
-from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 
 class CsvAbstractReader(object):
     """
@@ -26,6 +26,12 @@ class CsvAbstractReader(object):
             bucketName: bucket to send errors to
             errorFilename: filename for error report
         """
+
+
+        possibleFields = {}
+        currentFields = {}
+        for schema in  csvSchema:
+                possibleFields[FieldCleaner.cleanString(schema.name)] = 0
 
         self.filename = filename
         self.unprocessed = ''
@@ -102,7 +108,7 @@ class CsvAbstractReader(object):
                     duplicatedHeaders.append(submittedHeaderValue)
                 else:
                     self.headerDictionary[(current)] = headerValue
-                    possibleFields[headerValue] = 1
+                    possibleFields[headerValue]  = 1
                     current += 1
         self.columnCount = current
         #Check that all required fields exists

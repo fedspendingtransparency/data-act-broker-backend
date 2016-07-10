@@ -99,7 +99,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 7032, 4, "complete", 50, True)
+            jobId, 200, "finished", 6330, 4, "complete", 46, True)
 
     def test_program_valid(self):
         """Test valid job."""
@@ -111,7 +111,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 18841, 4, "complete", 107, True)
+        jobId, 200, "finished", 19291, 4, "complete", 111, True)
 
     def test_award_fin_valid(self):
         """Test valid job."""
@@ -123,8 +123,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 15234, 5, "complete", 77, True)
-
+        jobId, 200, "finished", 15340, 5, "complete", 78, True)
         # Test that whitespace is converted to null
         rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
         self.assertIsNone(rowThree.agencyidentifier)
@@ -143,7 +142,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 3245, 5, "complete", 40, True)
+            jobId, 200, "finished", 3305, 5, "complete", 41, True)
 
     def test_award_mixed_delimiter(self):
         """Test mixed job with mixed delimiter"""
@@ -168,7 +167,7 @@ class FileTypeTests(BaseTestValidator):
         self.assertEqual(crossFileResponse.status_code, 200, msg=str(crossFileResponse.json))
 
         # Check number of cross file validation errors in DB for this job
-        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId), 3)
+        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId), 5)
         # Check cross file job complete
         self.waitOnJob(self.interfaces.jobDb, crossId, "finished", self.useThreads)
         # Check that cross file validation report exists and is the right size
@@ -176,7 +175,7 @@ class FileTypeTests(BaseTestValidator):
 
         submissionId = jobTracker.getSubmissionId(crossId)
         abFileSize = 1329
-        cdFileSize = 89
+        cdFileSize = 424
         abFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")
         cdFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")
 
