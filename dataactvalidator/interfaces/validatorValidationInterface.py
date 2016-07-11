@@ -307,19 +307,29 @@ class ValidatorValidationInterface(ValidationInterface):
         """ Get File Column object from ID """
         return self.session.query(FileColumn).filter(FileColumn.file_column_id == file_column_id).first()
 
-    def getColumnId(self, fieldName, fileType):
+    def getColumnId(self, fieldName, fileType, shortCols=True):
         """ Find file column given field name and file type
 
         Args:
             fieldName: Field to search for
             fileId: Which file this field is associated with
+            shortCols: If true, return the short column names instead of the long names
 
         Returns:
             ID for file column if found, otherwise raises exception
         """
         fileId = self.getFileId(fileType)
-        column = self.session.query(FileColumn).filter(FileColumn.name == fieldName.lower()).filter(FileColumn.file_id == fileId)
-        return self.runUniqueQuery(column,"No field found with that name for that file type", "Multiple fields with that name for that file type").file_column_id
+        if shortCols:
+            column = self.session.query(FileColumn).filter(
+                FileColumn.name_short == fieldName.lower()).filter(
+                FileColumn.file_id == fileId)
+        else:
+            column = self.session.query(FileColumn).filter(
+                FileColumn.name == fieldName.lower()).filter(
+                FileColumn.file_id == fileId)
+        return self.runUniqueQuery(column,
+            "No field found with that name for that file type",
+            "Multiple fields with that name for that file type").file_column_id
 
     def getColumn(self, fieldName, fileType):
         """ Find file column given field name and file type

@@ -1,7 +1,6 @@
 import os
 import traceback
 import sys
-import copy
 from csv import Error
 from sqlalchemy import or_, and_
 from dataactcore.config import CONFIG_BROKER
@@ -181,7 +180,7 @@ class ValidationManager:
         """
         errorInterface = interfaces.errorDb
         reduceRow = False
-        try :
+        try:
             record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb)
             record["row_number"] = rowNumber
             if reader.isFinished and len(record) < 2:

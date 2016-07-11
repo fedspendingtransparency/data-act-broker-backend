@@ -69,7 +69,7 @@ class SchemaLoader(object):
                 if(FieldCleaner.cleanString(record["is_single_field"]) == "true"):
                     # Find column ID based on field name
                     try:
-                        columnId = validationDb.getColumnId(FieldCleaner.cleanName(record["field_name"]),fileTypeName)
+                        columnId = validationDb.getColumnId(FieldCleaner.cleanName(record["field_name"]),fileTypeName,shortCols=False)
                     except Exception as e:
                         raise Exception("".join([str(e),"Failed on field ",FieldCleaner.cleanName(record["field_name"])," and file ",fileTypeName]))
                 else:
