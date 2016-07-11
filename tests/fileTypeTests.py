@@ -125,12 +125,12 @@ class FileTypeTests(BaseTestValidator):
         self.passed = self.run_test(
         jobId, 200, "finished", 15340, 5, "complete", 78, True)
         # Test that whitespace is converted to null
-        rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
-        self.assertIsNone(rowThree.agencyidentifier)
+        rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parent_award_id == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
+        self.assertIsNone(rowThree.agency_identifier)
         self.assertIsNone(rowThree.piid)
         # And commas removed for numeric
-        rowThirteen = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "YYYY").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
-        self.assertEqual(rowThirteen.deobligationsrecoveriesrefundsofprioryearbyaward_cpe,26000)
+        rowThirteen = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parent_award_id == "YYYY").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
+        self.assertEqual(rowThirteen.deobligations_recov_by_awa_cpe,26000)
 
     def test_award_valid(self):
         """Test valid job."""
