@@ -220,9 +220,6 @@ class ValidationManager:
             record["job_id"] = jobId
             record["submission_id"] = submissionId
             record["valid_record"] = passedValidations
-            # temporary fix b/c we can't use '+4' as a column alias :(
-            if "primaryplaceofperformancezip+4" in record:
-                record["primaryplaceofperformancezipplus4"] = record["primaryplaceofperformancezip+4"]
             stagingInterface.insertSubmissionRecordByFileType(record, fileType)
         except ResponseException as e:
             # Write failed, move to next record
