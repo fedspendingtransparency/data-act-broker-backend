@@ -178,9 +178,12 @@ class BaseTestValidator(unittest.TestCase):
             return
 
     @staticmethod
-    def insertSubmission(jobTracker, userId):
+    def insertSubmission(jobTracker, userId, endDate = None):
         """Insert submission into job tracker and return submission ID"""
-        sub = Submission(datetime_utc=datetime.utcnow(), user_id=userId)
+        if endDate is None:
+            sub = Submission(datetime_utc=datetime.utcnow(), user_id=userId, reporting_start_date = datetime(2015,10,1), reporting_end_date = datetime(2015,12,31))
+        else:
+            sub = Submission(datetime_utc=datetime.utcnow(), user_id=userId, reporting_start_date = datetime(2015,10,1), reporting_end_date = endDate)
         jobTracker.session.add(sub)
         jobTracker.session.commit()
         return sub.submission_id

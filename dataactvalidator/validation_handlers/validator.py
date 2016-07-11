@@ -103,8 +103,8 @@ class Validator(object):
                 return False, [[fieldName, ValidationError.requiredError, "", ""]], False
 
         for fieldName in record :
-            if fieldName == "row_number":
-                # Skip row number, nothing to validate on that
+            if fieldName == "row_number" or fieldName == "is_first_quarter":
+                # Skip row number and quarter flag, nothing to validate on that
                 continue
             elif fieldName in shortColnames:
                 # Change shrot colname to longname for validation
