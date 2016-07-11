@@ -32,7 +32,8 @@ def insertCodes():
         (3, 'value_error', 'The value provided was invalid'),
         (4, 'read_error', 'Could not parse this record correctly'),
         (5, 'write_error', 'Could not write this record into the staging table'),
-        (6, 'rule_failed', 'A rule failed for this value')]
+        (6, 'rule_failed', 'A rule failed for this value'),
+        (7, 'length_error', 'Value was longer than allowed length')]
     for e in errorList:
         error = ErrorType(error_type_id=e[0], name=e[1], description=e[2])
         errorDb.session.merge(error)

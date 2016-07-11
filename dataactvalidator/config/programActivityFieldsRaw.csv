@@ -3,7 +3,7 @@ AgencyIdentifier,agency_identifier,Required,string,3,"A1, A20"
 AllocationTransferAgencyIdentifier,allocation_transfer_agency,Conditional per Validation Rule,string,3,"A1, A20"
 AvailabilityTypeCode,availability_type_code,Conditional per Validation Rule,string,1,"A1, A21"
 BeginningPeriodOfAvailability,beginning_period_of_availa,Conditional per Validation Rule,string,4,A1
-ByDirectReimbursableFundingSource,by_direct_reimbursable_fun,Required,string,1,B12
+ByDirectReimbursableFundingSource,by_direct_reimbursable_fun,Conditional per Validation Rule,string,1,B12
 DeobligationsRecoveriesRefundsdOfPriorYearByProgramObjectClass_CPE,deobligations_recov_by_pro_cpe,Required,numeric,21,B13
 EndingPeriodOfAvailability,ending_period_of_availabil,Conditional per Validation Rule,string,4,A1
 GrossOutlayAmountByProgramObjectClass_CPE,gross_outlay_amount_by_pro_cpe,Required,numeric,21,B5
