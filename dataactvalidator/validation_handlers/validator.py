@@ -98,6 +98,11 @@ class Validator(object):
             if (csvSchema[fieldName].required and not fieldName in record):
                 return False, [[fieldName, ValidationError.requiredError, "", ""]], False
 
+        # temporary fix for long/short colnames until legacy validation rules are removed:
+        # use long colnames in the record header
+        colMapping = interfaces.validationDb.getShortToLongColname()
+        recordLong = {colMapping.get(key, key): value for key, value in record.items()}
+
         for fieldName in record :
             if fieldName == "row_number" or fieldName == "is_first_quarter":
                 # Skip row number and quarter flag, nothing to validate on that
@@ -143,10 +148,6 @@ class Validator(object):
                 # If type failed, don't do value checks
                 continue
             #Field must pass all rules
-            # temporary fix for long/short colnames until legacy validation rules are removed:
-            # use long colnames in the record header
-            colMapping = interfaces.validationDb.getShortToLongColname()
-            recordLong = {colMapping.get(key,key):value for key, value in record.items()}
             for currentRule in ruleSubset :
                 if(checkRequiredOnly and currentRule.rule_type_id != interfaces.validationDb.getRuleType("REQUIRED_CONDITIONAL")):
                     # If data is empty, only check conditional required rules
