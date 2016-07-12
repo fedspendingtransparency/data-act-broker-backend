@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os
 from os.path import join
+from datetime import datetime
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.domainModels import TASLookup
 from dataactcore.models.stagingModels import AwardFinancial
@@ -47,6 +48,8 @@ class FileTypeTests(BaseTestValidator):
         submissionIDs = {}
         for i in range(0, 16):
             submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
+        # Submission 12 will be second quarter
+        submissionIDs[11] = cls.insertSubmission(cls.jobTracker, user, datetime(2015,3,15))
 
         # Create jobs
         jobDb = cls.jobTracker
