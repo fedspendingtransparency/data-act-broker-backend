@@ -29,7 +29,6 @@ class CsvAbstractReader(object):
 
 
         possibleFields = {}
-        currentFields = {}
         for schema in  csvSchema:
                 possibleFields[FieldCleaner.cleanString(schema.name)] = 0
 
@@ -87,7 +86,6 @@ class CsvAbstractReader(object):
         # staging tables
         possibleFields = {}
         for schema in csvSchema:
-            #possibleFields[FieldCleaner.cleanString(schema.name)] = 0
             possibleFields[FieldCleaner.cleanString(schema.name_short)] = 0
 
         for row in csv.reader([line], dialect='excel', delimiter=self.delimiter):
@@ -108,13 +106,12 @@ class CsvAbstractReader(object):
                     duplicatedHeaders.append(submittedHeaderValue)
                 else:
                     self.headerDictionary[(current)] = headerValue
-                    possibleFields[headerValue]  = 1
+                    possibleFields[headerValue] = 1
                     current += 1
         self.columnCount = current
         #Check that all required fields exists
         missingHeaders = []
         for schema in csvSchema :
-            #if(possibleFields[FieldCleaner.cleanString(schema.name)] == 0) :
             if (possibleFields[FieldCleaner.cleanString(schema.name_short)] == 0):
                 # return long colname for error reporting
                 missingHeaders.append(schema.name)
@@ -262,7 +259,7 @@ class CsvAbstractReader(object):
             else :
                 if(char == '"') :
                     ecapeMode = False
-                current = "".join([current,char]) #current.join([char])
+                current = "".join([current,char])
         if (len(current)>0) :
             linesToReturn.append(current)
         return linesToReturn
