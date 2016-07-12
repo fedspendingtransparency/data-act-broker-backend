@@ -313,7 +313,7 @@ class ValidatorValidationInterface(ValidationInterface):
         Args:
             fieldName: Field to search for
             fileId: Which file this field is associated with
-            shortCols: If true, return the short column names instead of the long names
+            shortCols: If true, search by short col names
 
         Returns:
             ID for file column if found, otherwise raises exception
