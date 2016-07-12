@@ -74,7 +74,7 @@ class CsvAbstractReader(object):
             # check to see if header contains long or short column names
             colMatches = 0
             for value in row:
-                if value in longNameDict:
+                if FieldCleaner.cleanString(value) in longNameDict:
                     colMatches += 1
             # if most of column headers are in the long format,
             # we'll treat the file as having long headers
@@ -93,13 +93,13 @@ class CsvAbstractReader(object):
                     headerValue = submittedHeaderValue
                 if not headerValue in possibleFields:
                     # Allow unexpected headers, just mark the header as None so we skip it when reading
-                    self.headerDictionary[(current)] = None
+                    self.headerDictionary[current] = None
                     current += 1
                 elif(possibleFields[headerValue] == 1):
                     # Add header value (as submitted) to duplicated header list
                     duplicatedHeaders.append(submittedHeaderValue)
                 else:
-                    self.headerDictionary[(current)] = headerValue
+                    self.headerDictionary[current] = headerValue
                     possibleFields[headerValue] = 1
                     current += 1
         self.columnCount = current
