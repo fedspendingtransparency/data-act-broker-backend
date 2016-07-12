@@ -163,7 +163,7 @@ class ValidationManager:
         return "".join(["errors/", path])
 
     @profile
-    def readRecord(self,reader,writer,fileType,interfaces,rowNumber,jobId):
+    def readRecord(self,reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter):
         """ Read and process the next record
 
         Args:
@@ -173,6 +173,7 @@ class ValidationManager:
             interfaces: InterfaceHolder object
             rowNumber: Next row number to be read
             jobId: ID of current job
+            isFirstQuarter: True if submission ends in first quarter
 
         Returns:
             Tuple with four elements:
@@ -186,6 +187,7 @@ class ValidationManager:
         try :
             record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb)
             record["row_number"] = rowNumber
+            record["is_first_quarter"] = isFirstQuarter
             if reader.isFinished and len(record) < 2:
                 # This is the last line and is empty, don't record an error
                 return {}, True, True, True  # Don't count this row
@@ -286,6 +288,7 @@ class ValidationManager:
         CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runValidation on jobID: "+str(jobId), "")
 
         jobTracker = interfaces.jobDb
+        isFirstQuarter = jobTracker.checkFirstQuarter(jobId)
         submissionId = jobTracker.getSubmissionId(jobId)
 
         rowNumber = 1
@@ -340,7 +343,7 @@ class ValidationManager:
                     rowNumber += 1
                     if (rowNumber % 100) == 0:
                         CloudLogger.logError("VALIDATOR_INFO: ","JobId: "+str(jobId)+" loading row " + str(rowNumber),"")
-                    (record, reduceRow, skipRow, doneReading) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,jobId)
+                    (record, reduceRow, skipRow, doneReading) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter)
                     if reduceRow:
                         rowNumber -= 1
                     if doneReading:
@@ -424,6 +427,8 @@ class ValidationManager:
         regionName = CONFIG_BROKER['aws_region']
         CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runCrossValidation on submissionID: "+str(submissionId), "")
 
+        # Delete existing cross file errors for this submission
+        errorDb.resetErrorsByJobId(jobId)
 
         # use db to get a list of the cross-file combinations
         targetFiles = validationDb.session.query(FileType).subquery()

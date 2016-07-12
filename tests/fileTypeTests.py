@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os
 from os.path import join
+from datetime import datetime
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.domainModels import TASLookup
 from dataactcore.models.stagingModels import AwardFinancial
@@ -42,8 +43,10 @@ class FileTypeTests(BaseTestValidator):
 
         # Create submissions and get IDs back
         submissionIDs = {}
-        for i in range(0, 12):
+        for i in range(0, 11):
             submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
+        # Submission 12 will be second quarter
+        submissionIDs[11] = cls.insertSubmission(cls.jobTracker, user, datetime(2015,3,15))
 
         # Create jobs
         jobDb = cls.jobTracker
@@ -147,7 +150,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 3101, 5, "complete", 40, True)
+            jobId, 200, "finished", 3305, 5, "complete", 41, True)
 
     def test_award_mixed_delimiter(self):
         """Test mixed job with mixed delimiter"""
