@@ -17,6 +17,8 @@ class Validator(object):
     """
     BOOLEAN_VALUES = ["TRUE","FALSE","YES","NO","1","0"]
     tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op","appropriation":"approp"}
+    # Set of metadata fields that should not be directly validated
+    META_FIELDS = ["row_number", "agencyidentifier_padded", "allocationtransferagencyidentifier_padded", "mainaccountcode_padded", "subaccountcode_padded", "programactivitycode_padded"]
 
     @classmethod
     def crossValidateSql(cls, rules, submissionId):
@@ -75,8 +77,8 @@ class Validator(object):
             sourceRecords = [r.__dict__ for r in sourceRecords]
         return sourceRecords
 
-    @staticmethod
-    def validate(record,rules,csvSchema,fileType,interfaces):
+    @classmethod
+    def validate(cls,record,rules,csvSchema,fileType,interfaces):
         """
         Args:
         record -- dict representation of a single record of data
@@ -103,7 +105,7 @@ class Validator(object):
                 return False, [[fieldName, ValidationError.requiredError, "", ""]], False
 
         for fieldName in record :
-            if fieldName == "row_number":
+            if fieldName in cls.META_FIELDS:
                 # Skip row number, nothing to validate on that
                 continue
             elif fieldName in shortColnames:
