@@ -18,7 +18,7 @@ class Validator(object):
     BOOLEAN_VALUES = ["TRUE","FALSE","YES","NO","1","0"]
     tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op","appropriation":"approp"}
     # Set of metadata fields that should not be directly validated
-    META_FIELDS = ["row_number", "agencyidentifier_padded", "allocationtransferagencyidentifier_padded", "mainaccountcode_padded", "subaccountcode_padded", "programactivitycode_padded"]
+    META_FIELDS = ["row_number", "is_first_quarter", "agencyidentifier_padded", "allocationtransferagencyidentifier_padded", "mainaccountcode_padded", "subaccountcode_padded", "programactivitycode_padded"]
 
     @classmethod
     def crossValidateSql(cls, rules, submissionId):
