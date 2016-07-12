@@ -27,11 +27,6 @@ class CsvAbstractReader(object):
             errorFilename: filename for error report
         """
 
-
-        possibleFields = {}
-        for schema in  csvSchema:
-                possibleFields[FieldCleaner.cleanString(schema.name)] = 0
-
         self.filename = filename
         self.unprocessed = ''
         self.extraLine = False
@@ -67,28 +62,27 @@ class CsvAbstractReader(object):
 
         self.delimiter = "|" if line.count("|") != 0 else ","
 
-        # check to see if header contains long or short column names
-        # TODO: is there a better way to do this?
         validation_db = ValidatorValidationInterface()
         longNameDict = validation_db.getLongToShortColname()
-        headerNames = line.split(self.delimiter)
-        colMatches = 0
-        for i, value in enumerate(headerNames):
-            if value in longNameDict:
-                colMatches += 1
-        if colMatches > 15:
-            longHeaders = True
-        else:
-            longHeaders = False
-
-        # Set the list of possibleFields, converting long col names to their
-        # shorter, machine-readable counterparts that are used in the
-        # staging tables
+        # Set the list of possibleFields, using  the shorter,
+        # machine-readable column names
         possibleFields = {}
         for schema in csvSchema:
             possibleFields[FieldCleaner.cleanString(schema.name_short)] = 0
 
         for row in csv.reader([line], dialect='excel', delimiter=self.delimiter):
+            # check to see if header contains long or short column names
+            colMatches = 0
+            for value in row:
+                if value in longNameDict:
+                    colMatches += 1
+            # if most of column headers are in the long format,
+            # we'll treat the file as having long headers
+            if colMatches > .5 * len(row):
+                longHeaders = True
+            else:
+                longHeaders = False
+
             for cell in row:
                 submittedHeaderValue = FieldCleaner.cleanString(cell)
                 if longHeaders and submittedHeaderValue in longNameDict:
