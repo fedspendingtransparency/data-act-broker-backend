@@ -125,10 +125,8 @@ class FieldCleaner(StringCleaner):
                     # Replace empty strings with null
                     value = None
 
-                (row[key],wasPadded) = cls.padField(key,value,fileType,validationInterface)
-                if wasPadded:
-                    # Mark padded flag true
-                    row["".join([key,"_padded"])] = True
+                row[key] = cls.padField(key,value,fileType,validationInterface)
+
         return row
 
     @staticmethod
@@ -142,7 +140,7 @@ class FieldCleaner(StringCleaner):
             interfaces: InterfaceHolder object
 
         Returns:
-            Padded value and a boolean indicating whether padding occurred
+            Padded value
         """
         # Check padded flag for this field and file
         if value is not None and validationInterface.isPadded(field,fileType):
@@ -150,9 +148,9 @@ class FieldCleaner(StringCleaner):
             padLength = validationInterface.getColumnLength(field, fileType)
             if len(value) < padLength:
                 # Pad to specified length with leading zeros
-                return value.zfill(padLength), True
-        # Padding did not occur, return original value and False
-        return value, False
+                return value.zfill(padLength)
+        # Padding did not occur, return original value
+        return value
 
 if __name__ == '__main__':
     FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")

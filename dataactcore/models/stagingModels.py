@@ -33,10 +33,8 @@ class Appropriation(Base):
     adjustmentstounobligatedbalancebroughtforward_cpe = Column(
         "adjustments_to_unobligated_cpe", Numeric)
     agencyidentifier = Column("agency_identifier", Text)
-    agencyidentifier_padded = Column("agency_identifier_padded", Boolean, default=False, server_default="False")
     allocationtransferagencyidentifier = Column(
         "allocation_transfer_agency", Text)
-    allocationtransferagencyidentifier_padded = Column("allocation_transfer_agency_padded", Boolean, default=False, server_default="False")
     availabilitytypecode = Column("availability_type_code", Text)
     beginningperiodofavailability = Column("beginning_period_of_availa", Text)
     borrowingauthorityamounttotal_cpe = Column(
@@ -56,7 +54,6 @@ class Appropriation(Base):
     grossoutlayamountbytas_cpe = Column(
         "gross_outlay_amount_by_tas_cpe", Numeric)
     mainaccountcode = Column("main_account_code", Text)
-    mainaccountcode_padded = Column("main_account_code_padded", Boolean, default=False, server_default="False")
     obligationsincurredtotalbytas_cpe = Column(
         "obligations_incurred_total_cpe", Numeric)
     otherbudgetaryresourcesamount_cpe = Column(
@@ -66,7 +63,6 @@ class Appropriation(Base):
     statusofbudgetaryresourcestotal_cpe = Column(
         "status_of_budgetary_resour_cpe", Numeric)
     subaccountcode = Column("sub_account_code", Text)
-    subaccountcode_padded = Column("sub_account_code_padded", Boolean, default=False, server_default="False")
     unobligatedbalance_cpe = Column("unobligated_balance_cpe", Numeric)
     tas = Column(Text, index=True, nullable=False, default=concatTas, onupdate=concatTas)
     valid_record = Column(Boolean, nullable = False, default = True, server_default = "True")
@@ -87,10 +83,8 @@ class ObjectClassProgramActivity(Base):
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     agencyidentifier = Column("agency_identifier", Text)
-    agencyidentifier_padded = Column("agency_identifier_padded", Boolean, default=False, server_default="False")
     allocationtransferagencyidentifier = Column(
         "allocation_transfer_agency", Text)
-    allocationtransferagencyidentifier_padded = Column("allocation_transfer_agency_padded", Boolean, default=False, server_default="False")
     availabilitytypecode = Column("availability_type_code", Text)
     beginningperiodofavailability = Column("beginning_period_of_availa", Text)
     bydirectreimbursablefundingsource = Column(
@@ -111,7 +105,6 @@ class ObjectClassProgramActivity(Base):
     grossoutlaysundeliveredordersprepaidtotal_fyb = Column(
         "gross_outlays_undelivered_fyb", Numeric)
     mainaccountcode = Column("main_account_code", Text)
-    mainaccountcode_padded = Column("main_account_code_padded", Boolean, default=False, server_default="False")
     objectclass = Column("object_class", Text)
     obligationsdeliveredordersunpaidtotal_cpe = Column(
         "obligations_delivered_orde_cpe", Numeric)
@@ -124,10 +117,8 @@ class ObjectClassProgramActivity(Base):
     obligationsundeliveredordersunpaidtotal_fyb = Column(
         "obligations_undelivered_or_fyb", Numeric)
     programactivitycode = Column("program_activity_code", Text)
-    programactivitycode_padded = Column("program_activity_code_padded", Boolean, default=False, server_default="False")
     programactivityname = Column("program_activity_name", Text)
     subaccountcode = Column("sub_account_code", Text)
-    subaccountcode_padded = Column("sub_account_code_padded", Boolean, default=False, server_default="False")
     ussgl480100_undeliveredordersobligationsunpaid_cpe = Column(
         "ussgl480100_undelivered_or_cpe", Numeric)
     ussgl480100_undeliveredordersobligationsunpaid_fyb = Column(
@@ -193,10 +184,8 @@ class AwardFinancial(Base):
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     agencyidentifier = Column("agency_identifier", Text)
-    agencyidentifier_padded = Column("agency_identifier_padded", Boolean, default=False, server_default="False")
     allocationtransferagencyidentifier = Column(
         "allocation_transfer_agency", Text)
-    allocationtransferagencyidentifier_padded = Column("allocation_transfer_agency_padded", Boolean, default=False, server_default="False")
     availabilitytypecode = Column("availability_type_code", Text)
     beginningperiodofavailability = Column("beginning_period_of_availa", Text)
     bydirectreimbursablefundingsource = Column(
@@ -218,7 +207,6 @@ class AwardFinancial(Base):
     grossoutlaysundeliveredordersprepaidtotal_fyb = Column(
         "gross_outlays_undelivered_fyb", Numeric)
     mainaccountcode = Column("main_account_code", Text)
-    mainaccountcode_padded = Column("main_account_code_padded", Boolean, default=False, server_default="False")
     objectclass = Column("object_class", Text)
     obligationsdeliveredordersunpaidtotal_cpe = Column(
         "obligations_delivered_orde_cpe", Numeric)
@@ -233,10 +221,8 @@ class AwardFinancial(Base):
     parentawardid = Column("parent_award_id", Text)
     piid = Column(Text, index=True)
     programactivitycode = Column("program_activity_code", Text)
-    programactivitycode_padded = Column("program_activity_code_padded", Boolean, default=False, server_default="False")
     programactivityname = Column("program_activity_name", Text)
     subaccountcode = Column("sub_account_code", Text)
-    subaccountcode_padded = Column("sub_account_code_padded", Boolean, default=False, server_default="False")
     transactionobligatedamount = Column("transaction_obligated_amou", Numeric)
     uri = Column(Text, index=True)
     ussgl480100_undeliveredordersobligationsunpaid_cpe = Column(
