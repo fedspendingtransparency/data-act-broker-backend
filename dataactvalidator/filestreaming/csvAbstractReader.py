@@ -243,8 +243,8 @@ class CsvAbstractReader(object):
                         linesToReturn.append(current)
                         #check the last char if its a new line add extra line
                         # as its at the end of the packet
-                        if( index == len(packet)-1 ) :
-                            linesToReturn.append("")
+                    if( index == len(packet)-1 ) :
+                        linesToReturn.append("")
                     current = ""
                 else :
                   current = "".join([current,char])
