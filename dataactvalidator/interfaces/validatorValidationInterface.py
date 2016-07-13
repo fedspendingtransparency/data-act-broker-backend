@@ -4,7 +4,6 @@ from dataactcore.models.validationInterface import ValidationInterface
 from dataactcore.models.validationModels import Rule, RuleType, FileColumn, FileType, FieldType, RuleTiming, RuleSeverity, RuleSql
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
-from dataactcore.config import CONFIG_DB
 
 
 class ValidatorValidationInterface(ValidationInterface):
@@ -172,19 +171,20 @@ class ValidatorValidationInterface(ValidationInterface):
         list of names
         """
         fileId = self.getFileId(fileType)
-        returnList  = []
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
         queryResult = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).all()
         for result in queryResult:
             result.name = FieldCleaner.cleanString(result.name) # Standardize field names
+            result.name_short = FieldCleaner.cleanString(result.name_short)
         return queryResult
 
-    def getFieldsByFile(self, fileType):
+    def getFieldsByFile(self, fileType, shortCols=False):
         """ Returns a dict of valid field names that can appear in this type of file
 
         Args:
         fileType -- One of the set of valid types of files (e.g. Award, AwardFinancial)
+        shortCols -- If true, return the short column names instead of the long names
 
         Returns:
         dict with field names as keys and values are ORM object FileColumn
@@ -194,8 +194,11 @@ class ValidatorValidationInterface(ValidationInterface):
         if(fileId is None) :
             raise ValueError("File type does not exist")
         queryResult = self.session.query(FileColumn).options(subqueryload("field_type")).filter(FileColumn.file_id == fileId).all()
-        for column in queryResult :
-            returnDict[FieldCleaner.cleanString(column.name)]  = column
+        for column in queryResult:
+            if shortCols:
+                returnDict[FieldCleaner.cleanString(column.name_short)] = column
+            else:
+                returnDict[FieldCleaner.cleanString(column.name)] = column
         return returnDict
 
 
@@ -304,19 +307,29 @@ class ValidatorValidationInterface(ValidationInterface):
         """ Get File Column object from ID """
         return self.session.query(FileColumn).filter(FileColumn.file_column_id == file_column_id).first()
 
-    def getColumnId(self, fieldName, fileType):
+    def getColumnId(self, fieldName, fileType, shortCols=True):
         """ Find file column given field name and file type
 
         Args:
             fieldName: Field to search for
             fileId: Which file this field is associated with
+            shortCols: If true, search by short col names
 
         Returns:
             ID for file column if found, otherwise raises exception
         """
         fileId = self.getFileId(fileType)
-        column = self.session.query(FileColumn).filter(FileColumn.name == fieldName.lower()).filter(FileColumn.file_id == fileId)
-        return self.runUniqueQuery(column,"No field found with that name for that file type", "Multiple fields with that name for that file type").file_column_id
+        if shortCols:
+            column = self.session.query(FileColumn).filter(
+                FileColumn.name_short == fieldName.lower()).filter(
+                FileColumn.file_id == fileId)
+        else:
+            column = self.session.query(FileColumn).filter(
+                FileColumn.name == fieldName.lower()).filter(
+                FileColumn.file_id == fileId)
+        return self.runUniqueQuery(column,
+            "No field found with that name for that file type",
+            "Multiple fields with that name for that file type").file_column_id
 
     def getColumn(self, fieldName, fileType):
         """ Find file column given field name and file type
@@ -329,7 +342,7 @@ class ValidatorValidationInterface(ValidationInterface):
             Column object for file column if found, otherwise raises exception
         """
         fileId = self.getFileId(fileType)
-        column = self.session.query(FileColumn).filter(FileColumn.name == fieldName.lower()).filter(
+        column = self.session.query(FileColumn).filter(FileColumn.name_short == fieldName.lower()).filter(
             FileColumn.file_id == fileId)
         return self.runUniqueQuery(column, "No field found with that name for that file type",
                                    "Multiple fields with that name for that file type")

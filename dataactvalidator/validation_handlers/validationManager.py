@@ -1,7 +1,6 @@
 import os
 import traceback
 import sys
-import copy
 from csv import Error
 from sqlalchemy import or_, and_
 from dataactcore.config import CONFIG_BROKER
@@ -182,7 +181,7 @@ class ValidationManager:
         """
         errorInterface = interfaces.errorDb
         reduceRow = False
-        try :
+        try:
             record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb)
             record["row_number"] = rowNumber
             record["is_first_quarter"] = isFirstQuarter
@@ -223,9 +222,6 @@ class ValidationManager:
             record["job_id"] = jobId
             record["submission_id"] = submissionId
             record["valid_record"] = passedValidations
-            # temporary fix b/c we can't use '+4' as a column alias :(
-            if "primaryplaceofperformancezip+4" in record:
-                record["primaryplaceofperformancezipplus4"] = record["primaryplaceofperformancezip+4"]
             stagingInterface.insertSubmissionRecordByFileType(record, fileType)
         except ResponseException as e:
             # Write failed, move to next record
@@ -310,7 +306,7 @@ class ValidationManager:
 
         validationDB = interfaces.validationDb
         fieldList = validationDB.getFieldsByFileList(fileType)
-        csvSchema = validationDB.getFieldsByFile(fileType)
+        csvSchema = validationDB.getFieldsByFile(fileType, shortCols=True)
         rules = validationDB.getRulesByFile(fileType)
 
         reader = self.getReader()
@@ -324,8 +320,8 @@ class ValidationManager:
 
 
         try:
-            # Pull file
-            reader.openFile(regionName, bucketName, fileName, fieldList,
+            # Pull file and return info on whether it's using short or long col headers
+            longHeaders = reader.openFile(regionName, bucketName, fileName, fieldList,
                             bucketName, errorFileName)
 
             errorInterface = interfaces.errorDb
@@ -336,6 +332,7 @@ class ValidationManager:
                                 self.reportHeaders) as writer:
                 while not reader.isFinished:
                     rowNumber += 1
+
                     if (rowNumber % 100) == 0:
                         CloudLogger.logError("VALIDATOR_INFO: ","JobId: "+str(jobId)+" loading row " + str(rowNumber),"")
                     (record, reduceRow, skipRow, doneReading) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter)
@@ -358,6 +355,7 @@ class ValidationManager:
                         self.writeErrors(failures, interfaces, jobId, shortColnames, writer, rowNumber)
 
                 CloudLogger.logError("VALIDATOR_INFO: ", "Loading complete on jobID: " + str(jobId) + ". Total rows added to staging: " + str(rowNumber), "")
+
                 # Do SQL validations for this file
                 self.runSqlValidations(interfaces, jobId, fileType, shortColnames, writer, rowNumber)
 

@@ -39,31 +39,42 @@ class FileTypeTests(BaseTestValidator):
         s3FileNameCrossAward = cls.uploadFile("cross_file_D2.csv", user)
         s3FileNameCrossApprop = cls.uploadFile("cross_file_A.csv", user)
         s3FileNameCrossPgmAct = cls.uploadFile("cross_file_B.csv", user)
+        s3FileNameAppropValidShortcols = cls.uploadFile("appropValidShortcols.csv", user)
+        s3FileNameProgramMixedShortcols = cls.uploadFile("programActivityMixedShortcols.csv", user)
+        s3FileNameAwardFinMixedShortcols = cls.uploadFile("awardFinancialMixedShortcols.csv", user)
+        s3FileNameAwardValidShortcols = cls.uploadFile("awardValidShortcols.csv", user)
 
         # Create submissions and get IDs back
         submissionIDs = {}
-        for i in range(0, 11):
+        for i in range(0, 16):
             submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
         # Submission 12 will be second quarter
         submissionIDs[11] = cls.insertSubmission(cls.jobTracker, user, datetime(2015,3,15))
 
         # Create jobs
         jobDb = cls.jobTracker
+        statusReady = str(jobDb.getJobStatusId("ready"))
+        jobTypeCsv = str(jobDb.getJobTypeId("csv_record_validation"))
+        jobTypeValidation = str(jobDb.getJobTypeId("validation"))
         jobInfoList = {
-            "valid": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[1]), s3FileNameValid, 3],
-            "mixed": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[2]), s3FileNameMixed, 3],
-            "programValid": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[4]), s3FileNameProgramValid, 4],
-            "programMixed": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[5]), s3FileNameProgramMixed, 4],
-            "awardFinValid": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[6]), s3FileNameAwardFinValid, 2],
-            "awardFinMixed": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[7]), s3FileNameAwardFinMixed, 2],
-            "awardValid": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[8]), s3FileNameAwardValid, 1],
-            "awardMixed": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[9]), s3FileNameAwardMixed, 1],
-            "awardMixedDelimiter": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[10]), s3FileNameAwardMixedDelimiter, 1],
-            "crossApprop": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossApprop, 3],
-            "crossPgmAct": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossPgmAct, 4],
-            "crossAwardFin": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossAwardFin, 2],
-            "crossAward": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("csv_record_validation")), str(submissionIDs[11]), s3FileNameCrossAward, 1],
-            "crossFile": [str(jobDb.getJobStatusId("ready")), str(jobDb.getJobTypeId("validation")), str(submissionIDs[11]), None, None]
+            "valid": [statusReady, jobTypeCsv, str(submissionIDs[1]), s3FileNameValid, 3],
+            "mixed": [statusReady, jobTypeCsv, str(submissionIDs[2]), s3FileNameMixed, 3],
+            "programValid": [statusReady, jobTypeCsv, str(submissionIDs[4]), s3FileNameProgramValid, 4],
+            "programMixed": [statusReady, jobTypeCsv, str(submissionIDs[5]), s3FileNameProgramMixed, 4],
+            "awardFinValid": [statusReady, jobTypeCsv, str(submissionIDs[6]), s3FileNameAwardFinValid, 2],
+            "awardFinMixed": [statusReady, jobTypeCsv, str(submissionIDs[7]), s3FileNameAwardFinMixed, 2],
+            "awardValid": [statusReady, jobTypeCsv, str(submissionIDs[8]), s3FileNameAwardValid, 1],
+            "awardMixed": [statusReady, jobTypeCsv, str(submissionIDs[9]), s3FileNameAwardMixed, 1],
+            "awardMixedDelimiter": [statusReady, jobTypeCsv, str(submissionIDs[10]), s3FileNameAwardMixedDelimiter, 1],
+            "crossApprop": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossApprop, 3],
+            "crossPgmAct": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossPgmAct, 4],
+            "crossAwardFin": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossAwardFin, 2],
+            "crossAward": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossAward, 1],
+            "crossFile": [statusReady, jobTypeValidation, str(submissionIDs[11]), None, None],
+            "appropValidShortcols": [statusReady, jobTypeCsv, str(submissionIDs[12]), s3FileNameAppropValidShortcols, 3],
+            "programMixedShortcols": [statusReady, jobTypeCsv, str(submissionIDs[13]), s3FileNameProgramMixedShortcols, 4],
+            "awardFinMixedShortcols": [statusReady, jobTypeCsv, str(submissionIDs[14]), s3FileNameAwardFinMixedShortcols, 2],
+            "awardValidShortcols": [statusReady, jobTypeCsv, str(submissionIDs[15]), s3FileNameAwardValidShortcols, 1]
         }
 
         jobIdDict = {}
@@ -98,6 +109,12 @@ class FileTypeTests(BaseTestValidator):
         self.passed = self.run_test(
             jobId, 200, "finished", 63, 10, "complete", 0, False)
 
+    def test_approp_valid_shortcol(self):
+        """Test valid approp job with short colnames."""
+        jobId = self.jobIdDict["appropValidShortcols"]
+        self.passed = self.run_test(
+            jobId, 200, "finished", 63, 10, "complete", 0, False)
+
     def test_approp_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
@@ -116,6 +133,12 @@ class FileTypeTests(BaseTestValidator):
         self.passed = self.run_test(
         jobId, 200, "finished", 21796, 4, "complete", 111, True)
 
+    def test_program_mixed_shortcols(self):
+        """Test object class/program activity job with some rows failing & short colnames."""
+        jobId = self.jobIdDict["programMixedShortcols"]
+        self.passed = self.run_test(
+            jobId, 200, "finished", 19291, 4, "complete", 111, True)
+
     def test_award_fin_valid(self):
         """Test valid job."""
         jobId = self.jobIdDict["awardFinValid"]
@@ -128,16 +151,28 @@ class FileTypeTests(BaseTestValidator):
         self.passed = self.run_test(
         jobId, 200, "finished", 17352, 5, "complete", 78, True)
         # Test that whitespace is converted to null
-        rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
-        self.assertIsNone(rowThree.agencyidentifier)
+        rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parent_award_id == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
+        self.assertIsNone(rowThree.agency_identifier)
         self.assertIsNone(rowThree.piid)
         # And commas removed for numeric
-        rowThirteen = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parentawardid == "YYYY").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
-        self.assertEqual(rowThirteen.deobligationsrecoveriesrefundsofprioryearbyaward_cpe,26000)
+        rowThirteen = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parent_award_id == "YYYY").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
+        self.assertEqual(rowThirteen.deobligations_recov_by_awa_cpe,26000)
+
+    def test_award_fin_mixed_shortcols(self):
+        """Test award financial job with some rows failing & short colnames."""
+        jobId = self.jobIdDict["awardFinMixedShortcols"]
+        self.passed = self.run_test(
+            jobId, 200, "finished", 15340, 5, "complete", 78, True)
 
     def test_award_valid(self):
         """Test valid job."""
         jobId = self.jobIdDict["awardValid"]
+        self.passed = self.run_test(
+            jobId, 200, "finished", 63, 10, "complete", 0, False)
+
+    def test_award_valid_shortcols(self):
+        """Test valid award (financial assistance) job with short colnames."""
+        jobId = self.jobIdDict["awardValidShortcols"]
         self.passed = self.run_test(
             jobId, 200, "finished", 63, 10, "complete", 0, False)
 
@@ -156,6 +191,8 @@ class FileTypeTests(BaseTestValidator):
     def test_cross_file(self):
         crossId = self.jobIdDict["crossFile"]
         # Run jobs for A, B, C, and D2, then cross file validation job
+        # Note: test files used for cross validation use the short column names
+        # as a way to ensure those are handled correctly by the validator
         awardFinResponse = self.validateJob(self.jobIdDict["crossAwardFin"],self.useThreads)
         self.assertEqual(awardFinResponse.status_code, 200, msg=str(awardFinResponse.json))
         awardResponse = self.validateJob(self.jobIdDict["crossAward"],self.useThreads)
