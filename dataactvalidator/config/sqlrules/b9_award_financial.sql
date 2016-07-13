@@ -16,7 +16,9 @@ WHERE af.submission_id = {0}
 				AND af.agency_identifier IS NOT DISTINCT FROM pa.agency_id
 				AND af.allocation_transfer_agency IS NOT DISTINCT FROM pa.allocation_transfer_id
 				AND af.main_account_code IS NOT DISTINCT FROM pa.account_number
-				AND af.program_activity_name IS NOT DISTINCT FROM pa.program_activity_name
-				AND af.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code)
+				AND (
+					(af.program_activity_name IS NOT DISTINCT FROM pa.program_activity_name AND af.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code)
+					OR (af.program_activity_name IS NULL AND af.program_activity_code IS NULL)
+				)
 		WHERE af.submission_id = {0}
 	);
