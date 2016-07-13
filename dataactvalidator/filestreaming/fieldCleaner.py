@@ -112,6 +112,7 @@ class FieldCleaner(StringCleaner):
     @classmethod
     def cleanRow(cls, row, fileType, validationInterface):
         for key in row.keys():
+            # row.keys = short column names
             field_type = validationInterface.getColumn(key, fileType).field_type.name
             value = row[key]
             if value is not None:
