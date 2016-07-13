@@ -186,6 +186,7 @@ class BaseTestAPI(unittest.TestCase):
         dropDatabase(cls.interfaces.userDb.dbName)
         dropDatabase(cls.interfaces.jobDb.dbName)
         dropDatabase(cls.interfaces.errorDb.dbName)
+        dropDatabase(cls.interfaces.validationDb.dbName)
 
     def tearDown(self):
         """Tear down broker unit tests."""

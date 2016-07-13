@@ -12,7 +12,7 @@ class FieldCleaner(StringCleaner):
         # Open CSV file for reading each record as a dictionary
         with open(fileIn, "rU") as csvfile:
             reader = csv.DictReader(csvfile)
-            fieldnames = ["fieldname","required","data_type","field_length","rule_labels"]
+            fieldnames = ["fieldname","fieldname_short","required","data_type","field_length","rule_labels"]
             writer = csv.DictWriter(open(fileOut,"w"),fieldnames=fieldnames,lineterminator='\n')
             writer.writeheader()
             for record in reader:
@@ -34,6 +34,9 @@ class FieldCleaner(StringCleaner):
 
         # Clean name, required, type, and length
         record['fieldname'] = FieldCleaner.cleanName(record['fieldname'])
+        # fieldname_short is the machine-friendly name provided with the
+        # schema, so the only change we'll make to it is stripping whitespace
+        record['fieldname_short'] = record['fieldname_short'].strip()
         record['required'] = FieldCleaner.cleanRequired(record['required'])
         record['data_type'] = FieldCleaner.cleanType(record['data_type'])
         record['field_length'] = FieldCleaner.cleanLength(record['field_length'])
@@ -106,16 +109,46 @@ class FieldCleaner(StringCleaner):
             raise ValueError("Length must be positive")
         return length
 
-    @staticmethod
-    def cleanRow(row, fileType, validationInterface):
+    @classmethod
+    def cleanRow(cls, row, fileType, validationInterface):
         for key in row.keys():
             field_type = validationInterface.getColumn(key, fileType).field_type.name
             value = row[key]
-            if value is not None and field_type in ["INT", "DECIMAL", "LONG"]:
-                tempValue = value.replace(",","")
-                if FieldCleaner.isNumeric(tempValue):
-                    row[key] = tempValue
+            if value is not None:
+                # Remove extra whitespace
+                value = value.strip()
+                if field_type in ["INT", "DECIMAL", "LONG"]:
+                    tempValue = value.replace(",","")
+                    if FieldCleaner.isNumeric(tempValue):
+                        value = tempValue
+                if value == "":
+                    # Replace empty strings with null
+                    value = None
+
+                row[key] = cls.padField(key,value,fileType,validationInterface)
         return row
+
+    @staticmethod
+    def padField(field,value,fileType,validationInterface):
+        """ Pad value with appropriate number of leading zeros if needed
+
+        Args:
+            field: Name of field
+            value: Value present in row
+            fileType: Type of file data is being loaded for
+            interfaces: InterfaceHolder object
+
+        Returns:
+            Padded value
+        """
+        # Check padded flag for this field and file
+        if value is not None and validationInterface.isPadded(field,fileType):
+            # If padded flag is true, get column length
+            padLength = validationInterface.getColumnLength(field, fileType)
+            # Pad to specified length with leading zeros
+            return value.zfill(padLength)
+        else:
+            return value
 
 if __name__ == '__main__':
     FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")

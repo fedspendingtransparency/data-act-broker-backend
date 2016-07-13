@@ -58,11 +58,14 @@ class UserHandler(UserInterface):
         self.session.delete(oldToken)
         self.session.commit()
 
-    def getUsers(self, cgac_code=None):
+    def getUsers(self, cgac_code=None, status="all"):
         """ Return all users in the database """
         query = self.session.query(User)
         if cgac_code is not None:
             query = query.filter(User.cgac_code == cgac_code)
+        if status != "all":
+            status_id = self.getUserStatusId(status)
+            query = query.filter(User.user_status_id == status_id)
         return query.all()
 
     def getUserByUID(self,uid):

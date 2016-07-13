@@ -9,30 +9,14 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
+from dataactcore.utils.cloudLogger import CloudLogger
 
 class Validator(object):
     """
     Checks individual records against specified validation tests
     """
     BOOLEAN_VALUES = ["TRUE","FALSE","YES","NO","1","0"]
-    tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op"}
-
-    @classmethod
-    def crossValidate(cls,rules, submissionId):
-        """ Evaluate all rules for cross file validation
-
-        Args:
-            rules -- List of Rule objects
-            submissionId -- ID of submission to run cross-file validation
-        """
-        failures = []
-        # Put each rule through evaluate, appending all failures into list
-        for rule in rules:
-            (passed, ruleFailures) = cls.evaluateCrossFileRule(rule, submissionId)
-            if not passed:
-                failures.extend(ruleFailures)
-        # Return list of cross file validation failures
-        return failures
+    tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op","appropriation":"approp"}
 
     @classmethod
     def crossValidateSql(cls, rules, submissionId):
@@ -45,6 +29,9 @@ class Validator(object):
         failures = []
         # Put each rule through evaluate, appending all failures into list
         interfaces = InterfaceHolder()
+        # Get short to long colname dictionary
+        shortColnames = interfaces.validationDb.getShortToLongColname()
+
         for rule in rules:
             failedRows = interfaces.validationDb.connection.execute(
                 rule.rule_sql.format(submissionId))
@@ -54,13 +41,14 @@ class Validator(object):
                 # validated, so exclude it
                 cols = failedRows.keys()
                 cols.remove('row_number')
-                columnString = ", ".join(str(c) for c in cols)
+                columnString = ", ".join(shortColnames[c] if c in shortColnames else c for c in cols)
                 for row in failedRows:
                     # get list of values for each column
-                    values = ["{}: {}".format(c, str(row[c])) for c in cols]
+                    values = ["{}: {}".format(shortColnames[c], str(row[c])) if c in shortColnames else "{}: {}".format(c, str(row[c])) for c in cols]
                     values = ", ".join(values)
-                    failures.append([rule.file.name, columnString,
-                        str(rule.rule_description), values, row['row_number']])
+                    targetFileType = interfaces.validationDb.getFileTypeById(rule.target_file_id)
+                    failures.append([rule.file.name, targetFileType, columnString,
+                        str(rule.rule_description), values, row['row_number'],str(rule.rule_label),rule.file_id,rule.target_file_id])
 
         # Return list of cross file validation failures
         return failures
@@ -87,84 +75,6 @@ class Validator(object):
             sourceRecords = [r.__dict__ for r in sourceRecords]
         return sourceRecords
 
-    @classmethod
-    def evaluateCrossFileRule(cls, rule, submissionId, record=None):
-        """ Evaluate specified rule against all records to which it applies
-
-        Args:
-            rule - Rule object to be tested
-            submissionId - ID of submission being tested
-            record - Some rule types are applied to only a single record.  For those rules, include the record as a dict here.
-
-        Returns:
-            Tuple of a boolean indicating passed or not, and a list of all failures that occurred.  Each failure is a
-            list containing the type of the source file, the fields involved, a description of the rule, the values for
-            the fields involved, and the row number in the source file where the failure occurred.
-        """
-        failures = [] # Can get multiple failures for these rule types
-        rulePassed = True # Set to false on first failures
-        # Get rule type
-        ruleType = rule.rule_type.name.lower()
-        fileType = rule.file_type.name
-        interfaces = InterfaceHolder()
-        stagingDb = interfaces.stagingDb
-        if ruleType == "field_match":
-            targetType = rule.rule_text_2
-            # Get ORM objects for source and target staging tables
-            # TODO Could try to do a join and see what doesn't match, or otherwise improve performance by avoiding a
-            # TODO new query against second table for every record in first table, possibly index second table at start
-            # Can apply rule to a specified record or all records in first table
-            sourceRecords = cls.getRecordsIfNone(
-                submissionId, fileType, stagingDb, record)
-            targetQuery = stagingDb.getSubmissionsByFileType(
-                submissionId, targetType)
-            fieldsToCheck = cls.cleanSplit(rule.rule_text_1, True)
-            # For each entry, check for the presence of matching values in second table
-            for thisRecord in sourceRecords:
-                # Build query to filter for each field to match
-                matchDict = {}
-                for field in fieldsToCheck:
-                    sourceValue = thisRecord[str(field)]
-                    matchDict[str(field)] = sourceValue
-                count = targetQuery.filter_by(**matchDict).count()
-
-                # Make sure at least one in target table record matches
-                if count < 1:
-                    # Fields don't match target file, add to failures
-                    rulePassed = False
-                    dictString = str(matchDict)[1:-1] # Remove braces
-                    rowNumber = thisRecord["row_number"]
-                    failures.append([fileType,", ".join(fieldsToCheck),
-                                     rule.description, dictString, rowNumber])
-
-        elif ruleType == "rule_if":
-            # Get all records from source table
-            # Can apply rule to a specified record or all records in first table
-            sourceRecords = cls.getRecordsIfNone(
-                submissionId, fileType, stagingDb, record)
-            # Get both rules, condition to check and rule to apply based on condition
-            condition = interfaces.validationDb.getRuleByLabel(rule.rule_text_2)
-            conditionalRule = interfaces.validationDb.getRuleByLabel(rule.rule_text_1)
-            # Apply first rule for all records that pass second rule
-            for record in sourceRecords:
-                if cls.evaluateCrossFileRule(condition, submissionId, record)[0]:
-                    result = cls.evaluateCrossFileRule(conditionalRule, submissionId, record)
-                    if not result[0]:
-                        # Record if we have seen a failure
-                        rulePassed = False
-                        failures.extend(result[1])
-
-        elif ruleType == "greater":
-            if not record:
-                # Must provide a record for this rule
-                raise ValueError("Cannot apply greater rule without a record")
-            rulePassed = int(record[rule.rule_text_2]) > int(rule.rule_text_1)
-
-        elif ruleType == "sum_by_tas":
-            rulePassed = True
-
-        return rulePassed,failures
-
     @staticmethod
     def validate(record,rules,csvSchema,fileType,interfaces):
         """
@@ -183,16 +93,24 @@ class Validator(object):
         recordFailed = False
         recordTypeFailure = False
         failedRules = []
+
+        # Get short to long colname dictionary
+        shortColnames = interfaces.validationDb.getShortToLongColname()
+
         for fieldName in csvSchema :
+            #todo: check short colnames here
             if(csvSchema[fieldName].required and  not fieldName in record ):
-                return False, [[fieldName, ValidationError.requiredError, ""]]
+                return False, [[fieldName, ValidationError.requiredError, "", ""]], False
 
         for fieldName in record :
             if fieldName == "row_number":
                 # Skip row number, nothing to validate on that
                 continue
+            elif fieldName in shortColnames:
+                # Change shrot colname to longname for validation
+                fieldName = shortColnames[fieldName]
             checkRequiredOnly = False
-            currentSchema =  csvSchema[fieldName]
+            currentSchema = csvSchema[fieldName]
             ruleSubset = Validator.getRules(fieldName, fileType, rules,interfaces.validationDb)
             currentData = record[fieldName]
             if(currentData != None):
@@ -202,7 +120,7 @@ class Validator(object):
                 if(currentSchema.required ):
                     # If empty and required return field name and error
                     recordFailed = True
-                    failedRules.append([fieldName, ValidationError.requiredError, ""])
+                    failedRules.append([fieldName, ValidationError.requiredError, "", ""])
                     continue
                 else:
                     # If field is empty and not required its valid
@@ -212,7 +130,7 @@ class Validator(object):
             if(not checkRequiredOnly and not Validator.checkType(currentData,currentSchema.field_type.name) ) :
                 recordTypeFailure = True
                 recordFailed = True
-                failedRules.append([fieldName, ValidationError.typeError, currentData])
+                failedRules.append([fieldName, ValidationError.typeError, currentData,""])
                 # Don't check value rules if type failed
                 continue
 
@@ -227,7 +145,7 @@ class Validator(object):
                         recordFailed = True
                         recordTypeFailure = True
                         typeFailed = True
-                        failedRules.append([fieldName, ValidationError.typeError, currentData])
+                        failedRules.append([fieldName, ValidationError.typeError, currentData,""])
             if(typeFailed):
                 # If type failed, don't do value checks
                 continue
@@ -238,14 +156,14 @@ class Validator(object):
                     continue
                 if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name,interfaces,record)):
                     recordFailed = True
-                    failedRules.append([fieldName,"".join(["Failed rule: ",str(currentRule.description)]), currentData])
+                    failedRules.append([fieldName,"".join(["Failed rule: ",str(currentRule.description)]), currentData, str(currentRule.original_label)])
         # Check all multi field rules for this file type
         multiFieldRules = interfaces.validationDb.getMultiFieldRulesByFile(fileType)
         for rule in multiFieldRules:
             if not Validator.evaluateRule(record,rule,None,interfaces,record):
                 recordFailed = True
-                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces)])
-        return  (not recordFailed), failedRules, (not recordTypeFailure)
+                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces), str(rule.original_label)])
+        return (not recordFailed), failedRules, (not recordTypeFailure)
 
     @staticmethod
     def getRules(fieldName, fileType,rules,validationInterface) :
@@ -546,9 +464,11 @@ class Validator(object):
         """
         if data is None:
             # Convert None to empty string so it can be padded with zeros
-            data = ""
+            return data
         data = data.strip()
-
+        if data == "":
+            # Empty values treated as null
+            return None
         if len(data) <= padLength:
             return data.zfill(padLength)
         else:
@@ -844,14 +764,7 @@ class Validator(object):
 
         for i in range(0,len(fieldsToCheck)):
             data = record[str(fieldsToCheck[i])]
-            if(data == None):
-                # Set data to empty string so it can be padded with leading zeros
-                data = ""
-            field = fieldsToCheck[i].lower()
-            # Pad field with leading zeros
-            length = interfaces.validationDb.getColumnLength(field, fileType)
-            data = data.zfill(length)
-            query = query.filter(TASLookup.__dict__[tasFields[i]] == str(data))
+            query = query.filter(TASLookup.__dict__[tasFields[i]] == data)
 
         queryResult = query.all()
         if(len(queryResult) == 0):
@@ -880,13 +793,21 @@ class Validator(object):
              values in fields involved
              row number
         """
+
+        CloudLogger.logError("VALIDATOR_INFO: ", "Beginning SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
+
         # Pull all SQL rules for this file type
         fileId = interfaces.validationDb.getFileId(fileType)
         rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
             RuleSql.rule_cross_file_flag == False).all()
         errors = []
+
+        # Get short to long colname dictionary
+        shortColnames = interfaces.validationDb.getShortToLongColname()
+
         # For each rule, execute sql for rule
         for rule in rules:
+            CloudLogger.logError("VALIDATOR_INFO: ", "Running query: "+str(RuleSql.query_name)+" on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
             failures = interfaces.stagingDb.connection.execute(rule.rule_sql.format(submissionId))
             if failures.rowcount:
                 # Create column list (exclude row_number)
@@ -895,13 +816,14 @@ class Validator(object):
                 # Build error list
                 for failure in failures:
                     errorMsg = rule.rule_error_message
-                    row = failure ["row_number"]
+                    row = failure["row_number"]
                     # Create strings for fields and values
-                    valueList = ["{}: {}".format(str(field),str(failure[field])) for field in cols]
+                    valueList = ["{}: {}".format(shortColnames[field], str(failure[field])) if field in shortColnames else "{}: {}".format(field, str(failure[field])) for field in cols]
                     valueString = ", ".join(valueList)
-                    fieldList = [str(field) for field in cols]
+                    fieldList = [shortColnames[field] if field in shortColnames else field for field in cols]
                     fieldString = ", ".join(fieldList)
-                    errors.append([fieldString,errorMsg,valueString,row])
+                    errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId, rule.target_file_id])
+
             # Pull where clause out of rule
             wherePosition = rule.rule_sql.lower().find("where")
             whereClause = rule.rule_sql[wherePosition:].format(submissionId)
@@ -912,5 +834,7 @@ class Validator(object):
             # Update valid_record to false for all that fail this rule
             updateQuery = "UPDATE {} as {} SET valid_record = false {}".format(tableName,tableAbbrev,whereClause)
             interfaces.stagingDb.connection.execute(updateQuery)
+
+            CloudLogger.logError("VALIDATOR_INFO: ", "Completed SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
 
         return errors
