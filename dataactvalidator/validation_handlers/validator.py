@@ -94,21 +94,19 @@ class Validator(object):
         recordTypeFailure = False
         failedRules = []
 
-        # Get short to long colname dictionary
-        shortColnames = interfaces.validationDb.getShortToLongColname()
-
-        for fieldName in csvSchema :
-            #todo: check short colnames here
-            if(csvSchema[fieldName].required and  not fieldName in record ):
+        for fieldName in csvSchema:
+            if (csvSchema[fieldName].required and not fieldName in record):
                 return False, [[fieldName, ValidationError.requiredError, "", ""]], False
 
+        # temporary fix for long/short colnames until legacy validation rules are removed:
+        # use long colnames in the record header
+        colMapping = interfaces.validationDb.getShortToLongColname()
+        recordLong = {colMapping.get(key, key): value for key, value in record.items()}
+
         for fieldName in record :
-            if fieldName == "row_number":
-                # Skip row number, nothing to validate on that
+            if fieldName == "row_number" or fieldName == "is_first_quarter":
+                # Skip row number and quarter flag, nothing to validate on that
                 continue
-            elif fieldName in shortColnames:
-                # Change shrot colname to longname for validation
-                fieldName = shortColnames[fieldName]
             checkRequiredOnly = False
             currentSchema = csvSchema[fieldName]
             ruleSubset = Validator.getRules(fieldName, fileType, rules,interfaces.validationDb)
@@ -154,15 +152,15 @@ class Validator(object):
                 if(checkRequiredOnly and currentRule.rule_type_id != interfaces.validationDb.getRuleType("REQUIRED_CONDITIONAL")):
                     # If data is empty, only check conditional required rules
                     continue
-                if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name,interfaces,record)):
+                if(not Validator.evaluateRule(currentData,currentRule,currentSchema.field_type.name,interfaces,recordLong)):
                     recordFailed = True
                     failedRules.append([fieldName,"".join(["Failed rule: ",str(currentRule.description)]), currentData, str(currentRule.original_label)])
         # Check all multi field rules for this file type
         multiFieldRules = interfaces.validationDb.getMultiFieldRulesByFile(fileType)
         for rule in multiFieldRules:
-            if not Validator.evaluateRule(record,rule,None,interfaces,record):
+            if not Validator.evaluateRule(recordLong,rule,None,interfaces,recordLong):
                 recordFailed = True
-                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, record, interfaces), str(rule.original_label)])
+                failedRules.append(["MultiField", "".join(["Failed rule: ",str(rule.description)]), Validator.getMultiValues(rule, recordLong, interfaces), str(rule.original_label)])
         return (not recordFailed), failedRules, (not recordTypeFailure)
 
     @staticmethod
@@ -182,7 +180,7 @@ class Validator(object):
         returnList =[]
         for rule in rules :
             # Look for single field rules that apply to this field and file, and are timed to run during record-level validation
-            if(rule.file_column is not None and rule.file_column.name == fieldName and rule.file_column.file_id == fileId and rule.rule_timing_id == validationInterface.getRuleTimingIdByName("file_validation")) :
+            if(rule.file_column is not None and rule.file_column.name_short == fieldName and rule.file_column.file_id == fileId and rule.rule_timing_id == validationInterface.getRuleTimingIdByName("file_validation")) :
                 returnList.append(rule)
         return returnList
 
