@@ -137,7 +137,7 @@ class FileTypeTests(BaseTestValidator):
         """Test object class/program activity job with some rows failing & short colnames."""
         jobId = self.jobIdDict["programMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 19291, 4, "complete", 111, True)
+            jobId, 200, "finished", 21796, 4, "complete", 111, True)
 
     def test_award_fin_valid(self):
         """Test valid job."""
@@ -162,7 +162,7 @@ class FileTypeTests(BaseTestValidator):
         """Test award financial job with some rows failing & short colnames."""
         jobId = self.jobIdDict["awardFinMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 15340, 5, "complete", 78, True)
+            jobId, 200, "finished", 17352, 5, "complete", 78, True)
 
     def test_award_valid(self):
         """Test valid job."""
