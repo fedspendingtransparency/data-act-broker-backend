@@ -20,5 +20,6 @@ WHERE af.submission_id = {0}
 					(af.program_activity_name IS NOT DISTINCT FROM pa.program_activity_name AND af.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code)
 					OR (af.program_activity_name IS NULL AND af.program_activity_code IS NULL)
 				)
+			)
 		WHERE af.submission_id = {0}
 	);
