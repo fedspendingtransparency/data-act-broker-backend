@@ -28,13 +28,13 @@ class FileTypeTests(BaseTestValidator):
         print("Uploading files")
         # Upload needed files to S3
         s3FileNameValid = cls.uploadFile("appropValid.csv", user)
-        s3FileNameMixed = cls.uploadFile("appropMixed.csv", user)
-        s3FileNameProgramValid = cls.uploadFile("file_b_large.csv", user)
-        s3FileNameProgramMixed = cls.uploadFile("programActivityMixed.csv", user)
+        s3FileNameMixed = cls.uploadFile("appropMixedLarge.csv", user)
+        s3FileNameProgramValid = cls.uploadFile("programActivityValid.csv", user)
+        s3FileNameProgramMixed = cls.uploadFile("programActivityMixedLarge.csv", user)
         s3FileNameAwardFinValid = cls.uploadFile("awardFinancialValid.csv", user)
-        s3FileNameAwardFinMixed = cls.uploadFile("awardFinancialMixed.csv", user)
+        s3FileNameAwardFinMixed = cls.uploadFile("awardFinancialMixedLarge.csv", user)
         s3FileNameAwardValid = cls.uploadFile("awardValid.csv", user)
-        s3FileNameAwardMixed = cls.uploadFile("awardMixed.csv", user)
+        s3FileNameAwardMixed = cls.uploadFile("awardMixedLarge.csv", user)
         s3FileNameAwardMixedDelimiter = cls.uploadFile("awardMixedDelimiter.csv", user)
         s3FileNameCrossAwardFin = cls.uploadFile("cross_file_C.csv", user)
         s3FileNameCrossAward = cls.uploadFile("cross_file_D2.csv", user)
@@ -150,7 +150,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 3305, 5, "complete", 41, True)
+            jobId, 200, "finished", 3161, 5, "complete", 41, True)
 
     def test_award_mixed_delimiter(self):
         """Test mixed job with mixed delimiter"""
