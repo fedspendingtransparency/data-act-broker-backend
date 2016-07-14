@@ -147,9 +147,8 @@ class FieldCleaner(StringCleaner):
         if value is not None and validationInterface.isPadded(field,fileType):
             # If padded flag is true, get column length
             padLength = validationInterface.getColumnLength(field, fileType)
-            if len(value) < padLength:
-                # Pad to specified length with leading zeros
-                return value.zfill(padLength)
+            # Pad to specified length with leading zeros
+            return value.zfill(padLength)
         # Padding did not occur, return original value
         return value
 

@@ -107,7 +107,7 @@ class Validator(object):
 
         for fieldName in record :
             if fieldName in cls.META_FIELDS:
-                # Skip row number, nothing to validate on that
+                # Skip fields that are not user submitted
                 continue
             checkRequiredOnly = False
             currentSchema = csvSchema[fieldName]
