@@ -17,6 +17,8 @@ class Validator(object):
     """
     BOOLEAN_VALUES = ["TRUE","FALSE","YES","NO","1","0"]
     tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op","appropriation":"approp"}
+    # Set of metadata fields that should not be directly validated
+    META_FIELDS = ["row_number", "is_first_quarter"]
 
     @classmethod
     def crossValidateSql(cls, rules, submissionId):
@@ -75,8 +77,8 @@ class Validator(object):
             sourceRecords = [r.__dict__ for r in sourceRecords]
         return sourceRecords
 
-    @staticmethod
-    def validate(record,rules,csvSchema,fileType,interfaces):
+    @classmethod
+    def validate(cls,record,rules,csvSchema,fileType,interfaces):
         """
         Args:
         record -- dict representation of a single record of data
@@ -104,8 +106,8 @@ class Validator(object):
         recordLong = {colMapping.get(key, key): value for key, value in record.items()}
 
         for fieldName in record :
-            if fieldName == "row_number" or fieldName == "is_first_quarter":
-                # Skip row number and quarter flag, nothing to validate on that
+            if fieldName in cls.META_FIELDS:
+                # Skip fields that are not user submitted
                 continue
             checkRequiredOnly = False
             currentSchema = csvSchema[fieldName]

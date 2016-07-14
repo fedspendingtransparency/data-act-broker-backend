@@ -127,6 +127,7 @@ class FieldCleaner(StringCleaner):
                     value = None
 
                 row[key] = cls.padField(key,value,fileType,validationInterface)
+
         return row
 
     @staticmethod
@@ -148,8 +149,8 @@ class FieldCleaner(StringCleaner):
             padLength = validationInterface.getColumnLength(field, fileType)
             # Pad to specified length with leading zeros
             return value.zfill(padLength)
-        else:
-            return value
+        # Padding did not occur, return original value
+        return value
 
 if __name__ == '__main__':
     FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")
