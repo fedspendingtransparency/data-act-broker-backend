@@ -49,8 +49,9 @@ class FileTypeTests(BaseTestValidator):
         for i in range(0, 16):
             if i == 7:
                # Award financial mixed will be second quarter
-                submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user, datetime(2015,3,15)) 
-            submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
+                submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user, datetime(2015,3,15))
+            else:
+                submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
 
 
         # Create jobs
