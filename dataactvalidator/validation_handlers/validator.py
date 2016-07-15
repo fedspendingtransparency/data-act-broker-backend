@@ -49,11 +49,10 @@ class Validator(object):
         return failures
 
     @classmethod
-    def validate(cls,record,rules,csvSchema,fileType,interfaces):
+    def validate(cls,record,csvSchema,fileType,interfaces):
         """
         Args:
         record -- dict representation of a single record of data
-        rules -- list of rule Objects
         csvSchema -- dict of schema for the current file.
         fileType -- name of file type to check against
 

@@ -1,2 +1,0 @@
-rule_type,is_single_field,field_name,rule_text_one,rule_text_two,description,rule_label,rule_timing,original_label
-REQUIRED_SET_CONDITIONAL,FALSE,,A16_2,budgetauthorityunobligatedbalancebroughtforward_fyb,FYB fields are required if reporting period end date is within Q1,A16,prerequisite,A16

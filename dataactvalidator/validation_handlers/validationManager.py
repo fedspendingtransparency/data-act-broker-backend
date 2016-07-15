@@ -307,7 +307,6 @@ class ValidationManager:
         validationDB = interfaces.validationDb
         fieldList = validationDB.getFieldsByFileList(fileType)
         csvSchema = validationDB.getFieldsByFile(fileType, shortCols=True)
-        rules = validationDB.getRulesByFile(fileType)
 
         reader = self.getReader()
 
@@ -345,7 +344,7 @@ class ValidationManager:
                         # Do not write this row to staging, but continue processing future rows
                         continue
 
-                    passedValidations, failures, valid  = Validator.validate(record,rules,csvSchema,fileType,interfaces)
+                    passedValidations, failures, valid  = Validator.validate(record,csvSchema,fileType,interfaces)
                     if valid:
                         skipRow = self.writeToStaging(record, jobId, submissionId, passedValidations, interfaces, writer, rowNumber, fileType)
                         if skipRow:

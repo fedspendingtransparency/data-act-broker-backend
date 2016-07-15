@@ -7,7 +7,7 @@ SELECT af.row_number,
 	af.program_activity_code
 FROM award_financial as af
 WHERE af.submission_id = {0}
-	AND CAST(COALESCE(SUBSTR(af.beginning_period_of_availa,1,4),'0') AS integer) >= 2016
+	AND CAST(COALESCE(af.beginning_period_of_availa,'0') AS integer) >= 2016
 	AND af.row_number NOT IN (
 		SELECT af.row_number
 		FROM award_financial as af
