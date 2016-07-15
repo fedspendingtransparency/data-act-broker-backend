@@ -33,11 +33,14 @@ def runTests(argv=''):
     #suite.addTests(unittest.makeSuite(UserTests))
     #suite.addTests(unittest.makeSuite(ValidatorTests))
     #suite.addTests(unittest.makeSuite(JobTests))
-    suite.addTests(unittest.makeSuite(FileTypeTests))
+    #suite.addTests(unittest.makeSuite(FileTypeTests))
 
     # to run a single test:
     #suite.addTest(FileTests('test_bad_quarter_or_month'))
-    #suite.addTest(FileTypeTests('test_approp_mixed'))
+    suite.addTest(FileTypeTests('test_approp_mixed'))
+    suite.addTest(FileTypeTests('test_award_mixed'))
+    suite.addTest(FileTypeTests('test_award_fin_mixed'))
+    suite.addTest(FileTypeTests('test_program_mixed'))
 
     print("{} tests in suite".format(suite.countTestCases()))
 

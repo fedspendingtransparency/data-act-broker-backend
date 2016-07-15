@@ -94,10 +94,9 @@ class LoaderUtils:
                         else:
                             # Insert new value
                             valuePresent[field][row[field]] = True
-                    record = model(**row)
+                record = model(**row)
                 if not skipInsert:
                     try:
-                        #interface.session.begin_nested()
                         interface.session.merge(record)
                         interface.session.commit()
 
