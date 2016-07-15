@@ -128,14 +128,6 @@ class ValidatorTests(BaseTestValidator):
         self.assertFalse(Validator.checkType("1234.0", "LONG"))
         self.assertFalse(Validator.checkType("1234.0", "BOOLEAN"))
 
-    def test_type_conversion(self):
-        """Test data type conversions."""
-        self.assertIsInstance(Validator.getType("1234.0", "STRING"), basestring)
-        self.assertIsInstance(Validator.getType("10", "INT"), int)
-        self.assertIsInstance(Validator.getType("YES", "BOOLEAN"), basestring)
-        self.assertIsInstance(Validator.getType("1234.2", "DECIMAL"), Decimal)
-        self.assertIsInstance(Validator.getType("400000000001", "LONG"), long)
-
     def test_schema_optional_field(self):
         """Test optional fields."""
         schema = self.schema
@@ -148,17 +140,17 @@ class ValidatorTests(BaseTestValidator):
             "test5": "1",
          }
         self.assertTrue(Validator.validate(
-            record, [], schema, "award", interfaces)[0])
+            record, schema, "award", interfaces)[0])
         record["test5"] = ""
         self.assertTrue(Validator.validate(
-            record, [], schema, "award", interfaces)[0])
+            record, schema, "award", interfaces)[0])
         record["test5"] = "s"
         self.assertFalse(Validator.validate(
-            record, [], schema, "award", interfaces)[0])
+            record, schema, "award", interfaces)[0])
         record["test5"] = ""
         record["test3"] = ""
         self.assertFalse(Validator.validate(
-            record, [], schema, "award", interfaces)[0])
+            record, schema, "award", interfaces)[0])
 
 if __name__ == '__main__':
     unittest.main()
