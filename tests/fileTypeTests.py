@@ -47,9 +47,12 @@ class FileTypeTests(BaseTestValidator):
         # Create submissions and get IDs back
         submissionIDs = {}
         for i in range(0, 16):
-            submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
-        # Submission 12 will be second quarter
-        submissionIDs[11] = cls.insertSubmission(cls.jobTracker, user, datetime(2015,3,15))
+            if i == 7:
+               # Award financial mixed will be second quarter
+                submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user, datetime(2015,3,15))
+            else:
+                submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
+
 
         # Create jobs
         jobDb = cls.jobTracker
@@ -119,7 +122,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 8847, 4, "complete", 46, True)
+            jobId, 200, "finished", 9032, 4, "complete", 47, True)
 
     def test_program_valid(self):
         """Test valid job."""
@@ -131,13 +134,13 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 21796, 4, "complete", 111, True)
+        jobId, 200, "finished", 22793, 4, "complete", 112, True)
 
     def test_program_mixed_shortcols(self):
         """Test object class/program activity job with some rows failing & short colnames."""
         jobId = self.jobIdDict["programMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 21796, 4, "complete", 111, True)
+            jobId, 200, "finished", 22793, 4, "complete", 112, True)
 
     def test_award_fin_valid(self):
         """Test valid job."""
@@ -149,7 +152,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 17352, 5, "complete", 78, True)
+        jobId, 200, "finished", 16656, 5, "complete", 76, True)
         # Test that whitespace is converted to null
         rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parent_award_id == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
         self.assertIsNone(rowThree.agency_identifier)
@@ -162,7 +165,7 @@ class FileTypeTests(BaseTestValidator):
         """Test award financial job with some rows failing & short colnames."""
         jobId = self.jobIdDict["awardFinMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 17352, 5, "complete", 78, True)
+            jobId, 200, "finished", 18598, 5, "complete", 78, True)
 
     def test_award_valid(self):
         """Test valid job."""
