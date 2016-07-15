@@ -54,7 +54,7 @@ class ValidatorValidationInterface(ValidationInterface):
             return True
         return False
 
-    def addColumnByFileType(self, fileType, fieldName, fieldNameShort, required, field_type, paddedFlag = "False"):
+    def addColumnByFileType(self, fileType, fieldName, fieldNameShort, required, field_type, paddedFlag = "False", fieldLength = None):
         """
         Adds a new column to the schema
 
@@ -65,6 +65,8 @@ class ValidatorValidationInterface(ValidationInterface):
         fieldNameShort -- The machine-friendly, short column name
         required --  marks the column if data is allways required
         field_type  -- sets the type of data allowed in the column
+        paddedFlag -- True if this column should be padded
+        fieldLength -- Maximum allowed length for this field
 
         Returns:
             ID of new column
@@ -108,10 +110,14 @@ class ValidatorValidationInterface(ValidationInterface):
                 newColumn.required = True
         else :
             raise ValueError("".join(["Required is not boolean for ",str(fieldName)]))
+
+        # Add length if present
+        if fieldLength is not None:
+            lengthInt = int(str(fieldLength).strip())
+            newColumn.length = lengthInt
+
         # Save
         self.session.add(newColumn)
-        self.session.commit()
-        return newColumn.file_column_id
 
     def getDataTypes(self) :
         """"
@@ -201,6 +207,20 @@ class ValidatorValidationInterface(ValidationInterface):
                 returnDict[FieldCleaner.cleanString(column.name)] = column
         return returnDict
 
+    def getFileColumnsByFile(self, fileType):
+        """ Returns a list of File Column objects that appear in this type of file
+
+        Args:
+        fileType -- One of the set of valid types of files (e.g. Award, AwardFinancial)
+
+        Returns:
+        dict with field names as keys and values are ORM object FileColumn
+        """
+        returnDict = {}
+        fileId = self.getFileId(fileType)
+        if(fileId is None) :
+            raise ValueError("File type does not exist")
+        return self.session.query(FileColumn).options(subqueryload("field_type")).filter(FileColumn.file_id == fileId).all()
 
     def getFileId(self, filename) :
         """ Retrieves ID for specified file type

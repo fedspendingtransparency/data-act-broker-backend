@@ -52,6 +52,7 @@ class FileColumn(Base):
     required = Column(Boolean, nullable=True)
     rules = relationship("Rule", cascade = "delete, delete-orphan")
     padded_flag = Column(Boolean, default=False, server_default="False", nullable=False)
+    length = Column(Integer)
 
 class Rule(Base):
     __tablename__ = "rule"

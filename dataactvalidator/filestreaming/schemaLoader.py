@@ -36,21 +36,18 @@ class SchemaLoader(object):
                 record = FieldCleaner.cleanRecord(record)
 
                 if(LoaderUtils.checkRecord(record, ["fieldname","required","data_type"])) :
-                    columnId = database.addColumnByFileType(
+                    database.addColumnByFileType(
                         fileTypeName,
                         FieldCleaner.cleanString(record["fieldname"]),
                         FieldCleaner.cleanString(record["fieldname_short"]),
                         record["required"],
                         record["data_type"],
-                        record["padded_flag"])
-                    if "field_length" in record:
-                        # When a field length is specified, create a rule for it
-                        length = record["field_length"].strip()
-                        if(len(length) > 0):
-                            # If there are non-whitespace characters here, create a length rule
-                            database.addRule(columnId,"LENGTH",length,"","Field must be no longer than specified limit",originalLabel="")
+                        record["padded_flag"],
+                        record["field_length"])
                 else :
                    raise ValueError('CSV File does not follow schema')
+        # Commit fields
+        database.session.commit()
 
     @staticmethod
     def loadRules(fileTypeName, filename):

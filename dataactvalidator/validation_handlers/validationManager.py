@@ -182,7 +182,7 @@ class ValidationManager:
         errorInterface = interfaces.errorDb
         reduceRow = False
         try:
-            record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb)
+            record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb, self.longToShortDict)
             record["row_number"] = rowNumber
             record["is_first_quarter"] = isFirstQuarter
             if reader.isFinished and len(record) < 2:
@@ -321,11 +321,11 @@ class ValidationManager:
 
         try:
             # Pull file and return info on whether it's using short or long col headers
-            longHeaders = reader.openFile(regionName, bucketName, fileName, fieldList,
+            reader.openFile(regionName, bucketName, fileName, fieldList,
                             bucketName, errorFileName)
 
             errorInterface = interfaces.errorDb
-
+            self.longToShortDict = interfaces.validationDb.getLongToShortColname()
             # While not done, pull one row and put it into staging table if it passes
             # the Validator
             with self.getWriter(regionName, bucketName, errorFileName,

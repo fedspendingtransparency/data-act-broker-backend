@@ -1,14 +1,7 @@
-import json
-from sqlalchemy.orm.exc import NoResultFound
 from decimal import *
-from dataactcore.utils.responseException import ResponseException
-from dataactcore.utils.statusCode import StatusCode
-from dataactcore.models import domainModels
 from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
-from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.utils.cloudLogger import CloudLogger
 
 class Validator(object):
@@ -84,6 +77,7 @@ class Validator(object):
                 continue
             checkRequiredOnly = False
             currentSchema = csvSchema[fieldName]
+
             currentData = record[fieldName]
             if(currentData != None):
                 currentData = currentData.strip()
@@ -106,12 +100,11 @@ class Validator(object):
                 # Don't check value rules if type failed
                 continue
 
-            # Check for a type rule in the rule table, don't want to do value checks if type is not correct
-            typeFailed = False
-
-            if(typeFailed):
-                # If type failed, don't do value checks
-                continue
+            # Check length based on schema
+            if currentSchema.length is not None and currentData is not None and len(currentData.strip()) > currentSchema.length:
+                # Length failure, add to failedRules
+                recordFailed = True
+                failedRules.append([fieldName, ValidationError.lengthError, currentData,""])
 
         return (not recordFailed), failedRules, (not recordTypeFailure)
 
