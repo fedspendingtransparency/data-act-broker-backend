@@ -204,7 +204,7 @@ class ValidatorValidationInterface(ValidationInterface):
             filename: Type of file to get ID for
 
         Returns:
-            ID if file type found, or None if file type is not found
+            ID if file type found, throws exception if file type is not found
         """
         query = self.session.query(FileType).filter(FileType.name== filename)
         return self.runUniqueQuery(query,"No ID for specified file type","Conflicting IDs for specified file type").file_id
