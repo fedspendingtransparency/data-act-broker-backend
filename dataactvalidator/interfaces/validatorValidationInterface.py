@@ -71,7 +71,7 @@ class ValidatorValidationInterface(ValidationInterface):
         Returns:
             ID of new column
         """
-        fileId = self.getFileId(fileType)
+        fileId = self.getFileTypeIdByName(fileType)
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
         newColumn = FileColumn()
@@ -136,7 +136,7 @@ class ValidatorValidationInterface(ValidationInterface):
         Args:
         fileType -- One of the set of valid types of files (e.g. Award, AwardFinancial)
         """
-        fileId = self.getFileId(fileType)
+        fileId = self.getFileTypeIdByName(fileType)
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
         queryResult = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).delete(synchronize_session='fetch')
@@ -151,7 +151,7 @@ class ValidatorValidationInterface(ValidationInterface):
         Returns:
         list of names
         """
-        fileId = self.getFileId(fileType)
+        fileId = self.getFileTypeIdByName(fileType)
         if(fileId is None) :
             raise ValueError("Filetype does not exist")
         queryResult = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).all()
@@ -171,7 +171,7 @@ class ValidatorValidationInterface(ValidationInterface):
         dict with field names as keys and values are ORM object FileColumn
         """
         returnDict = {}
-        fileId = self.getFileId(fileType)
+        fileId = self.getFileTypeIdByName(fileType)
         if(fileId is None) :
             raise ValueError("File type does not exist")
         queryResult = self.session.query(FileColumn).options(subqueryload("field_type")).filter(FileColumn.file_id == fileId).all()
@@ -191,23 +191,10 @@ class ValidatorValidationInterface(ValidationInterface):
         Returns:
         dict with field names as keys and values are ORM object FileColumn
         """
-        returnDict = {}
-        fileId = self.getFileId(fileType)
+        fileId = self.getFileTypeIdByName(fileType)
         if(fileId is None) :
             raise ValueError("File type does not exist")
         return self.session.query(FileColumn).options(subqueryload("field_type")).filter(FileColumn.file_id == fileId).all()
-
-    def getFileId(self, filename) :
-        """ Retrieves ID for specified file type
-
-        Args:
-            filename: Type of file to get ID for
-
-        Returns:
-            ID if file type found, throws exception if file type is not found
-        """
-        query = self.session.query(FileType).filter(FileType.name== filename)
-        return self.runUniqueQuery(query,"No ID for specified file type","Conflicting IDs for specified file type").file_id
 
     def addSqlRule(self, ruleSql, ruleLabel, ruleDescription, ruleErrorMsg,
         fileId, ruleSeverity, crossFileFlag=False, queryName = None, targetFileId = None):
@@ -253,7 +240,7 @@ class ValidatorValidationInterface(ValidationInterface):
         Returns:
             ID for file column if found, otherwise raises exception
         """
-        fileId = self.getFileId(fileType)
+        fileId = self.getFileTypeIdByName(fileType)
         if shortCols:
             column = self.session.query(FileColumn).filter(
                 FileColumn.name_short == fieldName.lower()).filter(
@@ -276,7 +263,7 @@ class ValidatorValidationInterface(ValidationInterface):
         Returns:
             Column object for file column if found, otherwise raises exception
         """
-        fileId = self.getFileId(fileType)
+        fileId = self.getFileTypeIdByName(fileType)
         column = self.session.query(FileColumn).filter(FileColumn.name_short == fieldName.lower()).filter(
             FileColumn.file_id == fileId)
         return self.runUniqueQuery(column, "No field found with that name for that file type",

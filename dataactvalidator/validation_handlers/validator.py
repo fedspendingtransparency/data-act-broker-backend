@@ -193,7 +193,7 @@ class Validator(object):
         CloudLogger.logError("VALIDATOR_INFO: ", "Beginning SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
 
         # Pull all SQL rules for this file type
-        fileId = interfaces.validationDb.getFileId(fileType)
+        fileId = interfaces.validationDb.getFileTypeIdByName(fileType)
         rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
             RuleSql.rule_cross_file_flag == False).all()
         errors = []
