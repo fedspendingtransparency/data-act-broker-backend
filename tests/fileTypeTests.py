@@ -98,17 +98,13 @@ class FileTypeTests(BaseTestValidator):
     @staticmethod
     def load_definitions(interfaces, force_tas_load):
         """Load file definitions."""
-        print("\nLoad field definitions")
         SchemaLoader.loadAllFromPath(join(CONFIG_BROKER["path"],"dataactvalidator","config"))
-        print("Load sql rules")
         SQLLoader.loadSql("sqlRules.csv")
         # Load domain values tables
-        print("Load domain tables")
         loadDomainValues(join(CONFIG_BROKER["path"],"dataactvalidator","config"),join(CONFIG_BROKER["path"],"tests","sf_133.csv"),join(CONFIG_BROKER["path"],"tests","program_activity.csv"))
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
                 or force_tas_load):
             # TAS table is empty, load it
-            print("Load TAS")
             loadTas(tasFile="all_tas_betc.csv", dropIdx=False)
 
     def test_approp_valid(self):
