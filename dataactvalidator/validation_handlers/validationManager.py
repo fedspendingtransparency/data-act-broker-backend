@@ -178,16 +178,19 @@ class ValidationManager:
             2. Boolean indicating whether to reduce row count
             3. Boolean indicating whether to skip row
             4. Boolean indicating whether to stop reading
+            5. Row error has been found
         """
         errorInterface = interfaces.errorDb
         reduceRow = False
+        rowErrorFound = False
         try:
-            record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb, self.longToShortDict)
+            fields = interfaces.validationDb.getFileColumnsByFile(fileType)
+            record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb, self.longToShortDict, fields)
             record["row_number"] = rowNumber
             record["is_first_quarter"] = isFirstQuarter
             if reader.isFinished and len(record) < 2:
                 # This is the last line and is empty, don't record an error
-                return {}, True, True, True  # Don't count this row
+                return {}, True, True, True, False  # Don't count this row
         except ResponseException as e:
             if reader.isFinished and reader.extraLine:
                 #Last line may be blank don't record an error, reader.extraLine indicates a case where the last valid line has extra line breaks
@@ -196,9 +199,9 @@ class ValidationManager:
             else:
                 writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber), ""])
                 errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
-                errorInterface.setRowErrorsPresent(jobId, True)
-            return {}, reduceRow, True, False
-        return record, reduceRow, False, False
+                rowErrorFound = True
+            return {}, reduceRow, True, False, rowErrorFound
+        return record, reduceRow, False, False, rowErrorFound
 
     def writeToStaging(self, record, jobId, submissionId, passedValidations, interfaces, writer, rowNumber, fileType):
         """ Write this record to the staging tables
@@ -228,7 +231,6 @@ class ValidationManager:
             writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber),""])
             errorInterface.recordRowError(jobId, self.filename,
                 "Formatting Error",ValidationError.writeError, rowNumber)
-            errorInterface.setRowErrorsPresent(jobId, True)
             return True
         return False
 
@@ -246,8 +248,6 @@ class ValidationManager:
 
         errorInterface = interfaces.errorDb
         # For each failure, record it in error report and metadata
-        if failures:
-            errorInterface.setRowErrorsPresent(jobId, True)
         for failure in failures:
             # map short column names back to long names
             if failure[0] in shortColnames:
@@ -325,8 +325,11 @@ class ValidationManager:
 
             errorInterface = interfaces.errorDb
             self.longToShortDict = interfaces.validationDb.getLongToShortColname()
+            # rowErrorPresent becomes true if any row error occurs, used for determining file status
+            rowErrorPresent = False
             # While not done, pull one row and put it into staging table if it passes
             # the Validator
+
             with self.getWriter(regionName, bucketName, errorFileName,
                                 self.reportHeaders) as writer:
                 while not reader.isFinished:
@@ -334,7 +337,9 @@ class ValidationManager:
 
                     if (rowNumber % 100) == 0:
                         CloudLogger.logError("VALIDATOR_INFO: ","JobId: "+str(jobId)+" loading row " + str(rowNumber),"")
-                    (record, reduceRow, skipRow, doneReading) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter)
+                    (record, reduceRow, skipRow, doneReading, rowErrorHere) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter)
+                    if rowErrorHere:
+                        rowErrorPresent = True
                     if reduceRow:
                         rowNumber -= 1
                     if doneReading:
@@ -348,11 +353,15 @@ class ValidationManager:
                     if valid:
                         skipRow = self.writeToStaging(record, jobId, submissionId, passedValidations, interfaces, writer, rowNumber, fileType)
                         if skipRow:
+                            rowErrorPresent = True
                             continue
 
                     if not passedValidations:
+                        if failures:
+                            rowErrorPresent = True
                         self.writeErrors(failures, interfaces, jobId, shortColnames, writer, rowNumber)
 
+                interfaces.errorDb.setRowErrorsPresent(jobId,rowErrorPresent)
                 CloudLogger.logError("VALIDATOR_INFO: ", "Loading complete on jobID: " + str(jobId) + ". Total rows added to staging: " + str(rowNumber), "")
 
                 # Do SQL validations for this file

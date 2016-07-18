@@ -110,11 +110,19 @@ class FieldCleaner(StringCleaner):
         return length
 
     @classmethod
-    def cleanRow(cls, row, fileType, validationInterface, longToShortDict):
-        """ Strips whitespace, replaces empty strings with None, and pads fields that need it """
-        # Get set of all FileColumns
-        fields = validationInterface.getFileColumnsByFile(fileType)
+    def cleanRow(cls, row, fileType, validationInterface, longToShortDict, fields):
+        """ Strips whitespace, replaces empty strings with None, and pads fields that need it
 
+        Args:
+            row: Record in this row
+            fileType: Which file type this is for
+            validationInterface: Interface to the validation DB
+            longToShortDict: Maps long column names to short
+            fields: List of FileColumn objects for this file type
+
+        Returns:
+            Cleaned row
+        """
 
         for field in fields:
             key = longToShortDict[field.name]
