@@ -182,7 +182,7 @@ class ValidationManager:
         errorInterface = interfaces.errorDb
         reduceRow = False
         try:
-            record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb)
+            record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb, self.longToShortDict)
             record["row_number"] = rowNumber
             record["is_first_quarter"] = isFirstQuarter
             if reader.isFinished and len(record) < 2:
@@ -307,7 +307,6 @@ class ValidationManager:
         validationDB = interfaces.validationDb
         fieldList = validationDB.getFieldsByFileList(fileType)
         csvSchema = validationDB.getFieldsByFile(fileType, shortCols=True)
-        rules = validationDB.getRulesByFile(fileType)
 
         reader = self.getReader()
 
@@ -321,11 +320,11 @@ class ValidationManager:
 
         try:
             # Pull file and return info on whether it's using short or long col headers
-            longHeaders = reader.openFile(regionName, bucketName, fileName, fieldList,
+            reader.openFile(regionName, bucketName, fileName, fieldList,
                             bucketName, errorFileName)
 
             errorInterface = interfaces.errorDb
-
+            self.longToShortDict = interfaces.validationDb.getLongToShortColname()
             # While not done, pull one row and put it into staging table if it passes
             # the Validator
             with self.getWriter(regionName, bucketName, errorFileName,
@@ -345,7 +344,7 @@ class ValidationManager:
                         # Do not write this row to staging, but continue processing future rows
                         continue
 
-                    passedValidations, failures, valid  = Validator.validate(record,rules,csvSchema,fileType,interfaces)
+                    passedValidations, failures, valid  = Validator.validate(record,csvSchema,fileType,interfaces)
                     if valid:
                         skipRow = self.writeToStaging(record, jobId, submissionId, passedValidations, interfaces, writer, rowNumber, fileType)
                         if skipRow:

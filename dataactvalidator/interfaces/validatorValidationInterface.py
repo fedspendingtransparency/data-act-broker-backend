@@ -1,7 +1,7 @@
-from sqlalchemy.orm import subqueryload, joinedload
+from sqlalchemy.orm import subqueryload
 from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.validationInterface import ValidationInterface
-from dataactcore.models.validationModels import Rule, RuleType, FileColumn, FileType, FieldType, RuleTiming, RuleSeverity, RuleSql
+from dataactcore.models.validationModels import FileColumn, FileType, FieldType, RuleSeverity, RuleSql
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
@@ -54,7 +54,7 @@ class ValidatorValidationInterface(ValidationInterface):
             return True
         return False
 
-    def addColumnByFileType(self, fileType, fieldName, fieldNameShort, required, field_type, paddedFlag = "False"):
+    def addColumnByFileType(self, fileType, fieldName, fieldNameShort, required, field_type, paddedFlag = "False", fieldLength = None):
         """
         Adds a new column to the schema
 
@@ -65,6 +65,8 @@ class ValidatorValidationInterface(ValidationInterface):
         fieldNameShort -- The machine-friendly, short column name
         required --  marks the column if data is allways required
         field_type  -- sets the type of data allowed in the column
+        paddedFlag -- True if this column should be padded
+        fieldLength -- Maximum allowed length for this field
 
         Returns:
             ID of new column
@@ -108,10 +110,14 @@ class ValidatorValidationInterface(ValidationInterface):
                 newColumn.required = True
         else :
             raise ValueError("".join(["Required is not boolean for ",str(fieldName)]))
+
+        # Add length if present
+        if fieldLength is not None:
+            lengthInt = int(str(fieldLength).strip())
+            newColumn.length = lengthInt
+
         # Save
         self.session.add(newColumn)
-        self.session.commit()
-        return newColumn.file_column_id
 
     def getDataTypes(self) :
         """"
@@ -135,31 +141,6 @@ class ValidatorValidationInterface(ValidationInterface):
             raise ValueError("Filetype does not exist")
         queryResult = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).delete(synchronize_session='fetch')
         self.session.commit()
-
-    def removeRulesByFileType(self,fileType) :
-        """
-        Removes the rules for a file
-
-        Args:
-        fileType -- One of the set of valid types of files (e.g. Award, AwardFinancial)
-        """
-        fileId = self.getFileId(fileType)
-        if(fileId is None) :
-            raise ValueError("Filetype does not exist")
-        # Get set of file columns for this file
-        columns = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).all()
-        # Get list of ids for file columns
-        columnIds = []
-        for column in columns:
-            columnIds.append(column.file_column_id)
-        if(len(columnIds) > 0):
-            # Delete all rules for those columns
-            self.session.query(Rule).filter(Rule.file_column_id.in_(columnIds)).delete(synchronize_session="fetch")
-            # Delete multi field rules
-            self.session.query(Rule).filter(Rule.file_id == fileId).delete(synchronize_session="fetch")
-
-        self.session.commit()
-        #raise Exception("Check table, rules removed for file " + str(fileId))
 
     def getFieldsByFileList(self, fileType):
         """ Returns a list of valid field names that can appear in this type of file
@@ -201,6 +182,20 @@ class ValidatorValidationInterface(ValidationInterface):
                 returnDict[FieldCleaner.cleanString(column.name)] = column
         return returnDict
 
+    def getFileColumnsByFile(self, fileType):
+        """ Returns a list of File Column objects that appear in this type of file
+
+        Args:
+        fileType -- One of the set of valid types of files (e.g. Award, AwardFinancial)
+
+        Returns:
+        dict with field names as keys and values are ORM object FileColumn
+        """
+        returnDict = {}
+        fileId = self.getFileId(fileType)
+        if(fileId is None) :
+            raise ValueError("File type does not exist")
+        return self.session.query(FileColumn).options(subqueryload("field_type")).filter(FileColumn.file_id == fileId).all()
 
     def getFileId(self, filename) :
         """ Retrieves ID for specified file type
@@ -209,46 +204,10 @@ class ValidatorValidationInterface(ValidationInterface):
             filename: Type of file to get ID for
 
         Returns:
-            ID if file type found, or None if file type is not found
+            ID if file type found, throws exception if file type is not found
         """
         query = self.session.query(FileType).filter(FileType.name== filename)
         return self.runUniqueQuery(query,"No ID for specified file type","Conflicting IDs for specified file type").file_id
-
-    def getRulesByFile(self, fileType, ruleTiming = None) :
-        """
-        Arguments
-        fileType -- the int id of the filename
-        returns an list of rules
-        """
-        fileId = self.getFileId(fileType)
-        if(fileId is None) :
-            raise ValueError("Filetype does not exist")
-        query = self.session.query(Rule).options(joinedload("rule_type")).options(joinedload("file_column")).filter(FileColumn.file_id == fileId)
-        if ruleTiming:
-            ruleTimingId = self.getRuleTimingIdByName(ruleTiming)
-            query = query.filter(Rule.rule_timing_id == ruleTimingId)
-        rules = query.all()
-        return rules
-
-    def addRule(self, columnId, ruleTypeText, ruleTextOne, ruleTextTwo, description, rule_timing = 1, rule_label = None, targetFileId = None, fileId = None, originalLabel = None):
-        """
-
-        Args:
-            columnId: ID of column to add rule for
-            ruleTypeText: Specifies which type of rule by one of the names in the rule_type table
-            ruleText: Usually a number to compare to, e.g. length or value to be equal to
-
-        Returns:
-            True if successful
-        """
-        if rule_timing is None or rule_timing == "":
-            # Use default value if timing is unspecified
-            rule_timing = 1
-        newRule = Rule(file_column_id = columnId, rule_type_id = self.getRuleType(ruleTypeText), rule_text_1 = ruleTextOne, rule_text_2 = ruleTextTwo,
-                       description = description, rule_timing_id = rule_timing, rule_label = rule_label, target_file_id = targetFileId, file_id = fileId, original_label = originalLabel)
-        self.session.add(newRule)
-        self.session.commit()
-        return True
 
     def addSqlRule(self, ruleSql, ruleLabel, ruleDescription, ruleErrorMsg,
         fileId, ruleSeverity, crossFileFlag=False, queryName = None, targetFileId = None):
@@ -278,30 +237,6 @@ class ValidatorValidationInterface(ValidationInterface):
         self.session.query(RuleSql).delete()
         self.session.commit()
         return True
-
-    def getMultiFieldRulesByFile(self, fileType):
-        """ Uses rule_timing to specify multi field rules
-
-        Args:
-            fileType:  Which type of file to get rules for
-
-        Returns:
-            list of Rule objects
-        """
-        fileId = self.getFileId(fileType)
-        return self.session.query(Rule).filter(Rule.file_id == fileId).filter(Rule.rule_timing_id == self.getRuleTimingIdByName("multi_field")).all()
-
-    def getRulesByTiming(self, timing):
-        """
-
-        Args:
-            timing: Which timing to get rules for
-
-        Returns:
-            list of Rule objects
-        """
-        timingId = self.getRuleTimingIdByName(timing)
-        return self.session.query(Rule).filter(Rule.rule_timing_id == timingId).all()
 
     def getColumnById(self, file_column_id):
         """ Get File Column object from ID """
@@ -359,29 +294,6 @@ class ValidatorValidationInterface(ValidationInterface):
             return None
         return int(float(rule.rule_text_1)) # Going through float in case of decimal value
 
-    def getRuleType(self,typeName):
-        """ Get rule ID for specified rule type
-
-        Arguments:
-            typeName - name of rule type (string)
-        Returns:
-            ID for rule type (int)
-        """
-        return self.getIdFromDict(RuleType,"TYPE_DICT","name",typeName.upper(),"rule_type_id")
-
-
-    def getRuleTypeById(self,typeId):
-        """ Get rule name for specified id
-
-        Args:
-            typeId: rule_type_id
-
-        Returns:
-            Name of rule type
-        """
-        # Populate rule type dict
-        return self.getNameFromDict(RuleType, "TYPE_DICT", "name", typeId, "rule_type_id")
-
     def populateFile(self,column):
         """ Populate file object in the ORM for the specified FileColumn object
 
@@ -389,21 +301,6 @@ class ValidatorValidationInterface(ValidationInterface):
             column - FileColumn object to get File object for
         """
         column.file = self.session.query(FileType).filter(FileType.file_id == column.file_id)[0]
-
-    def getRuleTimingIdByName(self,timingName):
-        """ Get rule timing ID for specified rule timing
-
-        Arguments:
-            typeName - name of rule type (string)
-        Returns:
-            ID for rule type (int)
-        """
-        return self.getIdFromDict(RuleTiming,"TIMING_DICT","name",timingName.lower(),"rule_timing_id")
-
-    def getRuleByLabel(self,label):
-        """ Find rule based on label provided in rules file """
-        query = self.session.query(Rule).options(joinedload("file_column")).filter(Rule.rule_label == label)
-        return self.runUniqueQuery(query,"No rule with that label","Multiple rules have that label")
 
     def getFieldTypeById(self, id):
         """ Return name of field type based on id """

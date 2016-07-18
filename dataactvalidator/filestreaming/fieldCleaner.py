@@ -110,10 +110,15 @@ class FieldCleaner(StringCleaner):
         return length
 
     @classmethod
-    def cleanRow(cls, row, fileType, validationInterface):
-        for key in row.keys():
-            # row.keys = short column names
-            field_type = validationInterface.getColumn(key, fileType).field_type.name
+    def cleanRow(cls, row, fileType, validationInterface, longToShortDict):
+        """ Strips whitespace, replaces empty strings with None, and pads fields that need it """
+        # Get set of all FileColumns
+        fields = validationInterface.getFileColumnsByFile(fileType)
+
+
+        for field in fields:
+            key = longToShortDict[field.name]
+            field_type = field.field_type.name
             value = row[key]
             if value is not None:
                 # Remove extra whitespace
@@ -126,31 +131,26 @@ class FieldCleaner(StringCleaner):
                     # Replace empty strings with null
                     value = None
 
-                row[key] = cls.padField(key,value,fileType,validationInterface)
-
+                row[key] = cls.padField(field,value)
         return row
 
     @staticmethod
-    def padField(field,value,fileType,validationInterface):
+    def padField(field, value):
         """ Pad value with appropriate number of leading zeros if needed
 
         Args:
-            field: Name of field
+            field: FileColumn object
             value: Value present in row
-            fileType: Type of file data is being loaded for
-            interfaces: InterfaceHolder object
 
         Returns:
             Padded value
         """
         # Check padded flag for this field and file
-        if value is not None and validationInterface.isPadded(field,fileType):
-            # If padded flag is true, get column length
-            padLength = validationInterface.getColumnLength(field, fileType)
+        if value is not None and field.padded_flag and field.length is not None:
             # Pad to specified length with leading zeros
-            return value.zfill(padLength)
-        # Padding did not occur, return original value
-        return value
+            return value.zfill(field.length)
+        else:
+            return value
 
 if __name__ == '__main__':
     FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")
