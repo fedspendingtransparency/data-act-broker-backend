@@ -207,7 +207,7 @@ class CsvAbstractReader(object):
             self.packetCounter +=1
 
             #Get the current lines
-            currentBytes = self.unprocessed + packet
+            currentBytes = str(self.unprocessed) + str(packet)
             self.lines = self._splitLines(currentBytes)
 
             #edge case if the packet was filled with newlines only try again
