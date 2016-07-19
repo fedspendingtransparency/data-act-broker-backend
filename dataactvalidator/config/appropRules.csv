@@ -1,3 +1,0 @@
-rule_type,is_single_field,field_name,rule_text_one,rule_text_two,description,rule_label,rule_timing,original_label
-car_match,FALSE,,"allocationtransferagencyidentifier, agencyidentifier, beginningperiodofavailability, endingperiodofavailability, availabilitytypecode, mainaccountcode, subaccountcode","allocation_transfer_agency, agency_identifier, beginning_period_of_availability, ending_period_of_availability, availability_type_code, main_account_code, sub_account_code",TAS fields must match CARS file,A1,multi_field,A1
-REQUIRED_SET_CONDITIONAL,FALSE,,A16_2,budgetauthorityunobligatedbalancebroughtforward_fyb,FYB fields are required if reporting period end date is within Q1,A16,prerequisite,A16

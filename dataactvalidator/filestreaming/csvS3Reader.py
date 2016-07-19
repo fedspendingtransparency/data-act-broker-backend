@@ -31,7 +31,6 @@ class CsvS3Reader(CsvAbstractReader):
 
     def downloadFile(self,region,bucket,filename,targetLocation):
         """ After opening a file, download entire file to filename """
-        print("Downloading file: " + str(region) + " " + str(bucket) + " " + str(filename) + " to " + str(targetLocation))
         s3connection = boto.s3.connect_to_region(region)
         s3Bucket = s3connection.lookup(bucket)
         self.s3File = s3Bucket.get_key(filename)

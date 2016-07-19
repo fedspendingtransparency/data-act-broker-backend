@@ -65,6 +65,11 @@ class JobTrackerInterface(BaseInterface):
         """ Find submission that this job is part of """
         return self.getJobById(jobId).submission_id
 
+    def getSubmission(self, jobId):
+        """ Return submission object """
+        submissionId = self.getSubmissionId(jobId)
+        return self.session.query(Submission).filter(Submission.submission_id == submissionId).one()
+
     def getReportPath(self,jobId):
         """ Return the filename for the error report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
         return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_error_report.csv"

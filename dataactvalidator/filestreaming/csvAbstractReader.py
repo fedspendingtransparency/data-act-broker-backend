@@ -1,4 +1,3 @@
-import boto
 import csv
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.utils.statusCode import StatusCode
@@ -7,6 +6,7 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
+from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 
 class CsvAbstractReader(object):
     """
@@ -26,12 +26,6 @@ class CsvAbstractReader(object):
             bucketName: bucket to send errors to
             errorFilename: filename for error report
         """
-
-
-        possibleFields = {}
-        currentFields = {}
-        for schema in  csvSchema:
-                possibleFields[FieldCleaner.cleanString(schema.name)] = 0
 
         self.filename = filename
         self.unprocessed = ''
@@ -67,25 +61,53 @@ class CsvAbstractReader(object):
             raise ResponseException("Error in header row: CSV file must use only '|' or ',' as the delimiter", StatusCode.CLIENT_ERROR, ValueError, ValidationError.headerError)
 
         self.delimiter = "|" if line.count("|") != 0 else ","
-        for row in csv.reader([line],dialect='excel', delimiter=self.delimiter):
-            for cell in row :
-                headerValue = FieldCleaner.cleanString(cell)
-                if( not headerValue in possibleFields) :
-                    # Allow unexpected headers, just mark the header as None so we skip it when reading
-                    self.headerDictionary[(current)] = None
-                    current += 1
-                elif(possibleFields[headerValue] == 1) :
-                    # Add to duplicated header list
-                    duplicatedHeaders.append(headerValue)
+
+        validation_db = ValidatorValidationInterface()
+        longNameDict = validation_db.getLongToShortColname()
+        # Set the list of possibleFields, using  the shorter,
+        # machine-readable column names
+        possibleFields = {}
+        for schema in csvSchema:
+            possibleFields[FieldCleaner.cleanString(schema.name_short)] = 0
+
+        for row in csv.reader([line], dialect='excel', delimiter=self.delimiter):
+            # check to see if header contains long or short column names
+            colMatches = 0
+            for value in row:
+                if FieldCleaner.cleanString(value) in longNameDict:
+                    colMatches += 1
+            # if most of column headers are in the long format,
+            # we'll treat the file as having long headers
+            if colMatches > .5 * len(row):
+                longHeaders = True
+            else:
+                longHeaders = False
+
+            for cell in row:
+                submittedHeaderValue = FieldCleaner.cleanString(cell)
+                if longHeaders and submittedHeaderValue in longNameDict:
+                    headerValue = FieldCleaner.cleanString(longNameDict[submittedHeaderValue])
+                elif longHeaders:
+                    headerValue = None
                 else:
-                    self.headerDictionary[(current)] = headerValue
-                    possibleFields[headerValue]  = 1
+                    headerValue = submittedHeaderValue
+                if not headerValue in possibleFields:
+                    # Allow unexpected headers, just mark the header as None so we skip it when reading
+                    self.headerDictionary[current] = None
+                    current += 1
+                elif(possibleFields[headerValue] == 1):
+                    # Add header value (as submitted) to duplicated header list
+                    duplicatedHeaders.append(submittedHeaderValue)
+                else:
+                    self.headerDictionary[current] = headerValue
+                    possibleFields[headerValue] = 1
                     current += 1
         self.columnCount = current
         #Check that all required fields exists
         missingHeaders = []
         for schema in csvSchema :
-            if(possibleFields[FieldCleaner.cleanString(schema.name)] == 0) :
+            if (possibleFields[FieldCleaner.cleanString(schema.name_short)] == 0):
+                # return long colname for error reporting
                 missingHeaders.append(schema.name)
         if(len(missingHeaders) > 0 or len(duplicatedHeaders) > 0):
             # Write header errors if any occurred and raise a header_error exception
@@ -107,6 +129,8 @@ class CsvAbstractReader(object):
                         writer.write(["Missing header", header])
                 writer.finishBatch()
             raise ResponseException("Errors in header row: " + str(errorString), StatusCode.CLIENT_ERROR, ValueError,ValidationError.headerError,**extraInfo)
+
+        return longHeaders
 
     @staticmethod
     def getWriter(bucketName,fileName,header,isLocal, region = None):
@@ -137,6 +161,7 @@ class CsvAbstractReader(object):
                 if(cell == ""):
                     # Use None instead of empty strings for sqlalchemy
                     cell = None
+                # self.headerDictionary uses the short, machine-readable column names
                 if self.headerDictionary[current] is None:
                     # Skip this column as it is unknown
                     continue
@@ -218,8 +243,8 @@ class CsvAbstractReader(object):
                         linesToReturn.append(current)
                         #check the last char if its a new line add extra line
                         # as its at the end of the packet
-                        if( index == len(packet)-1 ) :
-                            linesToReturn.append("")
+                    if( index == len(packet)-1 ) :
+                        linesToReturn.append("")
                     current = ""
                 else :
                   current = "".join([current,char])
@@ -228,7 +253,7 @@ class CsvAbstractReader(object):
             else :
                 if(char == '"') :
                     ecapeMode = False
-                current = "".join([current,char]) #current.join([char])
+                current = "".join([current,char])
         if (len(current)>0) :
             linesToReturn.append(current)
         return linesToReturn

@@ -319,7 +319,6 @@ class FileTests(BaseTestAPI):
         postJson = {"submission_id": self.error_report_submission_id}
         response = self.app.post_json(
             "/v1/submission_error_reports/", postJson, headers={"x-session-id":self.session_id})
-        print("Response: " + str(response.json))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
