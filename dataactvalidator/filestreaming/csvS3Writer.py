@@ -20,7 +20,7 @@ class CsvS3Writer(CsvAbstractWriter):
 
         """
         conn = boto.s3.connect_to_region(region).get_bucket(bucket).new_key(filename)
-        self.stream = smart_open.smart_open(conn, 'wb', min_part_size=CsvAbstractWriter.BUFFER_SIZE)
+        self.stream = smart_open.smart_open(conn, 'w', min_part_size=CsvAbstractWriter.BUFFER_SIZE)
         super(CsvS3Writer,self).__init__(filename,header)
 
 

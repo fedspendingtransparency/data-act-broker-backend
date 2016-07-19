@@ -144,7 +144,7 @@ class Validator(object):
                 return False
         if(datatype == "LONG"):
             try:
-                long(data)
+                int(data)
                 return True
             except:
                 return False

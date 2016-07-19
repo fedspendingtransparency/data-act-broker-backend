@@ -2,7 +2,7 @@ import csv
 import os
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 from dataactvalidator.filestreaming.loaderUtils import LoaderUtils
-from fieldCleaner import FieldCleaner
+from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 class SchemaLoader(object):
 
