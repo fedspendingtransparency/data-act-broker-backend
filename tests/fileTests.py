@@ -413,12 +413,12 @@ class FileTests(BaseTestAPI):
 
         # TODO: remove hard-coded surrogate keys
         jobValues = {}
-        jobValues["uploadFinished"] = [1, 4, 1, None, None, None]
-        jobValues["recordRunning"] = [1, 3, 2, None, None, None]
-        jobValues["externalWaiting"] = [1, 1, 5, None, None, None]
-        jobValues["awardFin"] = [2, 2, 2, "awardFin.csv", 100, 100]
-        jobValues["appropriations"] = [3, 2, 2, "approp.csv", 2345, 567]
-        jobValues["program_activity"] = [4, 2, 2, "programActivity.csv", None, None]
+        jobValues["uploadFinished"] = [4, 4, 1, None, None, None]
+        jobValues["recordRunning"] = [4, 3, 2, None, None, None]
+        jobValues["externalWaiting"] = [4, 1, 5, None, None, None]
+        jobValues["awardFin"] = [3, 2, 2, "awardFin.csv", 100, 100]
+        jobValues["appropriations"] = [1, 2, 2, "approp.csv", 2345, 567]
+        jobValues["program_activity"] = [2, 2, 2, "programActivity.csv", None, None]
         jobValues["cross_file"] = [None,4,4,2,None,None,None]
         jobIdDict = {}
 
@@ -466,13 +466,13 @@ class FileTests(BaseTestAPI):
     @staticmethod
     def setupJobsForReports(jobTracker, error_report_submission_id):
         """Setup jobs table for checking validator unit test error reports."""
-        FileTests.insertJob(jobTracker, filetype=1, status=4, type_id=2,
-            submission=error_report_submission_id)
-        FileTests.insertJob(jobTracker, filetype=2, status=4, type_id=2,
+        FileTests.insertJob(jobTracker, filetype=4, status=4, type_id=2,
             submission=error_report_submission_id)
         FileTests.insertJob(jobTracker, filetype=3, status=4, type_id=2,
             submission=error_report_submission_id)
-        FileTests.insertJob(jobTracker, filetype=4, status=4, type_id=2,
+        FileTests.insertJob(jobTracker, filetype=1, status=4, type_id=2,
+            submission=error_report_submission_id)
+        FileTests.insertJob(jobTracker, filetype=2, status=4, type_id=2,
             submission=error_report_submission_id)
 
     @staticmethod
@@ -482,7 +482,7 @@ class FileTests(BaseTestAPI):
         # TODO: remove hard-coded surrogate keys
         job = FileTests.insertJob(
             jobTracker,
-            filetype=1,
+            filetype=4,
             status=2,
             type_id=2,
             submission=submission_id
@@ -491,7 +491,7 @@ class FileTests(BaseTestAPI):
 
         job = FileTests.insertJob(
             jobTracker,
-            filetype=2,
+            filetype=3,
             status=2,
             type_id=2,
             submission=submission_id
@@ -500,7 +500,7 @@ class FileTests(BaseTestAPI):
 
         job = FileTests.insertJob(
             jobTracker,
-            filetype=3,
+            filetype=1,
             status=2,
             type_id=2,
             submission=submission_id
