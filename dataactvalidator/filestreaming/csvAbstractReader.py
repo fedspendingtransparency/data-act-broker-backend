@@ -207,6 +207,7 @@ class CsvAbstractReader(object):
             self.packetCounter +=1
 
             #Get the current lines
+            packet = packet.decode("utf-8") if not self.isLocal else packet
             currentBytes = self.unprocessed + packet
             self.lines = self._splitLines(currentBytes)
 
