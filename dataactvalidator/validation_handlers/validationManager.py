@@ -160,7 +160,7 @@ class ValidationManager:
             return "".join([self.directory, path])
         return "".join(["errors/", path])
 
-    def readRecord(self,reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter):
+    def readRecord(self,reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter, fields):
         """ Read and process the next record
 
         Args:
@@ -184,7 +184,7 @@ class ValidationManager:
         reduceRow = False
         rowErrorFound = False
         try:
-            fields = interfaces.validationDb.getFileColumnsByFile(fileType)
+
             record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb, self.longToShortDict, fields)
             record["row_number"] = rowNumber
             record["is_first_quarter"] = isFirstQuarter
@@ -317,7 +317,7 @@ class ValidationManager:
             fileSize = os.path.getsize(jobTracker.getFileName(jobId))
         jobTracker.setFileSizeById(jobId, fileSize)
 
-
+        fields = interfaces.validationDb.getFileColumnsByFile(fileType)
         try:
             # Pull file and return info on whether it's using short or long col headers
             reader.openFile(regionName, bucketName, fileName, fieldList,
@@ -337,7 +337,7 @@ class ValidationManager:
 
                     if (rowNumber % 100) == 0:
                         CloudLogger.logError("VALIDATOR_INFO: ","JobId: "+str(jobId)+" loading row " + str(rowNumber),"")
-                    (record, reduceRow, skipRow, doneReading, rowErrorHere) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter)
+                    (record, reduceRow, skipRow, doneReading, rowErrorHere) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter, fields)
                     if rowErrorHere:
                         rowErrorPresent = True
                     if reduceRow:
