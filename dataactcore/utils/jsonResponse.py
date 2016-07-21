@@ -51,6 +51,7 @@ class JsonResponse :
             if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):
                 responseDict["wrappedType"] = str(type(exception.wrappedException))
                 responseDict["wrappedMessage"] = str(exception.wrappedException)
+            trace = list(map(lambda entry: str(entry), trace))
             responseDict["trace"] = trace
             if(JsonResponse.printDebug):
                 print(str(type(exception)))
