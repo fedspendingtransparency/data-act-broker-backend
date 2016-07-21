@@ -1,6 +1,5 @@
 from __future__ import print_function
 from dataactcore.models.jobModels import JobDependency
-from dataactcore.models.validationModels import Rule
 from baseTestValidator import BaseTestValidator
 import unittest
 
@@ -21,7 +20,6 @@ class JobTests(BaseTestValidator):
         # Clear validation rules
         for fileType in ["award", "award_financial",
                 "appropriations", "program_activity"]:
-            validationDb.removeRulesByFileType(fileType)
             validationDb.removeColumnsByFileType(fileType)
 
         # Create submissions and get IDs back
@@ -87,19 +85,6 @@ class JobTests(BaseTestValidator):
                     (columnId != 3), validationDb.session)
                 colIdDict["header_{}_file_type_{}".format(
                     columnId, fileId)] = column.file_column_id
-
-        rules = [
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 5, rule_text_1 = 0, description =  'value 1 must be greater than zero', rule_timing_id=1),
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 3, rule_text_1 = 13, description =  'value 1 may not be 13', rule_timing_id=1),
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(5),"_file_type_",str(3)])]),rule_type_id = 1, rule_text_1 = "INT", description =  'value 5 must be an integer', rule_timing_id=1),
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(3),"_file_type_",str(3)])]),rule_type_id = 2, rule_text_1 = 42, description =  'value 3 must be equal to 42 if present', rule_timing_id=1),
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 4, rule_text_1 = 100, description =  'value 1 must be less than 100', rule_timing_id=1),
-            Rule(file_column_id = str(colIdDict["".join(["header_",str(1),"_file_type_",str(3)])]),rule_type_id = 2, rule_text_1 = "  ", description =  'None shall pass', rule_timing_id=2) #This rule should never be checked with rule_timing 2
-        ]
-
-        for rule in rules:
-            validationDb.session.add(rule)
-        validationDb.session.commit()
 
         cls.jobIdDict = jobIdDict
 

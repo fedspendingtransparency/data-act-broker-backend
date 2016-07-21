@@ -1,6 +1,6 @@
 import boto
 import uuid
-import urllib
+import urllib.parse
 import datetime
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.orm.exc import NoResultFound
@@ -66,7 +66,7 @@ class sesEmail(object):
         token = ts.dumps(emailAddress, salt=str(salt)+token_type)
         #saves the token and salt pair
         database.saveToken(str(salt),str(token))
-        return urllib.quote_plus(str(token))
+        return urllib.parse.quote_plus(str(token))
 
     @staticmethod
     def checkToken(token,database,token_type):

@@ -2,7 +2,7 @@ import unittest
 from decimal import *
 
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
-from dataactcore.models.validationModels import FieldType, RuleType, FileColumn, Rule
+from dataactcore.models.validationModels import FieldType, FileColumn
 from dataactvalidator.validation_handlers.validator import Validator
 from baseTestValidator import BaseTestValidator
 
@@ -128,14 +128,6 @@ class ValidatorTests(BaseTestValidator):
         self.assertFalse(Validator.checkType("1234.0", "LONG"))
         self.assertFalse(Validator.checkType("1234.0", "BOOLEAN"))
 
-    def test_type_conversion(self):
-        """Test data type conversions."""
-        self.assertIsInstance(Validator.getType("1234.0", "STRING"), basestring)
-        self.assertIsInstance(Validator.getType("10", "INT"), int)
-        self.assertIsInstance(Validator.getType("YES", "BOOLEAN"), basestring)
-        self.assertIsInstance(Validator.getType("1234.2", "DECIMAL"), Decimal)
-        self.assertIsInstance(Validator.getType("400000000001", "LONG"), long)
-
     def test_schema_optional_field(self):
         """Test optional fields."""
         schema = self.schema
@@ -148,142 +140,17 @@ class ValidatorTests(BaseTestValidator):
             "test5": "1",
          }
         self.assertTrue(Validator.validate(
-            record, [], schema, "award", interfaces)[0])
+            record, schema, "award", interfaces)[0])
         record["test5"] = ""
         self.assertTrue(Validator.validate(
-            record, [], schema, "award", interfaces)[0])
+            record, schema, "award", interfaces)[0])
         record["test5"] = "s"
         self.assertFalse(Validator.validate(
-            record, [], schema, "award", interfaces)[0])
+            record, schema, "award", interfaces)[0])
         record["test5"] = ""
         record["test3"] = ""
         self.assertFalse(Validator.validate(
-            record, [], schema, "award", interfaces)[0])
-
-    def test_schema_rules(self):
-        """Test schema rules."""
-        lessRule = RuleType()
-        lessRule.name = "LESS"
-        greaterRule = RuleType()
-        greaterRule.name = "GREATER"
-        lengthRule = RuleType()
-        lengthRule.name = "LENGTH"
-        equalRule = RuleType()
-        equalRule.name = "EQUAL"
-        notRule = RuleType()
-        notRule.name = "NOT EQUAL"
-        setRule = RuleType()
-        setRule.name = "IN_SET"
-        sumRule = RuleType()
-        sumRule.name = "SUM"
-        sumToValueRule = RuleType()
-        sumToValueRule.name = "SUM_TO_VALUE"
-
-        schema = self.schema
-        interfaces = self.interfaces
-        rule1 = Rule()
-        rule1.rule_type = equalRule
-        rule1.file_column = schema["test1"]
-        rule1.rule_text_1 = "hello"
-        rule1.rule_timing_id = 1
-
-        rule2 = Rule()
-        rule2.rule_type = notRule
-        rule2.file_column = schema["test1"]
-        rule2.rule_text_1 = "bye"
-        rule2.rule_timing_id = 1
-
-        rule3 = Rule()
-        rule3.rule_type = lengthRule
-        rule3.file_column = schema["test1"]
-        rule3.rule_text_1 = "6"
-        rule3.rule_timing_id = 1
-
-        rule4 = Rule()
-        rule4.rule_type = equalRule
-        rule4.file_column = schema["test3"]
-        rule4.rule_text_1 = "YES"
-        rule4.rule_timing_id = 1
-
-        rule5 = Rule()
-        rule5.rule_type = equalRule
-        rule5.file_column = schema["test4"]
-        rule5.rule_text_1 = "44"
-        rule5.rule_timing_id = 1
-
-        rule6 = Rule()
-        rule6.rule_type = lessRule
-        rule6.file_column = schema["test4"]
-        rule6.rule_text_1 = "45"
-        rule6.rule_timing_id = 1
-
-        rule7 = Rule()
-        rule7.rule_type = greaterRule
-        rule7.file_column = schema["test2"]
-        rule7.rule_text_1 = ".5"
-        rule7.rule_timing_id = 1
-
-        rule8 = Rule()
-        rule8.rule_type = setRule
-        rule8.file_column = schema["test6"]
-        rule8.rule_text_1 = "X, F, A"
-        rule8.rule_timing_id = 1
-
-        rule9 = Rule()
-        rule9.rule_type = sumRule
-        rule9.file_column = schema["test2"]
-        rule9.rule_text_1 = "test7"
-        rule9.rule_text_2 = "test2,test4,test5"
-        rule9.rule_timing_id = 1
-
-        rule10 = Rule()
-        rule10.rule_type = sumToValueRule
-        rule10.rule_text_1 = "46"
-        rule10.rule_text_2 = "test2,test4,test5"
-        rule10.rule_timing_id = 4
-
-        vvi = ValidatorValidationInterface()
-        fileId = vvi.getFileId("award")
-        vvi.addRule(None, "SUM_TO_VALUE", rule10.rule_text_1, rule10.rule_text_2, "Evaluates the sum of fields to a number",rule10.rule_timing_id,fileId = fileId)
-
-        rules = [rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9]
-        record = {
-            "test1": "hello",
-            "test2": "1.0",
-            "test3": "YES",
-            "test4": "44",
-            "test5": "1",
-            "test6": "X",
-            "test7": "46"
-        }
-        self.assertTrue(Validator.validate(
-            record, rules, schema, "award", self.interfaces)[0])
-
-        record = {
-            "test1": "goodbye",
-            "test2": ".4",
-            "test3": "NO",
-            "test4": "45",
-            "test5": "1",
-            "test6": "Q",
-            "test7": "46.5"
-        }
-        self.assertFalse(Validator.validate(
-            record, [rule3], schema, "award", interfaces)[0])
-        self.assertFalse(Validator.validate(
-            record, [rule4], schema, "award", interfaces)[0])
-        self.assertFalse(Validator.validate(
-            record, [rule5], schema, "award", interfaces)[0])
-        self.assertFalse(Validator.validate(
-            record, [rule6], schema, "award", interfaces)[0])
-        self.assertFalse(Validator.validate(
-            record, [rule7], schema, "award", interfaces)[0])
-        self.assertFalse(Validator.validate(
-            record, [rule8], schema, "award", interfaces)[0])
-        self.assertFalse(Validator.validate(
-            record, [rule9], schema, "award", interfaces)[0])
-        self.assertFalse(Validator.validate(
-            record, rules, schema, "award", interfaces)[0])
+            record, schema, "award", interfaces)[0])
 
 if __name__ == '__main__':
     unittest.main()
