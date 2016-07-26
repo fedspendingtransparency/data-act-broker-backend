@@ -50,3 +50,4 @@ class ErrorMetadata(Base):
     # Second file type id is used in cross file errors
     target_file_type_id = Column(Integer)
     original_rule_label = Column(Text, nullable = True)
+    severity_id = Column(Integer)

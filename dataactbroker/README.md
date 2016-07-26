@@ -553,7 +553,59 @@ Example output:
 A call to this route will provide status information on all jobs associated with the specified submission.
 The request should have JSON or form-urlencoded with a key "submission\_id".  The response will contain a list of
 status objects for each job under the key "jobs", and other submission-level data.  In error data,
-"original_label" will only be populated when "error_name" is "rule_failed".
+"original_label" will only be populated when "error_name" is "rule_failed".  List of keys in response:
+- jobs: Holds data for each job in submission, each job is a dict with:
+    * job_id: Internal ID we have assigned to this job
+    * job_status: Values are:
+        - waiting: Job has prerequisites that are not complete, such as a file upload
+        - ready: Job is ready to be started but has not yet reached the validator
+        - running: Job was started on the validator, but has not yet completed or errored
+        - finished: Job completed with no errors (may still have warnings)
+        - invalid: Job completed with errors
+        - failed: There was an unexpected error in the validator, job should be restarted.
+    * file_type: Which type of file this job is for, will be blank for cross-file jobs.  Values are 'appropriations', 'program_activity', 'award_financial', and 'award'.
+    * job_type: Values are:
+        - file_upload: This job is a placeholder for the frontend's upload of the file
+        - csv_record_validation: File level validation job
+        - validation: Cross file validation job
+    * filename: Original filename as submitted by user
+    * file_status:  Represents status of file being validated, values are:
+        - complete: Validation has finished, errors or warnings may have been reported
+        - header_error: Validation stopped after finding header errors
+        - unknown_error:  Something unexpected went wrong
+        - single_row_error:  File has at most one row, valid files must have a header row and at least one row with data
+        - job_error: There was a problem with the job sent to the validator, it was either the wrong type or not ready to run
+        - incomplete: File is still being validated
+    * missing_headers: List of headers that should be present but are not
+    * duplicated_headers: List of headers that were included more than once.  If file_status is 'header_error', at least one of 'missing_headers' and 'duplicated_headers' will be non-empty.
+    * file_size: Size of submitted file in bytes
+    * number_of_rows: Number of rows in submitted file, will only be provided if validation completed
+    * error_type: Values are:
+        - header_errors: Header errors were found, validation was not completed
+        - row_errors: Validation completed with row errors found
+        - none: No errors were found, warnings may still be present
+    * error_data: Holds a list of errors, each error is a dict with keys:
+        - field_name: What field the error occurred on
+        - error_name: Type of error that occurred, values are:
+            * type_error: Value was of the wrong type
+            * required_error: A required value was missing
+            * read_error: Could not parse this value from the file
+            * write_error: This was a problem writing the value to the staging table
+            * rule_failed: A rule failed on this value
+            * length_error: Value was too long for this field
+        - error_description: Description of the error
+        - occurrences: Number of times this error occurred for this field throughout the file.  See the error report for list of rows.
+        - rule_failed: Text of the rule that failed
+        - original_label: Label of the rule as it appears in the practices and procedures document
+    * warning_data: Holds the same information as error_data, but for warnings instead of errors
+- agency_name: Which agency this submission is attached to
+- reporting_period_start_date: Specified by user at time of submission
+- reporting_period_end_date: Specified by user at time of submission
+- number_of_errors: Total number of errors that have occurred throughout the submission
+- number_of_warnings: Total number of warnings throughout submission
+- number_of_rows: 446
+- created_on": Date the submission was originally created
+
 
 Example input:
 
@@ -580,7 +632,8 @@ Example output:
     "file_size": 4508,
     "number_of_rows": 500,
     "error_type": "header_error",
-    "error_data": []
+    "error_data": [],
+    "warning_data": []
     },
     {
     "job_id": 3006,
@@ -606,7 +659,25 @@ Example output:
     {
     "field_name": "availabilitytypecode",
     "error_name": "rule_failed",
-    "error_description": "",
+    "error_description": "Failed rule: Indicator must be X, F, A, or blank",
+    "occurrences": 27,
+    "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
+    "original_label":"A21"
+    }
+    ],
+    "warning_data": [
+    {
+    "field_name": "allocationtransferagencyid",
+    "error_name": "rule_failed",
+    "error_description": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
+    "occurrences": 27,
+    "rule_failed": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
+    "original_label":"A10"
+    },
+    {
+    "field_name": "availabilitytypecode",
+    "error_name": "rule_failed",
+    "error_description": "Failed rule: Indicator must be X, F, A, or blank",
     "occurrences": 27,
     "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
     "original_label":"A21"
@@ -633,6 +704,7 @@ Example output:
           "original_label":""
         }
       ],
+      "warning_data": [],
       "missing_headers": [],
       "job_id": 599,
       "file_type": "",
