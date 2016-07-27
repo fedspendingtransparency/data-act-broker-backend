@@ -147,6 +147,15 @@ class UserTests(BaseTestAPI):
         users = response.json["users"]
         self.assertEqual(len(users), 16)
 
+    def test_list_user_emails(self):
+        """Test getting user emails"""
+        self.logout()
+        self.login_agency_user()
+        response = self.app.get("/v1/list_user_emails/", headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.OK)
+        users = response.json["users"]
+        self.assertEqual(len(users), 7)
+
     def test_list_users_bad_status(self):
         """Test getting user list with invalid status."""
         postJson = {"status": "lost"}

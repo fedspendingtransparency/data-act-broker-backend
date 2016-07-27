@@ -38,11 +38,7 @@ class CsvAbstractWriter(object):
             strList.append(str(data))
         self.rows.append(strList)
         if(len(self.rows) > self.BATCH_SIZE):
-            ioStream = io.StringIO()
-            csvFormatter = csv.writer(ioStream)
-            csvFormatter.writerows(self.rows)
-            self._write(ioStream.getvalue())
-            self.rows = []
+            self.finishBatch()
 
     def finishBatch(self):
         """ Write the last unfinished batch """
