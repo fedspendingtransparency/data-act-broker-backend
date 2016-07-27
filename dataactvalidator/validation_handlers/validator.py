@@ -43,7 +43,7 @@ class Validator(object):
                     values = ", ".join(values)
                     targetFileType = interfaces.validationDb.getFileTypeById(rule.target_file_id)
                     failures.append([rule.file.name, targetFileType, columnString,
-                        str(rule.rule_description), values, row['row_number'],str(rule.rule_label),rule.file_id,rule.target_file_id])
+                        str(rule.rule_description), values, row['row_number'],str(rule.rule_label),rule.file_id,rule.target_file_id,rule.rule_severity_id])
 
         # Return list of cross file validation failures
         return failures
@@ -59,7 +59,7 @@ class Validator(object):
         Returns:
         Tuple of three values:
         True if validation passed, False if failed
-        List of failed rules, each with field, description of failure, and value that failed
+        List of failed rules, each with field, description of failure, value that failed, rule label, and severity
         True if type check passed, False if type failed
         """
         recordFailed = False
@@ -68,7 +68,7 @@ class Validator(object):
 
         for fieldName in csvSchema:
             if (csvSchema[fieldName].required and not fieldName in record):
-                return False, [[fieldName, ValidationError.requiredError, "", ""]], False
+                return False, [[fieldName, ValidationError.requiredError, "", "", "fatal"]], False
 
         for fieldName in record :
             if fieldName in cls.META_FIELDS:
@@ -85,7 +85,7 @@ class Validator(object):
                 if(currentSchema.required ):
                     # If empty and required return field name and error
                     recordFailed = True
-                    failedRules.append([fieldName, ValidationError.requiredError, "", ""])
+                    failedRules.append([fieldName, ValidationError.requiredError, "", "", "fatal"])
                     continue
                 else:
                     # If field is empty and not required its valid
@@ -95,7 +95,7 @@ class Validator(object):
             if(not checkRequiredOnly and not Validator.checkType(currentData,currentSchema.field_type.name) ) :
                 recordTypeFailure = True
                 recordFailed = True
-                failedRules.append([fieldName, ValidationError.typeError, currentData,""])
+                failedRules.append([fieldName, ValidationError.typeError, currentData,"", "fatal"])
                 # Don't check value rules if type failed
                 continue
 
@@ -103,7 +103,7 @@ class Validator(object):
             if currentSchema.length is not None and currentData is not None and len(currentData.strip()) > currentSchema.length:
                 # Length failure, add to failedRules
                 recordFailed = True
-                failedRules.append([fieldName, ValidationError.lengthError, currentData,""])
+                failedRules.append([fieldName, ValidationError.lengthError, currentData,"", "warning"])
 
         return (not recordFailed), failedRules, (not recordTypeFailure)
 
@@ -188,6 +188,10 @@ class Validator(object):
              error message
              values in fields involved
              row number
+             rule label
+             source file id
+             target file id
+             severity id
         """
 
         CloudLogger.logError("VALIDATOR_INFO: ", "Beginning SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
@@ -218,7 +222,7 @@ class Validator(object):
                     valueString = ", ".join(valueList)
                     fieldList = [shortColnames[field] if field in shortColnames else field for field in cols]
                     fieldString = ", ".join(fieldList)
-                    errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId, rule.target_file_id])
+                    errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId, rule.target_file_id, rule.rule_severity_id])
 
             # Pull where clause out of rule
             wherePosition = rule.rule_sql.lower().find("where")

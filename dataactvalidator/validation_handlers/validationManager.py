@@ -198,7 +198,7 @@ class ValidationManager:
                 reduceRow = True
             else:
                 writer.write(["Formatting Error", ValidationError.readErrorMsg, str(rowNumber), ""])
-                errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber)
+                errorInterface.recordRowError(jobId,self.filename,"Formatting Error",ValidationError.readError,rowNumber,severity_id=interfaces.validationDb.getRuleSeverityId("fatal"))
                 rowErrorFound = True
             return {}, reduceRow, True, False, rowErrorFound
         return record, reduceRow, False, False, rowErrorFound
@@ -230,7 +230,7 @@ class ValidationManager:
             # Write failed, move to next record
             writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(rowNumber),""])
             errorInterface.recordRowError(jobId, self.filename,
-                "Formatting Error",ValidationError.writeError, rowNumber)
+                "Formatting Error",ValidationError.writeError, rowNumber,severity_id=interfaces.validationDb.getRuleSeverityId("fatal"))
             return True
         return False
 
@@ -257,6 +257,7 @@ class ValidationManager:
             error = failure[1]
             failedValue = failure[2]
             originalRuleLabel = failure[3]
+            severityId = interfaces.validationDb.getRuleSeverityId(failure[4])
             try:
                 # If error is an int, it's one of our prestored messages
                 errorType = int(error)
@@ -265,7 +266,7 @@ class ValidationManager:
                 # If not, treat it literally
                 errorMsg = error
             writer.write([fieldName,errorMsg,str(rowNumber),failedValue,originalRuleLabel])
-            errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber,originalRuleLabel)
+            errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber,originalRuleLabel,severity_id=severityId)
 
     def runValidation(self, jobId, interfaces):
         """ Run validations for specified job
@@ -407,6 +408,7 @@ class ValidationManager:
             original_label = failure[4]
             fileTypeId = failure[5]
             targetFileId = failure[6]
+            severityId = failure[7]
             try:
                 # If error is an int, it's one of our prestored messages
                 errorType = int(error)
@@ -416,7 +418,7 @@ class ValidationManager:
                 errorMsg = error
             writer.write([fieldName,errorMsg,str(row),failedValue,original_label])
             errorInterface.recordRowError(jobId,self.filename,fieldName,
-                                          error,rowNumber,original_label, file_type_id=fileTypeId, target_file_id = targetFileId)
+                                          error,rowNumber,original_label, file_type_id=fileTypeId, target_file_id = targetFileId, severity_id=severityId)
 
     def runCrossValidation(self, jobId, interfaces):
         """ Cross file validation job, test all rules with matching rule_timing """
@@ -460,7 +462,7 @@ class ValidationManager:
                 for failure in failures:
                     writer.write(failure[0:7])
                     errorDb.recordRowError(jobId, "cross_file",
-                        failure[0], failure[3], failure[5], failure[6], failure[7], failure[8])
+                        failure[0], failure[3], failure[5], failure[6], failure[7], failure[8], severity_id=failure[9])
                 writer.finishBatch()
 
         errorDb.writeAllRowErrors(jobId)
