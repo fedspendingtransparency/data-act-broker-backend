@@ -472,6 +472,22 @@ class AccountHandler:
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
+    def listUserEmails(self):
+        """ List user names and emails """
+
+        user = self.interfaces.userDb.getUserByUID(LoginSession.getName(flaskSession))
+        try:
+            users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code, status="approved", only_active=True)
+        except ValueError as e:
+            # Client provided a bad status
+            exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, ValueError)
+            return JsonResponse.error(exc, exc.status)
+        userInfo = []
+        for user in users:
+            thisInfo = {"id":user.user_id, "name": user.name, "email": user.email}
+            userInfo.append(thisInfo)
+        return JsonResponse.create(StatusCode.OK, {"users": userInfo})
+
     def listUsersWithStatus(self):
         """ List all users with the specified status.  Associated request body must have key 'status' """
         requestDict = RequestDictionary(self.request)

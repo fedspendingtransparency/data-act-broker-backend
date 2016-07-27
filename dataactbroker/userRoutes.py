@@ -55,6 +55,13 @@ def add_user_routes(app,system_email,bcrypt):
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.listUsers)
 
+    @app.route("/v1/list_user_emails/", methods=["GET"])
+    @permissions_check
+    def list_user_emails():
+        """ list all users """
+        accountManager = AccountHandler(request, bcrypt=bcrypt)
+        return RouteUtils.run_instance_function(accountManager, accountManager.listUserEmails)
+
     @app.route("/v1/list_users_with_status/", methods = ["POST"])
     @permissions_check(permissionList=["website_admin", "agency_admin"])
     def list_users_with_status():
