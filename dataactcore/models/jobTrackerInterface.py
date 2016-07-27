@@ -253,7 +253,7 @@ class JobTrackerInterface(BaseInterface):
         job.number_of_rows = int(numRows)
         self.session.commit()
 
-    def getSubmissionStatus(self,submissionId):
+    def getSubmissionStatus(self,submissionId,errorDb):
         jobIds = self.getJobsBySubmission(submissionId)
         status_names = self.getJobStatusNames()
         statuses = dict(zip(status_names,[0]*len(status_names)))
@@ -270,7 +270,7 @@ class JobTrackerInterface(BaseInterface):
         if statuses["failed"] != 0:
             return "failed"
         if statuses["invalid"] != 0:
-            return "invalid"
+            return "file_errors"
         if statuses["running"] != 0:
             return "running"
         if statuses["waiting"] != 0:
@@ -278,5 +278,10 @@ class JobTrackerInterface(BaseInterface):
         if statuses["ready"] != 0:
             return "ready"
         if statuses["finished"] == len(jobIds)-skip_count: # need to account for the jobs that were skipped above
-            return "finished"
+            # Check if submission has errors,
+            jobs = self.getJobsBySubmission(submissionId)
+            if errorDb.sumNumberOfErrorsForJobList(jobs) > 0:
+                return "validation_errors"
+            else:
+                return "validation_successful"
         return "unknown"

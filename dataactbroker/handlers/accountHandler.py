@@ -512,7 +512,7 @@ class AccountHandler:
                 file_size = self.interfaces.jobDb.getFileSize(jobId)
                 total_size += file_size if file_size is not None else 0
 
-            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
+            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id,self.interfaces.errorDb)
             error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
             submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
             submissionDetails.append({"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
@@ -534,7 +534,7 @@ class AccountHandler:
                 file_size = self.interfaces.jobDb.getFileSize(jobId)
                 total_size += file_size if file_size is not None else 0
 
-            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
+            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id,self.interfaces.errorDb)
             error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
             submissionDetails.append(
                 {"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),

@@ -284,6 +284,21 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["created_on"],datetime.utcnow().strftime("%m/%d/%Y"))
         self.assertEqual(json["last_updated"],self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id).updated_at.strftime("%Y-%m-%dT%H:%M:%S"))
 
+    def test_list_submissions(self):
+        """ Check list submissions route on status check submission """
+        response = self.app.get("/v1/list_submissions/", headers={"x-session-id":self.session_id})
+
+        self.assertEqual(response.status_code, 200, msg=str(response.json))
+        self.assertEqual(
+            response.headers.get("Content-Type"), "application/json")
+        json = response.json
+        errorReportSub = None
+        for submission in json["submissions"]:
+            if submission["submission_id"] == self.error_report_submission_id:
+                errorReportSub = submission
+        self.assertIsNotNone(errorReportSub)
+        self.assertEqual(errorReportSub["status"], "validation_successful")
+
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
         postJson = {"upload_id": jobId}
