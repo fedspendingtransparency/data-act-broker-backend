@@ -87,7 +87,7 @@ class BaseTestValidator(unittest.TestCase):
         """Tear down broker unit tests."""
 
     def run_test(self, jobId, statusId, statusName, fileSize, stagingRows,
-                 errorStatus, numErrors, rowErrorsPresent = None, numWarnings = 0):
+                 errorStatus, numErrors, rowErrorsPresent = None, numWarnings = 0, warningFileSize = None):
         """ Runs a validation test
 
         Args:
@@ -138,6 +138,17 @@ class BaseTestValidator(unittest.TestCase):
                     "errors/"+jobTracker.getReportPath(jobId)), fileSize - 5)
                 self.assertLess(s3UrlHandler.getFileSize(
                     "errors/"+jobTracker.getReportPath(jobId)), fileSize + 5)
+        if(warningFileSize is not None and warningFileSize != False):
+            if self.local:
+                path = "".join(
+                    [self.local_file_directory,jobTracker.getWarningReportPath(jobId)])
+                self.assertGreater(os.path.getsize(path), warningFileSize - 5)
+                self.assertLess(os.path.getsize(path), warningFileSize + 5)
+            else:
+                self.assertGreater(s3UrlHandler.getFileSize(
+                    "errors/"+jobTracker.getWarningReportPath(jobId)), warningFileSize - 5)
+                self.assertLess(s3UrlHandler.getFileSize(
+                    "errors/"+jobTracker.getWarningReportPath(jobId)), warningFileSize + 5)
 
         # Check if errors_present is set correctly
         if rowErrorsPresent is not None:

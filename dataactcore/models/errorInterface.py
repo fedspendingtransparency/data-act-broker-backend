@@ -141,3 +141,7 @@ class ErrorInterface(BaseInterface):
     def getCrossReportName(self, submissionId, sourceFile, targetFile):
         """ Create error report filename based on source and target file """
         return "submission_{}_cross_{}_{}.csv".format(submissionId, sourceFile, targetFile)
+
+    def getCrossWarningReportName(self, submissionId, sourceFile, targetFile):
+        """ Create error report filename based on source and target file """
+        return "submission_{}_cross_warning_{}_{}.csv".format(submissionId, sourceFile, targetFile)

@@ -74,6 +74,10 @@ class JobTrackerInterface(BaseInterface):
         """ Return the filename for the error report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
         return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_error_report.csv"
 
+    def getWarningReportPath(self, jobId):
+        """ Return the filename for the warning report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
+        return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_warning_report.csv"
+
     def getCrossFileReportPath(self,submissionId):
         """ Returns the filename for the cross file error report. """
         return "".join(["submission_",str(submissionId),"_cross_file_error_report.csv"])
