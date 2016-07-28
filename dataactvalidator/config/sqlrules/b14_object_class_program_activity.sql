@@ -16,7 +16,7 @@ SELECT
     sf.amount
 FROM object_class_program_activity as op
     INNER JOIN sf_133 as sf ON op.tas = sf.tas
-WHERE ap.submission_id = {} AND
+WHERE op.submission_id = {} AND
     sf.line = 2004 AND
     LOWER(op.by_direct_reimbursable_fun) = 'd' AND
     (

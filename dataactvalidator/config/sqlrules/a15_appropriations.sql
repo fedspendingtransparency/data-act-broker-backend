@@ -1,9 +1,9 @@
 SELECT
-    ap.row_number,
-    ap.unobligated_balance_cpe,
+    approp.row_number,
+    approp.unobligated_balance_cpe,
     sf.amount
-FROM appropriation as ap
-    INNER JOIN sf_133 as sf ON (ap.tas = sf.tas)
-WHERE ap.submission_id = {} AND
+FROM appropriation as approp
+    INNER JOIN sf_133 as sf ON (approp.tas = sf.tas)
+WHERE approp.submission_id = {} AND
     sf.line = 2490 AND
-    COALESCE(ap.unobligated_balance_cpe, 0) <> sf.amount
+    COALESCE(approp.unobligated_balance_cpe, 0) <> sf.amount
