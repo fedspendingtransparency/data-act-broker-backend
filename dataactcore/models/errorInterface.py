@@ -70,7 +70,7 @@ class ErrorInterface(BaseInterface):
         query = self.session.query(File).options(joinedload("file_status")).filter(File.job_id == jobId)
         return self.runUniqueQuery(query,"No file for that job ID", "Multiple files have been associated with that job ID").file_status.name
 
-    def checkNumberOfErrorsByJobId(self, jobId):
+    def checkNumberOfErrorsByJobId(self, jobId, valDb, errorType = "fatal"):
         """ Get the total number of errors for a specified job
 
         Args:
@@ -82,6 +82,9 @@ class ErrorInterface(BaseInterface):
         queryResult = self.session.query(ErrorMetadata).filter(ErrorMetadata.job_id == jobId).all()
         numErrors = 0
         for result in queryResult:
+            if result.severity_id != valDb.getRuleSeverityId(errorType):
+                # Don't count non-fatal
+                continue
             # For each row that matches jobId, add the number of that type of error
             numErrors += result.occurrences
         return numErrors
@@ -95,11 +98,11 @@ class ErrorInterface(BaseInterface):
         self.session.query(ErrorMetadata).filter(ErrorMetadata.job_id == jobId).delete()
         self.session.commit()
 
-    def sumNumberOfErrorsForJobList(self,jobIdList):
+    def sumNumberOfErrorsForJobList(self,jobIdList, valDb, errorType = "fatal"):
         """ Add number of errors for all jobs in list """
         errorSum = 0
         for jobId in jobIdList:
-            jobErrors = self.checkNumberOfErrorsByJobId(jobId)
+            jobErrors = self.checkNumberOfErrorsByJobId(jobId, valDb, errorType)
             try:
                 errorSum += int(jobErrors)
             except TypeError:

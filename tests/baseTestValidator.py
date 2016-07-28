@@ -87,7 +87,7 @@ class BaseTestValidator(unittest.TestCase):
         """Tear down broker unit tests."""
 
     def run_test(self, jobId, statusId, statusName, fileSize, stagingRows,
-                 errorStatus, numErrors, rowErrorsPresent = None):
+                 errorStatus, numErrors, rowErrorsPresent = None, numWarnings = 0):
         """ Runs a validation test
 
         Args:
@@ -125,8 +125,8 @@ class BaseTestValidator(unittest.TestCase):
         errorInterface = self.errorInterface
         if errorStatus is not False:
             self.assertEqual(errorInterface.checkFileStatusByJobId(jobId), errorInterface.getFileStatusId(errorStatus))
-            self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId), numErrors)
-
+            self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId, self.validationDb,"fatal"), numErrors)
+            self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId, self.validationDb,"warning"), numWarnings)
         if(fileSize != False):
             if self.local:
                 path = "".join(

@@ -244,8 +244,10 @@ class ValidationManager:
             shortColnames: Dict mapping short names to long names
             writer: CsvWriter object
             rowNumber: Current row number
+        Returns:
+            True if any fatal errors were found, False if only warnings are present
         """
-
+        fatalErrorFound = False
         errorInterface = interfaces.errorDb
         # For each failure, record it in error report and metadata
         for failure in failures:
@@ -257,6 +259,8 @@ class ValidationManager:
             error = failure[1]
             failedValue = failure[2]
             originalRuleLabel = failure[3]
+            if failure[4] == "fatal":
+                fatalErrorFound = True
             severityId = interfaces.validationDb.getRuleSeverityId(failure[4])
             try:
                 # If error is an int, it's one of our prestored messages
@@ -267,6 +271,7 @@ class ValidationManager:
                 errorMsg = error
             writer.write([fieldName,errorMsg,str(rowNumber),failedValue,originalRuleLabel])
             errorInterface.recordRowError(jobId,self.filename,fieldName,error,rowNumber,originalRuleLabel,severity_id=severityId)
+        return fatalErrorFound
 
     def runValidation(self, jobId, interfaces):
         """ Run validations for specified job
@@ -358,9 +363,8 @@ class ValidationManager:
                             continue
 
                     if not passedValidations:
-                        if failures:
+                        if self.writeErrors(failures, interfaces, jobId, shortColnames, writer, rowNumber):
                             rowErrorPresent = True
-                        self.writeErrors(failures, interfaces, jobId, shortColnames, writer, rowNumber)
 
                 interfaces.errorDb.setRowErrorsPresent(jobId,rowErrorPresent)
                 CloudLogger.logError("VALIDATOR_INFO: ", "Loading complete on jobID: " + str(jobId) + ". Total rows added to staging: " + str(rowNumber), "")
