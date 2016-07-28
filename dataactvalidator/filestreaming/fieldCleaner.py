@@ -105,14 +105,28 @@ class FieldCleaner(StringCleaner):
         except:
             # length cannot be cast as int
             raise ValueError("Length must be an integer")
-        if(length <= 0):
+        if int(length) <= 0:
             raise ValueError("Length must be positive")
         return length
 
     @classmethod
-    def cleanRow(cls, row, fileType, validationInterface):
-        for key in row.keys():
-            field_type = validationInterface.getColumn(key, fileType).field_type.name
+    def cleanRow(cls, row, fileType, validationInterface, longToShortDict, fields):
+        """ Strips whitespace, replaces empty strings with None, and pads fields that need it
+
+        Args:
+            row: Record in this row
+            fileType: Which file type this is for
+            validationInterface: Interface to the validation DB
+            longToShortDict: Maps long column names to short
+            fields: List of FileColumn objects for this file type
+
+        Returns:
+            Cleaned row
+        """
+
+        for field in fields:
+            key = longToShortDict[field.name]
+            field_type = field.field_type.name
             value = row[key]
             if value is not None:
                 # Remove extra whitespace
@@ -125,28 +139,24 @@ class FieldCleaner(StringCleaner):
                     # Replace empty strings with null
                     value = None
 
-                row[key] = cls.padField(key,value,fileType,validationInterface)
+                row[key] = cls.padField(field,value)
         return row
 
     @staticmethod
-    def padField(field,value,fileType,validationInterface):
+    def padField(field, value):
         """ Pad value with appropriate number of leading zeros if needed
 
         Args:
-            field: Name of field
+            field: FileColumn object
             value: Value present in row
-            fileType: Type of file data is being loaded for
-            interfaces: InterfaceHolder object
 
         Returns:
             Padded value
         """
         # Check padded flag for this field and file
-        if value is not None and validationInterface.isPadded(field,fileType):
-            # If padded flag is true, get column length
-            padLength = validationInterface.getColumnLength(field, fileType)
+        if value is not None and field.padded_flag and field.length is not None:
             # Pad to specified length with leading zeros
-            return value.zfill(padLength)
+            return value.zfill(field.length)
         else:
             return value
 

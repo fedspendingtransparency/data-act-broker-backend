@@ -171,6 +171,7 @@ class BaseTestAPI(unittest.TestCase):
         cls.jobTracker = cls.interfaces.jobDb
         cls.errorDatabase = cls.interfaces.errorDb
         cls.userDb = cls.interfaces.userDb
+        cls.validationDb = cls.interfaces.validationDb
         cls.local = CONFIG_BROKER['local']
 
     def setUp(self):
