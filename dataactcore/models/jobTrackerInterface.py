@@ -171,7 +171,6 @@ class JobTrackerInterface(BaseInterface):
         Returns:
         status ID
         """
-        status = None
         query = self.session.query(Job.job_status_id).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         status = result.job_status_id
@@ -241,16 +240,20 @@ class JobTrackerInterface(BaseInterface):
         """ Get number of rows in file for job matching ID """
         return self.getJobById(jobId).number_of_rows
 
+    def getNumberOfValidRowsById(self, jobId):
+        """Get number of file's rows that passed validations."""
+        return self.getJobById(jobId).number_of_rows_valid
+
     def setFileSizeById(self,jobId, fileSize):
         """ Set file size for job matching ID """
         job = self.getJobById(jobId)
         job.file_size = int(fileSize)
         self.session.commit()
 
-    def setNumberOfRowsById(self,jobId, numRows):
-        """ Set number of rows in file for job matching ID """
-        job = self.getJobById(jobId)
-        job.number_of_rows = int(numRows)
+    def setJobRowcounts(self, jobId, numRows, numValidRows):
+        """Set number of rows in job that passed validations."""
+        self.session.query(Job).filter(Job.job_id == jobId).update(
+            {"number_of_rows_valid": numValidRows, "number_of_rows": numRows})
         self.session.commit()
 
     def getSubmissionStatus(self,submissionId,errorDb):
