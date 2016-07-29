@@ -51,6 +51,7 @@ class Job(Base):
     original_filename = Column(Text, nullable=True)
     file_size = Column(Integer)
     number_of_rows = Column(Integer)
+    number_of_rows_valid = Column(Integer)
 
 class JobDependency(Base):
     __tablename__ = "job_dependency"

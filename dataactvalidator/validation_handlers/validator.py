@@ -49,8 +49,13 @@ class Validator(object):
         return failures
 
     @classmethod
-    def validate(cls,record,csvSchema,fileType,interfaces):
+    def validate(cls,record,csvSchema, fileType, interfaces):
         """
+        Run initial set of single file validation:
+        - check if required fields are present
+        - check if data type matches data type specified in schema
+        - check that field length matches field length specified in schema
+
         Args:
         record -- dict representation of a single record of data
         csvSchema -- dict of schema for the current file.
@@ -219,17 +224,6 @@ class Validator(object):
                     fieldList = [shortColnames[field] if field in shortColnames else field for field in cols]
                     fieldString = ", ".join(fieldList)
                     errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId, rule.target_file_id])
-
-            # Pull where clause out of rule
-            wherePosition = rule.rule_sql.lower().find("where")
-            whereClause = rule.rule_sql[wherePosition:].format(submissionId)
-            # Find table to apply this to
-            model = interfaces.stagingDb.getModel(fileType)
-            tableName = model.__tablename__
-            tableAbbrev = cls.tableAbbreviations[tableName]
-            # Update valid_record to false for all that fail this rule
-            updateQuery = "UPDATE {} as {} SET valid_record = false {}".format(tableName,tableAbbrev,whereClause)
-            interfaces.stagingDb.connection.execute(updateQuery)
 
             CloudLogger.logError("VALIDATOR_INFO: ", "Completed SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
 

@@ -115,12 +115,10 @@ class BaseTestValidator(unittest.TestCase):
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
 
-        # Get staging records associated with this job
+        # Check valid row count for this job
         if stagingRows:
-            fileType = jobTracker.getFileType(jobId)
-            submissionId = jobTracker.getSubmissionId(jobId)
-            numRows = stagingDb.getNumberOfValidRecordsForSubmission(submissionId,fileType)
-            self.assertEqual(numRows, stagingRows)
+            numValidRows = jobTracker.getNumberOfValidRowsById(jobId)
+            self.assertEqual(numValidRows, stagingRows)
 
         errorInterface = self.errorInterface
         if errorStatus is not False:
