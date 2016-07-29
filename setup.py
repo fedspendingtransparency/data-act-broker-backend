@@ -41,7 +41,7 @@ setup(
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Build Tools',
         'License :: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication',
-        'Programming Language :: Python :: 3.4'
+        'Programming Language :: Python :: 3.x'
     ],
     keywords='DATA Act Broker Backend Setup',
     packages=find_packages(),
