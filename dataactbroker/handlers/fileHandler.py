@@ -64,13 +64,15 @@ class FileHandler:
                 if(self.jobManager.getJobType(jobId) == "csv_record_validation"):
                     if isWarning:
                         reportName = self.jobManager.getWarningReportPath(jobId)
+                        key = "job_"+str(jobId)+"_warning_url"
                     else:
                         reportName = self.jobManager.getReportPath(jobId)
+                        key = "job_"+str(jobId)+"_error_url"
                     if(not self.isLocal):
-                        responseDict["job_"+str(jobId)+"_error_url"] = self.s3manager.getSignedUrl("errors",reportName,"GET")
+                        responseDict[key] = self.s3manager.getSignedUrl("errors",reportName,"GET")
                     else:
                         path = os.path.join(self.serverPath, reportName)
-                        responseDict["job_"+str(jobId)+"_error_url"] = path
+                        responseDict[key] = path
 
             # For each pair of files, get url for the report
             fileTypes = self.interfaces.validationDb.getFileTypeList()
