@@ -338,6 +338,9 @@ class ValidationManager:
             self.longToShortDict = interfaces.validationDb.getLongToShortColname()
             # rowErrorPresent becomes true if any row error occurs, used for determining file status
             rowErrorPresent = False
+            # list to keep track of rows that fail validations
+            errorRows = []
+
             # While not done, pull one row and put it into staging table if it passes
             # the Validator
 
@@ -348,11 +351,17 @@ class ValidationManager:
 
                     if (rowNumber % 100) == 0:
                         CloudLogger.logError("VALIDATOR_INFO: ","JobId: "+str(jobId)+" loading row " + str(rowNumber),"")
+
+                    #
+                    # first phase of validations: read record and record a
+                    # formatting error if there's a problem
+                    #
                     (record, reduceRow, skipRow, doneReading, rowErrorHere) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter, fields)
-                    if rowErrorHere:
-                        rowErrorPresent = True
                     if reduceRow:
                         rowNumber -= 1
+                    if rowErrorHere:
+                        rowErrorPresent = True
+                        errorRows.append(rowNumber)
                     if doneReading:
                         # Stop reading from input file
                         break
@@ -360,29 +369,47 @@ class ValidationManager:
                         # Do not write this row to staging, but continue processing future rows
                         continue
 
-                    passedValidations, failures, valid  = Validator.validate(record,csvSchema,fileType,interfaces)
+                    #
+                    # second phase of validations: do basic schema checks
+                    # (e.g., require fields, field length, data type)
+                    #
+                    passedValidations, failures, valid = Validator.validate(record,csvSchema,fileType,interfaces)
                     if valid:
                         skipRow = self.writeToStaging(record, jobId, submissionId, passedValidations, interfaces, writer, rowNumber, fileType)
                         if skipRow:
                             rowErrorPresent = True
+                            errorRows.append(rowNumber)
                             continue
 
                     if not passedValidations:
                         if self.writeErrors(failures, interfaces, jobId, shortColnames, writer, warningWriter, rowNumber):
                             rowErrorPresent = True
+                            errorRows.append(rowNumber)
 
                 interfaces.errorDb.setRowErrorsPresent(jobId,rowErrorPresent)
                 CloudLogger.logError("VALIDATOR_INFO: ", "Loading complete on jobID: " + str(jobId) + ". Total rows added to staging: " + str(rowNumber), "")
 
-                # Do SQL validations for this file
-                self.runSqlValidations(interfaces, jobId, fileType, shortColnames, writer, warningWriter, rowNumber)
+                #
+                # third phase of validations: run validation rules as specified
+                # in the schema guidance. these validations are sql-based.
+                #
+                sqlErrorRows = self.runSqlValidations(
+                    interfaces, jobId, fileType, shortColnames, writer, warningWriter, rowNumber)
+                errorRows.extend(sqlErrorRows)
 
                 # Write unfinished batch
                 writer.finishBatch()
                 warningWriter.finishBatch()
 
-            # Write number of rows to job table
-            jobTracker.setNumberOfRowsById(jobId,rowNumber)
+            # Calculate total number of rows in file
+            # that passed validations
+            errorRowsUnique = set(errorRows)
+            totalRowsExcludingHeader = rowNumber - 1
+            validRows = totalRowsExcludingHeader - len(errorRowsUnique)
+
+            # Update job metadata
+            jobTracker.setJobRowcounts(jobId, rowNumber, validRows)
+
             # Mark validation as finished in job tracker
             jobTracker.markJobStatus(jobId,"finished")
             errorInterface.writeAllRowErrors(jobId)
@@ -403,8 +430,12 @@ class ValidationManager:
             writer: CsvWriter object
             waringWriter: CsvWriter for warnings
             rowNumber: Current row number
+
+        Returns:
+            a list of the row numbers that failed one of the sql-based validations
         """
         errorInterface = interfaces.errorDb
+        errorRows = []
         sqlFailures = Validator.validateFileBySql(interfaces.jobDb.getSubmissionId(jobId),fileType,interfaces)
         for failure in sqlFailures:
             # convert shorter, machine friendly column names used in the
@@ -420,6 +451,7 @@ class ValidationManager:
             fileTypeId = failure[5]
             targetFileId = failure[6]
             severityId = failure[7]
+            errorRows.append(row)
             try:
                 # If error is an int, it's one of our prestored messages
                 errorType = int(error)
@@ -434,6 +466,7 @@ class ValidationManager:
                 warningWriter.write([fieldName,errorMsg,str(row),failedValue,original_label])
             errorInterface.recordRowError(jobId,self.filename,fieldName,
                                           error,rowNumber,original_label, file_type_id=fileTypeId, target_file_id = targetFileId, severity_id=severityId)
+        return errorRows
 
     def runCrossValidation(self, jobId, interfaces):
         """ Cross file validation job, test all rules with matching rule_timing """
