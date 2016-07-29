@@ -37,6 +37,12 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.getErrorReportURLsForSubmission)
 
+    @app.route("/v1/submission_warning_reports/", methods = ["POST"])
+    @permissions_check
+    def submission_warning_reports():
+        fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return RouteUtils.run_instance_function(fileManager, fileManager.getErrorReportURLsForSubmission, addTrueFlag=True)
+
     @app.route("/v1/error_metrics/", methods = ["POST"])
     @permissions_check
     def submission_error_metrics():

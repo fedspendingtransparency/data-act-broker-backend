@@ -11,7 +11,7 @@ class RouteUtils:
     CREATE_CREDENTIALS = None
 
     @staticmethod
-    def run_instance_function(accountManager, accountFunction, getSystemEmail = False, getSession = False, getUser = False, getCredentials = False):
+    def run_instance_function(accountManager, accountFunction, getSystemEmail = False, getSession = False, getUser = False, getCredentials = False, addTrueFlag = False):
         """ Standard error handling around each route """
         interfaces = InterfaceHolder()
         try:
@@ -28,6 +28,8 @@ class RouteUtils:
                 else:
                     # Currently no functions with user but not credentials flag
                     raise ValueError("Invalid combination of flags to run_instance_function")
+            elif(addTrueFlag):
+                return accountFunction(True)
             else:
                 return accountFunction()
         except ResponseException as e:

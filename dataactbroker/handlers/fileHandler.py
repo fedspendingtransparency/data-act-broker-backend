@@ -51,7 +51,7 @@ class FileHandler:
         self.interfaces = interfaces
         self.jobManager = interfaces.jobDb
 
-    def getErrorReportURLsForSubmission(self):
+    def getErrorReportURLsForSubmission(self, isWarning = False):
         """
         Gets the Signed URLs for download based on the submissionId
         """
@@ -62,10 +62,14 @@ class FileHandler:
             responseDict ={}
             for jobId in self.jobManager.getJobsBySubmission(submissionId):
                 if(self.jobManager.getJobType(jobId) == "csv_record_validation"):
-                    if(not self.isLocal):
-                        responseDict["job_"+str(jobId)+"_error_url"] = self.s3manager.getSignedUrl("errors",self.jobManager.getReportPath(jobId),"GET")
+                    if isWarning:
+                        reportName = self.jobManager.getWarningReportPath(jobId)
                     else:
-                        path = os.path.join(self.serverPath, self.jobManager.getReportPath(jobId))
+                        reportName = self.jobManager.getReportPath(jobId)
+                    if(not self.isLocal):
+                        responseDict["job_"+str(jobId)+"_error_url"] = self.s3manager.getSignedUrl("errors",reportName,"GET")
+                    else:
+                        path = os.path.join(self.serverPath, reportName)
                         responseDict["job_"+str(jobId)+"_error_url"] = path
 
             # For each pair of files, get url for the report
@@ -78,14 +82,17 @@ class FileHandler:
                         # Skip redundant reports
                         continue
                     # Retrieve filename
-                    reportName = self.interfaces.errorDb.getCrossReportName(submissionId, source, target)
+                    if isWarning:
+                        reportName = self.interfaces.errorDb.getCrossWarningReportName(submissionId, source, target)
+                    else:
+                        reportName = self.interfaces.errorDb.getCrossReportName(submissionId, source, target)
                     # If not local, get a signed URL
                     if self.isLocal:
                         reportPath = os.path.join(self.serverPath,reportName)
                     else:
                         reportPath = self.s3manager.getSignedUrl("errors",reportName,"GET")
                     # Assign to key based on source and target
-                    responseDict[self.getCrossReportKey(source,target)] = reportPath
+                    responseDict[self.getCrossReportKey(source,target,isWarning)] = reportPath
 
             return JsonResponse.create(StatusCode.OK,responseDict)
         except ResponseException as e:
@@ -94,9 +101,12 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-    def getCrossReportKey(self,sourceType,targetType):
+    def getCrossReportKey(self,sourceType,targetType,isWarning = False):
         """ Generate a key for cross-file error reports """
-        return "cross_{}-{}".format(sourceType,targetType)
+        if isWarning:
+            return "cross_warning_{}-{}".format(sourceType,targetType)
+        else:
+            return "cross_{}-{}".format(sourceType,targetType)
 
     # Submit set of files
     def submit(self,name,CreateCredentials):
@@ -273,6 +283,7 @@ class FileHandler:
                     jobInfo["duplicated_headers"] = []
                     jobInfo["error_type"] = ""
                     jobInfo["error_data"] = []
+                    jobInfo["warning_data"] = []
                 else:
                     # If job ID was found in file, we should be able to get header error lists and file data
                     # Get string of missing headers and parse as a list
@@ -290,7 +301,8 @@ class FileHandler:
                     else:
                         jobInfo["duplicated_headers"] = []
                     jobInfo["error_type"] = self.interfaces.errorDb.getErrorType(jobId)
-                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId,self.jobManager.getJobType(jobId)=='validation',self.interfaces)
+                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId,self.jobManager.getJobType(jobId)=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("fatal"))
+                    jobInfo["warning_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId,self.jobManager.getJobType(jobId)=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("warning"))
                 # File size and number of rows not dependent on error DB
                 # Get file size
                 jobInfo["file_size"] = self.jobManager.getFileSizeById(jobId)

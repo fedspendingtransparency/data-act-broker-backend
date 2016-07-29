@@ -264,11 +264,24 @@ class FileTests(BaseTestAPI):
         self.assertEqual(ruleErrorData["occurrences"],"7")
         self.assertEqual(ruleErrorData["rule_failed"],"Header three value must be real")
         self.assertEqual(ruleErrorData["original_label"],"A1")
+        # Check warning metadata for specified warning
+        warningErrorData = None
+        for data in appropJob["warning_data"]:
+            if data["field_name"] == "header_three":
+                warningErrorData = data
+        self.assertIsNotNone(warningErrorData)
+        self.assertEqual(warningErrorData["field_name"],"header_three")
+        self.assertEqual(warningErrorData["error_name"],"rule_failed")
+        self.assertEqual(warningErrorData["error_description"],"A rule failed for this value")
+        self.assertEqual(warningErrorData["occurrences"],"7")
+        self.assertEqual(warningErrorData["rule_failed"],"Header three value looks odd")
+        self.assertEqual(warningErrorData["original_label"],"A2")
 
         ruleErrorData = None
         for data in crossJob["error_data"]:
             if data["field_name"] == "header_four":
                 ruleErrorData = data
+
         self.assertEqual(ruleErrorData["source_file"],"appropriations")
         self.assertEqual(ruleErrorData["target_file"],"award")
 
@@ -324,6 +337,17 @@ class FileTests(BaseTestAPI):
             response.headers.get("Content-Type"), "application/json")
         self.assertEqual(len(response.json), 10)
         self.assertIn("cross_appropriations-program_activity", response.json)
+
+    def test_warning_reports(self):
+        """Test broker csv_validation error report."""
+        postJson = {"submission_id": self.error_report_submission_id}
+        response = self.app.post_json(
+            "/v1/submission_warning_reports/", postJson, headers={"x-session-id":self.session_id})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers.get("Content-Type"), "application/json")
+        self.assertEqual(len(response.json), 10)
+        self.assertIn("cross_warning_appropriations-program_activity", response.json)
 
     def check_metrics(self, submission_id, exists, type_file) :
         """Get error metrics for specified submission."""
@@ -452,11 +476,25 @@ class FileTests(BaseTestAPI):
         interfaces.errorDb.session.add(crossFile)
 
         # Put some entries in error data for approp job
-        ruleError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_three", error_type_id = 6, occurrences = 7, rule_failed = "Header three value must be real", original_rule_label = "A1", file_type_id = interfaces.validationDb.getFileTypeIdByName("appropriations"), target_file_type_id = interfaces.validationDb.getFileTypeIdByName("award"))
-        reqError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_four", error_type_id = 2, occurrences = 5, rule_failed = "A required value was not provided")
+        ruleError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_three",
+                                  error_type_id = 6, occurrences = 7, rule_failed = "Header three value must be real", original_rule_label = "A1",
+                                  file_type_id = interfaces.validationDb.getFileTypeIdByName("appropriations"),
+                                  target_file_type_id = interfaces.validationDb.getFileTypeIdByName("award"),
+                                  severity_id = interfaces.validationDb.getRuleSeverityId("fatal"))
+        warningError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_three",
+                                  error_type_id = 6, occurrences = 7, rule_failed = "Header three value looks odd", original_rule_label = "A2",
+                                  file_type_id = interfaces.validationDb.getFileTypeIdByName("appropriations"),
+                                  target_file_type_id = interfaces.validationDb.getFileTypeIdByName("award"),
+                                  severity_id = interfaces.validationDb.getRuleSeverityId("warning"))
+        reqError = ErrorMetadata(job_id = jobIdDict["appropriations"], filename = "approp.csv", field_name = "header_four", error_type_id = 2, occurrences = 5, rule_failed = "A required value was not provided", severity_id = interfaces.validationDb.getRuleSeverityId("fatal"))
         interfaces.errorDb.session.add(ruleError)
+        interfaces.errorDb.session.add(warningError)
         interfaces.errorDb.session.add(reqError)
-        crossError = ErrorMetadata(job_id = jobIdDict["cross_file"], filename = "approp.csv", field_name = "header_four", error_type_id = 2, occurrences = 5, rule_failed = "A required value was not provided", file_type_id = interfaces.validationDb.getFileTypeIdByName("appropriations"), target_file_type_id = interfaces.validationDb.getFileTypeIdByName("award"))
+        crossError = ErrorMetadata(job_id = jobIdDict["cross_file"], filename = "approp.csv", field_name = "header_four",
+                                   error_type_id = 2, occurrences = 5, rule_failed = "A required value was not provided",
+                                   file_type_id = interfaces.validationDb.getFileTypeIdByName("appropriations"),
+                                   target_file_type_id = interfaces.validationDb.getFileTypeIdByName("award"),
+                                   severity_id = interfaces.validationDb.getRuleSeverityId("fatal"))
 
         interfaces.errorDb.session.add(crossError)
         interfaces.errorDb.session.commit()
