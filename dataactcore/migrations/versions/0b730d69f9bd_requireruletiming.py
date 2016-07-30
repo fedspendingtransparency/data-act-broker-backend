@@ -61,3 +61,9 @@ def upgrade_staging():
 
 def downgrade_staging():
     pass
+
+def upgrade_data_broker():
+    pass
+
+def downgrade_data_broker():
+    pass

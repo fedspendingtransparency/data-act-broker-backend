@@ -22,6 +22,11 @@ def upgrade(engine_name):
 def downgrade(engine_name):
     globals()["downgrade_%s" % engine_name]()
 
+def upgrade_data_broker():
+    pass
+
+def downgrade_data_broker():
+    pass
 
 def upgrade_validation():
     """Drop existing non-PK indices to handle legacy installs & add new indices."""

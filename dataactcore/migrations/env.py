@@ -5,6 +5,7 @@ from dataactcore.models import jobModels
 from dataactcore.models import userModel
 from dataactcore.models import validationModels
 from dataactcore.models import baseModel
+from dataactcore.models import emptyBase
 from dataactcore.config import CONFIG_DB
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
@@ -27,11 +28,11 @@ logger = logging.getLogger('alembic.env')
 # migration method names. Value[0] will = the actual database name as
 # set in the broker config. Value[1] is the corresponding model.
 db_dict = {}
-db_dict['data-broker'] = [CONFIG_DB['db_name'], baseModel]
-db_dict['error_data'] = [CONFIG_DB['error_db_name'], errorModels]
-db_dict['job_tracker'] = [CONFIG_DB['job_db_name'], jobModels]
-db_dict['user_manager'] = [CONFIG_DB['user_db_name'], userModel]
-db_dict['validation'] = [CONFIG_DB['validator_db_name'], validationModels]
+db_dict['data_broker'] = [CONFIG_DB['db_name'], baseModel]
+db_dict['error_data'] = [CONFIG_DB['error_db_name'], emptyBase]
+db_dict['job_tracker'] = [CONFIG_DB['job_db_name'], emptyBase]
+db_dict['user_manager'] = [CONFIG_DB['user_db_name'], emptyBase]
+db_dict['validation'] = [CONFIG_DB['validator_db_name'], emptyBase]
 db_names = config.get_main_option('databases')
 for name in re.split(r',\s*', db_names):
     if name not in db_dict:

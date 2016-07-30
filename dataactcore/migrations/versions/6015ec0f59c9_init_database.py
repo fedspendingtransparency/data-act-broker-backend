@@ -24,7 +24,11 @@ def downgrade(engine_name):
     globals()["downgrade_%s" % engine_name]()
 
 
+def upgrade_data_broker():
+    pass
 
+def downgrade_data_broker():
+    pass
 
 
 def upgrade_error_data():
