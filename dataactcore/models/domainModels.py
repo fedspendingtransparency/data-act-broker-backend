@@ -1,6 +1,6 @@
 from dataactcore.models.stagingModels import concatTas
 from sqlalchemy import Column, Integer, Text, Boolean, Index, Numeric
-from dataactcore.models.validationBase import Base
+from dataactcore.models.baseModel import Base
 
 
 class TASLookup(Base) :
