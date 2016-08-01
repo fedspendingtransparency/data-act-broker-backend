@@ -451,7 +451,8 @@ class ValidationManager:
             fileTypeId = failure[5]
             targetFileId = failure[6]
             severityId = failure[7]
-            errorRows.append(row)
+            if severityId == interfaces.validationDb.getRuleSeverityId("fatal"):
+                errorRows.append(row)
             try:
                 # If error is an int, it's one of our prestored messages
                 errorType = int(error)
