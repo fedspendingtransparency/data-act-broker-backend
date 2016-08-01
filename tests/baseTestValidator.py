@@ -38,7 +38,7 @@ class BaseTestValidator(unittest.TestCase):
             cls.num, suite)
         dataactcore.config.CONFIG_DB = config
         createDatabase(CONFIG_DB['db_name'])
-        runMigrations('data_broker')
+        runMigrations()
 
         app = createApp()
         app.config['TESTING'] = True

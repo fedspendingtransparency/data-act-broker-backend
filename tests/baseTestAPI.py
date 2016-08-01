@@ -40,7 +40,7 @@ class BaseTestAPI(unittest.TestCase):
             cls.num, suite)
         dataactcore.config.CONFIG_DB = config
         createDatabase(CONFIG_DB['db_name'])
-        runMigrations('data_broker')
+        runMigrations()
 
         # drop and re-create test user db/tables
         setupUserDB()

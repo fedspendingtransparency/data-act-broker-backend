@@ -9,7 +9,7 @@ from dataactcore.config import CONFIG_DB
 def setupAllDB():
     """Sets up all databases"""
     createDatabase(CONFIG_DB['db_name'])
-    runMigrations(CONFIG_DB['db_name'])
+    runMigrations()
     setupJobTrackerDB()
     setupErrorDB()
     setupUserDB()
