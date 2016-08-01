@@ -270,11 +270,12 @@ class FileHandler:
 
             for jobId in jobs:
                 jobInfo = {}
-                if self.jobManager.getJobType(jobId) != "csv_record_validation" and self.jobManager.getJobType(jobId) != "validation":
+                jobType = self.jobManager.getJobType(jobId)
+                if jobType != "csv_record_validation" and jobType != "validation":
                     continue
                 jobInfo["job_id"] = jobId
                 jobInfo["job_status"] = self.jobManager.getJobStatusName(jobId)
-                jobInfo["job_type"] = self.jobManager.getJobType(jobId)
+                jobInfo["job_type"] = jobType
                 jobInfo["filename"] = self.jobManager.getOriginalFilenameById(jobId)
                 try:
                     jobInfo["file_status"] = self.interfaces.errorDb.getFileStatusLabelByJobId(jobId)
@@ -303,8 +304,8 @@ class FileHandler:
                     else:
                         jobInfo["duplicated_headers"] = []
                     jobInfo["error_type"] = self.interfaces.errorDb.getErrorType(jobId)
-                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId,self.jobManager.getJobType(jobId)=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("fatal"))
-                    jobInfo["warning_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId,self.jobManager.getJobType(jobId)=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("warning"))
+                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId,jobType=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("fatal"))
+                    jobInfo["warning_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId,jobType=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("warning"))
                 # File size and number of rows not dependent on error DB
                 # Get file size
                 jobInfo["file_size"] = self.jobManager.getFileSizeById(jobId)
