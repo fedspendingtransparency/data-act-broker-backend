@@ -83,7 +83,7 @@ class ErrorInterface(BaseInterface):
         numErrors = 0
         for result in queryResult:
             if result.severity_id != valDb.getRuleSeverityId(errorType):
-                # Don't count non-fatal
+                # Don't count other error types
                 continue
             # For each row that matches jobId, add the number of that type of error
             numErrors += result.occurrences
