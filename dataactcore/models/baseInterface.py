@@ -13,13 +13,15 @@ class BaseInterface(object):
     IS_FLASK = True
     dbConfig = None
     logFileName = "dbErrors.log"
-    dbName = dbConfig['db_name']
+    dbName = None
     Session = None
     engine = None
     session = None
-    dbConfig = CONFIG_DB
+
 
     def __init__(self):
+        self.dbConfig = CONFIG_DB
+        self.dbName = self.dbConfig['db_name']
         if(self.session != None):
             # session is already set up for this DB
             return

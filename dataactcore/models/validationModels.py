@@ -4,7 +4,7 @@ from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
-class FileType(Base):
+class FileTypeValidation(Base):
     __tablename__ = "file_type_validation"
 
     file_id = Column(Integer, primary_key=True)
@@ -29,7 +29,7 @@ class FileColumn(Base):
 
     file_column_id = Column(Integer, primary_key=True)
     file_id = Column(Integer, ForeignKey("file_type_validation.file_id"), nullable=True)
-    file = relationship("FileType", uselist=False)
+    file = relationship("FileTypeValidation", uselist=False)
     field_types_id = Column(Integer, ForeignKey("field_type.field_type_id"), nullable=True)
     field_type = relationship("FieldType", uselist=False)
     name = Column(Text, nullable=True)
@@ -58,9 +58,9 @@ class RuleSql(Base):
     rule_error_message = Column(Text, nullable=False)
     rule_cross_file_flag = Column(Boolean, nullable=False)
     file_id = Column(Integer, ForeignKey("file_type_validation.file_id", name="fk_file"), nullable=True)
-    file = relationship("FileType", uselist=False, foreign_keys=[file_id])
+    file = relationship("FileTypeValidation", uselist=False, foreign_keys=[file_id])
     rule_severity_id = Column(Integer, ForeignKey("rule_severity.rule_severity_id"), nullable=False)
     rule_severity = relationship("RuleSeverity", uselist=False)
     target_file_id = Column(Integer, ForeignKey("file_type_validation.file_id", name="fk_target_file"), nullable=True)
-    target_file = relationship("FileType", uselist=False, foreign_keys=[target_file_id])
+    target_file = relationship("FileTypeValidation", uselist=False, foreign_keys=[target_file_id])
     query_name = Column(Text)

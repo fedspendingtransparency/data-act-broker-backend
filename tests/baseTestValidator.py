@@ -17,7 +17,8 @@ from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.jobModels import Job, Submission
 from dataactcore.models.validationModels import FileColumn
-from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER
+from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
+from dataactcore.scripts.databaseSetup import createDatabase,runMigrations
 import dataactcore.config
 
 class BaseTestValidator(unittest.TestCase):
@@ -33,15 +34,11 @@ class BaseTestValidator(unittest.TestCase):
         suite = cls.__name__.lower()
         config = dataactcore.config.CONFIG_DB
         cls.num = randint(1, 9999)
-        config['error_db_name'] = 'unittest{}_{}_error_data'.format(
-            cls.num, suite)
-        config['job_db_name'] = 'unittest{}_{}_job_tracker'.format(
-            cls.num, suite)
-        config['user_db_name'] = 'unittest{}_{}_user_manager'.format(
-            cls.num, suite)
-        config['validator_db_name'] = 'unittest{}_{}_validator'.format(
+        config['db_name'] = 'unittest{}_{}_data_broker'.format(
             cls.num, suite)
         dataactcore.config.CONFIG_DB = config
+        createDatabase(CONFIG_DB['db_name'])
+        runMigrations('data_broker')
 
         app = createApp()
         app.config['TESTING'] = True
@@ -79,9 +76,7 @@ class BaseTestValidator(unittest.TestCase):
     def tearDownClass(cls):
         """Tear down class-level resources."""
         cls.interfaces.close()
-        dropDatabase(cls.interfaces.jobDb.dbName)
-        dropDatabase(cls.interfaces.errorDb.dbName)
-        dropDatabase(cls.interfaces.validationDb.dbName)
+        #dropDatabase(cls.interfaces.jobDb.dbName)
 
     def tearDown(self):
         """Tear down broker unit tests."""

@@ -1,12 +1,10 @@
 from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_DB
-from dataactcore.models.validationModels import FileType, FieldType, RuleSeverity
+from dataactcore.models.validationModels import FileTypeValidation, FieldType, RuleSeverity
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 
 def setupValidationDB():
     """Create validation tables from model metadata and do initial inserts."""
-    createDatabase(CONFIG_DB['validator_db_name'])
-    runMigrations('validation')
     insertCodes()
 
 def insertCodes():
@@ -21,7 +19,7 @@ def insertCodes():
         (4, 'award', 'award file',4)
         ]
     for f in fileTypeList:
-        fileType = FileType(file_id=f[0], name=f[1], description=f[2], file_order = f[3])
+        fileType = FileTypeValidation(file_id=f[0], name=f[1], description=f[2], file_order = f[3])
         validatorDb.session.merge(fileType)
 
     # insert field types
