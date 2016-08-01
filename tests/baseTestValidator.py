@@ -76,7 +76,7 @@ class BaseTestValidator(unittest.TestCase):
     def tearDownClass(cls):
         """Tear down class-level resources."""
         cls.interfaces.close()
-        #dropDatabase(cls.interfaces.jobDb.dbName)
+        dropDatabase(cls.interfaces.jobDb.dbName)
 
     def tearDown(self):
         """Tear down broker unit tests."""
