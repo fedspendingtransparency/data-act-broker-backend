@@ -1,0 +1,32 @@
+SELECT count(af.row_number),
+	af.beginning_period_of_availa,
+	af.ending_period_of_availabil,
+	af.agency_identifier,
+	af.allocation_transfer_agency,
+	af.availability_type_code,
+	af.main_account_code,
+	af.sub_account_code,
+	af.object_class,
+	af.program_activity_code,
+	af.parent_award_id,
+	af.piid,
+	af.uri,
+	af.fain,
+	af.transaction_obligated_amou
+FROM award_financial as af
+WHERE af.submission_id = {0}
+GROUP BY af.beginning_period_of_availa,
+	af.ending_period_of_availabil,
+	af.agency_identifier,
+	af.allocation_transfer_agency,
+	af.availability_type_code,
+	af.main_account_code,
+	af.sub_account_code,
+	af.object_class,
+	af.program_activity_code,
+	af.parent_award_id,
+	af.piid,
+	af.uri,
+	af.fain,
+	af.transaction_obligated_amou
+HAVING count(af.row_number) > 1;
