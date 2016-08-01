@@ -1,29 +1,14 @@
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.errorModels import FileStatus, ErrorType, File, ErrorMetadata
-from dataactcore.config import CONFIG_DB
+
 
 
 class ErrorInterface(BaseInterface):
     """Manages communication with error database."""
-    dbConfig = CONFIG_DB
-    dbName = dbConfig['error_db_name']
-    Session = None
-    engine = None
-    session = None
 
     def __init__(self):
-        self.dbName = self.dbConfig['error_db_name']
         super(ErrorInterface, self).__init__()
-
-    @staticmethod
-    def getDbName():
-        """Return database name."""
-        return ErrorInterface.dbName
-
-    def getSession(self):
-        """ Return current active session """
-        return self.session
 
     def getFileStatusId(self,statusName):
         """Get file status ID for given name."""

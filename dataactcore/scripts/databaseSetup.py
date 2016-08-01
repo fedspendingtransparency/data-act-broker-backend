@@ -26,7 +26,7 @@ def dropDatabase(dbName):
         sqlalchemy_utils.drop_database(connectString)
 
 
-def runMigrations(alembicDbName):
+def runMigrations():
     """Run Alembic migrations for a specific database/model set.
 
     Args:
@@ -36,7 +36,6 @@ def runMigrations(alembicDbName):
     logging.disable(logging.WARN)
     alembic_cfg = Config(ALEMBIC_PATH)
     alembic_cfg.set_main_option("script_location", MIGRATION_PATH)
-    alembic_cfg.set_main_option("databases", alembicDbName)
     try:
         command.upgrade(alembic_cfg, "head")
     except ProgrammingError as e:

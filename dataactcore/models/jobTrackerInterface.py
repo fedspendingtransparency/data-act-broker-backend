@@ -11,21 +11,10 @@ from dataactcore.config import CONFIG_DB
 
 class JobTrackerInterface(BaseInterface):
     """Manages all interaction with the job tracker database."""
-    dbConfig = CONFIG_DB
-    dbName = dbConfig['job_db_name']
-    Session = None
-    engine = None
-    session = None
 
     def __init__(self):
-        self.dbName = self.dbConfig['job_db_name']
         self.jobQueue = JobQueue()
         super(JobTrackerInterface, self).__init__()
-
-    @staticmethod
-    def getDbName():
-        """ Return database name"""
-        return JobTrackerInterface.dbName
 
     @staticmethod
     def checkJobUnique(query):
@@ -38,10 +27,6 @@ class JobTrackerInterface(BaseInterface):
         True if single result, otherwise exception
         """
         return BaseInterface.runUniqueQuery(query, "Job ID not found in job table","Conflicting jobs found for this ID")
-
-    def getSession(self):
-        """ Return session object"""
-        return self.session
 
     def getJobById(self,jobId):
         """ Return job model object based on ID """
