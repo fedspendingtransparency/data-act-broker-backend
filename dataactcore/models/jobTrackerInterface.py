@@ -6,7 +6,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import JobQueue
-from dataactcore.config import CONFIG_DB
+from dataactcore.config import CONFIG_DB, CONFIG_JOB_QUEUE
 
 
 class JobTrackerInterface(BaseInterface):
@@ -19,7 +19,7 @@ class JobTrackerInterface(BaseInterface):
 
     def __init__(self):
         self.dbName = self.dbConfig['job_db_name']
-        self.jobQueue = JobQueue()
+        self.jobQueue = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
         super(JobTrackerInterface, self).__init__()
 
     @staticmethod

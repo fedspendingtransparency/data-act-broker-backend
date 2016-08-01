@@ -1,4 +1,5 @@
 import os
+import requests
 import time
 from flask import session, request
 from datetime import datetime
@@ -9,8 +10,10 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.config import CONFIG_BROKER
+from dataactcore.config import CONFIG_BROKER, CONFIG_JOB_QUEUE
 from dataactbroker.handlers.aws.session import LoginSession
+from dataactcore.utils.jobQueue import JobQueue
+
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -336,6 +339,7 @@ class FileHandler:
         except Exception as e:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+
     def uploadFile(self):
         """ Saves a file and returns the saved path.  Should only be used for local installs. """
         try:
@@ -371,3 +375,62 @@ class FileHandler:
             self.s3manager = s3UrlHandler()
             response["rss_url"] = self.s3manager.getSignedUrl(CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"],"GET")
         return JsonResponse.create(200,response)
+
+    def generateD1File(self):
+        """ Initiates the generation of D1 """
+        requestDict = RequestDictionary(self.request)
+
+        if not (requestDict.exists("submission_id") and requestDict.exists("start") and requestDict.exists("end")):
+            exc = ResponseException("Generate D1 Files route requires submission_id, start, and end", StatusCode.CLIENT_ERROR)
+            return JsonResponse.create(exc, exc.status)
+
+        submission_id = requestDict.getValue("submission_id")
+        start_date = requestDict.getValue("start")
+        end_date = requestDict.getValue("end")
+
+        if not (StringCleaner.isNumeric(submission_id) and StringCleaner.isDate(start_date) and StringCleaner.isDate(end_date)):
+            exc = ResponseException("submission id, start, and/or end cannot be parsed into their appropriate types", StatusCode.CLIENT_ERROR)
+            return JsonResponse.create(exc, exc.status)
+
+        cgac_code = self.jobManager.getSubmissionById(submission_id).cgac_code
+        get_url = CONFIG_BROKER["d1_url"].format(cgac_code, start_date, end_date)
+
+        jq = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
+        file_name = "".join([str(LoginSession.getName(session)),"/", CONFIG_BROKER["d1_file_name"]])
+        jq.generate_d1(get_url, file_name)
+
+        return JsonResponse.create(200, {"message": "Success"})
+
+    def generateD2File(self):
+        """ Initiates the generation of D2 """
+        response = {}
+        requestDict = RequestDictionary(self.request)
+
+        if not (requestDict.exists("submission_id") and requestDict.exists("start") and requestDict.exists("end")):
+            exc = ResponseException("Generate D1 Files route requires submission_id, start, and end",
+                                    StatusCode.CLIENT_ERROR)
+            return JsonResponse.create(exc, exc.status)
+
+        submission_id = requestDict["submission_id"]
+        start_date = request["start"]
+        end_date = request["end"]
+
+        if not (StringCleaner.isNumeric(submission_id) and StringCleaner.isDate(start_date) and StringCleaner.isDate(
+                end_date)):
+            exc = ResponseException("submission id, start, and/or end cannot be parsed into their appropriate types",
+                                    StatusCode.CLIENT_ERROR)
+            return JsonResponse.create(exc, exc.status)
+
+        cgac_code = self.jobManager.getSubmissionById(submission_id).cgac_code
+
+        generate_d2_flag = False
+
+        if generate_d2_flag:
+            get_url = CONFIG_BROKER["d2_url"].format(cgac_code, start_date, end_date)
+            jq = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
+            file_name = "".join([str(LoginSession.getName(session)), "/", CONFIG_BROKER["d1_file_name"]])
+            jq.generate_d1(get_url, file_name)
+        else:
+            print("")
+
+        return JsonResponse.create(200, {"message": "Success"})

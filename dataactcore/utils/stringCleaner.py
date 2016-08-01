@@ -1,3 +1,5 @@
+from dateutil.parser import parse
+
 class StringCleaner:
     """ Provides basic functionality for sanitizing string inputs """
 
@@ -21,6 +23,14 @@ class StringCleaner:
     def isNumeric(data):
         try:
             float(data)
+            return True
+        except:
+            return False
+
+    @staticmethod
+    def isDate(data):
+        try:
+            parse(data)
             return True
         except:
             return False
