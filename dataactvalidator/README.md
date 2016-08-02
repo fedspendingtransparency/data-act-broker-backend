@@ -47,7 +47,7 @@ The validation process for each submitted group of files happens in four steps:
 
 Finally, the job is marked as finished in the job table, and the file is marked completed in the error metadata table.
 
-Some of the validation rules are defined as in data standard as `errors` and some as `warnings`. Any data that fails a rule marked as `error` will result in a failed validation status, and users will have to fix the problematic data and re-submit.
+Some of the validation rules are defined as `errors` and some as `warnings`. Any data that fails a rule marked as `error` will result in a failed validation status, and users will have to fix the problematic data and re-submit.
 
 All warnings and errors are displayed on the data broker's website, and their details are written to error and warning reports that are available for download.
 

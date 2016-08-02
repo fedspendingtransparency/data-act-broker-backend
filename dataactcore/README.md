@@ -25,7 +25,7 @@ dataactcore/
 ├── migrations/     (Alembic migration scripts)
 ├── credentials/    (Database credentials)
 ├── models/         (ORM models and database interfaces)
-├── scripts/        (Database setup scripts)
+├── scripts/        (Utility and database setup scripts)
 └── utils/          (JSON helper objects)
 ```
 
@@ -64,14 +64,9 @@ Database interfaces are defined for logical data functions in the data broker (e
 
 #### Scripts
 
-The `scripts/` folder contains various python scripts used in the DATA Act broker backend install process, including the scripts that create the broker's backend database and handle the initial data population:
+The `scripts/` folder contains various python scripts used in the DATA Act broker backend install process as well as various utility scripts.
 
-- setupJobTrackerDB (Creates job_tracker database)
-- setupErrorDB      (Creates the error database)
-- setupUserDB       (Creates the user database)
-- setupAllDB        (Creates all of the needed databases)
-
-To clean out the databases for testing proposes, the following scripts are also provided:
+To clean out the databases for testing proposes, use the following scripts:
 
 - clearErrors (Clears error_metadata and file tables)
 - clearJobs (Clears job_dependency, job, and submission tables)
