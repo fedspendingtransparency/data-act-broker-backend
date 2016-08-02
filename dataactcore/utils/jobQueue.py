@@ -1,9 +1,7 @@
 from celery import Celery
 from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER
 import requests
-import boto
-import smart_open
-from dataactvalidator.filestreaming.csvAbstractWriter import CsvAbstractWriter
+from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):
@@ -36,7 +34,7 @@ class JobQueue:
 
         @self.jobQueue.task(name='jobQueue.generate_d1')
         def generate_d1(api_url, file_name, user_id):
-            xml_response = str(requests.get(api_url).content)
+            xml_response = str(requests.get(api_url, verify=False).content)
             url_start_index = xml_response.find("<results>", 0) + 9
             file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
 
@@ -45,15 +43,20 @@ class JobQueue:
 
             aws_file_name = "".join([str(user_id), "/", file_name])
 
-            conn = boto.s3.connect_to_region(region).get_bucket(bucket).new_key(aws_file_name)
-            stream = smart_open.smart_open(conn, 'w', min_part_size=CsvAbstractWriter.BUFFER_SIZE)
-
-            with open(file_name, "w"):
+            with open(file_name, "w") as file:
                 # get request
                 response = requests.get(file_url)
                 # write to file
                 print("writing to s3...")
-                stream.write(response.content)
+                file.write(response.content)
+
+            with open(file_name) as file:
+                lines = file.readlines()
+
+            with CsvS3Writer(region, bucket, aws_file_name, []) as writer:
+                for line in lines:
+                    writer.write(line)
+                    writer.finishBatch()
 
         self.enqueue = enqueue
         self.generate_d1 = generate_d1
