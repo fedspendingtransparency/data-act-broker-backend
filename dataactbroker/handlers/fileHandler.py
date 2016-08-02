@@ -415,10 +415,9 @@ class FileHandler:
         jq = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
 
         # Generate and upload D1 file to S3
-        file_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["d1_file_name"])
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d1")
         self.jobManager.setDFileStatus(d_file_id, "waiting")
-        jq.generate_d_file.delay(get_url, file_name, LoginSession.getName(session), d_file_id, InterfaceHolder)
+        jq.generate_d_file.delay(get_url, CONFIG_BROKER["d1_file_name"], LoginSession.getName(session), d_file_id, InterfaceHolder)
 
         # Check status for D1 file
         return self.checkD1File()

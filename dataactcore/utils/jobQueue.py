@@ -45,16 +45,17 @@ class JobQueue:
                 bucket = CONFIG_BROKER['aws_bucket']
                 region = CONFIG_BROKER['aws_region']
 
-                aws_file_name = "".join([str(user_id), "/", file_name])
+                timestamped_name = s3UrlHandler.getTimestampedFilename(file_name)
+                aws_file_name = "".join([str(user_id), "/", timestamped_name])
 
-                with open(file_name, "wb") as file:
+                with open(timestamped_name, "wb") as file:
                     # get request
                     response = requests.get(file_url)
                     # write to file
                     file.write(response.content)
 
                 lines = []
-                with open(file_name) as file:
+                with open(timestamped_name) as file:
                     for line in reader(file):
                             lines.append(line)
 
