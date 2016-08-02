@@ -1,11 +1,8 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
 from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from dataactcore.utils.timeStampMixin import TimeStampBase
-
-Base = declarative_base(cls=TimeStampBase)
+from dataactcore.models.baseModel import Base
 
 class JobStatus(Base):
     __tablename__ = "job_status"
@@ -51,6 +48,7 @@ class Job(Base):
     original_filename = Column(Text, nullable=True)
     file_size = Column(Integer)
     number_of_rows = Column(Integer)
+    number_of_rows_valid = Column(Integer)
 
 class JobDependency(Base):
     __tablename__ = "job_dependency"
