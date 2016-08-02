@@ -173,9 +173,7 @@ class JobTrackerInterface(BaseInterface):
 
     def getJobStatusNameById(self, status_id):
         """ Returns the status name that corresponds to the given id """
-        query = self.session.query(JobStatus.job_status_id == status_id)
-        result = self.runUniqueQuery(query, "No status with that ID", "Multiple statuses with that ID")
-        return result.name
+        return self.getNameFromDict("JOB_STATUS_DICT","TYPE_DICT","name",status_id,"job_status_id")
 
     def getJobTypeId(self,typeName):
         """ Return the type ID that corresponds to the given name """
