@@ -79,6 +79,8 @@ If you already have a Python development environment on your machine and a prefe
 
 6. You should see some output that looks similar to the example below. Essentially, this command creates and activates a new virtualenv named `data-act` with its own set of Python libraries.  Anything you pip install from this point forward will be installed into the *data-act* environment rather than your machine's global Python environment. Your command line prompt indicates which (if any) virtualenv is active.
 
+ **Note:** in the command below, replace `/usr/local/bin/python3.4` with the path to your local Python 3.x executable.
+
         $ mkvirtualenv --python=/usr/local/bin/python3.4 data-act
         Running virtualenv with interpreter /usr/local/bin/python3.4
         New python executable in data-act-test/bin/python3.4
