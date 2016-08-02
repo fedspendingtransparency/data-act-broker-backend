@@ -445,7 +445,7 @@ class FileHandler:
         url = "" if d1_file.url is None else d1_file.url
         error_message = "" if d1_file.error_message is None else d1_file.error_message
 
-        response = {"status": status, "url": url, "start": d1_file.start_date, "end": d1_file.end_date,
+        response = {"status": status, "url": url, "start": str(d1_file.start_date), "end": str(d1_file.end_date),
                     "message": error_message}
 
         return JsonResponse.create(StatusCode.OK, response)
