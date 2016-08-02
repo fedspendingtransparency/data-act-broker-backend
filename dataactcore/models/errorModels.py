@@ -2,10 +2,8 @@
 
 from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-from dataactcore.utils.timeStampMixin import TimeStampBase
+from dataactcore.models.baseModel import Base
 
-Base = declarative_base(cls=TimeStampBase)
 class FileStatus(Base):
     __tablename__ = "file_status"
     FILE_STATUS_DICT = None

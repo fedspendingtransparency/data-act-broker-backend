@@ -4,7 +4,7 @@ import sys
 from csv import Error
 from sqlalchemy import or_, and_
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.validationModels import FileType
+from dataactcore.models.validationModels import FileTypeValidation
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
@@ -482,13 +482,13 @@ class ValidationManager:
         errorDb.resetErrorsByJobId(jobId)
 
         # use db to get a list of the cross-file combinations
-        targetFiles = validationDb.session.query(FileType).subquery()
+        targetFiles = validationDb.session.query(FileTypeValidation).subquery()
         crossFileCombos = validationDb.session.query(
-            FileType.name.label('first_file_name'),
-            FileType.file_id.label('first_file_id'),
+            FileTypeValidation.name.label('first_file_name'),
+            FileTypeValidation.file_id.label('first_file_id'),
             targetFiles.c.name.label('second_file_name'),
             targetFiles.c.file_id.label('second_file_id')
-        ).filter(FileType.file_order < targetFiles.c.file_order)
+        ).filter(FileTypeValidation.file_order < targetFiles.c.file_order)
 
         # get all cross file rules from db
         crossFileRules = validationDb.session.query(RuleSql).filter(RuleSql.rule_cross_file_flag==True)
