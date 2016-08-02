@@ -68,7 +68,7 @@ class DFileMeta(Base):
     __tablename__ = "d_file_metadata"
 
     d_file_id = Column(Integer, primary_key=True)
-    type = Column(Text, Enum("d1", "d2", name="type_enum", create_type=False))
+    type = Column(Text, Enum("d1", "d2", name="type_enum"))
     submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission_id"))
     submission = relationship("Submission", uselist=False)
     start_date = Column(Date)
