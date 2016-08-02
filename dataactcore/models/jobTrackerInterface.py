@@ -6,7 +6,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import JobQueue
-from dataactcore.config import CONFIG_DB, CONFIG_JOB_QUEUE
+from dataactcore.config import CONFIG_DB
 
 
 class JobTrackerInterface(BaseInterface):

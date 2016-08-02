@@ -3,6 +3,7 @@ from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CON
 import requests
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from csv import reader
+from dataactcore.aws.s3UrlHandler import s3UrlHandler
 
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):
@@ -34,35 +35,45 @@ class JobQueue:
             return response.json()
 
         @self.jobQueue.task(name='jobQueue.generate_d1')
-        def generate_d1(api_url, file_name, user_id):
-            xml_response = str(requests.get(api_url, verify=False).content)
-            url_start_index = xml_response.find("<results>", 0) + 9
-            file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
+        def generate_d_file(api_url, file_name, user_id, d_file_id, job_manager):
+            try:
+                job_manager.setDFileStatus(d_file_id, "waiting")
 
-            bucket = CONFIG_BROKER['aws_bucket']
-            region = CONFIG_BROKER['aws_region']
+                xml_response = str(requests.get(api_url, verify=False).content)
+                url_start_index = xml_response.find("<results>", 0) + 9
+                file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
 
-            aws_file_name = "".join([str(user_id), "/", file_name])
+                bucket = CONFIG_BROKER['aws_bucket']
+                region = CONFIG_BROKER['aws_region']
 
-            with open(file_name, "wb") as file:
-                # get request
-                response = requests.get(file_url)
-                # write to file
-                file.write(response.content)
+                aws_file_name = "".join([str(user_id), "/", file_name])
 
-            lines = []
-            with open(file_name) as file:
-                for line in reader(file):
-                        lines.append(line)
+                with open(file_name, "wb") as file:
+                    # get request
+                    response = requests.get(file_url)
+                    # write to file
+                    file.write(response.content)
 
-            headers = lines[0]
-            with CsvS3Writer(region, bucket, aws_file_name, headers) as writer:
-                for line in lines[1:]:
-                    writer.write(line)
-                    writer.finishBatch()
+                lines = []
+                with open(file_name) as file:
+                    for line in reader(file):
+                            lines.append(line)
+
+                headers = lines[0]
+                with CsvS3Writer(region, bucket, aws_file_name, headers) as writer:
+                    for line in lines[1:]:
+                        writer.write(line)
+                        writer.finishBatch()
+
+                s3_url = s3UrlHandler.getSignedUrl(path=user_id, fileName=file_name)
+                job_manager.setDFileUrl(d_file_id, s3_url)
+                job_manager.setDFileStatus(d_file_id, "finished")
+            except Exception as e:
+                job_manager.setDFileMessage(d_file_id, e.message)
+                job_manager.setDFileStatus(d_file_id, "failed")
 
         self.enqueue = enqueue
-        self.generate_d1 = generate_d1
+        self.generate_d1 = generate_d_file
 
 
 if __name__ in ['__main__', 'jobQueue']:

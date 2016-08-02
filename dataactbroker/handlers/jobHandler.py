@@ -1,9 +1,10 @@
 from datetime import datetime, date
-from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType
+from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType, DFileMeta, JobStatus
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactbroker.handlers.errorHandler import ErrorHandler
+from sqlalchemy import and_
 
 class JobHandler(JobTrackerInterface):
     """ Responsible for all interaction with the job tracker database
@@ -372,3 +373,38 @@ class JobHandler(JobTrackerInterface):
         """ Given a submission ID, return MM/DD/YYYY for the datetime of that submission """
         datetime = self.getSubmissionById(submissionId).datetime_utc
         return datetime.strftime("%m/%d/%Y")
+
+    def getDFileForSubmission(self, submission_id, type):
+        """ Given a submission id, return the D File Metadata object for File D1 """
+        query = self.session.query(DFileMeta).filter(and_(DFileMeta.submission_id == submission_id, DFileMeta.type == type))
+        result = self.runUniqueQuery(query, "No D file with that ID", "Multiple D files with conflicting ID")
+        return result
+
+    def getDFileById(self, id):
+        """ Given a submission id, return the D File Metadata object for File D1 """
+        query = self.session.query(DFileMeta).filter(DFileMeta.d_file_id == id)
+        result = self.runUniqueQuery(query, "No D file with that ID", "Multiple D files with conflicting ID")
+        return result
+
+    def setDFileStatus(self, d_file_id, status):
+        if status not in ["waiting", "finished", "failed"]:
+            raise ResponseException("Please provide a valid D file status",StatusCode.CLIENT_ERROR,ValueError)
+        status_id = self.getIdFromDict(JobStatus, "JOB_STATUS_DICT", "name", status, "job_status_id")
+        d_file = self.getDFileById(d_file_id)
+        d_file.status_id = status_id
+        self.session.commit()
+
+    def createDFileMeta(self, submission_id, start_date, end_date, type):
+        d1_file = DFileMeta(submission_id=submission_id, start_date=start_date, end_date=end_date, type=type)
+        self.session.commit()
+        return d1_file.d_file_id
+
+    def setDFileUrl(self, d_file_id, url):
+        d_file = self.getDFileById(d_file_id)
+        d_file.url = url
+        self.session.commit()
+
+    def setDFileMessage(self, d_file_id, message):
+        d_file = self.getDFileById(d_file_id)
+        d_file.error_message = message
+        self.session.commit()
