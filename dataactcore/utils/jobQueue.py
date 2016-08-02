@@ -2,6 +2,7 @@ from celery import Celery
 from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER
 import requests
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
+from csv import reader
 
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):
@@ -43,18 +44,20 @@ class JobQueue:
 
             aws_file_name = "".join([str(user_id), "/", file_name])
 
-            with open(file_name, "w") as file:
+            with open(file_name, "wb") as file:
                 # get request
                 response = requests.get(file_url)
                 # write to file
-                print("writing to s3...")
                 file.write(response.content)
 
+            lines = []
             with open(file_name) as file:
-                lines = file.readlines()
+                for line in reader(file):
+                        lines.append(line)
 
-            with CsvS3Writer(region, bucket, aws_file_name, []) as writer:
-                for line in lines:
+            headers = lines[0]
+            with CsvS3Writer(region, bucket, aws_file_name, headers) as writer:
+                for line in lines[1:]:
                     writer.write(line)
                     writer.finishBatch()
 
