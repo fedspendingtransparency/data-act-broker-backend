@@ -70,7 +70,7 @@ class JobQueue:
                 job_manager.setDFileUrl(d_file_id, s3_url)
                 job_manager.setDFileStatus(d_file_id, "finished")
             except Exception as e:
-                job_manager.setDFileMessage(d_file_id, e.message)
+                job_manager.setDFileMessage(d_file_id, str(e))
                 job_manager.setDFileStatus(d_file_id, "failed")
 
         self.enqueue = enqueue
