@@ -71,6 +71,7 @@ class JobQueue:
             except Exception as e:
                 job_manager.setDFileMessage(d_file_id, str(e))
                 job_manager.setDFileStatus(d_file_id, "failed")
+                raise e
 
         self.enqueue = enqueue
         self.generate_d_file = generate_d_file
