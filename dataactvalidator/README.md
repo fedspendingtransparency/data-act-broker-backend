@@ -35,7 +35,7 @@ The validation process begins with a call to one of the above routes from either
 
 The file location on S3 is specified in the job tracker, and the validator streams the file record by record from S3.  The first row is the headers, which are checked against the file specification to ensure that all headers in the file are known fields and that no required fields are missing.
 
-Each record is checked against the set of rules for the fields present in the file.  With the exception of records that fail a data type check, each record goes into a staging table in the validation database. Data that fails any validation rule is written to the error report, and a running sum is kept of error occurrences for each rule, which are written to the error database after all rows have been checked.  Finally, the job is marked as finished in the job tracker, the file is marked completed in the error database.
+Each record is checked against the set of rules for the fields present in the file, with all errors and warnings recorded.  With the exception of records that fail a data type check, each record goes into a staging table in the validation database. Data that fails any validation rule is written to either an error report or warning report, and a running sum is kept of occurrences for each rule, which are written to the error database after all rows have been checked.  Finally, the job is marked as finished in the job tracker, the file is marked completed in the error database.
 
 ## Available Validations
 The available rule types are as follows:
@@ -43,7 +43,7 @@ The available rule types are as follows:
 * Type checks - verifies that data fits the specified type
 * Equal / Not equal - checks that value is equal to a specified value, or not equal
 * Less than / Greater than - compares value against a specified reference point
-* Length - checks that value is no longer than specified length
+* Length - checks that value is no longer than specified length, this is treated as a warning
 * Set membership - checks that value is one of an allowed set of values
 * Minimum length - checks that the field has at least the number of characters specified
 * Conditional requirement - checks that the field is populated if another specified rule passes
