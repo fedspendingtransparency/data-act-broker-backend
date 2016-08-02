@@ -48,5 +48,6 @@ FROM (
 		) AS row
 	FROM award_financial as af
 	WHERE af.submission_id = {0}
+	ORDER BY af.row_number
 	) duplicates
 WHERE duplicates.row > 1;

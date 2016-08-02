@@ -36,5 +36,6 @@ FROM (
 		) AS row
 	FROM object_class_program_activity as op
 	WHERE op.submission_id = {0}
+	ORDER BY op.row_number
 	) duplicates
 WHERE duplicates.row > 1;
