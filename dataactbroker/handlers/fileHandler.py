@@ -441,7 +441,7 @@ class FileHandler:
             response = {"status": "invalid", "url": "", "start": "", "end": "", "message": ""}
             return JsonResponse.create(StatusCode.OK, response)
 
-        status = d1_file.status.name
+        status = self.jobManager.getJobStatusNameById(d1_file.status_id)
         url = "" if d1_file.url is None else d1_file.url
         error_message = "" if d1_file.error_message is None else d1_file.error_message
 
