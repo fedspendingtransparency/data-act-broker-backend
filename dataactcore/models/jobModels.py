@@ -77,5 +77,7 @@ class DFileMeta(Base):
     status = relationship("JobStatus", uselist=False)
     url = Column(Text)
     error_message = Column(Text)
+    upload_file_name = Column(Text)
+    original_file_name = Column(Text)
 
     __table_args__ = (UniqueConstraint('submission_id', 'type', name='_submission_type_uc'),)

@@ -376,8 +376,7 @@ class JobHandler(JobTrackerInterface):
 
     def getDFileForSubmission(self, submission_id, type):
         """ Given a submission id, return the D File Metadata object for File D1 """
-        query = self.session.query(DFileMeta).filter(and_(DFileMeta.submission_id == submission_id, DFileMeta.type == type))
-        result = self.runUniqueQuery(query, "No D file with that ID", "Multiple D files with conflicting ID")
+        result = self.session.query(DFileMeta).filter(and_(DFileMeta.submission_id == submission_id, DFileMeta.type == type)).first()
         return result
 
     def getDFileById(self, id):
@@ -394,12 +393,12 @@ class JobHandler(JobTrackerInterface):
         d_file.status_id = status_id
         self.session.commit()
 
-    def createDFileMeta(self, submission_id, start_date, end_date, type):
+    def createDFileMeta(self, submission_id, start_date, end_date, type, file_name):
         result = self.session.query(DFileMeta).filter(and_(DFileMeta.submission_id == submission_id, DFileMeta.type == type)).first()
         if result is not None:
             return result.d_file_id
 
-        d1_file = DFileMeta(submission_id=submission_id, start_date=start_date, end_date=end_date, type=type)
+        d1_file = DFileMeta(submission_id=submission_id, start_date=start_date, end_date=end_date, type=type, file_name=file_name)
         self.session.add(d1_file)
         self.session.commit()
         return d1_file.d_file_id
