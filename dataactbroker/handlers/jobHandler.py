@@ -395,7 +395,7 @@ class JobHandler(JobTrackerInterface):
         self.session.commit()
 
     def createDFileMeta(self, submission_id, start_date, end_date, type):
-        result = self.session.query(DFileMeta).filter(DFileMeta.d_file_id == id).first()
+        result = self.session.query(DFileMeta).filter(and_(DFileMeta.submission_id == submission_id, DFileMeta.type == type)).first()
         if result is not None:
             return result.d_file_id
 
