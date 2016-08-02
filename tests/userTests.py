@@ -214,7 +214,14 @@ class UserTests(BaseTestAPI):
         postJson = {"upload_id": self.uploadId}
         response = self.app.post_json("/v1/finalize_job/",
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.CLIENT_ERROR, "Cannot finalize a job created by a different user")
+        self.check_response(response, StatusCode.CLIENT_ERROR, "Cannot finalize a job for a different agency")
+        # Give submission this user's cgac code
+        submission = self.interfaces.jobDb.getSubmissionById(self.submission_id)
+        submission.cgac_code = self.interfaces.userDb.getUserByEmail("data.act.tester.1@gmail.com").cgac_code
+        self.interfaces.jobDb.session.commit()
+        response = self.app.post_json("/v1/finalize_job/",
+            postJson, expect_errors=True, headers={"x-session-id":self.session_id})
+        self.check_response(response, StatusCode.OK)
         self.logout()
 
     def test_send_email(self):
