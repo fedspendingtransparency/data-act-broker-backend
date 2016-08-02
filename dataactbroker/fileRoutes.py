@@ -1,8 +1,9 @@
-from flask import request
+from flask import request, session
 from dataactbroker.handlers.fileHandler import FileHandler
 from dataactbroker.handlers.accountHandler import AccountHandler
 from dataactbroker.permissions import permissions_check
 from dataactbroker.routeUtils import RouteUtils
+from dataactbroker.handlers.aws.session import LoginSession
 
 # Add the file submission route
 def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
@@ -17,7 +18,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     @permissions_check
     def submit_files():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return RouteUtils.run_instance_function(fileManager, fileManager.submit, getUser=True,getCredentials=True)
+        return RouteUtils.run_instance_function(fileManager, fileManager.submit, LoginSession.getName(session), RouteUtils.CREATE_CREDENTIALS)
 
     @app.route("/v1/finalize_job/", methods = ["POST"])
     @permissions_check
@@ -41,7 +42,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     @permissions_check
     def submission_warning_reports():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return RouteUtils.run_instance_function(fileManager, fileManager.getErrorReportURLsForSubmission, addTrueFlag=True)
+        return RouteUtils.run_instance_function(fileManager, fileManager.getErrorReportURLsForSubmission, True)
 
     @app.route("/v1/error_metrics/", methods = ["POST"])
     @permissions_check
