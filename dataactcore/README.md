@@ -10,13 +10,9 @@ For more information about the DATA Act Broker codebase, please visit this repos
 
 ## Data Broker Core Database Reference
 
-The DATA Act broker uses the following databases; the models and setup scripts for all of them live in the DATA Act core project.
+The DATA Act broker uses a single database (called `data_broker`) to track broker users, jobs and submissions, validation errors, and domain information needed to run data validations.
 
-* `error_data` - Holds file level errors in the `file` table, along with information about number of row level errors of each type in the `error_metadata` table. A complete list of every separate occurrence can be found in the error report csv file.
-* `job_tracker` - Holds information on all validation and upload jobs, including status of jobs and relations between jobs. The `job` table is the main place to get this information and provides file name/type, status of the job, the job's associated submission, and the table in which the results are located. The `job_dependency` table details precedence constraints between jobs, giving the job IDs for both the prerequisite and the dependent job.
-* `user_manager` - Holds a mapping between user names and user IDs to be used for providing submission history information to a user.
-* `validation` - Contains data submissions and the schema, rules, and domain values those submissions are validated against. Currently, all user-submitted data lands in this database with the exception of rows that fail a type check.
-* `job_queue` - Holds queue of jobs to be sent to validator
+In addition, there is a `job_queue` database that holds a queue of jobs to be sent to the validator.
 
 ## DATA Act Core Project Layout
 
@@ -39,7 +35,7 @@ The `aws/` folder contains all of the common code that uses AWS Boto SDK, which 
 
 #### Migrations
 
-This contains the code for running migrations to different alembic versions of the databases, and contains the version history for all alembic migrations.
+This contains the code for running migrations to different alembic versions of the database, and contains the version history for all alembic migrations.
 
 #### Models
 
@@ -64,18 +60,16 @@ Note that all new ORM objects must inherit from the `declarative_base` object an
 
 Additional fields exist on some of the models to enable the automatic population of foreign key relationships. These fields use the `relationship` function to signify a mapping to another table.  More information on SQLAlchemy ORM objects can be found on the [official website](http://docs.sqlalchemy.org/en/latest/orm/tutorial.html#create-a-schema).
 
-Database interfaces are defined for each database used within the project. Each interface inherits base functionality from `BaseInterface` and defines both the database name and credentials file location. Where required, interfaces are extended in the other packages to add additional functionality.
+Database interfaces are defined for logical data functions in the data broker (e.g., validations). Each interface inherits base functionality from `BaseInterface`, which defines the location of connection credentials and is responsible for overall session and connection handling. Where required, interfaces are extended to add additional functionality.
 
 #### Scripts
 
-The `scripts/` folder contains various python scripts used in the DATA Act broker backend install process, including database creation scripts. When run directly, the following scripts take no parameters and stand up all required tables within each database:
+The `scripts/` folder contains various python scripts used in the DATA Act broker backend install process, including the scripts that create the broker's backend database and handle the initial data population:
 
 - setupJobTrackerDB (Creates job_tracker database)
 - setupErrorDB      (Creates the error database)
 - setupUserDB       (Creates the user database)
 - setupAllDB        (Creates all of the needed databases)
-
-The order of execution does not matter, as long as each of them are executed.
 
 To clean out the databases for testing proposes, the following scripts are also provided:
 

@@ -8,11 +8,13 @@ All contributions to this project will be released under the CC0 dedication. By 
 
 We use three main branches:
 
-* `master` - stable code deployed to staging
-* `development` - code in development that is periodically released to staging by merging into master
-* `production` - Not currently in use since we're still in active development. Will be used to push code into production.
+* `staging` - Stable code deployed to a staging version of the data broker
+* `development` - Code in development that is released to `staging` at the close of each sprint
+* `master` - Code on the production site. Code gets merged to this branch by the product owner once it has been tested on staging.
 
-Only non-breaking, stable code should be merged into `master` and deployed to staging to prevent disruptions in other parts of the team. All code to be merged should be submitted via a pull request. Team members should _not_ merge their own pull requests but should instead request a code review first. The reviewing team member should merge the pull request after completing the review and ensuring it passes all continuous integration tests.
+Only non-breaking, stable code should be merged into `development`, `staging`, and `master` to prevent disruptions to users and team members.
+
+All code to be merged should be submitted to `development` via a pull request. Team members should _not_ merge their own pull requests but should instead request a code review first. The reviewing team member should merge the pull request after completing the review and ensuring it passes all continuous integration tests.
 
 ## Code Reviews
 
