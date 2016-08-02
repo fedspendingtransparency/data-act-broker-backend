@@ -68,6 +68,7 @@ class JobQueue:
                 s3_url = s3UrlHandler().getSignedUrl(path=str(user_id), fileName=file_name)
                 job_manager.setDFileUrl(d_file_id, s3_url)
                 job_manager.setDFileStatus(d_file_id, "finished")
+                job_manager.setDFileMessage(d_file_id, "")
             except Exception as e:
                 job_manager.setDFileMessage(d_file_id, str(e))
                 job_manager.setDFileStatus(d_file_id, "failed")
