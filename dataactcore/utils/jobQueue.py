@@ -1,5 +1,6 @@
 from celery import Celery
 from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 import requests
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from csv import reader
@@ -35,7 +36,8 @@ class JobQueue:
             return response.json()
 
         @self.jobQueue.task(name='jobQueue.generate_d1')
-        def generate_d_file(api_url, file_name, user_id, d_file_id, job_manager):
+        def generate_d_file(api_url, file_name, user_id, d_file_id):
+            job_manager = InterfaceHolder().jobDb
             try:
                 job_manager.setDFileStatus(d_file_id, "waiting")
 
