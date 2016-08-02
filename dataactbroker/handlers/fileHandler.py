@@ -397,7 +397,7 @@ class FileHandler:
 
         jq = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
         file_name = "".join([str(LoginSession.getName(session)),"/", CONFIG_BROKER["d1_file_name"]])
-        jq.generate_d1(get_url, file_name)
+        jq.generate_d1.delay(get_url, file_name)
 
         return JsonResponse.create(200, {"message": "Success"})
 
