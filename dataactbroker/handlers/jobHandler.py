@@ -396,6 +396,7 @@ class JobHandler(JobTrackerInterface):
 
     def createDFileMeta(self, submission_id, start_date, end_date, type):
         d1_file = DFileMeta(submission_id=submission_id, start_date=start_date, end_date=end_date, type=type)
+        self.session.add(d1_file)
         self.session.commit()
         return d1_file.d_file_id
 
