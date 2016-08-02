@@ -14,6 +14,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_JOB_QUEUE
 from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.utils.jobQueue import JobQueue
 from sqlalchemy.orm.exc import NoResultFound
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 
 
 class FileHandler:
@@ -416,7 +417,7 @@ class FileHandler:
         # Generate and upload D1 file to S3
         file_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["d1_file_name"])
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d1")
-        jq.generate_d_file.delay(get_url, file_name, LoginSession.getName(session))
+        jq.generate_d_file.delay(get_url, file_name, LoginSession.getName(session), InterfaceHolder())
 
         # Check status for D1 file
         return self.checkD1File()
@@ -477,7 +478,7 @@ class FileHandler:
         # Generate and upload D2 file to S3
         file_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["d2_file_name"])
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d2")
-        jq.generate_d_file.delay(get_url, file_name, LoginSession.getName(session), d_file_id)
+        jq.generate_d_file.delay(get_url, file_name, LoginSession.getName(session), d_file_id, self.interfaces)
 
         # Check status for D2 file
         return self.checkD2File()
