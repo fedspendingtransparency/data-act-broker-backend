@@ -38,8 +38,6 @@ class JobQueue:
         def generate_d_file(api_url, file_name, user_id, d_file_id, interface_holder):
             job_manager = interface_holder().jobDb
             try:
-                job_manager.setDFileStatus(d_file_id, "waiting")
-
                 xml_response = str(requests.get(api_url, verify=False).content)
                 url_start_index = xml_response.find("<results>", 0) + 9
                 file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
