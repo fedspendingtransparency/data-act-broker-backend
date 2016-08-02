@@ -396,8 +396,7 @@ class FileHandler:
         get_url = CONFIG_BROKER["d1_url"].format(cgac_code, start_date, end_date)
 
         jq = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
-        file_name = "".join([str(LoginSession.getName(session)),"/", CONFIG_BROKER["d1_file_name"]])
-        jq.generate_d1.delay(get_url, file_name)
+        jq.generate_d1.delay(get_url, CONFIG_BROKER["d1_file_name"], LoginSession.getName(session))
 
         return JsonResponse.create(200, {"message": "Success"})
 

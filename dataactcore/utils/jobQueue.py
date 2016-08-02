@@ -35,7 +35,7 @@ class JobQueue:
             return response.json()
 
         @self.jobQueue.task(name='jobQueue.generate_d1')
-        def generate_d1(api_url, file_name):
+        def generate_d1(api_url, file_name, user_id):
             xml_response = str(requests.get(api_url).content)
             url_start_index = xml_response.find("<results>", 0) + 9
             file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
@@ -43,7 +43,9 @@ class JobQueue:
             bucket = CONFIG_BROKER['aws_bucket']
             region = CONFIG_BROKER['aws_region']
 
-            conn = boto.s3.connect_to_region(region).get_bucket(bucket).new_key(file_name)
+            aws_file_name = "".join([str(user_id), "/", file_name])
+
+            conn = boto.s3.connect_to_region(region).get_bucket(bucket).new_key(aws_file_name)
             stream = smart_open.smart_open(conn, 'w', min_part_size=CsvAbstractWriter.BUFFER_SIZE)
 
             with open(file_name, "w"):
