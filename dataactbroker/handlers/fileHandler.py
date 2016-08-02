@@ -28,7 +28,7 @@ class FileHandler:
     s3manager -- instance of s3UrlHandler, manages calls to S3
     """
 
-    FILE_TYPES = ["appropriations","award_financial","award","program_activity"]
+    FILE_TYPES = ["appropriations","award_financial","program_activity"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
     def __init__(self,request,interfaces = None,isLocal= False,serverPath =""):
@@ -476,9 +476,9 @@ class FileHandler:
         jq = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
 
         # Generate and upload D2 file to S3
-        file_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["d2_file_name"])
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d2")
-        jq.generate_d_file.delay(get_url, file_name, LoginSession.getName(session), d_file_id, self.interfaces)
+        self.jobManager.setDFileStatus(d_file_id, "waiting")
+        jq.generate_d_file.delay(get_url, CONFIG_BROKER["d1_file_name"], LoginSession.getName(session), d_file_id, InterfaceHolder)
 
         # Check status for D2 file
         return self.checkD2File()
@@ -502,7 +502,7 @@ class FileHandler:
             response = {"status": "invalid", "url": "", "start": "", "end": "", "message": ""}
             return JsonResponse.create(StatusCode.OK, response)
 
-        status = d2_file.status.name
+        status = self.jobManager.getJobStatusNameById(d2_file.status_id)
         url = "" if d2_file.url is None else d2_file.url
         error_message = "" if d2_file.error_message is None else d2_file.error_message
 
