@@ -73,7 +73,7 @@ class JobQueue:
                 job_manager.setDFileStatus(d_file_id, "failed")
 
         self.enqueue = enqueue
-        self.generate_d1 = generate_d_file
+        self.generate_d_file = generate_d_file
 
 
 if __name__ in ['__main__', 'jobQueue']:
