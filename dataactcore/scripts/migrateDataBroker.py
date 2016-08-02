@@ -21,7 +21,7 @@
 from dataactcore.config import CONFIG_DB
 import subprocess
 
-c = 'postgresql://{}:{}@{}/'.format(
+c = 'postgresql://{}:"{}"@{}/'.format(
     CONFIG_DB['username'], CONFIG_DB['password'], CONFIG_DB['host'])
 target = '{}data_broker'.format(c)
 

@@ -33,10 +33,8 @@ class ValidationInterface(BaseInterface):
         return [fileType.name for fileType in fileTypes]
 
     def getRuleSeverityId(self, name):
-        query = self.session.query(RuleSeverity).filter(RuleSeverity.name == name)
-        result = self.runUniqueQuery(query, "No rule severity found for specified name", "Multiple rule severities found for specified name")
-        return result.rule_severity_id
-
+        """ Return rule severity ID for this name """
+        return self.getNameFromDict(RuleSeverity, "SEVERITY_DICT", "rule_severity_id", name, "name")
 
     def getCGACCode(self, agency_name):
         query = self.session.query(CGAC).filter(CGAC.agency_name == agency_name)
