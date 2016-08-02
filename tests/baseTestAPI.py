@@ -135,6 +135,7 @@ class BaseTestAPI(unittest.TestCase):
         #set up approved user
         user = userDb.getUserByEmail(test_users['approved_email'])
         user.username = "approvedUser"
+        user.cgac_code = "000"
         userDb.setPassword(user, user_password, Bcrypt())
         cls.approved_user_id = user.user_id
 
