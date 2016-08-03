@@ -181,9 +181,7 @@ class JobTrackerInterface(BaseInterface):
 
     def getFileTypeId(self, typeName):
         """ Returns the file type id that corresponds to the given name """
-        query = self.session.query(FileType.file_type_id).filter(FileType.name == typeName)
-        result = self.runUniqueQuery(query, "No matching file type", "Multiple matching file types")
-        return result
+        return self.getIdFromDict(FileType, "FILE_TYPE_DICT", "name", typeName, "file_type_id")
 
     def getOriginalFilenameById(self,jobId):
         """ Get original filename for job matching ID """
