@@ -35,43 +35,48 @@ class JobQueue:
             return response.json()
 
         @self.jobQueue.task(name='jobQueue.generate_d1')
-        def generate_d_file(api_url, file_name, user_id, d_file_id, interface_holder):
+        def generate_d_file(api_url, file_name, user_id, d_file_id, interface_holder, skip_gen=False):
             job_manager = interface_holder().jobDb
-            try:
-                xml_response = str(requests.get(api_url, verify=False).content)
-                url_start_index = xml_response.find("<results>", 0) + 9
-                file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
-
-                bucket = CONFIG_BROKER['aws_bucket']
-                region = CONFIG_BROKER['aws_region']
-
-                timestamped_name = s3UrlHandler.getTimestampedFilename(file_name)
-                aws_file_name = "".join([str(user_id), "/", timestamped_name])
-
-                with open(timestamped_name, "wb") as file:
-                    # get request
-                    response = requests.get(file_url)
-                    # write to file
-                    file.write(response.content)
-
-                lines = []
-                with open(timestamped_name) as file:
-                    for line in reader(file):
-                            lines.append(line)
-
-                headers = lines[0]
-                with CsvS3Writer(region, bucket, aws_file_name, headers) as writer:
-                    for line in lines[1:]:
-                        writer.write(line)
-                        writer.finishBatch()
-
-                s3_url = s3UrlHandler().getSignedUrl(path=str(user_id), fileName=file_name)
+            if skip_gen:
+                s3_url = s3UrlHandler().getSignedUrl(path="public/", fileName=file_name, method="GET")
                 job_manager.setDFileUrl(d_file_id, s3_url)
                 job_manager.setDFileStatus(d_file_id, "finished")
-            except Exception as e:
-                job_manager.setDFileMessage(d_file_id, str(e))
-                job_manager.setDFileStatus(d_file_id, "failed")
-                raise e
+            else:
+                try:
+                    xml_response = str(requests.get(api_url, verify=False).content)
+                    url_start_index = xml_response.find("<results>", 0) + 9
+                    file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
+
+                    bucket = CONFIG_BROKER['aws_bucket']
+                    region = CONFIG_BROKER['aws_region']
+
+                    timestamped_name = s3UrlHandler.getTimestampedFilename(file_name)
+                    aws_file_name = "".join([str(user_id), "/", timestamped_name])
+
+                    with open(timestamped_name, "wb") as file:
+                        # get request
+                        response = requests.get(file_url)
+                        # write to file
+                        file.write(response.content)
+
+                    lines = []
+                    with open(timestamped_name) as file:
+                        for line in reader(file):
+                                lines.append(line)
+
+                    headers = lines[0]
+                    with CsvS3Writer(region, bucket, aws_file_name, headers) as writer:
+                        for line in lines[1:]:
+                            writer.write(line)
+                            writer.finishBatch()
+
+                    s3_url = s3UrlHandler().getSignedUrl(path=str(user_id), fileName=timestamped_name, method="GET")
+                    job_manager.setDFileUrl(d_file_id, s3_url)
+                    job_manager.setDFileStatus(d_file_id, "finished")
+                except Exception as e:
+                    job_manager.setDFileMessage(d_file_id, str(e))
+                    job_manager.setDFileStatus(d_file_id, "failed")
+                    raise e
 
         self.enqueue = enqueue
         self.generate_d_file = generate_d_file
