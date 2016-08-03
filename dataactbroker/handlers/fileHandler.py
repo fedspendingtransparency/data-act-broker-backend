@@ -174,8 +174,8 @@ class FileHandler:
                     uploadName = str(name) + "/" + s3UrlHandler.getTimestampedFilename(filename)
                 else:
                     uploadName = filename
-                responseDict[fileType + "_key"] = uploadName
-                fileNameMap.append((fileType, uploadName, filename))
+                responseDict[extFileType + "_key"] = uploadName
+                fileNameMap.append((extFileType, uploadName, filename))
 
             fileJobDict = self.jobManager.createJobs(fileNameMap,submissionId,existingSubmission)
             for fileType in fileJobDict.keys():
