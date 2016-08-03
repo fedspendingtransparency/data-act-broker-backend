@@ -482,9 +482,11 @@ class FileHandler:
         jq = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
 
         # Generate and upload D2 file to S3
-        d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d2")
+        user_id = LoginSession.getName(session)
+        upload_file_name = "".join([str(user_id), "/", s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["d2_file_name"])])
+        d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d2", CONFIG_BROKER["d2_file_name"], upload_file_name)
         self.jobManager.setDFileStatus(d_file_id, "waiting")
-        jq.generate_d_file.delay(get_url, CONFIG_BROKER["d1_file_name"], LoginSession.getName(session), d_file_id, InterfaceHolder)
+        jq.generate_d_file.delay(get_url, CONFIG_BROKER["d2_file_name"], user_id, d_file_id, InterfaceHolder)
 
         # Check status for D2 file
         return self.checkD2File()
@@ -502,11 +504,16 @@ class FileHandler:
                 exc = ResponseException("submission id cannot be parsed into its appropriate type", StatusCode.CLIENT_ERROR)
                 return JsonResponse.create(exc, exc.status)
 
-        try:
-            d2_file = self.jobManager.getDFileForSubmission(submission_id, "d2")
-        except NoResultFound as nrf:
+        d2_file = self.jobManager.getDFileForSubmission(submission_id, "d2")
+        if d2_file is None:
             response = {"status": "invalid", "url": "", "start": "", "end": "", "message": ""}
             return JsonResponse.create(StatusCode.OK, response)
+
+        status = self.jobManager.getJobStatusNameById(d2_file.status_id)
+
+        if status == "finished":
+            fileNameMap = [("award", d2_file.upload_file_name, d2_file.original_file_name)]
+            self.jobManager.createJobs(fileNameMap, submission_id, True)
 
         status = self.jobManager.getJobStatusNameById(d2_file.status_id)
         url = "" if d2_file.url is None else d2_file.url
