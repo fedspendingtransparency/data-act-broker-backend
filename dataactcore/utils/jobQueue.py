@@ -37,12 +37,13 @@ class JobQueue:
         @self.jobQueue.task(name='jobQueue.generate_d1')
         def generate_d_file(api_url, file_name, user_id, d_file_id, interface_holder, skip_gen=False):
             job_manager = interface_holder().jobDb
-            if skip_gen:
-                s3_url = s3UrlHandler().getSignedUrl(path="public/", fileName=file_name, method="GET")
-                job_manager.setDFileUrl(d_file_id, s3_url)
-                job_manager.setDFileStatus(d_file_id, "finished")
-            else:
-                try:
+
+            try:
+                if skip_gen:
+                    s3_url = s3UrlHandler().getSignedUrl(path="public/", fileName=file_name, method="GET")
+                    job_manager.setDFileUrl(d_file_id, s3_url)
+                    job_manager.setDFileStatus(d_file_id, "finished")
+                else:
                     xml_response = str(requests.get(api_url, verify=False).content)
                     url_start_index = xml_response.find("<results>", 0) + 9
                     file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
@@ -73,10 +74,10 @@ class JobQueue:
                     s3_url = s3UrlHandler().getSignedUrl(path=str(user_id), fileName=timestamped_name, method="GET")
                     job_manager.setDFileUrl(d_file_id, s3_url)
                     job_manager.setDFileStatus(d_file_id, "finished")
-                except Exception as e:
-                    job_manager.setDFileMessage(d_file_id, str(e))
-                    job_manager.setDFileStatus(d_file_id, "failed")
-                    raise e
+            except Exception as e:
+                job_manager.setDFileMessage(d_file_id, str(e))
+                job_manager.setDFileStatus(d_file_id, "failed")
+                raise e
 
         self.enqueue = enqueue
         self.generate_d_file = generate_d_file

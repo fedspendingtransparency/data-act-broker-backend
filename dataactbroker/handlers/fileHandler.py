@@ -190,7 +190,7 @@ class FileHandler:
         except:
             return JsonResponse.error(Exception("Failed to catch exception"),StatusCode.INTERNAL_ERROR)
 
-    def finalize(self):
+    def finalize(self, jobId=None):
         """ Set upload job in job tracker database to finished, allowing dependent jobs to be started
 
         Flask request should include key "upload_id", which holds the job_id for the file_upload job
@@ -200,8 +200,10 @@ class FileHandler:
         """
         responseDict = {}
         try:
-            inputDictionary = RequestDictionary(self.request)
-            jobId = inputDictionary.getValue("upload_id")
+            if jobId is None:
+                inputDictionary = RequestDictionary(self.request)
+                jobId = inputDictionary.getValue("upload_id")
+
             # Compare user ID with user who submitted job, if no match return 400
             job = self.jobManager.getJobById(jobId)
             submission = self.jobManager.getSubmissionForJob(job)
@@ -444,8 +446,8 @@ class FileHandler:
 
         status = self.jobManager.getJobStatusNameById(d1_file.status_id)
 
-        if status == "finished":
-            fileNameMap = [("award", d1_file.upload_file_name, d1_file.original_file_name)]
+        if status == "finished" and False: # TODO: Remove "and False" when submission of D1 is desired
+            fileNameMap = [("award_procurement", d1_file.upload_file_name, d1_file.original_file_name)]
             self.jobManager.createJobs(fileNameMap, submission_id, True)
 
         url = "" if d1_file.url is None else d1_file.url
@@ -513,7 +515,8 @@ class FileHandler:
 
         if status == "finished":
             fileNameMap = [("award", d2_file.upload_file_name, d2_file.original_file_name)]
-            self.jobManager.createJobs(fileNameMap, submission_id, True)
+            uploadDict = self.jobManager.createJobs(fileNameMap, submission_id, True)
+            self.finalize(jobId=uploadDict["award"])
 
         status = self.jobManager.getJobStatusNameById(d2_file.status_id)
         url = "" if d2_file.url is None else d2_file.url
