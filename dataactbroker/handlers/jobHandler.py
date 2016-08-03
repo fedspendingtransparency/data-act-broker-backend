@@ -422,7 +422,7 @@ class JobHandler(JobTrackerInterface):
         file_id = self.getFileTypeId(file_type_name)
         type_id = self.getJobTypeId(job_type_name)
         query = self.session.query(Job).filter(and_(Job.submission_id == submission_id, Job.file_type_id == file_id, Job.job_type_id == type_id))
-        result = self.runUniqueQuery(query, "No job with that submission ID and type", "Multiple jobs with conflicting submission ID and type")
+        result = self.runUniqueQuery(query, "No job with that submission ID, file type and job type", "Multiple jobs with conflicting submission ID, file type and job type")
         return result
 
     def markDFileAsSubmitted(self, d_file_id):
