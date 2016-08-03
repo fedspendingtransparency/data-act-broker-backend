@@ -59,6 +59,7 @@ class JobDependency(Base):
 
 class FileType(Base):
     __tablename__ = "file_type"
+    FILE_TYPE_DICT = None
 
     file_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
