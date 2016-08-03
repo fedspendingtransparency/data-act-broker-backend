@@ -29,6 +29,7 @@ class FileHandler:
     """
 
     FILE_TYPES = ["appropriations","award_financial","program_activity"]
+    EXTERNAL_FILE_TYPES = ["award"] #,"award_procurement"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
     def __init__(self,request,interfaces = None,isLocal= False,serverPath =""):
@@ -162,6 +163,19 @@ class FileHandler:
                         uploadName = filename
                     responseDict[fileType+"_key"] = uploadName
                     fileNameMap.append((fileType,uploadName,filename))
+
+            for extFileType in FileHandler.EXTERNAL_FILE_TYPES:
+                if extFileType == "award":
+                    filename = CONFIG_BROKER["d2_file_name"]
+                elif extFileType == "award_procurement":
+                    filename = CONFIG_BROKER["d1_file_name"]
+
+                if(not self.isLocal):
+                    uploadName = str(name) + "/" + s3UrlHandler.getTimestampedFilename(filename)
+                else:
+                    uploadName = filename
+                responseDict[fileType + "_key"] = uploadName
+                fileNameMap.append((fileType, uploadName, filename))
 
             fileJobDict = self.jobManager.createJobs(fileNameMap,submissionId,existingSubmission)
             for fileType in fileJobDict.keys():
@@ -446,9 +460,12 @@ class FileHandler:
 
         status = self.jobManager.getJobStatusNameById(d1_file.status_id)
 
-        if status == "finished" and False: # TODO: Remove "and False" when submission of D1 is desired
-            fileNameMap = [("award_procurement", d1_file.upload_file_name, d1_file.original_file_name)]
-            self.jobManager.createJobs(fileNameMap, submission_id, True)
+        if status == "finished" and not d1_file.is_submitted and False: # TODO: Remove "and False" when submission of D1 is desired
+            job_id = self.jobManager.getJobBySubmissionFileTypeAndJobType(submission_id, "award_procurement", "file_upload").job_id
+            result = self.finalize(jobId=job_id)
+            self.jobManager.markDFileAsSubmitted(d1_file.d_file_id)
+            if result.status_code != 200:
+                raise ResponseException(result.data)
 
         url = "" if d1_file.url is None else d1_file.url
         error_message = "" if d1_file.error_message is None else d1_file.error_message
@@ -513,10 +530,12 @@ class FileHandler:
 
         status = self.jobManager.getJobStatusNameById(d2_file.status_id)
 
-        if status == "finished":
-            fileNameMap = [("award", d2_file.upload_file_name, d2_file.original_file_name)]
-            uploadDict = self.jobManager.createJobs(fileNameMap, submission_id, True)
-            self.finalize(jobId=uploadDict["award"])
+        if status == "finished" and not d2_file.is_submitted:
+            job_id = self.jobManager.getJobBySubmissionFileTypeAndJobType(submission_id, "award", "file_upload").job_id
+            result = self.finalize(jobId=job_id)
+            self.jobManager.markDFileAsSubmitted(d2_file.d_file_id)
+            if result.status_code != 200:
+                raise ResponseException(result.data)
 
         status = self.jobManager.getJobStatusNameById(d2_file.status_id)
         url = "" if d2_file.url is None else d2_file.url

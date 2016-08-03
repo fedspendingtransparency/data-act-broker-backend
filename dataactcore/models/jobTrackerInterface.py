@@ -1,7 +1,7 @@
 import traceback
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission
+from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, FileType
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -178,6 +178,12 @@ class JobTrackerInterface(BaseInterface):
     def getJobTypeId(self,typeName):
         """ Return the type ID that corresponds to the given name """
         return self.getIdFromDict(JobType,"JOB_TYPE_DICT","name",typeName,"job_type_id")
+
+    def getFileTypeId(self, typeName):
+        """ Returns the file type id that corresponds to the given name """
+        query = self.session.query(FileType.file_type_id).filter(FileType.name == typeName)
+        result = self.runUniqueQuery(query, "No matching file type", "Multiple matching file types")
+        return result
 
     def getOriginalFilenameById(self,jobId):
         """ Get original filename for job matching ID """

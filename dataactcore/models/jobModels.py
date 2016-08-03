@@ -79,5 +79,6 @@ class DFileMeta(Base):
     error_message = Column(Text)
     upload_file_name = Column(Text)
     original_file_name = Column(Text)
+    is_submitted = Column(Boolean, default ="False", server_default="False")
 
     __table_args__ = (UniqueConstraint('submission_id', 'type', name='_submission_type_uc'),)

@@ -391,6 +391,7 @@ class JobHandler(JobTrackerInterface):
         status_id = self.getIdFromDict(JobStatus, "JOB_STATUS_DICT", "name", status, "job_status_id")
         d_file = self.getDFileById(d_file_id)
         d_file.status_id = status_id
+        d_file.is_submitted = False
         self.session.commit()
 
     def createDFileMeta(self, submission_id, start_date, end_date, type, original_file_name, upload_file_name):
@@ -415,4 +416,16 @@ class JobHandler(JobTrackerInterface):
     def setDFileMessage(self, d_file_id, message):
         d_file = self.getDFileById(d_file_id)
         d_file.error_message = message
+        self.session.commit()
+
+    def getJobBySubmissionFileTypeAndJobType(self, submission_id, file_type_name, job_type_name):
+        file_id = self.getFileTypeId(file_type_name)
+        type_id = self.getJobTypeId(job_type_name)
+        query = self.session.query(Job).filter(and_(Job.submission_id == submission_id, Job.file_type_id == file_id, Job.job_type_id == type_id))
+        result = self.runUniqueQuery(query, "No job with that submission ID and type", "Multiple jobs with conflicting submission ID and type")
+        return result
+
+    def markDFileAsSubmitted(self, d_file_id):
+        d_file = self.getDFileById(d_file_id)
+        d_file.is_submitted = True
         self.session.commit()
