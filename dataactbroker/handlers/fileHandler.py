@@ -438,7 +438,7 @@ class FileHandler:
                 return JsonResponse.create(exc, exc.status)
 
         d1_file = self.jobManager.getDFileForSubmission(submission_id, "d1")
-        if d1_file is not None:
+        if d1_file is None:
             response = {"status": "invalid", "url": "", "start": "", "end": "", "message": ""}
             return JsonResponse.create(StatusCode.OK, response)
 
