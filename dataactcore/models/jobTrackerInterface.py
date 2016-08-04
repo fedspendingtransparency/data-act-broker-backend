@@ -1,19 +1,19 @@
 import traceback
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission
+from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, FileType
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import JobQueue
-from dataactcore.config import CONFIG_DB
+from dataactcore.config import CONFIG_JOB_QUEUE
 
 
 class JobTrackerInterface(BaseInterface):
     """Manages all interaction with the job tracker database."""
 
     def __init__(self):
-        self.jobQueue = JobQueue()
+        self.jobQueue = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
         super(JobTrackerInterface, self).__init__()
 
     @staticmethod
@@ -171,9 +171,17 @@ class JobTrackerInterface(BaseInterface):
         return self.getIdFromDict(
             JobStatus, "JOB_STATUS_DICT", "name", statusName, "job_status_id")
 
+    def getJobStatusNameById(self, status_id):
+        """ Returns the status name that corresponds to the given id """
+        return self.getNameFromDict(JobStatus,"JOB_STATUS_DICT","name",status_id,"job_status_id")
+
     def getJobTypeId(self,typeName):
         """ Return the type ID that corresponds to the given name """
         return self.getIdFromDict(JobType,"JOB_TYPE_DICT","name",typeName,"job_type_id")
+
+    def getFileTypeId(self, typeName):
+        """ Returns the file type id that corresponds to the given name """
+        return self.getIdFromDict(FileType, "FILE_TYPE_DICT", "name", typeName, "file_type_id")
 
     def getOriginalFilenameById(self,jobId):
         """ Get original filename for job matching ID """

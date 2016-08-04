@@ -1,4 +1,5 @@
 import os
+import requests
 import time
 from flask import session, request
 from datetime import datetime
@@ -9,8 +10,12 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.config import CONFIG_BROKER
+from dataactcore.config import CONFIG_BROKER, CONFIG_JOB_QUEUE
 from dataactbroker.handlers.aws.session import LoginSession
+from dataactcore.utils.jobQueue import JobQueue
+from sqlalchemy.orm.exc import NoResultFound
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
+
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -23,7 +28,8 @@ class FileHandler:
     s3manager -- instance of s3UrlHandler, manages calls to S3
     """
 
-    FILE_TYPES = ["appropriations","award_financial","award","program_activity"]
+    FILE_TYPES = ["appropriations","award_financial","program_activity"]
+    EXTERNAL_FILE_TYPES = ["award"] #,"award_procurement"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
     def __init__(self,request,interfaces = None,isLocal= False,serverPath =""):
@@ -158,6 +164,19 @@ class FileHandler:
                     responseDict[fileType+"_key"] = uploadName
                     fileNameMap.append((fileType,uploadName,filename))
 
+            for extFileType in FileHandler.EXTERNAL_FILE_TYPES:
+                if extFileType == "award":
+                    filename = CONFIG_BROKER["d2_file_name"]
+                elif extFileType == "award_procurement":
+                    filename = CONFIG_BROKER["d1_file_name"]
+
+                if(not self.isLocal):
+                    uploadName = str(name) + "/" + s3UrlHandler.getTimestampedFilename(filename)
+                else:
+                    uploadName = filename
+                responseDict[extFileType + "_key"] = uploadName
+                fileNameMap.append((extFileType, uploadName, filename))
+
             fileJobDict = self.jobManager.createJobs(fileNameMap,submissionId,existingSubmission)
             for fileType in fileJobDict.keys():
                 if (not "submission_id" in fileType) :
@@ -185,7 +204,7 @@ class FileHandler:
         except:
             return JsonResponse.error(Exception("Failed to catch exception"),StatusCode.INTERNAL_ERROR)
 
-    def finalize(self):
+    def finalize(self, jobId=None):
         """ Set upload job in job tracker database to finished, allowing dependent jobs to be started
 
         Flask request should include key "upload_id", which holds the job_id for the file_upload job
@@ -195,8 +214,10 @@ class FileHandler:
         """
         responseDict = {}
         try:
-            inputDictionary = RequestDictionary(self.request)
-            jobId = inputDictionary.getValue("upload_id")
+            if jobId is None:
+                inputDictionary = RequestDictionary(self.request)
+                jobId = inputDictionary.getValue("upload_id")
+
             # Compare user ID with user who submitted job, if no match return 400
             job = self.jobManager.getJobById(jobId)
             submission = self.jobManager.getSubmissionForJob(job)
@@ -354,6 +375,7 @@ class FileHandler:
         except Exception as e:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+
     def uploadFile(self):
         """ Saves a file and returns the saved path.  Should only be used for local installs. """
         try:
@@ -389,3 +411,144 @@ class FileHandler:
             self.s3manager = s3UrlHandler()
             response["rss_url"] = self.s3manager.getSignedUrl(CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"],"GET")
         return JsonResponse.create(200,response)
+
+    def generateD1File(self):
+        """ Initiates the generation of D1 """
+        requestDict = RequestDictionary(self.request)
+
+        if not (requestDict.exists("submission_id") and requestDict.exists("start") and requestDict.exists("end")):
+            exc = ResponseException("Generate D1 Files route requires submission_id, start, and end", StatusCode.CLIENT_ERROR)
+            return JsonResponse.create(exc, exc.status)
+
+        submission_id = requestDict.getValue("submission_id")
+        start_date = requestDict.getValue("start")
+        end_date = requestDict.getValue("end")
+
+        if not (StringCleaner.isNumeric(submission_id) and StringCleaner.isDate(start_date) and StringCleaner.isDate(end_date)):
+            exc = ResponseException("submission id, start, and/or end cannot be parsed into their appropriate types", StatusCode.CLIENT_ERROR)
+            return JsonResponse.create(exc, exc.status)
+
+        cgac_code = self.jobManager.getSubmissionById(submission_id).cgac_code
+        get_url = CONFIG_BROKER["d1_url"].format(cgac_code, start_date, end_date)
+
+        jq = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
+
+        # Generate and upload D1 file to S3
+        user_id = LoginSession.getName(session)
+        timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["d1_file_name"])
+        upload_file_name = "".join([str(user_id), "/", timestamped_name])
+        d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d1", CONFIG_BROKER["d1_file_name"], upload_file_name)
+        self.jobManager.setDFileStatus(d_file_id, "waiting")
+        jq.generate_d_file.delay(get_url, CONFIG_BROKER["d1_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
+
+        # Check status for D1 file
+        return self.checkD1File()
+
+    def checkD1File(self, submission_id=None):
+        """ Check status of D1 file generation """
+        if submission_id is None:
+            requestDict = RequestDictionary(self.request)
+            if not (requestDict.exists("submission_id")):
+                exc = ResponseException("Check D1 Files route requires submission_id", StatusCode.CLIENT_ERROR)
+                return JsonResponse.create(exc, exc.status)
+
+            submission_id = requestDict.getValue("submission_id")
+            if not (StringCleaner.isNumeric(submission_id)):
+                exc = ResponseException("submission id cannot be parsed into its appropriate type", StatusCode.CLIENT_ERROR)
+                return JsonResponse.create(exc, exc.status)
+
+        d1_file = self.jobManager.getDFileForSubmission(submission_id, "d1")
+        if d1_file is None:
+            response = {"status": "invalid", "url": "", "start": "", "end": "", "message": ""}
+            return JsonResponse.create(StatusCode.OK, response)
+
+        status = self.jobManager.getJobStatusNameById(d1_file.status_id)
+
+        if status == "finished" and not d1_file.is_submitted and False: # TODO: Remove "and False" when submission of D1 is desired
+            job_id = self.jobManager.getJobBySubmissionFileTypeAndJobType(submission_id, "award_procurement", "file_upload").job_id
+            self.jobManager.updateDFileName(submission_id, d1_file.upload_file_name, "award")
+            result = self.finalize(jobId=job_id)
+            self.jobManager.markDFileAsSubmitted(d1_file.d_file_id)
+            if result.status_code != 200:
+                raise ResponseException(result.data)
+
+        url = "" if d1_file.url is None else d1_file.url
+        error_message = "" if d1_file.error_message is None else d1_file.error_message
+
+        response = {"status": status, "url": url, "start": str(d1_file.start_date), "end": str(d1_file.end_date),
+                    "message": error_message}
+
+        return JsonResponse.create(StatusCode.OK, response)
+
+
+    def generateD2File(self):
+        """ Initiates the generation of D2 """
+        requestDict = RequestDictionary(self.request)
+
+        if not (requestDict.exists("submission_id") and requestDict.exists("start") and requestDict.exists("end")):
+            exc = ResponseException("Generate D2 Files route requires submission_id, start, and end",
+                                    StatusCode.CLIENT_ERROR)
+            return JsonResponse.create(exc, exc.status)
+
+        submission_id = requestDict.getValue("submission_id")
+        start_date = requestDict.getValue("start")
+        end_date = requestDict.getValue("end")
+
+        if not (StringCleaner.isNumeric(submission_id) and StringCleaner.isDate(start_date) and StringCleaner.isDate(
+                end_date)):
+            exc = ResponseException("submission id, start, and/or end cannot be parsed into their appropriate types",
+                                    StatusCode.CLIENT_ERROR)
+            return JsonResponse.create(exc, exc.status)
+
+        cgac_code = self.jobManager.getSubmissionById(submission_id).cgac_code
+        get_url = CONFIG_BROKER["d2_url"].format(cgac_code, start_date, end_date)
+
+        jq = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
+
+        # Generate and upload D2 file to S3
+        user_id = LoginSession.getName(session)
+        timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["d2_file_name"])
+        upload_file_name = "".join([str(user_id), "/", timestamped_name])
+        d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d2", CONFIG_BROKER["d2_file_name"], upload_file_name)
+        self.jobManager.setDFileStatus(d_file_id, "waiting")
+        jq.generate_d_file.delay(get_url, CONFIG_BROKER["d2_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
+
+        # Check status for D2 file
+        return self.checkD2File()
+
+    def checkD2File(self, submission_id=None):
+        """ Check status of D2 file generation """
+        if submission_id is None:
+            requestDict = RequestDictionary(self.request)
+            if not (requestDict.exists("submission_id")):
+                exc = ResponseException("Check D2 Files route requires submission_id", StatusCode.CLIENT_ERROR)
+                return JsonResponse.create(exc, exc.status)
+
+            submission_id = requestDict.getValue("submission_id")
+            if not (StringCleaner.isNumeric(submission_id)):
+                exc = ResponseException("submission id cannot be parsed into its appropriate type", StatusCode.CLIENT_ERROR)
+                return JsonResponse.create(exc, exc.status)
+
+        d2_file = self.jobManager.getDFileForSubmission(submission_id, "d2")
+        if d2_file is None:
+            response = {"status": "invalid", "url": "", "start": "", "end": "", "message": ""}
+            return JsonResponse.create(StatusCode.OK, response)
+
+        status = self.jobManager.getJobStatusNameById(d2_file.status_id)
+
+        if status == "finished" and not d2_file.is_submitted:
+            job_id = self.jobManager.getJobBySubmissionFileTypeAndJobType(submission_id, "award", "file_upload").job_id
+            self.jobManager.updateDFileName(submission_id, d2_file.upload_file_name, "award")
+            result = self.finalize(jobId=job_id)
+            self.jobManager.markDFileAsSubmitted(d2_file.d_file_id)
+            if result.status_code != 200:
+                raise ResponseException(result.data)
+
+        status = self.jobManager.getJobStatusNameById(d2_file.status_id)
+        url = "" if d2_file.url is None else d2_file.url
+        error_message = "" if d2_file.error_message is None else d2_file.error_message
+
+        response = {"status": status, "url": url, "start": str(d2_file.start_date), "end": str(d2_file.end_date),
+                    "message": error_message}
+
+        return JsonResponse.create(StatusCode.OK, response)
