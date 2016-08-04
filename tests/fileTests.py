@@ -88,7 +88,7 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertIn("test1.csv", json["appropriations_key"])
         self.assertIn("test2.csv", json["award_financial_key"])
-        self.assertIn("test3.csv", json["award_key"])
+        self.assertIn("d2_file.csv", json["award_key"])
         self.assertIn("test4.csv", json["program_activity_key"])
         self.assertIn("credentials", json)
 
