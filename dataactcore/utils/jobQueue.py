@@ -71,7 +71,7 @@ class JobQueue:
                 with CsvS3Writer(region, bucket, aws_file_name, headers) as writer:
                     for line in lines[1:]:
                         writer.write(line)
-                        writer.finishBatch()
+                    writer.finishBatch()
 
                 s3_url = s3UrlHandler().getSignedUrl(path=str(user_id), fileName=timestamped_name, method="GET")
                 job_manager.setDFileUrl(d_file_id, s3_url)
