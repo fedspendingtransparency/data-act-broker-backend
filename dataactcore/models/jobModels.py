@@ -20,6 +20,14 @@ class JobType(Base):
     name = Column(Text)
     description = Column(Text)
 
+class PublishStatus(Base):
+    __tablename__ = "publish_status"
+    PUBLISH_STATUS_DICT = None
+
+    publish_status_id = Column(Integer, primary_key=True)
+    name = Column(Text)
+    description = Column(Text)
+
 class Submission(Base):
     __tablename__ = "submission"
 
@@ -31,6 +39,11 @@ class Submission(Base):
     reporting_end_date = Column(Date)
     is_quarter_format = Column(Boolean, nullable = False, default = "False", server_default= "False")
     jobs = None
+    publishable = Column(Boolean, nullable = False, default = "False", server_default = "False")
+    publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="CASCADE", name ="fk_publish_status_id"))
+    publish_status = relationship("PublishStatus", uselist = False)
+    number_of_errors = Column(Integer)
+    number_of_warnings = Column(Integer)
 
 class Job(Base):
     __tablename__ = "job"
@@ -63,3 +76,4 @@ class FileType(Base):
     file_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
+
