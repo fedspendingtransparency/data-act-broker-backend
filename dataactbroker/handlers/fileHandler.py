@@ -221,9 +221,12 @@ class FileHandler:
             # Compare user ID with user who submitted job, if no match return 400
             job = self.jobManager.getJobById(jobId)
             submission = self.jobManager.getSubmissionForJob(job)
-            if(submission.user_id != LoginSession.getName(session)):
+            # Check that user's agency matches submission cgac_code or "SYS", or user id matches submission's user
+            userId = LoginSession.getName(session)
+            userCgac = self.interfaces.userDb.getUserByUID(userId).cgac_code
+            if(submission.user_id != userId and submission.cgac_code != userCgac and userCgac != "SYS"):
                 # This user cannot finalize this job
-                raise ResponseException("Cannot finalize a job created by a different user", StatusCode.CLIENT_ERROR)
+                raise ResponseException("Cannot finalize a job for a different agency", StatusCode.CLIENT_ERROR)
             # Change job status to finished
             if(self.jobManager.checkUploadType(jobId)):
                 self.jobManager.changeToFinished(jobId)
