@@ -35,7 +35,7 @@ class JobQueue:
             return response.json()
 
         @self.jobQueue.task(name='jobQueue.generate_d1')
-        def generate_d_file(api_url, file_name, user_id, d_file_id, interface_holder, upload_file_name, skip_gen=False):
+        def generate_d_file(api_url, file_name, user_id, d_file_id, interface_holder, timestamped_name, skip_gen=False):
             job_manager = interface_holder().jobDb
 
             try:
@@ -54,16 +54,16 @@ class JobQueue:
                 bucket = CONFIG_BROKER['aws_bucket']
                 region = CONFIG_BROKER['aws_region']
 
-                aws_file_name = "".join([str(user_id), "/", upload_file_name])
+                aws_file_name = "".join([str(user_id), "/", timestamped_name])
 
-                with open(upload_file_name, "wb") as file:
+                with open(timestamped_name, "wb") as file:
                     # get request
                     response = requests.get(file_url)
                     # write to file
                     file.write(response.content)
 
                 lines = []
-                with open(upload_file_name) as file:
+                with open(timestamped_name) as file:
                     for line in reader(file):
                             lines.append(line)
 
@@ -73,7 +73,7 @@ class JobQueue:
                         writer.write(line)
                         writer.finishBatch()
 
-                s3_url = s3UrlHandler().getSignedUrl(path=str(user_id), fileName=upload_file_name, method="GET")
+                s3_url = s3UrlHandler().getSignedUrl(path=str(user_id), fileName=timestamped_name, method="GET")
                 job_manager.setDFileUrl(d_file_id, s3_url)
                 job_manager.setDFileStatus(d_file_id, "finished")
             except Exception as e:
