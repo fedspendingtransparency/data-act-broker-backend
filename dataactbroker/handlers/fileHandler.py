@@ -463,6 +463,7 @@ class FileHandler:
 
         if status == "finished" and not d1_file.is_submitted and False: # TODO: Remove "and False" when submission of D1 is desired
             job_id = self.jobManager.getJobBySubmissionFileTypeAndJobType(submission_id, "award_procurement", "file_upload").job_id
+            self.jobManager.updateDFileName(submission_id, d1_file.upload_file_name, "award")
             result = self.finalize(jobId=job_id)
             self.jobManager.markDFileAsSubmitted(d1_file.d_file_id)
             if result.status_code != 200:
