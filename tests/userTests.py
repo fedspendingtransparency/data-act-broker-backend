@@ -21,8 +21,6 @@ class UserTests(BaseTestAPI):
             sub = Submission(user_id = cls.approved_user_id)
             jobDb.session.add(sub)
             jobDb.session.commit()
-            if i == 0:
-                cls.submission_id = sub.submission_id
 
         # Add submissions for agency user
         jobDb.deleteSubmissionsForUserId(cls.agency_user_id)
@@ -31,6 +29,8 @@ class UserTests(BaseTestAPI):
             sub.cgac_code = "SYS"
             jobDb.session.add(sub)
             jobDb.session.commit()
+            if i == 0:
+                cls.submission_id = sub.submission_id
 
         # Add job to first submission
         job = Job(submission_id=cls.submission_id, job_status_id=3, job_type_id=1, file_type_id=1)
@@ -147,6 +147,15 @@ class UserTests(BaseTestAPI):
         users = response.json["users"]
         self.assertEqual(len(users), 16)
 
+    def test_list_user_emails(self):
+        """Test getting user emails"""
+        self.logout()
+        self.login_agency_user()
+        response = self.app.get("/v1/list_user_emails/", headers={"x-session-id": self.session_id})
+        self.check_response(response, StatusCode.OK)
+        users = response.json["users"]
+        self.assertEqual(len(users), 7)
+
     def test_list_users_bad_status(self):
         """Test getting user list with invalid status."""
         postJson = {"status": "lost"}
@@ -202,10 +211,19 @@ class UserTests(BaseTestAPI):
         """Test finalizing a job as the wrong user."""
         # Jobs were submitted with the id for "approved user," so lookup
         # as "admin user" should fail.
+        self.logout()
+        self.login_approved_user()
         postJson = {"upload_id": self.uploadId}
         response = self.app.post_json("/v1/finalize_job/",
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.CLIENT_ERROR, "Cannot finalize a job created by a different user")
+        self.check_response(response, StatusCode.CLIENT_ERROR, "Cannot finalize a job for a different agency")
+        # Give submission this user's cgac code
+        submission = self.interfaces.jobDb.getSubmissionById(self.submission_id)
+        submission.cgac_code = self.interfaces.userDb.getUserByEmail(self.test_users["approved_email"]).cgac_code
+        self.interfaces.jobDb.session.commit()
+        response = self.app.post_json("/v1/finalize_job/",
+            postJson, expect_errors=True, headers={"x-session-id":self.session_id})
+        self.check_response(response, StatusCode.OK)
         self.logout()
 
     def test_send_email(self):
