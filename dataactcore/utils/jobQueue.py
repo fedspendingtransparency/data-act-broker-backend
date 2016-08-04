@@ -44,7 +44,7 @@ class JobQueue:
                 #     job_manager.setDFileUrl(d_file_id, s3_url)
                 #     job_manager.setDFileStatus(d_file_id, "finished")
                 # else:
-                if skip_gen:
+                if not skip_gen:
                     xml_response = str(requests.get(api_url, verify=False).content)
                     url_start_index = xml_response.find("<results>", 0) + 9
                     file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
