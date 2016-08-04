@@ -39,14 +39,17 @@ class JobQueue:
             job_manager = interface_holder().jobDb
 
             try:
+                # if skip_gen:
+                #     s3_url = s3UrlHandler().getSignedUrl(path="public/", fileName=file_name, method="GET")
+                #     job_manager.setDFileUrl(d_file_id, s3_url)
+                #     job_manager.setDFileStatus(d_file_id, "finished")
+                # else:
                 if skip_gen:
-                    s3_url = s3UrlHandler().getSignedUrl(path="public/", fileName=file_name, method="GET")
-                    job_manager.setDFileUrl(d_file_id, s3_url)
-                    job_manager.setDFileStatus(d_file_id, "finished")
-                else:
                     xml_response = str(requests.get(api_url, verify=False).content)
                     url_start_index = xml_response.find("<results>", 0) + 9
                     file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
+                else:
+                    file_url = s3UrlHandler().getSignedUrl(path="public/", fileName=file_name, method="GET")
 
                     bucket = CONFIG_BROKER['aws_bucket']
                     region = CONFIG_BROKER['aws_region']
