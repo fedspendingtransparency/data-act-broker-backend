@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean
+from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean, UniqueConstraint, CheckConstraint, Enum
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -59,7 +59,27 @@ class JobDependency(Base):
 
 class FileType(Base):
     __tablename__ = "file_type"
+    FILE_TYPE_DICT = None
 
     file_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
+
+class DFileMeta(Base):
+    __tablename__ = "d_file_metadata"
+
+    d_file_id = Column(Integer, primary_key=True)
+    type = Column(Text, Enum("d1", "d2", name="type_enum"))
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission_id"))
+    submission = relationship("Submission", uselist=False)
+    start_date = Column(Date)
+    end_date = Column(Date)
+    status_id = Column(Integer, ForeignKey("job_status.job_status_id", name="fk_status_id"))
+    status = relationship("JobStatus", uselist=False)
+    url = Column(Text)
+    error_message = Column(Text)
+    upload_file_name = Column(Text)
+    original_file_name = Column(Text)
+    is_submitted = Column(Boolean, default ="False", server_default="False")
+
+    __table_args__ = (UniqueConstraint('submission_id', 'type', name='_submission_type_uc'),)
