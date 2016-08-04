@@ -429,3 +429,12 @@ class JobHandler(JobTrackerInterface):
         d_file = self.getDFileById(d_file_id)
         d_file.is_submitted = True
         self.session.commit()
+
+    def updateDFileName(self, submission_id, file_name):
+        upload_job = self.getJobBySubmissionFileTypeAndJobType(submission_id, "award", "file_upload")
+        validation_job = self.getJobBySubmissionFileTypeAndJobType(submission_id, "award", "csv_record_validation")
+
+        upload_job.filename = file_name
+        validation_job.filename = file_name
+
+        self.session.commit()
