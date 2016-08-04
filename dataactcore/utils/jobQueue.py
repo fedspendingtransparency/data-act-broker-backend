@@ -51,32 +51,32 @@ class JobQueue:
                 else:
                     file_url = s3UrlHandler().getSignedUrl(path="public/", fileName=file_name, method="GET")
 
-                    bucket = CONFIG_BROKER['aws_bucket']
-                    region = CONFIG_BROKER['aws_region']
+                bucket = CONFIG_BROKER['aws_bucket']
+                region = CONFIG_BROKER['aws_region']
 
-                    timestamped_name = s3UrlHandler.getTimestampedFilename(file_name)
-                    aws_file_name = "".join([str(user_id), "/", timestamped_name])
+                timestamped_name = s3UrlHandler.getTimestampedFilename(file_name)
+                aws_file_name = "".join([str(user_id), "/", timestamped_name])
 
-                    with open(timestamped_name, "wb") as file:
-                        # get request
-                        response = requests.get(file_url)
-                        # write to file
-                        file.write(response.content)
+                with open(timestamped_name, "wb") as file:
+                    # get request
+                    response = requests.get(file_url)
+                    # write to file
+                    file.write(response.content)
 
-                    lines = []
-                    with open(timestamped_name) as file:
-                        for line in reader(file):
-                                lines.append(line)
+                lines = []
+                with open(timestamped_name) as file:
+                    for line in reader(file):
+                            lines.append(line)
 
-                    headers = lines[0]
-                    with CsvS3Writer(region, bucket, aws_file_name, headers) as writer:
-                        for line in lines[1:]:
-                            writer.write(line)
-                            writer.finishBatch()
+                headers = lines[0]
+                with CsvS3Writer(region, bucket, aws_file_name, headers) as writer:
+                    for line in lines[1:]:
+                        writer.write(line)
+                        writer.finishBatch()
 
-                    s3_url = s3UrlHandler().getSignedUrl(path=str(user_id), fileName=timestamped_name, method="GET")
-                    job_manager.setDFileUrl(d_file_id, s3_url)
-                    job_manager.setDFileStatus(d_file_id, "finished")
+                s3_url = s3UrlHandler().getSignedUrl(path=str(user_id), fileName=timestamped_name, method="GET")
+                job_manager.setDFileUrl(d_file_id, s3_url)
+                job_manager.setDFileStatus(d_file_id, "finished")
             except Exception as e:
                 job_manager.setDFileMessage(d_file_id, str(e))
                 job_manager.setDFileStatus(d_file_id, "failed")
