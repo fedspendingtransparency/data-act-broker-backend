@@ -63,7 +63,7 @@ class FileTests(BaseTestAPI):
         if not self.filesSubmitted:
             if(CONFIG_BROKER["use_aws"]):
                 self.filenames = {"appropriations":"test1.csv",
-                    "award_financial":"test2.csv", "award":"d2_file.csv.csv",
+                    "award_financial":"test2.csv", "award":CONFIG_BROKER["d2_file_name"],
                     "program_activity":"test4.csv", "cgac_code": "SYS",
                     "reporting_period_start_date":"01/2001",
                     "reporting_period_end_date":"01/2001", "is_quarter":True}
@@ -71,7 +71,7 @@ class FileTests(BaseTestAPI):
                 # If local must use full destination path
                 filePath = CONFIG_BROKER["broker_files"]
                 self.filenames = {"appropriations":os.path.join(filePath,"test1.csv"),
-                    "award_financial":os.path.join(filePath,"test2.csv"), "award":os.path.join(filePath,"d2_file.csv.csv"),
+                    "award_financial":os.path.join(filePath,"test2.csv"), "award":os.path.join(filePath,CONFIG_BROKER["d2_file_name"]),
                     "program_activity":os.path.join(filePath,"test4.csv"), "cgac_code": "SYS",
                     "reporting_period_start_date":"01/2001",
                     "reporting_period_end_date":"01/2001", "is_quarter":True}
@@ -88,7 +88,7 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertIn("test1.csv", json["appropriations_key"])
         self.assertIn("test2.csv", json["award_financial_key"])
-        self.assertIn("d2_file.csv", json["award_key"])
+        self.assertIn(CONFIG_BROKER["d2_file_name"], json["award_key"])
         self.assertIn("test4.csv", json["program_activity_key"])
         self.assertIn("credentials", json)
 
