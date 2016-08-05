@@ -101,3 +101,10 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         """ Generate D1 File from external API """
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.checkD2File)
+
+    @app.route("/v1/get_protected_files/", methods=["GET"])
+    @permissions_check
+    def get_protected_files():
+        """ Return signed URLs for all help page files """
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return RouteUtils.run_instance_function(fileManager, fileManager.getProtectedFiles)

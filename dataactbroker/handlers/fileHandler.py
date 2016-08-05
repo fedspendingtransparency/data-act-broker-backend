@@ -47,6 +47,7 @@ class FileHandler:
             self.jobManager = interfaces.jobDb
         self.isLocal = isLocal
         self.serverPath = serverPath
+        self.s3manager = s3UrlHandler()
 
     def addInterfaces(self,interfaces):
         """ Add connections to databases
@@ -408,7 +409,6 @@ class FileHandler:
         if self.isLocal:
             response["rss_url"] = os.path.join(self.serverPath, CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"])
         else:
-            self.s3manager = s3UrlHandler()
             response["rss_url"] = self.s3manager.getSignedUrl(CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"],"GET")
         return JsonResponse.create(200,response)
 
@@ -551,4 +551,16 @@ class FileHandler:
         response = {"status": status, "url": url, "start": str(d2_file.start_date), "end": str(d2_file.end_date),
                     "message": error_message}
 
+        return JsonResponse.create(StatusCode.OK, response)
+
+    def getProtectedFiles(self):
+        """ Returns a set of urls to protected files on the help page """
+        response = {}
+        response["message"] = ""
+        if self.isLocal:
+            response["urls"] = {}
+            response["message"] = "Cannot use get_protected_files route locally"
+            return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
+
+        response["urls"] = self.s3manager.getFileUrls(bucket_name=CONFIG_BROKER["static_files_bucket"], path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
