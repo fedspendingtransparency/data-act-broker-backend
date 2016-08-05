@@ -323,6 +323,22 @@ class FileTests(BaseTestAPI):
         self.assertEqual(errorReportSub["status"], "validation_successful")
         self.assertEqual(errorSub["status"], "validation_errors")
 
+    def test_get_protected_files(self):
+        """ Check get_protected_files route """
+
+        if CONFIG_BROKER["use_aws"]:
+            response = self.app.get("/v1/get_protected_files/", headers={"x-session-id": self.session_id})
+            self.assertEqual(response.status_code, 200, msg=str(response.json))
+            self.assertEqual(response.headers.get("Content-Type"), "application/json")
+            json = response.json
+            self.assertNotEqual(len(json["urls"]), 0)
+            self.assertEqual(json["message"], "")
+        else:
+            response = self.app.get("/v1/get_protected_files/", headers={"x-session-id": self.session_id}, expect_errors=True)
+            self.assertEqual(response.status_code, 400, msg=str(response.json))
+            self.assertEqual(response.headers.get("Content-Type"), "application/json")
+            json = response.json
+            self.assertEqual(json["urls"], {})
 
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
