@@ -125,7 +125,6 @@ class s3UrlHandler:
         except AttributeError as e:
             s3UrlHandler.REGION = CONFIG_BROKER["aws_region"]
 
-        path = "".join([path, "/"]) if path[-1] != "/" else path
         s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
         bucket = s3connection.get_bucket(bucket_name)
 
