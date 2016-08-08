@@ -32,6 +32,18 @@ broker:
     # is ignored if use_aws is true.
     broker_files: /full/path/to/broker/files
 
+    ## Smartronix API URLs ##
+
+    # File D1 API
+    # Uses "{}" because it requires string formatting to insert query parameters
+    # If the URL is provided, the file name provided will be used when uploading to S3
+    d1_url: https://data-usas.uat.workplace.gov/api/contracts?CGAC={}&date_signed_beginning={}&date_signed_end={}
+    d1_file_name: d1_data.csv
+
+    # File D2 API
+    # If the URL is provided, the file name provided will be used when uploading to S3
+    d2_url: https://data-usas.uat.workplace.gov/api/contracts?CGAC={}&date_signed_beginning={}&date_signed_end={}
+    d2_file_name: d2_data.csv
 
     ## AWS Configuration Settings ##
 
@@ -71,6 +83,10 @@ broker:
     # S3 filenames for SF-133 file, only required if planning to load SF-133 table
     sf_133_folder: config
     sf_133_file: sf_133.csv
+
+    # Static Files Locations
+    static_files_bucket: prod-data-act-web-static-files
+    help_files_path: help-files
 
 services:
     # Set to true to turn on tracing rest errors.

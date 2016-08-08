@@ -556,10 +556,8 @@ class FileHandler:
     def getProtectedFiles(self):
         """ Returns a set of urls to protected files on the help page """
         response = {}
-        response["message"] = ""
         if self.isLocal:
             response["urls"] = {}
-            response["message"] = "Cannot use get_protected_files route locally"
             return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
 
         response["urls"] = self.s3manager.getFileUrls(bucket_name=CONFIG_BROKER["static_files_bucket"], path=CONFIG_BROKER["help_files_path"])
