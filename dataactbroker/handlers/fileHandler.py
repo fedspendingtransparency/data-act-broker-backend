@@ -76,7 +76,7 @@ class FileHandler:
                         reportName = self.jobManager.getReportPath(jobId)
                         key = "job_"+str(jobId)+"_error_url"
                     if(not self.isLocal):
-                        responseDict[key] = self.s3manager.getSignedUrl("errors",reportName,"GET")
+                        responseDict[key] = self.s3manager.getSignedUrl("errors",reportName,method="GET")
                     else:
                         path = os.path.join(self.serverPath, reportName)
                         responseDict[key] = path
@@ -99,7 +99,7 @@ class FileHandler:
                     if self.isLocal:
                         reportPath = os.path.join(self.serverPath,reportName)
                     else:
-                        reportPath = self.s3manager.getSignedUrl("errors",reportName,"GET")
+                        reportPath = self.s3manager.getSignedUrl("errors",reportName,method="GET")
                     # Assign to key based on source and target
                     responseDict[self.getCrossReportKey(source,target,isWarning)] = reportPath
 
@@ -402,15 +402,6 @@ class FileHandler:
         except Exception as e:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
-
-    def getRss(self):
-        """ Returns a signed URL to the RSS document.  If local returns local path to RSS. """
-        response = {}
-        if self.isLocal:
-            response["rss_url"] = os.path.join(self.serverPath, CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"])
-        else:
-            response["rss_url"] = self.s3manager.getSignedUrl(CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"],"GET")
-        return JsonResponse.create(200,response)
 
     def generateD1File(self):
         """ Initiates the generation of D1 """
