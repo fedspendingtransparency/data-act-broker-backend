@@ -85,8 +85,8 @@ broker:
     sf_133_file: sf_133.csv
 
     # Static Files Locations
-    static_files_bucket: prod-data-act-web-static-files
-    help_files_path: help-files
+    static_files_bucket: sample-static-files-bucket
+    help_files_path: sample-help-files-folder
 
 services:
     # Set to true to turn on tracing rest errors.
