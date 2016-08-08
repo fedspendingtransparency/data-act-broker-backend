@@ -527,6 +527,7 @@ Example output:
   "success": true
 }
 ```
+
 #### POST "/v1/submission\_error_reports/"
 A call to this route should have JSON or form-urlencoded with a key of "submission\_id" and value of the submission id received from the submit\_files route.  The response object will be JSON with keys of "job\_X\_error\_url" for each job X that is part of the submission, and the value will be the signed URL of the error report on S3. Note that for failed jobs (i.e. file-level errors), no error reports will be created.
 
@@ -750,7 +751,27 @@ Example output:
 }
 ```
 
+#### GET "/v1/get_protected_files/"
+This route returns a signed S3 URL for all files available to download on the help page.
 
+Example output:
+
+```json
+{
+    "urls": {
+            "AgencyLabel_to_TerseLabel.xslx": "https://prod-data-act-submission.s3-us-gov-west-1.amazonaws.com:443/rss/AgencyLabel_to_TerseLabel.xslx?Signature=abcdefg......",
+            "File2.extension": "https://......"
+    }
+}
+```
+
+Example output if there are no files available:
+
+```json
+{
+    "urls": {}
+}
+```
 
 ## Test Cases
 
