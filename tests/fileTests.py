@@ -332,7 +332,6 @@ class FileTests(BaseTestAPI):
             self.assertEqual(response.headers.get("Content-Type"), "application/json")
             json = response.json
             self.assertNotEqual(len(json["urls"]), 0)
-            self.assertEqual(json["message"], "")
         else:
             response = self.app.get("/v1/get_protected_files/", headers={"x-session-id": self.session_id}, expect_errors=True)
             self.assertEqual(response.status_code, 400, msg=str(response.json))
