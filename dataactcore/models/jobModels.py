@@ -62,6 +62,8 @@ class Job(Base):
     file_size = Column(Integer)
     number_of_rows = Column(Integer)
     number_of_rows_valid = Column(Integer)
+    number_of_errors = Column(Integer)
+    number_of_warnings = Column(Integer)
 
 class JobDependency(Base):
     __tablename__ = "job_dependency"

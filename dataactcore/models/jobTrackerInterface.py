@@ -1,7 +1,7 @@
 import traceback
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission
+from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, PublishStatus
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -277,3 +277,61 @@ class JobTrackerInterface(BaseInterface):
             else:
                 return "validation_successful"
         return "unknown"
+
+    def getSubmissionById(self, submissionId):
+        """ Return submission object that matches ID"""
+        query = self.session.query(Submission).filter(Submission.submission_id == submissionId)
+        return self.runUniqueQuery(query, "No submission with that ID", "Multiple submissions with that ID")
+
+    def getSubmissionErrorInfo(self, submissionId):
+        """ Set number of errors and warnings for submission """
+        submission = self.getSubmissionById(submissionId)
+        submission.number_of_errors = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb)
+        submission.number_of_warnings = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb, errorType = "warning")
+
+    def setJobNumberOfErrors(self, jobId, numberOfErrors, errorType):
+        """ Label nuber of errors or warnings for specified job
+
+        Args:
+            jobId: Job to set number for
+            numberOfErrors: Number to be set
+            errorType: Type of error to set, can be either 'fatal' or 'warning'
+
+        """
+        job = self.getJobById(jobId)
+        if errorType == "fatal":
+            job.number_of_errors = numberOfErrors
+        elif errorType == "warning":
+            job.number_of_warnings = numberOfErrors
+
+    def setPublishableFlag(self, submissionId, publishable):
+        """ Set publishable flag to specified value """
+        submission = self.getSubmissionById(submissionId)
+        submission.publishable = publishable
+        self.session.commit()
+
+    def setPublishStatus(self, statusName, submissionId = None, submission = None):
+        """ Set publish status to specified name"""
+        statusId = self.getPublishStatusId(statusName)
+        if submission is None:
+            if submissionId is None:
+                raise ValueError("Must call setPublishStatus with either submission or submission ID")
+            submission = self.getSubmissionById(submissionId)
+        submission.publish_status_id = statusId
+        self.session.commit()
+
+    def updatePublishStatus(self, submissionId = None, submission = None):
+        """ If submission was already published, mark as updated, otherwise no change """
+        if submission is None:
+            if submissionId is None:
+                raise ValueError("Must call setPublishStatus with either submission or submission ID")
+            submission = self.getSubmissionById(submissionId)
+        publishedStatus = self.getPublishStatusId("published")
+        if submission.publish_status_id == publishedStatus:
+            # Submission already published, mark as updated
+            self.setPublishStatus("updated", submission = submission)
+
+
+    def getPublishStatusId(self, statusName):
+        """ Return ID for specified publish status """
+        return self.getIdFromDict(PublishStatus,  "PUBLISH_STATUS_DICT", "name", statusName, "publish_status_id")

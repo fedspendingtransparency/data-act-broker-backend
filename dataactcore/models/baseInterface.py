@@ -17,7 +17,7 @@ class BaseInterface(object):
     Session = None
     engine = None
     session = None
-
+    interfaces = None
 
     def __init__(self):
         self.dbConfig = CONFIG_DB
@@ -48,6 +48,7 @@ class BaseInterface(object):
 
     def __del__(self):
         try:
+            self.interfaces = None
             #Close session
             self.session.close()
             self.Session.remove()

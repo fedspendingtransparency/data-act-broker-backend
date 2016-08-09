@@ -5,7 +5,7 @@ import boto
 from datetime import datetime
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
-from baseTestAPI import BaseTestAPI
+from tests.baseTestAPI import BaseTestAPI
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.config import CONFIG_BROKER
@@ -121,7 +121,9 @@ class FileTests(BaseTestAPI):
         submissionId = responseDict["submission_id"]
         self.file_submission_id = submissionId
         submission = self.interfaces.jobDb.getSubmissionById(submissionId)
-        self.assertEquals(submission.user_id, self.submission_user_id)
+        self.assertEqual(submission.user_id, self.submission_user_id)
+        # Check that new submission is unpublished
+        self.assertEqual(submission.publish_status_id, self.interfaces.jobDb.getPublishStatusId("unpublished"))
 
         # Call upload complete route
         finalizeResponse = self.check_upload_complete(
@@ -143,6 +145,10 @@ class FileTests(BaseTestAPI):
                 "award_financial": os.path.join(filePath,"updated.csv"),
                 "reporting_period_start_date":"02/2016",
                 "reporting_period_end_date":"03/2016"}
+        # Mark submission as published
+        updateSubmission = self.interfaces.jobDb.getSubmissionById(self.updateSubmissionId)
+        updateSubmission.publish_status_id = self.interfaces.jobDb.getPublishStatusId("published")
+        self.interfaces.jobDb.session.commit()
         updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id":self.session_id})
         self.assertEqual(updateResponse.status_code, 200)
         self.assertEqual(updateResponse.headers.get("Content-Type"), "application/json")
@@ -154,6 +160,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(submission.cgac_code,"SYS") # Should not have changed agency name
         self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"),"02/2016")
         self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"),"03/2016")
+        self.assertEqual(submission.publish_status_id, self.interfaces.jobDb.getPublishStatusId("updated"))
 
     def test_bad_quarter_or_month(self):
         """ Test file submissions for Q5, 13, and AB, and year of ABCD """

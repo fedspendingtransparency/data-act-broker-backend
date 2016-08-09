@@ -15,6 +15,7 @@ from dataactcore.scripts.setupValidationDB import setupValidationDB
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
+from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Job, Submission
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
@@ -28,7 +29,8 @@ class BaseTestValidator(unittest.TestCase):
     def setUpClass(cls):
         """Set up resources to be shared within a test class"""
         #TODO: refactor into a pytest class fixtures and inject as necessary
-
+        # Prevent interface being reused from last suite
+        BaseInterface.interfaces = None
         # update application's db config options so unittests
         # run against test databases
         suite = cls.__name__.lower()
