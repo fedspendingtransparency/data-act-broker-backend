@@ -47,6 +47,7 @@ class FileHandler:
             self.jobManager = interfaces.jobDb
         self.isLocal = isLocal
         self.serverPath = serverPath
+        self.s3manager = s3UrlHandler()
 
     def addInterfaces(self,interfaces):
         """ Add connections to databases
@@ -75,7 +76,7 @@ class FileHandler:
                         reportName = self.jobManager.getReportPath(jobId)
                         key = "job_"+str(jobId)+"_error_url"
                     if(not self.isLocal):
-                        responseDict[key] = self.s3manager.getSignedUrl("errors",reportName,"GET")
+                        responseDict[key] = self.s3manager.getSignedUrl("errors",reportName,method="GET")
                     else:
                         path = os.path.join(self.serverPath, reportName)
                         responseDict[key] = path
@@ -98,7 +99,7 @@ class FileHandler:
                     if self.isLocal:
                         reportPath = os.path.join(self.serverPath,reportName)
                     else:
-                        reportPath = self.s3manager.getSignedUrl("errors",reportName,"GET")
+                        reportPath = self.s3manager.getSignedUrl("errors",reportName,method="GET")
                     # Assign to key based on source and target
                     responseDict[self.getCrossReportKey(source,target,isWarning)] = reportPath
 
@@ -402,16 +403,6 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-    def getRss(self):
-        """ Returns a signed URL to the RSS document.  If local returns local path to RSS. """
-        response = {}
-        if self.isLocal:
-            response["rss_url"] = os.path.join(self.serverPath, CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"])
-        else:
-            self.s3manager = s3UrlHandler()
-            response["rss_url"] = self.s3manager.getSignedUrl(CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"],"GET")
-        return JsonResponse.create(200,response)
-
     def generateD1File(self):
         """ Initiates the generation of D1 """
         requestDict = RequestDictionary(self.request)
@@ -557,4 +548,14 @@ class FileHandler:
         response = {"status": status, "url": url, "start": start_date, "end": end_date,
                     "message": error_message}
 
+        return JsonResponse.create(StatusCode.OK, response)
+
+    def getProtectedFiles(self):
+        """ Returns a set of urls to protected files on the help page """
+        response = {}
+        if self.isLocal:
+            response["urls"] = {}
+            return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
+
+        response["urls"] = self.s3manager.getFileUrls(bucket_name=CONFIG_BROKER["static_files_bucket"], path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
