@@ -34,7 +34,7 @@ class JobQueue:
             response = requests.post(url, params)
             return response.json()
 
-        @self.jobQueue.task(name='jobQueue.generate_d1')
+        @self.jobQueue.task(name='jobQueue.generate_d_file')
         def generate_d_file(api_url, file_name, user_id, d_file_id, interface_holder, timestamped_name, skip_gen=False):
             job_manager = interface_holder().jobDb
 
