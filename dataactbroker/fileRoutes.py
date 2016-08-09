@@ -56,12 +56,6 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.uploadFile)
 
-    @app.route("/v1/get_rss/", methods = ["GET"])
-    @permissions_check
-    def get_rss():
-        fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return RouteUtils.run_instance_function(fileManager, fileManager.getRss)
-
     @app.route("/v1/list_submissions/", methods = ["GET"])
     @permissions_check
     def list_submissions():
@@ -73,3 +67,38 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         if filter_by == 'agency':
             return RouteUtils.run_instance_function(accountManager, accountManager.listSubmissionsByCurrentUserAgency)
         return RouteUtils.run_instance_function(accountManager, accountManager.listSubmissionsByCurrentUser)
+
+    @app.route("/v1/generate_d1_file/", methods = ["POST"])
+    @permissions_check
+    def generate_d1_file():
+        """ Generate D1 File from external API """
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return RouteUtils.run_instance_function(fileManager, fileManager.generateD1File)
+
+    @app.route("/v1/check_d1_file/", methods = ["POST"])
+    @permissions_check
+    def check_d1_file():
+        """ Generate D1 File from external API """
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return RouteUtils.run_instance_function(fileManager, fileManager.checkD1File)
+
+    @app.route("/v1/generate_d2_file/", methods = ["POST"])
+    @permissions_check
+    def generate_d2_file():
+        """ Generate D1 File from external API """
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return RouteUtils.run_instance_function(fileManager, fileManager.generateD2File)
+
+    @app.route("/v1/check_d2_file/", methods=["POST"])
+    @permissions_check
+    def check_d2_file():
+        """ Generate D1 File from external API """
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return RouteUtils.run_instance_function(fileManager, fileManager.checkD2File)
+
+    @app.route("/v1/get_protected_files/", methods=["GET"])
+    @permissions_check
+    def get_protected_files():
+        """ Return signed URLs for all help page files """
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return RouteUtils.run_instance_function(fileManager, fileManager.getProtectedFiles)

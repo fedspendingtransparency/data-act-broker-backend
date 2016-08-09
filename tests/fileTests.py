@@ -63,7 +63,7 @@ class FileTests(BaseTestAPI):
         if not self.filesSubmitted:
             if(CONFIG_BROKER["use_aws"]):
                 self.filenames = {"appropriations":"test1.csv",
-                    "award_financial":"test2.csv", "award":"test3.csv",
+                    "award_financial":"test2.csv",
                     "program_activity":"test4.csv", "cgac_code": "SYS",
                     "reporting_period_start_date":"01/2001",
                     "reporting_period_end_date":"01/2001", "is_quarter":True}
@@ -71,7 +71,7 @@ class FileTests(BaseTestAPI):
                 # If local must use full destination path
                 filePath = CONFIG_BROKER["broker_files"]
                 self.filenames = {"appropriations":os.path.join(filePath,"test1.csv"),
-                    "award_financial":os.path.join(filePath,"test2.csv"), "award":os.path.join(filePath,"test3.csv"),
+                    "award_financial":os.path.join(filePath,"test2.csv"),
                     "program_activity":os.path.join(filePath,"test4.csv"), "cgac_code": "SYS",
                     "reporting_period_start_date":"01/2001",
                     "reporting_period_end_date":"01/2001", "is_quarter":True}
@@ -88,7 +88,7 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertIn("test1.csv", json["appropriations_key"])
         self.assertIn("test2.csv", json["award_financial_key"])
-        self.assertIn("test3.csv", json["award_key"])
+        self.assertIn(CONFIG_BROKER["d2_file_name"], json["award_key"])
         self.assertIn("test4.csv", json["program_activity_key"])
         self.assertIn("credentials", json)
 
@@ -107,7 +107,7 @@ class FileTests(BaseTestAPI):
 
         # Test that job ids are returned
         responseDict = json
-        fileKeys = ["program_activity", "award", "award_financial",
+        fileKeys = ["program_activity", "award_financial",
             "appropriations"]
         for key in fileKeys:
             idKey = "".join([key,"_id"])
@@ -330,6 +330,21 @@ class FileTests(BaseTestAPI):
         self.assertEqual(errorReportSub["status"], "validation_successful")
         self.assertEqual(errorSub["status"], "validation_errors")
 
+    def test_get_protected_files(self):
+        """ Check get_protected_files route """
+
+        if CONFIG_BROKER["use_aws"]:
+            response = self.app.get("/v1/get_protected_files/", headers={"x-session-id": self.session_id})
+            self.assertEqual(response.status_code, 200, msg=str(response.json))
+            self.assertEqual(response.headers.get("Content-Type"), "application/json")
+            json = response.json
+            self.assertNotEqual(len(json["urls"]), 0)
+        else:
+            response = self.app.get("/v1/get_protected_files/", headers={"x-session-id": self.session_id}, expect_errors=True)
+            self.assertEqual(response.status_code, 400, msg=str(response.json))
+            self.assertEqual(response.headers.get("Content-Type"), "application/json")
+            json = response.json
+            self.assertEqual(json["urls"], {})
 
     def check_upload_complete(self, jobId):
         """Check status of a broker file submission."""
@@ -369,7 +384,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
-        self.assertEqual(len(response.json), 10)
+        self.assertEqual(len(response.json), 14)
         self.assertIn("cross_appropriations-program_activity", response.json)
 
     def test_warning_reports(self):
@@ -380,7 +395,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
-        self.assertEqual(len(response.json), 10)
+        self.assertEqual(len(response.json), 14)
         self.assertIn("cross_warning_appropriations-program_activity", response.json)
 
     def check_metrics(self, submission_id, exists, type_file) :
