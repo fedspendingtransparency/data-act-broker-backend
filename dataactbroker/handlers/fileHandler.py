@@ -475,7 +475,10 @@ class FileHandler:
         url = "" if d1_file.url is None else d1_file.url
         error_message = "" if d1_file.error_message is None else d1_file.error_message
 
-        response = {"status": status, "url": url, "start": str(d1_file.start_date), "end": str(d1_file.end_date),
+        start_date = d1_file.start_date.strftime("%m/%d/%Y")
+        end_date = d1_file.end_date.strftime("%m/%d/%Y")
+
+        response = {"status": status, "url": url, "start": start_date, "end": end_date,
                     "message": error_message}
 
         return JsonResponse.create(StatusCode.OK, response)
@@ -548,7 +551,10 @@ class FileHandler:
         url = "" if d2_file.url is None else d2_file.url
         error_message = "" if d2_file.error_message is None else d2_file.error_message
 
-        response = {"status": status, "url": url, "start": str(d2_file.start_date), "end": str(d2_file.end_date),
+        start_date = d2_file.start_date.strftime("%m/%d/%Y")
+        end_date = d2_file.end_date.strftime("%m/%d/%Y")
+
+        response = {"status": status, "url": url, "start": start_date, "end": end_date,
                     "message": error_message}
 
         return JsonResponse.create(StatusCode.OK, response)
