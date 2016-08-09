@@ -329,7 +329,7 @@ class JobTrackerInterface(BaseInterface):
         self.session.commit()
 
     def updatePublishStatus(self, submissionId = None, submission = None):
-        """ If submission was already published, mark as updated, otherwise no change """
+        """ If submission was already published, mark as updated.  Also set publishable back to false. """
         if submission is None:
             if submissionId is None:
                 raise ValueError("Must call setPublishStatus with either submission or submission ID")
@@ -338,7 +338,9 @@ class JobTrackerInterface(BaseInterface):
         if submission.publish_status_id == publishedStatus:
             # Submission already published, mark as updated
             self.setPublishStatus("updated", submission = submission)
-
+        # Changes have been made, so don't publish until user marks as publishable again
+        submission.publishable = False
+        self.session.commit()
 
     def getPublishStatusId(self, statusName):
         """ Return ID for specified publish status """
