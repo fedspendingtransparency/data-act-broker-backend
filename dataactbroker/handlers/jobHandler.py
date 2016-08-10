@@ -402,7 +402,7 @@ class JobHandler(JobTrackerInterface):
     def createDFileMeta(self, submission_id, start_date, end_date, type, original_file_name, upload_file_name):
         result = self.session.query(DFileMeta).filter(and_(DFileMeta.submission_id == submission_id, DFileMeta.type == type)).first()
         if result is not None:
-            result.url = ""
+            result.upload_file_name = upload_file_name
             result.error_message = ""
             self.session.commit()
             return result.d_file_id
@@ -412,11 +412,6 @@ class JobHandler(JobTrackerInterface):
         self.session.add(d1_file)
         self.session.commit()
         return d1_file.d_file_id
-
-    def setDFileUrl(self, d_file_id, url):
-        d_file = self.getDFileById(d_file_id)
-        d_file.url = url
-        self.session.commit()
 
     def setDFileMessage(self, d_file_id, message):
         d_file = self.getDFileById(d_file_id)
