@@ -51,6 +51,8 @@ def permissions_check(f=None,permissionList=[]):
                 responseDict["message"] = errorMessage
                 returnResponse.set_data(json.dumps(responseDict))
                 return returnResponse
+            except ResponseException as e:
+                return JsonResponse.error(e,e.status)
             except Exception as e:
                 exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
                 return JsonResponse.error(exc,exc.status)
