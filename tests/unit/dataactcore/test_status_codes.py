@@ -1,6 +1,6 @@
 from dataactcore.utils.statusCode import StatusCode
 
-class TestStatusCode:
+class TestStatusCodes:
 
     def setup_class(self):
         """ Setup for class """
