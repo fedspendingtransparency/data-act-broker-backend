@@ -47,6 +47,7 @@ class FileHandler:
             self.jobManager = interfaces.jobDb
         self.isLocal = isLocal
         self.serverPath = serverPath
+        self.s3manager = s3UrlHandler()
 
     def addInterfaces(self,interfaces):
         """ Add connections to databases
@@ -408,7 +409,6 @@ class FileHandler:
         if self.isLocal:
             response["rss_url"] = os.path.join(self.serverPath, CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"])
         else:
-            self.s3manager = s3UrlHandler()
             response["rss_url"] = self.s3manager.getSignedUrl(CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"],"GET")
         return JsonResponse.create(200,response)
 
@@ -472,9 +472,13 @@ class FileHandler:
             if result.status_code != 200:
                 raise ResponseException(result.data)
 
-        url = "" if d1_file.url is None else d1_file.url
-        error_message = "" if d1_file.error_message is None else d1_file.error_message
+        user_id = LoginSession.getName(session)
+        slash_index = d1_file.upload_file_name.rfind("/")
+        timestamped_filename = d1_file.upload_file_name[slash_index + 1:]
 
+        url = "" if status != "finished" else self.s3manager.getSignedUrl(path=str(user_id),
+                                                                          fileName=timestamped_filename, method="GET")
+        error_message = "" if d1_file.error_message is None else d1_file.error_message
         start_date = d1_file.start_date.strftime("%m/%d/%Y")
         end_date = d1_file.end_date.strftime("%m/%d/%Y")
 
@@ -547,10 +551,13 @@ class FileHandler:
             if result.status_code != 200:
                 raise ResponseException(result.data)
 
-        status = self.jobManager.getJobStatusNameById(d2_file.status_id)
-        url = "" if d2_file.url is None else d2_file.url
-        error_message = "" if d2_file.error_message is None else d2_file.error_message
+        user_id = LoginSession.getName(session)
+        slash_index = d2_file.upload_file_name.rfind("/")
+        timestamped_filename = d2_file.upload_file_name[slash_index+1:]
 
+        url = "" if status != "finished" else self.s3manager.getSignedUrl(path=str(user_id), fileName=timestamped_filename, method="GET")
+
+        error_message = "" if d2_file.error_message is None else d2_file.error_message
         start_date = d2_file.start_date.strftime("%m/%d/%Y")
         end_date = d2_file.end_date.strftime("%m/%d/%Y")
 
