@@ -49,7 +49,7 @@ class JobQueue:
                     url_start_index = xml_response.find("<results>", 0) + 9
                     file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
                 else:
-                    file_url = s3UrlHandler().getSignedUrl(path="public/", fileName=file_name, method="GET")
+                    file_url = s3UrlHandler().getSignedUrl(path="d-files/", fileName=file_name, method="GET")
 
                 bucket = CONFIG_BROKER['aws_bucket']
                 region = CONFIG_BROKER['aws_region']
