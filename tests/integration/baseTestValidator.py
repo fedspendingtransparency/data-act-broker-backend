@@ -17,7 +17,8 @@ from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.jobModels import Job, Submission
 from dataactcore.models.validationModels import FileColumn
-from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER
+from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
+from dataactcore.scripts.databaseSetup import createDatabase,runMigrations
 import dataactcore.config
 
 class BaseTestValidator(unittest.TestCase):
@@ -33,15 +34,11 @@ class BaseTestValidator(unittest.TestCase):
         suite = cls.__name__.lower()
         config = dataactcore.config.CONFIG_DB
         cls.num = randint(1, 9999)
-        config['error_db_name'] = 'unittest{}_{}_error_data'.format(
-            cls.num, suite)
-        config['job_db_name'] = 'unittest{}_{}_job_tracker'.format(
-            cls.num, suite)
-        config['user_db_name'] = 'unittest{}_{}_user_manager'.format(
-            cls.num, suite)
-        config['validator_db_name'] = 'unittest{}_{}_validator'.format(
+        config['db_name'] = 'unittest{}_{}_data_broker'.format(
             cls.num, suite)
         dataactcore.config.CONFIG_DB = config
+        createDatabase(CONFIG_DB['db_name'])
+        runMigrations()
 
         app = createApp()
         app.config['TESTING'] = True
@@ -80,14 +77,12 @@ class BaseTestValidator(unittest.TestCase):
         """Tear down class-level resources."""
         cls.interfaces.close()
         dropDatabase(cls.interfaces.jobDb.dbName)
-        dropDatabase(cls.interfaces.errorDb.dbName)
-        dropDatabase(cls.interfaces.validationDb.dbName)
 
     def tearDown(self):
         """Tear down broker unit tests."""
 
     def run_test(self, jobId, statusId, statusName, fileSize, stagingRows,
-                 errorStatus, numErrors, rowErrorsPresent = None):
+                 errorStatus, numErrors, rowErrorsPresent = None, numWarnings = 0, warningFileSize = None):
         """ Runs a validation test
 
         Args:
@@ -115,18 +110,16 @@ class BaseTestValidator(unittest.TestCase):
         self.assertEqual(
             response.headers.get("Content-Type"), "application/json")
 
-        # Get staging records associated with this job
+        # Check valid row count for this job
         if stagingRows:
-            fileType = jobTracker.getFileType(jobId)
-            submissionId = jobTracker.getSubmissionId(jobId)
-            numRows = stagingDb.getNumberOfValidRecordsForSubmission(submissionId,fileType)
-            self.assertEqual(numRows, stagingRows)
+            numValidRows = jobTracker.getNumberOfValidRowsById(jobId)
+            self.assertEqual(numValidRows, stagingRows)
 
         errorInterface = self.errorInterface
         if errorStatus is not False:
             self.assertEqual(errorInterface.checkFileStatusByJobId(jobId), errorInterface.getFileStatusId(errorStatus))
-            self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId), numErrors)
-
+            self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId, self.validationDb,"fatal"), numErrors)
+            self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId, self.validationDb,"warning"), numWarnings)
         if(fileSize != False):
             if self.local:
                 path = "".join(
@@ -138,6 +131,17 @@ class BaseTestValidator(unittest.TestCase):
                     "errors/"+jobTracker.getReportPath(jobId)), fileSize - 5)
                 self.assertLess(s3UrlHandler.getFileSize(
                     "errors/"+jobTracker.getReportPath(jobId)), fileSize + 5)
+        if(warningFileSize is not None and warningFileSize != False):
+            if self.local:
+                path = "".join(
+                    [self.local_file_directory,jobTracker.getWarningReportPath(jobId)])
+                self.assertGreater(os.path.getsize(path), warningFileSize - 5)
+                self.assertLess(os.path.getsize(path), warningFileSize + 5)
+            else:
+                self.assertGreater(s3UrlHandler.getFileSize(
+                    "errors/"+jobTracker.getWarningReportPath(jobId)), warningFileSize - 5)
+                self.assertLess(s3UrlHandler.getFileSize(
+                    "errors/"+jobTracker.getWarningReportPath(jobId)), warningFileSize + 5)
 
         # Check if errors_present is set correctly
         if rowErrorsPresent is not None:

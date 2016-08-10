@@ -1,7 +1,7 @@
 from sqlalchemy.orm import subqueryload
 from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.validationInterface import ValidationInterface
-from dataactcore.models.validationModels import FileColumn, FileType, FieldType, RuleSeverity, RuleSql
+from dataactcore.models.validationModels import FileColumn, FileTypeValidation, FieldType, RuleSeverity, RuleSql
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
@@ -269,25 +269,13 @@ class ValidatorValidationInterface(ValidationInterface):
         return self.runUniqueQuery(column, "No field found with that name for that file type",
                                    "Multiple fields with that name for that file type")
 
-    def getColumnLength(self,fieldName, fileId):
-        """ If there is a length rule for this field, return the max length.  Otherwise, return None. """
-        columnId = self.getColumnId(fieldName,fileId)
-        # Get length rules for this column
-        query = self.session.query(Rule).filter(Rule.file_column_id == columnId).filter(Rule.rule_type_id == 6)
-        try:
-            rule = self.runUniqueQuery(query,False,"Multiple length rules for this column")
-        except NoResultFound as e:
-            # No length rule for this column
-            return None
-        return int(float(rule.rule_text_1)) # Going through float in case of decimal value
-
     def populateFile(self,column):
         """ Populate file object in the ORM for the specified FileColumn object
 
         Arguments:
             column - FileColumn object to get File object for
         """
-        column.file = self.session.query(FileType).filter(FileType.file_id == column.file_id)[0]
+        column.file = self.session.query(FileTypeValidation).filter(FileTypeValidation.file_id == column.file_id)[0]
 
     def getFieldTypeById(self, id):
         """ Return name of field type based on id """

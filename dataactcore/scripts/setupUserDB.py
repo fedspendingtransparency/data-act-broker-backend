@@ -6,8 +6,6 @@ from dataactcore.config import CONFIG_DB
 
 def setupUserDB():
     """Create user tables from model metadata."""
-    createDatabase(CONFIG_DB['user_db_name'])
-    runMigrations('user_manager')
     insertCodes()
 
 
