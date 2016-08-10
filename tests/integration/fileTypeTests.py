@@ -101,11 +101,14 @@ class FileTypeTests(BaseTestValidator):
         SchemaLoader.loadAllFromPath(join(CONFIG_BROKER["path"],"dataactvalidator","config"))
         SQLLoader.loadSql("sqlRules.csv")
         # Load domain values tables
-        loadDomainValues(join(CONFIG_BROKER["path"],"dataactvalidator","config"),join(CONFIG_BROKER["path"],"tests","sf_133.csv"),join(CONFIG_BROKER["path"],"tests","program_activity.csv"))
+        loadDomainValues(
+            join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
+            join(CONFIG_BROKER["path"], os.path.join("tests", "integration", "data"), "sf_133.csv"),
+            join(CONFIG_BROKER["path"], os.path.join("tests", "integration", "data"), "program_activity.csv"))
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
                 or force_tas_load):
             # TAS table is empty, load it
-            loadTas(tasFile="all_tas_betc.csv", dropIdx=False)
+            loadTas(tasFile=os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data", "all_tas_betc.csv"), dropIdx=False)
 
     def test_approp_valid(self):
         """Test valid job."""

@@ -347,9 +347,7 @@ class FileTests(BaseTestAPI):
     @staticmethod
     def uploadFileByURL(s3FileName,filename):
         """Upload file and return filename and bytes written."""
-        path = os.path.dirname(
-            os.path.abspath(inspect.getfile(inspect.currentframe())))
-        fullPath = os.path.join(path, filename)
+        fullPath = os.path.join(CONFIG_BROKER['path'], "tests", "integration", "data", filename)
 
         if CONFIG_BROKER['local']:
             # If not using AWS, put file submission in location

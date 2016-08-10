@@ -201,8 +201,7 @@ class BaseTestValidator(unittest.TestCase):
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
 
-        path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        fullPath = path + "/" + filename
+        fullPath = os.path.join(CONFIG_BROKER['path'], "tests", "integration", "data", filename)
 
         if cls.local:
             # Local version just stores full path in job tracker
