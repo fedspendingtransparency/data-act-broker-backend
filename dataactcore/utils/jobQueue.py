@@ -39,11 +39,6 @@ class JobQueue:
             job_manager = interface_holder().jobDb
 
             try:
-                # if skip_gen:
-                #     s3_url = s3UrlHandler().getSignedUrl(path="public/", fileName=file_name, method="GET")
-                #     job_manager.setDFileUrl(d_file_id, s3_url)
-                #     job_manager.setDFileStatus(d_file_id, "finished")
-                # else:
                 if not skip_gen:
                     xml_response = str(requests.get(api_url, verify=False).content)
                     url_start_index = xml_response.find("<results>", 0) + 9
