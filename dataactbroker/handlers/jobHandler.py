@@ -5,7 +5,6 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactbroker.handlers.errorHandler import ErrorHandler
 from sqlalchemy import and_
-import time
 
 class JobHandler(JobTrackerInterface):
     """ Responsible for all interaction with the job tracker database
@@ -215,10 +214,6 @@ class JobHandler(JobTrackerInterface):
             extQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.job_type_id == self.getJobTypeId("external_validation"))
             extJob = self.runUniqueQuery(extQuery,"No external validation job found","Conflicting jobs found")
             extJob.job_status_id = self.getJobStatusId("waiting")
-
-            # Update submission updated_at
-            submission = self.jobManager.getSubmissionById(submissionId)
-            submission.updated_at = time.strftime("%c")
             self.session.commit()
         else:
             # Create validation job
