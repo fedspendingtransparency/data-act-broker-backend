@@ -16,7 +16,17 @@ def permissions_check(f=None,permissionList=[]):
         def decorated_function(*args, **kwargs):
             try:
                 errorMessage  = "Login Required"
-                if LoginSession.isLogin(session):
+                if "check_email_token" in permissionList:
+                    if(LoginSession.isRegistering(session)) :
+                        return f(*args, **kwargs)
+                    else :
+                        errorMessage  = "unauthorized"
+                elif "check_password_token" in permissionList  :
+                    if(LoginSession.isResetingPassword(session)) :
+                        return f(*args, **kwargs)
+                    else :
+                        errorMessage  = "unauthorized"
+                elif LoginSession.isLogin(session):
                     userDb = UserHandler()
                     try:
                         user = userDb.getUserByUID(session["name"])
@@ -33,16 +43,6 @@ def permissions_check(f=None,permissionList=[]):
                     if(validUser) :
                         return f(*args, **kwargs)
                     errorMessage  = "Wrong User Type"
-                elif "check_email_token" in permissionList:
-                    if(LoginSession.isRegistering(session)) :
-                        return f(*args, **kwargs)
-                    else :
-                        errorMessage  = "unauthorized"
-                elif "check_password_token" in permissionList  :
-                    if(LoginSession.isResetingPassword(session)) :
-                        return f(*args, **kwargs)
-                    else :
-                        errorMessage  = "unauthorized"
 
                 returnResponse = flask.Response()
                 returnResponse.headers["Content-Type"] = "application/json"
