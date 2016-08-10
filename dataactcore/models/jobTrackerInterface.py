@@ -291,7 +291,7 @@ class JobTrackerInterface(BaseInterface):
         query = self.session.query(Submission).filter(Submission.submission_id == submissionId)
         return self.runUniqueQuery(query, "No submission with that ID", "Multiple submissions with that ID")
 
-    def getSubmissionErrorInfo(self, submissionId):
+    def populateSubmissionErrorInfo(self, submissionId):
         """ Set number of errors and warnings for submission """
         submission = self.getSubmissionById(submissionId)
         submission.number_of_errors = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb)

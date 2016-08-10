@@ -416,7 +416,7 @@ class ValidationManager:
             jobTracker.markJobStatus(jobId,"finished")
             errorInterface.writeAllRowErrors(jobId)
             # Update error info for submission
-            jobTracker.getSubmissionErrorInfo(submissionId)
+            jobTracker.populateSubmissionErrorInfo(submissionId)
         finally:
             # Ensure the file always closes
             reader.close()
@@ -527,7 +527,7 @@ class ValidationManager:
         interfaces.jobDb.markJobStatus(jobId, "finished")
         CloudLogger.logError("VALIDATOR_INFO: ", "Completed runCrossValidation on submissionID: "+str(submissionId), "")
         # Update error info for submission
-        interfaces.jobDb.getSubmissionErrorInfo(submissionId)
+        interfaces.jobDb.populateSubmissionErrorInfo(submissionId)
         # TODO: Remove temporary step below
         # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their submissions
         # as publishable

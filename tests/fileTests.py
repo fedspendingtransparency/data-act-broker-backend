@@ -228,6 +228,10 @@ class FileTests(BaseTestAPI):
     def test_check_status(self):
         """Test broker status route response."""
         postJson = {"submission_id": self.status_check_submission_id}
+        # Populating error info before calling route to avoid changing last update time
+        submission = self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id)
+        self.interfaces.jobDb.populateSubmissionErrorInfo(self.status_check_submission_id)
+        
         response = self.app.post_json("/v1/check_status/", postJson, headers={"x-session-id":self.session_id})
 
         self.assertEqual(response.status_code, 200, msg=str(response.json))
@@ -307,10 +311,9 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["number_of_errors"],17)
         self.assertEqual(json["number_of_rows"],667)
         # Check number of errors and warnings in submission table
-        submission = self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id)
-        self.interfaces.jobDb.getSubmissionErrorInfo(self.status_check_submission_id)
-        self.assertEqual(submission.number_of_errors, 12)
-        self.assertEqual(submission.number_of_warnings, 5)
+
+        self.assertEqual(submission.number_of_errors, 17)
+        self.assertEqual(submission.number_of_warnings, 7)
 
         # Check that submission was created today, this test may fail if run right at midnight UTC
         self.assertEqual(json["created_on"],datetime.utcnow().strftime("%m/%d/%Y"))
