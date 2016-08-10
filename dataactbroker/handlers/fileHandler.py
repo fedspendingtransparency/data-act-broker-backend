@@ -1,6 +1,4 @@
 import os
-import requests
-import time
 from flask import session, request
 from datetime import datetime
 from werkzeug import secure_filename
@@ -76,7 +74,7 @@ class FileHandler:
                         reportName = self.jobManager.getReportPath(jobId)
                         key = "job_"+str(jobId)+"_error_url"
                     if(not self.isLocal):
-                        responseDict[key] = self.s3manager.getSignedUrl("errors",reportName,"GET")
+                        responseDict[key] = self.s3manager.getSignedUrl("errors",reportName,method="GET")
                     else:
                         path = os.path.join(self.serverPath, reportName)
                         responseDict[key] = path
@@ -99,7 +97,7 @@ class FileHandler:
                     if self.isLocal:
                         reportPath = os.path.join(self.serverPath,reportName)
                     else:
-                        reportPath = self.s3manager.getSignedUrl("errors",reportName,"GET")
+                        reportPath = self.s3manager.getSignedUrl("errors",reportName,method="GET")
                     # Assign to key based on source and target
                     responseDict[self.getCrossReportKey(source,target,isWarning)] = reportPath
 
@@ -149,13 +147,10 @@ class FileHandler:
                 # If filetype not included in request, and this is an update to an existing submission, skip it
                 if not safeDictionary.exists(fileType):
                     if existingSubmission:
-                        submission = self.jobManager.getSubmissionById(submissionId)
-                        submission.updated_at = time.strftime("%c")
-                        self.jobManager.session.commit()
                         continue
-                    else:
-                        # This is a new submission, all files are required
-                        raise ResponseException("Must include all files for new submission",StatusCode.CLIENT_ERROR)
+                    # This is a new submission, all files are required
+                    raise ResponseException("Must include all files for new submission", StatusCode.CLIENT_ERROR)
+
                 filename = safeDictionary.getValue(fileType)
                 if( safeDictionary.exists(fileType)) :
                     if(not self.isLocal):
@@ -164,6 +159,10 @@ class FileHandler:
                         uploadName = filename
                     responseDict[fileType+"_key"] = uploadName
                     fileNameMap.append((fileType,uploadName,filename))
+
+            if not fileNameMap and existingSubmission:
+                raise ResponseException("Must include at least one file for an existing submission",
+                                        StatusCode.CLIENT_ERROR)
 
             for extFileType in FileHandler.EXTERNAL_FILE_TYPES:
                 if extFileType == "award":
@@ -403,15 +402,6 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-    def getRss(self):
-        """ Returns a signed URL to the RSS document.  If local returns local path to RSS. """
-        response = {}
-        if self.isLocal:
-            response["rss_url"] = os.path.join(self.serverPath, CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"])
-        else:
-            response["rss_url"] = self.s3manager.getSignedUrl(CONFIG_BROKER["rss_folder"],CONFIG_BROKER["rss_file"],"GET")
-        return JsonResponse.create(200,response)
-
     def generateD1File(self):
         """ Initiates the generation of D1 """
         requestDict = RequestDictionary(self.request)
@@ -564,4 +554,14 @@ class FileHandler:
         response = {"status": status, "url": url, "start": start_date, "end": end_date,
                     "message": error_message}
 
+        return JsonResponse.create(StatusCode.OK, response)
+
+    def getProtectedFiles(self):
+        """ Returns a set of urls to protected files on the help page """
+        response = {}
+        if self.isLocal:
+            response["urls"] = {}
+            return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
+
+        response["urls"] = self.s3manager.getFileUrls(bucket_name=CONFIG_BROKER["static_files_bucket"], path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
