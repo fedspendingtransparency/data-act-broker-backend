@@ -1,6 +1,6 @@
 from __future__ import print_function
 from dataactcore.models.jobModels import JobDependency
-from baseTestValidator import BaseTestValidator
+from tests.integration.baseTestValidator import BaseTestValidator
 import unittest
 
 class JobTests(BaseTestValidator):

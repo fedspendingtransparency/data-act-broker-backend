@@ -5,7 +5,7 @@ import boto
 from datetime import datetime
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
-from baseTestAPI import BaseTestAPI
+from tests.integration.baseTestAPI import BaseTestAPI
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.config import CONFIG_BROKER
