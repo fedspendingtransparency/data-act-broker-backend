@@ -306,6 +306,12 @@ class FileTests(BaseTestAPI):
         # Check submission level info
         self.assertEqual(json["number_of_errors"],17)
         self.assertEqual(json["number_of_rows"],667)
+        # Check number of errors and warnings in submission table
+        submission = self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id)
+        self.interfaces.jobDb.getSubmissionErrorInfo(self.status_check_submission_id)
+        self.assertEqual(submission.number_of_errors, 12)
+        self.assertEqual(submission.number_of_warnings, 5)
+
         # Check that submission was created today, this test may fail if run right at midnight UTC
         self.assertEqual(json["created_on"],datetime.utcnow().strftime("%m/%d/%Y"))
         self.assertEqual(json["last_updated"],self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id).updated_at.strftime("%Y-%m-%dT%H:%M:%S"))
