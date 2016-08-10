@@ -23,7 +23,9 @@ class DomainHandler:
         self.userManager = interfaces.userDb
 
     def listAgencies(self):
-
+        """ Retrieves a list of all agency names and their cgac codes. If there is
+         a user logged in, it will check if that user is part of the 'SYS' agency.
+         If so, 'SYS' will be added to the agency_list. """
         agencies = self.validationManager.getAllAgencies()
         agency_list = []
 
