@@ -1,6 +1,6 @@
 import os
 import requests
-import time
+
 from flask import session, request
 from datetime import datetime
 from werkzeug import secure_filename
@@ -147,15 +147,9 @@ class FileHandler:
             # Build fileNameMap to be used in creating jobs
             for fileType in FileHandler.FILE_TYPES :
                 # If filetype not included in request, and this is an update to an existing submission, skip it
-                if not safeDictionary.exists(fileType):
-                    if existingSubmission:
-                        submission = self.jobManager.getSubmissionById(submissionId)
-                        submission.updated_at = time.strftime("%c")
-                        self.jobManager.session.commit()
-                        continue
-                    else:
-                        # This is a new submission, all files are required
-                        raise ResponseException("Must include all files for new submission",StatusCode.CLIENT_ERROR)
+                if not (safeDictionary.exists(fileType) or existingSubmission):
+                    # This is a new submission, all files are required
+                    raise ResponseException("Must include all files for new submission",StatusCode.CLIENT_ERROR)
                 filename = safeDictionary.getValue(fileType)
                 if( safeDictionary.exists(fileType)) :
                     if(not self.isLocal):
@@ -164,6 +158,9 @@ class FileHandler:
                         uploadName = filename
                     responseDict[fileType+"_key"] = uploadName
                     fileNameMap.append((fileType,uploadName,filename))
+
+            if not fileNameMap and existingSubmission:
+                raise ResponseException("Must include at least one file for an existing submission", StatusCode.CLIENT_ERROR)
 
             for extFileType in FileHandler.EXTERNAL_FILE_TYPES:
                 if extFileType == "award":
