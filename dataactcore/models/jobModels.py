@@ -76,7 +76,6 @@ class DFileMeta(Base):
     end_date = Column(Date)
     status_id = Column(Integer, ForeignKey("job_status.job_status_id", name="fk_status_id"))
     status = relationship("JobStatus", uselist=False)
-    url = Column(Text)
     error_message = Column(Text)
     upload_file_name = Column(Text)
     original_file_name = Column(Text)

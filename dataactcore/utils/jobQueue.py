@@ -73,8 +73,6 @@ class JobQueue:
                         writer.write(line)
                     writer.finishBatch()
 
-                s3_url = s3UrlHandler().getSignedUrl(path=str(user_id), fileName=timestamped_name, method="GET")
-                job_manager.setDFileUrl(d_file_id, s3_url)
                 job_manager.setDFileStatus(d_file_id, "finished")
             except Exception as e:
                 job_manager.setDFileMessage(d_file_id, str(e))
