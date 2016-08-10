@@ -51,6 +51,9 @@ More complete install documentation is available on the PostgreSQL [wiki](https:
 
 **Note:** If you're setting up the broker on Mac OSX, we recommend using [homebrew](http://brew.sh) to install PostgreSQL.
 
+**Note:** The database user will need to have permission to create databases.
+A "superuser" will do.
+
 ### Install Python and Create Virtual Environment
 
 The broker's backend components currently run on Python 3.x. These instructions will walk you through the process of installing Python and creating a Python-based virtual environment to house the DATA Act backend components. A virtual environment will isolate the broker software and its libraries from those running on your local system and prevent potential conflicts.
