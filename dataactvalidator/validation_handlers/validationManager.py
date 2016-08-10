@@ -531,7 +531,9 @@ class ValidationManager:
         # TODO: Remove temporary step below
         # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their submissions
         # as publishable
-        interfaces.jobDb.setPublishableFlag(submissionId, True)
+        # Publish only if no errors are present
+        if interfaces.jobDb.getSubmissionById(submissionId).number_of_errors == 0:
+            interfaces.jobDb.setPublishableFlag(submissionId, True)
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to a staging table

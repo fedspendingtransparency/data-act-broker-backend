@@ -215,7 +215,6 @@ class BaseTestValidator(unittest.TestCase):
 
             if(cls.uploadFiles) :
                 # Use boto to put files on S3
-                #s3conn = S3Connection()
                 s3conn = boto.s3.connect_to_region(regionName)
                 key = Key(s3conn.get_bucket(bucketName))
                 key.key = s3FileName

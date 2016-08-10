@@ -296,6 +296,7 @@ class JobTrackerInterface(BaseInterface):
         submission = self.getSubmissionById(submissionId)
         submission.number_of_errors = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb)
         submission.number_of_warnings = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb, errorType = "warning")
+        self.session.commit()
 
     def setJobNumberOfErrors(self, jobId, numberOfErrors, errorType):
         """ Label nuber of errors or warnings for specified job
@@ -311,6 +312,7 @@ class JobTrackerInterface(BaseInterface):
             job.number_of_errors = numberOfErrors
         elif errorType == "warning":
             job.number_of_warnings = numberOfErrors
+        self.session.commit()
 
     def setPublishableFlag(self, submissionId, publishable):
         """ Set publishable flag to specified value """
@@ -318,26 +320,27 @@ class JobTrackerInterface(BaseInterface):
         submission.publishable = publishable
         self.session.commit()
 
-    def setPublishStatus(self, statusName, submissionId = None, submission = None):
+    def extractSubmission(self, submissionOrId):
+        """ If given an integer, get the specified submission, otherwise return the input """
+        if isinstance(submissionOrId, int):
+            return self.getSubmissionById(submissionOrId)
+        else:
+            return submissionOrId
+
+    def setPublishStatus(self, statusName, submissionOrId):
         """ Set publish status to specified name"""
         statusId = self.getPublishStatusId(statusName)
-        if submission is None:
-            if submissionId is None:
-                raise ValueError("Must call setPublishStatus with either submission or submission ID")
-            submission = self.getSubmissionById(submissionId)
+        submission = self.extractSubmission(submissionOrId)
         submission.publish_status_id = statusId
         self.session.commit()
 
-    def updatePublishStatus(self, submissionId = None, submission = None):
+    def updatePublishStatus(self, submissionOrId):
         """ If submission was already published, mark as updated.  Also set publishable back to false. """
-        if submission is None:
-            if submissionId is None:
-                raise ValueError("Must call setPublishStatus with either submission or submission ID")
-            submission = self.getSubmissionById(submissionId)
+        submission = self.extractSubmission(submissionOrId)
         publishedStatus = self.getPublishStatusId("published")
         if submission.publish_status_id == publishedStatus:
             # Submission already published, mark as updated
-            self.setPublishStatus("updated", submission = submission)
+            self.setPublishStatus("updated", submission)
         # Changes have been made, so don't publish until user marks as publishable again
         submission.publishable = False
         self.session.commit()
