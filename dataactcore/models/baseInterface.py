@@ -4,18 +4,25 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-
+from dataactcore.config import CONFIG_DB
 
 class BaseInterface(object):
     """ Abstract base interface to be inherited by interfaces for specific databases
     """
     #For Flask Apps use the context for locals
     IS_FLASK = True
-    dbName = None  # Should be overwritten by child classes
-    dbConfig = None  # Should be overwritten by child classes
+    dbConfig = None
     logFileName = "dbErrors.log"
+    dbName = None
+    Session = None
+    engine = None
+    session = None
+    # This holds a pointer to an InterfaceHolder object, and is populated when that is instantiated
+    interfaces = None
 
     def __init__(self):
+        self.dbConfig = CONFIG_DB
+        self.dbName = self.dbConfig['db_name']
         if(self.session != None):
             # session is already set up for this DB
             return
@@ -42,6 +49,7 @@ class BaseInterface(object):
 
     def __del__(self):
         try:
+            self.interfaces = None
             #Close session
             self.session.close()
             self.Session.remove()
@@ -50,6 +58,15 @@ class BaseInterface(object):
         except (KeyError, AttributeError):
             # KeyError will occur in Python 3 on engine dispose
             pass
+
+    @staticmethod
+    def getDbName():
+        """Return database name."""
+        return BaseInterface.dbName
+
+    def getSession(self):
+        """ Return current active session """
+        return self.session
 
     @classmethod
     def getCredDict(cls):

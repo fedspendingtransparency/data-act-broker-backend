@@ -1,31 +1,20 @@
 import traceback
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission
+from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, FileType, PublishStatus
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import JobQueue
-from dataactcore.config import CONFIG_DB
+from dataactcore.config import CONFIG_JOB_QUEUE
 
 
 class JobTrackerInterface(BaseInterface):
     """Manages all interaction with the job tracker database."""
-    dbConfig = CONFIG_DB
-    dbName = dbConfig['job_db_name']
-    Session = None
-    engine = None
-    session = None
 
     def __init__(self):
-        self.dbName = self.dbConfig['job_db_name']
-        self.jobQueue = JobQueue()
+        self.jobQueue = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
         super(JobTrackerInterface, self).__init__()
-
-    @staticmethod
-    def getDbName():
-        """ Return database name"""
-        return JobTrackerInterface.dbName
 
     @staticmethod
     def checkJobUnique(query):
@@ -38,10 +27,6 @@ class JobTrackerInterface(BaseInterface):
         True if single result, otherwise exception
         """
         return BaseInterface.runUniqueQuery(query, "Job ID not found in job table","Conflicting jobs found for this ID")
-
-    def getSession(self):
-        """ Return session object"""
-        return self.session
 
     def getJobById(self,jobId):
         """ Return job model object based on ID """
@@ -73,6 +58,10 @@ class JobTrackerInterface(BaseInterface):
     def getReportPath(self,jobId):
         """ Return the filename for the error report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
         return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_error_report.csv"
+
+    def getWarningReportPath(self, jobId):
+        """ Return the filename for the warning report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
+        return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_warning_report.csv"
 
     def getCrossFileReportPath(self,submissionId):
         """ Returns the filename for the cross file error report. """
@@ -182,9 +171,17 @@ class JobTrackerInterface(BaseInterface):
         return self.getIdFromDict(
             JobStatus, "JOB_STATUS_DICT", "name", statusName, "job_status_id")
 
+    def getJobStatusNameById(self, status_id):
+        """ Returns the status name that corresponds to the given id """
+        return self.getNameFromDict(JobStatus,"JOB_STATUS_DICT","name",status_id,"job_status_id")
+
     def getJobTypeId(self,typeName):
         """ Return the type ID that corresponds to the given name """
         return self.getIdFromDict(JobType,"JOB_TYPE_DICT","name",typeName,"job_type_id")
+
+    def getFileTypeId(self, typeName):
+        """ Returns the file type id that corresponds to the given name """
+        return self.getIdFromDict(FileType, "FILE_TYPE_DICT", "name", typeName, "file_type_id")
 
     def getOriginalFilenameById(self,jobId):
         """ Get original filename for job matching ID """
@@ -256,7 +253,7 @@ class JobTrackerInterface(BaseInterface):
             {"number_of_rows_valid": numValidRows, "number_of_rows": numRows})
         self.session.commit()
 
-    def getSubmissionStatus(self,submissionId,errorDb):
+    def getSubmissionStatus(self,submissionId,interfaces):
         jobIds = self.getJobsBySubmission(submissionId)
         status_names = self.getJobStatusNames()
         statuses = dict(zip(status_names,[0]*len(status_names)))
@@ -283,8 +280,71 @@ class JobTrackerInterface(BaseInterface):
         if statuses["finished"] == len(jobIds)-skip_count: # need to account for the jobs that were skipped above
             # Check if submission has errors,
             jobs = self.getJobsBySubmission(submissionId)
-            if errorDb.sumNumberOfErrorsForJobList(jobs) > 0:
+            if interfaces.errorDb.sumNumberOfErrorsForJobList(jobs, interfaces.validationDb) > 0:
                 return "validation_errors"
             else:
                 return "validation_successful"
         return "unknown"
+
+    def getSubmissionById(self, submissionId):
+        """ Return submission object that matches ID"""
+        query = self.session.query(Submission).filter(Submission.submission_id == submissionId)
+        return self.runUniqueQuery(query, "No submission with that ID", "Multiple submissions with that ID")
+
+    def populateSubmissionErrorInfo(self, submissionId):
+        """ Set number of errors and warnings for submission """
+        submission = self.getSubmissionById(submissionId)
+        submission.number_of_errors = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb)
+        submission.number_of_warnings = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb, errorType = "warning")
+        self.session.commit()
+
+    def setJobNumberOfErrors(self, jobId, numberOfErrors, errorType):
+        """ Label nuber of errors or warnings for specified job
+
+        Args:
+            jobId: Job to set number for
+            numberOfErrors: Number to be set
+            errorType: Type of error to set, can be either 'fatal' or 'warning'
+
+        """
+        job = self.getJobById(jobId)
+        if errorType == "fatal":
+            job.number_of_errors = numberOfErrors
+        elif errorType == "warning":
+            job.number_of_warnings = numberOfErrors
+        self.session.commit()
+
+    def setPublishableFlag(self, submissionId, publishable):
+        """ Set publishable flag to specified value """
+        submission = self.getSubmissionById(submissionId)
+        submission.publishable = publishable
+        self.session.commit()
+
+    def extractSubmission(self, submissionOrId):
+        """ If given an integer, get the specified submission, otherwise return the input """
+        if isinstance(submissionOrId, int):
+            return self.getSubmissionById(submissionOrId)
+        else:
+            return submissionOrId
+
+    def setPublishStatus(self, statusName, submissionOrId):
+        """ Set publish status to specified name"""
+        statusId = self.getPublishStatusId(statusName)
+        submission = self.extractSubmission(submissionOrId)
+        submission.publish_status_id = statusId
+        self.session.commit()
+
+    def updatePublishStatus(self, submissionOrId):
+        """ If submission was already published, mark as updated.  Also set publishable back to false. """
+        submission = self.extractSubmission(submissionOrId)
+        publishedStatus = self.getPublishStatusId("published")
+        if submission.publish_status_id == publishedStatus:
+            # Submission already published, mark as updated
+            self.setPublishStatus("updated", submission)
+        # Changes have been made, so don't publish until user marks as publishable again
+        submission.publishable = False
+        self.session.commit()
+
+    def getPublishStatusId(self, statusName):
+        """ Return ID for specified publish status """
+        return self.getIdFromDict(PublishStatus,  "PUBLISH_STATUS_DICT", "name", statusName, "publish_status_id")

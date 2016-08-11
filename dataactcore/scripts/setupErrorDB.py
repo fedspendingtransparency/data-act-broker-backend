@@ -6,8 +6,6 @@ from dataactcore.config import CONFIG_DB
 
 def setupErrorDB():
     """Create job tracker tables from model metadata."""
-    createDatabase(CONFIG_DB['error_db_name'])
-    runMigrations('error_data')
     insertCodes()
 
 def insertCodes():

@@ -15,9 +15,11 @@ from dataactcore.scripts.setupValidationDB import setupValidationDB
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
+from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Job, Submission
 from dataactcore.models.validationModels import FileColumn
-from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER
+from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
+from dataactcore.scripts.databaseSetup import createDatabase,runMigrations
 import dataactcore.config
 
 class BaseTestValidator(unittest.TestCase):
@@ -27,21 +29,18 @@ class BaseTestValidator(unittest.TestCase):
     def setUpClass(cls):
         """Set up resources to be shared within a test class"""
         #TODO: refactor into a pytest class fixtures and inject as necessary
-
+        # Prevent interface being reused from last suite
+        BaseInterface.interfaces = None
         # update application's db config options so unittests
         # run against test databases
         suite = cls.__name__.lower()
         config = dataactcore.config.CONFIG_DB
         cls.num = randint(1, 9999)
-        config['error_db_name'] = 'unittest{}_{}_error_data'.format(
-            cls.num, suite)
-        config['job_db_name'] = 'unittest{}_{}_job_tracker'.format(
-            cls.num, suite)
-        config['user_db_name'] = 'unittest{}_{}_user_manager'.format(
-            cls.num, suite)
-        config['validator_db_name'] = 'unittest{}_{}_validator'.format(
+        config['db_name'] = 'unittest{}_{}_data_broker'.format(
             cls.num, suite)
         dataactcore.config.CONFIG_DB = config
+        createDatabase(CONFIG_DB['db_name'])
+        runMigrations()
 
         app = createApp()
         app.config['TESTING'] = True
@@ -80,14 +79,12 @@ class BaseTestValidator(unittest.TestCase):
         """Tear down class-level resources."""
         cls.interfaces.close()
         dropDatabase(cls.interfaces.jobDb.dbName)
-        dropDatabase(cls.interfaces.errorDb.dbName)
-        dropDatabase(cls.interfaces.validationDb.dbName)
 
     def tearDown(self):
         """Tear down broker unit tests."""
 
     def run_test(self, jobId, statusId, statusName, fileSize, stagingRows,
-                 errorStatus, numErrors, rowErrorsPresent = None):
+                 errorStatus, numErrors, rowErrorsPresent = None, numWarnings = 0, warningFileSize = None):
         """ Runs a validation test
 
         Args:
@@ -123,8 +120,8 @@ class BaseTestValidator(unittest.TestCase):
         errorInterface = self.errorInterface
         if errorStatus is not False:
             self.assertEqual(errorInterface.checkFileStatusByJobId(jobId), errorInterface.getFileStatusId(errorStatus))
-            self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId), numErrors)
-
+            self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId, self.validationDb,"fatal"), numErrors)
+            self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId, self.validationDb,"warning"), numWarnings)
         if(fileSize != False):
             if self.local:
                 path = "".join(
@@ -136,6 +133,17 @@ class BaseTestValidator(unittest.TestCase):
                     "errors/"+jobTracker.getReportPath(jobId)), fileSize - 5)
                 self.assertLess(s3UrlHandler.getFileSize(
                     "errors/"+jobTracker.getReportPath(jobId)), fileSize + 5)
+        if(warningFileSize is not None and warningFileSize != False):
+            if self.local:
+                path = "".join(
+                    [self.local_file_directory,jobTracker.getWarningReportPath(jobId)])
+                self.assertGreater(os.path.getsize(path), warningFileSize - 5)
+                self.assertLess(os.path.getsize(path), warningFileSize + 5)
+            else:
+                self.assertGreater(s3UrlHandler.getFileSize(
+                    "errors/"+jobTracker.getWarningReportPath(jobId)), warningFileSize - 5)
+                self.assertLess(s3UrlHandler.getFileSize(
+                    "errors/"+jobTracker.getWarningReportPath(jobId)), warningFileSize + 5)
 
         # Check if errors_present is set correctly
         if rowErrorsPresent is not None:
@@ -207,7 +215,6 @@ class BaseTestValidator(unittest.TestCase):
 
             if(cls.uploadFiles) :
                 # Use boto to put files on S3
-                s3conn = S3Connection()
                 s3conn = boto.s3.connect_to_region(regionName)
                 key = Key(s3conn.get_bucket(bucketName))
                 key.key = s3FileName

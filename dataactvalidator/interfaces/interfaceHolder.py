@@ -1,3 +1,4 @@
+from dataactcore.models.baseInterface import BaseInterface
 from dataactvalidator.interfaces.validatorErrorInterface import ValidatorErrorInterface
 from dataactvalidator.interfaces.validatorJobTrackerInterface import ValidatorJobTrackerInterface
 from dataactvalidator.interfaces.validatorStagingInterface import ValidatorStagingInterface
@@ -8,10 +9,17 @@ class InterfaceHolder:
 
     def __init__(self):
         """ Create the interfaces """
-        self.jobDb = ValidatorJobTrackerInterface()
-        self.errorDb = ValidatorErrorInterface()
-        self.stagingDb = ValidatorStagingInterface()
-        self.validationDb = ValidatorValidationInterface()
+        if BaseInterface.interfaces is None:
+            self.jobDb = ValidatorJobTrackerInterface()
+            self.errorDb = ValidatorErrorInterface()
+            self.stagingDb = ValidatorStagingInterface()
+            self.validationDb = ValidatorValidationInterface()
+            BaseInterface.interfaces = self
+        else:
+            self.jobDb = BaseInterface.interfaces.jobDb
+            self.errorDb = BaseInterface.interfaces.errorDb
+            self.stagingDb = BaseInterface.interfaces.stagingDb
+            self.validationDb = BaseInterface.interfaces.validationDb
 
     def close(self):
         """ Close all open connections """

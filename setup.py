@@ -34,14 +34,14 @@ setup(
     long_description=long_description,
     url='https://github.com/fedspendingtransparency/data-act-broker-backend.git',
     author='US Treasury',
-    author_email='na@na.com',
+    author_email='databroker@fiscal.treasury.gov',
     license='CC0 1.0 Universal (CC0 1.0) Public Domain Dedication',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Build Tools',
         'License :: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication',
-        'Programming Language :: Python :: 2.7'
+        'Programming Language :: Python :: 3.x'
     ],
     keywords='DATA Act Broker Backend Setup',
     packages=find_packages(),

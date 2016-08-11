@@ -8,12 +8,14 @@ from webtest import TestApp
 from dataactbroker.app import createApp
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactcore.models.userModel import AccountType
+from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.scripts.setupValidationDB import setupValidationDB
-from dataactcore.config import CONFIG_BROKER
+from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
+from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import dataactcore.config
 from dataactbroker.scripts.setupEmails import setupEmails
 from dataactbroker.handlers.userHandler import UserHandler
@@ -26,7 +28,8 @@ class BaseTestAPI(unittest.TestCase):
     def setUpClass(cls):
         """Set up resources to be shared within a test class"""
         #TODO: refactor into a pytest class fixtures and inject as necessary
-
+        # Prevent interface being reused from last suite
+        BaseInterface.interfaces = None
         # Create an empty session ID
         cls.session_id = ""
 
@@ -35,15 +38,11 @@ class BaseTestAPI(unittest.TestCase):
         suite = cls.__name__.lower()
         config = dataactcore.config.CONFIG_DB
         cls.num = randint(1, 9999)
-        config['error_db_name'] = 'unittest{}_{}_error_data'.format(
-            cls.num, suite)
-        config['job_db_name'] = 'unittest{}_{}_job_tracker'.format(
-            cls.num, suite)
-        config['user_db_name'] = 'unittest{}_{}_user_manager'.format(
-            cls.num, suite)
-        config['validator_db_name'] = 'unittest{}_{}_validator'.format(
+        config['db_name'] = 'unittest{}_{}_data_broker'.format(
             cls.num, suite)
         dataactcore.config.CONFIG_DB = config
+        createDatabase(CONFIG_DB['db_name'])
+        runMigrations()
 
         # drop and re-create test user db/tables
         setupUserDB()
@@ -138,6 +137,7 @@ class BaseTestAPI(unittest.TestCase):
         #set up approved user
         user = userDb.getUserByEmail(test_users['approved_email'])
         user.username = "approvedUser"
+        user.cgac_code = "000"
         userDb.setPassword(user, user_password, Bcrypt())
         cls.approved_user_id = user.user_id
 
@@ -184,10 +184,7 @@ class BaseTestAPI(unittest.TestCase):
     def tearDownClass(cls):
         """Tear down class-level resources."""
         cls.interfaces.close()
-        dropDatabase(cls.interfaces.userDb.dbName)
         dropDatabase(cls.interfaces.jobDb.dbName)
-        dropDatabase(cls.interfaces.errorDb.dbName)
-        dropDatabase(cls.interfaces.validationDb.dbName)
 
     def tearDown(self):
         """Tear down broker unit tests."""
