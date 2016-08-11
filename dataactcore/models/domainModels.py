@@ -54,6 +54,7 @@ class SF133(Base):
 
 Index("ix_sf_133_tas",
   SF133.tas,
+  SF133.period,
   SF133.line,
   unique=True)
 
