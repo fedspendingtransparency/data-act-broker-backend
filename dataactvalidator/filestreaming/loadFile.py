@@ -122,6 +122,8 @@ def loadSF133(filename):
     # insert to db
     insertDataframe(data, model.__table__.name, interface.engine)
 
+    # todo: insert 0 line numbers if necessary for validation rules
+
 def insertDataframe(df, table, engine):
     df.to_sql(
         table,
