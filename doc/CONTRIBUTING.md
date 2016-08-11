@@ -8,11 +8,13 @@ All contributions to this project will be released under the CC0 dedication. By 
 
 We use three main branches:
 
-* `master` - stable code deployed to staging
-* `development` - code in development that is periodically released to staging by merging into master
-* `production` - Not currently in use since we're still in active development. Will be used to push code into production.
+* `staging` - Stable code deployed to a staging version of the data broker
+* `development` - Code in development that is released to `staging` at the close of each sprint
+* `master` - Code on the production site. Code gets merged to this branch by the product owner once it has been tested on staging.
 
-Only non-breaking, stable code should be merged into `master` and deployed to staging to prevent disruptions in other parts of the team. All code to be merged should be submitted via a pull request. Team members should _not_ merge their own pull requests but should instead request a code review first. The reviewing team member should merge the pull request after completing the review and ensuring it passes all continuous integration tests.
+Only non-breaking, stable code should be merged into `development`, `staging`, and `master` to prevent disruptions to users and team members.
+
+All code to be merged should be submitted to `development` via a pull request. Team members should _not_ merge their own pull requests but should instead request a code review first. The reviewing team member should merge the pull request after completing the review and ensuring it passes all continuous integration tests.
 
 ## Code Reviews
 
@@ -51,12 +53,15 @@ More complete install documentation is available on the PostgreSQL [wiki](https:
 
 ### Install Python and Create Virtual Environment
 
-The broker's backend components currently run on Python 2.7 (with the intention of migrating to Python 3x for the final release). These instructions will walk you through the process of installing Python and creating a Python-based virtual environment to house the DATA Act backend components. A virtual environment will isolate the broker software and its libraries from those running on your local system and prevent potential conflicts.
+The broker's backend components currently run on Python 3.x. These instructions will walk you through the process of installing Python and creating a Python-based virtual environment to house the DATA Act backend components. A virtual environment will isolate the broker software and its libraries from those running on your local system and prevent potential conflicts.
 
 If you already have a Python development environment on your machine and a preferred way of managing it, feel free to skip to the next section. We wrote the directions below for folks who don't have a Python environment up and running yet and need the quickest way to get started.
 
-1. Install Python 2.7 and pip (Python's package manager) using [these directions](https://docs.aws.amazon.com/cli/latest/userguide/installing.html#install-python "Install Python").
-2. Use pip to install virtualenv:
+1. Install Python 3.x:
+    * Windows and OSX users can download a 3.x Python installer here: [https://www.python.org/downloads/](https://www.python.org/downloads/ "Python installer downloads")
+    * Linux users can install Python 3.x using their distribution's package manager.
+
+2. Use pip to install virtualenv (pip is Python's package manager and is automatically installed with Python 3.x):
 
         pip install virtualenv
 3. Use pip to install virtualenvwrapper:
@@ -72,19 +77,19 @@ If you already have a Python development environment on your machine and a prefe
 
     **Note:** If you're running multiple versions of Python on your machine, you can make sure your data act environment is running the correct Python version by pointing to a specific binary
 
-        mkvirtualenv --python=[path to installed Python 2.7 executable] data-act
+        mkvirtualenv --python=[path to installed Python 3.x executable] data-act
 
 6. You should see some output that looks similar to the example below. Essentially, this command creates and activates a new virtualenv named `data-act` with its own set of Python libraries.  Anything you pip install from this point forward will be installed into the *data-act* environment rather than your machine's global Python environment. Your command line prompt indicates which (if any) virtualenv is active.
 
-        rebeccasweger@GSA-xs-MacBook-Pro-4 ~
-        $ mkvirtualenv --python=/usr/local/bin/python2.7 data-act
-        Running virtualenv with interpreter /usr/local/bin/python2.7
-        New python executable in data-act-test/bin/python2.7
+ **Note:** in the command below, replace `/usr/local/bin/python3.4` with the path to your local Python 3.x executable.
+
+        $ mkvirtualenv --python=/usr/local/bin/python3.4 data-act
+        Running virtualenv with interpreter /usr/local/bin/python3.4
+        New python executable in data-act-test/bin/python3.4
         Also creating executable in data-act-test/bin/python
         Installing setuptools, pip...done.
 
         (data-act)
-        rebeccasweger@GSA-xs-MacBook-Pro-4 ~
 
 7. This new environment will be active until you run the `deactivate` command. You can re-activate the environment again at any time by typing `workon data-act`.
 

@@ -1,11 +1,9 @@
 """ These classes define the ORM models to be used by sqlalchemy for the user database """
 
 from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, Boolean
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from dataactcore.utils.timeStampMixin import TimeStampBase
+from dataactcore.models.baseModel import Base
 
-Base = declarative_base(cls=TimeStampBase)
 class User(Base):
     __tablename__ = 'users'
 

@@ -90,7 +90,7 @@ class ValidatorErrorInterface(ErrorInterface):
         self.session.commit()
         return True
 
-    def recordRowError(self, jobId, filename, fieldName, errorType, row, original_label=None, file_type_id = None, target_file_id = None):
+    def recordRowError(self, jobId, filename, fieldName, errorType, row, original_label=None, file_type_id = None, target_file_id = None, severity_id = None):
         """ Add this error to running sum of error types
 
         Args:
@@ -98,7 +98,11 @@ class ValidatorErrorInterface(ErrorInterface):
             filename: name of error report in S3
             fieldName: name of field where error occurred
             errorType: type of error, value will be mapped to ValidationError class, for rule failures this will hold entire message
-
+            row: Row number error occurred on
+            original_label: Label of rule
+            file_type_id: Id of source file type
+            target_file_id: Id of target file type
+            severity_id: Id of error severity
         Returns:
             True if successful
         """
@@ -106,7 +110,9 @@ class ValidatorErrorInterface(ErrorInterface):
         if(key in self.rowErrors):
             self.rowErrors[key]["numErrors"] += 1
         else:
-            errorDict = {"filename":filename, "fieldName":fieldName, "jobId":jobId,"errorType":errorType,"numErrors":1, "firstRow":row, "originalRuleLabel":original_label, "fileTypeId": file_type_id, "targetFileId": target_file_id}
+            errorDict = {"filename":filename, "fieldName":fieldName, "jobId":jobId,"errorType":errorType,"numErrors":1,
+                         "firstRow":row, "originalRuleLabel":original_label, "fileTypeId": file_type_id,
+                         "targetFileId": target_file_id, "severity": severity_id}
             self.rowErrors[key] = errorDict
 
     def writeAllRowErrors(self, jobId):
@@ -136,13 +142,13 @@ class ValidatorErrorInterface(ErrorInterface):
                     ruleFailedId = self.getTypeId("length_error")
                 else:
                     ruleFailedId = self.getTypeId("rule_failed")
-                errorRow = ErrorMetadata(job_id=thisJob, filename=errorDict["filename"], field_name=fieldName, error_type_id=ruleFailedId, rule_failed=errorMsg, occurrences=errorDict["numErrors"], first_row=errorDict["firstRow"], original_rule_label=errorDict["originalRuleLabel"], file_type_id = errorDict["fileTypeId"], target_file_type_id = errorDict["targetFileId"])
+                errorRow = ErrorMetadata(job_id=thisJob, filename=errorDict["filename"], field_name=fieldName, error_type_id=ruleFailedId, rule_failed=errorMsg, occurrences=errorDict["numErrors"], first_row=errorDict["firstRow"], original_rule_label=errorDict["originalRuleLabel"], file_type_id = errorDict["fileTypeId"], target_file_type_id = errorDict["targetFileId"], severity_id = errorDict["severity"])
             else:
                 # This happens if cast to int was successful
                 errorString = ValidationError.getErrorTypeString(errorType)
                 errorId = self.getTypeId(errorString)
                 # Create error metadata
-                errorRow = ErrorMetadata(job_id=thisJob, filename=errorDict["filename"], field_name=fieldName, error_type_id=errorId, occurrences=errorDict["numErrors"], first_row=errorDict["firstRow"], rule_failed=ValidationError.getErrorMessage(errorType), original_rule_label=errorDict["originalRuleLabel"], file_type_id = errorDict["fileTypeId"], target_file_type_id = errorDict["targetFileId"])
+                errorRow = ErrorMetadata(job_id=thisJob, filename=errorDict["filename"], field_name=fieldName, error_type_id=errorId, occurrences=errorDict["numErrors"], first_row=errorDict["firstRow"], rule_failed=ValidationError.getErrorMessage(errorType), original_rule_label=errorDict["originalRuleLabel"], file_type_id = errorDict["fileTypeId"], target_file_type_id = errorDict["targetFileId"], severity_id = errorDict["severity"])
 
             self.session.add(errorRow)
 

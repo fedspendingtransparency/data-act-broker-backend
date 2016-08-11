@@ -61,7 +61,7 @@ class s3UrlHandler:
         returns signed url (String)
         """
         if(method=="PUT"):
-            self.s3FileName = s3UrlHandler.getTimeStampedFilename(fileName)
+            self.s3FileName = s3UrlHandler.getTimestampedFilename(fileName)
         else:
             self.s3FileName = fileName
         return self._signUrl(path,self.s3FileName, method)

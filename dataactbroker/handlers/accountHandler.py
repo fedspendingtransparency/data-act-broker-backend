@@ -472,6 +472,22 @@ class AccountHandler:
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
+    def listUserEmails(self):
+        """ List user names and emails """
+
+        user = self.interfaces.userDb.getUserByUID(LoginSession.getName(flaskSession))
+        try:
+            users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code, status="approved", only_active=True)
+        except ValueError as e:
+            # Client provided a bad status
+            exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, ValueError)
+            return JsonResponse.error(exc, exc.status)
+        userInfo = []
+        for user in users:
+            thisInfo = {"id":user.user_id, "name": user.name, "email": user.email}
+            userInfo.append(thisInfo)
+        return JsonResponse.create(StatusCode.OK, {"users": userInfo})
+
     def listUsersWithStatus(self):
         """ List all users with the specified status.  Associated request body must have key 'status' """
         requestDict = RequestDictionary(self.request)
@@ -512,8 +528,8 @@ class AccountHandler:
                 file_size = self.interfaces.jobDb.getFileSize(jobId)
                 total_size += file_size if file_size is not None else 0
 
-            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
-            error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
+            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id, self.interfaces)
+            error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds, self.interfaces.validationDb)
             submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
             submissionDetails.append({"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
                                       "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
@@ -534,8 +550,8 @@ class AccountHandler:
                 file_size = self.interfaces.jobDb.getFileSize(jobId)
                 total_size += file_size if file_size is not None else 0
 
-            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
-            error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds)
+            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id, self.interfaces)
+            error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds, self.interfaces.validationDb)
             submissionDetails.append(
                 {"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
                  "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),

@@ -1,9 +1,10 @@
 from datetime import datetime, date
-from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType
+from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType, DFileMeta, JobStatus
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactbroker.handlers.errorHandler import ErrorHandler
+from sqlalchemy import and_
 
 class JobHandler(JobTrackerInterface):
     """ Responsible for all interaction with the job tracker database
@@ -372,3 +373,66 @@ class JobHandler(JobTrackerInterface):
         """ Given a submission ID, return MM/DD/YYYY for the datetime of that submission """
         datetime = self.getSubmissionById(submissionId).datetime_utc
         return datetime.strftime("%m/%d/%Y")
+
+    def getDFileForSubmission(self, submission_id, type):
+        """ Given a submission id, return the D File Metadata object for File D1 """
+        result = self.session.query(DFileMeta).filter(and_(DFileMeta.submission_id == submission_id, DFileMeta.type == type)).first()
+        return result
+
+    def getDFileById(self, id):
+        """ Given a submission id, return the D File Metadata object for File D1 """
+        query = self.session.query(DFileMeta).filter(DFileMeta.d_file_id == id)
+        result = self.runUniqueQuery(query, "No D file with that ID", "Multiple D files with conflicting ID")
+        return result
+
+    def setDFileStatus(self, d_file_id, status):
+        if status not in ["waiting", "finished", "failed"]:
+            raise ResponseException("Please provide a valid D file status",StatusCode.CLIENT_ERROR,ValueError)
+        status_id = self.getIdFromDict(JobStatus, "JOB_STATUS_DICT", "name", status, "job_status_id")
+        d_file = self.getDFileById(d_file_id)
+        d_file.status_id = status_id
+        d_file.is_submitted = False
+        self.session.commit()
+
+    def createDFileMeta(self, submission_id, start_date, end_date, type, original_file_name, upload_file_name):
+        result = self.session.query(DFileMeta).filter(and_(DFileMeta.submission_id == submission_id, DFileMeta.type == type)).first()
+        if result is not None:
+            result.start_date = start_date
+            result.end_date = end_date
+            result.original_file_name = original_file_name
+            result.upload_file_name = upload_file_name
+            result.error_message = ""
+            self.session.commit()
+            return result.d_file_id
+
+        d1_file = DFileMeta(submission_id=submission_id, start_date=start_date, end_date=end_date, type=type,
+                            original_file_name=original_file_name, upload_file_name=upload_file_name)
+        self.session.add(d1_file)
+        self.session.commit()
+        return d1_file.d_file_id
+
+    def setDFileMessage(self, d_file_id, message):
+        d_file = self.getDFileById(d_file_id)
+        d_file.error_message = message
+        self.session.commit()
+
+    def getJobBySubmissionFileTypeAndJobType(self, submission_id, file_type_name, job_type_name):
+        file_id = self.getFileTypeId(file_type_name)
+        type_id = self.getJobTypeId(job_type_name)
+        query = self.session.query(Job).filter(and_(Job.submission_id == submission_id, Job.file_type_id == file_id, Job.job_type_id == type_id))
+        result = self.runUniqueQuery(query, "No job with that submission ID, file type and job type", "Multiple jobs with conflicting submission ID, file type and job type")
+        return result
+
+    def markDFileAsSubmitted(self, d_file_id):
+        d_file = self.getDFileById(d_file_id)
+        d_file.is_submitted = True
+        self.session.commit()
+
+    def updateDFileName(self, submission_id, file_name, file_type):
+        upload_job = self.getJobBySubmissionFileTypeAndJobType(submission_id, file_type, "file_upload")
+        validation_job = self.getJobBySubmissionFileTypeAndJobType(submission_id, file_type, "csv_record_validation")
+
+        upload_job.filename = file_name
+        validation_job.filename = file_name
+
+        self.session.commit()

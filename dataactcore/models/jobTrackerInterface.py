@@ -1,31 +1,20 @@
 import traceback
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission
+from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, FileType
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import JobQueue
-from dataactcore.config import CONFIG_DB
+from dataactcore.config import CONFIG_JOB_QUEUE
 
 
 class JobTrackerInterface(BaseInterface):
     """Manages all interaction with the job tracker database."""
-    dbConfig = CONFIG_DB
-    dbName = dbConfig['job_db_name']
-    Session = None
-    engine = None
-    session = None
 
     def __init__(self):
-        self.dbName = self.dbConfig['job_db_name']
-        self.jobQueue = JobQueue()
+        self.jobQueue = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
         super(JobTrackerInterface, self).__init__()
-
-    @staticmethod
-    def getDbName():
-        """ Return database name"""
-        return JobTrackerInterface.dbName
 
     @staticmethod
     def checkJobUnique(query):
@@ -38,10 +27,6 @@ class JobTrackerInterface(BaseInterface):
         True if single result, otherwise exception
         """
         return BaseInterface.runUniqueQuery(query, "Job ID not found in job table","Conflicting jobs found for this ID")
-
-    def getSession(self):
-        """ Return session object"""
-        return self.session
 
     def getJobById(self,jobId):
         """ Return job model object based on ID """
@@ -73,6 +58,10 @@ class JobTrackerInterface(BaseInterface):
     def getReportPath(self,jobId):
         """ Return the filename for the error report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
         return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_error_report.csv"
+
+    def getWarningReportPath(self, jobId):
+        """ Return the filename for the warning report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
+        return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_warning_report.csv"
 
     def getCrossFileReportPath(self,submissionId):
         """ Returns the filename for the cross file error report. """
@@ -171,7 +160,6 @@ class JobTrackerInterface(BaseInterface):
         Returns:
         status ID
         """
-        status = None
         query = self.session.query(Job.job_status_id).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         status = result.job_status_id
@@ -183,9 +171,17 @@ class JobTrackerInterface(BaseInterface):
         return self.getIdFromDict(
             JobStatus, "JOB_STATUS_DICT", "name", statusName, "job_status_id")
 
+    def getJobStatusNameById(self, status_id):
+        """ Returns the status name that corresponds to the given id """
+        return self.getNameFromDict(JobStatus,"JOB_STATUS_DICT","name",status_id,"job_status_id")
+
     def getJobTypeId(self,typeName):
         """ Return the type ID that corresponds to the given name """
         return self.getIdFromDict(JobType,"JOB_TYPE_DICT","name",typeName,"job_type_id")
+
+    def getFileTypeId(self, typeName):
+        """ Returns the file type id that corresponds to the given name """
+        return self.getIdFromDict(FileType, "FILE_TYPE_DICT", "name", typeName, "file_type_id")
 
     def getOriginalFilenameById(self,jobId):
         """ Get original filename for job matching ID """
@@ -241,19 +237,23 @@ class JobTrackerInterface(BaseInterface):
         """ Get number of rows in file for job matching ID """
         return self.getJobById(jobId).number_of_rows
 
+    def getNumberOfValidRowsById(self, jobId):
+        """Get number of file's rows that passed validations."""
+        return self.getJobById(jobId).number_of_rows_valid
+
     def setFileSizeById(self,jobId, fileSize):
         """ Set file size for job matching ID """
         job = self.getJobById(jobId)
         job.file_size = int(fileSize)
         self.session.commit()
 
-    def setNumberOfRowsById(self,jobId, numRows):
-        """ Set number of rows in file for job matching ID """
-        job = self.getJobById(jobId)
-        job.number_of_rows = int(numRows)
+    def setJobRowcounts(self, jobId, numRows, numValidRows):
+        """Set number of rows in job that passed validations."""
+        self.session.query(Job).filter(Job.job_id == jobId).update(
+            {"number_of_rows_valid": numValidRows, "number_of_rows": numRows})
         self.session.commit()
 
-    def getSubmissionStatus(self,submissionId):
+    def getSubmissionStatus(self,submissionId,interfaces):
         jobIds = self.getJobsBySubmission(submissionId)
         status_names = self.getJobStatusNames()
         statuses = dict(zip(status_names,[0]*len(status_names)))
@@ -270,7 +270,7 @@ class JobTrackerInterface(BaseInterface):
         if statuses["failed"] != 0:
             return "failed"
         if statuses["invalid"] != 0:
-            return "invalid"
+            return "file_errors"
         if statuses["running"] != 0:
             return "running"
         if statuses["waiting"] != 0:
@@ -278,5 +278,10 @@ class JobTrackerInterface(BaseInterface):
         if statuses["ready"] != 0:
             return "ready"
         if statuses["finished"] == len(jobIds)-skip_count: # need to account for the jobs that were skipped above
-            return "finished"
+            # Check if submission has errors,
+            jobs = self.getJobsBySubmission(submissionId)
+            if interfaces.errorDb.sumNumberOfErrorsForJobList(jobs, interfaces.validationDb) > 0:
+                return "validation_errors"
+            else:
+                return "validation_successful"
         return "unknown"
