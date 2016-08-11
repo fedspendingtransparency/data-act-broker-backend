@@ -1,14 +1,14 @@
 """update-sf133-unique-index
 
 Revision ID: a0a4f1ef56ae
-Revises: c2b6d88e6d44
+Revises: e3d7eb4d44f0
 Create Date: 2016-08-10 17:46:51.920340
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'a0a4f1ef56ae'
-down_revision = 'c2b6d88e6d44'
+down_revision = 'e3d7eb4d44f0'
 branch_labels = None
 depends_on = None
 
