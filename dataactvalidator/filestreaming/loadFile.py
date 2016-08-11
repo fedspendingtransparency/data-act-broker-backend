@@ -44,7 +44,8 @@ def loadObjectClass(filename):
     data = LoaderUtils.cleanData(
         data,
         model,
-        {"max_oc_code": "object_class_code", "max_object_class_name": "object_class_name"},
+        {"max_oc_code":"object_class_code",
+         "max_object_class_name": "object_class_name"},
         {"object_class_code": {"skip_duplicates": True}}
     )
     # insert to db
@@ -65,8 +66,16 @@ def loadProgramActivity(filename):
     data = LoaderUtils.cleanData(
         data,
         model,
-        {"year": "budget_year", "agency_id": "agency_id", "alloc_id": "allocation_transfer_id", "account": "account_number","pa_code": "program_activity_code", "pa_name": "program_activity_name"},
-        {"program_activity_code": {"pad_to_length": 4}, "agency_id": {"pad_to_length": 3}, "account_number": {"pad_to_length": 4}, "allocation_transfer_id": {"pad_to_length": 3}}
+        {"year": "budget_year",
+         "agency_id": "agency_id",
+         "alloc_id": "allocation_transfer_id",
+         "account": "account_number",
+         "pa_code": "program_activity_code",
+         "pa_name": "program_activity_name"},
+        {"program_activity_code": {"pad_to_length": 4},
+         "agency_id": {"pad_to_length": 3},
+         "account_number": {"pad_to_length": 4},
+         "allocation_transfer_id": {"pad_to_length": 3}}
     )
     # insert to db
     insertDataframe(data, model.__table__.name, interface.engine)
@@ -76,26 +85,34 @@ def loadSF133(filename):
     interface = ValidatorValidationInterface()
     model = SF133
 
-    # delete and replace values
-    # TODO: don't delete old SF-133 data...keep adding periods
-    # interface.session.query(model).delete()
-    # interface.session.commit()
+    # TODO: skip all this if period is already loaded. force load a monthly update if necessary
 
     data = pd.read_csv(filename, dtype=str)
     # Fix up cells that have spaces instead of being empty.
     # Set the truly empty cells to None so they get inserted to db as NULL
     # TODO: very ugly function below...is there a better way?
     data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
-    # data.ATA = data.ATA.str.strip()
-    # data.BPOA = data.BPOA.str.strip()
-    # data.EPOA = data.EPOA.str.strip()
-    # data['Availability,Type Code'] = data['Availability,Type Code'].str.strip()
 
     data = LoaderUtils.cleanData(
         data,
         model,
-        {"ata": "allocation_transfer_agency", "aid": "agency_identifier", "availability_type_code": "availability_type_code", "bpoa": "beginning_period_of_availa", "epoa": "ending_period_of_availabil", "main_account": "main_account_code", "sub_account": "sub_account_code", "fiscal_year": "fiscal_year", "period": "period", "line_num": "line", "amount_summed": "amount"},
-        {"allocation_transfer_agency": {"pad_to_length": 3}, "agency_identifier": {"pad_to_length": 3}, "main_account_code": {"pad_to_length": 4}, "sub_account_code": {"pad_to_length": 3}, "amount": {"strip_commas": True}}
+        {"ata": "allocation_transfer_agency",
+         "aid": "agency_identifier",
+         "availability_type_code": "availability_type_code",
+         "bpoa": "beginning_period_of_availa",
+         "epoa": "ending_period_of_availabil",
+         "main_account": "main_account_code",
+         "sub_account": "sub_account_code",
+         "fiscal_year": "fiscal_year",
+         "period": "period",
+         "line_num": "line",
+         "amount_summed":
+        "amount"},
+        {"allocation_transfer_agency": {"pad_to_length": 3},
+         "agency_identifier": {"pad_to_length": 3},
+         "main_account_code": {"pad_to_length": 4},
+         "sub_account_code": {"pad_to_length": 3},
+         "amount": {"strip_commas": True}}
     )
     # todo: find out how to handle dup rows (e.g., same tas/period/line number)
     # line numbers 2002 and 2012 are the only duped line numbers,
@@ -156,7 +173,7 @@ def loadDomainValues(basePath, localSFPath = None, localProgramActivity = None):
         loadSF133(localSFPath)
     else:
         # Download files if using aws, if not they will need to already be in config folder
-        print("Loading default SF-133")
+        print("Loading SF-133")
         if(CONFIG_BROKER["use_aws"]):
             reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file"]]),os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config",CONFIG_BROKER["sf_133_file"]))
 

@@ -6,7 +6,7 @@ class LoaderUtils:
 
     # define some data-munging functions that can be applied to
     # pandas dataframes as necessary
-    padFunction = lambda field, padTo: str(field).strip().zfill(padTo)
+    # padFunction = lambda field, padTo: str(field).strip().zfill(padTo)
     currentTimeFunction = lambda x: datetime.utcnow()
     cleanColNamesFunction = lambda field: str(field).lower().strip().replace(" ","_").replace(",","_")
 
