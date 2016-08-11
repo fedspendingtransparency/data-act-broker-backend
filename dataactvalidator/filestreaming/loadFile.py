@@ -104,6 +104,9 @@ def loadSF133(filename):
     dupe_line_numbers = ['2002', '2102']
     data = data[~data.line.isin(dupe_line_numbers)]
 
+    # get rid of commas in dollar amounts
+    data.amount = data.amount.str.replace(",", "")
+
     # add concatenated TAS field for internal use (i.e., joining to staging tables)
     data['tas'] = data.apply(lambda row: formatInternalTas(row), axis=1)
     # insert to db
