@@ -4,6 +4,17 @@ from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolea
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
+
+def generateFiscalYear(context):
+    """ Generate fiscal year based on the date provided """
+    reporting_end_date = context.current_parameters['reporting_end_date']
+    return reporting_end_date.year
+
+def generateFiscalPeriod(context):
+    """ Generate fiscal period based on the date provided """
+    reporting_end_date = context.current_parameters['reporting_end_date']
+    return (reporting_end_date.month + 3) % 12
+
 class JobStatus(Base):
     __tablename__ = "job_status"
     JOB_STATUS_DICT = None
@@ -37,6 +48,8 @@ class Submission(Base):
     cgac_code = Column(Text)
     reporting_start_date = Column(Date)
     reporting_end_date = Column(Date)
+    reporting_fiscal_year = Column(Integer, nullable=False, default=generateFiscalYear, onupdate=generateFiscalYear)
+    reporting_fiscal_period = Column(Integer, nullable=False, default=generateFiscalPeriod, onupdate=generateFiscalPeriod)
     is_quarter_format = Column(Boolean, nullable = False, default = "False", server_default= "False")
     jobs = None
     publishable = Column(Boolean, nullable = False, default = "False", server_default = "False")
