@@ -61,8 +61,6 @@ def loadProgramActivity(filename):
     interface.session.commit()
 
     data = pd.read_csv(filename, dtype=str)
-    # toss out blank rows
-    data.dropna(inplace=True)
     data = LoaderUtils.cleanData(
         data,
         model,
@@ -88,11 +86,6 @@ def loadSF133(filename):
     # TODO: skip all this if period is already loaded. force load a monthly update if necessary
 
     data = pd.read_csv(filename, dtype=str)
-    # Fix up cells that have spaces instead of being empty.
-    # Set the truly empty cells to None so they get inserted to db as NULL
-    # TODO: very ugly function below...is there a better way?
-    data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
-
     data = LoaderUtils.cleanData(
         data,
         model,
