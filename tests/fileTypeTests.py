@@ -230,20 +230,19 @@ class FileTypeTests(BaseTestValidator):
         cdWarningFilename = self.interfaces.errorDb.getCrossWarningReportName(submissionId, "award_financial", "award")
 
         if self.local:
-            path = "".join(
-                [self.local_file_directory,abWarningFilename])
+            path = os.path.join(self.local_file_directory, abWarningFilename)
             self.assertGreater(os.path.getsize(path), abWarningFileSize - 5)
             self.assertLess(os.path.getsize(path), abWarningFileSize + 5)
-            path = "".join(
-                [self.local_file_directory,cdWarningFilename])
+
+            path = os.path.join(self.local_file_directory, cdWarningFilename)
             self.assertGreater(os.path.getsize(path), cdWarningFileSize - 5)
             self.assertLess(os.path.getsize(path), cdWarningFileSize + 5)
-            path = "".join(
-                [self.local_file_directory,abFilename])
+
+            path = os.path.join(self.local_file_directory, abFilename)
             self.assertGreater(os.path.getsize(path), abFileSize - 5)
             self.assertLess(os.path.getsize(path), abFileSize + 5)
-            path = "".join(
-                [self.local_file_directory,cdFilename])
+
+            path = os.path.join(self.local_file_directory, cdFilename)
             self.assertGreater(os.path.getsize(path), cdFileSize - 5)
             self.assertLess(os.path.getsize(path), cdFileSize + 5)
         else:

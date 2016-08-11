@@ -124,8 +124,8 @@ class BaseTestValidator(unittest.TestCase):
             self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId, self.validationDb,"warning"), numWarnings)
         if(fileSize != False):
             if self.local:
-                path = "".join(
-                    [self.local_file_directory,jobTracker.getReportPath(jobId)])
+                path = os.path.join(self.local_file_directory,
+                                    jobTracker.getReportPath(jobId))
                 self.assertGreater(os.path.getsize(path), fileSize - 5)
                 self.assertLess(os.path.getsize(path), fileSize + 5)
             else:
@@ -135,8 +135,8 @@ class BaseTestValidator(unittest.TestCase):
                     "errors/"+jobTracker.getReportPath(jobId)), fileSize + 5)
         if(warningFileSize is not None and warningFileSize != False):
             if self.local:
-                path = "".join(
-                    [self.local_file_directory,jobTracker.getWarningReportPath(jobId)])
+                path = os.path.join(self.local_file_directory,
+                                    jobTracker.getWarningReportPath(jobId))
                 self.assertGreater(os.path.getsize(path), warningFileSize - 5)
                 self.assertLess(os.path.getsize(path), warningFileSize + 5)
             else:
