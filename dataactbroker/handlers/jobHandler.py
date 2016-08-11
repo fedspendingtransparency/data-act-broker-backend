@@ -177,10 +177,12 @@ class JobHandler(JobTrackerInterface):
         if existingId is None:
             submission = Submission(datetime_utc = datetime.utcnow(), **submissionValues)
             submission.user_id = userId
+            self.setPublishStatus("unpublished", submission)
             self.session.add(submission)
         else:
             submissionQuery = self.session.query(Submission).filter(Submission.submission_id == existingId)
             submission = self.runUniqueQuery(submissionQuery,"No submission found with provided ID", "Multiple submissions found with provided ID")
+            self.updatePublishStatus(submission)
             #if "reporting_start_date" in submissionValues:
             #    submission.reporting_start_date = submissionValues["reporting_start_date"]
             for key in submissionValues:
