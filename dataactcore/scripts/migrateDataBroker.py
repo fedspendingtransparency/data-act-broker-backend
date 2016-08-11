@@ -21,7 +21,7 @@
 from dataactcore.config import CONFIG_DB
 import subprocess
 
-c = 'postgresql://{}:{}@{}/'.format(
+c = 'postgresql://{}:"{}"@{}/'.format(
     CONFIG_DB['username'], CONFIG_DB['password'], CONFIG_DB['host'])
 target = '{}data_broker'.format(c)
 
@@ -30,7 +30,7 @@ db = 'error_data'
 source = '{}{}'.format(c, db)
 print('migrating {}'.format(db))
 cmd = 'pg_dump -d {} -t error_metadata -t file --data-only --format=c | ' \
-    'pg_restore -d {} --data-only'.format(source, target)
+    'pg_restore -d {} --data-only --single-transaction'.format(source, target)
 p = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
 print('return code = {}\n'.format(p))
 
@@ -39,7 +39,7 @@ db = 'job_tracker'
 source = '{}{}'.format(c, db)
 print('migrating {}'.format(db))
 cmd = 'pg_dump -d {} -t job_dependency -t job -t submission --data-only --format=c | ' \
-    'pg_restore -d {} --data-only'.format(source, target)
+    'pg_restore -d {} --data-only --single-transaction'.format(source, target)
 p = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
 print('return code = {}\n'.format(p))
 
@@ -48,7 +48,7 @@ db = 'user_manager'
 source = '{}{}'.format(c, db)
 print('migrating {}'.format(db))
 cmd = 'pg_dump -d {} -t users -t email_token --data-only --format=c | ' \
-    'pg_restore -d {} --data-only'.format(source, target)
+    'pg_restore -d {} --data-only --single-transaction'.format(source, target)
 p = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
 print('return code = {}\n'.format(p))
 
@@ -60,8 +60,11 @@ tables = ['appropriation', 'object_class_program_activity',
 
 for t in tables:
     print('migrating {}: {}'.format(db, t))
+    # old db still has valid_record column; drop it
+    cmd = 'psql {} -c "ALTER TABLE {} DROP COLUMN IF EXISTS valid_record"'.format(source, t)
+    p = subprocess.call(cmd, shell=True)
     cmd = 'pg_dump -d {} -t {} --data-only --format=c | ' \
-        'pg_restore -d {} --data-only'.format(source, t, target)
+        'pg_restore -d {} --data-only --single-transaction'.format(source, t, target)
     p = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
     print('return code = {}\n'.format(p))
 

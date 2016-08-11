@@ -10,12 +10,12 @@ def add_login_routes(app,bcrypt):
     @app.route("/v1/login/", methods = ["POST"])
     def login():
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.login, getSession = True)
+        return RouteUtils.run_instance_function(accountManager, accountManager.login, session)
 
     @app.route("/v1/logout/", methods = ["POST"])
     def logout():
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.logout, getSession = True)
+        return RouteUtils.run_instance_function(accountManager, accountManager.logout, session)
 
     @app.route("/v1/session/", methods = ["GET"])
     def sessionCheck():

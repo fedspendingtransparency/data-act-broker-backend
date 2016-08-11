@@ -123,7 +123,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 8990, 4, "complete", 47, True)
+            jobId, 200, "finished", 8212, 4, "complete", 39, True, 8, 841)
 
 
     def test_program_valid(self):
@@ -136,13 +136,13 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 22505, 4, "complete", 111, True)
+        jobId, 200, "finished", 12058, 4, "complete", 84, True, 27, 10510)
 
     def test_program_mixed_shortcols(self):
         """Test object class/program activity job with some rows failing & short colnames."""
         jobId = self.jobIdDict["programMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 22505, 4, "complete", 111, True)
+            jobId, 200, "finished", 12058, 4, "complete", 84, True, 27, 10510)
 
     def test_award_fin_valid(self):
         """Test valid job."""
@@ -154,7 +154,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 17064, 5, "complete", 77, True)
+        jobId, 200, "finished", 8000, 7, "complete", 48, True, 29, 9127)
 
         # Test that whitespace is converted to null
         rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parent_award_id == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
@@ -168,7 +168,7 @@ class FileTypeTests(BaseTestValidator):
         """Test award financial job with some rows failing & short colnames."""
         jobId = self.jobIdDict["awardFinMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 19006, 5, "complete", 79, True)
+            jobId, 200, "finished", 8000, 7, "complete", 48, True, 31, 11069)
 
     def test_award_valid(self):
         """Test valid job."""
@@ -186,7 +186,7 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 3161, 5, "complete", 41, True)
+            jobId, 200, "finished", 1139, 8, "complete", 17, True, 24, 2085)
 
     def test_award_mixed_delimiter(self):
         """Test mixed job with mixed delimiter"""
@@ -211,36 +211,29 @@ class FileTypeTests(BaseTestValidator):
         self.assertEqual(crossFileResponse.status_code, 200, msg=str(crossFileResponse.json))
 
         # Check number of cross file validation errors in DB for this job
-        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId), 5)
+        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId, self.interfaces.validationDb, "fatal"), 0)
+        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId, self.interfaces.validationDb, "warning"), 5)
         # Check cross file job complete
         self.waitOnJob(self.interfaces.jobDb, crossId, "finished", self.useThreads)
         # Check that cross file validation report exists and is the right size
         jobTracker = self.interfaces.jobDb
 
         submissionId = jobTracker.getSubmissionId(crossId)
-        abFileSize = 1329
-        cdFileSize = 424
-        abFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")
-        cdFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")
+        sizePathPairs = [
+            (89, self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")),
+            (89, self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")),
+            (1329, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "appropriations", "program_activity")),
+            (424, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "award_financial", "award")),
+        ]
 
-        if self.local:
-            path = "".join(
-                [self.local_file_directory,abFilename])
-            self.assertGreater(os.path.getsize(path), abFileSize - 5)
-            self.assertLess(os.path.getsize(path), abFileSize + 5)
-            path = "".join(
-                [self.local_file_directory,cdFilename])
-            self.assertGreater(os.path.getsize(path), cdFileSize - 5)
-            self.assertLess(os.path.getsize(path), cdFileSize + 5)
-        else:
-            self.assertGreater(s3UrlHandler.getFileSize(
-                "errors/"+abFilename), abFileSize - 5)
-            self.assertLess(s3UrlHandler.getFileSize(
-                "errors/"+abFilename), abFileSize + 5)
-            self.assertGreater(s3UrlHandler.getFileSize(
-                "errors/"+cdFilename), cdFileSize - 5)
-            self.assertLess(s3UrlHandler.getFileSize(
-                "errors/"+cdFilename), cdFileSize + 5)
+        for size, path in sizePathPairs:
+            if self.local:
+                self.assertFileSizeAppxy(size, path)
+            else:
+                self.assertGreater(
+                    s3UrlHandler.getFileSize("errors/" + path), size - 5)
+                self.assertLess(
+                    s3UrlHandler.getFileSize("errors/" + path), size + 5)
 
 if __name__ == '__main__':
     unittest.main()

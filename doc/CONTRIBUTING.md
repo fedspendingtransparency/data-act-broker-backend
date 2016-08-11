@@ -8,11 +8,13 @@ All contributions to this project will be released under the CC0 dedication. By 
 
 We use three main branches:
 
-* `master` - stable code deployed to staging
-* `development` - code in development that is periodically released to staging by merging into master
-* `production` - Not currently in use since we're still in active development. Will be used to push code into production.
+* `staging` - Stable code deployed to a staging version of the data broker
+* `development` - Code in development that is released to `staging` at the close of each sprint
+* `master` - Code on the production site. Code gets merged to this branch by the product owner once it has been tested on staging.
 
-Only non-breaking, stable code should be merged into `master` and deployed to staging to prevent disruptions in other parts of the team. All code to be merged should be submitted via a pull request. Team members should _not_ merge their own pull requests but should instead request a code review first. The reviewing team member should merge the pull request after completing the review and ensuring it passes all continuous integration tests.
+Only non-breaking, stable code should be merged into `development`, `staging`, and `master` to prevent disruptions to users and team members.
+
+All code to be merged should be submitted to `development` via a pull request. Team members should _not_ merge their own pull requests but should instead request a code review first. The reviewing team member should merge the pull request after completing the review and ensuring it passes all continuous integration tests.
 
 ## Code Reviews
 
@@ -48,6 +50,9 @@ Assumptions:
 More complete install documentation is available on the PostgreSQL [wiki](https://wiki.postgresql.org/wiki/Detailed_installation_guides).
 
 **Note:** If you're setting up the broker on Mac OSX, we recommend using [homebrew](http://brew.sh) to install PostgreSQL.
+
+**Note:** The database user will need to have permission to create databases.
+A "superuser" will do.
 
 ### Install Python and Create Virtual Environment
 

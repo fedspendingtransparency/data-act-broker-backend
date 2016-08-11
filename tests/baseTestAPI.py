@@ -8,6 +8,7 @@ from webtest import TestApp
 from dataactbroker.app import createApp
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactcore.models.userModel import AccountType
+from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
@@ -27,7 +28,8 @@ class BaseTestAPI(unittest.TestCase):
     def setUpClass(cls):
         """Set up resources to be shared within a test class"""
         #TODO: refactor into a pytest class fixtures and inject as necessary
-
+        # Prevent interface being reused from last suite
+        BaseInterface.interfaces = None
         # Create an empty session ID
         cls.session_id = ""
 
@@ -135,6 +137,7 @@ class BaseTestAPI(unittest.TestCase):
         #set up approved user
         user = userDb.getUserByEmail(test_users['approved_email'])
         user.username = "approvedUser"
+        user.cgac_code = "000"
         userDb.setPassword(user, user_password, Bcrypt())
         cls.approved_user_id = user.user_id
 
