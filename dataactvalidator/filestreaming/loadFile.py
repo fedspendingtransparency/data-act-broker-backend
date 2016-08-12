@@ -1,10 +1,13 @@
 import os
 import pandas as pd
+import boto
+import glob
 from dataactvalidator.filestreaming.loaderUtils import LoaderUtils
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 from dataactcore.models.domainModels import CGAC,ObjectClass,ProgramActivity,SF133
 from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
+from sqlalchemy import and_
 
 
 def loadCgac(filename):
@@ -80,14 +83,20 @@ def loadProgramActivity(filename):
     # but need to de-duped before the db load.
     data.drop_duplicates(inplace=True)
     # insert to db
-    insertDataframe(data, model.__table__.name, interface.engine)
+    LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
 
 
-def loadSF133(filename):
+def loadSF133(filename, fiscal_year, fiscal_period):
     interface = ValidatorValidationInterface()
     model = SF133
 
-    # TODO: skip all this if period is already loaded. force load a monthly update if necessary
+    # check to see if this period is already in the database
+    existing_records = interface.session.query(model).filter(
+        and_(model.fiscal_year == fiscal_year, model.period == fiscal_period)).count()
+    if existing_records:
+        print('{} SF133 {} {} records already loaded. No records inserted to database'.format(
+            existing_records, fiscal_year, fiscal_period))
+        return
 
     data = pd.read_csv(filename, dtype=str)
     data = LoaderUtils.cleanData(
@@ -167,17 +176,39 @@ def loadDomainValues(basePath, localSFPath = None, localProgramActivity = None):
     reader = CsvS3Reader()
 
     if localSFPath is not None:
-        # Load SF 133 from same path
         print("Loading local SF-133")
-        loadSF133(localSFPath)
+        # get list of SF 133 files in the specified local directory
+        sf133Files = glob.glob(os.path.join(localSFPath, 'sf_133*.csv'))
+        for sf133 in sf133Files:
+            file = os.path.basename(sf133).replace('.csv', '')
+            fileParts = file.split('_')
+            if len(fileParts) < 4:
+                print('Skipping SF 133 file with invalid name: {}'.format(sf133))
+                continue
+            year = file.split('_')[-2]
+            period = file.split('_')[-1]
+            print('Starting {}...'.format(sf133))
+            loadSF133(sf133, year, period)
     else:
-        # Download files if using aws, if not they will need to already be in config folder
         print("Loading SF-133")
         if(CONFIG_BROKER["use_aws"]):
-            reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file"]]),os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config",CONFIG_BROKER["sf_133_file"]))
-
-        loadSF133(os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config",CONFIG_BROKER["sf_133_file"]))
-
+            # get list of SF 133 files in the config bucket on S3
+            s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
+            s3bucket = s3connection.lookup(CONFIG_BROKER['aws_bucket'])
+            # get bucketlistresultset with all sf_133 files
+            sf133Files = s3bucket.list(
+                prefix='{}/sf_133'.format(CONFIG_BROKER['sf_133_folder']))
+            for sf133 in sf133Files:
+                file = sf133.name.split(CONFIG_BROKER['sf_133_folder'])[-1].replace('.csv', '')
+                fileParts = file.split('_')
+                if len(fileParts) < 4:
+                    print('Skipping SF 133 file with invalid name: {}'.format(sf133))
+                    continue
+                year = file.split('_')[-2]
+                period = file.split('_')[-1]
+                print('Starting {}...'.format(sf133.name))
+                loadSF133(sf133, year, period)
 
 if __name__ == '__main__':
-    loadDomainValues(os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config"))
+    loadDomainValues(
+        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"))

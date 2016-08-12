@@ -1,5 +1,4 @@
 from __future__ import print_function
-import os
 from os.path import join
 from datetime import datetime
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
@@ -54,7 +53,6 @@ class FileTypeTests(BaseTestValidator):
             else:
                 submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
 
-
         # Create jobs
         jobDb = cls.jobTracker
         statusReady = str(jobDb.getJobStatusId("ready"))
@@ -101,7 +99,10 @@ class FileTypeTests(BaseTestValidator):
         SchemaLoader.loadAllFromPath(join(CONFIG_BROKER["path"],"dataactvalidator","config"))
         SQLLoader.loadSql("sqlRules.csv")
         # Load domain values tables
-        loadDomainValues(join(CONFIG_BROKER["path"],"dataactvalidator","config"),join(CONFIG_BROKER["path"],"tests","sf_133.csv"),join(CONFIG_BROKER["path"],"tests","program_activity.csv"))
+        loadDomainValues(
+            join(CONFIG_BROKER["path"],"dataactvalidator","config"),
+            join(CONFIG_BROKER["path"],"tests"),
+            join(CONFIG_BROKER["path"],"tests","program_activity.csv"))
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
                 or force_tas_load):
             # TAS table is empty, load it
