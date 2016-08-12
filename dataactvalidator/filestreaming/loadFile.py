@@ -30,7 +30,7 @@ def loadCgac(filename):
         {"cgac_code": {"pad_to_length": 3, "skip_duplicates": True}}
     )
     # insert to db
-    insertDataframe(data, model.__table__.name, interface.engine)
+    LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
 
 
 def loadObjectClass(filename):
@@ -52,7 +52,7 @@ def loadObjectClass(filename):
         {"object_class_code": {"skip_duplicates": True}}
     )
     # insert to db
-    insertDataframe(data, model.__table__.name, interface.engine)
+    LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
 
 
 def loadProgramActivity(filename):
@@ -136,18 +136,10 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
     # add concatenated TAS field for internal use (i.e., joining to staging tables)
     data['tas'] = data.apply(lambda row: formatInternalTas(row), axis=1)
     # insert to db
-    insertDataframe(data, model.__table__.name, interface.engine)
+    LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
 
     # todo: insert 0 line numbers if necessary for validation rules
 
-def insertDataframe(df, table, engine):
-    df.to_sql(
-        table,
-        engine,
-        index=False,
-        if_exists='append'
-    )
-    del df
 
 def formatInternalTas(row):
     """Concatenate TAS components into a single field for internal use."""

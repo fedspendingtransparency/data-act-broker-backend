@@ -75,3 +75,14 @@ class LoaderUtils:
             created_at=cls.currentTimeFunction, updated_at=cls.currentTimeFunction)
 
         return data
+
+    @classmethod
+    def insertDataframe(cls, df, table, engine):
+        """Inserts a dataframe to the specified database table."""
+        df.to_sql(
+            table,
+            engine,
+            index=False,
+            if_exists='append'
+        )
+        print('{} records inserted to {}'.format(len(df.index), table))
