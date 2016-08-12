@@ -41,12 +41,12 @@ class LoaderUtils:
                 specified length, and "skip_duplicate" which ignores subsequent lines that repeat values.
         """
         # toss out blank rows
-        data.dropna(inplace=True)
+        data.dropna(inplace=True, how='all')
 
         # Fix up cells that have spaces instead of being empty.
         # Set the truly empty cells to None so they get inserted to db as NULL
         # TODO: very ugly function below...is there a better way?
-        data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
+        data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
 
         # clean the dataframe column names
         data.rename(columns=lambda x: cls.cleanColNamesFunction(x), inplace=True)
