@@ -75,6 +75,10 @@ def loadProgramActivity(filename):
          "account_number": {"pad_to_length": 4},
          "allocation_transfer_id": {"pad_to_length": 3}}
     )
+    # because we're only loading a subset of program activity info,
+    # there will be duplicate records in the dataframe. this is ok,
+    # but need to de-duped before the db load.
+    data.drop_duplicates(inplace=True)
     # insert to db
     insertDataframe(data, model.__table__.name, interface.engine)
 
