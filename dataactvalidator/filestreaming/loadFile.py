@@ -86,14 +86,17 @@ def loadProgramActivity(filename):
     LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
 
 
-def loadSF133(filename, fiscal_year, fiscal_period):
+def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
     interface = ValidatorValidationInterface()
     model = SF133
 
-    # check to see if this period is already in the database
     existing_records = interface.session.query(model).filter(
-        and_(model.fiscal_year == fiscal_year, model.period == fiscal_period)).count()
-    if existing_records:
+        and_(model.fiscal_year == fiscal_year, model.period == fiscal_period))
+    if force_load:
+        # force a reload of this period's current data
+        existing_records.delete()
+    elif existing_records.count():
+        # if there's existing data & we're not forcing a load, skip
         print('{} SF133 {} {} records already loaded. No records inserted to database'.format(
             existing_records, fiscal_year, fiscal_period))
         return
