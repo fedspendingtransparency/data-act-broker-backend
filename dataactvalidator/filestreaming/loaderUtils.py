@@ -6,7 +6,7 @@ class LoaderUtils:
 
     # define some data-munging functions that can be applied to
     # pandas dataframes as necessary
-    # padFunction = lambda field, padTo: str(field).strip().zfill(padTo)
+    padFunction = lambda field, padTo: str(field).strip().zfill(padTo)
     currentTimeFunction = lambda x: datetime.utcnow()
     cleanColNamesFunction = lambda field: str(field).lower().strip().replace(" ","_").replace(",","_")
 
@@ -64,7 +64,7 @@ class LoaderUtils:
             if "pad_to_length" in options:
                 # pad to specified length
                 data['{}'.format(col)] = data['{}'.format(col)].apply(
-                    lambda x: Validator.padToLength(x, padLength=options['pad_to_length']))
+                    lambda x: cls.padFunction(x, options['pad_to_length']))
             if "skip_duplicates" in options and options['skip_duplicates']:
                 # drop duplicates of specified fields
                 # (keeps the row where the value first appears)
