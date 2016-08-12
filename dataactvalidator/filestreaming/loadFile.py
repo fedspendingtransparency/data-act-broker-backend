@@ -98,11 +98,14 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
         and_(model.fiscal_year == fiscal_year, model.period == fiscal_period))
     if force_load:
         # force a reload of this period's current data
+        print('Force SF 133 load: deleting existing records for {} {}'.format(
+            fiscal_year, fiscal_period))
         existing_records.delete()
+        interface.session.commit()
     elif existing_records.count():
         # if there's existing data & we're not forcing a load, skip
-        print('{} SF133 {} {} records already loaded. No records inserted to database'.format(
-            existing_records.count(), fiscal_year, fiscal_period))
+        print('SF133 {} {} already in database ({} records). Skipping file.'.format(
+            fiscal_year, fiscal_period, existing_records.count()))
         return
 
     data = pd.read_csv(filename, dtype=str)
@@ -179,11 +182,12 @@ def loadDomainValues(basePath, localSFPath = None, localProgramActivity = None):
             file = os.path.basename(sf133).replace('.csv', '')
             fileParts = file.split('_')
             if len(fileParts) < 4:
-                print('Skipping SF 133 file with invalid name: {}'.format(sf133))
+                print('{}Skipping SF 133 file with invalid name: {}'.format(
+                    os.linesep, sf133))
                 continue
             year = file.split('_')[-2]
             period = file.split('_')[-1]
-            print('Starting {}...'.format(sf133))
+            print('{}Starting {}...'.format(os.linesep, sf133))
             loadSF133(sf133, year, period)
     else:
         print("Loading SF-133")
@@ -195,14 +199,16 @@ def loadDomainValues(basePath, localSFPath = None, localProgramActivity = None):
             sf133Files = s3bucket.list(
                 prefix='{}/sf_133'.format(CONFIG_BROKER['sf_133_folder']))
             for sf133 in sf133Files:
-                file = sf133.name.split(CONFIG_BROKER['sf_133_folder'])[-1].replace('.csv', '')
+                file = sf133.name.split(
+                    CONFIG_BROKER['sf_133_folder'])[-1].replace('.csv', '')
                 fileParts = file.split('_')
                 if len(fileParts) < 4:
-                    print('Skipping SF 133 file with invalid name: {}'.format(sf133))
+                    print('{}Skipping SF 133 file with invalid name: {}'.format(
+                        os.linesep, sf133))
                     continue
                 year = file.split('_')[-2]
                 period = file.split('_')[-1]
-                print('Starting {}...'.format(sf133.name))
+                print('{}Starting {}...'.format(os.linesep,sf133.name))
                 loadSF133(sf133, year, period)
 
 if __name__ == '__main__':
