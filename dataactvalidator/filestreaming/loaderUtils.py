@@ -1,5 +1,3 @@
-from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
-from dataactvalidator.validation_handlers.validator import Validator
 from datetime import datetime
 
 class LoaderUtils:
@@ -37,8 +35,11 @@ class LoaderUtils:
             data = dataframe of domain values
             fieldMap: dict that maps columns of the dataframe csv to our db columns
             fieldOptions: dict with keys of attribute names, value contains a dict with options for that attribute.
-                Current options are "pad_to_length" which if present will pad the field with leading zeros up to
-                specified length, and "skip_duplicate" which ignores subsequent lines that repeat values.
+                Current options are:
+                 "pad_to_length" which if present will pad the field with leading zeros up to
+                specified length
+                "skip_duplicate" which ignores subsequent lines that repeat values
+                "strip_commas" which removes commas
         """
         # toss out blank rows
         data.dropna(inplace=True, how='all')
@@ -65,10 +66,10 @@ class LoaderUtils:
                 # pad to specified length
                 data['{}'.format(col)] = data['{}'.format(col)].apply(
                     lambda x: cls.padFunction(x, options['pad_to_length']))
-            if "skip_duplicates" in options and options['skip_duplicates']:
-                # drop duplicates of specified fields
-                # (keeps the row where the value first appears)
-                data.drop_duplicates(subset=col, inplace=True)
+            if 'strip_commas' in options and options['strip_commas']:
+                # remove commas for specified column
+                # get rid of commas in dollar amounts
+                data[col] = data[col].str.replace(",", "")
 
         # add created_at and updated_at columns
         data = data.assign(

@@ -27,8 +27,10 @@ def loadCgac(filename):
         data,
         model,
         {"cgac": "cgac_code", "agency": "agency_name"},
-        {"cgac_code": {"pad_to_length": 3, "skip_duplicates": True}}
+        {"cgac_code": {"pad_to_length": 3}}
     )
+    # de-dupe
+    data.drop_duplicates(subset=['cgac_code'], inplace=True)
     # insert to db
     LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
 
@@ -49,8 +51,10 @@ def loadObjectClass(filename):
         model,
         {"max_oc_code":"object_class_code",
          "max_object_class_name": "object_class_name"},
-        {"object_class_code": {"skip_duplicates": True}}
+        {}
     )
+    # de-dupe
+    data.drop_duplicates(subset=['object_class_code'], inplace=True)
     # insert to db
     LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
 
@@ -98,7 +102,7 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
     elif existing_records.count():
         # if there's existing data & we're not forcing a load, skip
         print('{} SF133 {} {} records already loaded. No records inserted to database'.format(
-            existing_records, fiscal_year, fiscal_period))
+            existing_records.count(), fiscal_year, fiscal_period))
         return
 
     data = pd.read_csv(filename, dtype=str)
@@ -129,9 +133,6 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
     # just remove them before loading our SF-133 table
     dupe_line_numbers = ['2002', '2102']
     data = data[~data.line.isin(dupe_line_numbers)]
-
-    # get rid of commas in dollar amounts
-    data.amount = data.amount.str.replace(",", "")
 
     # add concatenated TAS field for internal use (i.e., joining to staging tables)
     data['tas'] = data.apply(lambda row: formatInternalTas(row), axis=1)
