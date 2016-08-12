@@ -33,6 +33,9 @@ class CsvS3Reader(CsvAbstractReader):
         """ After opening a file, download entire file to filename """
         s3connection = boto.s3.connect_to_region(region)
         s3Bucket = s3connection.lookup(bucket)
+        if not s3Bucket:
+            raise ValueError("Bucket {} not found in region {}".format(
+                bucket, region))
         self.s3File = s3Bucket.get_key(filename)
         if(self.s3File == None):
             raise ValueError("".join(["Filename provided not found on S3: ",str(filename)]))
