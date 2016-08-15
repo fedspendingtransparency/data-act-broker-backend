@@ -41,6 +41,10 @@ def createApp():
             return response
         app.after_request(clearInterfaces)
 
+        def createInterfaces():
+            BaseInterface.interfaces = InterfaceHolder()
+        app.before_request(createInterfaces)
+
         @app.route("/", methods=["GET"])
         def testApp():
             """Confirm server running."""

@@ -73,6 +73,7 @@ class BaseTestValidator(unittest.TestCase):
 
     def setUp(self):
         """Set up broker unit tests."""
+        self.interfaces = InterfaceHolder()
 
     @classmethod
     def tearDownClass(cls):

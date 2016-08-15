@@ -18,7 +18,7 @@ from dataactbroker.userRoutes import add_user_routes
 from dataactbroker.domainRoutes import add_domain_routes
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_DB, CONFIG_PATH
 from dataactcore.utils.timeout import timeout
-
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 
 def createApp():
     """Set up the application."""
@@ -72,6 +72,10 @@ def createApp():
                 pass
             return response
         app.after_request(clearInterfaces)
+
+        def createInterfaces():
+            BaseInterface.interfaces = InterfaceHolder()
+        app.before_request(createInterfaces)
 
         # Root will point to index.html
         @app.route("/", methods=["GET"])

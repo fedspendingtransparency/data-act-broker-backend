@@ -18,7 +18,7 @@ class BaseInterface(object):
     engine = None
     session = None
     # This holds a pointer to an InterfaceHolder object, and is populated when that is instantiated
-    #interfaces = None
+    interfaces = None
 
     def __init__(self):
         self.dbConfig = CONFIG_DB

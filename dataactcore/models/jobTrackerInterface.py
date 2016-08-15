@@ -294,6 +294,9 @@ class JobTrackerInterface(BaseInterface):
     def populateSubmissionErrorInfo(self, submissionId):
         """ Set number of errors and warnings for submission """
         submission = self.getSubmissionById(submissionId)
+        print("Self interfaces: " + str(self.interfaces))
+        print("Base interfaces: " + str(BaseInterface.interfaces))
+        self.interfaces = BaseInterface.interfaces
         submission.number_of_errors = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb)
         submission.number_of_warnings = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb, errorType = "warning")
         self.session.commit()
