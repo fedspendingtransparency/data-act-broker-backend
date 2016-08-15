@@ -16,7 +16,7 @@ SELECT
     sf.amount
 FROM object_class_program_activity as op
     INNER JOIN sf_133 as sf ON op.tas = sf.tas
-    INNER JOIN submission as sub ON approp.submission_id = sub.submission_id AND
+    INNER JOIN submission as sub ON op.submission_id = sub.submission_id AND
         sf.period = sub.reporting_fiscal_period AND
         sf.fiscal_year = sub.reporting_fiscal_year
 WHERE op.submission_id = {} AND
