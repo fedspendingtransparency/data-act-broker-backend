@@ -14,8 +14,6 @@ WHERE sub.submission_id = {0}
 	AND NOT EXISTS (
 		SELECT 1
 		FROM appropriation AS approp
-			JOIN submission AS sub
-				ON approp.submission_id = sub.submission_id
 		WHERE sf.tas IS NOT DISTINCT FROM approp.tas
-			AND sub.submission_id = {0}
+			AND approp.submission_id = {0}
 	);

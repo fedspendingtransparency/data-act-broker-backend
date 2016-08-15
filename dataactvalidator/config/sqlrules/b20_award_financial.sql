@@ -13,8 +13,8 @@ WHERE af.submission_id = {}
 	AND NOT EXISTS (
 		SELECT 1
 		FROM object_class_program_activity AS op
-		WHERE af.tas IS DISTINCT FROM op.tas
-			AND af.program_activity_code IS DISTINCT FROM op.program_activity_code
-			AND af.object_class IS DISTINCT FROM op.object_class
+		WHERE af.tas IS NOT DISTINCT FROM op.tas
+			AND af.program_activity_code IS NOT DISTINCT FROM op.program_activity_code
+			AND af.object_class IS NOT DISTINCT FROM op.object_class
 			AND af.submission_id = op.submission_id
 	);
