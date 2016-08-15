@@ -51,9 +51,9 @@ class CsvS3Reader(CsvAbstractReader):
         """
         Gets the next packet from the file returns true if successful
         """
-        offsetCheck = self.packetCounter *  CsvAbstractReader.BUFFER_SIZE 
-        header ={'Range': "".join(
-            ['bytes=', str(offsetCheck), '-', str(offsetCheck +CsvAbstractReader.BUFFER_SIZE - 1)])}
+        offsetCheck = self.packetCounter * CsvAbstractReader.BUFFER_SIZE
+        header = {'Range': 'bytes={}-{}'.format(
+            offsetCheck, offsetCheck + CsvAbstractReader.BUFFER_SIZE - 1)}
         try:
             packet = self.s3File.get_contents_as_string(headers=header)
             return True, packet
