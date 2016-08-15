@@ -19,3 +19,6 @@ class TestStatusCodes:
 
     def test_status_internal_error(self):
         assert StatusCode.INTERNAL_ERROR == 500
+
+    def test_intentional_failure(self):
+        assert StatusCode.OK == 201
