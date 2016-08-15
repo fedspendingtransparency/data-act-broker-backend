@@ -5,7 +5,7 @@ import boto
 from datetime import datetime
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
-from tests.baseTestAPI import BaseTestAPI
+from tests.integration.baseTestAPI import BaseTestAPI
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.errorModels import ErrorMetadata, File
@@ -236,7 +236,7 @@ class FileTests(BaseTestAPI):
         submission = self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id)
 
         self.interfaces.jobDb.populateSubmissionErrorInfo(self.status_check_submission_id)
-        
+
         response = self.app.post_json("/v1/check_status/", postJson, headers={"x-session-id":self.session_id})
 
         self.assertEqual(response.status_code, 200, msg=str(response.json))
@@ -368,9 +368,7 @@ class FileTests(BaseTestAPI):
     @staticmethod
     def uploadFileByURL(s3FileName,filename):
         """Upload file and return filename and bytes written."""
-        path = os.path.dirname(
-            os.path.abspath(inspect.getfile(inspect.currentframe())))
-        fullPath = os.path.join(path, filename)
+        fullPath = os.path.join(CONFIG_BROKER['path'], "tests", "integration", "data", filename)
 
         if CONFIG_BROKER['local']:
             # If not using AWS, put file submission in location
