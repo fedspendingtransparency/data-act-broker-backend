@@ -160,7 +160,8 @@ class ValidationManager:
         """ Return full path of error report based on provided name """
         if self.isLocal:
             return os.path.join(self.directory, path)
-        return os.path.join("errors", path)
+        # Forcing forward slash here instead of using os.path to write a valid path for S3
+        return "".join(["errors/", path])
 
     def readRecord(self,reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter, fields):
         """ Read and process the next record
