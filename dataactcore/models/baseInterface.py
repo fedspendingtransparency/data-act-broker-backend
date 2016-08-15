@@ -48,13 +48,16 @@ class BaseInterface(object):
         self.session = self.Session()
 
     def __del__(self):
+       self.close()
+
+    def close(self):
         try:
-            self.interfaces = None
             #Close session
             self.session.close()
             self.Session.remove()
             self.connection.close()
             self.engine.dispose()
+            self.interfaces = None
         except (KeyError, AttributeError):
             # KeyError will occur in Python 3 on engine dispose
             pass
