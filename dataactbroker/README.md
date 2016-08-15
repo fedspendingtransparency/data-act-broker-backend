@@ -775,12 +775,14 @@ Example output if there are no files available:
 
 ## Test Cases
 
-To run the broker API unit tests, navigate to the project's test folder (`data-act-broker-backend/tests`) and type the following:
+### Integration Tests
 
-        $ python runTests.py
+To run the broker API integration tests, navigate to the project's test folder (`data-act-broker-backend/tests`) and type the following:
+
+        $ python integration/runTests.py
 
 To generate a test coverage report from the command line:
 
 1. Make sure you're in the project's test folder (`data-act-broker-backend/tests`).
-2. Run the tests using the `coverage` command: `coverage run runTests.py`.
+2. Run the tests using the `coverage` command: `coverage run integration/runTests.py`.
 3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
