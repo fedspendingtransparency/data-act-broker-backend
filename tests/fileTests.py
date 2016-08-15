@@ -232,9 +232,8 @@ class FileTests(BaseTestAPI):
         postJson = {"submission_id": self.status_check_submission_id}
         # Populating error info before calling route to avoid changing last update time
         submission = self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id)
+        # Here to repopulate BaseInterface.interfaces, TODO figure out why this is needed only on this test
         InterfaceHolder()
-        print("interfaces: " + str(BaseInterface.interfaces))
-        print("errorDb: " + str(BaseInterface.interfaces.errorDb))
         self.interfaces.jobDb.populateSubmissionErrorInfo(self.status_check_submission_id)
         
         response = self.app.post_json("/v1/check_status/", postJson, headers={"x-session-id":self.session_id})
