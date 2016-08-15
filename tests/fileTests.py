@@ -59,6 +59,8 @@ class FileTests(BaseTestAPI):
         super(FileTests, self).setUp()
         self.login_other_user(
             self.test_users["submission_email"], self.user_password)
+        # Here to repopulate BaseInterface.interfaces after login route clears them
+        InterfaceHolder()
 
     def call_file_submission(self):
         """Call the broker file submission route."""
@@ -232,8 +234,7 @@ class FileTests(BaseTestAPI):
         postJson = {"submission_id": self.status_check_submission_id}
         # Populating error info before calling route to avoid changing last update time
         submission = self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id)
-        # Here to repopulate BaseInterface.interfaces, TODO figure out why this is needed only on this test
-        InterfaceHolder()
+
         self.interfaces.jobDb.populateSubmissionErrorInfo(self.status_check_submission_id)
         
         response = self.app.post_json("/v1/check_status/", postJson, headers={"x-session-id":self.session_id})
