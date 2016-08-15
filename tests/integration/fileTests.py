@@ -6,10 +6,12 @@ from datetime import datetime
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from tests.integration.baseTestAPI import BaseTestAPI
+from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.config import CONFIG_BROKER
 from dataactbroker.handlers.jobHandler import JobHandler
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from shutil import copy
 
 class FileTests(BaseTestAPI):
@@ -57,6 +59,8 @@ class FileTests(BaseTestAPI):
         super(FileTests, self).setUp()
         self.login_other_user(
             self.test_users["submission_email"], self.user_password)
+        # Here to repopulate BaseInterface.interfaces after login route clears them
+        InterfaceHolder()
 
     def call_file_submission(self):
         """Call the broker file submission route."""
@@ -230,6 +234,7 @@ class FileTests(BaseTestAPI):
         postJson = {"submission_id": self.status_check_submission_id}
         # Populating error info before calling route to avoid changing last update time
         submission = self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id)
+
         self.interfaces.jobDb.populateSubmissionErrorInfo(self.status_check_submission_id)
 
         response = self.app.post_json("/v1/check_status/", postJson, headers={"x-session-id":self.session_id})

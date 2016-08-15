@@ -2,6 +2,7 @@ import sys
 import traceback
 from threading import Thread
 from flask import Flask, request, copy_current_request_context
+from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
@@ -24,6 +25,25 @@ def createApp():
         app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
         validationManager = ValidationManager(local, error_report_path)
+
+        def clearInterfaces(response):
+            try:
+                interfaces =BaseInterface.interfaces
+                interfaces.jobDb.close()
+                interfaces.validationDb.close()
+                interfaces.errorDb.close()
+                interfaces.stagingDb.close()
+                BaseInterface.interfaces = None
+            except Exception as e:
+                print("Could not close connections")
+                print(str(type(e)) + ": " + str(e))
+                pass
+            return response
+        app.after_request(clearInterfaces)
+
+        def createInterfaces():
+            BaseInterface.interfaces = InterfaceHolder()
+        app.before_request(createInterfaces)
 
         @app.route("/", methods=["GET"])
         def testApp():
