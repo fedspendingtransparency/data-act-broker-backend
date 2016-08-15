@@ -66,7 +66,7 @@ class LoaderUtils:
                 # pad to specified length
                 data['{}'.format(col)] = data['{}'.format(col)].apply(
                     lambda x: cls.padFunction(x, options['pad_to_length']))
-            if 'strip_commas' in options and options['strip_commas']:
+            if options.get('strip_commas'):
                 # remove commas for specified column
                 # get rid of commas in dollar amounts
                 data[col] = data[col].str.replace(",", "")
