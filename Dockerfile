@@ -3,6 +3,7 @@ FROM fedora
 RUN dnf install -y git \
         postgresql-devel \
         gcc \
+        gcc-c++ \
         libffi-devel \
         python-devel \
         python-pip \
