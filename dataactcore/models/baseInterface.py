@@ -18,7 +18,7 @@ class BaseInterface(object):
     engine = None
     session = None
     # This holds a pointer to an InterfaceHolder object, and is populated when that is instantiated
-    interfaces = None
+    #interfaces = None
 
     def __init__(self):
         self.dbConfig = CONFIG_DB
@@ -48,13 +48,16 @@ class BaseInterface(object):
         self.session = self.Session()
 
     def __del__(self):
+       self.close()
+
+    def close(self):
         try:
-            self.interfaces = None
             #Close session
             self.session.close()
             self.Session.remove()
             self.connection.close()
             self.engine.dispose()
+            self.interfaces = None
         except (KeyError, AttributeError):
             # KeyError will occur in Python 3 on engine dispose
             pass
