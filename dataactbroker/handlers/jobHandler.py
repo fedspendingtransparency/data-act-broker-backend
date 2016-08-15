@@ -404,6 +404,9 @@ class JobHandler(JobTrackerInterface):
     def createDFileMeta(self, submission_id, start_date, end_date, type, original_file_name, upload_file_name):
         result = self.session.query(DFileMeta).filter(and_(DFileMeta.submission_id == submission_id, DFileMeta.type == type)).first()
         if result is not None:
+            result.start_date = start_date
+            result.end_date = end_date
+            result.original_file_name = original_file_name
             result.upload_file_name = upload_file_name
             result.error_message = ""
             self.session.commit()

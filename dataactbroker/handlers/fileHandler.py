@@ -462,9 +462,9 @@ class FileHandler:
             if result.status_code != 200:
                 raise ResponseException(result.data)
 
-        user_id = LoginSession.getName(session)
-        slash_index = d1_file.upload_file_name.rfind("/")
-        timestamped_filename = d1_file.upload_file_name[slash_index + 1:]
+        file_elements = d1_file.upload_file_name.split('/')
+        user_id = file_elements[0]
+        timestamped_filename = file_elements[-1]
 
         url = "" if status != "finished" else self.s3manager.getSignedUrl(path=str(user_id),
                                                                           fileName=timestamped_filename, method="GET")
@@ -541,9 +541,9 @@ class FileHandler:
             if result.status_code != 200:
                 raise ResponseException(result.data)
 
-        user_id = LoginSession.getName(session)
-        slash_index = d2_file.upload_file_name.rfind("/")
-        timestamped_filename = d2_file.upload_file_name[slash_index+1:]
+        file_elements = d2_file.upload_file_name.split('/')
+        user_id = file_elements[0]
+        timestamped_filename = file_elements[-1]
 
         url = "" if status != "finished" else self.s3manager.getSignedUrl(path=str(user_id), fileName=timestamped_filename, method="GET")
 
