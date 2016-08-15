@@ -7,6 +7,6 @@ FROM appropriation as approp
     INNER JOIN submission as sub ON approp.submission_id = sub.submission_id AND
         sf.period = sub.reporting_fiscal_period AND
         sf.fiscal_year = sub.reporting_fiscal_year
-WHERE submission_id = {} AND
+WHERE approp.submission_id = {} AND
     sf.line = 2190 AND
     approp.obligations_incurred_total_cpe <> sf.amount

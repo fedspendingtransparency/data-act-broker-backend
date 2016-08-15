@@ -8,7 +8,7 @@ from dataactcore.scripts.databaseSetup import (
 from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 
 
-@pytest.yield_fixture(scope='module')
+@pytest.yield_fixture(scope='session')
 def database():
     """Sets up a clean database, yielding a relevant interface holder"""
     rand_id = str(randint(1, 9999))
