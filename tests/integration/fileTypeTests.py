@@ -222,50 +222,21 @@ class FileTypeTests(BaseTestValidator):
         jobTracker = self.interfaces.jobDb
 
         submissionId = jobTracker.getSubmissionId(crossId)
-        abFileSize = 89
-        cdFileSize = 89
-        abFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")
-        cdFilename = self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")
+        sizePathPairs = [
+            (89, self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")),
+            (89, self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")),
+            (1329, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "appropriations", "program_activity")),
+            (424, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "award_financial", "award")),
+        ]
 
-        abWarningFileSize = 1329
-        cdWarningFileSize = 424
-        abWarningFilename = self.interfaces.errorDb.getCrossWarningReportName(submissionId, "appropriations", "program_activity")
-        cdWarningFilename = self.interfaces.errorDb.getCrossWarningReportName(submissionId, "award_financial", "award")
-
-        if self.local:
-            path = "".join(
-                [self.local_file_directory,abWarningFilename])
-            self.assertGreater(os.path.getsize(path), abWarningFileSize - 5)
-            self.assertLess(os.path.getsize(path), abWarningFileSize + 5)
-            path = "".join(
-                [self.local_file_directory,cdWarningFilename])
-            self.assertGreater(os.path.getsize(path), cdWarningFileSize - 5)
-            self.assertLess(os.path.getsize(path), cdWarningFileSize + 5)
-            path = "".join(
-                [self.local_file_directory,abFilename])
-            self.assertGreater(os.path.getsize(path), abFileSize - 5)
-            self.assertLess(os.path.getsize(path), abFileSize + 5)
-            path = "".join(
-                [self.local_file_directory,cdFilename])
-            self.assertGreater(os.path.getsize(path), cdFileSize - 5)
-            self.assertLess(os.path.getsize(path), cdFileSize + 5)
-        else:
-            self.assertGreater(s3UrlHandler.getFileSize(
-                "errors/"+abWarningFilename), abWarningFileSize - 5)
-            self.assertLess(s3UrlHandler.getFileSize(
-                "errors/"+abWarningFilename), abWarningFileSize + 5)
-            self.assertGreater(s3UrlHandler.getFileSize(
-                "errors/"+cdWarningFilename), cdWarningFileSize - 5)
-            self.assertLess(s3UrlHandler.getFileSize(
-                "errors/"+cdWarningFilename), cdWarningFileSize + 5)
-            self.assertGreater(s3UrlHandler.getFileSize(
-                "errors/"+abFilename), abFileSize - 5)
-            self.assertLess(s3UrlHandler.getFileSize(
-                "errors/"+abFilename), abFileSize + 5)
-            self.assertGreater(s3UrlHandler.getFileSize(
-                "errors/"+cdFilename), cdFileSize - 5)
-            self.assertLess(s3UrlHandler.getFileSize(
-                "errors/"+cdFilename), cdFileSize + 5)
+        for size, path in sizePathPairs:
+            if self.local:
+                self.assertFileSizeAppxy(size, path)
+            else:
+                self.assertGreater(
+                    s3UrlHandler.getFileSize("errors/" + path), size - 5)
+                self.assertLess(
+                    s3UrlHandler.getFileSize("errors/" + path), size + 5)
 
 if __name__ == '__main__':
     unittest.main()

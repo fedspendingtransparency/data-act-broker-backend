@@ -88,6 +88,7 @@ class ErrorInterface(BaseInterface):
         errorSum = 0
         for jobId in jobIdList:
             jobErrors = self.checkNumberOfErrorsByJobId(jobId, valDb, errorType)
+            self.interfaces.jobDb.setJobNumberOfErrors(jobId, jobErrors, errorType)
             try:
                 errorSum += int(jobErrors)
             except TypeError:
