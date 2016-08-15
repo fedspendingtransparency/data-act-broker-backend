@@ -82,7 +82,6 @@ broker:
 
     # S3 filenames for SF-133 file, only required if planning to load SF-133 table
     sf_133_folder: config
-    sf_133_file: sf_133.csv
 
     # Static Files Locations
     static_files_bucket: sample-static-files-bucket
