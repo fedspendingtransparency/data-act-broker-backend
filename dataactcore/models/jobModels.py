@@ -48,8 +48,8 @@ class Submission(Base):
     cgac_code = Column(Text)
     reporting_start_date = Column(Date)
     reporting_end_date = Column(Date)
-    reporting_fiscal_year = Column(Integer, nullable=False, default=generateFiscalYear, onupdate=generateFiscalYear)
-    reporting_fiscal_period = Column(Integer, nullable=False, default=generateFiscalPeriod, onupdate=generateFiscalPeriod)
+    reporting_fiscal_year = Column(Integer, nullable=False, default=generateFiscalYear, server_default='0', onupdate=generateFiscalYear)
+    reporting_fiscal_period = Column(Integer, nullable=False, default=generateFiscalPeriod, server_default='0', onupdate=generateFiscalPeriod)
     is_quarter_format = Column(Boolean, nullable = False, default = "False", server_default= "False")
     jobs = None
     publishable = Column(Boolean, nullable = False, default = "False", server_default = "False")
