@@ -35,7 +35,8 @@ def test_sum_matches(database):
     op2 = ObjectClassProgramActivity(gross_outlay_amount_by_pro_cpe=op2_val)
     approp = Appropriation(gross_outlay_amount_by_tas_cpe=approp_val)
     set_shared_values(op1, op2, approp)
-    assert number_of_errors(_FILE, database.stagingDb, approp, op1, op2) == 0
+    assert number_of_errors(_FILE, database.stagingDb,
+                            models=[approp, op1, op2]) == 0
 
 
 def test_sum_does_not_match(database):
@@ -45,4 +46,5 @@ def test_sum_does_not_match(database):
     op2 = ObjectClassProgramActivity(gross_outlay_amount_by_pro_cpe=op2_val)
     approp = Appropriation(gross_outlay_amount_by_tas_cpe=approp_val)
     set_shared_values(op1, op2, approp)
-    assert number_of_errors(_FILE, database.stagingDb, approp, op1, op2) == 1
+    assert number_of_errors(_FILE, database.stagingDb,
+                            models=[approp, op1, op2]) == 1
