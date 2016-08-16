@@ -236,7 +236,7 @@ class FileTypeTests(BaseTestValidator):
         sizePathPairs = [
             (89, self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")),
             (89, self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")),
-            (1329, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "appropriations", "program_activity")),
+            (2348, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "appropriations", "program_activity")),
             (424, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "award_financial", "award")),
         ]
 
