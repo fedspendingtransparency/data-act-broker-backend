@@ -20,6 +20,7 @@ class UserTests(BaseTestAPI):
 
         for i in range(0,5):
             sub = Submission(user_id = cls.approved_user_id)
+            sub.reporting_start_date = datetime(2015,10,1)
             sub.reporting_end_date = datetime(2015,12,31)
             jobDb.session.add(sub)
             jobDb.session.commit()
@@ -28,6 +29,7 @@ class UserTests(BaseTestAPI):
         jobDb.deleteSubmissionsForUserId(cls.agency_user_id)
         for i in range(0,6):
             sub = Submission(user_id = cls.agency_user_id)
+            sub.reporting_start_date = datetime(2015,10,1)
             sub.reporting_end_date = datetime(2015, 12, 31)
             sub.cgac_code = "SYS"
             jobDb.session.add(sub)
