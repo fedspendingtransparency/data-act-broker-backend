@@ -4,6 +4,7 @@ import requests
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from csv import reader
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
+from dataactcore.utils.jsonResponse import JsonResponse
 
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):
@@ -51,11 +52,11 @@ class JobQueue:
 
                 aws_file_name = "".join([str(user_id), "/", timestamped_name])
 
-                with open(timestamped_name, "wb") as file:
+                with open(timestamped_name, "w") as file:
                     # get request
                     response = requests.get(file_url)
                     # write to file
-                    file.write(response.content)
+                    file.write(str(response.content))
 
                 lines = []
                 with open(timestamped_name) as file:
@@ -70,6 +71,8 @@ class JobQueue:
 
                 job_manager.setDFileStatus(d_file_id, "finished")
             except Exception as e:
+                # Log the error
+                JsonResponse.error(e,500)
                 job_manager.setDFileMessage(d_file_id, str(e))
                 job_manager.setDFileStatus(d_file_id, "failed")
                 raise e
