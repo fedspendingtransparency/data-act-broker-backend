@@ -1,6 +1,5 @@
 import unittest
-from baseTestAPI import BaseTestAPI
-from webtest.app import AppError
+from tests.integration.baseTestAPI import BaseTestAPI
 
 
 class LoginTests(BaseTestAPI):

@@ -1,4 +1,4 @@
-from dataactcore.models.jobModels import JobStatus, JobType, FileType
+from dataactcore.models.jobModels import JobStatus, JobType, FileType, PublishStatus
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_DB
@@ -33,6 +33,13 @@ def insertCodes():
     for t in typeList:
         thisType = JobType(job_type_id=t[0],name=t[1], description=t[2])
         jobDb.session.merge(thisType)
+
+    publishStatusList = [(1, 'unpublished', 'Has not yet been moved to data store'),
+        (2,'published', 'Has been moved to data store'),
+        (3, 'updated', 'Submission was updated after being published')]
+    for ps in publishStatusList:
+        status = PublishStatus(publish_status_id=ps[0], name=ps[1], description=ps[2])
+        jobDb.session.merge(status)
 
     fileTypeList = [(1, 'appropriations', ''),
         (2,'program_activity', ''),

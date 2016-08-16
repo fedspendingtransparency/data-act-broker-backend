@@ -177,10 +177,12 @@ class JobHandler(JobTrackerInterface):
         if existingId is None:
             submission = Submission(datetime_utc = datetime.utcnow(), **submissionValues)
             submission.user_id = userId
+            self.setPublishStatus("unpublished", submission)
             self.session.add(submission)
         else:
             submissionQuery = self.session.query(Submission).filter(Submission.submission_id == existingId)
             submission = self.runUniqueQuery(submissionQuery,"No submission found with provided ID", "Multiple submissions found with provided ID")
+            self.updatePublishStatus(submission)
             #if "reporting_start_date" in submissionValues:
             #    submission.reporting_start_date = submissionValues["reporting_start_date"]
             for key in submissionValues:
@@ -402,7 +404,10 @@ class JobHandler(JobTrackerInterface):
     def createDFileMeta(self, submission_id, start_date, end_date, type, original_file_name, upload_file_name):
         result = self.session.query(DFileMeta).filter(and_(DFileMeta.submission_id == submission_id, DFileMeta.type == type)).first()
         if result is not None:
-            result.url = ""
+            result.start_date = start_date
+            result.end_date = end_date
+            result.original_file_name = original_file_name
+            result.upload_file_name = upload_file_name
             result.error_message = ""
             self.session.commit()
             return result.d_file_id
@@ -412,11 +417,6 @@ class JobHandler(JobTrackerInterface):
         self.session.add(d1_file)
         self.session.commit()
         return d1_file.d_file_id
-
-    def setDFileUrl(self, d_file_id, url):
-        d_file = self.getDFileById(d_file_id)
-        d_file.url = url
-        self.session.commit()
 
     def setDFileMessage(self, d_file_id, message):
         d_file = self.getDFileById(d_file_id)

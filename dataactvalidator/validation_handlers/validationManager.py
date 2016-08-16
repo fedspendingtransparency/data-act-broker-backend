@@ -5,6 +5,7 @@ from csv import Error
 from sqlalchemy import or_, and_
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.validationModels import FileTypeValidation
+from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
@@ -100,6 +101,7 @@ class ValidationManager:
         """
 
         # As this is the start of a new thread, first generate new connections to the databases
+        BaseInterface.interfaces = None
         interfaces = InterfaceHolder()
 
         self.filename = ""
@@ -158,7 +160,8 @@ class ValidationManager:
         """ Return full path of error report based on provided name """
         if self.isLocal:
             return os.path.join(self.directory, path)
-        return os.path.join("errors", path)
+        # Forcing forward slash here instead of using os.path to write a valid path for S3
+        return "".join(["errors/", path])
 
     def readRecord(self,reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter, fields):
         """ Read and process the next record
@@ -413,6 +416,8 @@ class ValidationManager:
             # Mark validation as finished in job tracker
             jobTracker.markJobStatus(jobId,"finished")
             errorInterface.writeAllRowErrors(jobId)
+            # Update error info for submission
+            jobTracker.populateSubmissionErrorInfo(submissionId)
         finally:
             # Ensure the file always closes
             reader.close()
@@ -522,6 +527,14 @@ class ValidationManager:
         errorDb.writeAllRowErrors(jobId)
         interfaces.jobDb.markJobStatus(jobId, "finished")
         CloudLogger.logError("VALIDATOR_INFO: ", "Completed runCrossValidation on submissionID: "+str(submissionId), "")
+        # Update error info for submission
+        interfaces.jobDb.populateSubmissionErrorInfo(submissionId)
+        # TODO: Remove temporary step below
+        # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their submissions
+        # as publishable
+        # Publish only if no errors are present
+        if interfaces.jobDb.getSubmissionById(submissionId).number_of_errors == 0:
+            interfaces.jobDb.setPublishableFlag(submissionId, True)
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to a staging table

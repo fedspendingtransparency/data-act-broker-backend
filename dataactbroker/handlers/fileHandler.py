@@ -462,9 +462,13 @@ class FileHandler:
             if result.status_code != 200:
                 raise ResponseException(result.data)
 
-        url = "" if d1_file.url is None else d1_file.url
-        error_message = "" if d1_file.error_message is None else d1_file.error_message
+        file_elements = d1_file.upload_file_name.split('/')
+        user_id = file_elements[0]
+        timestamped_filename = file_elements[-1]
 
+        url = "" if status != "finished" else self.s3manager.getSignedUrl(path=str(user_id),
+                                                                          fileName=timestamped_filename, method="GET")
+        error_message = "" if d1_file.error_message is None else d1_file.error_message
         start_date = d1_file.start_date.strftime("%m/%d/%Y")
         end_date = d1_file.end_date.strftime("%m/%d/%Y")
 
@@ -537,10 +541,13 @@ class FileHandler:
             if result.status_code != 200:
                 raise ResponseException(result.data)
 
-        status = self.jobManager.getJobStatusNameById(d2_file.status_id)
-        url = "" if d2_file.url is None else d2_file.url
-        error_message = "" if d2_file.error_message is None else d2_file.error_message
+        file_elements = d2_file.upload_file_name.split('/')
+        user_id = file_elements[0]
+        timestamped_filename = file_elements[-1]
 
+        url = "" if status != "finished" else self.s3manager.getSignedUrl(path=str(user_id), fileName=timestamped_filename, method="GET")
+
+        error_message = "" if d2_file.error_message is None else d2_file.error_message
         start_date = d2_file.start_date.strftime("%m/%d/%Y")
         end_date = d2_file.end_date.strftime("%m/%d/%Y")
 

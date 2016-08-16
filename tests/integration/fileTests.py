@@ -5,11 +5,13 @@ import boto
 from datetime import datetime
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
-from baseTestAPI import BaseTestAPI
+from tests.integration.baseTestAPI import BaseTestAPI
+from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.config import CONFIG_BROKER
 from dataactbroker.handlers.jobHandler import JobHandler
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from shutil import copy
 
 class FileTests(BaseTestAPI):
@@ -57,6 +59,8 @@ class FileTests(BaseTestAPI):
         super(FileTests, self).setUp()
         self.login_other_user(
             self.test_users["submission_email"], self.user_password)
+        # Here to repopulate BaseInterface.interfaces after login route clears them
+        InterfaceHolder()
 
     def call_file_submission(self):
         """Call the broker file submission route."""
@@ -121,7 +125,9 @@ class FileTests(BaseTestAPI):
         submissionId = responseDict["submission_id"]
         self.file_submission_id = submissionId
         submission = self.interfaces.jobDb.getSubmissionById(submissionId)
-        self.assertEquals(submission.user_id, self.submission_user_id)
+        self.assertEqual(submission.user_id, self.submission_user_id)
+        # Check that new submission is unpublished
+        self.assertEqual(submission.publish_status_id, self.interfaces.jobDb.getPublishStatusId("unpublished"))
 
         # Call upload complete route
         finalizeResponse = self.check_upload_complete(
@@ -143,6 +149,10 @@ class FileTests(BaseTestAPI):
                 "award_financial": os.path.join(filePath,"updated.csv"),
                 "reporting_period_start_date":"02/2016",
                 "reporting_period_end_date":"03/2016"}
+        # Mark submission as published
+        updateSubmission = self.interfaces.jobDb.getSubmissionById(self.updateSubmissionId)
+        updateSubmission.publish_status_id = self.interfaces.jobDb.getPublishStatusId("published")
+        self.interfaces.jobDb.session.commit()
         updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id":self.session_id})
         self.assertEqual(updateResponse.status_code, 200)
         self.assertEqual(updateResponse.headers.get("Content-Type"), "application/json")
@@ -154,6 +164,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(submission.cgac_code,"SYS") # Should not have changed agency name
         self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"),"02/2016")
         self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"),"03/2016")
+        self.assertEqual(submission.publish_status_id, self.interfaces.jobDb.getPublishStatusId("updated"))
 
     def test_bad_quarter_or_month(self):
         """ Test file submissions for Q5, 13, and AB, and year of ABCD """
@@ -221,6 +232,11 @@ class FileTests(BaseTestAPI):
     def test_check_status(self):
         """Test broker status route response."""
         postJson = {"submission_id": self.status_check_submission_id}
+        # Populating error info before calling route to avoid changing last update time
+        submission = self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id)
+
+        self.interfaces.jobDb.populateSubmissionErrorInfo(self.status_check_submission_id)
+
         response = self.app.post_json("/v1/check_status/", postJson, headers={"x-session-id":self.session_id})
 
         self.assertEqual(response.status_code, 200, msg=str(response.json))
@@ -299,6 +315,11 @@ class FileTests(BaseTestAPI):
         # Check submission level info
         self.assertEqual(json["number_of_errors"],17)
         self.assertEqual(json["number_of_rows"],667)
+        # Check number of errors and warnings in submission table
+
+        self.assertEqual(submission.number_of_errors, 17)
+        self.assertEqual(submission.number_of_warnings, 7)
+
         # Check that submission was created today, this test may fail if run right at midnight UTC
         self.assertEqual(json["created_on"],datetime.utcnow().strftime("%m/%d/%Y"))
         self.assertEqual(json["last_updated"],self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id).updated_at.strftime("%Y-%m-%dT%H:%M:%S"))
@@ -347,9 +368,7 @@ class FileTests(BaseTestAPI):
     @staticmethod
     def uploadFileByURL(s3FileName,filename):
         """Upload file and return filename and bytes written."""
-        path = os.path.dirname(
-            os.path.abspath(inspect.getfile(inspect.currentframe())))
-        fullPath = os.path.join(path, filename)
+        fullPath = os.path.join(CONFIG_BROKER['path'], "tests", "integration", "data", filename)
 
         if CONFIG_BROKER['local']:
             # If not using AWS, put file submission in location

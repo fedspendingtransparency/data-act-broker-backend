@@ -1,7 +1,7 @@
 import traceback
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, FileType
+from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, FileType, PublishStatus
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -285,3 +285,68 @@ class JobTrackerInterface(BaseInterface):
             else:
                 return "validation_successful"
         return "unknown"
+
+    def getSubmissionById(self, submissionId):
+        """ Return submission object that matches ID"""
+        query = self.session.query(Submission).filter(Submission.submission_id == submissionId)
+        return self.runUniqueQuery(query, "No submission with that ID", "Multiple submissions with that ID")
+
+    def populateSubmissionErrorInfo(self, submissionId):
+        """ Set number of errors and warnings for submission """
+        submission = self.getSubmissionById(submissionId)
+        # TODO find where interfaces is set as an instance variable which overrides the static variable, fix that and then remove this line
+        self.interfaces = BaseInterface.interfaces
+        submission.number_of_errors = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb)
+        submission.number_of_warnings = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb, errorType = "warning")
+        self.session.commit()
+
+    def setJobNumberOfErrors(self, jobId, numberOfErrors, errorType):
+        """ Label nuber of errors or warnings for specified job
+
+        Args:
+            jobId: Job to set number for
+            numberOfErrors: Number to be set
+            errorType: Type of error to set, can be either 'fatal' or 'warning'
+
+        """
+        job = self.getJobById(jobId)
+        if errorType == "fatal":
+            job.number_of_errors = numberOfErrors
+        elif errorType == "warning":
+            job.number_of_warnings = numberOfErrors
+        self.session.commit()
+
+    def setPublishableFlag(self, submissionId, publishable):
+        """ Set publishable flag to specified value """
+        submission = self.getSubmissionById(submissionId)
+        submission.publishable = publishable
+        self.session.commit()
+
+    def extractSubmission(self, submissionOrId):
+        """ If given an integer, get the specified submission, otherwise return the input """
+        if isinstance(submissionOrId, int):
+            return self.getSubmissionById(submissionOrId)
+        else:
+            return submissionOrId
+
+    def setPublishStatus(self, statusName, submissionOrId):
+        """ Set publish status to specified name"""
+        statusId = self.getPublishStatusId(statusName)
+        submission = self.extractSubmission(submissionOrId)
+        submission.publish_status_id = statusId
+        self.session.commit()
+
+    def updatePublishStatus(self, submissionOrId):
+        """ If submission was already published, mark as updated.  Also set publishable back to false. """
+        submission = self.extractSubmission(submissionOrId)
+        publishedStatus = self.getPublishStatusId("published")
+        if submission.publish_status_id == publishedStatus:
+            # Submission already published, mark as updated
+            self.setPublishStatus("updated", submission)
+        # Changes have been made, so don't publish until user marks as publishable again
+        submission.publishable = False
+        self.session.commit()
+
+    def getPublishStatusId(self, statusName):
+        """ Return ID for specified publish status """
+        return self.getIdFromDict(PublishStatus,  "PUBLISH_STATUS_DICT", "name", statusName, "publish_status_id")

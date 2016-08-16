@@ -20,6 +20,14 @@ class JobType(Base):
     name = Column(Text)
     description = Column(Text)
 
+class PublishStatus(Base):
+    __tablename__ = "publish_status"
+    PUBLISH_STATUS_DICT = None
+
+    publish_status_id = Column(Integer, primary_key=True)
+    name = Column(Text)
+    description = Column(Text)
+
 class Submission(Base):
     __tablename__ = "submission"
 
@@ -31,6 +39,11 @@ class Submission(Base):
     reporting_end_date = Column(Date)
     is_quarter_format = Column(Boolean, nullable = False, default = "False", server_default= "False")
     jobs = None
+    publishable = Column(Boolean, nullable = False, default = "False", server_default = "False")
+    publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL", name ="fk_publish_status_id"))
+    publish_status = relationship("PublishStatus", uselist = False)
+    number_of_errors = Column(Integer)
+    number_of_warnings = Column(Integer)
 
 class Job(Base):
     __tablename__ = "job"
@@ -49,6 +62,8 @@ class Job(Base):
     file_size = Column(Integer)
     number_of_rows = Column(Integer)
     number_of_rows_valid = Column(Integer)
+    number_of_errors = Column(Integer)
+    number_of_warnings = Column(Integer)
 
 class JobDependency(Base):
     __tablename__ = "job_dependency"
@@ -76,7 +91,6 @@ class DFileMeta(Base):
     end_date = Column(Date)
     status_id = Column(Integer, ForeignKey("job_status.job_status_id", name="fk_status_id"))
     status = relationship("JobStatus", uselist=False)
-    url = Column(Text)
     error_message = Column(Text)
     upload_file_name = Column(Text)
     original_file_name = Column(Text)
