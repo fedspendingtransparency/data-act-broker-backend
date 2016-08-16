@@ -1,7 +1,6 @@
 from dataactcore.models.stagingModels import Appropriation
-from dataactcore.models.jobModels import Submission
 from dataactcore.models.domainModels import SF133
-from tests.unit.dataactvalidator.utils import insert_submission, run_sql_rule
+from tests.unit.dataactvalidator.utils import run_sql_rule
 
 
 _FILE = 'a6_appropriations'
@@ -9,27 +8,26 @@ _TAS = 'a6_appropriations_tas'
 
 
 def test_success(database):
-    tas = "".join([_TAS, "_success"])
+    """ Tests that SF 133 amount for line 1910 matches Appropriation budget_authority_available_cpe
+        for the specified fiscal year and period """
 
-    submission_id = insert_submission(database.jobDb, Submission(user_id=1, reporting_fiscal_period=1,
-                                                                 reporting_fiscal_year=2016))
+    tas = "".join([_TAS, "_success"])
 
     sf = SF133(line=1910, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
                main_account_code="000", sub_account_code="000")
     ap = Appropriation(job_id=1, row_number=1, tas=tas, budget_authority_available_cpe=1)
 
-    assert run_sql_rule(_FILE, database.stagingDb, submission_id, sf, ap) == 0
+    assert run_sql_rule(_FILE, database.stagingDb, models=[sf, ap]) == 0
 
 
 def test_failure(database):
+    """ Tests that SF 133 amount for line 1910 does not match Appropriation budget_authority_available_cpe
+        for the specified fiscal year and period """
     tas = "".join([_TAS, "_failure"])
-
-    submission_id = insert_submission(database.jobDb, Submission(user_id=1, reporting_fiscal_period=1,
-                                                                 reporting_fiscal_year=2016))
 
     sf = SF133(line=1910, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
                main_account_code="000", sub_account_code="000")
     ap = Appropriation(job_id=1, row_number=1, tas=tas, budget_authority_available_cpe=0)
 
-    assert run_sql_rule(_FILE, database.stagingDb, submission_id, sf, ap) == 1
+    assert run_sql_rule(_FILE, database.stagingDb, models=[sf, ap]) == 1
 

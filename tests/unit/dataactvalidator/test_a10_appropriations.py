@@ -9,10 +9,9 @@ _TAS = 'a10_appropriations_tas'
 
 
 def test_success(database):
+    """ Tests that SF 133 amount sum for lines 1340, 1440 matches Appropriation borrowing_authority_amount_cpe
+        for the specified fiscal year and period """
     tas = "".join([_TAS, "_success"])
-
-    submission_id = insert_submission(database.jobDb, Submission(user_id=1, reporting_fiscal_period=1,
-                                                                 reporting_fiscal_year=2016))
 
     sf_1 = SF133(line=1340, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
                main_account_code="000", sub_account_code="000")
@@ -20,14 +19,15 @@ def test_success(database):
                main_account_code="000", sub_account_code="000")
     ap = Appropriation(job_id=1, row_number=1, tas=tas, borrowing_authority_amount_cpe=2)
 
-    assert run_sql_rule(_FILE, database.stagingDb, submission_id, sf_1, sf_2, ap) == 0
+    models = [sf_1, sf_2, ap]
+
+    assert run_sql_rule(_FILE, database.stagingDb, models=models) == 0
 
 
 def test_failure(database):
+    """ Tests that SF 133 amount sum for lines 1340, 1440 does not match Appropriation borrowing_authority_amount_cpe
+        for the specified fiscal year and period """
     tas = "".join([_TAS, "_failure"])
-
-    submission_id = insert_submission(database.jobDb, Submission(user_id=1, reporting_fiscal_period=1,
-                                                                 reporting_fiscal_year=2016))
 
     sf_1 = SF133(line=1340, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
                main_account_code="000", sub_account_code="000")
@@ -35,5 +35,7 @@ def test_failure(database):
                main_account_code="000", sub_account_code="000")
     ap = Appropriation(job_id=1, row_number=1, tas=tas, borrowing_authority_amount_cpe=1)
 
-    assert run_sql_rule(_FILE, database.stagingDb, submission_id, sf_1, sf_2, ap) == 1
+    models = [sf_1, sf_2, ap]
+
+    assert run_sql_rule(_FILE, database.stagingDb, models=models) == 1
 

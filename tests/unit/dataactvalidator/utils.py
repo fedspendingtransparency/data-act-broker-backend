@@ -1,5 +1,5 @@
 import os.path
-from random import randint
+from datetime import datetime
 from dataactcore.models.jobModels import Submission
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 
@@ -18,10 +18,16 @@ def insert_submission(db, submission):
     return submission.submission_id
 
 
-def run_sql_rule(rule_file, staging_db, submission_id, *models):
+def run_sql_rule(rule_file, staging_db, submission=None, models=None):
     """Insert the models into the database (with a random submission id), then
     run the rule SQL against those models"""
-    submission_id = submission_id or randint(1, 9999)
+    if submission is None:
+        submission = Submission(user_id=1, reporting_start_date=datetime(2015, 10, 1),
+                                reporting_end_date= datetime(2015, 10, 31))
+    if models is None:
+        models = []
+
+    submission_id = insert_submission(staging_db, submission)
     sql = fetch_sql_tpl(rule_file).format(submission_id)
 
     for model in models:

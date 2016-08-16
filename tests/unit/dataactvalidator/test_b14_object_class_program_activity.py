@@ -9,10 +9,9 @@ _TAS = 'b14_object_class_program_activity_tas'
 
 
 def test_success(database):
+    """ Tests that SF 133 amount sum for line 2004 matches the calculation from Appropriation based on the fields below
+        for the specified fiscal year and period """
     tas = "".join([_TAS, "_success"])
-
-    submission_id = insert_submission(database.jobDb, Submission(user_id=1, reporting_fiscal_period=1,
-                                                                 reporting_fiscal_year=2016))
 
     sf = SF133(line=2004, tas=tas, period=1, fiscal_year=2016, amount=5, agency_identifier="sys",
                main_account_code="000", sub_account_code="000")
@@ -26,15 +25,13 @@ def test_success(database):
                                     ussgl490800_authority_outl_fyb=1, ussgl498100_upward_adjustm_cpe=1,
                                     ussgl498200_upward_adjustm_cpe=1)
 
-    assert run_sql_rule(_FILE, database.stagingDb, submission_id, sf, op) == 0
+    assert run_sql_rule(_FILE, database.stagingDb, models=[sf, op]) == 0
 
 
 def test_failure(database):
+    """ Tests that SF 133 amount sum for line 2004 does not match the calculation from Appropriation based on the fields below
+        for the specified fiscal year and period """
     tas = "".join([_TAS, "_failure"])
-
-    submission_id = insert_submission(database.jobDb, Submission(user_id=1, reporting_fiscal_period=1,
-                                                                 reporting_fiscal_year=2016))
-
     sf = SF133(line=2004, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
                main_account_code="000", sub_account_code="000")
 
@@ -47,5 +44,5 @@ def test_failure(database):
                                     ussgl490800_authority_outl_fyb=1, ussgl498100_upward_adjustm_cpe=1,
                                     ussgl498200_upward_adjustm_cpe=1)
 
-    assert run_sql_rule(_FILE, database.stagingDb, submission_id, sf, op) == 1
+    assert run_sql_rule(_FILE, database.stagingDb, models=[sf, op]) == 1
 

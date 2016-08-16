@@ -13,7 +13,7 @@ SELECT
     op.ussgl490800_authority_outl_fyb,
     op.ussgl498100_upward_adjustm_cpe,
     op.ussgl498200_upward_adjustm_cpe,
-    sf.amount
+    sf.amount as sf_133_amount
 FROM object_class_program_activity as op
     INNER JOIN sf_133 as sf ON op.tas = sf.tas
     INNER JOIN submission as sub ON op.submission_id = sub.submission_id AND
