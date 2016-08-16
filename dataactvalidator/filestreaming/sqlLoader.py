@@ -54,7 +54,7 @@ class SQLLoader():
 
             reader = csv.DictReader(csvfile, fieldnames=fieldNames)
             for row in reader:
-                sql = cls.realSqlStr(row['query_name'])
+                sql = cls.readSqlStr(row['query_name'])
 
                 rule_sql = RuleSql(rule_sql=sql, rule_label=row['rule_label'], rule_description=row['rule_description'],
                                    rule_error_message=row['rule_error_message'], query_name=row['query_name'])
