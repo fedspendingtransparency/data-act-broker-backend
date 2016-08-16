@@ -5,6 +5,7 @@ from datetime import datetime
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.domainModels import TASLookup
 from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.models.validationModels import RuleSql
 from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
