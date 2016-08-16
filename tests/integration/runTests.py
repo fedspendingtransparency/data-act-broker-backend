@@ -1,10 +1,10 @@
 import unittest
-from loginTests import LoginTests
-from fileTests import FileTests
-from userTests import UserTests
-from jobTests import JobTests
-from validatorTests import ValidatorTests
-from fileTypeTests import FileTypeTests
+from tests.integration.loginTests import LoginTests
+from tests.integration.fileTests import FileTests
+from tests.integration.userTests import UserTests
+from tests.integration.jobTests import JobTests
+from tests.integration.validatorTests import ValidatorTests
+from tests.integration.fileTypeTests import FileTypeTests
 import cProfile
 import pstats
 import xmlrunner
@@ -36,7 +36,7 @@ def runTests(argv=''):
     suite.addTests(unittest.makeSuite(FileTypeTests))
 
     # to run a single test:
-    #suite.addTest(FileTests('test_bad_quarter_or_month'))
+    #suite.addTest(FileTests('test_check_status'))
     #suite.addTest(FileTypeTests('test_approp_mixed'))
 
     print("{} tests in suite".format(suite.countTestCases()))

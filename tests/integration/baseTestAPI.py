@@ -176,6 +176,8 @@ class BaseTestAPI(unittest.TestCase):
 
     def setUp(self):
         """Set up broker unit tests."""
+        # Repopulate interfaces if needed
+        self.interfaces = InterfaceHolder()
         app = createApp()
         app.config['TESTING'] = True
         self.app = TestApp(app)

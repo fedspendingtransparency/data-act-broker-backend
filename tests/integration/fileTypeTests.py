@@ -1,5 +1,5 @@
 from __future__ import print_function
-from os.path import join
+import os
 from datetime import datetime
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.domainModels import TASLookup
@@ -9,7 +9,7 @@ from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.loadFile import loadDomainValues
 from dataactvalidator.scripts.loadTas import loadTas
-from baseTestValidator import BaseTestValidator
+from tests.integration.baseTestValidator import BaseTestValidator
 import unittest
 
 class FileTypeTests(BaseTestValidator):
@@ -96,17 +96,17 @@ class FileTypeTests(BaseTestValidator):
     @staticmethod
     def load_definitions(interfaces, force_tas_load):
         """Load file definitions."""
-        SchemaLoader.loadAllFromPath(join(CONFIG_BROKER["path"],"dataactvalidator","config"))
+        SchemaLoader.loadAllFromPath(os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config"))
         SQLLoader.loadSql("sqlRules.csv")
         # Load domain values tables
         loadDomainValues(
-            join(CONFIG_BROKER["path"],"dataactvalidator","config"),
-            join(CONFIG_BROKER["path"],"tests"),
-            join(CONFIG_BROKER["path"],"tests","program_activity.csv"))
+            os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config"),
+            os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data"),
+            os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data", "program_activity.csv"))
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
                 or force_tas_load):
             # TAS table is empty, load it
-            loadTas(tasFile="all_tas_betc.csv", dropIdx=False)
+            loadTas(tasFile=os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data", "all_tas_betc.csv"), dropIdx=False)
 
     def test_approp_valid(self):
         """Test valid job."""
