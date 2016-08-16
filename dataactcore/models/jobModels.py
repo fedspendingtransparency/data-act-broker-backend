@@ -1,11 +1,22 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean, UniqueConstraint, Enum
 from sqlalchemy.orm import relationship
-from dataactcore.utils.timeStampMixin import TimeStampBase
+from dataactcore.models.baseModel import Base
 
-Base = declarative_base(cls=TimeStampBase)
+
+def generateFiscalYear(context):
+    """ Generate fiscal year based on the date provided """
+    reporting_end_date = context.current_parameters['reporting_end_date']
+    year = reporting_end_date.year
+    if reporting_end_date.month in [10,11,12]:
+        year += 1
+    return year
+
+def generateFiscalPeriod(context):
+    """ Generate fiscal period based on the date provided """
+    reporting_end_date = context.current_parameters['reporting_end_date']
+    return (reporting_end_date.month + 3) % 12
 
 class JobStatus(Base):
     __tablename__ = "job_status"
@@ -23,6 +34,14 @@ class JobType(Base):
     name = Column(Text)
     description = Column(Text)
 
+class PublishStatus(Base):
+    __tablename__ = "publish_status"
+    PUBLISH_STATUS_DICT = None
+
+    publish_status_id = Column(Integer, primary_key=True)
+    name = Column(Text)
+    description = Column(Text)
+
 class Submission(Base):
     __tablename__ = "submission"
 
@@ -30,10 +49,17 @@ class Submission(Base):
     datetime_utc = Column(DateTime)
     user_id = Column(Integer, nullable=False) # This refers to the users table in the User DB
     cgac_code = Column(Text)
-    reporting_start_date = Column(Date)
-    reporting_end_date = Column(Date)
+    reporting_start_date = Column(Date, nullable=False)
+    reporting_end_date = Column(Date, nullable=False)
+    reporting_fiscal_year = Column(Integer, nullable=False, default=generateFiscalYear, server_default='0')
+    reporting_fiscal_period = Column(Integer, nullable=False, default=generateFiscalPeriod, server_default='0')
     is_quarter_format = Column(Boolean, nullable = False, default = "False", server_default= "False")
     jobs = None
+    publishable = Column(Boolean, nullable = False, default = "False", server_default = "False")
+    publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL", name ="fk_publish_status_id"))
+    publish_status = relationship("PublishStatus", uselist = False)
+    number_of_errors = Column(Integer)
+    number_of_warnings = Column(Integer)
 
 class Job(Base):
     __tablename__ = "job"
@@ -52,6 +78,8 @@ class Job(Base):
     file_size = Column(Integer)
     number_of_rows = Column(Integer)
     number_of_rows_valid = Column(Integer)
+    number_of_errors = Column(Integer)
+    number_of_warnings = Column(Integer)
 
 class JobDependency(Base):
     __tablename__ = "job_dependency"
@@ -62,7 +90,26 @@ class JobDependency(Base):
 
 class FileType(Base):
     __tablename__ = "file_type"
+    FILE_TYPE_DICT = None
 
     file_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
+
+class DFileMeta(Base):
+    __tablename__ = "d_file_metadata"
+
+    d_file_id = Column(Integer, primary_key=True)
+    type = Column(Text, Enum("d1", "d2", name="type_enum"))
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission_id"))
+    submission = relationship("Submission", uselist=False)
+    start_date = Column(Date)
+    end_date = Column(Date)
+    status_id = Column(Integer, ForeignKey("job_status.job_status_id", name="fk_status_id"))
+    status = relationship("JobStatus", uselist=False)
+    error_message = Column(Text)
+    upload_file_name = Column(Text)
+    original_file_name = Column(Text)
+    is_submitted = Column(Boolean, default ="False", server_default="False")
+
+    __table_args__ = (UniqueConstraint('submission_id', 'type', name='_submission_type_uc'),)
