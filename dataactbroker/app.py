@@ -6,6 +6,7 @@ import multiprocessing
 from flask.ext.cors import CORS
 from flask.ext.bcrypt import Bcrypt
 from flask import Flask ,send_from_directory
+from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactbroker.handlers.aws.sesEmail import sesEmail
@@ -17,7 +18,7 @@ from dataactbroker.userRoutes import add_user_routes
 from dataactbroker.domainRoutes import add_domain_routes
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_DB, CONFIG_PATH
 from dataactcore.utils.timeout import timeout
-
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 
 def createApp():
     """Set up the application."""
@@ -57,6 +58,25 @@ def createApp():
         app.session_interface = DynamoInterface()
         # Set up bcrypt
         bcrypt = Bcrypt(app)
+        def clearInterfaces(response):
+            try:
+                interfaces =BaseInterface.interfaces
+                interfaces.jobDb.close()
+                interfaces.validationDb.close()
+                interfaces.errorDb.close()
+                interfaces.userDb.close()
+                BaseInterface.interfaces = None
+            except Exception as e:
+                print("Could not close connections")
+                print(str(type(e)) + ": " + str(e))
+                pass
+            return response
+        app.after_request(clearInterfaces)
+
+        def createInterfaces():
+            BaseInterface.interfaces = InterfaceHolder()
+        app.before_request(createInterfaces)
+
         # Root will point to index.html
         @app.route("/", methods=["GET"])
         def root():

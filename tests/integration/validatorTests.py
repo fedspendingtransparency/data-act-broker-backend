@@ -1,10 +1,7 @@
 import unittest
-from decimal import *
-
-from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 from dataactcore.models.validationModels import FieldType, FileColumn
 from dataactvalidator.validation_handlers.validator import Validator
-from baseTestValidator import BaseTestValidator
+from tests.integration.baseTestValidator import BaseTestValidator
 
 
 class ValidatorTests(BaseTestValidator):
