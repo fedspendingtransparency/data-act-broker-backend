@@ -61,7 +61,7 @@ class JobQueue:
                 lines = []
                 with open(timestamped_name) as file:
                     for line in reader(file):
-                            lines.append(line)
+                            lines.append(line + "\n")
 
                 headers = lines[0]
                 with CsvS3Writer(region, bucket, aws_file_name, headers) as writer:
