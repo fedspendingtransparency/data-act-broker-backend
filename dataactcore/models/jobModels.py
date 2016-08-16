@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean, UniqueConstraint, CheckConstraint, Enum
+from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean, UniqueConstraint, Enum
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -8,7 +8,10 @@ from dataactcore.models.baseModel import Base
 def generateFiscalYear(context):
     """ Generate fiscal year based on the date provided """
     reporting_end_date = context.current_parameters['reporting_end_date']
-    return reporting_end_date.year
+    year = reporting_end_date.year
+    if reporting_end_date.month in [10,11,12]:
+        year += 1
+    return year
 
 def generateFiscalPeriod(context):
     """ Generate fiscal period based on the date provided """
@@ -46,10 +49,10 @@ class Submission(Base):
     datetime_utc = Column(DateTime)
     user_id = Column(Integer, nullable=False) # This refers to the users table in the User DB
     cgac_code = Column(Text)
-    reporting_start_date = Column(Date)
-    reporting_end_date = Column(Date)
-    reporting_fiscal_year = Column(Integer, nullable=False, default=generateFiscalYear, server_default='0', onupdate=generateFiscalYear)
-    reporting_fiscal_period = Column(Integer, nullable=False, default=generateFiscalPeriod, server_default='0', onupdate=generateFiscalPeriod)
+    reporting_start_date = Column(Date, nullable=False)
+    reporting_end_date = Column(Date, nullable=False)
+    reporting_fiscal_year = Column(Integer, nullable=False, default=generateFiscalYear, server_default='0')
+    reporting_fiscal_period = Column(Integer, nullable=False, default=generateFiscalPeriod, server_default='0')
     is_quarter_format = Column(Boolean, nullable = False, default = "False", server_default= "False")
     jobs = None
     publishable = Column(Boolean, nullable = False, default = "False", server_default = "False")

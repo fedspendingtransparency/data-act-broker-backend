@@ -122,7 +122,7 @@ def createApp():
                 # Something went wrong getting the flask request
                 open("errorLog","a").write(str(e) + "\n")
                 exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-                return JsonResponse.error(exc)
+                return JsonResponse.error(exc,exc.status)
             finally:
                 interfaces.close()
 
