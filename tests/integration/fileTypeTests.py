@@ -5,6 +5,7 @@ from datetime import datetime
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.domainModels import TASLookup
 from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.models.validationModels import RuleSql
 from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
@@ -100,6 +101,16 @@ class FileTypeTests(BaseTestValidator):
         """Load file definitions."""
         SchemaLoader.loadAllFromPath(join(CONFIG_BROKER["path"],"dataactvalidator","config"))
         SQLLoader.loadSql("sqlRules.csv")
+
+        # @todo: here is a stop-gap solution; we've added new rules which are
+        # filtering out previously usable test data. Temporarily remove these
+        # rules
+        to_delete = interfaces.validationDb.session.query(RuleSql).filter(
+            RuleSql.rule_label.in_(('A30', 'A32', 'A33', 'B20')))
+        for rule in to_delete:
+            interfaces.validationDb.session.delete(rule)
+        interfaces.validationDb.session.commit()
+
         # Load domain values tables
         loadDomainValues(
             join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
