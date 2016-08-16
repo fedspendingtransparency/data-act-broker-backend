@@ -19,25 +19,30 @@ def test_column_headers(database):
     assert (actual & expected_subset) == expected_subset
 
 
+# @todo remove when we're using a factory builder
+def set_shared_values(*models):
+    job_id, row_number = randint(1, 9999), randint(1, 9999)
+    for model in models:
+        model.job_id = job_id
+        model.row_number = row_number
+        model.tas = 'TAS'
+
+
 def test_sum_matches(database):
     op1_val, op2_val = randint(1, 9999), randint(1, 9999)
     approp_val = op1_val + op2_val
-    op1 = ObjectClassProgramActivity(job_id=1, row_number=1, tas='TAS',
-                                     gross_outlay_amount_by_pro_cpe=op1_val)
-    op2 = ObjectClassProgramActivity(job_id=1, row_number=1, tas='TAS',
-                                     gross_outlay_amount_by_pro_cpe=op2_val)
-    approp = Appropriation(job_id=1, row_number=1, tas='TAS',
-                           gross_outlay_amount_by_tas_cpe=approp_val)
+    op1 = ObjectClassProgramActivity(gross_outlay_amount_by_pro_cpe=op1_val)
+    op2 = ObjectClassProgramActivity(gross_outlay_amount_by_pro_cpe=op2_val)
+    approp = Appropriation(gross_outlay_amount_by_tas_cpe=approp_val)
+    set_shared_values(op1, op2, approp)
     assert number_of_errors(_FILE, database.stagingDb, approp, op1, op2) == 0
 
 
 def test_sum_does_not_match(database):
     op1_val, op2_val = randint(1, 9999), randint(1, 9999)
     approp_val = op1_val + op2_val + randint(1, 9999)
-    op1 = ObjectClassProgramActivity(job_id=1, row_number=1, tas='TAS',
-                                     gross_outlay_amount_by_pro_cpe=op1_val)
-    op2 = ObjectClassProgramActivity(job_id=1, row_number=1, tas='TAS',
-                                     gross_outlay_amount_by_pro_cpe=op2_val)
-    approp = Appropriation(job_id=1, row_number=1, tas='TAS',
-                           gross_outlay_amount_by_tas_cpe=approp_val)
+    op1 = ObjectClassProgramActivity(gross_outlay_amount_by_pro_cpe=op1_val)
+    op2 = ObjectClassProgramActivity(gross_outlay_amount_by_pro_cpe=op2_val)
+    approp = Appropriation(gross_outlay_amount_by_tas_cpe=approp_val)
+    set_shared_values(op1, op2, approp)
     assert number_of_errors(_FILE, database.stagingDb, approp, op1, op2) == 1
