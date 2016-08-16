@@ -1,4 +1,4 @@
-from baseTestAPI import BaseTestAPI
+from tests.integration.baseTestAPI import BaseTestAPI
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.utils.statusCode import StatusCode
