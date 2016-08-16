@@ -100,6 +100,13 @@ class FileTypeTests(BaseTestValidator):
         """Load file definitions."""
         SchemaLoader.loadAllFromPath(join(CONFIG_BROKER["path"],"dataactvalidator","config"))
         SQLLoader.loadSql("sqlRules.csv")
+
+        to_delete = interfaces.validationDb.session.query(RuleSql).filter(
+            RuleSql.rule_label.in_(('A30', 'A32', 'A33', 'B20', 'C18', 'C19')))
+        for rule in to_delete:
+            interfaces.validationDb.session.delete(rule)
+        interfaces.validationDb.session.commit()
+
         # Load domain values tables
         loadDomainValues(
             join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
