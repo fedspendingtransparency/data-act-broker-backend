@@ -56,12 +56,13 @@ class JobQueue:
                     # get request
                     response = requests.get(file_url)
                     # write to file
-                    file.write(str(response.content))
+                    response.encoding = "utf-8"
+                    file.write(str(response.text))
 
                 lines = []
                 with open(timestamped_name) as file:
                     for line in reader(file):
-                            lines.append(line + "\n")
+                        lines.append(line)
 
                 headers = lines[0]
                 with CsvS3Writer(region, bucket, aws_file_name, headers) as writer:
