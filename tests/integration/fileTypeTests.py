@@ -5,6 +5,7 @@ from datetime import datetime
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.domainModels import TASLookup
 from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.models.validationModels import RuleSql
 from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
@@ -101,6 +102,9 @@ class FileTypeTests(BaseTestValidator):
         SchemaLoader.loadAllFromPath(join(CONFIG_BROKER["path"],"dataactvalidator","config"))
         SQLLoader.loadSql("sqlRules.csv")
 
+        # @todo: here is a stop-gap solution; we've added new rules which are
+        # filtering out previously usable test data. Temporarily remove these
+        # rules
         to_delete = interfaces.validationDb.session.query(RuleSql).filter(
             RuleSql.rule_label.in_(('A30', 'A32', 'A33', 'B20', 'C18', 'C19')))
         for rule in to_delete:
@@ -232,7 +236,7 @@ class FileTypeTests(BaseTestValidator):
         sizePathPairs = [
             (89, self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")),
             (89, self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")),
-            (1329, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "appropriations", "program_activity")),
+            (2348, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "appropriations", "program_activity")),
             (424, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "award_financial", "award")),
         ]
 

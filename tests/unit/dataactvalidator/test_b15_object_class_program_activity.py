@@ -1,7 +1,6 @@
 from dataactcore.models.stagingModels import ObjectClassProgramActivity
-from dataactcore.models.jobModels import Submission
 from dataactcore.models.domainModels import SF133
-from tests.unit.dataactvalidator.utils import insert_submission, run_sql_rule
+from tests.unit.dataactvalidator.utils import number_of_errors
 
 
 _FILE = 'b15_object_class_program_activity'
@@ -25,7 +24,7 @@ def test_success(database):
                                     ussgl490800_authority_outl_fyb=1, ussgl498100_upward_adjustm_cpe=1,
                                     ussgl498200_upward_adjustm_cpe=1)
 
-    assert run_sql_rule(_FILE, database.stagingDb, models=[sf, op]) == 0
+    assert number_of_errors(_FILE, database.stagingDb, models=[sf, op]) == 0
 
 
 def test_failure(database):
@@ -45,5 +44,4 @@ def test_failure(database):
                                     ussgl490800_authority_outl_fyb=1, ussgl498100_upward_adjustm_cpe=1,
                                     ussgl498200_upward_adjustm_cpe=1)
 
-    assert run_sql_rule(_FILE, database.stagingDb, models=[sf, op]) == 1
-
+    assert number_of_errors(_FILE, database.stagingDb, models=[sf, op]) == 1

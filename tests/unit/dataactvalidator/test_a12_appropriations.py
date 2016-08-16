@@ -1,7 +1,6 @@
 from dataactcore.models.stagingModels import Appropriation
-from dataactcore.models.jobModels import Submission
 from dataactcore.models.domainModels import SF133
-from tests.unit.dataactvalidator.utils import insert_submission, run_sql_rule
+from tests.unit.dataactvalidator.utils import number_of_errors
 
 
 _FILE = 'a12_appropriations'
@@ -23,7 +22,7 @@ def test_success(database):
 
     models = [sf_1, sf_2, sf_3, ap]
 
-    assert run_sql_rule(_FILE, database.stagingDb, models=models) == 0
+    assert number_of_errors(_FILE, database.stagingDb, models=models) == 0
 
 
 def test_failure(database):
@@ -41,5 +40,4 @@ def test_failure(database):
 
     models = [sf_1, sf_2, sf_3, ap]
 
-    assert run_sql_rule(_FILE, database.stagingDb, models=models) == 1
-
+    assert number_of_errors(_FILE, database.stagingDb, models=models) == 1
