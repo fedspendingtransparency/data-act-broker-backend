@@ -57,7 +57,7 @@ class JobQueue:
                     response = requests.get(file_url)
                     # write to file
                     response.encoding = "utf-8"
-                    file.write(str(response.text))
+                    file.write(response.text)
 
                 lines = []
                 with open(timestamped_name) as file:
