@@ -55,7 +55,7 @@ class CsvS3Reader(CsvAbstractReader):
         header = {'Range': 'bytes={}-{}'.format(
             offsetCheck, offsetCheck + CsvAbstractReader.BUFFER_SIZE - 1)}
         try:
-            packet = self.s3File.get_contents_as_string(headers=header)
+            packet = self.s3File.get_contents_as_string(headers=header, encoding='utf-8')
             return True, packet
         except:
             return False, ""
