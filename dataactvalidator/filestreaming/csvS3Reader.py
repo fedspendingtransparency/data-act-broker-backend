@@ -18,7 +18,7 @@ class CsvS3Reader(CsvAbstractReader):
         s3Bucket = s3connection.lookup(bucket)
         self.s3File = s3Bucket.lookup(filename)
         self.isLocal = False
-        if not self.s3File:
+        if self.s3File is None:
             raise ValueError("Filename {} not found on S3".format(filename))
 
         super(CsvS3Reader, self).openFile(
