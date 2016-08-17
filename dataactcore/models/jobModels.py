@@ -16,7 +16,9 @@ def generateFiscalYear(context):
 def generateFiscalPeriod(context):
     """ Generate fiscal period based on the date provided """
     reporting_end_date = context.current_parameters['reporting_end_date']
-    return (reporting_end_date.month + 3) % 12
+    period = (reporting_end_date.month + 3) % 12
+    period = 12 if period == 0 else period
+    return period
 
 class JobStatus(Base):
     __tablename__ = "job_status"
