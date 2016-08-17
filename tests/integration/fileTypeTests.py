@@ -106,7 +106,7 @@ class FileTypeTests(BaseTestValidator):
         # filtering out previously usable test data. Temporarily remove these
         # rules
         to_delete = interfaces.validationDb.session.query(RuleSql).filter(
-            RuleSql.rule_label.in_(('A30', 'A32', 'A33', 'B20')))
+            RuleSql.rule_label.in_(('A30', 'A32', 'A33', 'B20', 'B19', 'C19')))
         for rule in to_delete:
             interfaces.validationDb.session.delete(rule)
         interfaces.validationDb.session.commit()
@@ -150,13 +150,13 @@ class FileTypeTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 11390, 4, "complete", 81, True, 29, 10853)
+        jobId, 200, "finished", 11390, 4, "complete", 81, True, 29, 10840)
 
     def test_program_mixed_shortcols(self):
         """Test object class/program activity job with some rows failing & short colnames."""
         jobId = self.jobIdDict["programMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 11390, 4, "complete", 81, True, 29, 10853)
+            jobId, 200, "finished", 11390, 4, "complete", 81, True, 29, 10840)
 
     def test_award_fin_valid(self):
         """Test valid job."""
