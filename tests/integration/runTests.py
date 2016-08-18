@@ -5,6 +5,7 @@ from tests.integration.userTests import UserTests
 from tests.integration.jobTests import JobTests
 from tests.integration.validatorTests import ValidatorTests
 from tests.integration.fileTypeTests import FileTypeTests
+from tests.integration.mixedFileTests import MixedFileTests
 import cProfile
 import pstats
 import xmlrunner
