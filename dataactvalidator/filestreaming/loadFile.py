@@ -28,20 +28,25 @@ def loadDomainValues(basePath, localSFPath = None, localProgramActivity = None):
     print("Loading object class")
     loadObjectClass(os.path.join(basePath,"object_class.csv"))
 
-    # SF 133 is kept on S3, so need to download that
-    reader = CsvS3Reader()
+    # Since we're temporarily bulk loading the historical SF-133 data,
+    # we'll also need to temporarily bypass the current SF-133 loader,
+    # which will delete everything in that table whenever we deploy.
 
-    if localSFPath is not None:
-        # Load SF 133 from same path
-        print("Loading local SF-133")
-        loadSF133(localSFPath)
-    else:
-        # Download files if using aws, if not they will need to already be in config folder
-        print("Loading default SF-133")
-        if(CONFIG_BROKER["use_aws"]):
-            reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file"]]),os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config",CONFIG_BROKER["sf_133_file"]))
+    # # SF 133 is kept on S3, so need to download that
+    # reader = CsvS3Reader()
+    #
+    # if localSFPath is not None:
+    #     # Load SF 133 from same path
+    #     print("Loading local SF-133")
+    #     loadSF133(localSFPath)
+    # else:
+    #     # Download files if using aws, if not they will need to already be in config folder
+    #     print("Loading default SF-133")
+    #     if(CONFIG_BROKER["use_aws"]):
+    #         reader.downloadFile(CONFIG_BROKER["aws_region"],CONFIG_BROKER["aws_bucket"],"/".join([CONFIG_BROKER["sf_133_folder"],CONFIG_BROKER["sf_133_file"]]),os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config",CONFIG_BROKER["sf_133_file"]))
+    #
+    #     loadSF133(os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config",CONFIG_BROKER["sf_133_file"]))
 
-        loadSF133(os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config",CONFIG_BROKER["sf_133_file"]))
     print("Loading program activity")
     if localProgramActivity is not None:
         loadProgramActivity(localProgramActivity)
