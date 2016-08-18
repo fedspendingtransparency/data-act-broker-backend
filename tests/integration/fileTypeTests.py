@@ -36,7 +36,7 @@ class FileTypeTests(BaseTestValidator):
 
         # Create submissions and get IDs back
         submissionIDs = {}
-        for i in range(0, 4):
+        for i in range(0, 9):
             submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
 
 
@@ -45,10 +45,10 @@ class FileTypeTests(BaseTestValidator):
         statusReady = str(jobDb.getJobStatusId("ready"))
         jobTypeCsv = str(jobDb.getJobTypeId("csv_record_validation"))
         jobInfoList = {
-            "valid": [statusReady, jobTypeCsv, str(submissionIDs[0]), s3FileNameValid, 1],
-            "programValid": [statusReady, jobTypeCsv, str(submissionIDs[1]), s3FileNameProgramValid, 2],
-            "awardFinValid": [statusReady, jobTypeCsv, str(submissionIDs[2]), s3FileNameAwardFinValid, 3],
-            "awardValid": [statusReady, jobTypeCsv, str(submissionIDs[3]), s3FileNameAwardValid, 4]
+            "valid": [statusReady, jobTypeCsv, str(submissionIDs[1]), s3FileNameValid, 1],
+            "programValid": [statusReady, jobTypeCsv, str(submissionIDs[4]), s3FileNameProgramValid, 2],
+            "awardFinValid": [statusReady, jobTypeCsv, str(submissionIDs[6]), s3FileNameAwardFinValid, 3],
+            "awardValid": [statusReady, jobTypeCsv, str(submissionIDs[8]), s3FileNameAwardValid, 4]
         }
 
         jobIdDict = {}

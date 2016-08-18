@@ -35,6 +35,7 @@ def runTests(argv=''):
     suite.addTests(unittest.makeSuite(ValidatorTests))
     suite.addTests(unittest.makeSuite(JobTests))
     suite.addTests(unittest.makeSuite(FileTypeTests))
+    suite.addTests(unittest.makeSuite(MixedFileTests))
 
     # to run a single test:
     #suite.addTest(FileTests('test_check_status'))

@@ -8,8 +8,8 @@ import unittest
 
 class MixedFileTests(BaseTestValidator):
 
-    RULES_TO_APPLY = ('A1', 'A16', 'A18', 'A19', 'A2', 'A20', 'A21', 'A3', 'A4', 'B10', 'B11', 'B12', 'B13', 'B3', 'B4',
-                      'B5', 'B6', 'B7', 'B9', 'C14', 'C17', 'C18', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9')
+    RULES_TO_APPLY = ('A1', 'A16', 'A18', 'A19', 'A2', 'A20', 'A21', 'A3', 'A4', 'B11', 'B12', 'B13', 'B3', 'B4',
+                      'B5', 'B6', 'B7', 'B9/B10', 'C14', 'C17', 'C18', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9')
 
     @classmethod
     def setUpClass(cls):
