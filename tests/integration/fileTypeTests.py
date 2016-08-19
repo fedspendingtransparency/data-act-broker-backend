@@ -79,12 +79,6 @@ class FileTypeTests(BaseTestValidator):
                 interfaces.validationDb.session.delete(rule)
             interfaces.validationDb.session.commit()
 
-            # TODO remove this to_delete once mixedFileTests loads from different file
-            # @todo: here is a stop-gap solution; we've added new rules which are
-            # filtering out previously usable test data. Temporarily remove these
-            # rules
-
-
         # Load domain values tables
         loadDomainValues(
             join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
@@ -111,7 +105,7 @@ class FileTypeTests(BaseTestValidator):
         """Test valid job."""
         jobId = self.jobIdDict["awardFinValid"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 63, 11, "complete", 0, False)
+            jobId, 200, "finished", 63, 10, "complete", 0, False)
 
     def test_award_valid(self):
         """Test valid job."""
