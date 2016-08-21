@@ -45,6 +45,12 @@ broker:
     d2_url: https://data-usas.uat.workplace.gov/api/contracts?CGAC={}&date_signed_beginning={}&date_signed_end={}
     d2_file_name: d2_data.csv
 
+    # File E
+    awardee_file_name: awardee_data.csv
+
+    # File F
+    sub_award_file_name: sub_award_data.csv
+
     ## AWS Configuration Settings ##
 
     # If set to true the application will use AWS for the storage of files 

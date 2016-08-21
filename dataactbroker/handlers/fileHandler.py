@@ -27,7 +27,7 @@ class FileHandler:
     """
 
     FILE_TYPES = ["appropriations","award_financial","program_activity"]
-    EXTERNAL_FILE_TYPES = ["award"] #,"award_procurement"]
+    EXTERNAL_FILE_TYPES = ["award", "award_procurement", "awardee_attributes", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
 
     def __init__(self,request,interfaces = None,isLocal= False,serverPath =""):
@@ -163,19 +163,24 @@ class FileHandler:
             if not fileNameMap and existingSubmission:
                 raise ResponseException("Must include at least one file for an existing submission",
                                         StatusCode.CLIENT_ERROR)
+            if not existingSubmission:
+                # Don't add external files to existing submission
+                for extFileType in FileHandler.EXTERNAL_FILE_TYPES:
+                    if extFileType == "award":
+                        filename = CONFIG_BROKER["d2_file_name"]
+                    elif extFileType == "award_procurement":
+                        filename = CONFIG_BROKER["d1_file_name"]
+                    elif extFileType == "awardee_attributes":
+                        filename = CONFIG_BROKER["awardee_file_name"]
+                    elif extFileType == "sub_award":
+                        filename = CONFIG_BROKER["sub_award_file_name"]
 
-            for extFileType in FileHandler.EXTERNAL_FILE_TYPES:
-                if extFileType == "award":
-                    filename = CONFIG_BROKER["d2_file_name"]
-                elif extFileType == "award_procurement":
-                    filename = CONFIG_BROKER["d1_file_name"]
-
-                if(not self.isLocal):
-                    uploadName = str(name) + "/" + s3UrlHandler.getTimestampedFilename(filename)
-                else:
-                    uploadName = filename
-                responseDict[extFileType + "_key"] = uploadName
-                fileNameMap.append((extFileType, uploadName, filename))
+                    if(not self.isLocal):
+                        uploadName = str(name) + "/" + s3UrlHandler.getTimestampedFilename(filename)
+                    else:
+                        uploadName = filename
+                    responseDict[extFileType + "_key"] = uploadName
+                    fileNameMap.append((extFileType, uploadName, filename))
 
             fileJobDict = self.jobManager.createJobs(fileNameMap,submissionId,existingSubmission)
             for fileType in fileJobDict.keys():

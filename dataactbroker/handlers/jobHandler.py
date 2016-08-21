@@ -259,8 +259,14 @@ class JobHandler(JobTrackerInterface):
         jobsRequired = []
         # Dictionary of upload ids by filename to return to client
         uploadDict = {}
+        d1ValId = None
+        d2ValId = None
 
         for fileType, filePath, filename in filenames:
+            #TODO remove this skip once D1 is added
+            if fileType == "award_procurement":
+                continue
+
             fileTypeQuery = self.session.query(FileType.file_type_id).filter(FileType.name == fileType)
             fileTypeResult = self.runUniqueQuery(fileTypeQuery,"No matching file type", "Multiple matching file types")
             fileTypeId = fileTypeResult.file_type_id
@@ -275,11 +281,20 @@ class JobHandler(JobTrackerInterface):
                 uploadJob.filename = filePath
                 self.session.commit()
             else:
-                # Create upload job, mark as running since frontend should be doing this upload
-                uploadJob = Job(original_filename=filename, filename=filePath, file_type_id=fileTypeId, job_status_id=self.getJobStatusId("running"), job_type_id=self.getJobTypeId("file_upload"), submission_id=submissionId)
+                if fileType in ["award","award_procurement"]:
+                    # File generation handled on backend, mark as ready
+                    uploadStatus = self.getJobStatusId("ready")
+                elif fileType in ["awardee_attribute", "sub_award"]:
+                    # These are dependent on file D2 validation
+                    uploadStatus = self.getJobStatusId("waiting")
+                else:
+                    # Mark as running since frontend should be doing this upload
+                    uploadStatus = self.getJobStatusId("running")
+                uploadJob = Job(original_filename=filename, filename=filePath, file_type_id=fileTypeId, job_status_id=uploadStatus, job_type_id=self.getJobTypeId("file_upload"), submission_id=submissionId)
                 self.session.add(uploadJob)
 
             if existingSubmission:
+                print("fileType: " + str(fileType))
                 valQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.file_type_id == fileTypeId).filter(Job.job_type_id == self.getJobTypeId("csv_record_validation"))
                 valJob = self.runUniqueQuery(valQuery,"No validation job found for this file","Conflicting jobs found")
                 valJob.job_status_id = self.getJobStatusId("waiting")
@@ -295,15 +310,32 @@ class JobHandler(JobTrackerInterface):
                 self.session.commit()
             else:
                 # Create parse into DB job
-                valJob = Job(original_filename=filename, filename=filePath, file_type_id=fileTypeId, job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("csv_record_validation"), submission_id=submissionId)
-                self.session.add(valJob)
-                self.session.flush()
-            if not existingSubmission:
-                # Add dependency between file upload and db upload
-                uploadDependency = JobDependency(job_id = valJob.job_id, prerequisite_id = uploadJob.job_id)
-                self.session.add(uploadDependency)
-                # Later validation jobs are dependent only on record level validation, not upload jobs
-                jobsRequired.append(valJob.job_id)
+                if fileType in ["awardee_attribute", "sub_award"]:
+                    if d2ValId is None: # TODO "or D1ValId is None:"
+                        raise Exception("Cannot create E and F jobs without a D2 job")
+                    # Add dependency on D1 and D2 validation jobs
+                    # TODO uncomment when D1 is added
+                    #d1Dependency = JobDependency(job_id = uploadJob.job_id, prerequisite_id = d1ValId)
+                    #self.session.add(d1Dependency)
+                    d2Dependency = JobDependency(job_id = uploadJob.job_id, prerequisite_id = d2ValId)
+                    self.session.add(d2Dependency)
+                else:
+                    # E and F don't get validation jobs
+                    valJob = Job(original_filename=filename, filename=filePath, file_type_id=fileTypeId, job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("csv_record_validation"), submission_id=submissionId)
+                    self.session.add(valJob)
+                    self.session.flush()
+                    # Add dependency between file upload and db upload
+                    uploadDependency = JobDependency(job_id = valJob.job_id, prerequisite_id = uploadJob.job_id)
+                    self.session.add(uploadDependency)
+                    if fileType == "award":
+                        # Record D2 val job ID
+                        d2ValId = valJob.job_id
+                    elif fileType == "award_procurement":
+                        d1ValId = valJob.job_id
+                    # Later validation jobs are dependent only on record level validation, and are not dependent on E and F
+                    jobsRequired.append(valJob.job_id)
+
+                self.session.commit()
             uploadDict[fileType] = uploadJob.job_id
 
         # Return list of upload jobs
