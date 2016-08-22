@@ -38,3 +38,4 @@ shared-local-instance.db
 dataactcore/scripts/dropMany.py
 runDynamo.py
 dataactvalidator/config/sf_133.csv
+runTests.py
