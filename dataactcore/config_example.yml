@@ -116,6 +116,11 @@ services:
     # is ignored if use_aws is true.
     error_report_path: /full/path/to/error/reports
 
+    # We import award/subaward records from FSRS
+    fsrs_service:
+        wsdl: 'https://example.com/?wsdl'
+        username: ''
+        password: ''
 
 db:
     # The name of your default postgres database. Unless you've exlicitly
