@@ -5,7 +5,8 @@ SELECT sf.line,
 	sf.ending_period_of_availabil,
 	sf.availability_type_code,
 	sf.main_account_code,
-	sf.sub_account_code
+	sf.sub_account_code,
+	NULL as row_number
 FROM sf_133 AS sf
 	JOIN submission AS sub
 		ON sf.period = sub.reporting_fiscal_period
