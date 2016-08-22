@@ -107,9 +107,15 @@ def subaward2Model(soapDict):
     return FSRSSubaward(**modelAttrs)
 
 
-def retrieveRecordsBatch(minId):
+def retrieveSoapDictBatch(minId):
     """The FSRS web service returns records in batches (500 at a time).
     Retrieve one such batch, converting each result (and sub-results) into
     dicts"""
     for report in newClient().service.getData(id=minId)['reports']:
         yield soap2Dict(report)
+
+
+def retrieveAwardsBatch(minId):
+    """Same as retrieveSoapDictBatch but converts to FSRSAward models"""
+    for soapDict in retrieveSoapDictBatch(minId):
+        yield award2Model(soapDict)

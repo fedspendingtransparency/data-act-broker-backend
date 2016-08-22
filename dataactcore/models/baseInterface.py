@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 import sqlalchemy
 from flask import _app_ctx_stack
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -157,3 +159,10 @@ class BaseInterface(object):
                 return key
         # If not found, raise an exception
         raise ValueError("Value: " + str(fieldValue) + " not found in dict: " + str(dict))
+
+
+@contextmanager
+def databaseSession():
+    interface = BaseInterface()
+    yield interface.session
+    interface.close()
