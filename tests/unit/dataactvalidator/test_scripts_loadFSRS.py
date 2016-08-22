@@ -34,7 +34,7 @@ def test_maxCurrentId(no_award_db):
 
 
 def test_loadFSRS_saves_data(no_award_db, monkeypatch):
-    award1 = FSRSAwardFactory() 
+    award1 = FSRSAwardFactory()
     award1.subawards = [FSRSSubawardFactory() for _ in range(4)]
     award2 = FSRSAwardFactory()
     award2.subawards = [FSRSSubawardFactory()]

@@ -4,6 +4,7 @@ from dataactcore.models.baseInterface import databaseSession
 from dataactcore.models.fsrs import FSRSAward
 from dataactvalidator.fsrs import retrieveAwardsBatch
 
+
 def loadFSRS(minId):
     """Fetch and store a batch of Award/Sub-Award records, replacing previous
     entries."""
