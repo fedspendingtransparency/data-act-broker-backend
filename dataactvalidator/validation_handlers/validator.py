@@ -217,7 +217,11 @@ class Validator(object):
             if failures.rowcount:
                 # Create column list (exclude row_number)
                 cols = failures.keys()
-                cols.remove("row_number")
+                try:
+                    cols.remove("row_number")
+                except ValueError as ve:
+                    print("DEBUG: " + rule.rule_label)
+                    raise ve
                 # Build error list
                 for failure in failures:
                     errorMsg = rule.rule_error_message
