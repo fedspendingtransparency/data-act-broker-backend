@@ -1,5 +1,4 @@
-SELECT sf.line,
-	sf.allocation_transfer_agency,
+SELECT sf.allocation_transfer_agency,
 	sf.agency_identifier,
 	sf.beginning_period_of_availa,
 	sf.ending_period_of_availabil,
@@ -10,6 +9,7 @@ FROM sf_133 AS sf
 	JOIN submission AS sub
 		ON sf.period = sub.reporting_fiscal_period
 			AND sf.fiscal_year = sub.reporting_fiscal_year
+			AND sf.agency_identifier = sub.cgac_code
 WHERE sub.submission_id = {0}
 	AND NOT EXISTS (
 		SELECT 1
