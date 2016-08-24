@@ -290,7 +290,6 @@ class JobHandler(JobTrackerInterface):
                 self.session.add(uploadJob)
 
             if existingSubmission:
-                print("fileType: " + str(fileType))
                 valQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.file_type_id == fileTypeId).filter(Job.job_type_id == self.getJobTypeId("csv_record_validation"))
                 valJob = self.runUniqueQuery(valQuery,"No validation job found for this file","Conflicting jobs found")
                 valJob.job_status_id = self.getJobStatusId("waiting")

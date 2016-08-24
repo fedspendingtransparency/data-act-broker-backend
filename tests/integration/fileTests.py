@@ -441,14 +441,14 @@ class FileTests(BaseTestAPI):
     def test_file_generation(self):
         """ Test the generate and check routes for external files """
         # For file generation submission, call generate route for D2 anc check results
-        postJson = {"submission_id": self.generation_submission_id, "file_type": "D2", "start":"01/02/2016", "end":"02/03/2016"}
+        postJson = {"submission_id": self.generation_submission_id, "file_type": "D1", "start":"01/02/2016", "end":"02/03/2016"}
         response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id})
 
         self.assertEqual(response.status_code, 200)
         json = response.json
-        self.assertEqual(json["status"], "waiting")
-        self.assertEqual(json["file_type"], "D2")
-        self.assertIn("d2_data.csv", json["url"])
+        self.assertEqual(json["status"], "finished")
+        self.assertEqual(json["file_type"], "D1")
+        self.assertIn("d1_data.csv", json["url"])
         self.assertEqual(json["start"],"01/02/2016")
         self.assertEqual(json["end"],"02/03/2016")
         self.assertEqual(json["message"],"")
@@ -464,13 +464,13 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["url"],"")
         self.assertEqual(json["message"],"")
 
-        postJson = {"submission_id": self.generation_submission_id, "file_type": "D1"}
+        postJson = {"submission_id": self.generation_submission_id, "file_type": "D2"}
         response = self.app.post_json("/v1/check_generation_status/", postJson, headers={"x-session-id":self.session_id})
 
         self.assertEqual(response.status_code, 200)
         json = response.json
         self.assertEqual(json["status"], "failed")
-        self.assertEqual(json["file_type"], "D1")
+        self.assertEqual(json["file_type"], "D2")
         self.assertEqual(json["url"],"")
         self.assertEqual(json["message"],"Generated file had file-level errors")
 
@@ -568,15 +568,15 @@ class FileTests(BaseTestAPI):
         subAward = jobDb.getFileTypeId("sub_award")
 
         # Create D2 jobs ready for generation route to be called
-        cls.insertJob(jobDb,award, ready, upload, submission.submission_id)
-        cls.insertJob(jobDb,award, waiting, validation, submission.submission_id)
+        cls.insertJob(jobDb,awardProcurement, ready, upload, submission.submission_id)
+        awardProcValJob = cls.insertJob(jobDb,awardProcurement, waiting, validation, submission.submission_id)
         # Create E and F jobs ready for check route
         awardeeAttJob = cls.insertJob(jobDb,awardeeAtt, finished, upload, submission.submission_id)
         subAwardJob = cls.insertJob(jobDb,subAward, invalid, upload, submission.submission_id)
         subAwardJob.error_message = "File was invalid"
         # Create D1 jobs
-        cls.insertJob(jobDb,awardProcurement, finished, upload, submission.submission_id)
-        awardProcValJob = cls.insertJob(jobDb,awardProcurement, invalid, validation, submission.submission_id)
+        cls.insertJob(jobDb,award, finished, upload, submission.submission_id)
+        cls.insertJob(jobDb,award, invalid, validation, submission.submission_id)
         # Create dependency
         awardeeAttDep = JobDependency(job_id = awardeeAttJob.job_id, prerequisite_id = awardProcValJob.job_id)
         jobDb.session.add(awardeeAttDep)

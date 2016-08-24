@@ -543,7 +543,7 @@ class FileHandler:
         """
         submission_id, file_type = self.loadGenerateRequest()
         uploadJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "file_upload")
-        if file_type in ["D1","D2"]:
+        if file_type in ["D2"]: # TODO add D1 to this list once D1 validation exists
             validationJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "csv_record_validation")
         else:
             validationJob = None
