@@ -114,4 +114,5 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     @permissions_check
     def check_generation_status():
         """ Return status of file generation job """
-        pass
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return RouteUtils.run_instance_function(fileManager, fileManager.checkGeneration)

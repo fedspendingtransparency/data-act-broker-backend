@@ -410,19 +410,22 @@ class FileHandler:
 
     def generateD1File(self):
         """ Initiates the generation of D1 """
+        jobDb = self.interfaces.jobDb
         requestDict = RequestDictionary(self.request)
 
         if not (requestDict.exists("submission_id") and requestDict.exists("start") and requestDict.exists("end")):
             exc = ResponseException("Generate D1 Files route requires submission_id, start, and end", StatusCode.CLIENT_ERROR)
-            return JsonResponse.create(exc, exc.status)
+            return JsonResponse.error(exc, exc.status)
 
         submission_id = requestDict.getValue("submission_id")
         start_date = requestDict.getValue("start")
         end_date = requestDict.getValue("end")
-
+        job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D1"], "file_upload")
+        job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
+        job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
         if not (StringCleaner.isNumeric(submission_id) and StringCleaner.isDate(start_date) and StringCleaner.isDate(end_date)):
             exc = ResponseException("submission id, start, and/or end cannot be parsed into their appropriate types", StatusCode.CLIENT_ERROR)
-            return JsonResponse.create(exc, exc.status)
+            return JsonResponse.error(exc, exc.status)
 
         cgac_code = self.jobManager.getSubmissionById(submission_id).cgac_code
         get_url = CONFIG_BROKER["d1_url"].format(cgac_code, start_date, end_date)
@@ -434,7 +437,10 @@ class FileHandler:
         timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["d1_file_name"])
         upload_file_name = "".join([str(user_id), "/", timestamped_name])
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d1", CONFIG_BROKER["d1_file_name"], upload_file_name)
-        self.jobManager.setDFileStatus(d_file_id, "waiting")
+        job.filename = upload_file_name
+        job.job_status_id = jobDb.getJobStatusId("running")
+        jobDb.session.commit()
+        jobDb.setDFileStatus(d_file_id, "waiting")
         jq.generate_d_file.delay(get_url, CONFIG_BROKER["d1_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
 
         # Check status for D1 file
@@ -502,9 +508,15 @@ class FileHandler:
     def generateFile(self):
         """ Start a file generation job for the specified file type """
         submission_id, file_type = self.loadGenerateRequest()
-        if file_type == "D2":
+        if file_type == "D1":
+            # TODO could this function return S3 file location
+            result = self.generateD1File()
+        elif file_type == "D2":
             # TODO could this function return S3 file location
             result = self.generateD2File()
+        elif file_type == "E":
+            #TODO call file E generation function
+            pass
         elif file_type == "F":
             #TODO call file F generation function
             pass
@@ -527,14 +539,21 @@ class FileHandler:
         submission_id, file_type = self.loadGenerateRequest()
         uploadJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "file_upload")
         if file_type in ["D1","D2"]:
-            validationJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP(file_type), "csv_record_validation")
+            validationJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "csv_record_validation")
         else:
             validationJob = None
         responseDict = {}
         responseDict["status"] = self.mapGenerateStatus(uploadJob, validationJob)
         responseDict["file_type"] = file_type
         responseDict["message"] = uploadJob.error_message or ""
-        responseDict["url"] = s3UrlHandler().getSignedUrl("d-files",uploadJob.filename, bucketRoute=None, method="GET")
+        if uploadJob.filename is None:
+            responseDict["url"] = ""
+        else:
+            if CONFIG_BROKER["use_aws"]:
+                responseDict["url"] = s3UrlHandler().getSignedUrl("d-files",uploadJob.filename, bucketRoute=None, method="GET")
+            else:
+                responseDict["url"] = uploadJob.filename
+
         # Pull start and end from jobs table if D1 or D2
         if file_type in ["D1","D2"]:
             responseDict["start"] = uploadJob.start_date.strftime("%m/%d/%Y") if uploadJob.start_date is not None else ""
@@ -544,16 +563,17 @@ class FileHandler:
 
     def mapGenerateStatus(self, uploadJob, validationJob = None):
         """ Maps job status to file generation statuses expected by frontend """
-        # TODO make this more complicated to treat D1 and D2 differently, and wait for validation and check for number of errors for D1 and D2
+        uploadStatus = self.interfaces.jobDb.getJobStatusNameById(uploadJob.job_status_id)
+        print("Status is " + str(uploadStatus) + " for file type " + str(uploadJob.file_type_id))
         if validationJob is None:
             errorsPresent = False
         else:
+            validationStatus = self.interfaces.jobDb.getJobStatusNameById(validationJob.job_status_id)
             if self.interfaces.errorDb.checkNumberOfErrorsByJobId(validationJob.job_id, self.interfaces.validationDb, errorType = "fatal") > 0:
                 errorsPresent = True
             else:
                 errorsPresent = False
-        uploadStatus = self.interfaces.jobDb.getJobStatusNameById(uploadJob.job_status_id)
-        validationStatus = self.interfaces.jobDb.getJobStatusNameById(validationJob.job_status_id)
+
         if uploadStatus in ["waiting", "ready"]:
             result =  "invalid"
         elif uploadStatus == "running":
@@ -571,12 +591,14 @@ class FileHandler:
                     result = "waiting"
                 elif validationStatus in ["invalid", "failed"]:
                     if validationJob.error_message is None:
-                        if validationStatus == "invalid":
-                            uploadJob.error_message = "Generated file had file-level errors"
-                        else:
-                            uploadJob.error_message = "Validation job had an internal error"
+                        if uploadJob.error_message is None:
+                            if validationStatus == "invalid":
+                                uploadJob.error_message = "Generated file had file-level errors"
+                            else:
+                                uploadJob.error_message = "Validation job had an internal error"
                     else:
-                        uploadJob.error_message = validationJob.error_message
+                        if uploadJob.error_message is None:
+                            uploadJob.error_message = validationJob.error_message
                     result = "failed"
                 elif validationStatus == "finished":
                     if errorsPresent:

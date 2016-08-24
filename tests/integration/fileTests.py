@@ -448,14 +448,14 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["status"], "waiting")
         self.assertEqual(json["file_type"], "D2")
-        self.assertEqual(json["url"],"")
+        self.assertIn("d2_data.csv", json["url"])
         self.assertEqual(json["start"],"01/02/2016")
         self.assertEqual(json["end"],"02/03/2016")
         self.assertEqual(json["message"],"")
 
         # Then call check generation route for E and F and check results
         postJson = {"submission_id": self.generation_submission_id, "file_type": "E"}
-        response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id})
+        response = self.app.post_json("/v1/check_generation_status/", postJson, headers={"x-session-id":self.session_id})
 
         self.assertEqual(response.status_code, 200)
         json = response.json
@@ -464,8 +464,18 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["url"],"")
         self.assertEqual(json["message"],"")
 
+        postJson = {"submission_id": self.generation_submission_id, "file_type": "D1"}
+        response = self.app.post_json("/v1/check_generation_status/", postJson, headers={"x-session-id":self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+        json = response.json
+        self.assertEqual(json["status"], "failed")
+        self.assertEqual(json["file_type"], "D1")
+        self.assertEqual(json["url"],"")
+        self.assertEqual(json["message"],"Generated file had file-level errors")
+
         postJson = {"submission_id": self.generation_submission_id, "file_type": "F"}
-        response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id})
+        response = self.app.post_json("/v1/check_generation_status/", postJson, headers={"x-session-id":self.session_id})
 
         self.assertEqual(response.status_code, 200)
         json = response.json
@@ -545,6 +555,7 @@ class FileTests(BaseTestAPI):
         validation = jobDb.getJobTypeId("csv_record_validation")
         award = jobDb.getFileTypeId("award")
         awardeeAtt = jobDb.getFileTypeId("awardee_attributes")
+        awardProcurement = jobDb.getFileTypeId("award_procurement")
         subAward = jobDb.getFileTypeId("sub_award")
 
         # Create D2 jobs ready for generation route to be called
@@ -552,10 +563,11 @@ class FileTests(BaseTestAPI):
         cls.insertJob(jobDb,award, waiting, validation, submission.submission_id)
         # Create E and F jobs ready for check route
         cls.insertJob(jobDb,awardeeAtt, finished, upload, submission.submission_id)
-        cls.insertJob(jobDb,awardeeAtt, finished, validation, submission.submission_id)
-        subAwardJob = cls.insertJob(jobDb,subAward, finished, upload, submission.submission_id)
-        cls.insertJob(jobDb,subAward, invalid, validation, submission.submission_id)
+        subAwardJob = cls.insertJob(jobDb,subAward, invalid, upload, submission.submission_id)
         subAwardJob.error_message = "File was invalid"
+        # Create D1 jobs
+        cls.insertJob(jobDb,awardProcurement, finished, upload, submission.submission_id)
+        cls.insertJob(jobDb,awardProcurement, invalid, validation, submission.submission_id)
         jobDb.session.commit()
 
     @staticmethod

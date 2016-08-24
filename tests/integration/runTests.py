@@ -29,16 +29,16 @@ def runTests(argv=''):
     # Create test suite
     suite = unittest.TestSuite()
 
-    suite.addTests(unittest.makeSuite(LoginTests))
-    suite.addTests(unittest.makeSuite(FileTests))
-    suite.addTests(unittest.makeSuite(UserTests))
-    suite.addTests(unittest.makeSuite(ValidatorTests))
-    suite.addTests(unittest.makeSuite(JobTests))
-    suite.addTests(unittest.makeSuite(FileTypeTests))
-    suite.addTests(unittest.makeSuite(MixedFileTests))
+    #suite.addTests(unittest.makeSuite(LoginTests))
+    #suite.addTests(unittest.makeSuite(FileTests))
+    #suite.addTests(unittest.makeSuite(UserTests))
+    #suite.addTests(unittest.makeSuite(ValidatorTests))
+    #suite.addTests(unittest.makeSuite(JobTests))
+    #suite.addTests(unittest.makeSuite(FileTypeTests))
+    #suite.addTests(unittest.makeSuite(MixedFileTests))
 
     # to run a single test:
-    #suite.addTest(FileTests('test_check_status'))
+    suite.addTest(FileTests('test_file_generation'))
     #suite.addTest(FileTypeTests('test_approp_mixed'))
 
     print("{} tests in suite".format(suite.countTestCases()))

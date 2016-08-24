@@ -43,6 +43,7 @@ class s3UrlHandler:
         """
         if(s3UrlHandler.ENABLE_S3) :
             s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
+            print(str(s3connection))
             if(method=="PUT") :
                 return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method, bucketRoute, "/"+path+"/" +fileName,headers={'Content-Type': 'application/octet-stream'})
             return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method, bucketRoute, "/"+path+"/" +fileName)
