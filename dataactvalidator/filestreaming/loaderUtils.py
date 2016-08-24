@@ -6,7 +6,6 @@ class LoaderUtils:
 
     # define some data-munging functions that can be applied to
     # pandas dataframes as necessary
-    currentTimeFunction = lambda x: datetime.utcnow()
     cleanColNamesFunction = lambda field: str(field).lower().strip().replace(" ","_").replace(",","_")
 
     @classmethod
@@ -49,13 +48,9 @@ class LoaderUtils:
                 "skip_duplicate" which ignores subsequent lines that repeat values
                 "strip_commas" which removes commas
         """
-        # toss out blank rows
+        # incoming .csvs often have extraneous blank rows at the end,
+        # so get rid of those
         data.dropna(inplace=True, how='all')
-
-        # Fix up cells that have spaces instead of being empty.
-        # Set the truly empty cells to None so they get inserted to db as NULL
-        # TODO: very ugly function below...is there a better way?
-        data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
 
         # clean the dataframe column names
         data.rename(columns=lambda x: cls.cleanColNamesFunction(x), inplace=True)
@@ -80,8 +75,9 @@ class LoaderUtils:
                 data[col] = data[col].str.replace(",", "")
 
         # add created_at and updated_at columns
+        now = datetime.utcnow()
         data = data.assign(
-            created_at=cls.currentTimeFunction, updated_at=cls.currentTimeFunction)
+            created_at=now, updated_at=now)
 
         return data
 
@@ -94,4 +90,4 @@ class LoaderUtils:
             index=False,
             if_exists='append'
         )
-        print('{} records inserted to {}'.format(len(df.index), table))
+        return len(df.index)

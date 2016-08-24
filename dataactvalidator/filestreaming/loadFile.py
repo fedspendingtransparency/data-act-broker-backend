@@ -2,17 +2,18 @@ import os
 import pandas as pd
 import boto
 import glob
+import logging
 from dataactvalidator.filestreaming.loaderUtils import LoaderUtils
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 from dataactcore.models.domainModels import CGAC,ObjectClass,ProgramActivity,SF133
 from dataactcore.config import CONFIG_BROKER
-from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
-from sqlalchemy import and_
 
 
 def loadCgac(filename):
     interface = ValidatorValidationInterface()
     model = CGAC
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.INFO)
 
     # for CGAC, delete and replace values
     interface.session.query(model).delete()
@@ -20,8 +21,6 @@ def loadCgac(filename):
 
     # read CGAC values from csv
     data = pd.read_csv(filename, dtype=str)
-    # toss out rows with missing CGAC codes
-    data = data[data['CGAC'].notnull()]
     # clean data
     data = LoaderUtils.cleanData(
         data,
@@ -36,20 +35,22 @@ def loadCgac(filename):
     # TODO: very ugly function below...is there a better way?
     data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
     # insert to db
-    LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
+    table_name = model.__table__.name
+    num = LoaderUtils.insertDataframe(data, table_name, interface.engine)
+    logger.info('{} records inserted to {}'.format(num, table_name))
 
 
 def loadObjectClass(filename):
     interface = ValidatorValidationInterface()
     model = ObjectClass
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.INFO)
 
     # for object class, delete and replace values
     interface.session.query(model).delete()
     interface.session.commit()
 
     data = pd.read_csv(filename, dtype=str)
-    # toss out blank rows
-    data.dropna(inplace=True)
     data = LoaderUtils.cleanData(
         data,
         model,
@@ -62,12 +63,16 @@ def loadObjectClass(filename):
     # TODO: very ugly function below...is there a better way?
     data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
     # insert to db
-    LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
+    table_name = model.__table__.name
+    num = LoaderUtils.insertDataframe(data, table_name, interface.engine)
+    logger.info('{} records inserted to {}'.format(num, table_name))
 
 
 def loadProgramActivity(filename):
     interface = ValidatorValidationInterface()
     model = ProgramActivity
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.INFO)
 
     # for program activity, delete and replace values??
     interface.session.query(model).delete()
@@ -95,24 +100,28 @@ def loadProgramActivity(filename):
     # TODO: very ugly function below...is there a better way?
     data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
     # insert to db
-    LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
+    table_name = model.__table__.name
+    num = LoaderUtils.insertDataframe(data, table_name, interface.engine)
+    logger.info('{} records inserted to {}'.format(num, table_name))
 
 
 def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
     interface = ValidatorValidationInterface()
     model = SF133
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.INFO)
 
     existing_records = interface.session.query(model).filter(
-        and_(model.fiscal_year == fiscal_year, model.period == fiscal_period))
+        model.fiscal_year == fiscal_year, model.period == fiscal_period)
     if force_load:
         # force a reload of this period's current data
-        print('Force SF 133 load: deleting existing records for {} {}'.format(
+        logger.info('Force SF 133 load: deleting existing records for {} {}'.format(
             fiscal_year, fiscal_period))
         existing_records.delete()
         interface.session.commit()
     elif existing_records.count():
         # if there's existing data & we're not forcing a load, skip
-        print('SF133 {} {} already in database ({} records). Skipping file.'.format(
+        logger.info('SF133 {} {} already in database ({} records). Skipping file.'.format(
             fiscal_year, fiscal_period, existing_records.count()))
         return
 
@@ -175,53 +184,58 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
     # TODO: very ugly function below...is there a better way?
     data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
     # insert to db
-    LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
+    table_name = model.__table__.name
+    num = LoaderUtils.insertDataframe(data, table_name, interface.engine)
+    logger.info('{} records inserted to {}'.format(num, table_name))
 
 
 def formatInternalTas(row):
     """Concatenate TAS components into a single field for internal use."""
     # This formatting should match formatting in dataactcore.models.stagingModels concatTas
-    tas = '{}{}{}{}{}{}{}'.format(
+    tas = ''.join([
         row['allocation_transfer_agency'] if row['allocation_transfer_agency'] else '000',
         row['agency_identifier'] if row['agency_identifier'] else '000',
         row['beginning_period_of_availa'] if row['beginning_period_of_availa'].strip() else '0000',
         row['ending_period_of_availabil'] if row['ending_period_of_availabil'].strip() else '0000',
         row['availability_type_code'].strip() if row['availability_type_code'].strip() else ' ',
         row['main_account_code'] if row['main_account_code'] else '0000',
-        row['sub_account_code'] if row['sub_account_code'] else '000')
+        row['sub_account_code'] if row['sub_account_code'] else '000'
+    ])
     return tas
 
 
-def loadDomainValues(basePath, localSFPath = None, localProgramActivity = None):
-    """Load all domain value files, localSFPath is used to point to a SF-133 file, if not provided it will be downloaded from S3."""
-    print("Loading CGAC")
+def loadDomainValues(basePath, localSF133Dir = None, localProgramActivity = None):
+    """Load all domain value files, localSF133Dir is used to point to the SF-133 directory, if not provided, SF-133 files will be downloaded from S3."""
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.INFO)
+
+    logger.info('Loading CGAC')
     loadCgac(os.path.join(basePath,"cgac.csv"))
-    print("Loading object class")
+    logger.info('Loading object class')
     loadObjectClass(os.path.join(basePath,"object_class.csv"))
-    print("Loading program activity")
+    logger.info('Loading program activity')
     if localProgramActivity is not None:
         loadProgramActivity(localProgramActivity)
     else:
         loadProgramActivity(os.path.join(basePath, "program_activity.csv"))
 
-    if localSFPath is not None:
-        print("Loading local SF-133")
+    if localSF133Dir is not None:
+        logger.info('Loading local SF-133')
         # get list of SF 133 files in the specified local directory
-        sf133Files = glob.glob(os.path.join(localSFPath, 'sf_133*.csv'))
+        sf133Files = glob.glob(os.path.join(localSF133Dir, 'sf_133*.csv'))
         for sf133 in sf133Files:
             file = os.path.basename(sf133).replace('.csv', '')
             fileParts = file.split('_')
             if len(fileParts) < 4:
-                print('{}Skipping SF 133 file with invalid name: {}'.format(
+                logger.info('{}Skipping SF 133 file with invalid name: {}'.format(
                     os.linesep, sf133))
                 continue
             year = file.split('_')[-2]
             period = file.split('_')[-1]
-            print('{}Starting {}...'.format(os.linesep, sf133))
+            logger.info('{}Starting {}...'.format(os.linesep, sf133))
             loadSF133(sf133, year, period)
     else:
-        print("Loading SF-133")
-        reader = CsvS3Reader()
+        logger.info("Loading SF-133")
         if(CONFIG_BROKER["use_aws"]):
             # get list of SF 133 files in the config bucket on S3
             s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
@@ -234,14 +248,15 @@ def loadDomainValues(basePath, localSFPath = None, localProgramActivity = None):
                     CONFIG_BROKER['sf_133_folder'])[-1].replace('.csv', '')
                 fileParts = file.split('_')
                 if len(fileParts) < 4:
-                    print('{}Skipping SF 133 file with invalid name: {}'.format(
+                    logger.info('{}Skipping SF 133 file with invalid name: {}'.format(
                         os.linesep, sf133))
                     continue
                 year = file.split('_')[-2]
                 period = file.split('_')[-1]
-                print('{}Starting {}...'.format(os.linesep,sf133.name))
+                logger.info('{}Starting {}...'.format(os.linesep,sf133.name))
                 loadSF133(sf133, year, period)
 
 if __name__ == '__main__':
     loadDomainValues(
-        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"))
+        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
+    )
