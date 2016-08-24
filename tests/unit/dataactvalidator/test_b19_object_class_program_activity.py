@@ -1,8 +1,17 @@
 from dataactcore.models.stagingModels import ObjectClassProgramActivity
-from tests.unit.dataactvalidator.utils import number_of_errors
+from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
 _FILE = 'b19_object_class_program_activity'
+
+
+def test_column_headers(database):
+    expected_subset = {'row_number', 'beginning_period_of_availa', 'ending_period_of_availabil',
+                       'agency_identifier', 'allocation_transfer_agency', 'availability_type_code',
+                       'main_account_code', 'sub_account_code', 'object_class', 'program_activity_code',
+                       'by_direct_reimbursable_fun'}
+    actual = set(query_columns(_FILE, database.stagingDb))
+    assert (actual & expected_subset) == expected_subset
 
 
 def test_success(database):
