@@ -280,7 +280,7 @@ class JobHandler(JobTrackerInterface):
                 if fileType in ["award","award_procurement"]:
                     # File generation handled on backend, mark as ready
                     uploadStatus = self.getJobStatusId("ready")
-                elif fileType in ["awardee_attribute", "sub_award"]:
+                elif fileType in ["awardee_attributes", "sub_award"]:
                     # These are dependent on file D2 validation
                     uploadStatus = self.getJobStatusId("waiting")
                 else:
@@ -305,7 +305,7 @@ class JobHandler(JobTrackerInterface):
                 self.session.commit()
             else:
                 # Create parse into DB job
-                if fileType == "awardee_attribute":
+                if fileType == "awardee_attributes":
                     if d1ValId is None:
                         raise Exception("Cannot create E job without a D1 job")
                     # Add dependency on D1 validation job
