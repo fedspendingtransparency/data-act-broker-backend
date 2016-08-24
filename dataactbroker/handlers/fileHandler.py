@@ -1,6 +1,6 @@
 import os
 from flask import session, request
-from datetime import datetime
+from datetime import datetime, date
 from werkzeug import secure_filename
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -29,6 +29,7 @@ class FileHandler:
     FILE_TYPES = ["appropriations","award_financial","program_activity"]
     EXTERNAL_FILE_TYPES = ["award", "award_procurement", "awardee_attributes", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
+    EXTERNAL_FILE_TYPE_MAP = {"D1":"award_procurement", "D2":"award", "E":"awardee_attributes", "F": "sub_award"}
 
     def __init__(self,request,interfaces = None,isLocal= False,serverPath =""):
         """ Create the File Handler
@@ -482,9 +483,114 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, response)
 
+    def loadGenerateRequest(self):
+        """ Pull information out of request object and return it
+
+        Returns: tuple of submission ID and file type
+
+        """
+        requestDict = RequestDictionary(self.request)
+        if not (requestDict.exists("submission_id") and requestDict.exists("file_type")):
+            exc = ResponseException("Generate file route requires submission_id and file_type",
+                                    StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+
+        submission_id = requestDict.getValue("submission_id")
+        file_type = requestDict.getValue("file_type")
+        return submission_id, file_type
+
+    def generateFile(self):
+        """ Start a file generation job for the specified file type """
+        submission_id, file_type = self.loadGenerateRequest()
+        if file_type == "D2":
+            # TODO could this function return S3 file location
+            result = self.generateD2File()
+        elif file_type == "F":
+            #TODO call file F generation function
+            pass
+        else:
+            exc = ResponseException("File type must be either D1, D2, E or F", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+        job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "file_upload")
+        # TODO mark S3 file location in DB
+        # Mark file generation upload as finished
+        self.interfaces.jobDb.markJobStatus(job.job_id,"finished")
+        # Return same response as check generation route
+        return self.checkGeneration()
+
+    def checkGeneration(self):
+        """ Return information about file generation jobs
+
+        Returns:
+            Response object with keys status, file_type, url, message.  If file_type is D1 or D2, also includes start and end.
+        """
+        submission_id, file_type = self.loadGenerateRequest()
+        uploadJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "file_upload")
+        if file_type in ["D1","D2"]:
+            validationJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP(file_type), "csv_record_validation")
+        else:
+            validationJob = None
+        responseDict = {}
+        responseDict["status"] = self.mapGenerateStatus(uploadJob, validationJob)
+        responseDict["file_type"] = file_type
+        responseDict["message"] = uploadJob.error_message or ""
+        responseDict["url"] = s3UrlHandler().getSignedUrl("d-files",uploadJob.filename, bucketRoute=None, method="GET")
+        # Pull start and end from jobs table if D1 or D2
+        if file_type in ["D1","D2"]:
+            responseDict["start"] = uploadJob.start_date.strftime("%m/%d/%Y") if uploadJob.start_date is not None else ""
+            responseDict["end"] = uploadJob.end_date.strftime("%m/%d/%Y") if uploadJob.end_date is not None else ""
+
+        return JsonResponse.create(StatusCode.OK,responseDict)
+
+    def mapGenerateStatus(self, uploadJob, validationJob = None):
+        """ Maps job status to file generation statuses expected by frontend """
+        # TODO make this more complicated to treat D1 and D2 differently, and wait for validation and check for number of errors for D1 and D2
+        if validationJob is None:
+            errorsPresent = False
+        else:
+            if self.interfaces.errorDb.checkNumberOfErrorsByJobId(validationJob.job_id, self.interfaces.validationDb, errorType = "fatal") > 0:
+                errorsPresent = True
+            else:
+                errorsPresent = False
+        uploadStatus = self.interfaces.jobDb.getJobStatusNameById(uploadJob.job_status_id)
+        validationStatus = self.interfaces.jobDb.getJobStatusNameById(validationJob.job_status_id)
+        if uploadStatus in ["waiting", "ready"]:
+            result =  "invalid"
+        elif uploadStatus == "running":
+            result =  "waiting"
+        elif uploadStatus in ["invalid", "failed"]:
+            if uploadJob.error_message is None:
+                uploadJob.error_message = "Upload job failed without error message"
+            result = "failed"
+        elif uploadStatus == "finished":
+            if validationJob is None:
+                result = "finished"
+            else:
+                # If validation job exists, check that status as well
+                if validationStatus in ["waiting", "ready", "running"]:
+                    result = "waiting"
+                elif validationStatus in ["invalid", "failed"]:
+                    if validationJob.error_message is None:
+                        if validationStatus == "invalid":
+                            uploadJob.error_message = "Generated file had file-level errors"
+                        else:
+                            uploadJob.error_message = "Validation job had an internal error"
+                    else:
+                        uploadJob.error_message = validationJob.error_message
+                    result = "failed"
+                elif validationStatus == "finished":
+                    if errorsPresent:
+                        result = "failed"
+                        uploadJob.error_message = "Validation completed but row-level errors were found"
+                    else:
+                        result = "finished"
+        self.interfaces.jobDb.session.commit()
+        return result
+
 
     def generateD2File(self):
         """ Initiates the generation of D2 """
+        jobDb = self.interfaces.jobDb
         requestDict = RequestDictionary(self.request)
 
         if not (requestDict.exists("submission_id") and requestDict.exists("start") and requestDict.exists("end")):
@@ -495,7 +601,9 @@ class FileHandler:
         submission_id = requestDict.getValue("submission_id")
         start_date = requestDict.getValue("start")
         end_date = requestDict.getValue("end")
-
+        job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D2"], "file_upload")
+        job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
+        job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
         if not (StringCleaner.isNumeric(submission_id) and StringCleaner.isDate(start_date) and StringCleaner.isDate(
                 end_date)):
             exc = ResponseException("submission id, start, and/or end cannot be parsed into their appropriate types",
@@ -512,7 +620,10 @@ class FileHandler:
         timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["d2_file_name"])
         upload_file_name = "".join([str(user_id), "/", timestamped_name])
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d2", CONFIG_BROKER["d2_file_name"], upload_file_name)
-        self.jobManager.setDFileStatus(d_file_id, "waiting")
+        job.filename = upload_file_name
+        job.job_status_id = jobDb.getJobStatusId("running")
+        jobDb.session.commit()
+        jobDb.setDFileStatus(d_file_id, "waiting")
         jq.generate_d_file.delay(get_url, CONFIG_BROKER["d2_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
 
         # Check status for D2 file

@@ -36,6 +36,11 @@ class FileTests(BaseTestAPI):
         cls.status_check_submission_id = cls.insertSubmission(
             cls.jobTracker, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
 
+        cls.generation_submission_id = cls.insertSubmission(
+            cls.jobTracker, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
+
+        cls.setupFileGenerationSubmission()
+
         cls.jobIdDict = cls.setupJobsForStatusCheck(cls.interfaces,
             cls.status_check_submission_id)
 
@@ -433,6 +438,42 @@ class FileTests(BaseTestAPI):
         self.check_metrics(self.test_metrics_submission_id,
             True, "appropriations")
 
+    def test_file_generation(self):
+        """ Test the generate and check routes for external files """
+        # For file generation submission, call generate route for D2 anc check results
+        postJson = {"submission_id": self.generation_submission_id, "file_type": "D2", "start":"01/02/2016", "end":"02/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+        json = response.json
+        self.assertEqual(json["status"], "waiting")
+        self.assertEqual(json["file_type"], "D2")
+        self.assertEqual(json["url"],"")
+        self.assertEqual(json["start"],"01/02/2016")
+        self.assertEqual(json["end"],"02/03/2016")
+        self.assertEqual(json["message"],"")
+
+        # Then call check generation route for E and F and check results
+        postJson = {"submission_id": self.generation_submission_id, "file_type": "E"}
+        response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+        json = response.json
+        self.assertEqual(json["status"], "finished")
+        self.assertEqual(json["file_type"], "E")
+        self.assertEqual(json["url"],"")
+        self.assertEqual(json["message"],"")
+
+        postJson = {"submission_id": self.generation_submission_id, "file_type": "F"}
+        response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+        json = response.json
+        self.assertEqual(json["status"], "failed")
+        self.assertEqual(json["file_type"], "F")
+        self.assertEqual(json["url"],"")
+        self.assertEqual(json["message"],"File was invalid")
+
     @staticmethod
     def insertSubmission(jobTracker, submission_user_id, submission=None, cgac_code = None, startDate = None, endDate = None, is_quarter = False):
         """Insert one submission into job tracker and get submission ID back."""
@@ -461,13 +502,13 @@ class FileTests(BaseTestAPI):
             job.job_id = job_id
         jobTracker.session.add(job)
         jobTracker.session.commit()
-        return job.job_id
+        return job
 
     @staticmethod
-    def insertFile(errorDB, job, status):
+    def insertFile(errorDB, job_id, status):
         """Insert one file into error database and get ID back."""
         fs = File(
-            job_id=job,
+            job_id=job_id,
             filename=' ',
             file_status_id=status
         )
@@ -476,11 +517,11 @@ class FileTests(BaseTestAPI):
         return fs.file_id
 
     @staticmethod
-    def insertRowLevelError(errorDB, job):
+    def insertRowLevelError(errorDB, job_id):
         """Insert one error into error database."""
         #TODO: remove hard-coded surrogate keys and filename
         ed = ErrorMetadata(
-            job_id=job,
+            job_id=job_id,
             filename='test.csv',
             field_name='header 1',
             error_type_id=1,
@@ -492,6 +533,31 @@ class FileTests(BaseTestAPI):
         errorDB.session.commit()
         return ed.error_metadata_id
 
+    @classmethod
+    def setupFileGenerationSubmission(cls):
+        jobDb = cls.interfaces.jobDb
+        submission = jobDb.getSubmissionById(cls.generation_submission_id)
+        ready = jobDb.getJobStatusId("ready")
+        waiting = jobDb.getJobStatusId("waiting")
+        finished = jobDb.getJobStatusId("finished")
+        invalid = jobDb.getJobStatusId("invalid")
+        upload = jobDb.getJobTypeId("file_upload")
+        validation = jobDb.getJobTypeId("csv_record_validation")
+        award = jobDb.getFileTypeId("award")
+        awardeeAtt = jobDb.getFileTypeId("awardee_attributes")
+        subAward = jobDb.getFileTypeId("sub_award")
+
+        # Create D2 jobs ready for generation route to be called
+        cls.insertJob(jobDb,award, ready, upload, submission.submission_id)
+        cls.insertJob(jobDb,award, waiting, validation, submission.submission_id)
+        # Create E and F jobs ready for check route
+        cls.insertJob(jobDb,awardeeAtt, finished, upload, submission.submission_id)
+        cls.insertJob(jobDb,awardeeAtt, finished, validation, submission.submission_id)
+        subAwardJob = cls.insertJob(jobDb,subAward, finished, upload, submission.submission_id)
+        cls.insertJob(jobDb,subAward, invalid, validation, submission.submission_id)
+        subAwardJob.error_message = "File was invalid"
+        jobDb.session.commit()
+
     @staticmethod
     def setupSubmissionWithError(interfaces, row_error_submission_id):
         """ Set up a submission that will come back with a status of validation_errors """
@@ -501,7 +567,7 @@ class FileTests(BaseTestAPI):
         jobValues["program_activity"] = [2, 4, 2, "programActivity.csv", None, None]
         jobValues["cross_file"] = [None,4,4,2,None,None,None]
         for jobKey, values in jobValues.items():
-            job_id = FileTests.insertJob(
+            job = FileTests.insertJob(
                 interfaces.jobDb,
                 filetype=values[0],
                 status=values[1],
@@ -512,7 +578,7 @@ class FileTests(BaseTestAPI):
                 num_rows=values[5]
             )
         # Add errors to cross file job
-        metadata = ErrorMetadata(job_id = job_id, occurrences = 2, severity_id = interfaces.validationDb.getRuleSeverityId("fatal"))
+        metadata = ErrorMetadata(job_id = job.job_id, occurrences = 2, severity_id = interfaces.validationDb.getRuleSeverityId("fatal"))
         interfaces.errorDb.session.add(metadata)
         interfaces.errorDb.session.commit()
 
@@ -532,7 +598,7 @@ class FileTests(BaseTestAPI):
         jobIdDict = {}
 
         for jobKey, values in jobValues.items():
-            job_id = FileTests.insertJob(
+            job = FileTests.insertJob(
                 interfaces.jobDb,
                 filetype=values[0],
                 status=values[1],
@@ -542,7 +608,7 @@ class FileTests(BaseTestAPI):
                 file_size=values[4],
                 num_rows=values[5]
             )
-            jobIdDict[jobKey] = job_id
+            jobIdDict[jobKey] = job.job_id
 
         # For appropriations job, create an entry in file for this job
         fileRec = File(job_id=jobIdDict["appropriations"],
@@ -610,7 +676,7 @@ class FileTests(BaseTestAPI):
             type_id=2,
             submission=submission_id
         )
-        FileTests.insertFile(errorDb, job, 1) # Everything Is Fine
+        FileTests.insertFile(errorDb, job.job_id, 1) # Everything Is Fine
 
         job = FileTests.insertJob(
             jobTracker,
@@ -619,7 +685,7 @@ class FileTests(BaseTestAPI):
             type_id=2,
             submission=submission_id
         )
-        FileTests.insertFile(errorDb, job, 3) # Bad Header
+        FileTests.insertFile(errorDb, job.job_id, 3) # Bad Header
 
         job = FileTests.insertJob(
             jobTracker,
@@ -628,8 +694,8 @@ class FileTests(BaseTestAPI):
             type_id=2,
             submission=submission_id
         )
-        FileTests.insertFile(errorDb, job, 1) # Validation level Errors
-        FileTests.insertRowLevelError(errorDb, job)
+        FileTests.insertFile(errorDb, job.job_id, 1) # Validation level Errors
+        FileTests.insertRowLevelError(errorDb, job.job_id)
 
 if __name__ == '__main__':
     unittest.main()

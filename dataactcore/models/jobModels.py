@@ -82,6 +82,9 @@ class Job(Base):
     number_of_rows_valid = Column(Integer)
     number_of_errors = Column(Integer)
     number_of_warnings = Column(Integer)
+    error_message = Column(Text)
+    start_date = Column(Date)
+    end_date = Column(Date)
 
 class JobDependency(Base):
     __tablename__ = "job_dependency"
