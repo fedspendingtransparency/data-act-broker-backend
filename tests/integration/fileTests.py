@@ -7,7 +7,7 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from tests.integration.baseTestAPI import BaseTestAPI
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import Submission, Job
+from dataactcore.models.jobModels import Submission, Job, JobDependency
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.config import CONFIG_BROKER
 from dataactbroker.handlers.jobHandler import JobHandler
@@ -484,6 +484,15 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["url"],"")
         self.assertEqual(json["message"],"File was invalid")
 
+        # E file generation should error because D1 job did not validate
+        postJson = {"submission_id": self.generation_submission_id, "file_type": "E", "start":"01/02/2016", "end":"02/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id}, expect_errors=True)
+
+        print("Response: " + str(response.json))
+        self.assertEqual(response.status_code, 400)
+        json = response.json
+        self.assertEqual(json["message"],"Prerequisites incomplete, job cannot be started")
+
     @staticmethod
     def insertSubmission(jobTracker, submission_user_id, submission=None, cgac_code = None, startDate = None, endDate = None, is_quarter = False):
         """Insert one submission into job tracker and get submission ID back."""
@@ -562,12 +571,15 @@ class FileTests(BaseTestAPI):
         cls.insertJob(jobDb,award, ready, upload, submission.submission_id)
         cls.insertJob(jobDb,award, waiting, validation, submission.submission_id)
         # Create E and F jobs ready for check route
-        cls.insertJob(jobDb,awardeeAtt, finished, upload, submission.submission_id)
+        awardeeAttJob = cls.insertJob(jobDb,awardeeAtt, finished, upload, submission.submission_id)
         subAwardJob = cls.insertJob(jobDb,subAward, invalid, upload, submission.submission_id)
         subAwardJob.error_message = "File was invalid"
         # Create D1 jobs
         cls.insertJob(jobDb,awardProcurement, finished, upload, submission.submission_id)
-        cls.insertJob(jobDb,awardProcurement, invalid, validation, submission.submission_id)
+        awardProcValJob = cls.insertJob(jobDb,awardProcurement, invalid, validation, submission.submission_id)
+        # Create dependency
+        awardeeAttDep = JobDependency(job_id = awardeeAttJob.job_id, prerequisite_id = awardProcValJob.job_id)
+        jobDb.session.add(awardeeAttDep)
         jobDb.session.commit()
 
     @staticmethod

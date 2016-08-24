@@ -508,6 +508,11 @@ class FileHandler:
     def generateFile(self):
         """ Start a file generation job for the specified file type """
         submission_id, file_type = self.loadGenerateRequest()
+        job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "file_upload")
+        # Check prerequisites on upload job
+        if not self.interfaces.jobDb.runChecks(job.job_id):
+            exc = ResponseException("Must wait for completion of prerequisite validation job", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
         if file_type == "D1":
             # TODO could this function return S3 file location
             result = self.generateD1File()
@@ -523,7 +528,7 @@ class FileHandler:
         else:
             exc = ResponseException("File type must be either D1, D2, E or F", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
-        job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "file_upload")
+
         # TODO mark S3 file location in DB
         # Mark file generation upload as finished
         self.interfaces.jobDb.markJobStatus(job.job_id,"finished")
@@ -564,7 +569,6 @@ class FileHandler:
     def mapGenerateStatus(self, uploadJob, validationJob = None):
         """ Maps job status to file generation statuses expected by frontend """
         uploadStatus = self.interfaces.jobDb.getJobStatusNameById(uploadJob.job_status_id)
-        print("Status is " + str(uploadStatus) + " for file type " + str(uploadJob.file_type_id))
         if validationJob is None:
             errorsPresent = False
         else:
