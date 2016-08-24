@@ -1,4 +1,5 @@
-SELECT sf.allocation_transfer_agency,
+SELECT NULL as row_number,
+    sf.allocation_transfer_agency,
 	sf.agency_identifier,
 	sf.beginning_period_of_availa,
 	sf.ending_period_of_availabil,

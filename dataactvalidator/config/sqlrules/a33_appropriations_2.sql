@@ -1,4 +1,5 @@
-SELECT approp.allocation_transfer_agency,
+SELECT NULL as row_number,
+    approp.allocation_transfer_agency,
 	approp.agency_identifier,
 	approp.beginning_period_of_availa,
 	approp.ending_period_of_availabil,
