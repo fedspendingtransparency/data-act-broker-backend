@@ -301,8 +301,16 @@ class FileHandler:
             for jobId in jobs:
                 jobInfo = {}
                 jobType = self.jobManager.getJobType(jobId)
+
                 if jobType != "csv_record_validation" and jobType != "validation":
                     continue
+
+                # TODO Skip D1 file until validation is added, remove these lines once D1 validation is added
+                if jobType == "csv_record_validation":
+                    fileType = self.jobManager.getFileType(jobId)
+                    if fileType == "award_procurement":
+                        continue
+
                 jobInfo["job_id"] = jobId
                 jobInfo["job_status"] = self.jobManager.getJobStatusName(jobId)
                 jobInfo["job_type"] = jobType
