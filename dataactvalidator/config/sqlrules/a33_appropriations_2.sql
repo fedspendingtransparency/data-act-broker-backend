@@ -1,4 +1,4 @@
-SELECT NULL as row_number,
+SELECT approp.row_number,
     approp.allocation_transfer_agency,
 	approp.agency_identifier,
 	approp.beginning_period_of_availa,
