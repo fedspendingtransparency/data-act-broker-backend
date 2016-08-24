@@ -1,12 +1,20 @@
 from datetime import datetime
+from pandas import isnull
+
 
 class LoaderUtils:
 
     # define some data-munging functions that can be applied to
     # pandas dataframes as necessary
-    padFunction = lambda field, padTo: str(field).strip().zfill(padTo)
     currentTimeFunction = lambda x: datetime.utcnow()
     cleanColNamesFunction = lambda field: str(field).lower().strip().replace(" ","_").replace(",","_")
+
+    @classmethod
+    def padFunction(self, field, padTo):
+        """Pads field to specified length."""
+        if field is None or isnull(field):
+            field = ''
+        return str(field).strip().zfill(padTo)
 
     @staticmethod
     def checkRecord (record, fields) :
@@ -65,7 +73,7 @@ class LoaderUtils:
             if "pad_to_length" in options:
                 # pad to specified length
                 data['{}'.format(col)] = data['{}'.format(col)].apply(
-                    lambda x: cls.padFunction(x, options['pad_to_length']))
+                    cls.padFunction, args=(options['pad_to_length'],))
             if options.get('strip_commas'):
                 # remove commas for specified column
                 # get rid of commas in dollar amounts

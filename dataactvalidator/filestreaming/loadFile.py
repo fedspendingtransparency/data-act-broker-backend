@@ -31,6 +31,10 @@ def loadCgac(filename):
     )
     # de-dupe
     data.drop_duplicates(subset=['cgac_code'], inplace=True)
+    # Fix up cells that have spaces instead of being empty.
+    # Set the truly empty cells to None so they get inserted to db as NULL
+    # TODO: very ugly function below...is there a better way?
+    data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
     # insert to db
     LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
 
@@ -55,6 +59,8 @@ def loadObjectClass(filename):
     )
     # de-dupe
     data.drop_duplicates(subset=['object_class_code'], inplace=True)
+    # TODO: very ugly function below...is there a better way?
+    data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
     # insert to db
     LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
 
@@ -86,6 +92,8 @@ def loadProgramActivity(filename):
     # there will be duplicate records in the dataframe. this is ok,
     # but need to de-duped before the db load.
     data.drop_duplicates(inplace=True)
+    # TODO: very ugly function below...is there a better way?
+    data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
     # insert to db
     LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
 
@@ -108,7 +116,7 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
             fiscal_year, fiscal_period, existing_records.count()))
         return
 
-    data = pd.read_csv(filename, dtype=str)
+    data = pd.read_csv(filename, dtype=str, keep_default_na=False)
     data = LoaderUtils.cleanData(
         data,
         model,
@@ -130,8 +138,9 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
          "sub_account_code": {"pad_to_length": 3},
          "amount": {"strip_commas": True}}
     )
+
     # todo: find out how to handle dup rows (e.g., same tas/period/line number)
-    # line numbers 2002 and 2012 are the only duped line numbers,
+    # line numbers 2002 and 2012 are the only duped SF 133 report line numbers,
     # and they are not used by the validation rules, so for now
     # just remove them before loading our SF-133 table
     dupe_line_numbers = ['2002', '2102']
@@ -139,10 +148,34 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
 
     # add concatenated TAS field for internal use (i.e., joining to staging tables)
     data['tas'] = data.apply(lambda row: formatInternalTas(row), axis=1)
+
+    # zero out line numbers not supplied in the file
+    pivot_idx = ['created_at', 'updated_at', 'agency_identifier', 'allocation_transfer_agency',
+                 'availability_type_code', 'beginning_period_of_availa', 'ending_period_of_availabil',
+                 'main_account_code', 'sub_account_code', 'tas', 'fiscal_year', 'period']
+    data.amount = data.amount.astype(float)  # this line triggers the settingwithcopy warning
+    data = pd.pivot_table(data, values='amount', index=pivot_idx, columns=['line'], fill_value=0).reset_index()
+    data = pd.melt(data, id_vars=pivot_idx, value_name='amount')
+
+    # Now that we've added zero lines for EVERY tas and SF 133 line number, get rid of the ones
+    # we don't actually use in the validations. Arguably, it would be better just to include
+    # everything, but that drastically increases the number of records we're inserting to the
+    # sf_133 table. If we ever decide that we need *all* SF 133 lines that are zero value,
+    # uncomment the next line.
+    sf_133_validation_lines = ['1910',	'1000',	'1160',	'1180',	'1260',
+                               '1280',	'1540',	'1640',	'1340',	'1440',	'1750',
+                               '1850',	'1032',	'1033',	'1022',	'1030',	'1029',
+                               '1025',	'1021',	'1040',	'1026',	'1010',	'1024',
+                               '1020',	'1011',	'1041',	'1013',	'1012',	'1031',
+                               '1042',	'1023',	'3020',	'2940',	'2190',	'2500',
+                               '1021',	'1033',	'4801',	'4802',	'4881',	'4882',
+                               '4901',	'4902',	'4908',	'4981',	'4982']
+    data = data[(data.line.isin(sf_133_validation_lines)) | (data.amount != 0)]
+
+    # TODO: very ugly function below...is there a better way?
+    data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
     # insert to db
     LoaderUtils.insertDataframe(data, model.__table__.name, interface.engine)
-
-    # todo: insert 0 line numbers if necessary for validation rules
 
 
 def formatInternalTas(row):
@@ -151,9 +184,9 @@ def formatInternalTas(row):
     tas = '{}{}{}{}{}{}{}'.format(
         row['allocation_transfer_agency'] if row['allocation_transfer_agency'] else '000',
         row['agency_identifier'] if row['agency_identifier'] else '000',
-        row['beginning_period_of_availa'] if row['beginning_period_of_availa'] else '0000',
-        row['ending_period_of_availabil'] if row['ending_period_of_availabil'] else '0000',
-        ' ' if pd.isnull(row['availability_type_code']) else row['availability_type_code'],
+        row['beginning_period_of_availa'] if row['beginning_period_of_availa'].strip() else '0000',
+        row['ending_period_of_availabil'] if row['ending_period_of_availabil'].strip() else '0000',
+        row['availability_type_code'].strip() if row['availability_type_code'].strip() else ' ',
         row['main_account_code'] if row['main_account_code'] else '0000',
         row['sub_account_code'] if row['sub_account_code'] else '000')
     return tas
@@ -188,6 +221,7 @@ def loadDomainValues(basePath, localSFPath = None, localProgramActivity = None):
             loadSF133(sf133, year, period)
     else:
         print("Loading SF-133")
+        reader = CsvS3Reader()
         if(CONFIG_BROKER["use_aws"]):
             # get list of SF 133 files in the config bucket on S3
             s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
