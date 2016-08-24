@@ -46,8 +46,10 @@ class JobQueue:
                 xml_response = str(requests.get(api_url, verify=False).content)
                 url_start_index = xml_response.find("<results>", 0)
                 offset = 9
+
                 if url_start_index == -1:
                     raise ResponseException("Empty response. Validate if input is correct.", StatusCode.CLIENT_ERROR)
+
                 url_start_index += offset
                 file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
 
@@ -73,8 +75,6 @@ class JobQueue:
                     bucket = CONFIG_BROKER['aws_bucket']
                     region = CONFIG_BROKER['aws_region']
                     writer = CsvS3Writer(region, bucket, file_name, headers)
-
-                print(writer)
 
                 for line in lines[1:]:
                     writer.write(line)
