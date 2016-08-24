@@ -429,7 +429,7 @@ class FileHandler:
         upload_file_name = "".join([str(user_id), "/", timestamped_name])
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d1", CONFIG_BROKER["d1_file_name"], upload_file_name)
         self.jobManager.setDFileStatus(d_file_id, "waiting")
-        jq.generate_d_file.delay(get_url, CONFIG_BROKER["d1_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
+        jq.generate_d_file.delay(get_url, user_id, d_file_id, InterfaceHolder, timestamped_name, self.isLocal)
 
         # Check status for D1 file
         return self.checkD1File()
@@ -477,7 +477,6 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, response)
 
-
     def generateD2File(self):
         """ Initiates the generation of D2 """
         requestDict = RequestDictionary(self.request)
@@ -508,7 +507,7 @@ class FileHandler:
         upload_file_name = "".join([str(user_id), "/", timestamped_name])
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d2", CONFIG_BROKER["d2_file_name"], upload_file_name)
         self.jobManager.setDFileStatus(d_file_id, "waiting")
-        jq.generate_d_file.delay(get_url, CONFIG_BROKER["d2_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
+        jq.generate_d_file.delay(get_url, user_id, d_file_id, InterfaceHolder, timestamped_name, self.isLocal)
 
         # Check status for D2 file
         return self.checkD2File()

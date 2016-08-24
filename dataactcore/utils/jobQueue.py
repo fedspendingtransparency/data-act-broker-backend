@@ -2,9 +2,12 @@ from celery import Celery
 from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER
 import requests
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
+from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from csv import reader
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
+import traceback
 
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):
@@ -36,21 +39,17 @@ class JobQueue:
             return response.json()
 
         @self.jobQueue.task(name='jobQueue.generate_d_file')
-        def generate_d_file(api_url, file_name, user_id, d_file_id, interface_holder, timestamped_name, skip_gen=False):
+        def generate_d_file(api_url, user_id, d_file_id, interface_holder, timestamped_name, isLocal):
             job_manager = interface_holder().jobDb
 
             try:
-                if not skip_gen:
-                    xml_response = str(requests.get(api_url, verify=False).content)
-                    url_start_index = xml_response.find("<results>", 0) + 9
-                    file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
-                else:
-                    file_url = s3UrlHandler().getSignedUrl(path="d-files/", fileName=file_name, method="GET")
-
-                bucket = CONFIG_BROKER['aws_bucket']
-                region = CONFIG_BROKER['aws_region']
-
-                aws_file_name = "".join([str(user_id), "/", timestamped_name])
+                xml_response = str(requests.get(api_url, verify=False).content)
+                url_start_index = xml_response.find("<results>", 0)
+                offset = 9
+                if url_start_index == -1:
+                    raise ResponseException("Empty response. Validate if input is correct.", StatusCode.CLIENT_ERROR)
+                url_start_index += offset
+                file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
 
                 with open(timestamped_name, "w") as file:
                     # get request
@@ -65,12 +64,24 @@ class JobQueue:
                         lines.append(line)
 
                 headers = lines[0]
-                with CsvS3Writer(region, bucket, aws_file_name, headers) as writer:
-                    for line in lines[1:]:
-                        writer.write(line)
-                    writer.finishBatch()
+
+                if isLocal:
+                    file_name = "".join([CONFIG_BROKER['broker_files'], "/", timestamped_name])
+                    writer = CsvLocalWriter(file_name, headers)
+                else:
+                    file_name = "".join([str(user_id), "/", timestamped_name])
+                    bucket = CONFIG_BROKER['aws_bucket']
+                    region = CONFIG_BROKER['aws_region']
+                    writer = CsvS3Writer(region, bucket, file_name, headers)
+
+                print(writer)
+
+                for line in lines[1:]:
+                    writer.write(line)
+                writer.finishBatch()
 
                 job_manager.setDFileStatus(d_file_id, "finished")
+                return {"message": "Success", "file_name": file_name}
             except Exception as e:
                 # Log the error
                 JsonResponse.error(e,500)
