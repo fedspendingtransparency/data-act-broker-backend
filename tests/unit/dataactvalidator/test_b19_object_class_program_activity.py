@@ -88,6 +88,23 @@ def test_success(database):
                                                                op7, op8, op9, op10, op11]) == 0
 
 
+def test_optionals(database):
+    """ Tests that all combinations of TAS, Object Class, Reimbursable Code in File B (Object Class Program Activity)
+    are not unique, while omitting an optional field to check that there is still a match"""
+
+    op1 = ObjectClassProgramActivity(job_id=1, row_number=1, beginning_period_of_availa='1',
+                                     ending_period_of_availabil='1', agency_identifier='1',
+                                     availability_type_code='1', main_account_code='1', sub_account_code='1',
+                                     object_class='1', program_activity_code='1', by_direct_reimbursable_fun='r')
+
+    op2 = ObjectClassProgramActivity(job_id=1, row_number=1, beginning_period_of_availa='1',
+                                     ending_period_of_availabil='1', agency_identifier='1',
+                                     availability_type_code='1', main_account_code='1', sub_account_code='1',
+                                     object_class='1', program_activity_code='1', by_direct_reimbursable_fun='r')
+
+    assert number_of_errors(_FILE, database.stagingDb, models=[op1, op2]) == 1
+
+
 def test_failure(database):
     """ Tests that all combinations of TAS, Object Class, Program Activity, and Reimbursable Code
         in File B (Object Class Program Activity) are not unique"""
