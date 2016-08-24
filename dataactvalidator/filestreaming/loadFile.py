@@ -171,9 +171,6 @@ def loadDomainValues(basePath, localSFPath = None, localProgramActivity = None):
     else:
         loadProgramActivity(os.path.join(basePath, "program_activity.csv"))
 
-    # SF 133 is kept on S3, so need to download that
-    reader = CsvS3Reader()
-
     if localSFPath is not None:
         print("Loading local SF-133")
         # get list of SF 133 files in the specified local directory
