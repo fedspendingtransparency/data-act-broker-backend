@@ -1,4 +1,4 @@
-SELECT approp.row_number,
+SELECT DISTINCT approp.row_number,
     approp.allocation_transfer_agency,
 	approp.agency_identifier,
 	approp.beginning_period_of_availa,

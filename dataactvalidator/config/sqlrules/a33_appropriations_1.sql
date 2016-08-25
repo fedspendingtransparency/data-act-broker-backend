@@ -1,4 +1,4 @@
-SELECT NULL as row_number,
+SELECT DISTINCT NULL as row_number,
     sf.allocation_transfer_agency,
 	sf.agency_identifier,
 	sf.beginning_period_of_availa,
