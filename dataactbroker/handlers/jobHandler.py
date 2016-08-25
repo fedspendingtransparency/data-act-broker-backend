@@ -332,7 +332,9 @@ class JobHandler(JobTrackerInterface):
                     elif fileType == "award_procurement":
                         d1ValId = valJob.job_id
                     # Cross-file validation job is dependent only on record level validation, and are not dependent on E and F
-                    jobsRequired.append(valJob.job_id)
+                    # TODO Temporarily skip D1 dependency until that validation is added
+                    if fileType != "award_procurement":
+                        jobsRequired.append(valJob.job_id)
 
                 self.session.commit()
             uploadDict[fileType] = uploadJob.job_id
