@@ -452,50 +452,7 @@ class FileHandler:
         jq.generate_d_file.delay(get_url, CONFIG_BROKER["d1_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
 
         # Check status for D1 file
-        return self.checkD1File()
-
-    def checkD1File(self, submission_id=None):
-        """ Check status of D1 file generation """
-        if submission_id is None:
-            requestDict = RequestDictionary(self.request)
-            if not (requestDict.exists("submission_id")):
-                exc = ResponseException("Check D1 Files route requires submission_id", StatusCode.CLIENT_ERROR)
-                return JsonResponse.create(exc, exc.status)
-
-            submission_id = requestDict.getValue("submission_id")
-            if not (StringCleaner.isNumeric(submission_id)):
-                exc = ResponseException("submission id cannot be parsed into its appropriate type", StatusCode.CLIENT_ERROR)
-                return JsonResponse.create(exc, exc.status)
-
-        d1_file = self.jobManager.getDFileForSubmission(submission_id, "d1")
-        if d1_file is None:
-            response = {"status": "invalid", "url": "", "start": "", "end": "", "message": ""}
-            return JsonResponse.create(StatusCode.OK, response)
-
-        status = self.jobManager.getJobStatusNameById(d1_file.status_id)
-
-        if status == "finished" and not d1_file.is_submitted and False: # TODO: Remove "and False" when submission of D1 is desired
-            job_id = self.jobManager.getJobBySubmissionFileTypeAndJobType(submission_id, "award_procurement", "file_upload").job_id
-            self.jobManager.updateDFileName(submission_id, d1_file.upload_file_name, "award")
-            result = self.finalize(jobId=job_id)
-            self.jobManager.markDFileAsSubmitted(d1_file.d_file_id)
-            if result.status_code != 200:
-                raise ResponseException(result.data)
-
-        file_elements = d1_file.upload_file_name.split('/')
-        user_id = file_elements[0]
-        timestamped_filename = file_elements[-1]
-
-        url = "" if status != "finished" else self.s3manager.getSignedUrl(path=str(user_id),
-                                                                          fileName=timestamped_filename, method="GET")
-        error_message = "" if d1_file.error_message is None else d1_file.error_message
-        start_date = d1_file.start_date.strftime("%m/%d/%Y")
-        end_date = d1_file.end_date.strftime("%m/%d/%Y")
-
-        response = {"status": status, "url": url, "start": start_date, "end": end_date,
-                    "message": error_message}
-
-        return JsonResponse.create(StatusCode.OK, response)
+        return upload_file_name
 
     def loadGenerateRequest(self):
         """ Pull information out of request object and return it
@@ -661,50 +618,7 @@ class FileHandler:
         jq.generate_d_file.delay(get_url, CONFIG_BROKER["d2_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
 
         # Check status for D2 file
-        return self.checkD2File()
-
-    def checkD2File(self, submission_id=None):
-        """ Check status of D2 file generation """
-        if submission_id is None:
-            requestDict = RequestDictionary(self.request)
-            if not (requestDict.exists("submission_id")):
-                exc = ResponseException("Check D2 Files route requires submission_id", StatusCode.CLIENT_ERROR)
-                return JsonResponse.create(exc, exc.status)
-
-            submission_id = requestDict.getValue("submission_id")
-            if not (StringCleaner.isNumeric(submission_id)):
-                exc = ResponseException("submission id cannot be parsed into its appropriate type", StatusCode.CLIENT_ERROR)
-                return JsonResponse.create(exc, exc.status)
-
-        d2_file = self.jobManager.getDFileForSubmission(submission_id, "d2")
-        if d2_file is None:
-            response = {"status": "invalid", "url": "", "start": "", "end": "", "message": ""}
-            return JsonResponse.create(StatusCode.OK, response)
-
-        status = self.jobManager.getJobStatusNameById(d2_file.status_id)
-
-        if status == "finished" and not d2_file.is_submitted:
-            job_id = self.jobManager.getJobBySubmissionFileTypeAndJobType(submission_id, "award", "file_upload").job_id
-            self.jobManager.updateDFileName(submission_id, d2_file.upload_file_name, "award")
-            result = self.finalize(jobId=job_id)
-            self.jobManager.markDFileAsSubmitted(d2_file.d_file_id)
-            if result.status_code != 200:
-                raise ResponseException(result.data)
-
-        file_elements = d2_file.upload_file_name.split('/')
-        user_id = file_elements[0]
-        timestamped_filename = file_elements[-1]
-
-        url = "" if status != "finished" else self.s3manager.getSignedUrl(path=str(user_id), fileName=timestamped_filename, method="GET")
-
-        error_message = "" if d2_file.error_message is None else d2_file.error_message
-        start_date = d2_file.start_date.strftime("%m/%d/%Y")
-        end_date = d2_file.end_date.strftime("%m/%d/%Y")
-
-        response = {"status": status, "url": url, "start": start_date, "end": end_date,
-                    "message": error_message}
-
-        return JsonResponse.create(StatusCode.OK, response)
+        return upload_file_name
 
     def getProtectedFiles(self):
         """ Returns a set of urls to protected files on the help page """
