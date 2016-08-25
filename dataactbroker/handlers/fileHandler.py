@@ -437,8 +437,12 @@ class FileHandler:
         upload_file_name = "".join([str(user_id), "/", timestamped_name])
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d1", CONFIG_BROKER["award_procurement_file_name"], upload_file_name)
         job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D1"], "file_upload")
-        job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
-        job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
+        try:
+            job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
+            job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
+        except ValueError as e:
+            # Date was not in expected format
+            raise ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
         job.filename = upload_file_name
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
@@ -646,8 +650,12 @@ class FileHandler:
         upload_file_name = "".join([str(user_id), "/", timestamped_name])
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d2", CONFIG_BROKER["award_file_name"], upload_file_name)
         job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D2"], "file_upload")
-        job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
-        job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
+        try:
+            job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
+            job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
+        except ValueError as e:
+            # Date was not in expected format
+            raise ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
         job.filename = upload_file_name
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
