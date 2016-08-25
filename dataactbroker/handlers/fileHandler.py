@@ -541,15 +541,16 @@ class FileHandler:
         # Mark file generation upload as finished
         self.interfaces.jobDb.markJobStatus(job.job_id,"finished")
         # Return same response as check generation route
-        return self.checkGeneration()
+        return self.checkGeneration(submission_id, file_type)
 
-    def checkGeneration(self):
+    def checkGeneration(self, submission_id = None, file_type = None):
         """ Return information about file generation jobs
 
         Returns:
             Response object with keys status, file_type, url, message.  If file_type is D1 or D2, also includes start and end.
         """
-        submission_id, file_type = self.loadGenerateRequest()
+        if submission_id is None or file_type is None:
+            submission_id, file_type = self.loadGenerateRequest()
         uploadJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "file_upload")
         if file_type in ["D2"]: # TODO add D1 to this list once D1 validation exists
             validationJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "csv_record_validation")
