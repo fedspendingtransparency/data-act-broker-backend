@@ -506,9 +506,8 @@ class FileHandler:
         """
         requestDict = RequestDictionary(self.request)
         if not (requestDict.exists("submission_id") and requestDict.exists("file_type")):
-            exc = ResponseException("Generate file route requires submission_id and file_type",
+            raise ResponseException("Generate file route requires submission_id and file_type",
                                     StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc, exc.status)
 
         submission_id = requestDict.getValue("submission_id")
         file_type = requestDict.getValue("file_type")
