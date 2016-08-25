@@ -16,5 +16,4 @@ WHERE approp.submission_id = {0}
         WHERE approp.tas IS NOT DISTINCT FROM sf.tas
             AND sf.period = sub.reporting_fiscal_period
 	        AND sf.fiscal_year = sub.reporting_fiscal_year
-	        AND sf.agency_identifier = sub.cgac_code
 	);
