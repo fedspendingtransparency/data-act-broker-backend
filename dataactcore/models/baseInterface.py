@@ -25,24 +25,12 @@ class BaseInterface(object):
     def __init__(self):
         self.dbConfig = CONFIG_DB
         self.dbName = self.dbConfig['db_name']
-        if(self.session != None):
+        if self.session is not None:
             # session is already set up for this DB
             return
 
-        if not self.dbName:
-            # Child class needs to set these before calling base constructor
-            raise ValueError("Need dbName defined")
-
-        if not self.dbConfig:
-            raise ValueError("Database configuration is not defined")
-
-        # Create sqlalchemy connection and session
-        self.engine = sqlalchemy.create_engine(
-            "postgresql://{}:{}@{}:{}/{}".format(self.dbConfig["username"],
-            self.dbConfig["password"], self.dbConfig["host"], self.dbConfig["port"],
-            self.dbName), pool_size=100,max_overflow=50)
-        self.connection = self.engine.connect()
-        if(self.Session == None):
+        self.engine, self.connection = dbConnection()
+        if self.Session is None:
             if(BaseInterface.IS_FLASK) :
                 self.Session = scoped_session(sessionmaker(bind=self.engine,autoflush=True),scopefunc=_app_ctx_stack.__ident_func__)
             else :
@@ -63,11 +51,6 @@ class BaseInterface(object):
         except (KeyError, AttributeError):
             # KeyError will occur in Python 3 on engine dispose
             pass
-
-    @staticmethod
-    def getDbName():
-        """Return database name."""
-        return BaseInterface.dbName
 
     def getSession(self):
         """ Return current active session """
@@ -161,8 +144,32 @@ class BaseInterface(object):
         raise ValueError("Value: " + str(fieldValue) + " not found in dict: " + str(dict))
 
 
+def dbConnection():
+    """Use the config to set up a database engine and connection"""
+    if not CONFIG_DB:
+        raise ValueError("Database configuration is not defined")
+
+    dbName = CONFIG_DB['db_name']
+    if not dbName:
+        raise ValueError("Need dbName defined")
+
+    # Create sqlalchemy connection and session
+    engine = sqlalchemy.create_engine(
+        "postgresql://{username}:{password}@{host}:{port}/{db_name}".format(
+            **CONFIG_DB),
+        pool_size=100, max_overflow=50)
+    connection = engine.connect()
+    return engine, connection
+
+
 @contextmanager
 def databaseSession():
-    interface = BaseInterface()
-    yield interface.session
-    interface.close()
+    engine, connection = dbConnection()
+    sessionMaker = scoped_session(sessionmaker(
+        bind=engine, autoflush=True))
+    session = sessionMaker()
+    yield session
+    session.close()
+    sessionMaker.remove()
+    connection.close()
+    engine.dispose()
