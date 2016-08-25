@@ -117,7 +117,6 @@ class ValidationManager:
                 raise ResponseException("Bad job type for validator",
                                         StatusCode.INTERNAL_ERROR)
             self.runValidation(jobId, interfaces)
-            errorDb.markFileComplete(jobId, self.filename)
             return
         except ResponseException as e:
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
@@ -413,11 +412,12 @@ class ValidationManager:
             # Update job metadata
             jobTracker.setJobRowcounts(jobId, rowNumber, validRows)
 
-            # Mark validation as finished in job tracker
-            jobTracker.markJobStatus(jobId,"finished")
             errorInterface.writeAllRowErrors(jobId)
             # Update error info for submission
             jobTracker.populateSubmissionErrorInfo(submissionId)
+            # Mark validation as finished in job tracker
+            jobTracker.markJobStatus(jobId,"finished")
+            interfaces.errorDb.markFileComplete(jobId, self.filename)
         finally:
             # Ensure the file always closes
             reader.close()
@@ -588,7 +588,7 @@ class ValidationManager:
             else:
                 raise ResponseException("Bad job type for validator",
                     StatusCode.INTERNAL_ERROR)
-            interfaces.errorDb.markFileComplete(jobId, self.filename)
+
             return JsonResponse.create(StatusCode.OK, {"message":"Validation complete"})
         except ResponseException as e:
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
