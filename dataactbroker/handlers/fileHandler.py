@@ -562,11 +562,10 @@ class FileHandler:
         responseDict["message"] = uploadJob.error_message or ""
         if uploadJob.filename is None:
             responseDict["url"] = ""
+        elif CONFIG_BROKER["use_aws"]:
+            responseDict["url"] = s3UrlHandler().getSignedUrl("d-files",uploadJob.filename, bucketRoute=None, method="GET")
         else:
-            if CONFIG_BROKER["use_aws"]:
-                responseDict["url"] = s3UrlHandler().getSignedUrl("d-files",uploadJob.filename, bucketRoute=None, method="GET")
-            else:
-                responseDict["url"] = uploadJob.filename
+            responseDict["url"] = uploadJob.filename
 
         # Pull start and end from jobs table if D1 or D2
         if file_type in ["D1","D2"]:
