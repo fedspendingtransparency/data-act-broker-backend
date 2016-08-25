@@ -8,12 +8,12 @@ from dataactvalidator.interfaces.validatorValidationInterface import ValidatorVa
 from dataactcore.models.domainModels import CGAC,ObjectClass,ProgramActivity,SF133
 from dataactcore.config import CONFIG_BROKER
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 def loadCgac(filename):
     interface = ValidatorValidationInterface()
     model = CGAC
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(level=logging.INFO)
 
     # for CGAC, delete and replace values
     interface.session.query(model).delete()
@@ -43,8 +43,6 @@ def loadCgac(filename):
 def loadObjectClass(filename):
     interface = ValidatorValidationInterface()
     model = ObjectClass
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(level=logging.INFO)
 
     # for object class, delete and replace values
     interface.session.query(model).delete()
@@ -71,8 +69,6 @@ def loadObjectClass(filename):
 def loadProgramActivity(filename):
     interface = ValidatorValidationInterface()
     model = ProgramActivity
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(level=logging.INFO)
 
     # for program activity, delete and replace values??
     interface.session.query(model).delete()
@@ -108,8 +104,6 @@ def loadProgramActivity(filename):
 def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
     interface = ValidatorValidationInterface()
     model = SF133
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(level=logging.INFO)
 
     existing_records = interface.session.query(model).filter(
         model.fiscal_year == fiscal_year, model.period == fiscal_period)
@@ -123,7 +117,6 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
         # if there's existing data & we're not forcing a load, skip
         logger.info('SF133 {} {} already in database ({} records). Skipping file.'.format(
             fiscal_year, fiscal_period, existing_records.count()))
-        return
 
     data = pd.read_csv(filename, dtype=str, keep_default_na=False)
     data = LoaderUtils.cleanData(
@@ -206,8 +199,6 @@ def formatInternalTas(row):
 
 def loadDomainValues(basePath, localSF133Dir = None, localProgramActivity = None):
     """Load all domain value files, localSF133Dir is used to point to the SF-133 directory, if not provided, SF-133 files will be downloaded from S3."""
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(level=logging.INFO)
 
     logger.info('Loading CGAC')
     loadCgac(os.path.join(basePath,"cgac.csv"))
