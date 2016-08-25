@@ -30,6 +30,8 @@ class FileHandler:
     EXTERNAL_FILE_TYPES = ["award", "award_procurement", "awardee_attributes", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
     EXTERNAL_FILE_TYPE_MAP = {"D1":"award_procurement", "D2":"award", "E":"awardee_attributes", "F": "sub_award"}
+    STATUS_MAP = {"waiting":"invalid", "ready":"invalid", "running":"waiting", "finished":"finished", "invalid":"failed", "failed":"failed"}
+    VALIDATION_STATUS_MAP = {"waiting":"waiting", "ready":"waiting", "running":"waiting", "finished":"finished", "failed":"failed", "invalid":"failed"}
 
     def __init__(self,request,interfaces = None,isLocal= False,serverPath =""):
         """ Create the File Handler
@@ -495,7 +497,7 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, response)
 
-    def loadGenerateRequest(self):
+    def getRequestParamsForGenerate(self):
         """ Pull information out of request object and return it
 
         Returns: tuple of submission ID and file type
@@ -512,7 +514,7 @@ class FileHandler:
 
     def generateFile(self):
         """ Start a file generation job for the specified file type """
-        submission_id, file_type = self.loadGenerateRequest()
+        submission_id, file_type = self.getRequestParamsForGenerate()
         job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "file_upload")
         # Check prerequisites on upload job
         if not self.interfaces.jobDb.runChecks(job.job_id):
@@ -547,7 +549,7 @@ class FileHandler:
             Response object with keys status, file_type, url, message.  If file_type is D1 or D2, also includes start and end.
         """
         if submission_id is None or file_type is None:
-            submission_id, file_type = self.loadGenerateRequest()
+            submission_id, file_type = self.getRequestParamsForGenerate()
         uploadJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "file_upload")
         if file_type in ["D2"]: # TODO add D1 to this list once D1 validation exists
             validationJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "csv_record_validation")
@@ -576,6 +578,7 @@ class FileHandler:
         uploadStatus = self.interfaces.jobDb.getJobStatusNameById(uploadJob.job_status_id)
         if validationJob is None:
             errorsPresent = False
+            validationStatus = None
         else:
             validationStatus = self.interfaces.jobDb.getJobStatusNameById(validationJob.job_status_id)
             if self.interfaces.errorDb.checkNumberOfErrorsByJobId(validationJob.job_id, self.interfaces.validationDb, errorType = "fatal") > 0:
@@ -583,40 +586,34 @@ class FileHandler:
             else:
                 errorsPresent = False
 
-        if uploadStatus in ["waiting", "ready"]:
-            result =  "invalid"
-        elif uploadStatus == "running":
-            result =  "waiting"
-        elif uploadStatus in ["invalid", "failed"]:
-            if uploadJob.error_message is None:
-                uploadJob.error_message = "Upload job failed without error message"
-            result = "failed"
-        elif uploadStatus == "finished":
-            if validationJob is None:
-                result = "finished"
+        responseStatus = FileHandler.STATUS_MAP[uploadStatus]
+        if responseStatus == "failed" and uploadJob.error_message is None:
+            # Provide an error message if none present
+            uploadJob.error_message = "Upload job failed without error message"
+
+        if validationJob is None:
+            # No validation job, so don't need to check it
+            self.interfaces.jobDb.session.commit()
+            return responseStatus
+        
+        if responseStatus == "finished":
+            # Check status of validation job if present
+            responseStatus = FileHandler.VALIDATION_STATUS_MAP[validationStatus]
+            if responseStatus == "finished" and errorsPresent:
+                # If validation completed with errors, mark as failed
+                responseStatus = "failed"
+                uploadJob.error_message = "Validation completed but row-level errors were found"
+
+        if uploadJob.error_message is None and validationJob.error_message is None:
+            if validationStatus == "invalid":
+                uploadJob.error_message = "Generated file had file-level errors"
             else:
-                # If validation job exists, check that status as well
-                if validationStatus in ["waiting", "ready", "running"]:
-                    result = "waiting"
-                elif validationStatus in ["invalid", "failed"]:
-                    if validationJob.error_message is None:
-                        if uploadJob.error_message is None:
-                            if validationStatus == "invalid":
-                                uploadJob.error_message = "Generated file had file-level errors"
-                            else:
-                                uploadJob.error_message = "Validation job had an internal error"
-                    else:
-                        if uploadJob.error_message is None:
-                            uploadJob.error_message = validationJob.error_message
-                    result = "failed"
-                elif validationStatus == "finished":
-                    if errorsPresent:
-                        result = "failed"
-                        uploadJob.error_message = "Validation completed but row-level errors were found"
-                    else:
-                        result = "finished"
+                uploadJob.error_message = "Validation job had an internal error"
+
+        elif uploadJob.error_message is None:
+            uploadJob.error_message = validationJob.error_message
         self.interfaces.jobDb.session.commit()
-        return result
+        return responseStatus
 
 
     def generateD2File(self):
