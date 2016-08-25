@@ -236,7 +236,7 @@ class JobTrackerInterface(BaseInterface):
         jobId -- job_id of job to be run
 
         Returns:
-        True if prerequisites are satisfied, False otherwise
+        True if prerequisites are satisfied, raises ResponseException otherwise
         """
         # Get list of prerequisites
         queryResult = self.session.query(JobDependency).filter(JobDependency.job_id == jobId).all()
