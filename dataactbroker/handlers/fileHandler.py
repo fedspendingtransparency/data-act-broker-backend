@@ -428,9 +428,7 @@ class FileHandler:
         submission_id = requestDict.getValue("submission_id")
         start_date = requestDict.getValue("start")
         end_date = requestDict.getValue("end")
-        job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D1"], "file_upload")
-        job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
-        job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
+
         if not (StringCleaner.isNumeric(submission_id) and StringCleaner.isDate(start_date) and StringCleaner.isDate(end_date)):
             exc = ResponseException("submission id, start, and/or end cannot be parsed into their appropriate types", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
@@ -445,6 +443,9 @@ class FileHandler:
         timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["d1_file_name"])
         upload_file_name = "".join([str(user_id), "/", timestamped_name])
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d1", CONFIG_BROKER["d1_file_name"], upload_file_name)
+        job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D1"], "file_upload")
+        job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
+        job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
         job.filename = upload_file_name
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
@@ -635,9 +636,7 @@ class FileHandler:
         submission_id = requestDict.getValue("submission_id")
         start_date = requestDict.getValue("start")
         end_date = requestDict.getValue("end")
-        job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D2"], "file_upload")
-        job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
-        job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
+
         if not (StringCleaner.isNumeric(submission_id) and StringCleaner.isDate(start_date) and StringCleaner.isDate(
                 end_date)):
             exc = ResponseException("submission id, start, and/or end cannot be parsed into their appropriate types",
@@ -654,6 +653,9 @@ class FileHandler:
         timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["d2_file_name"])
         upload_file_name = "".join([str(user_id), "/", timestamped_name])
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d2", CONFIG_BROKER["d2_file_name"], upload_file_name)
+        job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D2"], "file_upload")
+        job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
+        job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
         job.filename = upload_file_name
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
