@@ -1,8 +1,9 @@
 from sqlalchemy import func
+from suds.transport import TransportError
 
 from dataactcore.models.baseInterface import databaseSession
 from dataactcore.models.fsrs import FSRSAward
-from dataactvalidator.fsrs import retrieveAwardsBatch
+from dataactvalidator.fsrs import configValid, retrieveAwardsBatch
 
 
 def loadFSRS(minId):
@@ -28,6 +29,12 @@ def maxCurrentId():
 
 
 if __name__ == '__main__':
-    num_awards, num_subawards = loadFSRS(maxCurrentId() + 1)
-    print("Inserted/Updated {} awards, {} subawards".format(
-        num_awards, num_subawards))
+    if not configValid():
+        print("No config key for broker/fsrs_service/wsdl")
+    else:
+        try:
+            num_awards, num_subawards = loadFSRS(maxCurrentId() + 1)
+            print("Inserted/Updated {} awards, {} subawards".format(
+                num_awards, num_subawards))
+        except TransportError as exc:
+            print("Error communicating with FSRS: {}".format(exc))

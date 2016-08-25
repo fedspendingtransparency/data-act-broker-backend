@@ -10,10 +10,15 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.fsrs import FSRSAward, FSRSSubaward
 
 
+def configValid():
+    serviceConfig = CONFIG_BROKER.get('fsrs_service') or {}
+    return bool(serviceConfig.get('wsdl'))
+
+
 def newClient():
     """Make a `suds` client, accounting for ?wsdl suffixes, failing to import
     appropriate schemas, and http auth"""
-    serviceConfig = CONFIG_BROKER.get('fsrs_service', {})
+    serviceConfig = CONFIG_BROKER.get('fsrs_service') or {}
     wsdlUrl = serviceConfig.get('wsdl', '')
     options = {'url': wsdlUrl}
 
