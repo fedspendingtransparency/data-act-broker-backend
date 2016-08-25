@@ -8,7 +8,7 @@ from tests.unit.dataactcore.factories import (
     FSRSAwardFactory, FSRSSubawardFactory)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def no_award_db(database):
     sess = database.validationDb.session
     sess.query(FSRSAward).delete(synchronize_session=False)

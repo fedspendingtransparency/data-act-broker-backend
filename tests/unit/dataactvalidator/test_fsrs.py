@@ -14,7 +14,8 @@ def newClient_call_args(monkeypatch, **config):
     config = {'fsrs_service': config}
     monkeypatch.setattr(fsrs, 'CONFIG_BROKER', config)
     fsrs.newClient()
-    return mock_client.call_args[1]
+    args, kwargs = mock_client.call_args
+    return kwargs
 
 
 def test_newClient_wsdl(monkeypatch):
