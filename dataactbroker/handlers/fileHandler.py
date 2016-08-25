@@ -167,14 +167,7 @@ class FileHandler:
             if not existingSubmission:
                 # Don't add external files to existing submission
                 for extFileType in FileHandler.EXTERNAL_FILE_TYPES:
-                    if extFileType == "award":
-                        filename = CONFIG_BROKER["d2_file_name"]
-                    elif extFileType == "award_procurement":
-                        filename = CONFIG_BROKER["d1_file_name"]
-                    elif extFileType == "awardee_attributes":
-                        filename = CONFIG_BROKER["awardee_file_name"]
-                    elif extFileType == "sub_award":
-                        filename = CONFIG_BROKER["sub_award_file_name"]
+                    filename = CONFIG_BROKER["".join([extFileType,"_file_name"])]
 
                     if(not self.isLocal):
                         uploadName = str(name) + "/" + s3UrlHandler.getTimestampedFilename(filename)
@@ -440,9 +433,9 @@ class FileHandler:
 
         # Generate and upload D1 file to S3
         user_id = LoginSession.getName(session)
-        timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["d1_file_name"])
+        timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["award_procurement_file_name"])
         upload_file_name = "".join([str(user_id), "/", timestamped_name])
-        d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d1", CONFIG_BROKER["d1_file_name"], upload_file_name)
+        d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d1", CONFIG_BROKER["award_procurement_file_name"], upload_file_name)
         job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D1"], "file_upload")
         job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
         job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
@@ -450,7 +443,7 @@ class FileHandler:
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
         jobDb.setDFileStatus(d_file_id, "waiting")
-        jq.generate_d_file.delay(get_url, CONFIG_BROKER["d1_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
+        jq.generate_d_file.delay(get_url, CONFIG_BROKER["award_procurement_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
 
         # Check status for D1 file
         return self.checkD1File()
@@ -647,11 +640,11 @@ class FileHandler:
 
         jq = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
 
-        # Generate and upload D2 file to S3
+        # Generate and upload d2 file to S3
         user_id = LoginSession.getName(session)
-        timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["d2_file_name"])
+        timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["award_file_name"])
         upload_file_name = "".join([str(user_id), "/", timestamped_name])
-        d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d2", CONFIG_BROKER["d2_file_name"], upload_file_name)
+        d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d2", CONFIG_BROKER["award_file_name"], upload_file_name)
         job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D2"], "file_upload")
         job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
         job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
@@ -659,7 +652,7 @@ class FileHandler:
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
         jobDb.setDFileStatus(d_file_id, "waiting")
-        jq.generate_d_file.delay(get_url, CONFIG_BROKER["d2_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
+        jq.generate_d_file.delay(get_url, CONFIG_BROKER["award_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
 
         # Check status for D2 file
         return self.checkD2File()

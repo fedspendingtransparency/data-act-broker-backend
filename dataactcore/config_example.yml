@@ -38,15 +38,15 @@ broker:
     # Uses "{}" because it requires string formatting to insert query parameters
     # If the URL is provided, the file name provided will be used when uploading to S3
     d1_url: https://data-usas.uat.workplace.gov/api/contracts?CGAC={}&date_signed_beginning={}&date_signed_end={}
-    d1_file_name: d1_data.csv
+    award_procurement_file_name: d1_data.csv
 
     # File D2 API
     # If the URL is provided, the file name provided will be used when uploading to S3
     d2_url: https://data-usas.uat.workplace.gov/api/contracts?CGAC={}&date_signed_beginning={}&date_signed_end={}
-    d2_file_name: d2_data.csv
+    award_file_name: d2_data.csv
 
     # File E
-    awardee_file_name: awardee_data.csv
+    awardee_attributes_file_name: awardee_data.csv
 
     # File F
     sub_award_file_name: sub_award_data.csv
