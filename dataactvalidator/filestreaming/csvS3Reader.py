@@ -28,7 +28,7 @@ class CsvS3Reader(CsvAbstractReader):
             filename: The file path for the CSV file in S3
         Returns:
         """
-        self.s3File = initializeFile(region, bucket, filename)
+        self.s3File = self.initializeFile(region, bucket, filename)
         self.isLocal = False
 
         super(CsvS3Reader, self).openFile(
