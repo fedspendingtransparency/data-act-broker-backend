@@ -7,6 +7,20 @@ class CsvS3Reader(CsvAbstractReader):
     Reads data from S3 CSV file
     """
 
+    def initializeFile(self, region, bucket, filename):
+        """Returns an S3 filename."""
+        s3connection = boto.s3.connect_to_region(region)
+        s3Bucket = s3connection.lookup(bucket)
+        if not s3Bucket:
+            raise ValueError("Bucket {} not found in region {}".format(
+                bucket, region))
+        s3File = s3Bucket.get_key(filename)
+        if not s3File:
+            raise ValueError("Filename {} not found in bucket {}".format(
+                filename, bucket))
+        return s3File
+
+
     def openFile(self, region, bucket, filename, csvSchema, bucketName, errorFilename):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
@@ -14,27 +28,15 @@ class CsvS3Reader(CsvAbstractReader):
             filename: The file path for the CSV file in S3
         Returns:
         """
-        s3connection = boto.s3.connect_to_region(region)
-        s3Bucket = s3connection.lookup(bucket)
-        self.s3File = s3Bucket.lookup(filename)
+        self.s3File = initializeFile(region, bucket, filename)
         self.isLocal = False
-        if self.s3File is None:
-            raise ValueError("Filename {} not found on S3".format(filename))
 
         super(CsvS3Reader, self).openFile(
             region, bucket, filename, csvSchema, bucketName, errorFilename)
 
     def downloadFile(self, region, bucket, filename, targetLocation):
         """ After opening a file, download entire file to filename """
-        s3connection = boto.s3.connect_to_region(region)
-        s3Bucket = s3connection.lookup(bucket)
-        if not s3Bucket:
-            raise ValueError("Bucket {} not found in region {}".format(
-                bucket, region))
-        self.s3File = s3Bucket.get_key(filename)
-        if not self.s3File:
-            raise ValueError("Filename {} not found in bucket {}".format(
-                filename, bucket))
+        self.s3File = initializeFile(region, bucket, filename)
         self.s3File.get_contents_to_filename(targetLocation)
 
     def close(self):
