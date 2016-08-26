@@ -112,12 +112,14 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
         # force a reload of this period's current data
         logger.info('Force SF 133 load: deleting existing records for {} {}'.format(
             fiscal_year, fiscal_period))
-        existing_records.delete()
+        delete_count = existing_records.delete()
         interface.session.commit()
+        logger.info('{} records deleted'.format(delete_count))
     elif existing_records.count():
         # if there's existing data & we're not forcing a load, skip
         logger.info('SF133 {} {} already in database ({} records). Skipping file.'.format(
             fiscal_year, fiscal_period, existing_records.count()))
+        return
 
     data = pd.read_csv(filename, dtype=str, keep_default_na=False)
     data = LoaderUtils.cleanData(
@@ -201,16 +203,16 @@ def formatInternalTas(row):
 def loadDomainValues(basePath, localSF133Dir = None, localProgramActivity = None):
     """Load all domain value files, localSF133Dir is used to point to the SF-133 directory, if not provided, SF-133 files will be downloaded from S3."""
 
-    logger.info('Loading CGAC')
-    loadCgac(os.path.join(basePath,"cgac.csv"))
-    logger.info('Loading object class')
-    loadObjectClass(os.path.join(basePath,"object_class.csv"))
-    logger.info('Loading program activity')
-
-    if localProgramActivity is not None:
-        loadProgramActivity(localProgramActivity)
-    else:
-        loadProgramActivity(os.path.join(basePath, "program_activity.csv"))
+    # logger.info('Loading CGAC')
+    # loadCgac(os.path.join(basePath,"cgac.csv"))
+    # logger.info('Loading object class')
+    # loadObjectClass(os.path.join(basePath,"object_class.csv"))
+    # logger.info('Loading program activity')
+    #
+    # if localProgramActivity is not None:
+    #     loadProgramActivity(localProgramActivity)
+    # else:
+    #     loadProgramActivity(os.path.join(basePath, "program_activity.csv"))
 
     if localSF133Dir is not None:
         logger.info('Loading local SF-133')
@@ -237,6 +239,7 @@ def loadDomainValues(basePath, localSF133Dir = None, localProgramActivity = None
             sf133Files = s3bucket.list(
                 prefix='{}/sf_133'.format(CONFIG_BROKER['sf_133_folder']))
             for sf133 in sf133Files:
+                logger.info('got S3 file {}'.format(sf133))
                 file = sf133.name.split(
                     CONFIG_BROKER['sf_133_folder'])[-1].replace('.csv', '')
                 fileParts = file.split('_')
@@ -246,8 +249,10 @@ def loadDomainValues(basePath, localSF133Dir = None, localProgramActivity = None
                     continue
                 year = file.split('_')[-2]
                 period = file.split('_')[-1]
+                if period != '02':
+                    continue
                 logger.info('{}Starting {}...'.format(os.linesep,sf133.name))
-                loadSF133(sf133, year, period)
+                loadSF133(sf133, year, period, force_load=True)
 
 if __name__ == '__main__':
     loadDomainValues(
