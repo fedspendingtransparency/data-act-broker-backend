@@ -205,6 +205,7 @@ def loadDomainValues(basePath, localSF133Dir = None, localProgramActivity = None
     logger.info('Loading object class')
     loadObjectClass(os.path.join(basePath,"object_class.csv"))
     logger.info('Loading program activity')
+
     if localProgramActivity is not None:
         loadProgramActivity(localProgramActivity)
     else:
