@@ -5,17 +5,11 @@ from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
 
-class CommonAttributes():
+class FSRSAttributes:
+    """Attributes shared by all FSRS models"""
+    id = Column(Integer, primary_key=True)
     duns = Column(String)
-    company_name = Column(String)
     dba_name = Column(String)
-    bus_types = Column(String)
-    company_address_city = Column(String)
-    company_address_street = Column(String, nullable=True)
-    company_address_state = Column(String)
-    company_address_country = Column(String)
-    company_address_zip = Column(String)
-    company_address_district = Column(String, nullable=True)
     principle_place_city = Column(String)
     principle_place_street = Column(String, nullable=True)
     principle_place_state = Column(String)
@@ -23,14 +17,8 @@ class CommonAttributes():
     principle_place_zip = Column(String)
     principle_place_district = Column(String, nullable=True)
     parent_duns = Column(String)
-    parent_company_name = Column(String)
-    naics = Column(String)
     funding_agency_id = Column(String)
     funding_agency_name = Column(String)
-    funding_office_id = Column(String)
-    funding_office_name = Column(String)
-    recovery_model_q1 = Column(Boolean)
-    recovery_model_q2 = Column(Boolean)
     top_paid_fullname_1 = Column(String, nullable=True)
     top_paid_amount_1 = Column(String, nullable=True)
     top_paid_fullname_2 = Column(String, nullable=True)
@@ -43,15 +31,52 @@ class CommonAttributes():
     top_paid_amount_5 = Column(String, nullable=True)
 
 
-class FSRSAward(Base, CommonAttributes):
-    __tablename__ = "fsrs_award"
-    id = Column(Integer, primary_key=True)
+class ContractAttributes(FSRSAttributes):
+    """Common attributes of FSRSProcurement and FSRSSubcontracts"""
+    company_name = Column(String)
+    bus_types = Column(String)
+    company_address_city = Column(String)
+    company_address_street = Column(String, nullable=True)
+    company_address_state = Column(String)
+    company_address_country = Column(String)
+    company_address_zip = Column(String)
+    company_address_district = Column(String, nullable=True)
+    parent_company_name = Column(String)
+    naics = Column(String)
+    funding_office_id = Column(String)
+    funding_office_name = Column(String)
+    recovery_model_q1 = Column(Boolean)
+    recovery_model_q2 = Column(Boolean)
+
+
+class GrantAttributes(FSRSAttributes):
+    """Common attributes of FSRSGrant and FSRSSubgrant"""
+    dunsplus4 = Column(String, nullable=True)
+    awardee_name = Column(String)
+    awardee_address_city = Column(String)
+    awardee_address_street = Column(String, nullable=True)
+    awardee_address_state = Column(String)
+    awardee_address_country = Column(String)
+    awardee_address_zip = Column(String)
+    awardee_address_district = Column(String, nullable=True)
+    cfda_numbers = Column(String)
+    project_description = Column(String)
+    compensation_q1 = Column(Boolean)
+    compensation_q2 = Column(Boolean)
+
+
+class PrimeAwardAttributes:
+    """Attributes shared by FSRSProcurements and FSRSGrants"""
     internal_id = Column(String)
-    contract_number = Column(String)
-    idv_reference_number = Column(String, nullable=True)
     date_submitted = Column(DateTime)
     report_period_mon = Column(String)
     report_period_year = Column(String)
+
+
+class FSRSProcurement(Base, ContractAttributes, PrimeAwardAttributes):
+    __tablename__ = "fsrs_procurement"
+    contract_number = Column(String)
+    idv_reference_number = Column(String, nullable=True)
     report_type = Column(String)
     contract_agency_code = Column(String)
     contract_idv_agency_code = Column(String, nullable=True)
@@ -66,16 +91,35 @@ class FSRSAward(Base, CommonAttributes):
     program_title = Column(String)
 
 
-class FSRSSubaward(Base, CommonAttributes):
-    __tablename__ = "fsrs_subaward"
-    id = Column(Integer, primary_key=True)
-    award_id = Column(
-        Integer, ForeignKey('fsrs_award.id', ondelete='CASCADE'))
-    award = relationship(FSRSAward, back_populates='subawards')
+class FSRSSubcontract(Base, ContractAttributes):
+    __tablename__ = "fsrs_subcontract"
+    parent_id = Column(
+        Integer, ForeignKey('fsrs_procurement.id', ondelete='CASCADE'))
+    parent = relationship(FSRSProcurement, back_populates='subawards')
     subcontract_amount = Column(String)
     subcontract_date = Column(Date)
     subcontract_num = Column(String)
     overall_description = Column(Text)
     recovery_subcontract_amt = Column(String, nullable=True)
 
-FSRSAward.subawards = relationship(FSRSSubaward, back_populates='award')
+FSRSProcurement.subawards = relationship(
+    FSRSSubcontract, back_populates='parent')
+
+
+class FSRSGrant(Base, GrantAttributes, PrimeAwardAttributes):
+    __tablename__ = "fsrs_grant"
+    fain = Column(String)
+    total_fed_funding_amount = Column(String)
+    obligation_date = Column(Date)
+
+
+class FSRSSubgrant(Base, GrantAttributes):
+    __tablename__ = "fsrs_subgrant"
+    parent_id = Column(
+        Integer, ForeignKey('fsrs_grant.id', ondelete='CASCADE'))
+    parent = relationship(FSRSGrant, back_populates='subawards')
+    subaward_amount = Column(String)
+    subaward_date = Column(Date)
+    subaward_num = Column(String)
+
+FSRSGrant.subawards = relationship(FSRSSubgrant, back_populates='parent')
