@@ -219,8 +219,10 @@ def getSF133List(localSF133Dir):
             sf133_files = s3bucket.list(
                 prefix='{}/sf_133'.format(CONFIG_BROKER['sf_133_folder']))
             sf133_list = [SF133File(sf133, os.path.basename(sf133.name)) for sf133 in sf133_files]
+        else:
+            sf133_list = []
 
-    return sf133_list or []
+    return sf133_list
 
 
 def loadDomainValues(basePath, localSF133Dir = None, localProgramActivity = None):
