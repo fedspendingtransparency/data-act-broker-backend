@@ -1,40 +1,24 @@
-from sqlalchemy import func
-from suds.transport import TransportError
+import logging
+import sys
 
 from dataactcore.models.baseInterface import databaseSession
-from dataactcore.models.fsrs import FSRSAward
-from dataactvalidator.fsrs import configValid, retrieveAwardsBatch
+from dataactvalidator.fsrs import (
+    configValid, fetchAndReplaceBatch, GRANT, PROCUREMENT)
 
 
-def loadFSRS(minId):
-    """Fetch and store a batch of Award/Sub-Award records, replacing previous
-    entries."""
-    awards = list(retrieveAwardsBatch(minId))
-    ids = [a.id for a in awards]
-    with databaseSession() as sess:
-        sess.query(FSRSAward).filter(FSRSAward.id.in_(ids)).delete(
-            synchronize_session=False)
-        sess.add_all(awards)
-        num_subawards = sum(len(a.subawards) for a in awards)
-        sess.commit()
-    return (len(ids), num_subawards)
-
-
-def maxCurrentId():
-    """We'll often want to load "new" data -- anything with a later id than
-    the awards we have. Return that max id"""
-    with databaseSession() as sess:
-        maxId = sess.query(func.max(FSRSAward.id)).one()[0]
-    return maxId or -1
+logger = logging.getLogger(__name__)
 
 
 if __name__ == '__main__':
-    if not configValid():
-        print("No config key for broker/fsrs_service/wsdl")
-    else:
-        try:
-            num_awards, num_subawards = loadFSRS(maxCurrentId() + 1)
-            print("Inserted/Updated {} awards, {} subawards".format(
-                num_awards, num_subawards))
-        except TransportError as exc:
-            print("Error communicating with FSRS: {}".format(exc))
+    logging.basicConfig(level=logging.INFO)
+    with databaseSession() as sess:
+        if not configValid():
+            logger.error("No config for broker/fsrs/[service]/wsdl")
+            sys.exit(1)
+        else:
+            procs = fetchAndReplaceBatch(sess, PROCUREMENT)
+            grants = fetchAndReplaceBatch(sess, GRANT)
+            awards = procs + grants
+            numSubAwards = sum(len(a.subawards) for a in awards)
+            logger.info("Inserted/Updated %s awards, %s subawards",
+                        len(awards), numSubAwards)
