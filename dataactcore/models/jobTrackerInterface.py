@@ -7,6 +7,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import JobQueue
 from dataactcore.config import CONFIG_JOB_QUEUE
+from dataactvalidator.validation_handlers.validationError import ValidationError
 
 
 class JobTrackerInterface(BaseInterface):
@@ -228,6 +229,23 @@ class JobTrackerInterface(BaseInterface):
                 self.markJobStatus(depJobId, 'ready')
                 # add to the job queue
                 jobQueueResult = self.jobQueue.enqueue.delay(depJobId)
+
+    def runChecks(self,jobId):
+        """ Checks that specified job has no unsatisfied prerequisites
+        Args:
+        jobId -- job_id of job to be run
+
+        Returns:
+        True if prerequisites are satisfied, raises ResponseException otherwise
+        """
+        # Get list of prerequisites
+        queryResult = self.session.query(JobDependency).options(joinedload(JobDependency.prerequisite_job)).filter(JobDependency.job_id == jobId).all()
+        for dependency in queryResult:
+            if dependency.prerequisite_job.job_status_id != self.getJobStatusId("finished"):
+                # Prerequisite not complete
+                raise ResponseException("Prerequisites incomplete, job cannot be started",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
+
+        return True
 
     def getFileSizeById(self,jobId):
         """ Get file size for job matching ID """

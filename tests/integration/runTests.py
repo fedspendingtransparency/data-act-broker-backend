@@ -38,7 +38,7 @@ def runTests(argv=''):
     suite.addTests(unittest.makeSuite(MixedFileTests))
 
     # to run a single test:
-    #suite.addTest(FileTests('test_check_status'))
+    #suite.addTest(FileTests('test_file_generation'))
     #suite.addTest(FileTypeTests('test_approp_mixed'))
 
     print("{} tests in suite".format(suite.countTestCases()))

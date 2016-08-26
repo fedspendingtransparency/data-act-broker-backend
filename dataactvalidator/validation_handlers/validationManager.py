@@ -57,8 +57,8 @@ class ValidationManager:
             # Could not get a unique job ID in the database, either a bad job ID was passed in
             # or the record of that job was lost.
             # Either way, cannot mark status of a job that does not exist
-            open("databaseErrors.log", "a").write("".join(
-                ["Could not mark status ", str(status), " for job ID ", str(jobId), "\n"]))
+            # Log error
+            JsonResponse.error(e, e.status)
 
     @staticmethod
     def getJobID(request):

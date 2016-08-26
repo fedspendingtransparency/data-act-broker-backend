@@ -45,7 +45,9 @@ def insertCodes():
         (2,'program_activity', ''),
         (3, 'award_financial', ''),
         (4, 'award', ''),
-        (5, 'award_procurement', '')]
+        (5, 'award_procurement', ''),
+        (6, "awardee_attributes", ""),
+        (7, "sub_award", "")]
     for ft in fileTypeList:
         fileType = FileType(file_type_id=ft[0], name=ft[1], description=ft[2])
         jobDb.session.merge(fileType)
