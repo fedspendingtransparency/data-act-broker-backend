@@ -239,12 +239,9 @@ class JobTrackerInterface(BaseInterface):
         True if prerequisites are satisfied, raises ResponseException otherwise
         """
         # Get list of prerequisites
-        queryResult = self.session.query(JobDependency).filter(JobDependency.job_id == jobId).all()
-        for prereq in queryResult:
-            query = self.session.query(Job).filter(Job.job_id == prereq.prerequisite_id)
-            result = self.checkJobUnique(query)
-            # Found a unique job
-            if(result.job_status_id != self.getJobStatusId("finished")):
+        queryResult = self.session.query(JobDependency).options(joinedload(JobDependency.prerequisite_job)).filter(JobDependency.job_id == jobId).all()
+        for dependency in queryResult:
+            if dependency.prerequisite_job.job_status_id != self.getJobStatusId("finished"):
                 # Prerequisite not complete
                 raise ResponseException("Prerequisites incomplete, job cannot be started",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
 
