@@ -3,6 +3,8 @@ import pandas as pd
 import boto
 import glob
 import logging
+import re
+from collections import namedtuple
 from dataactvalidator.filestreaming.loaderUtils import LoaderUtils
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 from dataactcore.models.domainModels import CGAC,ObjectClass,ProgramActivity,SF133
@@ -199,9 +201,37 @@ def formatInternalTas(row):
     ])
     return tas
 
+def getSF133List(localSF133Dir):
+    """Return info about existing SF133 files as a list of named tuples."""
+    SF133File = namedtuple('SF133', ['full_file', 'file'])
+    if localSF133Dir is not None:
+        logger.info('Loading local SF-133')
+        # get list of SF 133 files in the specified local directory
+        sf133_files = glob.glob(os.path.join(localSF133Dir, 'sf_133*.csv'))
+        sf133_list = [SF133File(sf133, os.path.basename(sf133)) for sf133 in sf133_files]
+    else:
+        logger.info("Loading SF-133")
+        if CONFIG_BROKER["use_aws"]:
+            # get list of SF 133 files in the config bucket on S3
+            s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
+            s3bucket = s3connection.lookup(CONFIG_BROKER['aws_bucket'])
+            # get bucketlistresultset with all sf_133 files
+            sf133_files = s3bucket.list(
+                prefix='{}/sf_133'.format(CONFIG_BROKER['sf_133_folder']))
+            sf133_list = [SF133File(sf133, os.path.basename(sf133.name)) for sf133 in sf133_files]
+
+    return sf133_list or []
+
 
 def loadDomainValues(basePath, localSF133Dir = None, localProgramActivity = None):
-    """Load all domain value files, localSF133Dir is used to point to the SF-133 directory, if not provided, SF-133 files will be downloaded from S3."""
+    """Load all domain value files.
+
+    Parameters
+    ----------
+        basePath : directory that contains the domain values files.
+        localSF133Dir : location of the SF 133 files (None = get from S3).
+        localProgramActivity : optional location of the program activity file (None = use basePath)
+    """
 
     logger.info('Loading CGAC')
     loadCgac(os.path.join(basePath,"cgac.csv"))
@@ -214,42 +244,21 @@ def loadDomainValues(basePath, localSF133Dir = None, localProgramActivity = None
     else:
         loadProgramActivity(os.path.join(basePath, "program_activity.csv"))
 
-    if localSF133Dir is not None:
-        logger.info('Loading local SF-133')
-        # get list of SF 133 files in the specified local directory
-        sf133Files = glob.glob(os.path.join(localSF133Dir, 'sf_133*.csv'))
-        for sf133 in sf133Files:
-            file = os.path.basename(sf133).replace('.csv', '')
-            fileParts = file.split('_')
-            if len(fileParts) < 4:
-                logger.info('{}Skipping SF 133 file with invalid name: {}'.format(
-                    os.linesep, sf133))
-                continue
-            year = file.split('_')[-2]
-            period = file.split('_')[-1]
-            logger.info('{}Starting {}...'.format(os.linesep, sf133))
-            loadSF133(sf133, year, period)
-    else:
-        logger.info("Loading SF-133")
-        if(CONFIG_BROKER["use_aws"]):
-            # get list of SF 133 files in the config bucket on S3
-            s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-            s3bucket = s3connection.lookup(CONFIG_BROKER['aws_bucket'])
-            # get bucketlistresultset with all sf_133 files
-            sf133Files = s3bucket.list(
-                prefix='{}/sf_133'.format(CONFIG_BROKER['sf_133_folder']))
-            for sf133 in sf133Files:
-                file = sf133.name.split(
-                    CONFIG_BROKER['sf_133_folder'])[-1].replace('.csv', '')
-                fileParts = file.split('_')
-                if len(fileParts) < 4:
-                    logger.info('{}Skipping SF 133 file with invalid name: {}'.format(
-                        os.linesep, sf133))
-                    continue
-                year = file.split('_')[-2]
-                period = file.split('_')[-1]
-                logger.info('{}Starting {}...'.format(os.linesep,sf133.name))
-                loadSF133(sf133, year, period)
+    # get a list of SF 133 files to load
+    sf133_list = getSF133List(localSF133Dir)
+    SF_RE = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
+    for sf133 in sf133_list:
+        # for each SF file, parse out fiscal year and period
+        # and call the SF 133 loader
+        file_match = SF_RE.match(sf133.file)
+        if not file_match:
+            logger.info('{}Skipping SF 133 file with invalid name: {}'.format(
+                os.linesep, sf133.full_file))
+            continue
+        logger.info('{}Starting {}...'.format(os.linesep, sf133.full_file))
+        loadSF133(
+            sf133.full_file, file_match.group('year'), file_match.group('period'))
+
 
 if __name__ == '__main__':
     loadDomainValues(
