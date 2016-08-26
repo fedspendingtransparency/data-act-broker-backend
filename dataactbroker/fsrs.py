@@ -162,7 +162,7 @@ def fetchAndReplaceBatch(sess, serviceType, minId=None):
     if minId is None:
         minId = model.nextId(sess)
 
-    awards = retrieveBatch(serviceType, minId)
+    awards = list(retrieveBatch(serviceType, minId))
     ids = [a.id for a in awards]
     sess.query(model).filter(model.id.in_(ids)).delete(
         synchronize_session=False)
