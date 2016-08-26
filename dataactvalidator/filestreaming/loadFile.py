@@ -112,12 +112,14 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
         # force a reload of this period's current data
         logger.info('Force SF 133 load: deleting existing records for {} {}'.format(
             fiscal_year, fiscal_period))
-        existing_records.delete()
+        delete_count = existing_records.delete()
         interface.session.commit()
+        logger.info('{} records deleted'.format(delete_count))
     elif existing_records.count():
         # if there's existing data & we're not forcing a load, skip
         logger.info('SF133 {} {} already in database ({} records). Skipping file.'.format(
             fiscal_year, fiscal_period, existing_records.count()))
+        return
 
     data = pd.read_csv(filename, dtype=str, keep_default_na=False)
     data = LoaderUtils.cleanData(
