@@ -86,8 +86,9 @@ def loadProgramActivity(filename):
          "pa_name": "program_activity_name"},
         {"program_activity_code": {"pad_to_length": 4},
          "agency_id": {"pad_to_length": 3},
-         "account_number": {"pad_to_length": 4},
-         "allocation_transfer_id": {"pad_to_length": 3}}
+         #"allocation_transfer_id": {"pad_to_length": 3},
+         "account_number": {"pad_to_length": 4}
+         }
     )
     # because we're only loading a subset of program activity info,
     # there will be duplicate records in the dataframe. this is ok,
