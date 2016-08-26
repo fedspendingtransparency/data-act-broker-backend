@@ -5,6 +5,7 @@ from tests.integration.userTests import UserTests
 from tests.integration.jobTests import JobTests
 from tests.integration.validatorTests import ValidatorTests
 from tests.integration.fileTypeTests import FileTypeTests
+from tests.integration.mixedFileTests import MixedFileTests
 import cProfile
 import pstats
 import xmlrunner
@@ -34,9 +35,10 @@ def runTests(argv=''):
     suite.addTests(unittest.makeSuite(ValidatorTests))
     suite.addTests(unittest.makeSuite(JobTests))
     suite.addTests(unittest.makeSuite(FileTypeTests))
+    suite.addTests(unittest.makeSuite(MixedFileTests))
 
     # to run a single test:
-    #suite.addTest(FileTests('test_check_status'))
+    #suite.addTest(FileTests('test_file_generation'))
     #suite.addTest(FileTypeTests('test_approp_mixed'))
 
     print("{} tests in suite".format(suite.countTestCases()))

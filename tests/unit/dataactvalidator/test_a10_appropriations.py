@@ -1,10 +1,13 @@
-from dataactcore.models.stagingModels import Appropriation
-from dataactcore.models.domainModels import SF133
+from tests.unit.dataactcore.factories.domain import SF133Factory
+from tests.unit.dataactcore.factories.staging import AppropriationFactory
 from tests.unit.dataactvalidator.utils import number_of_errors
 
 
 _FILE = 'a10_appropriations'
 _TAS = 'a10_appropriations_tas'
+
+# @todo: that a10 sql joins to a submission on particular values which aren't
+# being set up here?
 
 
 def test_success(database):
@@ -12,11 +15,11 @@ def test_success(database):
         for the specified fiscal year and period """
     tas = "".join([_TAS, "_success"])
 
-    sf_1 = SF133(line=1340, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000")
-    sf_2 = SF133(line=1440, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000")
-    ap = Appropriation(job_id=1, row_number=1, tas=tas, borrowing_authority_amount_cpe=2)
+    sf_1 = SF133Factory(line=1340, tas=tas, period=1, fiscal_year=2016,
+                        amount=1)
+    sf_2 = SF133Factory(line=1440, tas=tas, period=1, fiscal_year=2016,
+                        amount=1)
+    ap = AppropriationFactory(tas=tas, borrowing_authority_amount_cpe=2)
 
     models = [sf_1, sf_2, ap]
 
@@ -28,13 +31,12 @@ def test_failure(database):
         for the specified fiscal year and period """
     tas = "".join([_TAS, "_failure"])
 
-    sf_1 = SF133(line=1340, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000")
-    sf_2 = SF133(line=1440, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000")
-    ap = Appropriation(job_id=1, row_number=1, tas=tas, borrowing_authority_amount_cpe=1)
+    sf_1 = SF133Factory(line=1340, tas=tas, period=1, fiscal_year=2016,
+                        amount=1)
+    sf_2 = SF133Factory(line=1440, tas=tas, period=1, fiscal_year=2016,
+                        amount=1)
+    ap = AppropriationFactory(tas=tas, borrowing_authority_amount_cpe=1)
 
     models = [sf_1, sf_2, ap]
 
     assert number_of_errors(_FILE, database.stagingDb, models=models) == 1
-

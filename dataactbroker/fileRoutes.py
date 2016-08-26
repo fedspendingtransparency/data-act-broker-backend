@@ -102,3 +102,17 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         """ Return signed URLs for all help page files """
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.getProtectedFiles)
+
+    @app.route("/v1/generate_file/", methods=["POST"])
+    @permissions_check
+    def generate_file():
+        """ Generate file from external API """
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return RouteUtils.run_instance_function(fileManager, fileManager.generateFile)
+
+    @app.route("/v1/check_generation_status/", methods=["POST"])
+    @permissions_check
+    def check_generation_status():
+        """ Return status of file generation job """
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return RouteUtils.run_instance_function(fileManager, fileManager.checkGeneration)
