@@ -1,11 +1,11 @@
 from sqlalchemy import (
-    Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text)
+    Boolean, Column, Date, DateTime, ForeignKey, func, Integer, String, Text)
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
 
 
-class FSRSAttributes:
+class _FSRSAttributes:
     """Attributes shared by all FSRS models"""
     id = Column(Integer, primary_key=True)
     duns = Column(String)
@@ -31,7 +31,7 @@ class FSRSAttributes:
     top_paid_amount_5 = Column(String, nullable=True)
 
 
-class ContractAttributes(FSRSAttributes):
+class _ContractAttributes(_FSRSAttributes):
     """Common attributes of FSRSProcurement and FSRSSubcontracts"""
     company_name = Column(String)
     bus_types = Column(String)
@@ -49,7 +49,7 @@ class ContractAttributes(FSRSAttributes):
     recovery_model_q2 = Column(Boolean)
 
 
-class GrantAttributes(FSRSAttributes):
+class _GrantAttributes(_FSRSAttributes):
     """Common attributes of FSRSGrant and FSRSSubgrant"""
     dunsplus4 = Column(String, nullable=True)
     awardee_name = Column(String)
@@ -65,15 +65,22 @@ class GrantAttributes(FSRSAttributes):
     compensation_q2 = Column(Boolean)
 
 
-class PrimeAwardAttributes:
+class _PrimeAwardAttributes:
     """Attributes shared by FSRSProcurements and FSRSGrants"""
     internal_id = Column(String)
     date_submitted = Column(DateTime)
     report_period_mon = Column(String)
     report_period_year = Column(String)
 
+    @classmethod
+    def nextId(cls, sess):
+        """We'll often want to load "new" data -- anything with a later id
+        than the awards we have. Return that max id"""
+        current = sess.query(func.max(cls.id)).one()[0] or -1
+        return current + 1
 
-class FSRSProcurement(Base, ContractAttributes, PrimeAwardAttributes):
+
+class FSRSProcurement(Base, _ContractAttributes, _PrimeAwardAttributes):
     __tablename__ = "fsrs_procurement"
     contract_number = Column(String)
     idv_reference_number = Column(String, nullable=True)
@@ -91,7 +98,7 @@ class FSRSProcurement(Base, ContractAttributes, PrimeAwardAttributes):
     program_title = Column(String)
 
 
-class FSRSSubcontract(Base, ContractAttributes):
+class FSRSSubcontract(Base, _ContractAttributes):
     __tablename__ = "fsrs_subcontract"
     parent_id = Column(
         Integer, ForeignKey('fsrs_procurement.id', ondelete='CASCADE'))
@@ -106,14 +113,14 @@ FSRSProcurement.subawards = relationship(
     FSRSSubcontract, back_populates='parent')
 
 
-class FSRSGrant(Base, GrantAttributes, PrimeAwardAttributes):
+class FSRSGrant(Base, _GrantAttributes, _PrimeAwardAttributes):
     __tablename__ = "fsrs_grant"
     fain = Column(String)
     total_fed_funding_amount = Column(String)
     obligation_date = Column(Date)
 
 
-class FSRSSubgrant(Base, GrantAttributes):
+class FSRSSubgrant(Base, _GrantAttributes):
     __tablename__ = "fsrs_subgrant"
     parent_id = Column(
         Integer, ForeignKey('fsrs_grant.id', ondelete='CASCADE'))
