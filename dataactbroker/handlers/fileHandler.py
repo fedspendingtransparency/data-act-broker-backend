@@ -244,6 +244,44 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
+    def checkSubmissionById(self, submission_id, file_type):
+        """ Check that submission exists and user has permission to it
+
+        Args:
+            submission_id:  ID of submission to check
+            file_type: file type that has been requested
+
+        Returns:
+            Tuple of boolean indicating whether submission has passed checks, and http response if not
+
+        """
+        error_occurred = False
+
+        try:
+            submission = self.interfaces.jobDb.getSubmissionById(submission_id)
+        except ResponseException as exc:
+            if isinstance(exc.wrappedException, NoResultFound):
+                # Submission does not exist, change to 400 in this case since route call specified a bad ID
+                exc.status = StatusCode.CLIENT_ERROR
+                message = "Submission does not exist"
+                error_occurred = True
+            else:
+                raise exc
+        try:
+            self.checkSubmissionPermission(submission)
+        except ResponseException as exc:
+            message = "User does not have permission to view that submission"
+            error_occurred = True
+
+        if error_occurred:
+            responseDict = {"message": message, "file_type": file_type, "url": "", "status": "failed"}
+            if file_type in ["D1", "D2"]:
+                # Add empty start and end dates
+                responseDict["start"] = ""
+                responseDict["end"] = ""
+            return False, JsonResponse.error(exc, exc.status, **responseDict)
+        return True, None
+
     def checkSubmissionPermission(self,submission):
         """ Check if current user has permisson to access submission and return user object.
 
@@ -259,7 +297,7 @@ class FileHandler:
         if(submissionCgac != userCgac and submission.user_id != user.user_id
            and userCgac != "sys"):
             raise ResponseException("User does not have permission to view that submission",
-                StatusCode.CLIENT_ERROR)
+                StatusCode.PERMISSION_DENIED)
         return user
 
     def getStatus(self):
@@ -411,48 +449,62 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-    def generateD1File(self):
-        """ Initiates the generation of D1 """
+    def startGenerationJob(self, submission_id, file_type):
+        """ Initiates the generation of D1
+
+        Args:
+            submission_id: ID of submission to start job for
+            file_type: Type of file to be generated
+
+        Returns:
+            Tuple of boolean indicating successful start, and error response if False
+
+        """
         jobDb = self.interfaces.jobDb
-        requestDict = RequestDictionary(self.request)
+        file_type_name = self.EXTERNAL_FILE_TYPE_MAP[file_type]
 
-        if not (requestDict.exists("submission_id") and requestDict.exists("start") and requestDict.exists("end")):
-            exc = ResponseException("Generate D1 Files route requires submission_id, start, and end", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc, exc.status)
+        if file_type in ["D1", "D2"]:
+            # Populate start and end dates
+            requestDict = RequestDictionary(self.request)
+            start_date = requestDict.getValue("start")
+            end_date = requestDict.getValue("end")
 
-        submission_id = requestDict.getValue("submission_id")
-        start_date = requestDict.getValue("start")
-        end_date = requestDict.getValue("end")
-
-        if not (StringCleaner.isNumeric(submission_id) and StringCleaner.isDate(start_date) and StringCleaner.isDate(end_date)):
-            exc = ResponseException("submission id, start, and/or end cannot be parsed into their appropriate types", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc, exc.status)
+            if not (StringCleaner.isDate(start_date) and StringCleaner.isDate(end_date)):
+                exc = ResponseException("Start or end date cannot be parsed into a date", StatusCode.CLIENT_ERROR)
+                return False, JsonResponse.error(exc, exc.status, start = "", end = "", file_type = file_type, status = "failed")
+        elif file_type not in ["E","F"]:
+            exc = ResponseException("File type must be either D1, D2, E or F", StatusCode.CLIENT_ERROR)
+            return False, JsonResponse.error(exc, exc.status, file_type = file_type, status = "failed")
 
         cgac_code = self.jobManager.getSubmissionById(submission_id).cgac_code
-        get_url = CONFIG_BROKER["d1_url"].format(cgac_code, start_date, end_date)
 
         jq = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
 
-        # Generate and upload D1 file to S3
+        # Generate and upload file to S3
         user_id = LoginSession.getName(session)
-        timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["award_procurement_file_name"])
+        timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["".join([str(file_type_name),"_file_name"])])
         upload_file_name = "".join([str(user_id), "/", timestamped_name])
-        d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d1", CONFIG_BROKER["award_procurement_file_name"], upload_file_name)
-        job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D1"], "file_upload")
-        try:
-            job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
-            job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
-        except ValueError as e:
-            # Date was not in expected format
-            raise ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
+
+        job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type_name], "file_upload")
         job.filename = upload_file_name
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
-        jobDb.setDFileStatus(d_file_id, "waiting")
-        jq.generate_d_file.delay(get_url, CONFIG_BROKER["award_procurement_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
+        if file_type in ["D1", "D2"]:
+            try:
+                job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
+                job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
+                jobDb.session.commit()
+            except ValueError as e:
+                # Date was not in expected format
+                exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
+                return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
+            get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date)
+            jq.generate_d_file.delay(get_url, CONFIG_BROKER["".join([file_type_name, "_file_name"])], user_id, job.job_id, InterfaceHolder, timestamped_name, skip_gen=True)
+        else:
+            # TODO add generate calls for E and F
+            pass
 
-        # Check status for D1 file
-        return upload_file_name
+        return True, None
 
     def getRequestParamsForGenerate(self):
         """ Pull information out of request object and return it
@@ -472,28 +524,21 @@ class FileHandler:
     def generateFile(self):
         """ Start a file generation job for the specified file type """
         submission_id, file_type = self.getRequestParamsForGenerate()
+        # Check permission to submission
+        success, error_response = self.checkSubmissionById(submission_id, file_type)
+        if not success:
+            return error_response
+
         job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "file_upload")
         # Check prerequisites on upload job
         if not self.interfaces.jobDb.runChecks(job.job_id):
             exc = ResponseException("Must wait for completion of prerequisite validation job", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
-        if file_type == "D1":
-            # TODO could this function return S3 file location
-            result = self.generateD1File()
-        elif file_type == "D2":
-            # TODO could this function return S3 file location
-            result = self.generateD2File()
-        elif file_type == "E":
-            #TODO call file E generation function
-            pass
-        elif file_type == "F":
-            #TODO call file F generation function
-            pass
-        else:
-            exc = ResponseException("File type must be either D1, D2, E or F", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc, exc.status)
 
-        # TODO mark S3 file location in DB
+        success, error_response = self.startGenerationJob(submission_id,file_type)
+        if not success:
+            return error_response
+
         # Mark file generation upload as finished
         self.interfaces.jobDb.markJobStatus(job.job_id,"finished")
         # Return same response as check generation route
@@ -507,6 +552,9 @@ class FileHandler:
         """
         if submission_id is None or file_type is None:
             submission_id, file_type = self.getRequestParamsForGenerate()
+        # Check permission to submission
+        self.checkSubmissionById(submission_id, file_type)
+
         uploadJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "file_upload")
         if file_type in ["D2"]: # TODO add D1 to this list once D1 validation exists
             validationJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "csv_record_validation")
@@ -571,53 +619,6 @@ class FileHandler:
             uploadJob.error_message = validationJob.error_message
         self.interfaces.jobDb.session.commit()
         return responseStatus
-
-
-    def generateD2File(self):
-        """ Initiates the generation of D2 """
-        jobDb = self.interfaces.jobDb
-        requestDict = RequestDictionary(self.request)
-
-        if not (requestDict.exists("submission_id") and requestDict.exists("start") and requestDict.exists("end")):
-            exc = ResponseException("Generate D2 Files route requires submission_id, start, and end",
-                                    StatusCode.CLIENT_ERROR)
-            return JsonResponse.create(exc, exc.status)
-
-        submission_id = requestDict.getValue("submission_id")
-        start_date = requestDict.getValue("start")
-        end_date = requestDict.getValue("end")
-
-        if not (StringCleaner.isNumeric(submission_id) and StringCleaner.isDate(start_date) and StringCleaner.isDate(
-                end_date)):
-            exc = ResponseException("submission id, start, and/or end cannot be parsed into their appropriate types",
-                                    StatusCode.CLIENT_ERROR)
-            return JsonResponse.create(exc, exc.status)
-
-        cgac_code = self.jobManager.getSubmissionById(submission_id).cgac_code
-        get_url = CONFIG_BROKER["d2_url"].format(cgac_code, start_date, end_date)
-
-        jq = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
-
-        # Generate and upload d2 file to S3
-        user_id = LoginSession.getName(session)
-        timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["award_file_name"])
-        upload_file_name = "".join([str(user_id), "/", timestamped_name])
-        d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d2", CONFIG_BROKER["award_file_name"], upload_file_name)
-        job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D2"], "file_upload")
-        try:
-            job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
-            job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
-        except ValueError as e:
-            # Date was not in expected format
-            raise ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
-        job.filename = upload_file_name
-        job.job_status_id = jobDb.getJobStatusId("running")
-        jobDb.session.commit()
-        jobDb.setDFileStatus(d_file_id, "waiting")
-        jq.generate_d_file.delay(get_url, CONFIG_BROKER["award_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
-
-        # Check status for D2 file
-        return upload_file_name
 
     def getProtectedFiles(self):
         """ Returns a set of urls to protected files on the help page """

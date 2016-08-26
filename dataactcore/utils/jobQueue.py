@@ -36,7 +36,7 @@ class JobQueue:
             return response.json()
 
         @self.jobQueue.task(name='jobQueue.generate_d_file')
-        def generate_d_file(api_url, file_name, user_id, d_file_id, interface_holder, timestamped_name, skip_gen=False):
+        def generate_d_file(api_url, file_name, user_id, job_id, interface_holder, timestamped_name, skip_gen=False):
             job_manager = interface_holder().jobDb
 
             try:
@@ -70,12 +70,13 @@ class JobQueue:
                         writer.write(line)
                     writer.finishBatch()
 
-                job_manager.setDFileStatus(d_file_id, "finished")
+                job_manager.markJobStatus(job_id, "finished")
             except Exception as e:
                 # Log the error
                 JsonResponse.error(e,500)
-                job_manager.setDFileMessage(d_file_id, str(e))
-                job_manager.setDFileStatus(d_file_id, "failed")
+                job_manager.getJobById(job_id).error_message = str(e)
+                job_manager.markJobStatus(job_id, "failed")
+                job_manager.session.commit()
                 raise e
 
         self.enqueue = enqueue

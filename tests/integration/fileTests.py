@@ -32,12 +32,18 @@ class FileTests(BaseTestAPI):
             cls.test_users['submission_email'])
         cls.submission_user_id = submission_user.user_id
 
+        other_user = cls.userDb.getUserByEmail(cls.test_users['inactive_email'])
+        cls.other_user_id = other_user.user_id
+
         # setup submission/jobs data for test_check_status
         cls.status_check_submission_id = cls.insertSubmission(
             cls.jobTracker, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
 
         cls.generation_submission_id = cls.insertSubmission(
             cls.jobTracker, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
+
+        cls.other_submission_id = cls.insertSubmission(
+            cls.jobTracker, cls.other_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
 
         cls.setupFileGenerationSubmission()
 
@@ -220,7 +226,7 @@ class FileTests(BaseTestAPI):
         # Call check status route
         response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True, headers={"x-session-id":self.session_id})
         # Assert 400 status
-        self.assertEqual(response.status_code,400)
+        self.assertEqual(response.status_code,403)
 
     def test_check_status_admin(self):
         """ Test that admins have access to other user's submissions """
@@ -491,6 +497,19 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 400)
         json = response.json
         self.assertEqual(json["message"],"Prerequisites incomplete, job cannot be started")
+
+        # Test permission error
+        postJson = {"submission_id": self.other_submission_id, "file_type": "D1", "start":"01/02/2016", "end":"02/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+
+        self.assertEqual(response.status_code, 403)
+        json = response.json
+        self.assertEqual(json["status"], "failed")
+        self.assertEqual(json["file_type"], "D1")
+        self.assertEqual(json["url"], "")
+        self.assertEqual(json["start"],"")
+        self.assertEqual(json["end"],"")
+        self.assertEqual(json["message"],"User does not have permission to view that submission")
 
     @staticmethod
     def insertSubmission(jobTracker, submission_user_id, submission=None, cgac_code = None, startDate = None, endDate = None, is_quarter = False):
