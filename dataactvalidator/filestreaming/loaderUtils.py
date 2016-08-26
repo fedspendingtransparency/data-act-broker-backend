@@ -67,7 +67,7 @@ class LoaderUtils:
         for col, options in fieldOptions.items():
             if "pad_to_length" in options:
                 # pad to specified length
-                data['{}'.format(col)] = data['{}'.format(col)].apply(
+                data[col] = data[col].apply(
                     cls.padFunction, args=(options['pad_to_length'],))
             if options.get('strip_commas'):
                 # remove commas for specified column
