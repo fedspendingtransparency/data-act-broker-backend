@@ -42,9 +42,6 @@ class FileTests(BaseTestAPI):
         cls.generation_submission_id = cls.insertSubmission(
             cls.jobTracker, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
 
-        cls.other_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.other_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
-
         cls.setupFileGenerationSubmission()
 
         cls.jobIdDict = cls.setupJobsForStatusCheck(cls.interfaces,
@@ -499,7 +496,8 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["message"],"Prerequisites incomplete, job cannot be started")
 
         # Test permission error
-        postJson = {"submission_id": self.other_submission_id, "file_type": "D1", "start":"01/02/2016", "end":"02/03/2016"}
+        self.login_approved_user()
+        postJson = {"submission_id": self.generation_submission_id, "file_type": "D1", "start":"01/02/2016", "end":"02/03/2016"}
         response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
 
         self.assertEqual(response.status_code, 403)
@@ -585,14 +583,14 @@ class FileTests(BaseTestAPI):
         awardProcurement = jobDb.getFileTypeId("award_procurement")
         subAward = jobDb.getFileTypeId("sub_award")
 
-        # Create D2 jobs ready for generation route to be called
+        # Create D1 jobs ready for generation route to be called
         cls.insertJob(jobDb,awardProcurement, ready, upload, submission.submission_id)
         awardProcValJob = cls.insertJob(jobDb,awardProcurement, waiting, validation, submission.submission_id)
         # Create E and F jobs ready for check route
         awardeeAttJob = cls.insertJob(jobDb,awardeeAtt, finished, upload, submission.submission_id)
         subAwardJob = cls.insertJob(jobDb,subAward, invalid, upload, submission.submission_id)
         subAwardJob.error_message = "File was invalid"
-        # Create D1 jobs
+        # Create D2 jobs
         cls.insertJob(jobDb,award, finished, upload, submission.submission_id)
         cls.insertJob(jobDb,award, invalid, validation, submission.submission_id)
         # Create dependency

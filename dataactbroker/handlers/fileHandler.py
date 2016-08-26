@@ -265,6 +265,7 @@ class FileHandler:
                 exc.status = StatusCode.CLIENT_ERROR
                 message = "Submission does not exist"
                 error_occurred = True
+                error_exc = exc
             else:
                 raise exc
         try:
@@ -272,6 +273,7 @@ class FileHandler:
         except ResponseException as exc:
             message = "User does not have permission to view that submission"
             error_occurred = True
+            error_exc = exc
 
         if error_occurred:
             responseDict = {"message": message, "file_type": file_type, "url": "", "status": "failed"}
@@ -279,7 +281,7 @@ class FileHandler:
                 # Add empty start and end dates
                 responseDict["start"] = ""
                 responseDict["end"] = ""
-            return False, JsonResponse.error(exc, exc.status, **responseDict)
+            return False, JsonResponse.error(error_exc, error_exc.status, **responseDict)
         return True, None
 
     def checkSubmissionPermission(self,submission):
@@ -485,7 +487,7 @@ class FileHandler:
         timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["".join([str(file_type_name),"_file_name"])])
         upload_file_name = "".join([str(user_id), "/", timestamped_name])
 
-        job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type_name], "file_upload")
+        job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, file_type_name, "file_upload")
         job.filename = upload_file_name
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
