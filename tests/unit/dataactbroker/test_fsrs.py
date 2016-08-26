@@ -6,7 +6,7 @@ from suds import sudsobject
 
 from dataactcore.models.fsrs import (
     FSRSGrant, FSRSProcurement, FSRSSubcontract, FSRSSubgrant)
-from dataactvalidator import fsrs
+from dataactbroker import fsrs
 from tests.unit.dataactcore.factories.fsrs import (
     FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory,
     FSRSSubgrantFactory)

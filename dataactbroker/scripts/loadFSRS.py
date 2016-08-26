@@ -2,7 +2,7 @@ import logging
 import sys
 
 from dataactcore.models.baseInterface import databaseSession
-from dataactvalidator.fsrs import (
+from dataactbroker.fsrs import (
     configValid, fetchAndReplaceBatch, GRANT, PROCUREMENT)
 
 
