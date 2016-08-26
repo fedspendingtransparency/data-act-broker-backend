@@ -7,7 +7,8 @@ from csv import reader
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-import traceback
+import os
+
 
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):
@@ -53,7 +54,13 @@ class JobQueue:
                 url_start_index += offset
                 file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
 
-                with open(timestamped_name, "w") as file:
+                storage_path = CONFIG_BROKER['d_file_storage_path']
+                if storage_path[-1] != os.path.sep:
+                    full_file_path = "".join([storage_path, os.path.sep, timestamped_name])
+                else:
+                    full_file_path = "".join([storage_path, timestamped_name])
+
+                with open(full_file_path, "w") as file:
                     # get request
                     response = requests.get(file_url)
                     # write to file
@@ -61,7 +68,7 @@ class JobQueue:
                     file.write(response.text)
 
                 lines = []
-                with open(timestamped_name) as file:
+                with open(full_file_path) as file:
                     for line in reader(file):
                         lines.append(line)
 
@@ -69,16 +76,17 @@ class JobQueue:
 
                 if isLocal:
                     file_name = "".join([CONFIG_BROKER['broker_files'], "/", timestamped_name])
-                    writer = CsvLocalWriter(file_name, headers)
+                    csv_writer = CsvLocalWriter(file_name, headers)
                 else:
                     file_name = "".join([str(user_id), "/", timestamped_name])
                     bucket = CONFIG_BROKER['aws_bucket']
                     region = CONFIG_BROKER['aws_region']
-                    writer = CsvS3Writer(region, bucket, file_name, headers)
+                    csv_writer = CsvS3Writer(region, bucket, file_name, headers)
 
-                for line in lines[1:]:
-                    writer.write(line)
-                writer.finishBatch()
+                with csv_writer as writer:
+                    for line in lines[1:]:
+                        writer.write(line)
+                    writer.finishBatch()
 
                 job_manager.setDFileStatus(d_file_id, "finished")
                 return {"message": "Success", "file_name": file_name}
