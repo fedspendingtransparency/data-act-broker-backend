@@ -9,10 +9,17 @@ class LoaderUtils:
     cleanColNamesFunction = lambda field: str(field).lower().strip().replace(" ","_").replace(",","_")
 
     @classmethod
-    def padFunction(self, field, padTo):
+    def padFunction(self, field, padTo, keepNull):
         """Pads field to specified length."""
-        if field is None or isnull(field):
-            field = ''
+        if isnull(field) or not str(field).strip():
+            if keepNull:
+                # returning None here
+                # causes the word 'none' to be inserted into
+                # the db instead of a null value, which is what
+                # we want for a blank field
+                return ''
+            else:
+                field = ''
         return str(field).strip().zfill(padTo)
 
     @staticmethod
@@ -36,15 +43,17 @@ class LoaderUtils:
 
     @classmethod
     def cleanData(cls, data, model, fieldMap, fieldOptions):
-        """ Cleans up a dataframe that contains domain values
+        """ Cleans up a dataframe that contains domain values.
 
-        Args:
-            data = dataframe of domain values
+        Parameters:
+        ----------
+            data : dataframe of domain values
             fieldMap: dict that maps columns of the dataframe csv to our db columns
             fieldOptions: dict with keys of attribute names, value contains a dict with options for that attribute.
                 Current options are:
                  "pad_to_length" which if present will pad the field with leading zeros up to
                 specified length
+                "keep_null" when set to true, empty fields will not be padded
                 "skip_duplicate" which ignores subsequent lines that repeat values
                 "strip_commas" which removes commas
         """
@@ -65,10 +74,12 @@ class LoaderUtils:
 
         # apply column options as specified in fieldOptions param
         for col, options in fieldOptions.items():
-            if "pad_to_length" in options:
+            if options.get('pad_to_length'):
                 # pad to specified length
                 data[col] = data[col].apply(
-                    cls.padFunction, args=(options['pad_to_length'],))
+                    cls.padFunction, args=(
+                        options['pad_to_length'],
+                        options.get('keep_null')))
             if options.get('strip_commas'):
                 # remove commas for specified column
                 # get rid of commas in dollar amounts

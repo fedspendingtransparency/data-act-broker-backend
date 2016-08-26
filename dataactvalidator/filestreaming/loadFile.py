@@ -88,7 +88,7 @@ def loadProgramActivity(filename):
          "pa_name": "program_activity_name"},
         {"program_activity_code": {"pad_to_length": 4},
          "agency_id": {"pad_to_length": 3},
-         #"allocation_transfer_id": {"pad_to_length": 3},
+         "allocation_transfer_id": {"pad_to_length": 3, "keep_null": True},
          "account_number": {"pad_to_length": 4}
          }
     )
@@ -139,7 +139,7 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
          "line_num": "line",
          "amount_summed":
         "amount"},
-        {"allocation_transfer_agency": {"pad_to_length": 3},
+        {"allocation_transfer_agency": {"pad_to_length": 3, "keep_null": True},
          "agency_identifier": {"pad_to_length": 3},
          "main_account_code": {"pad_to_length": 4},
          "sub_account_code": {"pad_to_length": 3},
