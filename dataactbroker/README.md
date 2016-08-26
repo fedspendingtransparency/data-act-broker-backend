@@ -773,7 +773,7 @@ Example output if there are no files available:
 }
 ```
 
-# File Generation Routes
+## File Generation Routes
 
 ## Generate Files
 **Route:** `/generate_file`
