@@ -148,7 +148,11 @@ def retrieveBatch(serviceType, minId):
     Retrieve one such batch, converting each result (and sub-results) into
     dicts"""
     for report in newClient(serviceType).service.getData(id=minId)['reports']:
-        yield soap2Dict(report)
+        asDict = soap2Dict(report)
+        if serviceType == PROCUREMENT:
+            yield toPrimeContract(asDict)
+        else:
+            yield toPrimeGrant(asDict)
 
 
 def fetchAndReplaceBatch(sess, serviceType, minId=None):
@@ -158,12 +162,7 @@ def fetchAndReplaceBatch(sess, serviceType, minId=None):
     if minId is None:
         minId = model.nextId(sess)
 
-    batch = retrieveBatch(serviceType, minId)
-    if serviceType == PROCUREMENT:
-        awards = [toPrimeContract(a) for a in batch]
-    else:
-        awards = [toPrimeGrant(a) for a in batch]
-
+    awards = retrieveBatch(serviceType, minId)
     ids = [a.id for a in awards]
     sess.query(model).filter(model.id.in_(ids)).delete(
         synchronize_session=False)

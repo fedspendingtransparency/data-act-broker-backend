@@ -1,9 +1,15 @@
-from datetime import date, datetime
+from datetime import date
 from unittest.mock import Mock
 
+import pytest
 from suds import sudsobject
 
+from dataactcore.models.fsrs import (
+    FSRSGrant, FSRSProcurement, FSRSSubcontract, FSRSSubgrant)
 from dataactvalidator import fsrs
+from tests.unit.dataactcore.factories.fsrs import (
+    FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory,
+    FSRSSubgrantFactory)
 
 
 def newClient_call_args(monkeypatch, **config):
@@ -11,9 +17,9 @@ def newClient_call_args(monkeypatch, **config):
     the arguments which were sent to the suds client"""
     mock_client = Mock()
     monkeypatch.setattr(fsrs, 'Client', mock_client)
-    config = {'fsrs_service': config}
+    config = {'fsrs': {'subconfig': config}}
     monkeypatch.setattr(fsrs, 'CONFIG_BROKER', config)
-    fsrs.newClient()
+    fsrs.newClient('subconfig')
     args, kwargs = mock_client.call_args
     return kwargs
 
@@ -87,10 +93,11 @@ def test_soap2Dict():
     assert fsrs.soap2Dict(root) == expected
 
 
-def test_commonAttributes():
+def test_flattenSoapDict():
     """Spot check that data's imported to the proper fields"""
     obj = dict(
         duns='DuNs', recovery_model_q1=True, bus_types=['a', 'b', 'c'],
+        dropped='field', another_dropped=['l', 'i', 's', 't'],
         company_address=dict(city='CompanyCity', district='CompanyDist'),
         principle_place=dict(street='PrincipleStreet'),
         top_pay_employees=dict(
@@ -104,36 +111,94 @@ def test_commonAttributes():
     expected = dict(
         duns='DuNs', recovery_model_q1=True, bus_types='a,b,c',
         company_address_city='CompanyCity',
+        company_address_street=None, company_address_state=None,
+        company_address_country=None, company_address_zip=None,
         company_address_district='CompanyDist',
         principle_place_street='PrincipleStreet',
+        principle_place_city=None, principle_place_state=None,
+        principle_place_country=None, principle_place_zip=None,
+        principle_place_district=None,
         top_paid_fullname_1='full1', top_paid_amount_1='1',
         top_paid_fullname_2='full2', top_paid_amount_2='2',
         top_paid_fullname_3='full3', top_paid_amount_3='3',
         top_paid_fullname_4='full4', top_paid_amount_4='4',
         top_paid_fullname_5='full5', top_paid_amount_5='5'
     )
-    result = fsrs.commonAttributes(obj)
-    for key, value in expected.items():
-        assert result.get(key) == value
-    for key, value in result.items():
-        assert expected.get(key) == value
+    result = fsrs.flattenSoapDict(
+        simpleFields=('duns', 'recovery_model_q1'),
+        addressFields=('company_address', 'principle_place'),
+        commaField='bus_types',
+        soapDict=obj)
+    assert result == expected
 
 
-def test_award2Model_subcon2Model(monkeypatch):
-    monkeypatch.setattr(fsrs, 'commonAttributes', lambda _: {})
-    now = datetime.now()
-    award = dict(
-        id=5, internal_id='iii', date_signed=now,
-        subcontractors=[
-            dict(subcontract_amount='45', unused_field='Unused'),
-            dict(subcontract_num='67')
-        ]
-    )
-    result = fsrs.award2Model(award)
+@pytest.fixture()
+def no_award_db(database):
+    sess = database.validationDb.session
+    sess.query(FSRSProcurement).delete(synchronize_session=False)
+    sess.query(FSRSGrant).delete(synchronize_session=False)
+    sess.commit()
 
-    assert result.id == 5
-    assert result.internal_id == 'iii'
-    assert result.date_signed == now
-    assert len(result.subawards) == 2
-    assert result.subawards[0].subcontract_amount == '45'
-    assert result.subawards[1].subcontract_num == '67'
+    yield sess
+
+    sess.query(FSRSProcurement).delete(synchronize_session=False)
+    sess.query(FSRSGrant).delete(synchronize_session=False)
+    sess.commit()
+
+
+def test_nextId_default(no_award_db):
+    assert FSRSProcurement.nextId(no_award_db) == 0
+
+
+def test_nextId(no_award_db):
+    no_award_db.add_all([FSRSProcurementFactory(id=5),
+                         FSRSProcurementFactory(id=3),
+                         FSRSGrantFactory(id=2)])
+    no_award_db.commit()
+
+    assert 6 == FSRSProcurement.nextId(no_award_db)
+    assert 3 == FSRSGrant.nextId(no_award_db)
+
+
+def test_fetchAndReplaceBatch_saves_data(no_award_db, monkeypatch):
+    award1 = FSRSProcurementFactory()
+    award1.subawards = [FSRSSubcontractFactory() for _ in range(4)]
+    award2 = FSRSProcurementFactory()
+    award2.subawards = [FSRSSubcontractFactory()]
+    monkeypatch.setattr(fsrs, 'retrieveBatch',
+                        Mock(return_value=[award1, award2]))
+
+    assert no_award_db.query(FSRSProcurement).count() == 0
+    fsrs.fetchAndReplaceBatch(no_award_db, fsrs.PROCUREMENT)
+    assert no_award_db.query(FSRSProcurement).count() == 2
+    assert no_award_db.query(FSRSSubcontract).count() == 5
+
+
+def test_fetchAndReplaceBatch_overrides_data(no_award_db, monkeypatch):
+    def fetch_duns(award_id):
+        return no_award_db.query(FSRSGrant.duns).filter(
+            FSRSGrant.id == award_id).one()[0]
+
+    award1 = FSRSGrantFactory(id=1, duns='To Be Replaced')
+    award1.subawards = [FSRSSubgrantFactory() for _ in range(4)]
+    award2 = FSRSGrantFactory(id=2, duns='Not Altered')
+    award2.subawards = [FSRSSubgrantFactory()]
+    monkeypatch.setattr(fsrs, 'retrieveBatch',
+                        Mock(return_value=[award1, award2]))
+
+    fsrs.fetchAndReplaceBatch(no_award_db, fsrs.GRANT)
+    assert fetch_duns(1) == 'To Be Replaced'
+    assert fetch_duns(2) == 'Not Altered'
+    # 5 subawards, 4 from award1 and 1 from award2
+    assert no_award_db.query(FSRSSubgrant).count() == 5
+
+    no_award_db.expunge_all()   # Reset the model cache
+
+    award3 = FSRSGrantFactory(id=1, duns='Replaced')
+    award3.subawards = [FSRSSubgrantFactory() for _ in range(2)]
+    monkeypatch.setattr(fsrs, 'retrieveBatch', Mock(return_value=[award3]))
+    fsrs.fetchAndReplaceBatch(no_award_db, fsrs.GRANT)
+    assert fetch_duns(1) == 'Replaced'
+    assert fetch_duns(2) == 'Not Altered'
+    # 3 subawards, 4 from award1/award3 and 1 from award2
+    assert no_award_db.query(FSRSSubgrant).count() == 3
