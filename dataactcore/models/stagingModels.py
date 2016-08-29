@@ -126,7 +126,7 @@ Index("ix_oc_pa_tas_oc_pa",
       unique=False)
 
 class AwardFinancial(Base):
-    """Model for the award_financial table."""
+    """Corresponds to entries in File C"""
     __tablename__ = "award_financial"
 
     award_financial_id = Column(Integer, primary_key=True)
