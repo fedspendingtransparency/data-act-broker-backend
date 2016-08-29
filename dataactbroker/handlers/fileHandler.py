@@ -436,7 +436,12 @@ class FileHandler:
         # Generate and upload D1 file to S3
         user_id = LoginSession.getName(session)
         timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["award_procurement_file_name"])
-        upload_file_name = "".join([str(user_id), "/", timestamped_name])
+
+        if self.isLocal:
+            upload_file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
+        else:
+            upload_file_name = "".join([str(user_id), "/", timestamped_name])
+
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d1", CONFIG_BROKER["award_procurement_file_name"], upload_file_name)
         job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D1"], "file_upload")
         try:
@@ -449,7 +454,7 @@ class FileHandler:
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
         jobDb.setDFileStatus(d_file_id, "waiting")
-        jq.generate_d_file.delay(get_url, CONFIG_BROKER["award_procurement_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
+        jq.generate_d_file.delay(get_url, user_id, d_file_id, InterfaceHolder, timestamped_name, self.isLocal)
 
         # Check status for D1 file
         return self.checkD1File()
@@ -562,7 +567,8 @@ class FileHandler:
         if uploadJob.filename is None:
             responseDict["url"] = ""
         elif CONFIG_BROKER["use_aws"]:
-            responseDict["url"] = s3UrlHandler().getSignedUrl("d-files",uploadJob.filename, bucketRoute=None, method="GET")
+            path, file_name = uploadJob.filename.split("/")
+            responseDict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name, bucketRoute=None, method="GET")
         else:
             responseDict["url"] = uploadJob.filename
 
@@ -644,7 +650,12 @@ class FileHandler:
         # Generate and upload d2 file to S3
         user_id = LoginSession.getName(session)
         timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["award_file_name"])
-        upload_file_name = "".join([str(user_id), "/", timestamped_name])
+
+        if self.isLocal:
+            upload_file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
+        else:
+            upload_file_name = "".join([str(user_id), "/", timestamped_name])
+
         d_file_id = self.jobManager.createDFileMeta(submission_id, start_date, end_date, "d2", CONFIG_BROKER["award_file_name"], upload_file_name)
         job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP["D2"], "file_upload")
         try:
@@ -657,7 +668,7 @@ class FileHandler:
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
         jobDb.setDFileStatus(d_file_id, "waiting")
-        jq.generate_d_file.delay(get_url, CONFIG_BROKER["award_file_name"], user_id, d_file_id, InterfaceHolder, timestamped_name, skip_gen=True)
+        jq.generate_d_file.delay(get_url, user_id, d_file_id, InterfaceHolder, timestamped_name, self.isLocal)
 
         # Check status for D2 file
         return self.checkD2File()

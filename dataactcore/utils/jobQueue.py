@@ -54,11 +54,7 @@ class JobQueue:
                 url_start_index += offset
                 file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
 
-                storage_path = CONFIG_BROKER['d_file_storage_path']
-                if storage_path[-1] != os.path.sep:
-                    full_file_path = "".join([storage_path, os.path.sep, timestamped_name])
-                else:
-                    full_file_path = "".join([storage_path, timestamped_name])
+                full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
                 with open(full_file_path, "w") as file:
                     # get request
@@ -75,7 +71,7 @@ class JobQueue:
                 headers = lines[0]
 
                 if isLocal:
-                    file_name = "".join([CONFIG_BROKER['broker_files'], "/", timestamped_name])
+                    file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
                     csv_writer = CsvLocalWriter(file_name, headers)
                 else:
                     file_name = "".join([str(user_id), "/", timestamped_name])
