@@ -1,6 +1,5 @@
 from __future__ import print_function
 import os
-from os.path import join
 from sqlalchemy import not_
 from datetime import datetime
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
@@ -39,7 +38,6 @@ class FileTypeTests(BaseTestValidator):
         for i in range(0, 9):
             submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
 
-
         # Create jobs
         jobDb = cls.jobTracker
         statusReady = str(jobDb.getJobStatusId("ready"))
@@ -68,7 +66,7 @@ class FileTypeTests(BaseTestValidator):
     @staticmethod
     def load_definitions(interfaces, force_tas_load, ruleList = None):
         """Load file definitions."""
-        SchemaLoader.loadAllFromPath(join(CONFIG_BROKER["path"],"dataactvalidator","config"))
+        SchemaLoader.loadAllFromPath(os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config"))
         SQLLoader.loadSql("sqlRules.csv")
 
         if ruleList is not None:
@@ -81,9 +79,9 @@ class FileTypeTests(BaseTestValidator):
 
         # Load domain values tables
         loadDomainValues(
-            join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
-            join(CONFIG_BROKER["path"], os.path.join("tests", "integration", "data"), "sf_133.csv"),
-            join(CONFIG_BROKER["path"], os.path.join("tests", "integration", "data"), "program_activity.csv"))
+            os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config"),
+            os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data"),
+            os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data", "program_activity.csv"))
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
                 or force_tas_load):
             # TAS table is empty, load it

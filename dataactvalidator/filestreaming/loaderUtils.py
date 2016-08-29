@@ -1,9 +1,26 @@
-import csv
-from sqlalchemy.exc import IntegrityError
-from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
-from dataactvalidator.validation_handlers.validator import Validator
+from datetime import datetime
+from pandas import isnull
+
 
 class LoaderUtils:
+
+    # define some data-munging functions that can be applied to
+    # pandas dataframes as necessary
+    cleanColNamesFunction = lambda field: str(field).lower().strip().replace(" ","_").replace(",","_")
+
+    @classmethod
+    def padFunction(self, field, padTo, keepNull):
+        """Pads field to specified length."""
+        if isnull(field) or not str(field).strip():
+            if keepNull:
+                # returning None here
+                # causes the word 'none' to be inserted into
+                # the db instead of a null value, which is what
+                # we want for a blank field
+                return ''
+            else:
+                field = ''
+        return str(field).strip().zfill(padTo)
 
     @staticmethod
     def checkRecord (record, fields) :
@@ -25,85 +42,63 @@ class LoaderUtils:
         return True
 
     @classmethod
-    def loadCsv(cls,filename,model,interface,fieldMap,fieldOptions):
-        """ Loads a table based on a csv
+    def cleanData(cls, data, model, fieldMap, fieldOptions):
+        """ Cleans up a dataframe that contains domain values.
 
-        Args:
-            filename: CSV to load
-            model: ORM object for table to be loaded
-            interface: interface to DB table is in
-            fieldMap: dict that maps columns of the csv to attributes of the ORM object
+        Parameters:
+        ----------
+            data : dataframe of domain values
+            fieldMap: dict that maps columns of the dataframe csv to our db columns
             fieldOptions: dict with keys of attribute names, value contains a dict with options for that attribute.
-                Current options are "pad_to_length" which if present will pad the field with leading zeros up to
-                specified length, and "skip_duplicate" which ignores subsequent lines that repeat values.
+                Current options are:
+                 "pad_to_length" which if present will pad the field with leading zeros up to
+                specified length
+                "keep_null" when set to true, empty fields will not be padded
+                "skip_duplicate" which ignores subsequent lines that repeat values
+                "strip_commas" which removes commas
         """
-        # Delete all records currently in table
-        interface.session.query(model).delete()
-        interface.session.commit()
-        valuePresent = {}
-        # Open csv
-        with open(filename,'rU') as csvfile:
-            # Read header
-            header = csvfile.readline()
-            # Split header into fieldnames
-            rawFieldNames = header.split(",")
-            fieldNames = []
-            # Clean field names
-            for field in rawFieldNames:
-                fieldNames.append(FieldCleaner.cleanString(field))
-            # Map fieldnames to attribute names
-            attributeNames = []
-            for field in fieldNames:
-                if field in fieldMap:
-                    attributeNames.append(fieldMap[field])
-                    if fieldMap[field] in fieldOptions and "skip_duplicates" in fieldOptions[fieldMap[field]]:
-                        # Create empty dict for this field
-                        valuePresent[fieldMap[field]] = {}
-                else:
-                    raise KeyError("".join(["Found unexpected field ", str(field)]))
-            # Check that all fields are present
-            for field in fieldMap:
-                if not field in fieldNames:
-                    raise ValueError("".join([str(field)," is required for loading table ", str(type(model))]))
-            # Open DictReader with attribute names
-            reader = csv.DictReader(csvfile,fieldnames = attributeNames)
-            # For each row, create instance of model and add it
-            for row in reader:
-                skipInsert = False
-                for field in fieldOptions:
-                    if row[field] is None:
-                        # If field is empty set to an empty string
-                        row[field] = ""
-                    # For each field with options present, modify according to those options
-                    options = fieldOptions[field]
-                    if "strip_commas" in options:
-                        # Remove commas from numeric fields
-                        row[field] = row[field].replace(",","")
-                        if row[field] == "":
-                            # If empty, set to 0
-                            row[field] = "0"
-                    if "pad_to_length" in options:
-                        padLength = options["pad_to_length"]
-                        row[field] = Validator.padToLength(row[field],padLength)
-                    if "skip_duplicates" in options:
-                        if row[field] is None or len(row[field].strip()) == 0 or row[field] in valuePresent[field]:
-                            # Value not provided or already exists, skip it
-                            skipInsert = True
-                        else:
-                            # Insert new value
-                            valuePresent[field][row[field]] = True
-                record = model(**row)
-                if not skipInsert:
-                    try:
-                        interface.session.merge(record)
-                        interface.session.commit()
+        # incoming .csvs often have extraneous blank rows at the end,
+        # so get rid of those
+        data.dropna(inplace=True, how='all')
 
-                    except IntegrityError as e:
-                        # Hit a duplicate value that violates index, skip this one
-                        print("".join(["Warning: Skipping this row: ",str(row)]))
-                        print("".join(["Due to error: ",str(e)]))
-                        interface.session.rollback()
-                        continue
-            interface.session.commit()
+        # clean the dataframe column names
+        data.rename(columns=lambda x: cls.cleanColNamesFunction(x), inplace=True)
+        # make sure all values in fieldMap parameter are in the dataframe/csv file
+        for field in fieldMap:
+            if field not in list(data.columns):
+                raise ValueError("{} is required for loading table{}".format(field, model))
+        # toss out any columns from the csv that aren't in the fieldMap parameter
+        data = data[list(fieldMap.keys())]
+        # rename columns as specified in fieldMap
+        data = data.rename(columns=fieldMap)
 
+        # apply column options as specified in fieldOptions param
+        for col, options in fieldOptions.items():
+            if options.get('pad_to_length'):
+                # pad to specified length
+                data[col] = data[col].apply(
+                    cls.padFunction, args=(
+                        options['pad_to_length'],
+                        options.get('keep_null')))
+            if options.get('strip_commas'):
+                # remove commas for specified column
+                # get rid of commas in dollar amounts
+                data[col] = data[col].str.replace(",", "")
 
+        # add created_at and updated_at columns
+        now = datetime.utcnow()
+        data = data.assign(
+            created_at=now, updated_at=now)
+
+        return data
+
+    @classmethod
+    def insertDataframe(cls, df, table, engine):
+        """Inserts a dataframe to the specified database table."""
+        df.to_sql(
+            table,
+            engine,
+            index=False,
+            if_exists='append'
+        )
+        return len(df.index)
