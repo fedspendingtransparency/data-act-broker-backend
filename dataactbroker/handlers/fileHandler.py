@@ -164,18 +164,20 @@ class FileHandler:
                 raise ResponseException("Must include at least one file for an existing submission",
                                         StatusCode.CLIENT_ERROR)
 
-            for extFileType in FileHandler.EXTERNAL_FILE_TYPES:
-                if extFileType == "award":
-                    filename = CONFIG_BROKER["d2_file_name"]
-                elif extFileType == "award_procurement":
-                    filename = CONFIG_BROKER["d1_file_name"]
+            if not existingSubmission:
+                # Existing submissions do not recreate D jobs
+                for extFileType in FileHandler.EXTERNAL_FILE_TYPES:
+                    if extFileType == "award":
+                        filename = CONFIG_BROKER["d2_file_name"]
+                    elif extFileType == "award_procurement":
+                        filename = CONFIG_BROKER["d1_file_name"]
 
-                if(not self.isLocal):
-                    uploadName = str(name) + "/" + s3UrlHandler.getTimestampedFilename(filename)
-                else:
-                    uploadName = filename
-                responseDict[extFileType + "_key"] = uploadName
-                fileNameMap.append((extFileType, uploadName, filename))
+                    if(not self.isLocal):
+                        uploadName = str(name) + "/" + s3UrlHandler.getTimestampedFilename(filename)
+                    else:
+                        uploadName = filename
+                    responseDict[extFileType + "_key"] = uploadName
+                    fileNameMap.append((extFileType, uploadName, filename))
 
             fileJobDict = self.jobManager.createJobs(fileNameMap,submissionId,existingSubmission)
             for fileType in fileJobDict.keys():
