@@ -1,13 +1,10 @@
 from __future__ import with_statement
 from alembic import context
 # Load all DB tables into metadata object
-from dataactcore.models import domainModels
-from dataactcore.models import errorModels
-from dataactcore.models import jobModels
-from dataactcore.models import stagingModels
-from dataactcore.models import userModel
-from dataactcore.models import validationModels
-from dataactcore.models import baseModel
+# @todo - load these dynamically
+from dataactcore.models import (
+    baseModel, domainModels, fsrs, errorModels, jobModels, stagingModels,
+    userModel, validationModels)
 from dataactcore.config import CONFIG_DB
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
