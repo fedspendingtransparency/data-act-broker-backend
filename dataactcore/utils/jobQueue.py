@@ -46,7 +46,7 @@ class JobQueue:
             try:
                 xml_response = get_xml_response_content(api_url)
                 url_start_index = xml_response.find("<results>", 0)
-                offset = 9
+                offset = len("<results>")
 
                 if url_start_index == -1:
                     raise ResponseException("Empty response. Validate if input is correct.", StatusCode.CLIENT_ERROR)
@@ -56,17 +56,8 @@ class JobQueue:
 
                 full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
-                with open(full_file_path, "w") as file:
-                    # get request
-                    response = requests.get(file_url)
-                    # write to file
-                    response.encoding = "utf-8"
-                    file.write(response.text)
-
-                lines = []
-                with open(full_file_path) as file:
-                    for line in reader(file):
-                        lines.append(line)
+                download_file(full_file_path, file_url)
+                lines = get_lines_from_csv(full_file_path)
 
                 headers = lines[0]
 
@@ -84,17 +75,39 @@ class JobQueue:
                         writer.write(line)
                     writer.finishBatch()
 
-                job_manager.setDFileStatus(d_file_id, "finished")
+                update_d_file_status(job_manager, d_file_id, "finished")
                 return {"message": "Success", "file_name": file_name}
             except Exception as e:
                 # Log the error
                 JsonResponse.error(e,500)
                 job_manager.setDFileMessage(d_file_id, str(e))
-                job_manager.setDFileStatus(d_file_id, "failed")
+                update_d_file_status(job_manager, d_file_id, "failed")
                 raise e
 
         def get_xml_response_content(api_url):
+            """ Retrieve XML Response from the provided API url """
             return str(requests.get(api_url, verify=False).content)
+
+        def download_file(local_file_path, file_url):
+            """ Download a file locally from the specified URL """
+            with open(local_file_path, "w") as file:
+                # get request
+                response = requests.get(file_url)
+                # write to file
+                response.encoding = "utf-8"
+                file.write(response.text)
+
+        def update_d_file_status(job_manager, d_file_id, status):
+            """ Update the D file status to the one specified via the Job Manager """
+            job_manager.setDFileStatus(d_file_id, status)
+
+        def get_lines_from_csv(file_path):
+            """ Retrieve all lines from specified CSV file """
+            lines = []
+            with open(file_path) as file:
+                for line in reader(file):
+                    lines.append(line)
+            return lines
 
         self.enqueue = enqueue
         self.generate_d_file = generate_d_file
