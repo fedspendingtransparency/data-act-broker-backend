@@ -82,7 +82,7 @@ elif len(os.path.splitext(broker_files)[1]):
     broker_files = os.path.split(broker_files)[0]
 normpath(broker_files)
 if broker_files[-1] != os.path.sep:
-    broker_files = "".join([broker_files, os.path.sep])
+    broker_files += os.path.sep
 CONFIG_BROKER['broker_files'] = broker_files
 
 # normalize logging path, if given
