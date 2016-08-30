@@ -446,3 +446,11 @@ class JobHandler(JobTrackerInterface):
         query = self.session.query(Job).filter(and_(Job.submission_id == submission_id, Job.file_type_id == file_id, Job.job_type_id == type_id))
         result = self.runUniqueQuery(query, "No job with that submission ID, file type and job type", "Multiple jobs with conflicting submission ID, file type and job type")
         return result
+
+    def createFileTypeMap(self):
+        """ Create a map from letter names to file type names """
+        fileTypeMap = {}
+        fileTypes = self.session.query(FileType).all()
+        for fileType in fileTypes:
+            fileTypeMap[fileType.letter_name] = fileType.name
+        return fileTypeMap

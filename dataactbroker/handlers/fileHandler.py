@@ -29,7 +29,6 @@ class FileHandler:
     FILE_TYPES = ["appropriations","award_financial","program_activity"]
     EXTERNAL_FILE_TYPES = ["award", "award_procurement", "awardee_attributes", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
-    EXTERNAL_FILE_TYPE_MAP = {"D1":"award_procurement", "D2":"award", "E":"awardee_attributes", "F": "sub_award"}
     STATUS_MAP = {"waiting":"invalid", "ready":"invalid", "running":"waiting", "finished":"finished", "invalid":"failed", "failed":"failed"}
     VALIDATION_STATUS_MAP = {"waiting":"waiting", "ready":"waiting", "running":"waiting", "finished":"finished", "failed":"failed", "invalid":"failed"}
 
@@ -46,9 +45,11 @@ class FileHandler:
         if(interfaces != None):
             self.interfaces = interfaces
             self.jobManager = interfaces.jobDb
+            self.fileTypeMap = self.interfaces.jobDb.createFileTypeMap()
         self.isLocal = isLocal
         self.serverPath = serverPath
         self.s3manager = s3UrlHandler()
+
 
     def addInterfaces(self,interfaces):
         """ Add connections to databases
@@ -58,6 +59,7 @@ class FileHandler:
         """
         self.interfaces = interfaces
         self.jobManager = interfaces.jobDb
+        self.fileTypeMap = self.interfaces.jobDb.createFileTypeMap()
 
     def getErrorReportURLsForSubmission(self, isWarning = False):
         """
@@ -452,7 +454,7 @@ class FileHandler:
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
     def startGenerationJob(self, submission_id, file_type):
-        """ Initiates the generation of D1
+        """ Initiates a file generation job
 
         Args:
             submission_id: ID of submission to start job for
@@ -463,10 +465,10 @@ class FileHandler:
 
         """
         jobDb = self.interfaces.jobDb
-        file_type_name = self.EXTERNAL_FILE_TYPE_MAP[file_type]
+        file_type_name = self.fileTypeMap[file_type]
 
         if file_type in ["D1", "D2"]:
-            # Populate start and end dates
+            # Populate start and end dates, these should be provided in MM/DD/YYYY format, using calendar year (not fiscal year)
             requestDict = RequestDictionary(self.request)
             start_date = requestDict.getValue("start")
             end_date = requestDict.getValue("end")
@@ -531,7 +533,7 @@ class FileHandler:
         if not success:
             return error_response
 
-        job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "file_upload")
+        job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "file_upload")
         # Check prerequisites on upload job
         if not self.interfaces.jobDb.runChecks(job.job_id):
             exc = ResponseException("Must wait for completion of prerequisite validation job", StatusCode.CLIENT_ERROR)
@@ -557,9 +559,9 @@ class FileHandler:
         # Check permission to submission
         self.checkSubmissionById(submission_id, file_type)
 
-        uploadJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "file_upload")
+        uploadJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "file_upload")
         if file_type in ["D2"]: # TODO add D1 to this list once D1 validation exists
-            validationJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.EXTERNAL_FILE_TYPE_MAP[file_type], "csv_record_validation")
+            validationJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "csv_record_validation")
         else:
             validationJob = None
         responseDict = {}

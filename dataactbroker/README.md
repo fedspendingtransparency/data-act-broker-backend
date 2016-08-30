@@ -776,13 +776,13 @@ Example output if there are no files available:
 ## File Generation Routes
 
 ## Generate Files
-**Route:** `/generate_file`
+**Route:** `/v1/generate_file`
 
 **Method:** `POST`
 
 This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted.
 
-**Deprecation Notice:** This route replaces `/generate_d1_file` and `/generate_d2_file`.
+**Deprecation Notice:** This route replaces `/v1/generate_d1_file` and `/v1/generate_d2_file`.
 
 ### Body (JSON)
 
@@ -803,21 +803,21 @@ This route sends a request to the backend to utilize the relevant external APIs 
 	* `D2` - generate a D2 file
 	* `E` - generate a E file
 	* `F` - generate a F file
-* `start` - **required for D1/D2 only** - the start date of the requested period, in `MM/DD/YYYY` string format
-* `end` - **required for D1/D2 only** - the end date of the requested period, in `MM/DD/YYYY` string format
+* `start` - **required for D1/D2 only** - the start date of the requested date range, in `MM/DD/YYYY` string format
+* `end` - **required for D1/D2 only** - the end date of the requested date range, in `MM/DD/YYYY` string format
 
 ### Response (JSON)
-Response will be the same format as those which are returned in the `/check_file` or `/check_d2_file` endpoint
+Response will be the same format as those which are returned in the `/v1/check_generation_status` endpoint
 
 
 ## File Status
-**Route:** `/check_generation_status`
+**Route:** `/v1/check_generation_status`
 
 **Method:** `POST`
 
 This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that.
 
-**Deprecation Notice:** This route replaces `/check_d1_file` and `/check_d2_file`.
+**Deprecation Notice:** This route replaces `/v1/check_d1_file` and `/v1/check_d2_file`.
 
 ### Body (JSON)
 

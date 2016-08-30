@@ -102,6 +102,7 @@ class FileType(Base):
     file_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
+    letter_name = Column(Text)
 
 class DFileMeta(Base):
     __tablename__ = "d_file_metadata"
