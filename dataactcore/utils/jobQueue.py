@@ -85,13 +85,11 @@ class JobQueue:
         self.enqueue = enqueue
         self.generate_d_file = generate_d_file
 
-    @staticmethod
-    def get_xml_response_content(api_url):
+    def get_xml_response_content(self, api_url):
         """ Retrieve XML Response from the provided API url """
         return requests.get(api_url, verify=False).text
 
-    @staticmethod
-    def download_file(local_file_path, file_url):
+    def download_file(self, local_file_path, file_url):
         """ Download a file locally from the specified URL """
         with open(local_file_path, "w") as file:
             # get request
@@ -100,13 +98,11 @@ class JobQueue:
             response.encoding = "utf-8"
             file.write(response.text)
 
-    @staticmethod
-    def update_d_file_status(job_manager, d_file_id, status):
+    def update_d_file_status(self, job_manager, d_file_id, status):
         """ Update the D file status to the one specified via the Job Manager """
         job_manager.setDFileStatus(d_file_id, status)
 
-    @staticmethod
-    def get_lines_from_csv(file_path):
+    def get_lines_from_csv(self, file_path):
         """ Retrieve all lines from specified CSV file """
         lines = []
         with open(file_path) as file:
