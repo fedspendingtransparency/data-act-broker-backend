@@ -191,7 +191,7 @@ You will need to run two scripts to setup the broker's backend components. These
 
 **Important Notes:**
 * If you're using a local DynamoDB, make sure it's running before executing these scripts.
-* By default, the broker installs with a small sample of [GTAS financial data](https://www.fiscal.treasury.gov/fsservices/gov/acctg/gtas/gtas_home.htm "GTAS"), which is used during the validation process. If you'd like to install the broker using real GTAS data for your agency, replace `dataactvalidator/config/sf_133.csv` (use the same format). This is only necessary for local installs.
+* By default, the broker installs with a small sample of [GTAS financial data](https://www.fiscal.treasury.gov/fsservices/gov/acctg/gtas/gtas_home.htm "GTAS"), which is used during the validation process. If you'd like to install the broker using real GTAS data for your agency, replace the sample file with data representing the GTAS periods you want to validate against (using the same headers and data format as the sample file). The files should be named `dataactvalidator/config/sf_133_yyyy_mm.csv`, where `yyyy` is the fiscal year, and `mm` is the fiscal year period. This is only necessary for local installs.
 
 ### Run Broker Backend Applications
 
