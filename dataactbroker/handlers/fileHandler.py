@@ -487,7 +487,10 @@ class FileHandler:
         # Generate and upload file to S3
         user_id = LoginSession.getName(session)
         timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["".join([str(file_type_name),"_file_name"])])
-        upload_file_name = "".join([str(user_id), "/", timestamped_name])
+        if self.isLocal:
+            upload_file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
+        else:
+            upload_file_name = "".join([str(user_id), "/", timestamped_name])
 
         job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, file_type_name, "file_upload")
         job.filename = upload_file_name
@@ -503,7 +506,7 @@ class FileHandler:
                 exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
                 return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
             get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date)
-            jq.generate_d_file.delay(get_url, CONFIG_BROKER["".join([file_type_name, "_file_name"])], user_id, job.job_id, InterfaceHolder, timestamped_name, skip_gen=True)
+            jq.generate_d_file.delay(get_url, user_id, job.job_id, InterfaceHolder, timestamped_name, self.isLocal)
         else:
             # TODO add generate calls for E and F
             pass
@@ -571,7 +574,8 @@ class FileHandler:
         if uploadJob.filename is None:
             responseDict["url"] = ""
         elif CONFIG_BROKER["use_aws"]:
-            responseDict["url"] = s3UrlHandler().getSignedUrl("d-files",uploadJob.filename, bucketRoute=None, method="GET")
+            path, file_name = uploadJob.filename.split("/")
+            responseDict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name, bucketRoute=None, method="GET")
         else:
             responseDict["url"] = uploadJob.filename
 
@@ -604,7 +608,7 @@ class FileHandler:
             # No validation job, so don't need to check it
             self.interfaces.jobDb.session.commit()
             return responseStatus
-        
+
         if responseStatus == "finished":
             # Check status of validation job if present
             responseStatus = FileHandler.VALIDATION_STATUS_MAP[validationStatus]

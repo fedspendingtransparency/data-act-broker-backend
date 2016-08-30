@@ -45,6 +45,8 @@ broker:
     award_url: https://data-usas.uat.workplace.gov/api/contracts?CGAC={}&date_signed_beginning={}&date_signed_end={}
     award_file_name: d2_data.csv
 
+    d_file_storage_path: /full/path/to/d/file/storage
+
     # File E
     awardee_attributes_url: https://sample.gov
     awardee_attributes_file_name: awardee_data.csv
