@@ -44,7 +44,7 @@ class JobQueue:
             job_manager = interface_holder().jobDb
 
             try:
-                xml_response = str(requests.get(api_url, verify=False).content)
+                xml_response = get_xml_response_content(api_url)
                 url_start_index = xml_response.find("<results>", 0)
                 offset = 9
 
@@ -92,6 +92,9 @@ class JobQueue:
                 job_manager.setDFileMessage(d_file_id, str(e))
                 job_manager.setDFileStatus(d_file_id, "failed")
                 raise e
+
+        def get_xml_response_content(api_url):
+            return str(requests.get(api_url, verify=False).content)
 
         self.enqueue = enqueue
         self.generate_d_file = generate_d_file
