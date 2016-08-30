@@ -1,5 +1,8 @@
-from dataactcore.models.stagingModels import Appropriation
-from dataactcore.models.domainModels import SF133
+from random import randint
+
+from tests.unit.dataactcore.factories.domain import SF133Factory
+from tests.unit.dataactcore.factories.job import SubmissionFactory
+from tests.unit.dataactcore.factories.staging import AppropriationFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
@@ -17,27 +20,36 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Tests that TAS for SF-133 are present in File A """
-    tas = "".join([_TAS, "_success"])
+    submission_id = randint(1000, 10000)
+    tas, period, year, code = 'some-tas', 2, 2002, 'some-code'
+    sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year,
+                       agency_identifier=code)
+    sf2 = SF133Factory(tas=tas, period=period, fiscal_year=year,
+                       agency_identifier=code)
+    submission = SubmissionFactory(
+        submission_id=submission_id, reporting_fiscal_period=period,
+        reporting_fiscal_year=year, cgac_code=code)
+    ap = AppropriationFactory(tas=tas, submission_id=submission_id)
 
-    sf1 = SF133(line=1021, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-                 main_account_code="000", sub_account_code="000")
-    sf2 = SF133(line=1033, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-                 main_account_code="000", sub_account_code="000")
-
-    ap = Appropriation(job_id=1, row_number=1, tas=tas)
-
-    assert number_of_errors(_FILE, database.stagingDb, models=[sf1, sf2, ap]) == 0
+    errors = number_of_errors(_FILE, database.stagingDb,
+                              models=[sf1, sf2, ap], submission=submission)
+    assert errors == 0
 
 
 def test_failure(database):
     """ Tests that TAS for SF-133 are not present in File A """
-    tas = "".join([_TAS, "_failure"])
+    submission_id = randint(1000, 10000)
+    tas, period, year, code = 'some-tas', 2, 2002, 'some-code'
+    sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year,
+                       agency_identifier=code)
+    sf2 = SF133Factory(tas=tas, period=period, fiscal_year=year,
+                       agency_identifier=code)
+    submission = SubmissionFactory(
+        submission_id=submission_id, reporting_fiscal_period=period,
+        reporting_fiscal_year=year, cgac_code=code)
+    ap = AppropriationFactory(tas='a-different-tas',
+                              submission_id=submission_id)
 
-    sf1 = SF133(line=1021, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000")
-    sf2 = SF133(line=1033, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000")
-
-    ap = Appropriation(job_id=1, row_number=1, tas='1')
-
-    assert number_of_errors(_FILE, database.stagingDb, models=[sf1, sf2, ap]) == 2
+    errors = number_of_errors(_FILE, database.stagingDb,
+                              models=[sf1, sf2, ap], submission=submission)
+    assert errors == 2
