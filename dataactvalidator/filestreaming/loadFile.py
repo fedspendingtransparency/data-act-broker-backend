@@ -169,14 +169,14 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
     # everything, but that drastically increases the number of records we're inserting to the
     # sf_133 table. If we ever decide that we need *all* SF 133 lines that are zero value,
     # uncomment the next line.
-    sf_133_validation_lines = ['1910',	'1000',	'1160',	'1180',	'1260',
-                               '1280',	'1540',	'1640',	'1340',	'1440',	'1750',
-                               '1850',	'1032',	'1033',	'1022',	'1030',	'1029',
-                               '1025',	'1021',	'1040',	'1026',	'1010',	'1024',
-                               '1020',	'1011',	'1041',	'1013',	'1012',	'1031',
-                               '1042',	'1023',	'3020',	'2490',	'2190',	'2500',
-                               '1021',	'1033',	'4801',	'4802',	'4881',	'4882',
-                               '4901',	'4902',	'4908',	'4981',	'4982']
+    sf_133_validation_lines = [
+        '1000', '1010', '1011', '1012', '1013', '1020', '1021', '1022',
+        '1023', '1024', '1025', '1026', '1029', '1030', '1031', '1032',
+        '1033', '1040', '1041', '1042', '1160', '1180', '1260', '1280',
+        '1340', '1440', '1540', '1640', '1750', '1850', '1910', '2190',
+        '2490', '2500', '3020', '4801', '4802', '4881', '4882', '4901',
+        '4902', '4908', '4981', '4982'
+    ]
     data = data[(data.line.isin(sf_133_validation_lines)) | (data.amount != 0)]
 
     # TODO: very ugly function below...is there a better way?
