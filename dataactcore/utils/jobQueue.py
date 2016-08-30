@@ -7,8 +7,6 @@ from csv import reader
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-import os
-
 
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):
@@ -87,13 +85,11 @@ class JobQueue:
         self.enqueue = enqueue
         self.generate_d_file = generate_d_file
 
-    @staticmethod
     def get_xml_response_content(api_url):
         """ Retrieve XML Response from the provided API url """
         return str(requests.get(api_url, verify=False).content)
 
-    @staticmethod
-    def download_file(self, local_file_path, file_url):
+    def download_file(local_file_path, file_url):
         """ Download a file locally from the specified URL """
         with open(local_file_path, "w") as file:
             # get request
@@ -102,7 +98,6 @@ class JobQueue:
             response.encoding = "utf-8"
             file.write(response.text)
 
-    @staticmethod
     def update_d_file_status(job_manager, d_file_id, status):
         """ Update the D file status to the one specified via the Job Manager """
         job_manager.setDFileStatus(d_file_id, status)
