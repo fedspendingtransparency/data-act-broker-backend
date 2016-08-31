@@ -618,14 +618,15 @@ class FileHandler:
                 responseStatus = "failed"
                 uploadJob.error_message = "Validation completed but row-level errors were found"
 
-        if uploadJob.error_message is None and validationJob.error_message is None:
-            if validationStatus == "invalid":
-                uploadJob.error_message = "Generated file had file-level errors"
-            else:
-                uploadJob.error_message = "Validation job had an internal error"
+        if responseStatus == "failed":
+            if uploadJob.error_message is None and validationJob.error_message is None:
+                if validationStatus == "invalid":
+                    uploadJob.error_message = "Generated file had file-level errors"
+                else:
+                    uploadJob.error_message = "Validation job had an internal error"
 
-        elif uploadJob.error_message is None:
-            uploadJob.error_message = validationJob.error_message
+            elif uploadJob.error_message is None:
+                uploadJob.error_message = validationJob.error_message
         self.interfaces.jobDb.session.commit()
         return responseStatus
 
