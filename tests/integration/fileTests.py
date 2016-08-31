@@ -32,6 +32,9 @@ class FileTests(BaseTestAPI):
             cls.test_users['submission_email'])
         cls.submission_user_id = submission_user.user_id
 
+        other_user = cls.userDb.getUserByEmail(cls.test_users['inactive_email'])
+        cls.other_user_id = other_user.user_id
+
         # setup submission/jobs data for test_check_status
         cls.status_check_submission_id = cls.insertSubmission(
             cls.jobTracker, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
@@ -220,7 +223,7 @@ class FileTests(BaseTestAPI):
         # Call check status route
         response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True, headers={"x-session-id":self.session_id})
         # Assert 400 status
-        self.assertEqual(response.status_code,400)
+        self.assertEqual(response.status_code,403)
 
     def test_check_status_admin(self):
         """ Test that admins have access to other user's submissions """
@@ -492,6 +495,20 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["message"],"Prerequisites incomplete, job cannot be started")
 
+        # Test permission error
+        self.login_approved_user()
+        postJson = {"submission_id": self.generation_submission_id, "file_type": "D1", "start":"01/02/2016", "end":"02/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+
+        self.assertEqual(response.status_code, 403)
+        json = response.json
+        self.assertEqual(json["status"], "failed")
+        self.assertEqual(json["file_type"], "D1")
+        self.assertEqual(json["url"], "")
+        self.assertEqual(json["start"],"")
+        self.assertEqual(json["end"],"")
+        self.assertEqual(json["message"],"User does not have permission to view that submission")
+
     @staticmethod
     def insertSubmission(jobTracker, submission_user_id, submission=None, cgac_code = None, startDate = None, endDate = None, is_quarter = False):
         """Insert one submission into job tracker and get submission ID back."""
@@ -566,14 +583,14 @@ class FileTests(BaseTestAPI):
         awardProcurement = jobDb.getFileTypeId("award_procurement")
         subAward = jobDb.getFileTypeId("sub_award")
 
-        # Create D2 jobs ready for generation route to be called
+        # Create D1 jobs ready for generation route to be called
         cls.insertJob(jobDb,awardProcurement, ready, upload, submission.submission_id)
         awardProcValJob = cls.insertJob(jobDb,awardProcurement, waiting, validation, submission.submission_id)
         # Create E and F jobs ready for check route
         awardeeAttJob = cls.insertJob(jobDb,awardeeAtt, finished, upload, submission.submission_id)
         subAwardJob = cls.insertJob(jobDb,subAward, invalid, upload, submission.submission_id)
         subAwardJob.error_message = "File was invalid"
-        # Create D1 jobs
+        # Create D2 jobs
         cls.insertJob(jobDb,award, finished, upload, submission.submission_id)
         cls.insertJob(jobDb,award, invalid, validation, submission.submission_id)
         # Create dependency

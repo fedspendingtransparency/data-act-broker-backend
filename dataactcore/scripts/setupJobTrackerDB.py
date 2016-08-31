@@ -41,15 +41,15 @@ def insertCodes():
         status = PublishStatus(publish_status_id=ps[0], name=ps[1], description=ps[2])
         jobDb.session.merge(status)
 
-    fileTypeList = [(1, 'appropriations', ''),
-        (2,'program_activity', ''),
-        (3, 'award_financial', ''),
-        (4, 'award', ''),
-        (5, 'award_procurement', ''),
-        (6, "awardee_attributes", ""),
-        (7, "sub_award", "")]
+    fileTypeList = [(1, 'appropriations', '', 'A'),
+        (2,'program_activity', '', 'B'),
+        (3, 'award_financial', '', 'C'),
+        (4, 'award', '', 'D2'),
+        (5, 'award_procurement', '', 'D1'),
+        (6, "awardee_attributes", "", 'E'),
+        (7, "sub_award", "", 'F')]
     for ft in fileTypeList:
-        fileType = FileType(file_type_id=ft[0], name=ft[1], description=ft[2])
+        fileType = FileType(file_type_id=ft[0], name=ft[1], description=ft[2], letter_name=ft[3])
         jobDb.session.merge(fileType)
 
     jobDb.session.commit()
