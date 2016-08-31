@@ -138,7 +138,7 @@ class MixedFileTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 1139, 8, "complete", 15, True, 24, 2085)
+            jobId, 200, "finished", 1024, 8, "complete", 15, True, 24, 2085)
 
     def test_award_mixed_delimiter(self):
         """Test mixed job with mixed delimiter"""
