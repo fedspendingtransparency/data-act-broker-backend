@@ -509,6 +509,7 @@ class FileHandler:
             jq.generate_d_file.delay(get_url, user_id, job.job_id, InterfaceHolder, timestamped_name, self.isLocal)
         else:
             # TODO add generate calls for E and F
+            jobDb.markJobStatus(job.job_id,"finished")
             pass
 
         return True, None
