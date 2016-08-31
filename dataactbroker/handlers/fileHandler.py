@@ -547,8 +547,6 @@ class FileHandler:
         if not success:
             return error_response
 
-        # Mark file generation upload as finished
-        self.interfaces.jobDb.markJobStatus(job.job_id,"finished")
         # Return same response as check generation route
         return self.checkGeneration(submission_id, file_type)
 
