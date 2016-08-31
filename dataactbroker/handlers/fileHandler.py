@@ -498,8 +498,13 @@ class FileHandler:
         jobDb.session.commit()
         if file_type in ["D1", "D2"]:
             try:
+                valJob = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, file_type_name, "csv_record_validation")
+                valJob.filename = upload_file_name
+                valJob.job_status_id = jobDb.getJobStatusId("waiting")
                 job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
                 job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
+                valJob.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
+                valJob.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
                 jobDb.session.commit()
             except ValueError as e:
                 # Date was not in expected format
