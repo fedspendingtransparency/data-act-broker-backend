@@ -8,16 +8,26 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
+
+def enqueue(jobID):
+    """POST a job to the validator"""
+    validatorUrl = '{validator_host}:{validator_port}'.format(
+        **CONFIG_SERVICES)
+    if 'http://' not in validatorUrl:
+        validatorUrl = 'http://' + validatorUrl
+    validatorUrl += '/validate/'
+    params = {
+        'job_id': jobID
+    }
+    response = requests.post(validatorUrl, params)
+    return response.json()
+
+
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):
         # Set up backend persistent URL
         backendUrl = ''.join(['db+', CONFIG_DB['scheme'], '://', CONFIG_DB['username'], ':', CONFIG_DB['password'], '@',
                               CONFIG_DB['host'], '/', CONFIG_DB['job_queue_db_name']])
-
-        # Set up url to the validator for the RESTFul calls
-        validatorUrl = ''.join([CONFIG_SERVICES['validator_host'], ':', str(CONFIG_SERVICES['validator_port'])])
-        if 'http://' not in validatorUrl:
-            validatorUrl = ''.join(['http://', validatorUrl])
 
         # Set up url to the job queue to establish connection
         queueUrl = ''.join(
@@ -26,16 +36,6 @@ class JobQueue:
 
         # Create remote connection to the job queue
         self.jobQueue = Celery('tasks', backend=backendUrl, broker=queueUrl)
-
-        @self.jobQueue.task(name='jobQueue.enqueue')
-        def enqueue(jobID):
-            # Don't need to worry about the response currently
-            url = ''.join([validatorUrl, '/validate/'])
-            params = {
-                'job_id': jobID
-            }
-            response = requests.post(url, params)
-            return response.json()
 
         @self.jobQueue.task(name='jobQueue.generate_d_file')
         def generate_d_file(api_url, user_id, job_id, interface_holder, timestamped_name, isLocal):
@@ -83,7 +83,7 @@ class JobQueue:
                 job_manager.session.commit()
                 raise e
 
-        self.enqueue = enqueue
+        self.enqueue = self.jobQueue.task(name='jobQueue.enqueue')(enqueue)
         self.generate_d_file = generate_d_file
 
     def get_xml_response_content(self, api_url):
