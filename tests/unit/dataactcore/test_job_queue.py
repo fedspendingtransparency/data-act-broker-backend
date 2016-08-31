@@ -1,4 +1,4 @@
-from dataactcore.utils.jobQueue import JobQueue
+from dataactcore.utils import jobQueue
 from dataactcore.config import CONFIG_BROKER
 from unittest.mock import Mock
 import pytest
@@ -26,13 +26,10 @@ def test_generate_d_file_success(monkeypatch, mock_file_d_path):
 
     result_xml = "<results>test_file.csv</results>"
 
-    jq = JobQueue()
-    monkeypatch.setattr(jq, 'update_d_file_status', Mock())
-    monkeypatch.setattr(jq, 'download_file', Mock())
-    monkeypatch.setattr(jq, 'get_xml_response_content',
+    monkeypatch.setattr(jobQueue, 'download_file', Mock())
+    monkeypatch.setattr(jobQueue, 'get_xml_response_content',
                         Mock(return_value=result_xml))
-
-    jq.generate_d_file(Mock(), 1, 1, Mock(), local_file_name, True)
+    jobQueue.generate_d_file(Mock(), 1, 1, Mock(), local_file_name, True)
 
     assert os.path.isfile(str(file_path))
 
@@ -44,12 +41,8 @@ def test_generate_d_file_failure(monkeypatch, mock_file_d_path):
 
     assert not os.path.isfile(str(file_path))
 
-    result_xml = ""
-
-    jq = JobQueue()
-    monkeypatch.setattr(jq, 'update_d_file_status', Mock())
-    monkeypatch.setattr(jq, 'get_xml_response_content',
-                        Mock(return_value=result_xml))
-
+    monkeypatch.setattr(jobQueue, 'download_file', Mock())
+    monkeypatch.setattr(jobQueue, 'get_xml_response_content',
+                        Mock(return_value=''))
     with raises(ResponseException):
-        jq.generate_d_file(Mock(), 1, 1, Mock(), local_file_name, True)
+        jobQueue.generate_d_file(Mock(), 1, 1, Mock(), local_file_name, True)
