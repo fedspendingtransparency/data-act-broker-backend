@@ -29,7 +29,14 @@ def error_rows(rule_file, staging_db, submission=None, models=None):
         staging_db.session.add(model)
 
     staging_db.session.commit()
-    return staging_db.connection.execute(sql).fetchall()
+    result = staging_db.connection.execute(sql).fetchall()
+
+    # clean up
+    for model in models:
+        staging_db.session.delete(model)
+    staging_db.session.commit()
+
+    return result
 
 
 def number_of_errors(rule_file, staging_db, submission=None, models=None):
