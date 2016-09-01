@@ -1,10 +1,13 @@
+from contextlib import contextmanager
+from csv import reader
+
 from celery import Celery
+
 from dataactcore.config import (
     CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER)
 import requests
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
-from csv import reader
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -48,11 +51,44 @@ def get_lines_from_csv(file_path):
     return lines
 
 
+def write_csv(user_id, file_name, is_local, header, body):
+    """Derive the relevant location and write a CSV to it.
+    :return: the final file name (complete with prefix)"""
+    if is_local:
+        file_name = CONFIG_BROKER['broker_files'] + file_name
+        csv_writer = CsvLocalWriter(file_name, header)
+    else:
+        file_name = "{}/{}".format(user_id, file_name)
+        bucket = CONFIG_BROKER['aws_bucket']
+        region = CONFIG_BROKER['aws_region']
+        csv_writer = CsvS3Writer(region, bucket, file_name, header)
+
+    with csv_writer as writer:
+        for line in body:
+            writer.write(line)
+        writer.finishBatch()
+    return file_name
+
+
+@contextmanager
+def exception_logging(job_manager, job_id):
+    """If something goes wrong with this job, log the exception"""
+    try:
+        yield
+    except Exception as e:
+        # Log the error
+        JsonResponse.error(e, 500)
+        job_manager.getJobById(job_id).error_message = str(e)
+        job_manager.markJobStatus(job_id, "failed")
+        job_manager.session.commit()
+        raise e
+
+
 def generate_d_file(api_url, user_id, job_id, interface_holder,
                     timestamped_name, isLocal):
     job_manager = interface_holder().jobDb
 
-    try:
+    with exception_logging(job_manager, job_id):
         xml_response = get_xml_response_content(api_url)
         url_start_index = xml_response.find("<results>", 0)
         offset = len("<results>")
@@ -72,31 +108,11 @@ def generate_d_file(api_url, user_id, job_id, interface_holder,
         download_file(full_file_path, file_url)
         lines = get_lines_from_csv(full_file_path)
 
-        headers = lines[0]
-
-        if isLocal:
-            file_name = CONFIG_BROKER['broker_files'] + timestamped_name
-            csv_writer = CsvLocalWriter(file_name, headers)
-        else:
-            file_name = "".join([str(user_id), "/", timestamped_name])
-            bucket = CONFIG_BROKER['aws_bucket']
-            region = CONFIG_BROKER['aws_region']
-            csv_writer = CsvS3Writer(region, bucket, file_name, headers)
-
-        with csv_writer as writer:
-            for line in lines[1:]:
-                writer.write(line)
-            writer.finishBatch()
+        file_name = write_csv(user_id, timestamped_name, isLocal,
+                              header=lines[0], body=lines[1:])
 
         job_manager.markJobStatus(job_id, "finished")
         return {"message": "Success", "file_name": file_name}
-    except Exception as e:
-        # Log the error
-        JsonResponse.error(e, 500)
-        job_manager.getJobById(job_id).error_message = str(e)
-        job_manager.markJobStatus(job_id, "failed")
-        job_manager.session.commit()
-        raise e
 
 
 class JobQueue:
