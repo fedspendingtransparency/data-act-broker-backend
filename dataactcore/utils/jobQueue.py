@@ -82,6 +82,8 @@ class JobQueue:
                 job_manager.markJobStatus(job_id, "failed")
                 job_manager.session.commit()
                 raise e
+            finally:
+                interface_holder.close()
 
         self.enqueue = enqueue
         self.generate_d_file = generate_d_file
