@@ -161,6 +161,7 @@ class FieldCleaner(StringCleaner):
             return value
 
 if __name__ == '__main__':
+    FieldCleaner.cleanFile("../config/awardProcurementFieldsRaw.csv","../config/awardProcurementFields.csv")
     FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")
     FieldCleaner.cleanFile("../config/awardFinancialFieldsRaw.csv","../config/awardFinancialFields.csv")
     FieldCleaner.cleanFile("../config/programActivityFieldsRaw.csv","../config/programActivityFields.csv")
