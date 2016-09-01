@@ -9,6 +9,7 @@ import requests
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils import fileF
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
@@ -85,7 +86,7 @@ def exception_logging(job_manager, job_id):
 
 
 def generate_d_file(api_url, user_id, job_id, interface_holder,
-                    timestamped_name, isLocal):
+                    timestamped_name, is_local):
     job_manager = interface_holder().jobDb
 
     with exception_logging(job_manager, job_id):
@@ -108,9 +109,26 @@ def generate_d_file(api_url, user_id, job_id, interface_holder,
         download_file(full_file_path, file_url)
         lines = get_lines_from_csv(full_file_path)
 
-        file_name = write_csv(user_id, timestamped_name, isLocal,
+        file_name = write_csv(user_id, timestamped_name, is_local,
                               header=lines[0], body=lines[1:])
 
+        job_manager.markJobStatus(job_id, "finished")
+        return {"message": "Success", "file_name": file_name}
+
+
+def generate_f_file(submission_id, user_id, job_id, interface_holder,
+                    timestamped_name, is_local):
+    job_manager = interface_holder().jobDb
+
+    with exception_logging(job_manager, job_id):
+        rows_of_dicts = fileF.generateFRows(job_manager.session, submission_id)
+        header = [key for key in fileF.mappings]    # keep order
+        body = []
+        for row in rows_of_dicts:
+            body.append([row[key] for key in header])
+
+        file_name = write_csv(user_id, timestamped_name, is_local,
+                              header=header, body=body)
         job_manager.markJobStatus(job_id, "finished")
         return {"message": "Success", "file_name": file_name}
 
@@ -131,6 +149,8 @@ class JobQueue:
         self.enqueue = self.jobQueue.task(name='jobQueue.enqueue')(enqueue)
         self.generate_d_file = self.jobQueue.task(
             name='jobQueue.generate_d_file')(generate_d_file)
+        self.generate_f_file = self.jobQueue.task(
+            name='jobQueue.generate_f_file')(generate_f_file)
 
 
 if __name__ in ['__main__', 'jobQueue']:
