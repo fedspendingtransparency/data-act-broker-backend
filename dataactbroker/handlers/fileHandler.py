@@ -342,12 +342,6 @@ class FileHandler:
                 if jobType != "csv_record_validation" and jobType != "validation":
                     continue
 
-                # TODO Skip D1 file until validation is added, remove these lines once D1 validation is added
-                if jobType == "csv_record_validation":
-                    fileType = self.jobManager.getFileType(jobId)
-                    if fileType == "award_procurement":
-                        continue
-
                 jobInfo["job_id"] = jobId
                 jobInfo["job_status"] = self.jobManager.getJobStatusName(jobId)
                 jobInfo["job_type"] = jobType
@@ -567,7 +561,7 @@ class FileHandler:
         self.checkSubmissionById(submission_id, file_type)
 
         uploadJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "file_upload")
-        if file_type in ["D2"]: # TODO add D1 to this list once D1 validation exists
+        if file_type in ["D1","D2"]:
             validationJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "csv_record_validation")
         else:
             validationJob = None
