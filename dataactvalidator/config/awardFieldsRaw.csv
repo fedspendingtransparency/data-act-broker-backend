@@ -12,8 +12,8 @@ AwardingOfficeName,awarding_office_name,ASP: Derived,string,100,
 AwardingSubTierAgencyCode,awarding_sub_tier_agency_c,ASP: Required,string,4,"D1, D6"
 AwardingSubTierAgencyName,awarding_sub_tier_agency_n,ASP: Derived,string,100,
 AwardModificationAmendmentNumber,award_modification_amendme,ASP: Optional,string,25,D6
-BusinessFundsIndicator,business_funds_indicator,ASP: Required,string,3,D1
-BusinessTypes,business_types,ASP: Required,string,3,D1
+BusinessFundsIndicator,business_funds_indicator,ASP: Optional,string,3,D1
+BusinessTypes,business_types,ASP: Optional,string,3,D1
 CFDA_Number,cfda_number,ASP: Required,string,7,D13
 CFDA_Title,cfda_title,ASP: Derived,string,100,
 CorrectionLateDeleteIndicator,correction_late_delete_ind,ASP: Optional,string,1,D1
@@ -54,7 +54,7 @@ PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Required,st
 PrimaryPlaceOfPerformanceCountyName,place_of_perform_county_na,ASP: Derived,string,40,
 PrimaryPlaceOfPerformanceForeignLocationDescription,place_of_performance_forei,ASP: Conditional per Validation Rule,string,100,D17
 PrimaryPlaceOfPerformanceStateName,place_of_perform_state_nam,ASP: Derived,string,50,
-PrimaryPlaceOfPerformanceZIP+4,place_of_performance_zip4a,ASP: Conditional per Validation Rule,string,10,"D2, D16"
+PrimaryPlaceOfPerformanceZIP_4,place_of_performance_zip4a,ASP: Conditional per Validation Rule,string,10,"D2, D16"
 RecordType,record_type,ASP: Required,integer,1,D1
 SAI_Number,sai_number,ASP: Optional,string,50,
 TotalFundingAmount,total_funding_amount,ASP: Derived,numeric,20,
