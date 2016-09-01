@@ -39,7 +39,8 @@ class JobQueue:
 
         @self.jobQueue.task(name='jobQueue.generate_d_file')
         def generate_d_file(api_url, user_id, job_id, interface_holder, timestamped_name, isLocal):
-            job_manager = interface_holder().jobDb
+            interfaces = interface_holder()
+            job_manager = interfaces.jobDb
 
             try:
                 xml_response = self.get_xml_response_content(api_url)
@@ -82,6 +83,8 @@ class JobQueue:
                 job_manager.markJobStatus(job_id, "failed")
                 job_manager.session.commit()
                 raise e
+            finally:
+                interfaces.close()
 
         self.enqueue = enqueue
         self.generate_d_file = generate_d_file
