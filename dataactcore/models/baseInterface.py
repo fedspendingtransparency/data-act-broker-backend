@@ -50,6 +50,7 @@ class BaseInterface(object):
             self.interfaces = None
         except (KeyError, AttributeError):
             # KeyError will occur in Python 3 on engine dispose
+            self.interfaces = None
             pass
 
     def getSession(self):
