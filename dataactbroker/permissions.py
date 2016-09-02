@@ -39,7 +39,7 @@ def permissions_check(f=None,permissionList=[]):
                                 break
 
                     finally:
-                        InterfaceHolder.closeOne(userDb)
+                        userDb.close()
                     if(validUser) :
                         return f(*args, **kwargs)
                     errorMessage  = "Wrong User Type"
