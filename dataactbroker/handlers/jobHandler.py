@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType, DFileMeta, JobStatus
+from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode

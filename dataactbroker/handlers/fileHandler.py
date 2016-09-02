@@ -642,3 +642,9 @@ class FileHandler:
 
         response["urls"] = self.s3manager.getFileUrls(bucket_name=CONFIG_BROKER["static_files_bucket"], path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
+
+    def completeGeneration(self, generationId):
+        """ Retrieve the generated file, using the specified ID to look up submission and file type """
+        if generationId is None:
+            return JsonResponse.error(ResponseException("Must include a generation ID",StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
+
