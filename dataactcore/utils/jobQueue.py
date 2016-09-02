@@ -72,10 +72,12 @@ def write_csv(user_id, file_name, is_local, header, body):
 
 
 @contextmanager
-def exception_logging(job_manager, job_id):
+def exception_logging_jobDb(interface_holder_class, job_id):
     """If something goes wrong with this job, log the exception"""
+    interfaces = interface_holder_class()
+    job_manager = interfaces.jobDb
     try:
-        yield
+        yield job_manager
     except Exception as e:
         # Log the error
         JsonResponse.error(e, 500)
@@ -83,13 +85,13 @@ def exception_logging(job_manager, job_id):
         job_manager.markJobStatus(job_id, "failed")
         job_manager.session.commit()
         raise e
+    finally:
+        interfaces.close()
 
 
 def generate_d_file(api_url, user_id, job_id, interface_holder,
                     timestamped_name, is_local):
-    job_manager = interface_holder().jobDb
-
-    with exception_logging(job_manager, job_id):
+    with exception_logging_jobDb(interface_holder, job_id) as job_manager:
         xml_response = get_xml_response_content(api_url)
         url_start_index = xml_response.find("<results>", 0)
         offset = len("<results>")
@@ -118,9 +120,7 @@ def generate_d_file(api_url, user_id, job_id, interface_holder,
 
 def generate_f_file(submission_id, user_id, job_id, interface_holder,
                     timestamped_name, is_local):
-    job_manager = interface_holder().jobDb
-
-    with exception_logging(job_manager, job_id):
+    with exception_logging_jobDb(interface_holder, job_id) as job_manager:
         rows_of_dicts = fileF.generateFRows(job_manager.session, submission_id)
         header = [key for key in fileF.mappings]    # keep order
         body = []
