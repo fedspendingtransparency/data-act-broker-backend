@@ -1,3 +1,4 @@
+from collections import namedtuple
 from contextlib import contextmanager
 
 import sqlalchemy
@@ -8,6 +9,29 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.config import CONFIG_DB
 
+
+class GlobalDB:
+    DB = namedtuple('DB', ['engine', 'connection', 'Session', 'session'])
+
+    @classmethod
+    def db(cls):
+        if not getattr(cls, '_db', None):
+            engine, connection = dbConnection()
+            Session = scoped_session(sessionmaker(bind=engine, autoflush=True))
+            cls._db = cls.DB(engine, connection, Session, Session())
+        return cls._db
+
+    @classmethod
+    def close(cls):
+        if hasattr(cls, '_db'):
+            cls._db.session.close()
+            cls._db.Session.remove()
+            cls._db.connection.close()
+            cls._db.engine.dispose()
+            del cls._db
+
+
+
 class BaseInterface(object):
     """ Abstract base interface to be inherited by interfaces for specific databases
     """
@@ -16,46 +40,31 @@ class BaseInterface(object):
     dbConfig = None
     logFileName = "dbErrors.log"
     dbName = None
-    Session = None
-    engine = None
-    session = None
     # This holds a pointer to an InterfaceHolder object, and is populated when that is instantiated
     interfaces = None
 
     def __init__(self):
         self.dbConfig = CONFIG_DB
         self.dbName = self.dbConfig['db_name']
-        if self.session is not None:
-            # session is already set up for this DB
-            return
 
-        self.engine, self.connection = dbConnection()
-        if self.Session is None:
-            if(BaseInterface.IS_FLASK) :
-                self.Session = scoped_session(sessionmaker(bind=self.engine,autoflush=True),scopefunc=_app_ctx_stack.__ident_func__)
-            else :
-                self.Session = scoped_session(sessionmaker(bind=self.engine,autoflush=True))
-        self.session = self.Session()
+    @property
+    def engine(self):
+        return GlobalDB.db().engine
+
+    @property
+    def connection(self):
+        return GlobalDB.db().connection
+
+    @property
+    def session(self):
+        return GlobalDB.db().session
 
     def __del__(self):
-       self.close()
+        self.close()
 
     def close(self):
-        try:
-            #Close session
-            self.session.close()
-            self.Session.remove()
-            self.connection.close()
-            self.engine.dispose()
-            self.interfaces = None
-        except (KeyError, AttributeError):
-            # KeyError will occur in Python 3 on engine dispose
-            self.interfaces = None
-            pass
-
-    def getSession(self):
-        """ Return current active session """
-        return self.session
+        self.interfaces = None
+        GlobalDB.close()
 
     @classmethod
     def getCredDict(cls):
