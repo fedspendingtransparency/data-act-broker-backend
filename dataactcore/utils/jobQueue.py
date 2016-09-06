@@ -1,12 +1,19 @@
+from csv import reader
+
 from celery import Celery
-from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER
+from flask import Flask
 import requests
+
+from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
-from csv import reader
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+
+
+job_app = Flask(__name__)
+
 
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):
@@ -39,52 +46,53 @@ class JobQueue:
 
         @self.jobQueue.task(name='jobQueue.generate_d_file')
         def generate_d_file(api_url, user_id, job_id, interface_holder, timestamped_name, isLocal):
-            interfaces = interface_holder()
-            job_manager = interfaces.jobDb
+            with job_app.app_context():
+                interfaces = interface_holder()
+                job_manager = interfaces.jobDb
 
-            try:
-                xml_response = self.get_xml_response_content(api_url)
-                url_start_index = xml_response.find("<results>", 0)
-                offset = len("<results>")
+                try:
+                    xml_response = self.get_xml_response_content(api_url)
+                    url_start_index = xml_response.find("<results>", 0)
+                    offset = len("<results>")
 
-                if url_start_index == -1:
-                    raise ResponseException("Empty response. Validate if input is correct.", StatusCode.CLIENT_ERROR)
+                    if url_start_index == -1:
+                        raise ResponseException("Empty response. Validate if input is correct.", StatusCode.CLIENT_ERROR)
 
-                url_start_index += offset
-                file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
+                    url_start_index += offset
+                    file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
 
-                full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
+                    full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
-                self.download_file(full_file_path, file_url)
-                lines = self.get_lines_from_csv(full_file_path)
+                    self.download_file(full_file_path, file_url)
+                    lines = self.get_lines_from_csv(full_file_path)
 
-                headers = lines[0]
+                    headers = lines[0]
 
-                if isLocal:
-                    file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
-                    csv_writer = CsvLocalWriter(file_name, headers)
-                else:
-                    file_name = "".join([str(user_id), "/", timestamped_name])
-                    bucket = CONFIG_BROKER['aws_bucket']
-                    region = CONFIG_BROKER['aws_region']
-                    csv_writer = CsvS3Writer(region, bucket, file_name, headers)
+                    if isLocal:
+                        file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
+                        csv_writer = CsvLocalWriter(file_name, headers)
+                    else:
+                        file_name = "".join([str(user_id), "/", timestamped_name])
+                        bucket = CONFIG_BROKER['aws_bucket']
+                        region = CONFIG_BROKER['aws_region']
+                        csv_writer = CsvS3Writer(region, bucket, file_name, headers)
 
-                with csv_writer as writer:
-                    for line in lines[1:]:
-                        writer.write(line)
-                    writer.finishBatch()
+                    with csv_writer as writer:
+                        for line in lines[1:]:
+                            writer.write(line)
+                        writer.finishBatch()
 
-                job_manager.markJobStatus(job_id, "finished")
-                return {"message": "Success", "file_name": file_name}
-            except Exception as e:
-                # Log the error
-                JsonResponse.error(e,500)
-                job_manager.getJobById(job_id).error_message = str(e)
-                job_manager.markJobStatus(job_id, "failed")
-                job_manager.session.commit()
-                raise e
-            finally:
-                interfaces.close()
+                    job_manager.markJobStatus(job_id, "finished")
+                    return {"message": "Success", "file_name": file_name}
+                except Exception as e:
+                    # Log the error
+                    JsonResponse.error(e,500)
+                    job_manager.getJobById(job_id).error_message = str(e)
+                    job_manager.markJobStatus(job_id, "failed")
+                    job_manager.session.commit()
+                    raise e
+                finally:
+                    interfaces.close()
 
         self.enqueue = enqueue
         self.generate_d_file = generate_d_file
