@@ -33,11 +33,6 @@ class JobQueue:
 
         self.enqueue = enqueue
 
-    def update_d_file_status(self, job_manager, d_file_id, status):
-        """ Update the D file status to the one specified via the Job Manager """
-        job_manager.setDFileStatus(d_file_id, status)
-
-
 if __name__ in ['__main__', 'jobQueue']:
     jobQueue = JobQueue()
     queue = jobQueue.jobQueue
