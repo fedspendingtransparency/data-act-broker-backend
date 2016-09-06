@@ -1,8 +1,9 @@
 from collections import namedtuple
 from contextlib import contextmanager
+import logging
 
 import sqlalchemy
-from flask import _app_ctx_stack
+import flask
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from dataactcore.utils.responseException import ResponseException
@@ -10,33 +11,51 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.config import CONFIG_DB
 
 
+logger = logging.getLogger(__name__)
+
+
+class _DB(namedtuple('_DB', ['engine', 'connection', 'Session', 'session'])):
+    """Represents a database connection, from engine to session"""
+    def close(self):
+        self.session.close()
+        self.Session.remove()
+        self.connection.close()
+        self.engine.dispose()
+
+
 class GlobalDB:
-    DB = namedtuple('DB', ['engine', 'connection', 'Session', 'session'])
+    @classmethod
+    def _holder(cls):
+        """We generally want to work in the `g` context (i.e. per request),
+        but there are paths through the app which won't have access. In those
+        situations, fall back to the non-threadsafe static member approach"""
+        if flask.current_app:
+            return flask.g
+        else:
+            logger.warning("No current_app, falling back to non-threadsafe "
+                           "database connection")
+            return cls
 
     @classmethod
     def db(cls):
-        if not getattr(cls, '_db', None):
-            engine, connection = dbConnection()
-            Session = scoped_session(sessionmaker(bind=engine, autoflush=True))
-            cls._db = cls.DB(engine, connection, Session, Session())
-        return cls._db
+        """Build or retrieve the database information"""
+        holder = cls._holder()
+        if not getattr(holder, '_db', None):
+            holder._db = dbConnection()
+        return holder._db
 
     @classmethod
     def close(cls):
-        if hasattr(cls, '_db'):
-            cls._db.session.close()
-            cls._db.Session.remove()
-            cls._db.connection.close()
-            cls._db.engine.dispose()
-            del cls._db
-
+        """Close the database connection, if present"""
+        holder = cls._holder()
+        if hasattr(holder, '_db'):
+            holder._db.close()
+            del holder._db
 
 
 class BaseInterface(object):
     """ Abstract base interface to be inherited by interfaces for specific databases
     """
-    #For Flask Apps use the context for locals
-    IS_FLASK = True
     dbConfig = None
     logFileName = "dbErrors.log"
     dbName = None
@@ -169,17 +188,12 @@ def dbConnection():
             **CONFIG_DB),
         pool_size=100, max_overflow=50)
     connection = engine.connect()
-    return engine, connection
+    Session = scoped_session(sessionmaker(bind=engine, autoflush=True))
+    return _DB(engine, connection, Session, Session())
 
 
 @contextmanager
 def databaseSession():
-    engine, connection = dbConnection()
-    sessionMaker = scoped_session(sessionmaker(
-        bind=engine, autoflush=True))
-    session = sessionMaker()
-    yield session
-    session.close()
-    sessionMaker.remove()
-    connection.close()
-    engine.dispose()
+    db = dbConnection()
+    yield db.session
+    db.close()
