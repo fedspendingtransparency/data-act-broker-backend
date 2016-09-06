@@ -505,6 +505,7 @@ class FileHandler:
             try:
                 valJob = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, file_type_name, "csv_record_validation")
                 valJob.filename = upload_file_name
+                valJob.original_filename = timestamped_name
                 valJob.job_status_id = jobDb.getJobStatusId("waiting")
                 job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
                 job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
@@ -521,7 +522,7 @@ class FileHandler:
                 exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
                 return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
             # Create file D API URL with dates and callback URL
-            callback = "https://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
+            callback = "http://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
             get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
             self.call_d_file_api(get_url)
         else:
