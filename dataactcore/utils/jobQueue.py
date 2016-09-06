@@ -43,7 +43,11 @@ class JobQueue:
             job_manager = interfaces.jobDb
 
             try:
+                # Generate random uuid and store generation task
+                # Pass callback URL to D file API
                 xml_response = self.get_xml_response_content(api_url)
+
+                
                 url_start_index = xml_response.find("<results>", 0)
                 offset = len("<results>")
 
