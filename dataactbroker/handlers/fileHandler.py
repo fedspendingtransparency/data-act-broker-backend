@@ -1,19 +1,25 @@
 import os
+import requests
+from csv import reader
 from flask import session, request
 from datetime import datetime, date
 from werkzeug import secure_filename
+from uuid import uuid4
+from sqlalchemy.orm import joinedload
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.config import CONFIG_BROKER, CONFIG_JOB_QUEUE
+from dataactcore.config import CONFIG_BROKER, CONFIG_JOB_QUEUE, CONFIG_SERVICES
+from dataactcore.models.jobModels import FileGenerationTask
 from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.utils.jobQueue import JobQueue
 from sqlalchemy.orm.exc import NoResultFound
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
-
+from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
+from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -482,8 +488,6 @@ class FileHandler:
 
         cgac_code = self.jobManager.getSubmissionById(submission_id).cgac_code
 
-        jq = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
-
         # Generate and upload file to S3
         user_id = LoginSession.getName(session)
         timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["".join([str(file_type_name),"_file_name"])])
@@ -494,6 +498,7 @@ class FileHandler:
 
         job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, file_type_name, "file_upload")
         job.filename = upload_file_name
+        job.original_filename = timestamped_name
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
         if file_type in ["D1", "D2"]:
@@ -505,19 +510,88 @@ class FileHandler:
                 job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
                 valJob.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
                 valJob.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
+                # Generate random uuid and store generation task
+                task_key = uuid4()
+                task = FileGenerationTask(generation_task_key = task_key, submission_id = submission_id, file_type_id = jobDb.getFileTypeId(file_type_name))
+                jobDb.session.add(task)
+
                 jobDb.session.commit()
             except ValueError as e:
                 # Date was not in expected format
                 exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
                 return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
-            get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date)
-            jq.generate_d_file.delay(get_url, user_id, job.job_id, InterfaceHolder, timestamped_name, self.isLocal)
+            # Create file D API URL with dates and callback URL
+            callback = "https://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
+            get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+            self.call_d_file_api(get_url)
         else:
             # TODO add generate calls for E and F
             jobDb.markJobStatus(job.job_id,"finished")
             pass
 
         return True, None
+
+    def get_xml_response_content(self, api_url):
+        """ Retrieve XML Response from the provided API url """
+        return requests.get(api_url, verify=False).text
+
+    def call_d_file_api(self, api_url):
+        job_manager = self.interfaces.jobDb
+
+        xml_response = self.get_xml_response_content(api_url)
+
+    def download_file(self, local_file_path, file_url):
+        """ Download a file locally from the specified URL """
+        with open(local_file_path, "w") as file:
+            # get request
+            response = requests.get(file_url)
+            # write to file
+            response.encoding = "utf-8"
+            file.write(response.text)
+
+    def get_lines_from_csv(self, file_path):
+        """ Retrieve all lines from specified CSV file """
+        lines = []
+        with open(file_path) as file:
+            for line in reader(file):
+                lines.append(line)
+        return lines
+
+    def load_d_file(self, url, timestamped_name, job_id, isLocal):
+        """ Pull D file from specified URL and write to S3 """
+        job_manager = self.interfaces.jobDb
+        try:
+            user_id = LoginSession.getName(session)
+            full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
+
+            self.download_file(full_file_path, url)
+            lines = self.get_lines_from_csv(full_file_path)
+
+            headers = lines[0]
+
+            if isLocal:
+                file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
+                csv_writer = CsvLocalWriter(file_name, headers)
+            else:
+                file_name = "".join([str(user_id), "/", timestamped_name])
+                bucket = CONFIG_BROKER['aws_bucket']
+                region = CONFIG_BROKER['aws_region']
+                csv_writer = CsvS3Writer(region, bucket, file_name, headers)
+
+            with csv_writer as writer:
+                for line in lines[1:]:
+                    writer.write(line)
+                writer.finishBatch()
+
+            job_manager.markJobStatus(job_id, "finished")
+            return {"message": "Success", "file_name": file_name}
+        except Exception as e:
+            # Log the error
+            JsonResponse.error(e,500)
+            job_manager.getJobById(job_id).error_message = str(e)
+            job_manager.markJobStatus(job_id, "failed")
+            job_manager.session.commit()
+            raise e
 
     def getRequestParamsForGenerate(self):
         """ Pull information out of request object and return it
@@ -648,3 +722,10 @@ class FileHandler:
         if generationId is None:
             return JsonResponse.error(ResponseException("Must include a generation ID",StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
 
+        # Pull url from request
+        safeDictionary = RequestDictionary(self.request)
+        url =  safeDictionary.getValue("href")
+        #Pull information based on task key
+        task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
+        job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(task.submission_id, task.file_type.name, "file_upload")
+        self.load_d_file(url,job.original_filename,job.job_id,self.isLocal)

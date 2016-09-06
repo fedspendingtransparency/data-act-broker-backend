@@ -89,7 +89,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.checkGeneration)
 
-    @app.route("/v1/complete_generation/<generationId>")
+    @app.route("/v1/complete_generation/<generationId>/")
     def complete_generation(generationId = None):
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.completeGeneration, generationId = generationId)
