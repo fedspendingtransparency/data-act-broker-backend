@@ -184,6 +184,8 @@ logging:
     # so you can mostly likely keep this as is.
     logstash_port: 514
 
+    loglevel: INFO
+
 job-queue:
     # RabbitMQ username
     username: guest

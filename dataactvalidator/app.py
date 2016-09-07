@@ -2,6 +2,7 @@ import sys
 import traceback
 from threading import Thread
 from flask import Flask, request, copy_current_request_context
+from dataactcore.logging_setup import configure_logging
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
@@ -143,6 +144,8 @@ def runApp():
     )
 
 if __name__ == "__main__":
+    configure_logging()
     runApp()
 elif __name__[0:5] == "uwsgi":
+    configure_logging()
     app = createApp()

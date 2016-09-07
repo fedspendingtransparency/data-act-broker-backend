@@ -11,7 +11,6 @@ from dataactcore.models.domainModels import CGAC,ObjectClass,ProgramActivity,SF1
 from dataactcore.config import CONFIG_BROKER
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 def loadCgac(filename):
     interface = ValidatorValidationInterface()
