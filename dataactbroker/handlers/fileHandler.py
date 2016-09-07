@@ -562,7 +562,6 @@ class FileHandler:
         """ Pull D file from specified URL and write to S3 """
         job_manager = self.interfaces.jobDb
         try:
-            user_id = LoginSession.getName(session)
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
             self.download_file(full_file_path, url)
@@ -574,10 +573,9 @@ class FileHandler:
                 file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
                 csv_writer = CsvLocalWriter(file_name, headers)
             else:
-                file_name = "".join([str(user_id), "/", timestamped_name])
                 bucket = CONFIG_BROKER['aws_bucket']
                 region = CONFIG_BROKER['aws_region']
-                csv_writer = CsvS3Writer(region, bucket, file_name, headers)
+                csv_writer = CsvS3Writer(region, bucket, timestamped_name, headers)
 
             with csv_writer as writer:
                 for line in lines[1:]:
@@ -585,7 +583,7 @@ class FileHandler:
                 writer.finishBatch()
 
             job_manager.markJobStatus(job_id, "finished")
-            return {"message": "Success", "file_name": file_name}
+            return {"message": "Success", "file_name": timestamped_name}
         except Exception as e:
             # Log the error
             JsonResponse.error(e,500)
@@ -729,4 +727,4 @@ class FileHandler:
         #Pull information based on task key
         task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
         job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(task.submission_id, task.file_type.name, "file_upload")
-        self.load_d_file(url,job.original_filename,job.job_id,self.isLocal)
+        self.load_d_file(url,job.filename,job.job_id,self.isLocal)
