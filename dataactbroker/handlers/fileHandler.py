@@ -13,7 +13,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.config import CONFIG_BROKER, CONFIG_JOB_QUEUE, CONFIG_SERVICES
-from dataactcore.models.jobModels import FileGenerationTask
+from dataactcore.models.jobModels import FileGenerationTask, JobDependency
 from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.utils.jobQueue import JobQueue
 from sqlalchemy.orm.exc import NoResultFound
@@ -470,6 +470,7 @@ class FileHandler:
             Tuple of boolean indicating successful start, and error response if False
 
         """
+        valJob = None
         jobDb = self.interfaces.jobDb
         file_type_name = self.fileTypeMap[file_type]
 
@@ -525,10 +526,12 @@ class FileHandler:
             callback = "http://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
             get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
             if not self.call_d_file_api(get_url):
-                # No results found, mark job invalid
-                jobDb.markJobStatus(job.job_id,"invalid")
-                job.error_message = "No results found for that date range"
+                # No results found, skip validation and mark as finished
+                jobDb.session.query(JobDependency).filter(JobDependency.prerequisite_id == job.job_id).delete()
                 jobDb.session.commit()
+                jobDb.markJobStatus(job.job_id,"finished")
+                if valJob is not None:
+                    jobDb.markJobStatus(valJob.job_id, "finished")
         else:
             # TODO add generate calls for E and F
             jobDb.markJobStatus(job.job_id,"finished")

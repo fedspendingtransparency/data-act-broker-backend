@@ -25,6 +25,7 @@ def createApp():
         app = Flask(__name__.split('.')[0])
         local = CONFIG_BROKER['local']
         app.config.from_object(__name__)
+        app.debug = True
         app.config['LOCAL'] = local
         app.config['REST_TRACE'] = CONFIG_SERVICES['rest_trace']
         app.config['SYSTEM_EMAIL'] = CONFIG_BROKER['reply_to_email']
