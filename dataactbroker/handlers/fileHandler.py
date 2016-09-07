@@ -2,7 +2,7 @@ import os
 import requests
 from csv import reader
 from flask import session, request
-from datetime import datetime, date
+from datetime import datetime
 from werkzeug import secure_filename
 from uuid import uuid4
 from sqlalchemy.orm import joinedload
@@ -776,4 +776,4 @@ class FileHandler:
             file.write("\n".join([self.get_timestamp(), "    ", message]))
 
     def get_timestamp(self):
-        return str(datetime.datetime.now()).split('.')[0]
+        return str(datetime.now()).split('.')[0]
