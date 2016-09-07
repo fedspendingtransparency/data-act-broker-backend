@@ -1,6 +1,10 @@
+from csv import reader
+
 from celery import Celery
-from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER
 import requests
+from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER
+
+
 
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):

@@ -12,10 +12,14 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.config import CONFIG_BROKER, CONFIG_LOGGING, CONFIG_SERVICES
+from dataactcore.config import CONFIG_BROKER, CONFIG_JOB_QUEUE, CONFIG_SERVICES, CONFIG_LOGGING
+from dataactcore.models.jobModels import FileGenerationTask, JobDependency
+from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask
 from dataactbroker.handlers.aws.session import LoginSession
+from dataactcore.utils.jobQueue import JobQueue
 from sqlalchemy.orm.exc import NoResultFound
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 
@@ -468,7 +472,9 @@ class FileHandler:
             Tuple of boolean indicating successful start, and error response if False
 
         """
+        valJob = None
         jobDb = self.interfaces.jobDb
+        errorDb = self.interfaces.errorDb
         file_type_name = self.fileTypeMap[file_type]
 
         if file_type in ["D1", "D2"]:
@@ -522,10 +528,21 @@ class FileHandler:
             # Create file D API URL with dates and callback URL
             callback = "http://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
             get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
-            self.call_d_file_api(get_url)
+            if not self.call_d_file_api(get_url):
+                # No results found, skip validation and mark as finished
+                jobDb.session.query(JobDependency).filter(JobDependency.prerequisite_id == job.job_id).delete()
+                jobDb.session.commit()
+                jobDb.markJobStatus(job.job_id,"finished")
+                if valJob is not None:
+                    jobDb.markJobStatus(valJob.job_id, "finished")
+                    # Create File object for this validation job
+                    valFile = File(job_id = valJob.job_id, file_status_id = errorDb.getFileStatusId("complete"), filename = valJob.filename, row_errors_present = False)
+                    errorDb.session.add(valFile)
+                    errorDb.session.commit()
         else:
             # TODO add generate calls for E and F
             jobDb.markJobStatus(job.job_id,"finished")
+
             pass
 
         return True, None
@@ -535,9 +552,16 @@ class FileHandler:
         return requests.get(api_url, verify=False).text
 
     def call_d_file_api(self, api_url):
+        """ Call D file API, return True if results found, False otherwise """
         job_manager = self.interfaces.jobDb
 
         xml_response = self.get_xml_response_content(api_url)
+        # Check for numFound = 0
+        if(xml_response.find("numFound='0'")!=-1):
+            # No results found, return False
+            return False
+        return True
+
 
     def download_file(self, local_file_path, file_url):
         """ Download a file locally from the specified URL """
@@ -742,6 +766,7 @@ class FileHandler:
         self.log_local("INFO: Loading D file...")
         result = self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
         self.log_local("INFO: Load D file result => " + str(result))
+        return JsonResponse.create(StatusCode.OK,{"message":"File loaded successfully"})
 
     def log_local(self, message):
         file_name = "logs.log" if self.file_name is None else self.file_name
