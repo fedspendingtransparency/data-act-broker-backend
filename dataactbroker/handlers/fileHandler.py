@@ -527,11 +527,12 @@ class FileHandler:
             if not self.call_d_file_api(get_url):
                 # No results found, mark job invalid
                 jobDb.markJobStatus(job.job_id,"invalid")
+                job.error_message = "No results found for that date range"
+                jobDb.session.commit()
         else:
             # TODO add generate calls for E and F
             jobDb.markJobStatus(job.job_id,"finished")
-            job.error_message = "No results found for that date range"
-            jobDb.session.commit()
+
             pass
 
         return True, None
