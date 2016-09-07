@@ -728,3 +728,4 @@ class FileHandler:
         task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
         job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(task.submission_id, task.file_type.name, "file_upload")
         self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
+        return JsonResponse.create(StatusCode.OK,{"message":"File loaded successfully"})
