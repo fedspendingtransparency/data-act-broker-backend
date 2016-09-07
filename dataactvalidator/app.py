@@ -16,7 +16,7 @@ from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 def createApp():
     """Create the Flask app."""
     try:
-        app = Flask(__name__)
+        app = Flask(__name__.split('.')[0])
         local = CONFIG_BROKER['local']
         error_report_path = CONFIG_SERVICES['error_report_path']
         app.config.from_object(__name__)

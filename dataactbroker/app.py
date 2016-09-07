@@ -22,7 +22,7 @@ def createApp():
     """Set up the application."""
     try :
         # Create application
-        app = Flask(__name__, instance_path=CONFIG_PATH)
+        app = Flask(__name__.split('.')[0])
         local = CONFIG_BROKER['local']
         app.config.from_object(__name__)
         app.config['LOCAL'] = local
