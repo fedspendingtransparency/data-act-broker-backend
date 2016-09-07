@@ -558,7 +558,7 @@ class FileHandler:
                 lines.append(line)
         return lines
 
-    def load_d_file(self, url, timestamped_name, job_id, isLocal):
+    def load_d_file(self, url, upload_name, timestamped_name, job_id, isLocal):
         """ Pull D file from specified URL and write to S3 """
         job_manager = self.interfaces.jobDb
         try:
@@ -575,7 +575,7 @@ class FileHandler:
             else:
                 bucket = CONFIG_BROKER['aws_bucket']
                 region = CONFIG_BROKER['aws_region']
-                csv_writer = CsvS3Writer(region, bucket, timestamped_name, headers)
+                csv_writer = CsvS3Writer(region, bucket, upload_name, headers)
 
             with csv_writer as writer:
                 for line in lines[1:]:
@@ -727,4 +727,4 @@ class FileHandler:
         #Pull information based on task key
         task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
         job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(task.submission_id, task.file_type.name, "file_upload")
-        self.load_d_file(url,job.filename,job.job_id,self.isLocal)
+        self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
