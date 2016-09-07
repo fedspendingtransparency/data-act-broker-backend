@@ -1,11 +1,10 @@
 import os, os.path
 import sys
 import traceback
-import time
 import multiprocessing
-from flask.ext.cors import CORS
-from flask.ext.bcrypt import Bcrypt
-from flask import Flask ,send_from_directory
+from flask_cors import CORS
+from flask_bcrypt import Bcrypt
+from flask import Flask, send_from_directory
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jsonResponse import JsonResponse

@@ -19,7 +19,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import dataactcore.config
 from dataactbroker.scripts.setupEmails import setupEmails
 from dataactbroker.handlers.userHandler import UserHandler
-from flask.ext.bcrypt import Bcrypt
+from flask_bcrypt import Bcrypt
 
 class BaseTestAPI(unittest.TestCase):
     """ Test login, logout, and session handling """
