@@ -584,7 +584,7 @@ class FileHandler:
         try:
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
-            self.log_local("INFO: Downloading file...")
+            self.log_local("DEBUG: Downloading file...")
             self.download_file(full_file_path, url)
             lines = self.get_lines_from_csv(full_file_path)
 
@@ -598,7 +598,7 @@ class FileHandler:
                 region = CONFIG_BROKER['aws_region']
                 csv_writer = CsvS3Writer(region, bucket, upload_name, headers)
 
-            message = "INFO: Writing file locally..." if isLocal else "INFO: Writing file to S3..."
+            message = "DEBUG: Writing file locally..." if isLocal else "DEBUG: Writing file to S3..."
             self.log_local(message)
 
             with csv_writer as writer:
@@ -606,7 +606,7 @@ class FileHandler:
                     writer.write(line)
                 writer.finishBatch()
 
-            self.log_local("INFO: Marking job id of " + str(job_id) + " as finished")
+            self.log_local("DEBUG: Marking job id of " + str(job_id) + " as finished")
             job_manager.markJobStatus(job_id, "finished")
             return {"message": "Success", "file_name": timestamped_name}
         except Exception as e:
@@ -751,19 +751,19 @@ class FileHandler:
 
         # Pull url from request
         safeDictionary = RequestDictionary(self.request)
-        self.log_local("INFO: Request content => " + str(safeDictionary))
+        self.log_local("DEBUG: Request content => " + str(safeDictionary))
 
         url =  safeDictionary.getValue("href")
-        self.log_local("INFO: Download URL => " + url)
+        self.log_local("DEBUG: Download URL => " + url)
 
         #Pull information based on task key
-        self.log_local("INFO: Pulling information based on task key...")
+        self.log_local("DEBUG: Pulling information based on task key...")
         task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
         job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(task.submission_id, task.file_type.name, "file_upload")
 
-        self.log_local("INFO: Loading D file...")
+        self.log_local("DEBUG: Loading D file...")
         result = self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
-        self.log_local("INFO: Load D file result => " + str(result))
+        self.log_local("DEBUG: Load D file result => " + str(result))
         return JsonResponse.create(StatusCode.OK,{"message":"File loaded successfully"})
 
     def log_local(self, message):
@@ -773,7 +773,7 @@ class FileHandler:
             os.makedirs(path)
         localFile = os.path.join(path, file_name)
         with open(localFile, "a") as file:
-            file.write("\n".join([self.get_timestamp(), "    ", message]))
+            file.write(self.get_timestamp() + "    " + message + "\n")
 
     def get_timestamp(self):
         return str(datetime.now()).split('.')[0]
