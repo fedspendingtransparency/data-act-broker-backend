@@ -5,7 +5,7 @@ from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.aws.session import SessionTable
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import argparse
-from flask.ext.bcrypt import Bcrypt
+from flask_bcrypt import Bcrypt
 from sqlalchemy.orm.exc import NoResultFound
 
 
@@ -63,7 +63,7 @@ def createAdmin():
                 adminEmail, adminPass, Bcrypt(), permission=2)
             user = userDb.getUserByEmail(adminEmail)
             userDb.addUserInfo(user, "Admin", "SYS", "System Admin")
-    userDb.session.close()
+    userDb.close()
 
 
 def setupSessionTable():
