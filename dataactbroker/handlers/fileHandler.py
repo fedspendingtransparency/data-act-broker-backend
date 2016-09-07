@@ -471,7 +471,6 @@ class FileHandler:
             Tuple of boolean indicating successful start, and error response if False
 
         """
-        valJob = None
         jobDb = self.interfaces.jobDb
         file_type_name = self.fileTypeMap[file_type]
 
@@ -579,6 +578,7 @@ class FileHandler:
             valJob.number_of_errors = 0
             valJob.number_of_warnings = 0
             valJob.filename = None
+            jobDb.session.commit()
 
     def get_xml_response_content(self, api_url):
         """ Retrieve XML Response from the provided API url """
