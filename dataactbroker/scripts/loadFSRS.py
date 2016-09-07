@@ -1,6 +1,7 @@
 import logging
 import sys
 
+from dataactcore.logging_setup import configure_logging
 from dataactcore.models.baseInterface import databaseSession
 from dataactbroker.fsrs import (
     configValid, fetchAndReplaceBatch, GRANT, PROCUREMENT)
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    configure_logging()
     with databaseSession() as sess:
         if not configValid():
             logger.error("No config for broker/fsrs/[service]/wsdl")
