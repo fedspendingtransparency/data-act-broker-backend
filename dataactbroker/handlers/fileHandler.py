@@ -524,10 +524,14 @@ class FileHandler:
             # Create file D API URL with dates and callback URL
             callback = "http://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
             get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
-            self.call_d_file_api(get_url)
+            if not self.call_d_file_api(get_url):
+                # No results found, mark job invalid
+                jobDb.markJobStatus(job.job_id,"invalid")
         else:
             # TODO add generate calls for E and F
             jobDb.markJobStatus(job.job_id,"finished")
+            job.error_message = "No results found for that date range"
+            jobDb.session.commit()
             pass
 
         return True, None
@@ -537,9 +541,16 @@ class FileHandler:
         return requests.get(api_url, verify=False).text
 
     def call_d_file_api(self, api_url):
+        """ Call D file API, return True if results found, False otherwise """
         job_manager = self.interfaces.jobDb
 
         xml_response = self.get_xml_response_content(api_url)
+        # Check for numFound = 0
+        if(xml_response.find("numFound='0'")!=-1):
+            # No results found, return False
+            return False
+        return True
+
 
     def download_file(self, local_file_path, file_url):
         """ Download a file locally from the specified URL """
