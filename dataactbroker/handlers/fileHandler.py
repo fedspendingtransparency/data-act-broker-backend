@@ -12,12 +12,10 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.config import CONFIG_BROKER, CONFIG_JOB_QUEUE, CONFIG_SERVICES
+from dataactcore.config import CONFIG_BROKER, CONFIG_LOGGING, CONFIG_SERVICES
 from dataactcore.models.jobModels import FileGenerationTask
 from dataactbroker.handlers.aws.session import LoginSession
-from dataactcore.utils.jobQueue import JobQueue
 from sqlalchemy.orm.exc import NoResultFound
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 
@@ -564,6 +562,7 @@ class FileHandler:
         try:
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
+            self.log_local("INFO: Downloading file...")
             self.download_file(full_file_path, url)
             lines = self.get_lines_from_csv(full_file_path)
 
@@ -577,14 +576,19 @@ class FileHandler:
                 region = CONFIG_BROKER['aws_region']
                 csv_writer = CsvS3Writer(region, bucket, upload_name, headers)
 
+            message = "INFO: Writing file locally..." if isLocal else "INFO: Writing file to S3..."
+            self.log_local(message)
+
             with csv_writer as writer:
                 for line in lines[1:]:
                     writer.write(line)
                 writer.finishBatch()
 
+            self.log_local("INFO: Marking job id of " + str(job_id) + " as finished")
             job_manager.markJobStatus(job_id, "finished")
             return {"message": "Success", "file_name": timestamped_name}
         except Exception as e:
+            self.log_local("ERROR: Exception caught => " + str(e))
             # Log the error
             JsonResponse.error(e,500)
             job_manager.getJobById(job_id).error_message = str(e)
@@ -721,10 +725,32 @@ class FileHandler:
         if generationId is None:
             return JsonResponse.error(ResponseException("Must include a generation ID",StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
 
+        self.file_name = "smx_request.log"
+
         # Pull url from request
         safeDictionary = RequestDictionary(self.request)
+        self.log_local("INFO: Request content => " + str(safeDictionary))
+
         url =  safeDictionary.getValue("href")
+        self.log_local("INFO: Download URL => " + url)
+
         #Pull information based on task key
+        self.log_local("INFO: Pulling information based on task key...")
         task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
         job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(task.submission_id, task.file_type.name, "file_upload")
-        self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
+
+        self.log_local("INFO: Loading D file...")
+        result = self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
+        self.log_local("INFO: Load D file result => " + str(result))
+
+    def log_local(self, message):
+        file_name = "logs.log" if self.file_name is None else self.file_name
+        path = CONFIG_LOGGING["log_files"]
+        if not os.path.exists(path):
+            os.makedirs(path)
+        localFile = os.path.join(path, file_name)
+        with open(localFile, "a") as file:
+            file.write("\n".join([self.get_timestamp(), "    ", message]))
+
+    def get_timestamp(self):
+        return str(datetime.datetime.now()).split('.')[0]
