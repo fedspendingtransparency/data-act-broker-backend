@@ -566,6 +566,7 @@ class FileHandler:
         jobDb.session.query(JobDependency).filter(JobDependency.prerequisite_id == job.job_id).delete()
         jobDb.session.commit()
         jobDb.markJobStatus(job.job_id,"finished")
+        job.filename = None
         if valJob is not None:
             jobDb.markJobStatus(valJob.job_id, "finished")
             # Create File object for this validation job
@@ -577,6 +578,7 @@ class FileHandler:
             valJob.file_size = 0
             valJob.number_of_errors = 0
             valJob.number_of_warnings = 0
+            valJob.filename = None
 
     def get_xml_response_content(self, api_url):
         """ Retrieve XML Response from the provided API url """
@@ -695,7 +697,7 @@ class FileHandler:
         responseDict["file_type"] = file_type
         responseDict["message"] = uploadJob.error_message or ""
         if uploadJob.filename is None:
-            responseDict["url"] = ""
+            responseDict["url"] = "#"
         elif CONFIG_BROKER["use_aws"]:
             path, file_name = uploadJob.filename.split("/")
             responseDict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name, bucketRoute=None, method="GET")
