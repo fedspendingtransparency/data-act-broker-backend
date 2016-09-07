@@ -12,14 +12,12 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.config import CONFIG_BROKER, CONFIG_JOB_QUEUE, CONFIG_SERVICES, CONFIG_LOGGING
-from dataactcore.models.jobModels import FileGenerationTask, JobDependency
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_LOGGING
+from dataactcore.models.jobModels import JobDependency
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask
 from dataactbroker.handlers.aws.session import LoginSession
-from dataactcore.utils.jobQueue import JobQueue
 from sqlalchemy.orm.exc import NoResultFound
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 
