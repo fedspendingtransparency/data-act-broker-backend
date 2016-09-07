@@ -1,6 +1,9 @@
 from celery import Celery
-from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER
+from flask import Flask
 import requests
+from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE
+
+job_app = Flask(__name__)
 
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):

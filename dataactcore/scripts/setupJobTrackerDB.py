@@ -53,7 +53,7 @@ def insertCodes():
         jobDb.session.merge(fileType)
 
     jobDb.session.commit()
-    jobDb.session.close()
+    jobDb.close()
 
 if __name__ == '__main__':
     setupJobTrackerDB()

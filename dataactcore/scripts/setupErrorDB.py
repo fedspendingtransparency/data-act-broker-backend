@@ -37,7 +37,7 @@ def insertCodes():
         errorDb.session.merge(error)
 
     errorDb.session.commit()
-    errorDb.session.close()
+    errorDb.close()
 
 if __name__ == '__main__':
     setupErrorDB()
