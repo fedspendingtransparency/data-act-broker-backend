@@ -751,7 +751,7 @@ class FileHandler:
 
         # Pull url from request
         safeDictionary = RequestDictionary(self.request)
-        self.log_local("DEBUG: Request content => " + str(safeDictionary))
+        self.log_local("DEBUG: Request content => " + str(self.request))
 
         url =  safeDictionary.getValue("href")
         self.log_local("DEBUG: Download URL => " + url)
