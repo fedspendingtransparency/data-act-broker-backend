@@ -14,6 +14,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.config import CONFIG_BROKER, CONFIG_JOB_QUEUE, CONFIG_SERVICES
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency
+from dataactcore.models.errorModels import File
 from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.utils.jobQueue import JobQueue
 from sqlalchemy.orm.exc import NoResultFound
@@ -472,6 +473,7 @@ class FileHandler:
         """
         valJob = None
         jobDb = self.interfaces.jobDb
+        errorDb = self.interfaces.errorDb
         file_type_name = self.fileTypeMap[file_type]
 
         if file_type in ["D1", "D2"]:
@@ -532,6 +534,10 @@ class FileHandler:
                 jobDb.markJobStatus(job.job_id,"finished")
                 if valJob is not None:
                     jobDb.markJobStatus(valJob.job_id, "finished")
+                    # Create File object for this validation job
+                    valFile = File(job_id = valJob.job_id, file_status_id = errorDb.getFileStatusId("complete"), filename = valJob.filename, row_errors_present = False)
+                    errorDb.session.add(valFile)
+                    errorDb.session.commit()
         else:
             # TODO add generate calls for E and F
             jobDb.markJobStatus(job.job_id,"finished")
