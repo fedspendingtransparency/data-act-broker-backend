@@ -1,8 +1,7 @@
-from csv import reader
-
 from celery import Celery
 import requests
-from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER
+
+from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE
 from dataactcore.utils.cloudLogger import CloudLogger
 
 
@@ -26,13 +25,12 @@ def enqueue(jobID):
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):
         # Set up backend persistent URL
-        backendUrl = ''.join(['db+', CONFIG_DB['scheme'], '://', CONFIG_DB['username'], ':', CONFIG_DB['password'], '@',
-                              CONFIG_DB['host'], '/', CONFIG_DB['job_queue_db_name']])
+        backendUrl = ('db+{scheme}://{username}:{password}@{host}'
+                      '/{job_queue_db_name}').format(**CONFIG_DB)
 
         # Set up url to the job queue to establish connection
-        queueUrl = ''.join(
-            [CONFIG_JOB_QUEUE['broker_scheme'], '://', CONFIG_JOB_QUEUE['username'], ':', CONFIG_JOB_QUEUE['password'],
-             '@', job_queue_url, ':', str(CONFIG_JOB_QUEUE['port']), '//'])
+        queueUrl = ('{broker_scheme}://{username}:{password}@{host}:{port}'
+                    '//').format(host=job_queue_url, **CONFIG_JOB_QUEUE)
 
         # Create remote connection to the job queue
         self.jobQueue = Celery('tasks', backend=backendUrl, broker=queueUrl)
