@@ -464,7 +464,7 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["status"], "finished")
         self.assertEqual(json["file_type"], "E")
-        self.assertEqual(json["url"],"")
+        self.assertEqual(json["url"],"#")
         self.assertEqual(json["message"],"")
 
         postJson = {"submission_id": self.generation_submission_id, "file_type": "D2"}
@@ -474,7 +474,7 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["status"], "failed")
         self.assertEqual(json["file_type"], "D2")
-        self.assertEqual(json["url"],"")
+        self.assertEqual(json["url"],"#")
         self.assertEqual(json["message"],"Generated file had file-level errors")
 
         postJson = {"submission_id": self.generation_submission_id, "file_type": "F"}
@@ -484,7 +484,7 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["status"], "failed")
         self.assertEqual(json["file_type"], "F")
-        self.assertEqual(json["url"],"")
+        self.assertEqual(json["url"],"#")
         self.assertEqual(json["message"],"File was invalid")
 
         # E file generation should error because D1 job did not validate
@@ -504,7 +504,7 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["status"], "failed")
         self.assertEqual(json["file_type"], "D1")
-        self.assertEqual(json["url"], "")
+        self.assertEqual(json["url"], "#")
         self.assertEqual(json["start"],"")
         self.assertEqual(json["end"],"")
         self.assertEqual(json["message"],"User does not have permission to view that submission")
