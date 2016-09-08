@@ -2,7 +2,7 @@ import logging
 import logstash
 import os
 import json
-import datetime
+from datetime import datetime
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.config import CONFIG_LOGGING
 
@@ -34,7 +34,7 @@ class CloudLogger(object):
             'error_log_wrapped_message': str(wrappedMessage),
             'error_log_wrapped_type': str(wrappedType),
             'error_log_trace': str(traceback),
-            'error_timestamp': str(datetime.datetime.utcnow())
+            'error_timestamp': str(datetime.utcnow())
         }
         if CONFIG_LOGGING["use_logstash"]:
         #if( not CloudLogger.getValueFromConfig("local")):

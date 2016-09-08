@@ -572,7 +572,7 @@ class FileHandler:
         """ Pull D file from specified URL and write to S3 """
         job_manager = self.interfaces.jobDb
         try:
-            CloudLogger.log("DEBUG: Downloading file...")
+            CloudLogger.log("DEBUG: Downloading file...", log_type="debug", file_name=self.smx_log_file_name)
             contents = self.download_file(url)
             lines = contents.split("\r\n")
 
@@ -587,18 +587,18 @@ class FileHandler:
                 csv_writer = CsvS3Writer(region, bucket, upload_name, headers)
 
             message = "DEBUG: Writing file locally..." if isLocal else "DEBUG: Writing file to S3..."
-            CloudLogger.log(message)
+            CloudLogger.log(message, log_type="debug", file_name=self.smx_log_file_name)
 
             with csv_writer as writer:
                 for line in lines[1:]:
                     writer.write(line)
                 writer.finishBatch()
 
-            CloudLogger.log("DEBUG: Marking job id of " + str(job_id) + " as finished")
+            CloudLogger.log("DEBUG: Marking job id of " + str(job_id) + " as finished", log_type="debug", file_name=self.smx_log_file_name)
             job_manager.markJobStatus(job_id, "finished")
             return {"message": "Success", "file_name": timestamped_name}
         except Exception as e:
-            CloudLogger.log("ERROR: Exception caught => " + str(e))
+            CloudLogger.log("ERROR: Exception caught => " + str(e), log_type="debug", file_name=self.smx_log_file_name)
             # Log the error
             JsonResponse.error(e,500)
             job_manager.getJobById(job_id).error_message = str(e)
