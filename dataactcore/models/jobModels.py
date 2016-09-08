@@ -113,3 +113,5 @@ class FileGenerationTask(Base):
     submission = relationship("Submission", uselist=False, cascade="delete")
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name = "fk_generation_file_type"))
     file_type = relationship("FileType", uselist=False, cascade="delete")
+    job_id = Column(Integer, ForeignKey("job.job_id", name = "fk_generation_job"))
+    job = relationship("Job", uselist=False, cascade="delete")

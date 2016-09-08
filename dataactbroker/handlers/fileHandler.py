@@ -285,7 +285,7 @@ class FileHandler:
             error_exc = exc
 
         if error_occurred:
-            responseDict = {"message": message, "file_type": file_type, "url": "", "status": "failed"}
+            responseDict = {"message": message, "file_type": file_type, "url": "#", "status": "failed"}
             if file_type in ["D1", "D2"]:
                 # Add empty start and end dates
                 responseDict["start"] = ""
@@ -471,9 +471,7 @@ class FileHandler:
             Tuple of boolean indicating successful start, and error response if False
 
         """
-        valJob = None
         jobDb = self.interfaces.jobDb
-        errorDb = self.interfaces.errorDb
         file_type_name = self.fileTypeMap[file_type]
 
         if file_type in ["D1", "D2"]:
@@ -505,39 +503,7 @@ class FileHandler:
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
         if file_type in ["D1", "D2"]:
-            try:
-                valJob = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, file_type_name, "csv_record_validation")
-                valJob.filename = upload_file_name
-                valJob.original_filename = timestamped_name
-                valJob.job_status_id = jobDb.getJobStatusId("waiting")
-                job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
-                job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
-                valJob.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
-                valJob.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
-                # Generate random uuid and store generation task
-                task_key = uuid4()
-                task = FileGenerationTask(generation_task_key = task_key, submission_id = submission_id, file_type_id = jobDb.getFileTypeId(file_type_name))
-                jobDb.session.add(task)
-
-                jobDb.session.commit()
-            except ValueError as e:
-                # Date was not in expected format
-                exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
-                return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
-            # Create file D API URL with dates and callback URL
-            callback = "http://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
-            get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
-            if not self.call_d_file_api(get_url):
-                # No results found, skip validation and mark as finished
-                jobDb.session.query(JobDependency).filter(JobDependency.prerequisite_id == job.job_id).delete()
-                jobDb.session.commit()
-                jobDb.markJobStatus(job.job_id,"finished")
-                if valJob is not None:
-                    jobDb.markJobStatus(valJob.job_id, "finished")
-                    # Create File object for this validation job
-                    valFile = File(job_id = valJob.job_id, file_status_id = errorDb.getFileStatusId("complete"), filename = valJob.filename, row_errors_present = False)
-                    errorDb.session.add(valFile)
-                    errorDb.session.commit()
+            self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
         else:
             # TODO add generate calls for E and F
             jobDb.markJobStatus(job.job_id,"finished")
@@ -546,21 +512,82 @@ class FileHandler:
 
         return True, None
 
+    def addJobInfoForDFile(self, upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job):
+        """ Populates upload and validation job objects with start and end dates, filenames, and status
+
+        Args:
+            upload_file_name - Filename to use on S3
+            timestamped_name - Version of filename without user ID
+            submission_id - Submission to add D files to
+            file_type - File type as either "D1" or "D2"
+            file_type_name - Full name of file type
+            start_date - Beginning of period for D file
+            end_date - End of period for D file
+            cgac_code - Agency to generate D file for
+            job - Job object for upload job
+        """
+        jobDb = self.interfaces.jobDb
+        try:
+            valJob = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, file_type_name, "csv_record_validation")
+            valJob.filename = upload_file_name
+            valJob.original_filename = timestamped_name
+            valJob.job_status_id = jobDb.getJobStatusId("waiting")
+            job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
+            job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
+            valJob.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
+            valJob.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
+            # Generate random uuid and store generation task
+            task_key = uuid4()
+            task = FileGenerationTask(generation_task_key = task_key, submission_id = submission_id, file_type_id = jobDb.getFileTypeId(file_type_name), job_id = job.job_id)
+            jobDb.session.add(task)
+
+            jobDb.session.commit()
+        except ValueError as e:
+            # Date was not in expected format
+            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
+            return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
+        # Create file D API URL with dates and callback URL
+        callback = "http://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
+        get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+        if not self.call_d_file_api(get_url):
+            self.handleEmptyResponse(job, valJob)
+
+    def handleEmptyResponse(self, job, valJob):
+        """ Handles an empty response from the D file API by marking jobs as finished with no errors or rows
+
+        Args:
+            job - Job object for upload job
+            valJob - Job object for validation job
+        """
+        jobDb = self.interfaces.jobDb
+        errorDb = self.interfaces.errorDb
+        # No results found, skip validation and mark as finished
+        jobDb.session.query(JobDependency).filter(JobDependency.prerequisite_id == job.job_id).delete()
+        jobDb.session.commit()
+        jobDb.markJobStatus(job.job_id,"finished")
+        job.filename = None
+        if valJob is not None:
+            jobDb.markJobStatus(valJob.job_id, "finished")
+            # Create File object for this validation job
+            valFile = File(job_id = valJob.job_id, file_status_id = errorDb.getFileStatusId("complete"), filename = valJob.filename, row_errors_present = False)
+            errorDb.session.add(valFile)
+            errorDb.session.commit()
+            valJob.number_of_rows = 0
+            valJob.number_of_rows_valid = 0
+            valJob.file_size = 0
+            valJob.number_of_errors = 0
+            valJob.number_of_warnings = 0
+            valJob.filename = None
+            jobDb.session.commit()
+
     def get_xml_response_content(self, api_url):
         """ Retrieve XML Response from the provided API url """
-        return requests.get(api_url, verify=False).text
+        return requests.get(api_url, verify=False, timeout = 20).text
 
     def call_d_file_api(self, api_url):
         """ Call D file API, return True if results found, False otherwise """
-        job_manager = self.interfaces.jobDb
-
-        xml_response = self.get_xml_response_content(api_url)
         # Check for numFound = 0
-        if(xml_response.find("numFound='0'")!=-1):
-            # No results found, return False
-            return False
-        return True
-
+        return "numFound='0'" not in self.get_xml_response_content(api_url)
 
     def download_file(self, local_file_path, file_url):
         """ Download a file locally from the specified URL """
@@ -676,7 +703,7 @@ class FileHandler:
         responseDict["file_type"] = file_type
         responseDict["message"] = uploadJob.error_message or ""
         if uploadJob.filename is None:
-            responseDict["url"] = ""
+            responseDict["url"] = "#"
         elif CONFIG_BROKER["use_aws"]:
             path, file_name = uploadJob.filename.split("/")
             responseDict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name, bucketRoute=None, method="GET")
@@ -744,7 +771,14 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, response)
 
     def completeGeneration(self, generationId):
-        """ Retrieve the generated file, using the specified ID to look up submission and file type """
+        """ For files D1 and D2, the API uses this route as a callback to load the generated file.
+        Requires an 'href' key in the request that specifies the URL of the file to be downloaded
+
+        Args:
+            generationId - Unique key stored in file_generation_task table, used in callback to identify which submission
+            this file is for.
+
+        """
         if generationId is None:
             return JsonResponse.error(ResponseException("Must include a generation ID",StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
 
@@ -754,15 +788,25 @@ class FileHandler:
         safeDictionary = RequestDictionary(self.request)
         CloudLogger.log("DEBUG: Request content => " + str(self.request), log_type="debug", file_name=self.smx_log_file_name)
 
+
+        if not safeDictionary.exists("href"):
+            return JsonResponse.error(ResponseException("Request must include href key with URL of D file", StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
         url =  safeDictionary.getValue("href")
         CloudLogger.log("DEBUG: Download URL => " + url, log_type="debug", file_name=self.smx_log_file_name)
 
         #Pull information based on task key
-        CloudLogger.log("DEBUG: Pulling information based on task key...", log_type="debug", file_name=self.smx_log_file_name)
-        task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
-        job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(task.submission_id, task.file_type.name, "file_upload")
-
-        CloudLogger.log("DEBUG: Loading D file...", log_type="debug", file_name=self.smx_log_file_name)
-        result = self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
-        CloudLogger.log("DEBUG: Load D file result => " + str(result), log_type="debug", file_name=self.smx_log_file_name)
-        return JsonResponse.create(StatusCode.OK,{"message":"File loaded successfully"})
+        try:
+            CloudLogger.log("DEBUG: Pulling information based on task key...", log_type="debug",
+                            file_name=self.smx_log_file_name)
+            task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
+            job = self.interfaces.jobDb.getJobById(task.job_id)
+            CloudLogger.log("DEBUG: Loading D file...", log_type="debug", file_name=self.smx_log_file_name)
+            self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
+            CloudLogger.log("DEBUG: Load D file result => " + str(result), log_type="debug",
+                            file_name=self.smx_log_file_name)
+            return JsonResponse.create(StatusCode.OK,{"message":"File loaded successfully"})
+        except ResponseException as e:
+            return JsonResponse.error(e, e.status)
+        except NoResultFound as e:
+            # Did not find file generation task
+            return JsonResponse.error(ResponseException("Generation task key not found", StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
