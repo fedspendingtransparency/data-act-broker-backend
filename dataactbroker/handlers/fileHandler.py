@@ -786,7 +786,7 @@ class FileHandler:
 
         # Pull url from request
         safeDictionary = RequestDictionary(self.request)
-        CloudLogger.log("DEBUG: Request content => " + str(self.request), log_type="debug", file_name=self.smx_log_file_name)
+        CloudLogger.log("DEBUG: Request content => " + str(self.request.values), log_type="debug", file_name=self.smx_log_file_name)
 
 
         if not safeDictionary.exists("href"):
@@ -801,7 +801,7 @@ class FileHandler:
             task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
             job = self.interfaces.jobDb.getJobById(task.job_id)
             CloudLogger.log("DEBUG: Loading D file...", log_type="debug", file_name=self.smx_log_file_name)
-            self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
+            result = self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
             CloudLogger.log("DEBUG: Load D file result => " + str(result), log_type="debug",
                             file_name=self.smx_log_file_name)
             return JsonResponse.create(StatusCode.OK,{"message":"File loaded successfully"})
