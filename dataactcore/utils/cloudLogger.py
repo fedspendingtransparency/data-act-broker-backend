@@ -9,6 +9,7 @@ from dataactcore.config import CONFIG_LOGGING
 class CloudLogger(object):
     """Singleton Logging object."""
     LOGGER = None
+    LOG_TYPES = ["info", "warning", "debug", "error"]
 
     @staticmethod
     def getLogger():
@@ -47,3 +48,23 @@ class CloudLogger(object):
             with open(localFile, "a") as file:
                 file.write("\n\n".join(["\n\n", message,
                     str(exception), json.dumps(logging_helpers)]))
+
+    @staticmethod
+    def log(message, log_type="info", file_name="info.log"):
+        """ Log a message """
+        if CONFIG_LOGGING["use_logstash"]:
+            CloudLogger.getLogger()
+            if log_type not in CloudLogger.LOG_TYPES:
+                raise ValueError("Invalid log type provided")
+            getattr(CloudLogger.getLogger(), log_type)(message)
+        else:
+            path = CONFIG_LOGGING["log_files"]
+            if not os.path.exists(path):
+                os.makedirs(path)
+            localFile = os.path.join(path, file_name)
+            with open(localFile, "a") as file:
+                file.write(CloudLogger.get_timestamp() + "    " + message + "\n")
+
+    @staticmethod
+    def get_timestamp():
+        return str(datetime.now()).split('.')[0]

@@ -20,6 +20,7 @@ from dataactbroker.handlers.aws.session import LoginSession
 from sqlalchemy.orm.exc import NoResultFound
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
+from dataactcore.utils.cloudLogger import CloudLogger
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -561,32 +562,19 @@ class FileHandler:
         return True
 
 
-    def download_file(self, local_file_path, file_url):
-        """ Download a file locally from the specified URL """
-        with open(local_file_path, "w") as file:
-            # get request
-            response = requests.get(file_url)
-            # write to file
-            response.encoding = "utf-8"
-            file.write(response.text)
-
-    def get_lines_from_csv(self, file_path):
-        """ Retrieve all lines from specified CSV file """
-        lines = []
-        with open(file_path) as file:
-            for line in reader(file):
-                lines.append(line)
-        return lines
+    def download_file(self, file_url):
+        response = requests.get(file_url)
+        # write to file
+        response.encoding = "utf-8"
+        return response.text
 
     def load_d_file(self, url, upload_name, timestamped_name, job_id, isLocal):
         """ Pull D file from specified URL and write to S3 """
         job_manager = self.interfaces.jobDb
         try:
-            full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
-
-            self.log_local("DEBUG: Downloading file...")
-            self.download_file(full_file_path, url)
-            lines = self.get_lines_from_csv(full_file_path)
+            CloudLogger.log("DEBUG: Downloading file...")
+            contents = self.download_file(url)
+            lines = contents.split("\r\n")
 
             headers = lines[0]
 
@@ -599,18 +587,18 @@ class FileHandler:
                 csv_writer = CsvS3Writer(region, bucket, upload_name, headers)
 
             message = "DEBUG: Writing file locally..." if isLocal else "DEBUG: Writing file to S3..."
-            self.log_local(message)
+            CloudLogger.log(message)
 
             with csv_writer as writer:
                 for line in lines[1:]:
                     writer.write(line)
                 writer.finishBatch()
 
-            self.log_local("DEBUG: Marking job id of " + str(job_id) + " as finished")
+            CloudLogger.log("DEBUG: Marking job id of " + str(job_id) + " as finished")
             job_manager.markJobStatus(job_id, "finished")
             return {"message": "Success", "file_name": timestamped_name}
         except Exception as e:
-            self.log_local("ERROR: Exception caught => " + str(e))
+            CloudLogger.log("ERROR: Exception caught => " + str(e))
             # Log the error
             JsonResponse.error(e,500)
             job_manager.getJobById(job_id).error_message = str(e)
@@ -747,33 +735,21 @@ class FileHandler:
         if generationId is None:
             return JsonResponse.error(ResponseException("Must include a generation ID",StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
 
-        self.file_name = "smx_request.log"
+        self.smx_log_file_name = "smx_request.log"
 
         # Pull url from request
         safeDictionary = RequestDictionary(self.request)
-        self.log_local("DEBUG: Request content => " + str(self.request))
+        CloudLogger.log("DEBUG: Request content => " + str(self.request), log_type="debug", file_name=self.smx_log_file_name)
 
         url =  safeDictionary.getValue("href")
-        self.log_local("DEBUG: Download URL => " + url)
+        CloudLogger.log("DEBUG: Download URL => " + url, log_type="debug", file_name=self.smx_log_file_name)
 
         #Pull information based on task key
-        self.log_local("DEBUG: Pulling information based on task key...")
+        CloudLogger.log("DEBUG: Pulling information based on task key...", log_type="debug", file_name=self.smx_log_file_name)
         task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
         job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(task.submission_id, task.file_type.name, "file_upload")
 
-        self.log_local("DEBUG: Loading D file...")
+        CloudLogger.log("DEBUG: Loading D file...", log_type="debug", file_name=self.smx_log_file_name)
         result = self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
-        self.log_local("DEBUG: Load D file result => " + str(result))
+        CloudLogger.log("DEBUG: Load D file result => " + str(result), log_type="debug", file_name=self.smx_log_file_name)
         return JsonResponse.create(StatusCode.OK,{"message":"File loaded successfully"})
-
-    def log_local(self, message):
-        file_name = "logs.log" if self.file_name is None else self.file_name
-        path = CONFIG_LOGGING["log_files"]
-        if not os.path.exists(path):
-            os.makedirs(path)
-        localFile = os.path.join(path, file_name)
-        with open(localFile, "a") as file:
-            file.write(self.get_timestamp() + "    " + message + "\n")
-
-    def get_timestamp(self):
-        return str(datetime.now()).split('.')[0]
