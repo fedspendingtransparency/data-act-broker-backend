@@ -443,7 +443,7 @@ class FileTests(BaseTestAPI):
 
     def test_file_generation(self):
         """ Test the generate and check routes for external files """
-        # For file generation submission, call generate route for D2 anc check results
+        # For file generation submission, call generate route for D1 and check results
         postJson = {"submission_id": self.generation_submission_id, "file_type": "D1", "start":"01/02/2016", "end":"02/03/2016"}
         response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id})
 
@@ -456,7 +456,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["end"],"02/03/2016")
         self.assertEqual(json["message"],"")
 
-        # Then call check generation route for E and F and check results
+        # Then call check generation route for D2, E and F and check results
         postJson = {"submission_id": self.generation_submission_id, "file_type": "E"}
         response = self.app.post_json("/v1/check_generation_status/", postJson, headers={"x-session-id":self.session_id})
 
