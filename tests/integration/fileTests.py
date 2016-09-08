@@ -487,14 +487,6 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["url"],"#")
         self.assertEqual(json["message"],"File was invalid")
 
-        # E file generation should error because D1 job did not validate
-        postJson = {"submission_id": self.generation_submission_id, "file_type": "E", "start":"01/02/2016", "end":"02/03/2016"}
-        response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id}, expect_errors=True)
-
-        self.assertEqual(response.status_code, 400)
-        json = response.json
-        self.assertEqual(json["message"],"Prerequisites incomplete, job cannot be started")
-
         # Test permission error
         self.login_approved_user()
         postJson = {"submission_id": self.generation_submission_id, "file_type": "D1", "start":"01/02/2016", "end":"02/03/2016"}
