@@ -51,6 +51,8 @@ def generate_f_file(submission_id, job_id, interface_holder_class,
             job_manager.markJobStatus(job_id, "failed")
             job_manager.session.commit()
 
+        job_manager.close()
+
 
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):
