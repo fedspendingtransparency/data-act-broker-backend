@@ -45,7 +45,7 @@ def insertCodes():
         validatorDb.session.merge(ruleSeverity)
 
     validatorDb.session.commit()
-    validatorDb.session.close()
+    validatorDb.close()
 
 if __name__ == '__main__':
     setupValidationDB()
