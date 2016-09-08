@@ -285,7 +285,7 @@ class FileHandler:
             error_exc = exc
 
         if error_occurred:
-            responseDict = {"message": message, "file_type": file_type, "url": "", "status": "failed"}
+            responseDict = {"message": message, "file_type": file_type, "url": "#", "status": "failed"}
             if file_type in ["D1", "D2"]:
                 # Add empty start and end dates
                 responseDict["start"] = ""
