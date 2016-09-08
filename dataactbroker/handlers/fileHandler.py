@@ -2,7 +2,7 @@ import os
 import requests
 from csv import reader
 from flask import session, request
-from datetime import datetime, date
+from datetime import datetime
 from werkzeug import secure_filename
 from uuid import uuid4
 from sqlalchemy.orm import joinedload
@@ -12,15 +12,13 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.config import CONFIG_BROKER, CONFIG_JOB_QUEUE, CONFIG_SERVICES
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency
 from dataactcore.models.errorModels import File
 from dataactbroker.handlers.aws.session import LoginSession
-from dataactcore.utils.jobQueue import JobQueue
 from sqlalchemy.orm.exc import NoResultFound
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
-from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
-from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
+from dataactvalidator.filestreaming.csv_selection import write_csv
+
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -615,20 +613,7 @@ class FileHandler:
             self.download_file(full_file_path, url)
             lines = self.get_lines_from_csv(full_file_path)
 
-            headers = lines[0]
-
-            if isLocal:
-                file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
-                csv_writer = CsvLocalWriter(file_name, headers)
-            else:
-                bucket = CONFIG_BROKER['aws_bucket']
-                region = CONFIG_BROKER['aws_region']
-                csv_writer = CsvS3Writer(region, bucket, upload_name, headers)
-
-            with csv_writer as writer:
-                for line in lines[1:]:
-                    writer.write(line)
-                writer.finishBatch()
+            write_csv(timestamped_name, isLocal, lines[0], lines[1:])
 
             job_manager.markJobStatus(job_id, "finished")
             return {"message": "Success", "file_name": timestamped_name}
