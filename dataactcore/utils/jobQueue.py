@@ -1,9 +1,10 @@
-from celery import Celery
-from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER
-import requests
-from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from csv import reader
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
+
+from celery import Celery
+import requests
+from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER
+
+
 
 class JobQueue:
     def __init__(self, job_queue_url="localhost"):
@@ -34,49 +35,7 @@ class JobQueue:
             response = requests.post(url, params)
             return response.json()
 
-        @self.jobQueue.task(name='jobQueue.generate_d_file')
-        def generate_d_file(api_url, file_name, user_id, d_file_id, interface_holder, timestamped_name, skip_gen=False):
-            job_manager = interface_holder().jobDb
-
-            try:
-                if not skip_gen:
-                    xml_response = str(requests.get(api_url, verify=False).content)
-                    url_start_index = xml_response.find("<results>", 0) + 9
-                    file_url = xml_response[url_start_index:xml_response.find("</results>", url_start_index)]
-                else:
-                    file_url = s3UrlHandler().getSignedUrl(path="d-files/", fileName=file_name, method="GET")
-
-                bucket = CONFIG_BROKER['aws_bucket']
-                region = CONFIG_BROKER['aws_region']
-
-                aws_file_name = "".join([str(user_id), "/", timestamped_name])
-
-                with open(timestamped_name, "wb") as file:
-                    # get request
-                    response = requests.get(file_url)
-                    # write to file
-                    file.write(response.content)
-
-                lines = []
-                with open(timestamped_name) as file:
-                    for line in reader(file):
-                            lines.append(line)
-
-                headers = lines[0]
-                with CsvS3Writer(region, bucket, aws_file_name, headers) as writer:
-                    for line in lines[1:]:
-                        writer.write(line)
-                    writer.finishBatch()
-
-                job_manager.setDFileStatus(d_file_id, "finished")
-            except Exception as e:
-                job_manager.setDFileMessage(d_file_id, str(e))
-                job_manager.setDFileStatus(d_file_id, "failed")
-                raise e
-
         self.enqueue = enqueue
-        self.generate_d_file = generate_d_file
-
 
 if __name__ in ['__main__', 'jobQueue']:
     jobQueue = JobQueue()

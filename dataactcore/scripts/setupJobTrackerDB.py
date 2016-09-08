@@ -1,4 +1,4 @@
-from dataactcore.models.jobModels import JobStatus, JobType, FileType
+from dataactcore.models.jobModels import JobStatus, JobType, FileType, PublishStatus
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_DB
@@ -34,17 +34,26 @@ def insertCodes():
         thisType = JobType(job_type_id=t[0],name=t[1], description=t[2])
         jobDb.session.merge(thisType)
 
-    fileTypeList = [(1, 'appropriations', ''),
-        (2,'program_activity', ''),
-        (3, 'award_financial', ''),
-        (4, 'award', ''),
-        (5, 'award_procurement', '')]
+    publishStatusList = [(1, 'unpublished', 'Has not yet been moved to data store'),
+        (2,'published', 'Has been moved to data store'),
+        (3, 'updated', 'Submission was updated after being published')]
+    for ps in publishStatusList:
+        status = PublishStatus(publish_status_id=ps[0], name=ps[1], description=ps[2])
+        jobDb.session.merge(status)
+
+    fileTypeList = [(1, 'appropriations', '', 'A'),
+        (2,'program_activity', '', 'B'),
+        (3, 'award_financial', '', 'C'),
+        (4, 'award', '', 'D2'),
+        (5, 'award_procurement', '', 'D1'),
+        (6, "awardee_attributes", "", 'E'),
+        (7, "sub_award", "", 'F')]
     for ft in fileTypeList:
-        fileType = FileType(file_type_id=ft[0], name=ft[1], description=ft[2])
+        fileType = FileType(file_type_id=ft[0], name=ft[1], description=ft[2], letter_name=ft[3])
         jobDb.session.merge(fileType)
 
     jobDb.session.commit()
-    jobDb.session.close()
+    jobDb.close()
 
 if __name__ == '__main__':
     setupJobTrackerDB()

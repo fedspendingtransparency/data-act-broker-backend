@@ -1,70 +1,89 @@
+from collections import namedtuple
+from contextlib import contextmanager
+import logging
+
 import sqlalchemy
-from flask import _app_ctx_stack
+import flask
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.config import CONFIG_DB
 
+
+logger = logging.getLogger(__name__)
+
+
+class _DB(namedtuple('_DB', ['engine', 'connection', 'Session', 'session'])):
+    """Represents a database connection, from engine to session"""
+    def close(self):
+        self.session.close()
+        self.Session.remove()
+        self.connection.close()
+        self.engine.dispose()
+
+
+class GlobalDB:
+    @classmethod
+    def _holder(cls):
+        """We generally want to work in the `g` context (i.e. per request),
+        but there are paths through the app which won't have access. In those
+        situations, fall back to the non-threadsafe static member approach"""
+        if flask.current_app:
+            return flask.g
+        else:
+            logger.warning("No current_app, falling back to non-threadsafe "
+                           "database connection")
+            return cls
+
+    @classmethod
+    def db(cls):
+        """Build or retrieve the database information"""
+        holder = cls._holder()
+        if not getattr(holder, '_db', None):
+            holder._db = dbConnection()
+        return holder._db
+
+    @classmethod
+    def close(cls):
+        """Close the database connection, if present"""
+        holder = cls._holder()
+        if hasattr(holder, '_db'):
+            holder._db.close()
+            del holder._db
+
+
 class BaseInterface(object):
     """ Abstract base interface to be inherited by interfaces for specific databases
     """
-    #For Flask Apps use the context for locals
-    IS_FLASK = True
     dbConfig = None
     logFileName = "dbErrors.log"
     dbName = None
-    Session = None
-    engine = None
-    session = None
-
+    # This holds a pointer to an InterfaceHolder object, and is populated when that is instantiated
+    interfaces = None
 
     def __init__(self):
         self.dbConfig = CONFIG_DB
         self.dbName = self.dbConfig['db_name']
-        if(self.session != None):
-            # session is already set up for this DB
-            return
 
-        if not self.dbName:
-            # Child class needs to set these before calling base constructor
-            raise ValueError("Need dbName defined")
+    @property
+    def engine(self):
+        return GlobalDB.db().engine
 
-        if not self.dbConfig:
-            raise ValueError("Database configuration is not defined")
+    @property
+    def connection(self):
+        return GlobalDB.db().connection
 
-        # Create sqlalchemy connection and session
-        self.engine = sqlalchemy.create_engine(
-            "postgresql://{}:{}@{}:{}/{}".format(self.dbConfig["username"],
-            self.dbConfig["password"], self.dbConfig["host"], self.dbConfig["port"],
-            self.dbName), pool_size=100,max_overflow=50)
-        self.connection = self.engine.connect()
-        if(self.Session == None):
-            if(BaseInterface.IS_FLASK) :
-                self.Session = scoped_session(sessionmaker(bind=self.engine,autoflush=True),scopefunc=_app_ctx_stack.__ident_func__)
-            else :
-                self.Session = scoped_session(sessionmaker(bind=self.engine,autoflush=True))
-        self.session = self.Session()
+    @property
+    def session(self):
+        return GlobalDB.db().session
 
     def __del__(self):
-        try:
-            #Close session
-            self.session.close()
-            self.Session.remove()
-            self.connection.close()
-            self.engine.dispose()
-        except (KeyError, AttributeError):
-            # KeyError will occur in Python 3 on engine dispose
-            pass
+        self.close()
 
-    @staticmethod
-    def getDbName():
-        """Return database name."""
-        return BaseInterface.dbName
-
-    def getSession(self):
-        """ Return current active session """
-        return self.session
+    def close(self):
+        self.interfaces = None
+        GlobalDB.close()
 
     @classmethod
     def getCredDict(cls):
@@ -152,3 +171,29 @@ class BaseInterface(object):
                 return key
         # If not found, raise an exception
         raise ValueError("Value: " + str(fieldValue) + " not found in dict: " + str(dict))
+
+
+def dbConnection():
+    """Use the config to set up a database engine and connection"""
+    if not CONFIG_DB:
+        raise ValueError("Database configuration is not defined")
+
+    dbName = CONFIG_DB['db_name']
+    if not dbName:
+        raise ValueError("Need dbName defined")
+
+    # Create sqlalchemy connection and session
+    engine = sqlalchemy.create_engine(
+        "postgresql://{username}:{password}@{host}:{port}/{db_name}".format(
+            **CONFIG_DB),
+        pool_size=100, max_overflow=50)
+    connection = engine.connect()
+    Session = scoped_session(sessionmaker(bind=engine, autoflush=True))
+    return _DB(engine, connection, Session, Session())
+
+
+@contextmanager
+def databaseSession():
+    db = dbConnection()
+    yield db.session
+    db.close()

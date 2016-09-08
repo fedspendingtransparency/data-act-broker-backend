@@ -10,7 +10,7 @@ class SchemaLoader(object):
     This class will load a schema file and writes the set of validation rules to validation database.
 
     """
-    fieldFiles = {"appropriations":"appropFields.csv","award":"awardFields.csv","award_financial":"awardFinancialFields.csv","program_activity":"programActivityFields.csv"}
+    fieldFiles = {"appropriations":"appropFields.csv","award":"awardFields.csv","award_financial":"awardFinancialFields.csv","program_activity":"programActivityFields.csv","award_procurement":"awardProcurementFields.csv"}
 
     @staticmethod
     def loadFields(fileTypeName,schemaFileName):

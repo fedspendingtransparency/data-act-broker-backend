@@ -8,7 +8,7 @@ def clearErrors():
     errorDb.session.query(ErrorMetadata).delete()
     errorDb.session.query(File).delete()
     errorDb.session.commit()
-    errorDb.session.close()
+    errorDb.close()
 
 
 def clearErrorsByJobId(jobId):
@@ -17,7 +17,7 @@ def clearErrorsByJobId(jobId):
     errorDb.session.query(ErrorMetadata).filter(job_id == jobId).delete()
     errorDb.session.query(File).filter(job_id == jobId).delete()
     errorDb.session.commit()
-    errorDb.session.close()
+    errorDb.close()
 
 
 if __name__ == '__main__':

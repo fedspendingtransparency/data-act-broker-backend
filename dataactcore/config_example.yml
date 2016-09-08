@@ -32,6 +32,28 @@ broker:
     # is ignored if use_aws is true.
     broker_files: /full/path/to/broker/files
 
+    ## Smartronix API URLs ##
+
+    # File D1 API
+    # Uses "{}" because it requires string formatting to insert query parameters
+    # If the URL is provided, the file name provided will be used when uploading to S3
+    award_procurement_url: https://data-usas.uat.workplace.gov/api/contracts?CGAC={}&date_signed_beginning={}&date_signed_end={}&callback={}
+    award_procurement_file_name: d1_data.csv
+
+    # File D2 API
+    # If the URL is provided, the file name provided will be used when uploading to S3
+    award_url: https://data-usas.uat.workplace.gov/api/assistance?CGAC={}&date_signed_beginning={}&date_signed_end={}&callback={}
+    award_file_name: d2_data.csv
+
+    d_file_storage_path: /full/path/to/d/file/storage
+
+    # File E
+    awardee_attributes_url: https://sample.gov
+    awardee_attributes_file_name: awardee_data.csv
+
+    # File F
+    sub_award_url: https://sample.gov
+    sub_award_file_name: sub_award_data.csv
 
     ## AWS Configuration Settings ##
 
@@ -70,7 +92,10 @@ broker:
 
     # S3 filenames for SF-133 file, only required if planning to load SF-133 table
     sf_133_folder: config
-    sf_133_file: sf_133.csv
+
+    # Static Files Locations
+    static_files_bucket: sample-static-files-bucket
+    help_files_path: sample-help-files-folder
 
 services:
     # Set to true to turn on tracing rest errors.
@@ -100,6 +125,16 @@ services:
     # is ignored if use_aws is true.
     error_report_path: /full/path/to/error/reports
 
+    # We import award/subaward records from FSRS
+    fsrs:
+        procurement_service:
+            wsdl: ''  # e.g. https://example.com/?wsdl'
+            username: ''
+            password: ''
+        grant_service:
+            wsdl: ''  # e.g. https://example.com/?wsdl'
+            username: ''
+            password: ''
 
 db:
     # The name of your default postgres database. Unless you've exlicitly

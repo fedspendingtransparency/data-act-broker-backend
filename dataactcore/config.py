@@ -29,8 +29,8 @@ CONFIG_BROKER['path'] = dirname(dirname(abspath(__file__)))
 if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
     CONFIG_BROKER['local'] = False
     # AWS flag is on, so make sure all needed AWS info is present
-    required_aws_keys = ['aws_bucket',
-        'aws_role', 'aws_region', 'aws_create_temp_credentials']
+    required_aws_keys = ['aws_bucket', 'aws_role', 'aws_region', 'aws_create_temp_credentials',
+                         'static_files_bucket', 'help_files_path']
     for k in required_aws_keys:
         try:
             CONFIG_BROKER[k]
@@ -40,6 +40,9 @@ if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
         if not CONFIG_BROKER[k]:
             raise ValueError('Config error: use_aws is True but {} value is '
                  'missing'.format(k))
+
+    help_files_path = CONFIG_BROKER["help_files_path"]
+    CONFIG_BROKER["help_files_path"] = "".join([help_files_path, "/"]) if help_files_path[-1] != "/" else help_files_path
 else:
     CONFIG_BROKER['local'] = True
     CONFIG_BROKER['aws_bucket'] = None
@@ -64,6 +67,10 @@ else:
         CONFIG_DB['dynamo_port'] = 8000
     # TODO: can we test that local dynamo is up and running? if not, route calls hang
 
+storage_path = CONFIG_BROKER['d_file_storage_path']
+if storage_path[-1] != os.path.sep:
+    CONFIG_BROKER['d_file_storage_path'] = "".join([storage_path, os.path.sep])
+
 # if no broker file path specified,
 # default to `data_act_broker` in user's home dir
 broker_files = CONFIG_BROKER['broker_files']
@@ -74,6 +81,8 @@ elif len(os.path.splitext(broker_files)[1]):
     # just use the directory
     broker_files = os.path.split(broker_files)[0]
 normpath(broker_files)
+if broker_files[-1] != os.path.sep:
+    broker_files += os.path.sep
 CONFIG_BROKER['broker_files'] = broker_files
 
 # normalize logging path, if given
