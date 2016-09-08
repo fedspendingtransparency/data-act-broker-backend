@@ -195,7 +195,7 @@ class AccountHandler:
                         newEmail.send()
 
             finally:
-                InterfaceHolder.closeOne(threadedDatabase)
+                threadedDatabase.close()
 
         requestFields = RequestDictionary(self.request)
         if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("cgac_code") and requestFields.exists("title") and requestFields.exists("password"))):

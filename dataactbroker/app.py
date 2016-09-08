@@ -27,6 +27,7 @@ def createApp():
         app = Flask(__name__, instance_path=CONFIG_PATH)
         local = CONFIG_BROKER['local']
         app.config.from_object(__name__)
+        app.debug = True
         app.config['LOCAL'] = local
         app.config['REST_TRACE'] = CONFIG_SERVICES['rest_trace']
         app.config['SYSTEM_EMAIL'] = CONFIG_BROKER['reply_to_email']
@@ -61,11 +62,8 @@ def createApp():
         def clearInterfaces(response):
             try:
                 interfaces =BaseInterface.interfaces
-                interfaces.jobDb.close()
-                interfaces.validationDb.close()
-                interfaces.errorDb.close()
-                interfaces.userDb.close()
-                BaseInterface.interfaces = None
+                if interfaces is not None:
+                    interfaces.close()
             except Exception as e:
                 print("Could not close connections")
                 print(str(type(e)) + ": " + str(e))

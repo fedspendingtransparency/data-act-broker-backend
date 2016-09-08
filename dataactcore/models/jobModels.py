@@ -104,20 +104,12 @@ class FileType(Base):
     description = Column(Text)
     letter_name = Column(Text)
 
-class DFileMeta(Base):
-    __tablename__ = "d_file_metadata"
+class FileGenerationTask(Base):
+    __tablename__ = "file_generation_task"
 
-    d_file_id = Column(Integer, primary_key=True)
-    type = Column(Text, Enum("d1", "d2", name="type_enum"))
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission_id"))
-    submission = relationship("Submission", uselist=False)
-    start_date = Column(Date)
-    end_date = Column(Date)
-    status_id = Column(Integer, ForeignKey("job_status.job_status_id", name="fk_status_id"))
-    status = relationship("JobStatus", uselist=False)
-    error_message = Column(Text)
-    upload_file_name = Column(Text)
-    original_file_name = Column(Text)
-    is_submitted = Column(Boolean, default ="False", server_default="False")
-
-    __table_args__ = (UniqueConstraint('submission_id', 'type', name='_submission_type_uc'),)
+    file_generation_task_id = Column(Integer, primary_key=True)
+    generation_task_key = Column(Text, index=True, unique=True)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", name = "fk_generation_submission"))
+    submission = relationship("Submission", uselist=False, cascade="delete")
+    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name = "fk_generation_file_type"))
+    file_type = relationship("FileType", uselist=False, cascade="delete")

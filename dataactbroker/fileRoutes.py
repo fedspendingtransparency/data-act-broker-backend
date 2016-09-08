@@ -88,3 +88,8 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         """ Return status of file generation job """
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.checkGeneration)
+
+    @app.route("/v1/complete_generation/<generationId>/", methods=["POST"])
+    def complete_generation(generationId):
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return RouteUtils.run_instance_function(fileManager, fileManager.completeGeneration, generationId)

@@ -241,7 +241,6 @@ class FileTests(BaseTestAPI):
         """Test broker status route response."""
         postJson = {"submission_id": self.status_check_submission_id}
         # Populating error info before calling route to avoid changing last update time
-        submission = self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id)
 
         self.interfaces.jobDb.populateSubmissionErrorInfo(self.status_check_submission_id)
 
@@ -325,6 +324,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["number_of_rows"],667)
         # Check number of errors and warnings in submission table
 
+        submission = self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id)
         self.assertEqual(submission.number_of_errors, 17)
         self.assertEqual(submission.number_of_warnings, 7)
 
@@ -449,7 +449,7 @@ class FileTests(BaseTestAPI):
 
         self.assertEqual(response.status_code, 200)
         json = response.json
-        self.assertEqual(json["status"], "waiting")
+        self.assertIn(json["status"], ["waiting","finished"])
         self.assertEqual(json["file_type"], "D1")
         self.assertIn("d1_data.csv", json["url"])
         self.assertEqual(json["start"],"01/02/2016")
