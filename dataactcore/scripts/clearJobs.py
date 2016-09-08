@@ -8,7 +8,7 @@ def clearJobs():
     jobDb.session.query(Job).delete()
     jobDb.session.query(Submission).delete()
     jobDb.session.commit()
-    jobDb.session.close()
+    jobDb.close()
 
 if __name__ == '__main__':
     clearJobs()

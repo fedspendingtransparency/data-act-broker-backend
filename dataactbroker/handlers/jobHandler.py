@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType, DFileMeta, JobStatus
+from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -319,8 +319,10 @@ class JobHandler(JobTrackerInterface):
                 self.session.add(valJob)
                 self.session.flush()
                 # Add dependency between file upload and db upload
-                uploadDependency = JobDependency(job_id = valJob.job_id, prerequisite_id = uploadJob.job_id)
-                self.session.add(uploadDependency)
+                # TODO Temporarily skip D1 dependency until that validation is added
+                if fileType != "award_procurement":
+                    uploadDependency = JobDependency(job_id = valJob.job_id, prerequisite_id = uploadJob.job_id)
+                    self.session.add(uploadDependency)
                 if fileType == "award_financial":
                     # Record D2 val job ID
                     self.cValId = valJob.job_id

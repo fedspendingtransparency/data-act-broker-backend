@@ -1,7 +1,8 @@
 import traceback
+from uuid import uuid4
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, FileType, PublishStatus
+from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, FileType, PublishStatus, FileGenerationTask
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -368,3 +369,25 @@ class JobTrackerInterface(BaseInterface):
     def getPublishStatusId(self, statusName):
         """ Return ID for specified publish status """
         return self.getIdFromDict(PublishStatus,  "PUBLISH_STATUS_DICT", "name", statusName, "publish_status_id")
+
+    def createGenerationTask(self, submissionId, fileType):
+        """ Create a generation task and return the unique ID
+
+        Args:
+            submissionId: Submission to generate file for
+            fileType: File type to be generated
+
+        Returns:
+            Unique ID to look up this task on callback
+
+        """
+        # Generate a random unique ID
+        key = str(uuid4())
+        task = FileGenerationTask(generation_task_key = key, submission_id = submissionId, file_type = fileType)
+        self.session.add(task)
+        self.session.commit()
+        return key
+
+    def findGenerationTask(self, key):
+        """ Given a key, return a file generation task """
+        return self.session.query(FileGenerationTask).filter(FileGenerationTask.generation_task_key == key).first()
