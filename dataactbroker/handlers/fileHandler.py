@@ -786,7 +786,7 @@ class FileHandler:
 
         # Pull url from request
         safeDictionary = RequestDictionary(self.request)
-        CloudLogger.log("DEBUG: Request content => " + str(self.request.values), log_type="debug", file_name=self.smx_log_file_name)
+        CloudLogger.log("DEBUG: Request content => " + safeDictionary.to_string(), log_type="debug", file_name=self.smx_log_file_name)
 
 
         if not safeDictionary.exists("href"):
