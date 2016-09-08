@@ -562,19 +562,32 @@ class FileHandler:
         return True
 
 
-    def download_file(self, file_url):
-        response = requests.get(file_url)
-        # write to file
-        response.encoding = "utf-8"
-        return response.text
+    def download_file(self, local_file_path, file_url):
+        """ Download a file locally from the specified URL """
+        with open(local_file_path, "w") as file:
+            # get request
+            response = requests.get(file_url)
+            # write to file
+            response.encoding = "utf-8"
+            file.write(response.text)
+
+    def get_lines_from_csv(self, file_path):
+        """ Retrieve all lines from specified CSV file """
+        lines = []
+        with open(file_path) as file:
+            for line in reader(file):
+                lines.append(line)
+        return lines
 
     def load_d_file(self, url, upload_name, timestamped_name, job_id, isLocal):
         """ Pull D file from specified URL and write to S3 """
         job_manager = self.interfaces.jobDb
         try:
+            full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
+
             CloudLogger.log("DEBUG: Downloading file...", log_type="debug", file_name=self.smx_log_file_name)
-            contents = self.download_file(url)
-            lines = contents.split("\r\n")
+            self.download_file(full_file_path, url)
+            lines = self.get_lines_from_csv(full_file_path)
 
             headers = lines[0]
 
