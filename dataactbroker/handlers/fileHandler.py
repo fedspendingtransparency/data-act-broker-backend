@@ -538,7 +538,7 @@ class FileHandler:
             valJob.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
             # Generate random uuid and store generation task
             task_key = uuid4()
-            task = FileGenerationTask(generation_task_key = task_key, submission_id = submission_id, file_type_id = jobDb.getFileTypeId(file_type_name))
+            task = FileGenerationTask(generation_task_key = task_key, submission_id = submission_id, file_type_id = jobDb.getFileTypeId(file_type_name), job_id = job.job_id)
             jobDb.session.add(task)
 
             jobDb.session.commit()
@@ -785,7 +785,7 @@ class FileHandler:
         #Pull information based on task key
         try:
             task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
-            job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(task.submission_id, task.file_type.name, "file_upload")
+            job = self.interfaces.jobDb.getJobById(task.job_id)
             self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
             return JsonResponse.create(StatusCode.OK,{"message":"File loaded successfully"})
         except ResponseException as e:
