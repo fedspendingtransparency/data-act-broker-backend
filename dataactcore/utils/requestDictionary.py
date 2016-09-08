@@ -38,3 +38,6 @@ class RequestDictionary() :
         if(not(value in self.requestDict)):
             return False
         return True
+
+    def to_string(self):
+        return str(self.requestDict)

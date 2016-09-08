@@ -112,7 +112,7 @@ class ValidatorValidationInterface(ValidationInterface):
             raise ValueError("".join(["Required is not boolean for ",str(fieldName)]))
 
         # Add length if present
-        if fieldLength is not None:
+        if fieldLength is not None and str(fieldLength).strip() != "":
             lengthInt = int(str(fieldLength).strip())
             newColumn.length = lengthInt
 
