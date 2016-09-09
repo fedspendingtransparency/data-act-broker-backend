@@ -2,7 +2,7 @@ import os
 import requests
 from csv import reader
 from flask import session, request
-from datetime import datetime, date
+from datetime import datetime
 from werkzeug import secure_filename
 from uuid import uuid4
 from sqlalchemy.orm import joinedload
@@ -12,15 +12,15 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.config import CONFIG_BROKER, CONFIG_JOB_QUEUE, CONFIG_SERVICES
-from dataactcore.models.jobModels import FileGenerationTask, JobDependency
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_LOGGING
+from dataactcore.models.jobModels import JobDependency
 from dataactcore.models.errorModels import File
+from dataactcore.models.jobModels import FileGenerationTask
 from dataactbroker.handlers.aws.session import LoginSession
-from dataactcore.utils.jobQueue import JobQueue
 from sqlalchemy.orm.exc import NoResultFound
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
+from dataactcore.utils.cloudLogger import CloudLogger
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -606,6 +606,7 @@ class FileHandler:
         try:
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
+            CloudLogger.log("DEBUG: Downloading file...", log_type="debug", file_name=self.smx_log_file_name)
             self.download_file(full_file_path, url)
             lines = self.get_lines_from_csv(full_file_path)
 
@@ -619,14 +620,19 @@ class FileHandler:
                 region = CONFIG_BROKER['aws_region']
                 csv_writer = CsvS3Writer(region, bucket, upload_name, headers)
 
+            message = "DEBUG: Writing file locally..." if isLocal else "DEBUG: Writing file to S3..."
+            CloudLogger.log(message, log_type="debug", file_name=self.smx_log_file_name)
+
             with csv_writer as writer:
                 for line in lines[1:]:
                     writer.write(line)
                 writer.finishBatch()
 
+            CloudLogger.log("DEBUG: Marking job id of " + str(job_id) + " as finished", log_type="debug", file_name=self.smx_log_file_name)
             job_manager.markJobStatus(job_id, "finished")
             return {"message": "Success", "file_name": timestamped_name}
         except Exception as e:
+            CloudLogger.log("ERROR: Exception caught => " + str(e), log_type="debug", file_name=self.smx_log_file_name)
             # Log the error
             JsonResponse.error(e,500)
             job_manager.getJobById(job_id).error_message = str(e)
@@ -770,17 +776,28 @@ class FileHandler:
         if generationId is None:
             return JsonResponse.error(ResponseException("Must include a generation ID",StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
 
+        self.smx_log_file_name = "smx_request.log"
+
         # Pull url from request
         safeDictionary = RequestDictionary(self.request)
+        CloudLogger.log("DEBUG: Request content => " + safeDictionary.to_string(), log_type="debug", file_name=self.smx_log_file_name)
+
 
         if not safeDictionary.exists("href"):
             return JsonResponse.error(ResponseException("Request must include href key with URL of D file", StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
         url =  safeDictionary.getValue("href")
+        CloudLogger.log("DEBUG: Download URL => " + url, log_type="debug", file_name=self.smx_log_file_name)
+
         #Pull information based on task key
         try:
+            CloudLogger.log("DEBUG: Pulling information based on task key...", log_type="debug",
+                            file_name=self.smx_log_file_name)
             task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
             job = self.interfaces.jobDb.getJobById(task.job_id)
-            self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
+            CloudLogger.log("DEBUG: Loading D file...", log_type="debug", file_name=self.smx_log_file_name)
+            result = self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
+            CloudLogger.log("DEBUG: Load D file result => " + str(result), log_type="debug",
+                            file_name=self.smx_log_file_name)
             return JsonResponse.create(StatusCode.OK,{"message":"File loaded successfully"})
         except ResponseException as e:
             return JsonResponse.error(e, e.status)
