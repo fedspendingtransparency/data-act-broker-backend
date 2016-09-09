@@ -313,8 +313,7 @@ class JobTrackerInterface(BaseInterface):
     def populateSubmissionErrorInfo(self, submissionId):
         """ Set number of errors and warnings for submission """
         submission = self.getSubmissionById(submissionId)
-        # TODO find where interfaces is set as an instance variable which overrides the static variable, fix that and then remove this line
-        self.interfaces = BaseInterface.interfaces
+
         submission.number_of_errors = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb)
         submission.number_of_warnings = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb, errorType = "warning")
         self.session.commit()
