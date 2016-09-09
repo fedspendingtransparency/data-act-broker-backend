@@ -549,10 +549,10 @@ class FileHandler:
         # Create file D API URL with dates and callback URL
         if CONFIG_SERVICES["broker_api_port"] == 443:
             # Use https
-            prefix = "https"
+            protocol = "https"
         else:
-            prefix = "http"
-        callback = "{}://{}:{}/v1/complete_generation/{}/".format(prefix,CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
+            protocol = "http"
+        callback = "{}://{}:{}/v1/complete_generation/{}/".format(protocol,CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
         get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
         if not self.call_d_file_api(get_url):
             self.handleEmptyResponse(job, valJob)
