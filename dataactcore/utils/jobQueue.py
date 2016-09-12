@@ -3,6 +3,7 @@ from csv import reader
 from celery import Celery
 import requests
 from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE, CONFIG_BROKER
+from dataactcore.utils.cloudLogger import CloudLogger
 
 
 
@@ -28,11 +29,14 @@ class JobQueue:
         @self.jobQueue.task(name='jobQueue.enqueue')
         def enqueue(jobID):
             # Don't need to worry about the response currently
+            CloudLogger.log("Adding job {} to the queue".format(str(jobID)))
             url = ''.join([validatorUrl, '/validate/'])
             params = {
                 'job_id': jobID
             }
             response = requests.post(url, params)
+            CloudLogger.log("Job {} has completed validation".format(str(jobID)))
+            CloudLogger.log("Validator response: {}".format(str(response.json())))
             return response.json()
 
         self.enqueue = enqueue
