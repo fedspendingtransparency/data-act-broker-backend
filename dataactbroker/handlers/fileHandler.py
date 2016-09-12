@@ -541,7 +541,12 @@ class FileHandler:
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
             return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
         # Create file D API URL with dates and callback URL
-        callback = "http://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
+        if CONFIG_SERVICES["broker_api_port"] == 443:
+            # Use https
+            protocol = "https"
+        else:
+            protocol = "http"
+        callback = "{}://{}:{}/v1/complete_generation/{}/".format(protocol,CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
         get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
         if not self.call_d_file_api(get_url):
             self.handleEmptyResponse(job, valJob)
