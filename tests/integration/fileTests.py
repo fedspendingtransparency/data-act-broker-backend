@@ -241,7 +241,6 @@ class FileTests(BaseTestAPI):
         """Test broker status route response."""
         postJson = {"submission_id": self.status_check_submission_id}
         # Populating error info before calling route to avoid changing last update time
-        submission = self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id)
 
         self.interfaces.jobDb.populateSubmissionErrorInfo(self.status_check_submission_id)
 
@@ -325,6 +324,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["number_of_rows"],667)
         # Check number of errors and warnings in submission table
 
+        submission = self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id)
         self.assertEqual(submission.number_of_errors, 17)
         self.assertEqual(submission.number_of_warnings, 7)
 
@@ -443,20 +443,20 @@ class FileTests(BaseTestAPI):
 
     def test_file_generation(self):
         """ Test the generate and check routes for external files """
-        # For file generation submission, call generate route for D2 anc check results
+        # For file generation submission, call generate route for D1 and check results
         postJson = {"submission_id": self.generation_submission_id, "file_type": "D1", "start":"01/02/2016", "end":"02/03/2016"}
         response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id})
 
         self.assertEqual(response.status_code, 200)
         json = response.json
-        self.assertEqual(json["status"], "waiting")
+        self.assertIn(json["status"], ["waiting","finished"])
         self.assertEqual(json["file_type"], "D1")
-        self.assertIn("d1_data.csv", json["url"])
+        self.assertEqual("#", json["url"])
         self.assertEqual(json["start"],"01/02/2016")
         self.assertEqual(json["end"],"02/03/2016")
         self.assertEqual(json["message"],"")
 
-        # Then call check generation route for E and F and check results
+        # Then call check generation route for D2, E and F and check results
         postJson = {"submission_id": self.generation_submission_id, "file_type": "E"}
         response = self.app.post_json("/v1/check_generation_status/", postJson, headers={"x-session-id":self.session_id})
 
@@ -464,7 +464,7 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["status"], "finished")
         self.assertEqual(json["file_type"], "E")
-        self.assertEqual(json["url"],"")
+        self.assertEqual(json["url"],"#")
         self.assertEqual(json["message"],"")
 
         postJson = {"submission_id": self.generation_submission_id, "file_type": "D2"}
@@ -474,7 +474,7 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["status"], "failed")
         self.assertEqual(json["file_type"], "D2")
-        self.assertEqual(json["url"],"")
+        self.assertEqual(json["url"],"#")
         self.assertEqual(json["message"],"Generated file had file-level errors")
 
         postJson = {"submission_id": self.generation_submission_id, "file_type": "F"}
@@ -484,16 +484,8 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["status"], "failed")
         self.assertEqual(json["file_type"], "F")
-        self.assertEqual(json["url"],"")
+        self.assertEqual(json["url"],"#")
         self.assertEqual(json["message"],"File was invalid")
-
-        # E file generation should error because D1 job did not validate
-        postJson = {"submission_id": self.generation_submission_id, "file_type": "E", "start":"01/02/2016", "end":"02/03/2016"}
-        response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id}, expect_errors=True)
-
-        self.assertEqual(response.status_code, 400)
-        json = response.json
-        self.assertEqual(json["message"],"Prerequisites incomplete, job cannot be started")
 
         # Test permission error
         self.login_approved_user()
@@ -504,7 +496,7 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["status"], "failed")
         self.assertEqual(json["file_type"], "D1")
-        self.assertEqual(json["url"], "")
+        self.assertEqual(json["url"], "#")
         self.assertEqual(json["start"],"")
         self.assertEqual(json["end"],"")
         self.assertEqual(json["message"],"User does not have permission to view that submission")

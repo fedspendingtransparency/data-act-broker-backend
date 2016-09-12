@@ -9,7 +9,7 @@ class RouteUtils:
     CREATE_CREDENTIALS = None
 
     @staticmethod
-    def run_instance_function(accountManager, accountFunction, *functionArgs): #getSystemEmail = False, getSession = False, getUser = False, getCredentials = False, addTrueFlag = False):
+    def run_instance_function(accountManager, accountFunction, *functionArgs):
         """ Standard error handling around each route """
         interfaces = InterfaceHolder()
         try:

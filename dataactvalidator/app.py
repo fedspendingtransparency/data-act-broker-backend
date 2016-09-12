@@ -17,6 +17,7 @@ def createApp():
     """Create the Flask app."""
     try:
         app = Flask(__name__)
+        app.debug = CONFIG_SERVICES['server_debug']
         local = CONFIG_BROKER['local']
         error_report_path = CONFIG_SERVICES['error_report_path']
         app.config.from_object(__name__)
@@ -29,11 +30,8 @@ def createApp():
         def clearInterfaces(response):
             try:
                 interfaces =BaseInterface.interfaces
-                interfaces.jobDb.close()
-                interfaces.validationDb.close()
-                interfaces.errorDb.close()
-                interfaces.stagingDb.close()
-                BaseInterface.interfaces = None
+                if interfaces is not None:
+                    interfaces.close()
             except Exception as e:
                 print("Could not close connections")
                 print(str(type(e)) + ": " + str(e))
@@ -139,7 +137,6 @@ def runApp():
     """Run the application."""
     app = createApp()
     app.run(
-        debug=CONFIG_SERVICES['server_debug'],
         threaded=True,
         host=CONFIG_SERVICES['validator_host'],
         port=CONFIG_SERVICES['validator_port']

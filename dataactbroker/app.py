@@ -28,6 +28,7 @@ def createApp():
         local = CONFIG_BROKER['local']
         app.config.from_object(__name__)
         app.config['LOCAL'] = local
+        app.debug = CONFIG_SERVICES['server_debug']
         app.config['REST_TRACE'] = CONFIG_SERVICES['rest_trace']
         app.config['SYSTEM_EMAIL'] = CONFIG_BROKER['reply_to_email']
 
@@ -61,11 +62,8 @@ def createApp():
         def clearInterfaces(response):
             try:
                 interfaces =BaseInterface.interfaces
-                interfaces.jobDb.close()
-                interfaces.validationDb.close()
-                interfaces.errorDb.close()
-                interfaces.userDb.close()
-                BaseInterface.interfaces = None
+                if interfaces is not None:
+                    interfaces.close()
             except Exception as e:
                 print("Could not close connections")
                 print(str(type(e)) + ": " + str(e))
@@ -126,9 +124,7 @@ def checkDynamo():
 def runApp():
     """runs the application"""
     app = createApp()
-    debugFlag = CONFIG_SERVICES['server_debug']
     app.run(
-        debug=debugFlag,
         threaded=True,
         host=CONFIG_SERVICES['broker_api_host'],
         port=CONFIG_SERVICES['broker_api_port']

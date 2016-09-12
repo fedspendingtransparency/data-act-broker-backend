@@ -39,7 +39,7 @@ def permissions_check(f=None,permissionList=[]):
                                 break
 
                     finally:
-                        InterfaceHolder.closeOne(userDb)
+                        userDb.close()
                     if(validUser) :
                         return f(*args, **kwargs)
                     errorMessage  = "Wrong User Type"
@@ -51,6 +51,7 @@ def permissions_check(f=None,permissionList=[]):
                 responseDict["message"] = errorMessage
                 returnResponse.set_data(json.dumps(responseDict))
                 return returnResponse
+
             except ResponseException as e:
                 return JsonResponse.error(e,e.status)
             except Exception as e:
