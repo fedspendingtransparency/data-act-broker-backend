@@ -88,31 +88,31 @@ class MixedFileTests(BaseTestValidator):
         """Test valid approp job with short colnames."""
         jobId = self.jobIdDict["appropValidShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 63, 10, "complete", 0, False)
+            jobId, 200, "finished", 63, 10, "complete", 0)
 
     def test_approp_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 8212, 4, "complete", 39, True, 8, 841)
+            jobId, 200, "finished", 8212, 4, "complete", 39, 8, 841)
 
     def test_program_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 11390, 4, "complete", 81, True, 29, 10840)
+        jobId, 200, "finished", 11390, 4, "complete", 81, 29, 10840)
 
     def test_program_mixed_shortcols(self):
         """Test object class/program activity job with some rows failing & short colnames."""
         jobId = self.jobIdDict["programMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 11390, 4, "complete", 81, True, 29, 10840)
+            jobId, 200, "finished", 11390, 4, "complete", 81, 29, 10840)
 
     def test_award_fin_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 7332, 7, "complete", 45, True, 32, 9795)
+        jobId, 200, "finished", 7332, 7, "complete", 45, 32, 9795)
 
         # Test that whitespace is converted to null
         rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parent_award_id == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
@@ -126,25 +126,25 @@ class MixedFileTests(BaseTestValidator):
         """Test award financial job with some rows failing & short colnames."""
         jobId = self.jobIdDict["awardFinMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 7332, 7, "complete", 45, True, 34, 11737)
+            jobId, 200, "finished", 7332, 7, "complete", 45, 34, 11737)
 
     def test_award_valid_shortcols(self):
         """Test valid award (financial assistance) job with short colnames."""
         jobId = self.jobIdDict["awardValidShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 63, 10, "complete", 0, False)
+            jobId, 200, "finished", 63, 10, "complete", 0)
 
     def test_award_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardMixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 123, 10, "complete", 1, True, 0, 63)
+            jobId, 200, "finished", 123, 10, "complete", 1, 0, 63)
 
     def test_award_mixed_delimiter(self):
         """Test mixed job with mixed delimiter"""
         jobId = self.jobIdDict["awardMixedDelimiter"]
         self.passed = self.run_test(
-            jobId, 400, "invalid", False, False, "header_error", 0, False)
+            jobId, 400, "invalid", False, False, "header_error", 0)
 
     def test_cross_file(self):
         crossId = self.jobIdDict["crossFile"]
