@@ -58,13 +58,17 @@ def dbConnection():
         raise ValueError("Need dbName defined")
 
     # Create sqlalchemy connection and session
-    engine = sqlalchemy.create_engine(
-        "postgresql://{username}:{password}@{host}:{port}/{db_name}".format(
-            **CONFIG_DB),
-        pool_size=100, max_overflow=50)
+    uri = dbURI(dbName)
+    engine = sqlalchemy.create_engine(uri, pool_size=100, max_overflow=50)
     connection = engine.connect()
     Session = scoped_session(sessionmaker(bind=engine))
     return _DB(engine, connection, Session, Session())
+
+
+def dbURI(dbName):
+    uri = "postgresql://{username}:{password}@{host}:{port}/{}".format(
+        dbName, **CONFIG_DB)
+    return uri
 
 
 @contextmanager
