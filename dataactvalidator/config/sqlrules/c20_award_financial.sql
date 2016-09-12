@@ -144,35 +144,35 @@ GROUP BY op.row_number,
     op.ussgl487200_downward_adjus_cpe,
     op.ussgl497200_downward_adjus_cpe,
     op.deobligations_recov_by_pro_cpe
-HAVING ussgl480100_undelivered_or_fyb_sum > op.ussgl480100_undelivered_or_fyb
-    AND ussgl480100_undelivered_or_cpe_sum > op.ussgl480100_undelivered_or_cpe
-    AND ussgl483100_undelivered_or_cpe_sum > op.ussgl483100_undelivered_or_cpe
-    AND ussgl488100_upward_adjustm_cpe_sum > op.ussgl488100_upward_adjustm_cpe
-    AND obligations_undelivered_or_fyb_sum > op.obligations_undelivered_or_fyb
-    AND obligations_undelivered_or_cpe_sum > op.obligations_undelivered_or_cpe
-    AND ussgl490100_delivered_orde_fyb_sum > op.ussgl490100_delivered_orde_fyb
-    AND ussgl490100_delivered_orde_cpe_sum > op.ussgl490100_delivered_orde_cpe
-    AND ussgl493100_delivered_orde_cpe_sum > op.ussgl493100_delivered_orde_cpe
-    AND ussgl498100_upward_adjustm_cpe_sum > op.ussgl498100_upward_adjustm_cpe
-    AND obligations_delivered_orde_fyb_sum > op.obligations_delivered_orde_fyb
-    AND obligations_delivered_orde_cpe_sum > op.obligations_delivered_orde_cpe
-    AND ussgl480200_undelivered_or_fyb_sum > op.ussgl480200_undelivered_or_fyb
-    AND ussgl480200_undelivered_or_cpe_sum > op.ussgl480200_undelivered_or_cpe
-    AND ussgl483200_undelivered_or_cpe_sum > op.ussgl483200_undelivered_or_cpe
-    AND ussgl488200_upward_adjustm_cpe_sum > op.ussgl488200_upward_adjustm_cpe
-    AND gross_outlays_undelivered_fyb_sum > op.gross_outlays_undelivered_fyb
-    AND gross_outlays_undelivered_cpe_sum > op.gross_outlays_undelivered_cpe
-    AND ussgl490200_delivered_orde_cpe_sum > op.ussgl490200_delivered_orde_cpe
-    AND ussgl490800_authority_outl_fyb_sum > op.ussgl490800_authority_outl_fyb
-    AND ussgl490800_authority_outl_cpe_sum > op.ussgl490800_authority_outl_cpe
-    AND ussgl498200_upward_adjustm_cpe_sum > op.ussgl498200_upward_adjustm_cpe
-    AND gross_outlays_delivered_or_fyb_sum > op.gross_outlays_delivered_or_fyb
-    AND gross_outlays_delivered_or_cpe_sum > op.gross_outlays_delivered_or_cpe
-    AND gross_outlay_amount_by_awa_fyb_sum > op.gross_outlay_amount_by_pro_fyb
-    AND gross_outlay_amount_by_awa_cpe_sum > op.gross_outlay_amount_by_pro_cpe
-    AND obligations_incurred_byawa_cpe_sum > op.obligations_incurred_by_pr_cpe
-    AND ussgl487100_downward_adjus_cpe_sum > op.ussgl487100_downward_adjus_cpe
-    AND ussgl497100_downward_adjus_cpe_sum > op.ussgl497100_downward_adjus_cpe
-    AND ussgl487200_downward_adjus_cpe_sum > op.ussgl487200_downward_adjus_cpe
-    AND ussgl497200_downward_adjus_cpe_sum > op.ussgl497200_downward_adjus_cpe
-    AND deobligations_recov_by_awa_cpe_sum > op.deobligations_recov_by_pro_cpe;
+HAVING ussgl480100_undelivered_or_fyb_sum < op.ussgl480100_undelivered_or_fyb
+    AND ussgl480100_undelivered_or_cpe_sum < op.ussgl480100_undelivered_or_cpe
+    AND ussgl483100_undelivered_or_cpe_sum < op.ussgl483100_undelivered_or_cpe
+    AND ussgl488100_upward_adjustm_cpe_sum < op.ussgl488100_upward_adjustm_cpe
+    AND obligations_undelivered_or_fyb_sum < op.obligations_undelivered_or_fyb
+    AND obligations_undelivered_or_cpe_sum < op.obligations_undelivered_or_cpe
+    AND ussgl490100_delivered_orde_fyb_sum < op.ussgl490100_delivered_orde_fyb
+    AND ussgl490100_delivered_orde_cpe_sum < op.ussgl490100_delivered_orde_cpe
+    AND ussgl493100_delivered_orde_cpe_sum < op.ussgl493100_delivered_orde_cpe
+    AND ussgl498100_upward_adjustm_cpe_sum < op.ussgl498100_upward_adjustm_cpe
+    AND obligations_delivered_orde_fyb_sum < op.obligations_delivered_orde_fyb
+    AND obligations_delivered_orde_cpe_sum < op.obligations_delivered_orde_cpe
+    AND ussgl480200_undelivered_or_fyb_sum < op.ussgl480200_undelivered_or_fyb
+    AND ussgl480200_undelivered_or_cpe_sum < op.ussgl480200_undelivered_or_cpe
+    AND ussgl483200_undelivered_or_cpe_sum < op.ussgl483200_undelivered_or_cpe
+    AND ussgl488200_upward_adjustm_cpe_sum < op.ussgl488200_upward_adjustm_cpe
+    AND gross_outlays_undelivered_fyb_sum < op.gross_outlays_undelivered_fyb
+    AND gross_outlays_undelivered_cpe_sum < op.gross_outlays_undelivered_cpe
+    AND ussgl490200_delivered_orde_cpe_sum < op.ussgl490200_delivered_orde_cpe
+    AND ussgl490800_authority_outl_fyb_sum < op.ussgl490800_authority_outl_fyb
+    AND ussgl490800_authority_outl_cpe_sum < op.ussgl490800_authority_outl_cpe
+    AND ussgl498200_upward_adjustm_cpe_sum < op.ussgl498200_upward_adjustm_cpe
+    AND gross_outlays_delivered_or_fyb_sum < op.gross_outlays_delivered_or_fyb
+    AND gross_outlays_delivered_or_cpe_sum < op.gross_outlays_delivered_or_cpe
+    AND gross_outlay_amount_by_awa_fyb_sum < op.gross_outlay_amount_by_pro_fyb
+    AND gross_outlay_amount_by_awa_cpe_sum < op.gross_outlay_amount_by_pro_cpe
+    AND obligations_incurred_byawa_cpe_sum < op.obligations_incurred_by_pr_cpe
+    AND ussgl487100_downward_adjus_cpe_sum < op.ussgl487100_downward_adjus_cpe
+    AND ussgl497100_downward_adjus_cpe_sum < op.ussgl497100_downward_adjus_cpe
+    AND ussgl487200_downward_adjus_cpe_sum < op.ussgl487200_downward_adjus_cpe
+    AND ussgl497200_downward_adjus_cpe_sum < op.ussgl497200_downward_adjus_cpe
+    AND deobligations_recov_by_awa_cpe_sum < op.deobligations_recov_by_pro_cpe;
