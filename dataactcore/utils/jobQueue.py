@@ -36,6 +36,7 @@ class JobQueue:
             }
             response = requests.post(url, params)
             CloudLogger.log("Job {} has completed validation".format(str(jobID)))
+            CloudLogger.log("Validator response: {}".format(str(response.json())))
             return response.json()
 
         self.enqueue = enqueue
