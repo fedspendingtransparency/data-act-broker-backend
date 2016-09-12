@@ -229,6 +229,7 @@ class JobTrackerInterface(BaseInterface):
                 # mark job as ready
                 self.markJobStatus(depJobId, 'ready')
                 # add to the job queue
+                CloudLogger.log("Sending job {} to the job manager".format(str(depJobId)))
                 jobQueueResult = self.jobQueue.enqueue.delay(depJobId)
 
     def runChecks(self,jobId):
