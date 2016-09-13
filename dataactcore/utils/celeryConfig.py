@@ -1,1 +1,2 @@
 BROKER_TRANSPORT_OPTIONS = {'confirm_publish': True}
+CELERYD_CONCURRENCY = 4
