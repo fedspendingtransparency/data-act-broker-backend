@@ -1,5 +1,7 @@
 from __future__ import print_function
+from dataactcore.interfaces.db import databaseSession
 from dataactcore.models.jobModels import JobDependency
+from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from tests.integration.baseTestValidator import BaseTestValidator
 import unittest
 
@@ -16,11 +18,6 @@ class JobTests(BaseTestValidator):
 
         validationDb = cls.validationDb
         jobTracker = cls.jobTracker
-
-        # Clear validation rules
-        for fileType in ["award", "award_financial",
-                "appropriations", "program_activity"]:
-            validationDb.removeColumnsByFileType(fileType)
 
         # Create submissions and get IDs back
         submissionIDs = {}
