@@ -25,6 +25,7 @@ class JobQueue:
 
         # Create remote connection to the job queue
         self.jobQueue = Celery('tasks', backend=backendUrl, broker=queueUrl)
+        self.jobQueue.config_from_object('celeryConfig')
 
         @self.jobQueue.task(name='jobQueue.enqueue')
         def enqueue(jobID):
