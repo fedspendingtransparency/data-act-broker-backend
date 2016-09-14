@@ -2,6 +2,7 @@ import sys
 import traceback
 from threading import Thread
 from flask import Flask, request, copy_current_request_context
+from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
@@ -16,6 +17,7 @@ def createApp():
     """Create the Flask app."""
     try:
         app = Flask(__name__)
+        app.debug = CONFIG_SERVICES['server_debug']
         local = CONFIG_BROKER['local']
         error_report_path = CONFIG_SERVICES['error_report_path']
         app.config.from_object(__name__)
@@ -24,6 +26,22 @@ def createApp():
         app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
         validationManager = ValidationManager(local, error_report_path)
+
+        def clearInterfaces(response):
+            try:
+                interfaces =BaseInterface.interfaces
+                if interfaces is not None:
+                    interfaces.close()
+            except Exception as e:
+                print("Could not close connections")
+                print(str(type(e)) + ": " + str(e))
+                pass
+            return response
+        app.after_request(clearInterfaces)
+
+        def createInterfaces():
+            BaseInterface.interfaces = InterfaceHolder()
+        app.before_request(createInterfaces)
 
         @app.route("/", methods=["GET"])
         def testApp():
@@ -102,7 +120,7 @@ def createApp():
                 # Something went wrong getting the flask request
                 open("errorLog","a").write(str(e) + "\n")
                 exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-                return JsonResponse.error(exc)
+                return JsonResponse.error(exc,exc.status)
             finally:
                 interfaces.close()
 
@@ -119,7 +137,6 @@ def runApp():
     """Run the application."""
     app = createApp()
     app.run(
-        debug=CONFIG_SERVICES['server_debug'],
         threaded=True,
         host=CONFIG_SERVICES['validator_host'],
         port=CONFIG_SERVICES['validator_port']

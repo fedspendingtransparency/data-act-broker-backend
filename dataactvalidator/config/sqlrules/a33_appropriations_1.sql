@@ -1,0 +1,21 @@
+SELECT DISTINCT NULL as row_number,
+    sf.allocation_transfer_agency,
+	sf.agency_identifier,
+	sf.beginning_period_of_availa,
+	sf.ending_period_of_availabil,
+	sf.availability_type_code,
+	sf.main_account_code,
+	sf.sub_account_code,
+	NULL as row_number
+FROM sf_133 AS sf
+	JOIN submission AS sub
+		ON sf.period = sub.reporting_fiscal_period
+			AND sf.fiscal_year = sub.reporting_fiscal_year
+			AND sf.agency_identifier = sub.cgac_code
+WHERE sub.submission_id = {0}
+	AND NOT EXISTS (
+		SELECT 1
+		FROM appropriation AS approp
+		WHERE sf.tas IS NOT DISTINCT FROM approp.tas
+			AND approp.submission_id = {0}
+	);

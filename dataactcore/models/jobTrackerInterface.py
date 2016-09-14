@@ -1,12 +1,14 @@
 import traceback
+from uuid import uuid4
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, FileType
+from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, FileType, PublishStatus, FileGenerationTask
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import JobQueue
 from dataactcore.config import CONFIG_JOB_QUEUE
+from dataactvalidator.validation_handlers.validationError import ValidationError
 
 
 class JobTrackerInterface(BaseInterface):
@@ -227,7 +229,25 @@ class JobTrackerInterface(BaseInterface):
                 # mark job as ready
                 self.markJobStatus(depJobId, 'ready')
                 # add to the job queue
+                CloudLogger.log("Sending job {} to the job manager".format(str(depJobId)))
                 jobQueueResult = self.jobQueue.enqueue.delay(depJobId)
+
+    def runChecks(self,jobId):
+        """ Checks that specified job has no unsatisfied prerequisites
+        Args:
+        jobId -- job_id of job to be run
+
+        Returns:
+        True if prerequisites are satisfied, raises ResponseException otherwise
+        """
+        # Get list of prerequisites
+        queryResult = self.session.query(JobDependency).options(joinedload(JobDependency.prerequisite_job)).filter(JobDependency.job_id == jobId).all()
+        for dependency in queryResult:
+            if dependency.prerequisite_job.job_status_id != self.getJobStatusId("finished"):
+                # Prerequisite not complete
+                raise ResponseException("Prerequisites incomplete, job cannot be started",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
+
+        return True
 
     def getFileSizeById(self,jobId):
         """ Get file size for job matching ID """
@@ -285,3 +305,90 @@ class JobTrackerInterface(BaseInterface):
             else:
                 return "validation_successful"
         return "unknown"
+
+    def getSubmissionById(self, submissionId):
+        """ Return submission object that matches ID"""
+        query = self.session.query(Submission).filter(Submission.submission_id == submissionId)
+        return self.runUniqueQuery(query, "No submission with that ID", "Multiple submissions with that ID")
+
+    def populateSubmissionErrorInfo(self, submissionId):
+        """ Set number of errors and warnings for submission """
+        submission = self.getSubmissionById(submissionId)
+        # TODO find where interfaces is set as an instance variable which overrides the static variable, fix that and then remove this line
+        self.interfaces = BaseInterface.interfaces
+        submission.number_of_errors = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb)
+        submission.number_of_warnings = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb, errorType = "warning")
+        self.session.commit()
+
+    def setJobNumberOfErrors(self, jobId, numberOfErrors, errorType):
+        """ Label nuber of errors or warnings for specified job
+
+        Args:
+            jobId: Job to set number for
+            numberOfErrors: Number to be set
+            errorType: Type of error to set, can be either 'fatal' or 'warning'
+
+        """
+        job = self.getJobById(jobId)
+        if errorType == "fatal":
+            job.number_of_errors = numberOfErrors
+        elif errorType == "warning":
+            job.number_of_warnings = numberOfErrors
+        self.session.commit()
+
+    def setPublishableFlag(self, submissionId, publishable):
+        """ Set publishable flag to specified value """
+        submission = self.getSubmissionById(submissionId)
+        submission.publishable = publishable
+        self.session.commit()
+
+    def extractSubmission(self, submissionOrId):
+        """ If given an integer, get the specified submission, otherwise return the input """
+        if isinstance(submissionOrId, int):
+            return self.getSubmissionById(submissionOrId)
+        else:
+            return submissionOrId
+
+    def setPublishStatus(self, statusName, submissionOrId):
+        """ Set publish status to specified name"""
+        statusId = self.getPublishStatusId(statusName)
+        submission = self.extractSubmission(submissionOrId)
+        submission.publish_status_id = statusId
+        self.session.commit()
+
+    def updatePublishStatus(self, submissionOrId):
+        """ If submission was already published, mark as updated.  Also set publishable back to false. """
+        submission = self.extractSubmission(submissionOrId)
+        publishedStatus = self.getPublishStatusId("published")
+        if submission.publish_status_id == publishedStatus:
+            # Submission already published, mark as updated
+            self.setPublishStatus("updated", submission)
+        # Changes have been made, so don't publish until user marks as publishable again
+        submission.publishable = False
+        self.session.commit()
+
+    def getPublishStatusId(self, statusName):
+        """ Return ID for specified publish status """
+        return self.getIdFromDict(PublishStatus,  "PUBLISH_STATUS_DICT", "name", statusName, "publish_status_id")
+
+    def createGenerationTask(self, submissionId, fileType):
+        """ Create a generation task and return the unique ID
+
+        Args:
+            submissionId: Submission to generate file for
+            fileType: File type to be generated
+
+        Returns:
+            Unique ID to look up this task on callback
+
+        """
+        # Generate a random unique ID
+        key = str(uuid4())
+        task = FileGenerationTask(generation_task_key = key, submission_id = submissionId, file_type = fileType)
+        self.session.add(task)
+        self.session.commit()
+        return key
+
+    def findGenerationTask(self, key):
+        """ Given a key, return a file generation task """
+        return self.session.query(FileGenerationTask).filter(FileGenerationTask.generation_task_key == key).first()

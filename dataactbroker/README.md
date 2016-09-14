@@ -527,6 +527,7 @@ Example output:
   "success": true
 }
 ```
+
 #### POST "/v1/submission\_error_reports/"
 A call to this route should have JSON or form-urlencoded with a key of "submission\_id" and value of the submission id received from the submit\_files route.  The response object will be JSON with keys of "job\_X\_error\_url" for each job X that is part of the submission, and the value will be the signed URL of the error report on S3. Note that for failed jobs (i.e. file-level errors), no error reports will be created.
 
@@ -750,16 +751,204 @@ Example output:
 }
 ```
 
+#### GET "/v1/get_protected_files/"
+This route returns a signed S3 URL for all files available to download on the help page.
 
+Example output:
+
+```json
+{
+    "urls": {
+            "AgencyLabel_to_TerseLabel.xslx": "https://prod-data-act-submission.s3-us-gov-west-1.amazonaws.com:443/rss/AgencyLabel_to_TerseLabel.xslx?Signature=abcdefg......",
+            "File2.extension": "https://......"
+    }
+}
+```
+
+Example output if there are no files available:
+
+```json
+{
+    "urls": {}
+}
+```
+
+## File Generation Routes
+
+## Generate Files
+**Route:** `/v1/generate_file`
+
+**Method:** `POST`
+
+This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted.
+
+**Deprecation Notice:** This route replaces `/v1/generate_d1_file` and `/v1/generate_d2_file`.
+
+### Body (JSON)
+
+```
+{
+    "submission_id": 123,
+    "file_type": "D1"
+    "start": "01/01/2016",
+    "end": "03/31/2016"
+}
+```
+
+### Body Description
+
+* `submission_id` - **required** - an integer representing the ID of the current submission
+* `file_type` - **required** - a string indicating the file type to generate. Allowable values are:
+	* `D1` - generate a D1 file
+	* `D2` - generate a D2 file
+	* `E` - generate a E file
+	* `F` - generate a F file
+* `start` - **required for D1/D2 only** - the start date of the requested date range, in `MM/DD/YYYY` string format
+* `end` - **required for D1/D2 only** - the end date of the requested date range, in `MM/DD/YYYY` string format
+
+### Response (JSON)
+Response will be the same format as those which are returned in the `/v1/check_generation_status` endpoint
+
+
+## File Status
+**Route:** `/v1/check_generation_status`
+
+**Method:** `POST`
+
+This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that.
+
+**Deprecation Notice:** This route replaces `/v1/check_d1_file` and `/v1/check_d2_file`.
+
+### Body (JSON)
+
+```
+{
+    "submission_id": 123,
+    "file_type": "D1"
+}
+```
+
+### Body Description
+
+* `submission_id` - An integer representing the ID of the current submission
+* `file_type` - **required** - a string indicating the file type whose status we are checking. Allowable values are:
+	* `D1` - generate a D1 file
+	* `D2` - generate a D2 file
+	* `E` - generate a E file
+	* `F` - generate a F file
+
+
+### Response (JSON)
+
+*State:* The file has successfully generated
+
+```
+{
+	"status": "finished",
+	"file_type": "D1",
+	"url": "https://........",
+	"start": "01/01/2016",
+	"end": "03/31/2016",
+	"message": ""
+}
+```
+
+*State:* The file is not yet ready
+
+```
+{
+	"status": "waiting",
+	"file_type": "D1",
+	"url": "",
+    "start": "01/01/2016",
+    "end": "03/31/2016",
+    "message": ""
+}
+```
+
+*State:* File generation has failed
+
+```
+{
+	"status": "failed",
+	"file_type": "D1",
+	"url": "",
+    "start": "01/01/2016",
+    "end": "03/31/2016",
+	"message": "The server could not reach the Federal Procurement Data System. Try again later."
+}
+```
+
+*State:* No file generation request has been made for this submission ID before
+
+```
+{
+	"status": "invalid",
+	"file_type": "D1",
+	"url": "",
+	"start": "",
+	"end": "",
+	"message": ""
+}
+```
+
+
+### Response Description
+
+The response is an object that represents that file's state.
+
+* `status` - a string constant indicating the file's status.
+	* Possible values are:
+		* `finished` - file has been generated and is available for download
+		* `waiting` - file has either not started/finished generating or has finished generating but is not yet uploaded to S3
+		* `failed` - an error occurred and the file generation or S3 upload failed, the generated file is invalid, or any other error
+		* `invalid` - no generation request has ever been made for this submission ID before
+
+* `file_type` - a string indicating the file that the status data refers to. Possible values are:
+	* `D1` - D1 file
+	* `D2` - D2 file
+	* `E` - E file
+	* `F` - F file
+
+* `url` - a signed S3 URL from which the generated file can be downloaded
+	* Blank string when the file is not `finished`
+
+* `start` - **expected for D1/D2 only** - the file start date, in `MM/DD/YYYY` format
+	* If the file is not a D1/D2 file type, return a blank string
+* `end` - **expected for D1/D2 only** - the file end date, in `MM/DD/YYYY` format
+	* If the file is not a D1/D2 file type, return a blank string
+
+* `message` - returns a user-readable error message when the file is `failed`, otherwise returns a blank string
 
 ## Test Cases
 
-To run the broker API unit tests, navigate to the project's test folder (`data-act-broker-backend/tests`) and type the following:
+### Integration Tests
 
-        $ python runTests.py
+To run the broker API integration tests, navigate to the project's test folder (`data-act-broker-backend/tests`) and type the following:
+
+        $ python integration/runTests.py
 
 To generate a test coverage report from the command line:
 
 1. Make sure you're in the project's test folder (`data-act-broker-backend/tests`).
-2. Run the tests using the `coverage` command: `coverage run runTests.py`.
+2. Run the tests using the `coverage` command: `coverage run integration/runTests.py`.
 3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
+
+## D File Callback
+**Route:** `/v1/complete_generation/<generation_task_key>/`
+
+**Method:** `POST`
+
+This route is used by the D File API to return a file location for generated D files.
+
+### Body (JSON)
+
+```
+{
+    "href": "http://..."
+}
+```
+
+### Body Description
+
+* `href' - Location where generated D file can be downloaded

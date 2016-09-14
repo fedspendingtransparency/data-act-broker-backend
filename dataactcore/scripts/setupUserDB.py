@@ -34,7 +34,7 @@ def insertCodes():
         userDb.session.merge(type)
 
     userDb.session.commit()
-    userDb.session.close()
+    userDb.close()
 
 if __name__ == '__main__':
     setupUserDB()
