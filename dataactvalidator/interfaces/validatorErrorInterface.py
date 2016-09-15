@@ -21,7 +21,6 @@ class ValidatorErrorInterface(ErrorInterface):
 
         fileRec = File(job_id=jobId,
                        filename=filename,
-                       row_errors_present=False,
                        file_status_id=self.getFileStatusId("incomplete"))
         self.session.add(fileRec)
         self.session.commit()
@@ -182,14 +181,3 @@ class ValidatorErrorInterface(ErrorInterface):
         # Create single string out of duplicated header list
         fileRec.headers_duplicated = ",".join(duplicatedHeaders)
         self.session.commit()
-
-    def setRowErrorsPresent(self, jobId, errorsPresent):
-        """ Set errors present for the specified job ID to true or false.  Note this refers only to row-level errors, not file-level errors. """
-        fileRec = self.getFileByJobId(jobId)
-        # If errorsPresent is not a bool, this function will raise a TypeError
-        fileRec.row_errors_present = bool(errorsPresent)
-        self.session.commit()
-
-    def getRowErrorsPresent(self, jobId):
-        """ Returns True or False depending on if errors were found in the specified job """
-        return self.getFileByJobId(jobId).row_errors_present

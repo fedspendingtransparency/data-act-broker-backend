@@ -379,16 +379,13 @@ class ValidationManager:
                     if valid:
                         skipRow = self.writeToStaging(record, jobId, submissionId, passedValidations, interfaces, writer, rowNumber, fileType)
                         if skipRow:
-                            rowErrorPresent = True
                             errorRows.append(rowNumber)
                             continue
 
                     if not passedValidations:
                         if self.writeErrors(failures, interfaces, jobId, shortColnames, writer, warningWriter, rowNumber):
-                            rowErrorPresent = True
                             errorRows.append(rowNumber)
 
-                interfaces.errorDb.setRowErrorsPresent(jobId,rowErrorPresent)
                 CloudLogger.logError("VALIDATOR_INFO: ", "Loading complete on jobID: " + str(jobId) + ". Total rows added to staging: " + str(rowNumber), "")
 
                 #
