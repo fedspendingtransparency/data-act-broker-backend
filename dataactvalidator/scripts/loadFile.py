@@ -32,10 +32,6 @@ def loadCgac(filename):
     )
     # de-dupe
     data.drop_duplicates(subset=['cgac_code'], inplace=True)
-    # Fix up cells that have spaces instead of being empty.
-    # Set the truly empty cells to None so they get inserted to db as NULL
-    # TODO: very ugly function below...is there a better way?
-    data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
     # insert to db
     table_name = model.__table__.name
     num = LoaderUtils.insertDataframe(data, table_name, interface.engine)
@@ -54,14 +50,12 @@ def loadObjectClass(filename):
     data = LoaderUtils.cleanData(
         data,
         model,
-        {"max_oc_code":"object_class_code",
+        {"max_oc_code": "object_class_code",
          "max_object_class_name": "object_class_name"},
         {}
     )
     # de-dupe
     data.drop_duplicates(subset=['object_class_code'], inplace=True)
-    # TODO: very ugly function below...is there a better way?
-    data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
     # insert to db
     table_name = model.__table__.name
     num = LoaderUtils.insertDataframe(data, table_name, interface.engine)
@@ -96,8 +90,6 @@ def loadProgramActivity(filename):
     # there will be duplicate records in the dataframe. this is ok,
     # but need to de-duped before the db load.
     data.drop_duplicates(inplace=True)
-    # TODO: very ugly function below...is there a better way?
-    data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
     # insert to db
     table_name = model.__table__.name
     num = LoaderUtils.insertDataframe(data, table_name, interface.engine)
@@ -123,7 +115,7 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
             fiscal_year, fiscal_period, existing_records.count()))
         return
 
-    data = pd.read_csv(filename, dtype=str, keep_default_na=False)
+    data = pd.read_csv(filename, dtype=str)
     data = LoaderUtils.cleanData(
         data,
         model,
@@ -139,7 +131,7 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
          "line_num": "line",
          "amount_summed":
         "amount"},
-        {"allocation_transfer_agency": {"pad_to_length": 3, "keep_null": True},
+        {"allocation_transfer_agency": {"pad_to_length": 3},
          "agency_identifier": {"pad_to_length": 3},
          "main_account_code": {"pad_to_length": 4},
          "sub_account_code": {"pad_to_length": 3},
@@ -160,7 +152,7 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
     pivot_idx = ['created_at', 'updated_at', 'agency_identifier', 'allocation_transfer_agency',
                  'availability_type_code', 'beginning_period_of_availa', 'ending_period_of_availabil',
                  'main_account_code', 'sub_account_code', 'tas', 'fiscal_year', 'period']
-    data.amount = data.amount.astype(float)  # this line triggers the settingwithcopy warning
+    data.amount = data.amount.astype(float)
     data = pd.pivot_table(data, values='amount', index=pivot_idx, columns=['line'], fill_value=0).reset_index()
     data = pd.melt(data, id_vars=pivot_idx, value_name='amount')
 
@@ -179,8 +171,12 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
     ]
     data = data[(data.line.isin(sf_133_validation_lines)) | (data.amount != 0)]
 
-    # TODO: very ugly function below...is there a better way?
+    # we didn't use the the 'keep_null' option when padding allocation transfer agency,
+    # because nulls in that column break the above pivot we use to zero out the line values.
+    # so, replace the ata '000' with an empty value before inserting to db
+    data['allocation_transfer_agency'] = data['allocation_transfer_agency'].str.replace('000', '')
     data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
+
     # insert to db
     table_name = model.__table__.name
     num = LoaderUtils.insertDataframe(data, table_name, interface.engine)

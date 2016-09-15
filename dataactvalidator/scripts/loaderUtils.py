@@ -13,11 +13,7 @@ class LoaderUtils:
         """Pads field to specified length."""
         if isnull(field) or not str(field).strip():
             if keepNull:
-                # returning None here
-                # causes the word 'none' to be inserted into
-                # the db instead of a null value, which is what
-                # we want for a blank field
-                return ''
+                return None
             else:
                 field = ''
         return str(field).strip().zfill(padTo)
