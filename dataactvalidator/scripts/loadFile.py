@@ -6,180 +6,191 @@ import logging
 import re
 from collections import namedtuple
 from dataactvalidator.scripts.loaderUtils import LoaderUtils
-from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
-from dataactcore.models.domainModels import CGAC,ObjectClass,ProgramActivity,SF133
+from dataactcore.models.domainModels import CGAC, ObjectClass, ProgramActivity, SF133
+from dataactcore.interfaces.db import databaseSession
 from dataactcore.config import CONFIG_BROKER
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 def loadCgac(filename):
-    interface = ValidatorValidationInterface()
+    """Load CGAC (high-level agency names) lookup table."""
     model = CGAC
 
-    # for CGAC, delete and replace values
-    interface.session.query(model).delete()
-    interface.session.commit()
+    with databaseSession() as sess:
 
-    # read CGAC values from csv
-    data = pd.read_csv(filename, dtype=str)
-    # clean data
-    data = LoaderUtils.cleanData(
-        data,
-        model,
-        {"cgac": "cgac_code", "agency": "agency_name"},
-        {"cgac_code": {"pad_to_length": 3}}
-    )
-    # de-dupe
-    data.drop_duplicates(subset=['cgac_code'], inplace=True)
-    # insert to db
-    table_name = model.__table__.name
-    num = LoaderUtils.insertDataframe(data, table_name, interface.engine)
+        # for CGAC, delete and replace values
+        sess.query(model).delete()
+
+        # read CGAC values from csv
+        data = pd.read_csv(filename, dtype=str)
+        # clean data
+        data = LoaderUtils.cleanData(
+            data,
+            model,
+            {"cgac": "cgac_code", "agency": "agency_name"},
+            {"cgac_code": {"pad_to_length": 3}}
+        )
+        # de-dupe
+        data.drop_duplicates(subset=['cgac_code'], inplace=True)
+        # insert to db
+        table_name = model.__table__.name
+        num = LoaderUtils.insertDataframe(data, table_name, sess.connection())
+        sess.commit()
+
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
 def loadObjectClass(filename):
-    interface = ValidatorValidationInterface()
+    """Load object class lookup table."""
     model = ObjectClass
 
-    # for object class, delete and replace values
-    interface.session.query(model).delete()
-    interface.session.commit()
+    with databaseSession() as sess:
+        # for object class, delete and replace values
+        sess.query(model).delete()
 
-    data = pd.read_csv(filename, dtype=str)
-    data = LoaderUtils.cleanData(
-        data,
-        model,
-        {"max_oc_code": "object_class_code",
-         "max_object_class_name": "object_class_name"},
-        {}
-    )
-    # de-dupe
-    data.drop_duplicates(subset=['object_class_code'], inplace=True)
-    # insert to db
-    table_name = model.__table__.name
-    num = LoaderUtils.insertDataframe(data, table_name, interface.engine)
+        data = pd.read_csv(filename, dtype=str)
+        data = LoaderUtils.cleanData(
+            data,
+            model,
+            {"max_oc_code": "object_class_code",
+             "max_object_class_name": "object_class_name"},
+            {}
+        )
+        # de-dupe
+        data.drop_duplicates(subset=['object_class_code'], inplace=True)
+        # insert to db
+        table_name = model.__table__.name
+        num = LoaderUtils.insertDataframe(data, table_name, sess.connection())
+        sess.commit()
+
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
 def loadProgramActivity(filename):
-    interface = ValidatorValidationInterface()
+    """Load program activity lookup table."""
     model = ProgramActivity
 
-    # for program activity, delete and replace values??
-    interface.session.query(model).delete()
-    interface.session.commit()
+    with databaseSession() as sess:
 
-    data = pd.read_csv(filename, dtype=str)
-    data = LoaderUtils.cleanData(
-        data,
-        model,
-        {"year": "budget_year",
-         "agency_id": "agency_id",
-         "alloc_id": "allocation_transfer_id",
-         "account": "account_number",
-         "pa_code": "program_activity_code",
-         "pa_name": "program_activity_name"},
-        {"program_activity_code": {"pad_to_length": 4},
-         "agency_id": {"pad_to_length": 3},
-         "allocation_transfer_id": {"pad_to_length": 3, "keep_null": True},
-         "account_number": {"pad_to_length": 4}
-         }
-    )
-    # because we're only loading a subset of program activity info,
-    # there will be duplicate records in the dataframe. this is ok,
-    # but need to de-duped before the db load.
-    data.drop_duplicates(inplace=True)
-    # insert to db
-    table_name = model.__table__.name
-    num = LoaderUtils.insertDataframe(data, table_name, interface.engine)
+        # for program activity, delete and replace values??
+        sess.query(model).delete()
+
+        data = pd.read_csv(filename, dtype=str)
+        data = LoaderUtils.cleanData(
+            data,
+            model,
+            {"year": "budget_year",
+             "agency_id": "agency_id",
+             "alloc_id": "allocation_transfer_id",
+             "account": "account_number",
+             "pa_code": "program_activity_code",
+             "pa_name": "program_activity_name"},
+            {"program_activity_code": {"pad_to_length": 4},
+             "agency_id": {"pad_to_length": 3},
+             "allocation_transfer_id": {"pad_to_length": 3, "keep_null": True},
+             "account_number": {"pad_to_length": 4}
+             }
+        )
+        # because we're only loading a subset of program activity info,
+        # there will be duplicate records in the dataframe. this is ok,
+        # but need to de-duped before the db load.
+        data.drop_duplicates(inplace=True)
+        # insert to db
+        table_name = model.__table__.name
+        num = LoaderUtils.insertDataframe(data, table_name, sess.connection())
+        sess.commit()
+
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
 def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
-    interface = ValidatorValidationInterface()
+    """Load SF 133 (budget execution report) lookup table."""
     model = SF133
 
-    existing_records = interface.session.query(model).filter(
-        model.fiscal_year == fiscal_year, model.period == fiscal_period)
-    if force_load:
-        # force a reload of this period's current data
-        logger.info('Force SF 133 load: deleting existing records for {} {}'.format(
-            fiscal_year, fiscal_period))
-        delete_count = existing_records.delete()
-        interface.session.commit()
-        logger.info('{} records deleted'.format(delete_count))
-    elif existing_records.count():
-        # if there's existing data & we're not forcing a load, skip
-        logger.info('SF133 {} {} already in database ({} records). Skipping file.'.format(
-            fiscal_year, fiscal_period, existing_records.count()))
-        return
+    with databaseSession() as sess:
 
-    data = pd.read_csv(filename, dtype=str)
-    data = LoaderUtils.cleanData(
-        data,
-        model,
-        {"ata": "allocation_transfer_agency",
-         "aid": "agency_identifier",
-         "availability_type_code": "availability_type_code",
-         "bpoa": "beginning_period_of_availa",
-         "epoa": "ending_period_of_availabil",
-         "main_account": "main_account_code",
-         "sub_account": "sub_account_code",
-         "fiscal_year": "fiscal_year",
-         "period": "period",
-         "line_num": "line",
-         "amount_summed":
-        "amount"},
-        {"allocation_transfer_agency": {"pad_to_length": 3},
-         "agency_identifier": {"pad_to_length": 3},
-         "main_account_code": {"pad_to_length": 4},
-         "sub_account_code": {"pad_to_length": 3},
-         "amount": {"strip_commas": True}}
-    )
+        existing_records = sess.query(model).filter(
+            model.fiscal_year == fiscal_year, model.period == fiscal_period)
+        if force_load:
+            # force a reload of this period's current data
+            logger.info('Force SF 133 load: deleting existing records for {} {}'.format(
+                fiscal_year, fiscal_period))
+            delete_count = existing_records.delete()
+            logger.info('{} records deleted'.format(delete_count))
+        elif existing_records.count():
+            # if there's existing data & we're not forcing a load, skip
+            logger.info('SF133 {} {} already in database ({} records). Skipping file.'.format(
+                fiscal_year, fiscal_period, existing_records.count()))
+            return
 
-    # todo: find out how to handle dup rows (e.g., same tas/period/line number)
-    # line numbers 2002 and 2012 are the only duped SF 133 report line numbers,
-    # and they are not used by the validation rules, so for now
-    # just remove them before loading our SF-133 table
-    dupe_line_numbers = ['2002', '2102']
-    data = data[~data.line.isin(dupe_line_numbers)]
+        data = pd.read_csv(filename, dtype=str)
+        data = LoaderUtils.cleanData(
+            data,
+            model,
+            {"ata": "allocation_transfer_agency",
+             "aid": "agency_identifier",
+             "availability_type_code": "availability_type_code",
+             "bpoa": "beginning_period_of_availa",
+             "epoa": "ending_period_of_availabil",
+             "main_account": "main_account_code",
+             "sub_account": "sub_account_code",
+             "fiscal_year": "fiscal_year",
+             "period": "period",
+             "line_num": "line",
+             "amount_summed":
+            "amount"},
+            {"allocation_transfer_agency": {"pad_to_length": 3},
+             "agency_identifier": {"pad_to_length": 3},
+             "main_account_code": {"pad_to_length": 4},
+             "sub_account_code": {"pad_to_length": 3},
+             "amount": {"strip_commas": True}}
+        )
 
-    # add concatenated TAS field for internal use (i.e., joining to staging tables)
-    data['tas'] = data.apply(lambda row: formatInternalTas(row), axis=1)
+        # todo: find out how to handle dup rows (e.g., same tas/period/line number)
+        # line numbers 2002 and 2012 are the only duped SF 133 report line numbers,
+        # and they are not used by the validation rules, so for now
+        # just remove them before loading our SF-133 table
+        dupe_line_numbers = ['2002', '2102']
+        data = data[~data.line.isin(dupe_line_numbers)]
 
-    # zero out line numbers not supplied in the file
-    pivot_idx = ['created_at', 'updated_at', 'agency_identifier', 'allocation_transfer_agency',
-                 'availability_type_code', 'beginning_period_of_availa', 'ending_period_of_availabil',
-                 'main_account_code', 'sub_account_code', 'tas', 'fiscal_year', 'period']
-    data.amount = data.amount.astype(float)
-    data = pd.pivot_table(data, values='amount', index=pivot_idx, columns=['line'], fill_value=0).reset_index()
-    data = pd.melt(data, id_vars=pivot_idx, value_name='amount')
+        # add concatenated TAS field for internal use (i.e., joining to staging tables)
+        data['tas'] = data.apply(lambda row: formatInternalTas(row), axis=1)
 
-    # Now that we've added zero lines for EVERY tas and SF 133 line number, get rid of the ones
-    # we don't actually use in the validations. Arguably, it would be better just to include
-    # everything, but that drastically increases the number of records we're inserting to the
-    # sf_133 table. If we ever decide that we need *all* SF 133 lines that are zero value,
-    # uncomment the next line.
-    sf_133_validation_lines = [
-        '1000', '1010', '1011', '1012', '1013', '1020', '1021', '1022',
-        '1023', '1024', '1025', '1026', '1029', '1030', '1031', '1032',
-        '1033', '1040', '1041', '1042', '1160', '1180', '1260', '1280',
-        '1340', '1440', '1540', '1640', '1750', '1850', '1910', '2190',
-        '2490', '2500', '3020', '4801', '4802', '4881', '4882', '4901',
-        '4902', '4908', '4981', '4982'
-    ]
-    data = data[(data.line.isin(sf_133_validation_lines)) | (data.amount != 0)]
+        # zero out line numbers not supplied in the file
+        pivot_idx = ['created_at', 'updated_at', 'agency_identifier', 'allocation_transfer_agency',
+                     'availability_type_code', 'beginning_period_of_availa', 'ending_period_of_availabil',
+                     'main_account_code', 'sub_account_code', 'tas', 'fiscal_year', 'period']
+        data.amount = data.amount.astype(float)
+        data = pd.pivot_table(data, values='amount', index=pivot_idx, columns=['line'], fill_value=0).reset_index()
+        data = pd.melt(data, id_vars=pivot_idx, value_name='amount')
 
-    # we didn't use the the 'keep_null' option when padding allocation transfer agency,
-    # because nulls in that column break the above pivot we use to zero out the line values.
-    # so, replace the ata '000' with an empty value before inserting to db
-    data['allocation_transfer_agency'] = data['allocation_transfer_agency'].str.replace('000', '')
-    data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
+        # Now that we've added zero lines for EVERY tas and SF 133 line number, get rid of the ones
+        # we don't actually use in the validations. Arguably, it would be better just to include
+        # everything, but that drastically increases the number of records we're inserting to the
+        # sf_133 table. If we ever decide that we need *all* SF 133 lines that are zero value,
+        # uncomment the next line.
+        sf_133_validation_lines = [
+            '1000', '1010', '1011', '1012', '1013', '1020', '1021', '1022',
+            '1023', '1024', '1025', '1026', '1029', '1030', '1031', '1032',
+            '1033', '1040', '1041', '1042', '1160', '1180', '1260', '1280',
+            '1340', '1440', '1540', '1640', '1750', '1850', '1910', '2190',
+            '2490', '2500', '3020', '4801', '4802', '4881', '4882', '4901',
+            '4902', '4908', '4981', '4982'
+        ]
+        data = data[(data.line.isin(sf_133_validation_lines)) | (data.amount != 0)]
 
-    # insert to db
-    table_name = model.__table__.name
-    num = LoaderUtils.insertDataframe(data, table_name, interface.engine)
+        # we didn't use the the 'keep_null' option when padding allocation transfer agency,
+        # because nulls in that column break the above pivot we use to zero out the line values.
+        # so, replace the ata '000' with an empty value before inserting to db
+        data['allocation_transfer_agency'] = data['allocation_transfer_agency'].str.replace('000', '')
+        data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
+
+        # insert to db
+        table_name = model.__table__.name
+        num = LoaderUtils.insertDataframe(data, table_name, sess.connection())
+        sess.commit()
+
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
