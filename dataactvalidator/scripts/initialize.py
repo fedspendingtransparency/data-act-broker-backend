@@ -7,7 +7,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.scripts.loadTas import loadTas
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
-from dataactvalidator.filestreaming.loadFile import loadDomainValues
+from dataactvalidator.scripts.loadFile import loadDomainValues
 
 def options():
 

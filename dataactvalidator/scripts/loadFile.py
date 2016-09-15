@@ -5,7 +5,7 @@ import glob
 import logging
 import re
 from collections import namedtuple
-from dataactvalidator.filestreaming.loaderUtils import LoaderUtils
+from dataactvalidator.scripts.loaderUtils import LoaderUtils
 from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
 from dataactcore.models.domainModels import CGAC,ObjectClass,ProgramActivity,SF133
 from dataactcore.config import CONFIG_BROKER

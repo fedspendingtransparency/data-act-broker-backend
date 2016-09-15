@@ -9,7 +9,7 @@ from dataactcore.models.validationModels import RuleSql
 from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
-from dataactvalidator.filestreaming.loadFile import loadDomainValues
+from dataactvalidator.scripts.loadFile import loadDomainValues
 from dataactvalidator.scripts.loadTas import loadTas
 from tests.integration.baseTestValidator import BaseTestValidator
 import unittest
