@@ -8,14 +8,6 @@ from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 class ValidatorValidationInterface(ValidationInterface):
     """ Manages all interaction with the validation database """
 
-    def deleteTAS(self) :
-        """
-        Removes the TAS table
-        """
-        queryResult = self.session.query(TASLookup).delete(synchronize_session='fetch')
-        self.session.commit()
-
-
     def addTAS(self,ata,aid,bpoa,epoa,availability,main,sub):
         """
 

@@ -3,7 +3,6 @@ import os
 import logging
 from dataactcore.interfaces.db import databaseSession
 from dataactcore.models.validationModels import FileColumn, FileTypeValidation, FieldType
-from dataactvalidator.filestreaming.loaderUtils import LoaderUtils
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 logger = logging.getLogger(__name__)
@@ -41,7 +40,8 @@ class SchemaLoader(object):
                 for record in reader:
                     record = FieldCleaner.cleanRecord(record)
 
-                    if LoaderUtils.checkRecord(record, ["fieldname", "required", "data_type"]):
+                    fields = ["fieldname", "required", "data_type"]
+                    if all(field in record for field in fields):
                         SchemaLoader.addColumnByFileType(
                             sess,
                             types,
