@@ -557,7 +557,7 @@ class FileHandler:
             protocol = "http"
         callback = "{}://{}:{}/v1/complete_generation/{}/".format(protocol,CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
         get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
-        CloudLogger.log("DEBUG: Calling D file API",
+        CloudLogger.log("DEBUG: Calling D file API => " + str(get_url),
                         log_type="debug",
                         file_name=self.debug_file_name)
         if not self.call_d_file_api(get_url):
