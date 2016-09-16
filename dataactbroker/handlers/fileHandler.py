@@ -503,6 +503,9 @@ class FileHandler:
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
         if file_type in ["D1", "D2"]:
+            CloudLogger.log("DEBUG: Adding job info for job id of " + str(job.job_id),
+                            log_type="debug",
+                            file_name=self.debug_file_name)
             self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
         else:
             # TODO add generate calls for E and F
@@ -554,6 +557,9 @@ class FileHandler:
             protocol = "http"
         callback = "{}://{}:{}/v1/complete_generation/{}/".format(protocol,CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
         get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+        CloudLogger.log("DEBUG: Calling D file API",
+                        log_type="debug",
+                        file_name=self.debug_file_name)
         if not self.call_d_file_api(get_url):
             self.handleEmptyResponse(job, valJob)
 
@@ -587,6 +593,9 @@ class FileHandler:
 
     def get_xml_response_content(self, api_url):
         """ Retrieve XML Response from the provided API url """
+        CloudLogger.log("DEBUG: Getting XML response",
+                        log_type="debug",
+                        file_name=self.debug_file_name)
         return requests.get(api_url, verify=False, timeout = 20).text
 
     def call_d_file_api(self, api_url):
@@ -668,7 +677,13 @@ class FileHandler:
 
     def generateFile(self):
         """ Start a file generation job for the specified file type """
+        self.debug_file_name = "debug.log"
+        CloudLogger.log("DEBUG: Starting D file generation", log_type="debug",
+                        file_name=self.debug_file_name)
         submission_id, file_type = self.getRequestParamsForGenerate()
+
+        CloudLogger.log("DEBUG: Submission ID = " + str(submission_id) + " / File type = " + str(file_type), log_type="debug",
+                        file_name=self.debug_file_name)
         # Check permission to submission
         success, error_response = self.checkSubmissionById(submission_id, file_type)
         if not success:
@@ -681,6 +696,10 @@ class FileHandler:
             return JsonResponse.error(exc, exc.status)
 
         success, error_response = self.startGenerationJob(submission_id,file_type)
+
+        CloudLogger.log("DEBUG: Finished startGenerationJob method",
+                        log_type="debug",
+                        file_name=self.debug_file_name)
         if not success:
             return error_response
 
