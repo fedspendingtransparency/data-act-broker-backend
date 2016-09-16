@@ -647,14 +647,12 @@ class FileTests(BaseTestAPI):
                        filename="approp.csv",
                        file_status_id=interfaces.errorDb.getFileStatusId("complete"),
                        headers_missing="missing_header_one, missing_header_two",
-                       headers_duplicated="duplicated_header_one, duplicated_header_two",
-                       row_errors_present=True)
+                       headers_duplicated="duplicated_header_one, duplicated_header_two")
         crossFile = File(job_id=jobIdDict["cross_file"],
                        filename="approp.csv",
                        file_status_id=interfaces.errorDb.getFileStatusId("complete"),
                        headers_missing="",
-                       headers_duplicated="",
-                       row_errors_present=True)
+                       headers_duplicated="")
         interfaces.errorDb.session.add(fileRec)
         interfaces.errorDb.session.add(crossFile)
 
