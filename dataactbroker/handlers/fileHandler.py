@@ -1,5 +1,6 @@
 import os
 import requests
+from requests.exceptions import Timeout
 from csv import reader
 from flask import session, request
 from datetime import datetime
@@ -503,11 +504,10 @@ class FileHandler:
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
         if file_type in ["D1", "D2"]:
-            self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
+            return self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
         else:
             # TODO add generate calls for E and F
             jobDb.markJobStatus(job.job_id,"finished")
-
             pass
 
         return True, None
@@ -554,8 +554,14 @@ class FileHandler:
             protocol = "http"
         callback = "{}://{}:{}/v1/complete_generation/{}/".format(protocol,CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
         get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
-        if not self.call_d_file_api(get_url):
-            self.handleEmptyResponse(job, valJob)
+        try:
+            if not self.call_d_file_api(get_url):
+                self.handleEmptyResponse(job, valJob)
+        except Timeout as e:
+            exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
+            return False, JsonResponse.error(exc, exc.status, url="", start="", end="", file_type=file_type)
+
+        return True, None
 
     def handleEmptyResponse(self, job, valJob):
         """ Handles an empty response from the D file API by marking jobs as finished with no errors or rows
@@ -587,7 +593,7 @@ class FileHandler:
 
     def get_xml_response_content(self, api_url):
         """ Retrieve XML Response from the provided API url """
-        return requests.get(api_url, verify=False, timeout = 20).text
+        return requests.get(api_url, verify=False, timeout=20).text
 
     def call_d_file_api(self, api_url):
         """ Call D file API, return True if results found, False otherwise """
@@ -682,6 +688,8 @@ class FileHandler:
 
         success, error_response = self.startGenerationJob(submission_id,file_type)
         if not success:
+            # If not successful, set job status as "failed"
+            self.interfaces.jobDb.markJobStatus(job.job_id, "failed")
             return error_response
 
         # Return same response as check generation route
