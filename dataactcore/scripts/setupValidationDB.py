@@ -1,15 +1,15 @@
-from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
-from dataactcore.config import CONFIG_DB
 from dataactcore.models.validationModels import FileTypeValidation, FieldType, RuleSeverity
-from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
+from dataactcore.interfaces.db import databaseSession
+
 
 def setupValidationDB():
     """Create validation tables from model metadata and do initial inserts."""
-    insertCodes()
+    with databaseSession() as sess:
+        insertCodes(sess)
+        sess.commit()
 
-def insertCodes():
+def insertCodes(sess):
     """Insert static data."""
-    validatorDb = ValidatorValidationInterface()
 
     # insert file types
     fileTypeList = [
@@ -21,7 +21,7 @@ def insertCodes():
         ]
     for f in fileTypeList:
         fileType = FileTypeValidation(file_id=f[0], name=f[1], description=f[2], file_order = f[3])
-        validatorDb.session.merge(fileType)
+        sess.merge(fileType)
 
     # insert field types
     fieldTypeList = [
@@ -33,7 +33,7 @@ def insertCodes():
         ]
     for f in fieldTypeList:
         fieldType = FieldType(field_type_id=f[0], name=f[1], description=f[2])
-        validatorDb.session.merge(fieldType)
+        sess.merge(fieldType)
 
     # insert rule severity
     severityList = [
@@ -42,10 +42,8 @@ def insertCodes():
     ]
     for s in severityList:
         ruleSeverity = RuleSeverity(rule_severity_id=s[0], name=s[1], description=s[2])
-        validatorDb.session.merge(ruleSeverity)
+        sess.merge(ruleSeverity)
 
-    validatorDb.session.commit()
-    validatorDb.close()
 
 if __name__ == '__main__':
     setupValidationDB()

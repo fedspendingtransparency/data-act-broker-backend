@@ -1,19 +1,18 @@
 from dataactcore.models.errorModels import FileStatus, ErrorType
-from dataactcore.models.errorInterface import ErrorInterface
-from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
-from dataactcore.config import CONFIG_DB
+from dataactcore.interfaces.db import databaseSession
 
 
 def setupErrorDB():
-    """Create job tracker tables from model metadata."""
-    insertCodes()
+    """Create error tables from model metadata."""
+    with databaseSession() as sess:
+        insertCodes(sess)
+        sess.commit()
 
-def insertCodes():
+def insertCodes(sess):
     """Insert static data."""
-    errorDb = ErrorInterface()
 
-    # TODO: define these codes as enums in the data model?
     # insert file status types
+
     statusList = [(1, 'complete', 'File has been processed'),
         (2, 'header_error', 'The file has errors in the header row'),
         (3, 'unknown_error', 'An unknown error has occurred with this file'),
@@ -22,7 +21,7 @@ def insertCodes():
         (6, 'incomplete', 'File has not yet been validated')]
     for s in statusList:
         status = FileStatus(file_status_id=s[0], name=s[1], description=s[2])
-        errorDb.session.merge(status)
+        sess.merge(status)
 
     # insert error types
     errorList = [(1, 'type_error', 'The value provided was of the wrong type'),
@@ -34,10 +33,8 @@ def insertCodes():
         (7, 'length_error', 'Value was longer than allowed length')]
     for e in errorList:
         error = ErrorType(error_type_id=e[0], name=e[1], description=e[2])
-        errorDb.session.merge(error)
+        sess.merge(error)
 
-    errorDb.session.commit()
-    errorDb.close()
 
 if __name__ == '__main__':
     setupErrorDB()
