@@ -550,22 +550,18 @@ class FileHandler:
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
             return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
         # Create file D API URL with dates and callback URL
-        if CONFIG_SERVICES["broker_api_port"] == 443:
-            # Use https
-            protocol = "https"
-        else:
-            protocol = "http"
-        callback = "{}://{}:{}/v1/complete_generation/{}/".format(protocol,CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
+        callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
         get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+
+        CloudLogger.log("DEBUG: Calling D file API => " + str(get_url),
+                        log_type="debug",
+                        file_name=self.debug_file_name)
         try:
-            CloudLogger.log("DEBUG: Calling D file API => " + str(get_url),
-                            log_type="debug",
-                            file_name=self.debug_file_name)
             if not self.call_d_file_api(get_url):
                 self.handleEmptyResponse(job, valJob)
         except Timeout as e:
             exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
-            return False, JsonResponse.error(exc, exc.status, url="", start="", end="", file_type=file_type)
+            return False, JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
 
         return True, None
 
@@ -602,7 +598,7 @@ class FileHandler:
         CloudLogger.log("DEBUG: Getting XML response",
                         log_type="debug",
                         file_name=self.debug_file_name)
-        return requests.get(api_url, verify=False, timeout=20).text
+        return requests.get(api_url, verify=False, timeout=0.001).text
 
     def call_d_file_api(self, api_url):
         """ Call D file API, return True if results found, False otherwise """
