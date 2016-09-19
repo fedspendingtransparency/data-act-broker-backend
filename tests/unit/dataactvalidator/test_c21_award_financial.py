@@ -8,17 +8,7 @@ from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 _FILE = 'c21_award_financial'
 _TAS = 'c21_award_financial_tas'
 
-
-def test_column_headers(database):
-    expected_subset = {'row_number'}
-    actual = set(query_columns(_FILE, database.stagingDb))
-    assert (actual & expected_subset) == expected_subset
-
-
-def test_success(database):
-    """ Tests that the sum of financial elements in File C is less than or equal
-     to the corresponding element in File B for the same TAS and Program Activity Code combination"""
-    af_dict = dict(
+af_dict = dict(
         submission_id=randint(1000, 10000),
         tas='some-tas',
         program_activity_code='some-code',
@@ -56,6 +46,16 @@ def test_success(database):
         deobligations_recov_by_awa_cpe=randint(-10000, -1000)
     )
 
+
+def test_column_headers(database):
+    expected_subset = {'row_number'}
+    actual = set(query_columns(_FILE, database.stagingDb))
+    assert (actual & expected_subset) == expected_subset
+
+
+def test_success(database):
+    """ Tests that the sum of financial elements in File C is less than or equal
+     to the corresponding element in File B for the same TAS and Program Activity Code combination"""
     af1 = AwardFinancialFactory(**af_dict)
     af2 = AwardFinancialFactory(**af_dict)
 
@@ -104,44 +104,6 @@ def test_success(database):
 def test_failure(database):
     """ Tests that the sum of financial elements in File C is not less than or equal
          to the corresponding element in File B for the same TAS and Program Activity Code combination"""
-    af_dict = dict(
-        submission_id=randint(1000, 10000),
-        tas='some-tas',
-        program_activity_code='some-code',
-        ussgl480100_undelivered_or_fyb=randint(-10000, -1000),
-        ussgl480100_undelivered_or_cpe=randint(-10000, -1000),
-        ussgl483100_undelivered_or_cpe=randint(-10000, -1000),
-        ussgl488100_upward_adjustm_cpe=randint(-10000, -1000),
-        obligations_undelivered_or_fyb=randint(-10000, -1000),
-        obligations_undelivered_or_cpe=randint(-10000, -1000),
-        ussgl490100_delivered_orde_fyb=randint(-10000, -1000),
-        ussgl490100_delivered_orde_cpe=randint(-10000, -1000),
-        ussgl493100_delivered_orde_cpe=randint(-10000, -1000),
-        ussgl498100_upward_adjustm_cpe=randint(-10000, -1000),
-        obligations_delivered_orde_fyb=randint(-10000, -1000),
-        obligations_delivered_orde_cpe=randint(-10000, -1000),
-        ussgl480200_undelivered_or_fyb=randint(-10000, -1000),
-        ussgl480200_undelivered_or_cpe=randint(-10000, -1000),
-        ussgl483200_undelivered_or_cpe=randint(-10000, -1000),
-        ussgl488200_upward_adjustm_cpe=randint(-10000, -1000),
-        gross_outlays_undelivered_fyb=randint(-10000, -1000),
-        gross_outlays_undelivered_cpe=randint(-10000, -1000),
-        ussgl490200_delivered_orde_cpe=randint(-10000, -1000),
-        ussgl490800_authority_outl_fyb=randint(-10000, -1000),
-        ussgl490800_authority_outl_cpe=randint(-10000, -1000),
-        ussgl498200_upward_adjustm_cpe=randint(-10000, -1000),
-        gross_outlays_delivered_or_fyb=randint(-10000, -1000),
-        gross_outlays_delivered_or_cpe=randint(-10000, -1000),
-        gross_outlay_amount_by_awa_fyb=randint(-10000, -1000),
-        gross_outlay_amount_by_awa_cpe=randint(-10000, -1000),
-        obligations_incurred_byawa_cpe=randint(-10000, -1000),
-        ussgl487100_downward_adjus_cpe=randint(-10000, -1000),
-        ussgl497100_downward_adjus_cpe=randint(-10000, -1000),
-        ussgl487200_downward_adjus_cpe=randint(-10000, -1000),
-        ussgl497200_downward_adjus_cpe=randint(-10000, -1000),
-        deobligations_recov_by_awa_cpe=randint(-10000, -1000)
-    )
-
     af1 = AwardFinancialFactory(**af_dict)
     af2 = AwardFinancialFactory(**af_dict)
 
