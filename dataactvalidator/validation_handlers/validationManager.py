@@ -473,6 +473,9 @@ class ValidationManager:
 
     def runCrossValidation(self, jobId, interfaces):
         """ Cross file validation job, test all rules with matching rule_timing """
+        # Create File Status object
+        interfaces.errorDb.createFileIfNeeded(jobId)
+        
         validationDb = interfaces.validationDb
         errorDb = interfaces.errorDb
         submissionId = interfaces.jobDb.getSubmissionId(jobId)

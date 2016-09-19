@@ -26,7 +26,7 @@ class ValidatorErrorInterface(ErrorInterface):
         self.session.commit()
         return fileRec
 
-    def createFileIfNeeded(self, jobId, filename):
+    def createFileIfNeeded(self, jobId, filename = ""):
         """ Return the existing file object if it exists, or create a new one """
         try:
             fileRec = self.getFileByJobId(jobId)
