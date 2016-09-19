@@ -473,6 +473,9 @@ class ValidationManager:
 
     def runCrossValidation(self, jobId, interfaces):
         """ Cross file validation job, test all rules with matching rule_timing """
+        # Create File Status object
+        interfaces.errorDb.createFileIfNeeded(jobId)
+        
         validationDb = interfaces.validationDb
         errorDb = interfaces.errorDb
         submissionId = interfaces.jobDb.getSubmissionId(jobId)
@@ -532,6 +535,9 @@ class ValidationManager:
         # Publish only if no errors are present
         if interfaces.jobDb.getSubmissionById(submissionId).number_of_errors == 0:
             interfaces.jobDb.setPublishableFlag(submissionId, True)
+
+        # Mark validation complete
+        interfaces.errorDb.markFileComplete(jobId)
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
