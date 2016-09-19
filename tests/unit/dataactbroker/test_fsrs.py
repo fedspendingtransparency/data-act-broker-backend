@@ -134,7 +134,7 @@ def test_flattenSoapDict():
 
 @pytest.fixture()
 def no_award_db(database):
-    sess = database.validationDb.session
+    sess = database.session
     sess.query(FSRSProcurement).delete(synchronize_session=False)
     sess.query(FSRSGrant).delete(synchronize_session=False)
     sess.commit()
