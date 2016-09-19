@@ -1,5 +1,6 @@
 import os
 import requests
+from requests.exceptions import Timeout
 from csv import reader
 from flask import session, request
 from datetime import datetime
@@ -506,11 +507,10 @@ class FileHandler:
             CloudLogger.log("DEBUG: Adding job info for job id of " + str(job.job_id),
                             log_type="debug",
                             file_name=self.debug_file_name)
-            self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
+            return self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
         else:
             # TODO add generate calls for E and F
             jobDb.markJobStatus(job.job_id,"finished")
-
             pass
 
         return True, None
@@ -550,18 +550,20 @@ class FileHandler:
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
             return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
         # Create file D API URL with dates and callback URL
-        if CONFIG_SERVICES["broker_api_port"] == 443:
-            # Use https
-            protocol = "https"
-        else:
-            protocol = "http"
-        callback = "{}://{}:{}/v1/complete_generation/{}/".format(protocol,CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
+        callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
         get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+
         CloudLogger.log("DEBUG: Calling D file API => " + str(get_url),
                         log_type="debug",
                         file_name=self.debug_file_name)
-        if not self.call_d_file_api(get_url):
-            self.handleEmptyResponse(job, valJob)
+        try:
+            if not self.call_d_file_api(get_url):
+                self.handleEmptyResponse(job, valJob)
+        except Timeout as e:
+            exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
+            return False, JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
+
+        return True, None
 
     def handleEmptyResponse(self, job, valJob):
         """ Handles an empty response from the D file API by marking jobs as finished with no errors or rows
@@ -596,7 +598,7 @@ class FileHandler:
         CloudLogger.log("DEBUG: Getting XML response",
                         log_type="debug",
                         file_name=self.debug_file_name)
-        return requests.get(api_url, verify=False, timeout = 20).text
+        return requests.get(api_url, verify=False, timeout=20).text
 
     def call_d_file_api(self, api_url):
         """ Call D file API, return True if results found, False otherwise """
@@ -701,6 +703,8 @@ class FileHandler:
                         log_type="debug",
                         file_name=self.debug_file_name)
         if not success:
+            # If not successful, set job status as "failed"
+            self.interfaces.jobDb.markJobStatus(job.job_id, "failed")
             return error_response
 
         # Return same response as check generation route
