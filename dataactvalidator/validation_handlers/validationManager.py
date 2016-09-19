@@ -536,6 +536,9 @@ class ValidationManager:
         if interfaces.jobDb.getSubmissionById(submissionId).number_of_errors == 0:
             interfaces.jobDb.setPublishableFlag(submissionId, True)
 
+        # Mark validation complete
+        interfaces.errorDb.markFileComplete(jobId, "")
+
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
         Args:
