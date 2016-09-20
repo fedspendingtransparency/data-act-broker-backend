@@ -5,7 +5,7 @@ import pytest
 import dataactcore.config
 from dataactcore.scripts.databaseSetup import (
     createDatabase, dropDatabase, runMigrations)
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.db import dbConnection
 
 
 @pytest.fixture(scope='session')
@@ -19,9 +19,9 @@ def database():
 
     createDatabase(config['db_name'])
     runMigrations()
-    interface = InterfaceHolder()
+    db = dbConnection()
 
-    yield interface
+    yield db
 
-    interface.close()
+    db.close()
     dropDatabase(config['db_name'])
