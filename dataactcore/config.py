@@ -104,5 +104,11 @@ if CONFIG_SERVICES['validator_host'] == '0.0.0.0':
 if CONFIG_DB['dynamo_host'] == '0.0.0.0':
     CONFIG_DB['dynamo_host'] = '127.0.0.1'
 
+if CONFIG_SERVICES["broker_api_port"] == 443:
+    # Use https
+    CONFIG_SERVICES["protocol"] = "https"
+else:
+    CONFIG_SERVICES["protocol"] = "http"
+
 # TODO: error-handling for db config?
 # TODO: type checking and fixing for int stuff like ports?

@@ -24,7 +24,7 @@ def test_success(database):
                                     ussgl490800_authority_outl_fyb=1, ussgl498100_upward_adjustm_cpe=1,
                                     ussgl498200_upward_adjustm_cpe=1)
 
-    assert number_of_errors(_FILE, database.stagingDb, models=[sf, op]) == 0
+    assert number_of_errors(_FILE, database, models=[sf, op]) == 0
 
 
 def test_failure(database):
@@ -43,4 +43,4 @@ def test_failure(database):
                                     ussgl490800_authority_outl_fyb=1, ussgl498100_upward_adjustm_cpe=1,
                                     ussgl498200_upward_adjustm_cpe=1)
 
-    assert number_of_errors(_FILE, database.stagingDb, models=[sf, op]) == 1
+    assert number_of_errors(_FILE, database, models=[sf, op]) == 1

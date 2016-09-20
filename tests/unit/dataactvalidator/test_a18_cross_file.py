@@ -15,7 +15,7 @@ def test_column_headers(database):
         'availability_type_code', 'main_account_code', 'sub_account_code',
         'gross_outlay_amount_by_tas_cpe', 'gross_outlay_amount_by_pro_cpe_sum'
     ])
-    actual = set(query_columns(_FILE, database.stagingDb))
+    actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
 
@@ -35,7 +35,7 @@ def test_sum_matches(database):
     op2 = ObjectClassProgramActivity(gross_outlay_amount_by_pro_cpe=op2_val)
     approp = Appropriation(gross_outlay_amount_by_tas_cpe=approp_val)
     set_shared_values(op1, op2, approp)
-    assert number_of_errors(_FILE, database.stagingDb,
+    assert number_of_errors(_FILE, database,
                             models=[approp, op1, op2]) == 0
 
 
@@ -46,5 +46,5 @@ def test_sum_does_not_match(database):
     op2 = ObjectClassProgramActivity(gross_outlay_amount_by_pro_cpe=op2_val)
     approp = Appropriation(gross_outlay_amount_by_tas_cpe=approp_val)
     set_shared_values(op1, op2, approp)
-    assert number_of_errors(_FILE, database.stagingDb,
+    assert number_of_errors(_FILE, database,
                             models=[approp, op1, op2]) == 1
