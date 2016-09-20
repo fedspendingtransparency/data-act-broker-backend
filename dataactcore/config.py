@@ -1,26 +1,49 @@
+import os
 import os.path
 from os.path import expanduser, normpath, dirname, abspath
 import yaml
 import re
 
+env = os.environ["env"] if "env" in os.environ else "dev"
 # set the location of the DATA Act broker config file
 CONFIG_PATH = os.path.join(dirname(abspath(__file__)), 'config.yml')
+ENV_PATH = os.path.join(dirname(abspath(__file__)), '{}_config.yml'.format(env))
 # set the location of the Alembic config file
 ALEMBIC_PATH = os.path.join(dirname(abspath(__file__)), 'alembic.ini')
 MIGRATION_PATH = os.path.join(dirname(abspath(__file__)), 'migrations')
+CONFIG_BROKER = {}
+CONFIG_SERVICES = {}
+CONFIG_DB = {}
+CONFIG_LOGGING = {}
+CONFIG_JOB_QUEUE = {}
 
-try:
-    with open(CONFIG_PATH) as c:
-        CONFIG_ALL = yaml.load(c)
-except IOError:
-    raise IOError('Error reading the config file. Please make sure this file exists'
-           ' before starting the DATA Act broker: {}'.format(CONFIG_PATH))
+def merge_config(existing_config, new_config):
+    if type(existing_config) is not dict or type(new_config) is not dict:
+        raise ValueError("Both args to merge_config must be dicts")
+    for key in new_config.keys():
+        existing_config[key] = new_config[key]
+    return existing_config
 
-CONFIG_BROKER = CONFIG_ALL['broker']
-CONFIG_SERVICES = CONFIG_ALL['services']
-CONFIG_DB = CONFIG_ALL['db']
-CONFIG_LOGGING = CONFIG_ALL['logging']
-CONFIG_JOB_QUEUE = CONFIG_ALL['job-queue']
+first_config = True
+for config_path in [CONFIG_PATH, ENV_PATH]:
+    try:
+        with open(config_path) as c:
+            CONFIG_ALL = yaml.load(c)
+    except IOError:
+        if first_config:
+            # First config file must be present, the rest are optional
+            raise IOError('Error reading the config file. Please make sure this file exists'
+               ' before starting the DATA Act broker: {}'.format(config_path))
+        else:
+            continue
+    # File successfully loaded, mark as no longer first
+    first_config = False
+    
+    CONFIG_BROKER = merge_config(CONFIG_BROKER, CONFIG_ALL['broker']) if "broker" in CONFIG_ALL else CONFIG_BROKER
+    CONFIG_SERVICES = merge_config(CONFIG_SERVICES, CONFIG_ALL['services']) if "services" in CONFIG_ALL else CONFIG_SERVICES
+    CONFIG_DB = merge_config(CONFIG_DB, CONFIG_ALL['db']) if "db" in CONFIG_ALL else CONFIG_DB
+    CONFIG_LOGGING = merge_config(CONFIG_LOGGING, CONFIG_ALL['logging']) if "logging" in CONFIG_ALL else CONFIG_LOGGING
+    CONFIG_JOB_QUEUE = merge_config(CONFIG_JOB_QUEUE, CONFIG_ALL['job-queue']) if "job-queue" in CONFIG_ALL else CONFIG_JOB_QUEUE
 
 # Get path to installation
 CONFIG_BROKER['path'] = dirname(dirname(abspath(__file__)))
@@ -112,3 +135,4 @@ else:
 
 # TODO: error-handling for db config?
 # TODO: type checking and fixing for int stuff like ports?
+
