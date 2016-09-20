@@ -1,6 +1,6 @@
-import json
 import unittest
 import time
+from collections import namedtuple
 from datetime import timedelta
 from dateutil.parser import parse
 from random import randint
@@ -55,46 +55,23 @@ class BaseTestAPI(unittest.TestCase):
         # load e-mail templates
         setupEmails()
 
-        #get test users
-        try:
-            with open('test.json') as test_users_file:
-                test_users = json.load(test_users_file)
-            test_users = test_users
-        except:
-            #if no test.json, provide some default e-mail accounts for tests
-            test_users = {}
-            test_users['admin_email'] = 'data.act.tester.1@gmail.com'
-            test_users['change_user_email'] = 'data.act.tester.2@gmail.com'
-            test_users['password_reset_email'] = 'data.act.tester.3@gmail.com'
-            test_users['inactive_email'] = 'data.act.tester.4@gmail.com'
-            test_users['password_lock_email'] = 'data.act.test.5@gmail.com'
-            test_users['expired_lock_email'] = 'data.act.test.6@gmail.com'
-            test_users['agency_admin_email'] = 'data.act.test.7@gmail.com'
+        # set up default e-mails for tests
+        test_users = {}
+        test_users['admin_email'] = 'data.act.tester.1@gmail.com'
+        test_users['change_user_email'] = 'data.act.tester.2@gmail.com'
+        test_users['password_reset_email'] = 'data.act.tester.3@gmail.com'
+        test_users['inactive_email'] = 'data.act.tester.4@gmail.com'
+        test_users['password_lock_email'] = 'data.act.test.5@gmail.com'
+        test_users['expired_lock_email'] = 'data.act.test.6@gmail.com'
+        test_users['agency_admin_email'] = 'data.act.test.7@gmail.com'
 
-            # This email is for a regular agency_user email that is to be used for testing functionality
-            # expected by a normal, base user
-            test_users['agency_user'] = 'data.act.test.8@gmail.com'
-        if 'approved_email' not in test_users:
-            test_users['approved_email'] = 'approved@agency.gov'
-        if 'submission_email' not in test_users:
-            test_users['submission_email'] = 'submission_test@agency.gov'
+        # this email is for a regular agency_user email that is to be used for
+        # testing functionality expected by a normal, base user
+        test_users['agency_user'] = 'data.act.test.8@gmail.com'
+        test_users['approved_email'] = 'approved@agency.gov'
+        test_users['submission_email'] = 'submission_test@agency.gov'
         user_password = '!passw0rdUp!'
         admin_password = '@pprovedPassw0rdy'
-
-        #setup test users
-        userEmails = ["user@agency.gov", "realEmail@agency.gov",
-            "waiting@agency.gov", "impatient@agency.gov",
-            "watchingPaintDry@agency.gov", test_users["admin_email"],
-            test_users["approved_email"], "nefarious@agency.gov"]
-        userStatus = ["awaiting_confirmation",
-            "email_confirmed", "awaiting_approval",
-            "awaiting_approval", "awaiting_approval",
-            "approved", "approved", "denied"]
-        userPermissions = [0, AccountType.AGENCY_USER,
-            AccountType.AGENCY_USER, AccountType.AGENCY_USER,
-            AccountType.AGENCY_USER,
-            AccountType.WEBSITE_ADMIN+AccountType.AGENCY_USER,
-            AccountType.AGENCY_USER, AccountType.AGENCY_USER]
 
         # Add new users
         userDb = UserHandler()
@@ -115,40 +92,52 @@ class BaseTestAPI(unittest.TestCase):
         userDb.createUserWithPassword(
             test_users['agency_user'], user_password, Bcrypt())
 
-        # Set the Agency for the agency user
+        # save info about agency user
         agencyUser = userDb.getUserByEmail(test_users['agency_user'])
         userDb.session.commit()
         cls.agency_user_id = agencyUser.user_id
 
-        # Set the specified account to be expired
+        # set the specified account to be expired
         expiredUser = userDb.getUserByEmail(test_users['expired_lock_email'])
         today = parse(time.strftime("%c"))
         expiredUser.last_login_date = (today-timedelta(days=120)).strftime("%c")
         userDb.session.commit()
 
-        # Create users for status testing
-        for index in range(len(userEmails)):
-            email = userEmails[index]
-            userDb.addUnconfirmedEmail(email)
-            user = userDb.getUserByEmail(email)
-            userDb.changeStatus(user, userStatus[index])
-            userDb.setPermission(user, userPermissions[index])
+        # create users for status testing
+        TestUser = namedtuple('TestUser', ['email', 'status', 'permissions', 'user_type'])
+        TestUser.__new__.__defaults__ = (None, None, AccountType.AGENCY_USER, None)
+        status_test_users = []
+        status_test_users.append(TestUser('user@agency.gov', 'awaiting_confirmation', 0))
+        status_test_users.append(TestUser('realEmail@agency.gov', 'email_confirmed'))
+        status_test_users.append(TestUser('waiting@agency.gov', 'awaiting_approval'))
+        status_test_users.append(TestUser('impatient@agency.gov', 'awaiting_approval'))
+        status_test_users.append(TestUser('watchingPaintDry@agency.gov', 'awaiting_approval'))
+        status_test_users.append(TestUser(test_users['admin_email'], 'approved',
+                                   AccountType.WEBSITE_ADMIN + AccountType.AGENCY_USER))
+        status_test_users.append(TestUser(test_users['approved_email'], 'approved'))
+        status_test_users.append(TestUser('nefarious@agency.gov', 'denied'))
 
-        #set up approved user
+        for u in status_test_users:
+            userDb.addUnconfirmedEmail(u.email)
+            user = userDb.getUserByEmail(u.email)
+            userDb.changeStatus(user, u.status)
+            userDb.setPermission(user, u.permissions)
+
+        # set up approved user
         user = userDb.getUserByEmail(test_users['approved_email'])
         user.username = "approvedUser"
         user.cgac_code = "000"
         userDb.setPassword(user, user_password, Bcrypt())
         cls.approved_user_id = user.user_id
 
-        #set up admin user
+        # set up admin user
         admin = userDb.getUserByEmail(test_users['admin_email'])
         userDb.setPassword(admin, admin_password, Bcrypt())
         admin.name = "Mr. Manager"
         admin.cgac_code = "SYS"
         userDb.session.commit()
 
-        #set up status changed user
+        # set up status changed user
         statusChangedUser = userDb.getUserByEmail(
             test_users["change_user_email"])
         cls.status_change_user_id = statusChangedUser.user_id
@@ -157,13 +146,13 @@ class BaseTestAPI(unittest.TestCase):
             "email_confirmed")
         userDb.session.commit()
 
-        #set up deactivated user
+        # set up deactivated user
         user = userDb.getUserByEmail(test_users["inactive_email"])
         user.last_login_date = time.strftime("%c")
         user.is_active = False
         userDb.session.commit()
 
-        #set up info needed by the individual test classes
+        # set up info needed by the individual test classes
         cls.test_users = test_users
         cls.user_password = user_password
         cls.admin_password = admin_password
