@@ -1,12 +1,12 @@
 from dataactbroker.scripts.setupEmails import setupEmails
+from dataactcore.models.userModel import User
+from dataactcore.interfaces.db import databaseSession
+from dataactcore.interfaces.dbInterface import createUserWithPassword
 from dataactcore.scripts.setupAllDB import setupAllDB
-from dataactcore.utils.responseException import ResponseException
-from dataactbroker.handlers.userHandler import UserHandler
 from dataactbroker.handlers.aws.session import SessionTable
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import argparse
 from flask_bcrypt import Bcrypt
-from sqlalchemy.orm.exc import NoResultFound
 
 
 def options():
@@ -26,7 +26,7 @@ def options():
             globals()[arg]()
 
     if noArgs:
-        print ("Please enter an argument.")
+        print("Please enter an argument.")
 
 def deploy():
     """ Run steps needed for deployment on AWS, currently this is just DB setup """
@@ -34,13 +34,13 @@ def deploy():
 
 def initialize():
     """ Set up databases and dynamo and create an admin user """
-    print ("Setting up databases...")
+    print("Setting up databases...")
     setupDB()
-    print ("Setting up DynamoDB session table...")
+    print("Setting up DynamoDB session table...")
     setupSessionTable()
-    print ("Creating admin user...")
+    print("Creating admin user...")
     createAdmin()
-    print ("The broker has been initialized. You may now run the broker with the --start argument.")
+    print("The broker has been initialized. You may now run the broker with the --start argument.")
 
 
 def setupDB():
@@ -53,17 +53,13 @@ def createAdmin():
     """Create initial admin user."""
     adminEmail = CONFIG_BROKER['admin_email']
     adminPass = CONFIG_BROKER['admin_password']
-    userDb = UserHandler()
-    try:
-        user = userDb.getUserByEmail(adminEmail)
-    except ResponseException as e:
-
-        if type(e.wrappedException) is NoResultFound:
-            userDb.createUserWithPassword(
-                adminEmail, adminPass, Bcrypt(), permission=2)
-            user = userDb.getUserByEmail(adminEmail)
-            userDb.addUserInfo(user, "Admin", "SYS", "System Admin")
-    userDb.close()
+    with databaseSession() as sess:
+        user = sess.query(User).filter(User.email==adminEmail).one_or_none()
+        sess.close()
+    if not user:
+        user = createUserWithPassword(
+            adminEmail, adminPass, Bcrypt(), permission=2)
+    return user
 
 
 def setupSessionTable():
