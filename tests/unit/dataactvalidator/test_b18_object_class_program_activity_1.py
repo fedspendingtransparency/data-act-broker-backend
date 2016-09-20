@@ -3,8 +3,7 @@ from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityF
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
-_FILE = 'c20_award_financial'
-_TAS = 'c20_award_financial_tas'
+_FILE = 'b18_object_class_program_activity_1'
 
 not_req_dict = {
         "submission_id":fuzzy.FuzzyInteger(9999),
@@ -26,7 +25,7 @@ req_absent_dict = {
 
 def test_column_headers(database):
     expected_subset = {"row_number", "object_class", "by_direct_reimbursable_fun"}
-    actual = set(query_columns(_FILE, database.stagingDb))
+    actual = set(query_columns(_FILE, database))
     assert expected_subset <= actual
 
 def test_success(database):
