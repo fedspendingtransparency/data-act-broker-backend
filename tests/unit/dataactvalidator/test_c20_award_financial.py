@@ -49,7 +49,7 @@ af_dict = dict(
 
 def test_column_headers(database):
     expected_subset = {'row_number'}
-    actual = set(query_columns(_FILE, database.stagingDb))
+    actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
 
@@ -97,7 +97,7 @@ def test_success(database):
         submission_id=af_dict['submission_id']
     )
 
-    errors = number_of_errors(_FILE, database.stagingDb, models=[af1, af2, op])
+    errors = number_of_errors(_FILE, database, models=[af1, af2, op])
     assert errors == 0
 
 
@@ -145,5 +145,5 @@ def test_failure(database):
         submission_id=af_dict['submission_id']
     )
 
-    errors = number_of_errors(_FILE, database.stagingDb, models=[af1, af2, op])
+    errors = number_of_errors(_FILE, database, models=[af1, af2, op])
     assert errors == 1
