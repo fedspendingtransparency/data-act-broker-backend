@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from dataactcore.models.baseInterface import databaseSession
+from dataactcore.interfaces.db import databaseSession
 from dataactbroker.fsrs import (
     configValid, fetchAndReplaceBatch, GRANT, PROCUREMENT)
 

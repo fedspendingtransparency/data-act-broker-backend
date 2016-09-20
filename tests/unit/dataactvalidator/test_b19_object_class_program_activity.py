@@ -10,7 +10,7 @@ def test_column_headers(database):
                        'agency_identifier', 'allocation_transfer_agency', 'availability_type_code',
                        'main_account_code', 'sub_account_code', 'object_class', 'program_activity_code',
                        'by_direct_reimbursable_fun'}
-    actual = set(query_columns(_FILE, database.stagingDb))
+    actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
 
@@ -84,7 +84,7 @@ def test_success(database):
                                      main_account_code='1', sub_account_code='1', object_class='1',
                                      program_activity_code='1', by_direct_reimbursable_fun='d')
 
-    assert number_of_errors(_FILE, database.stagingDb, models=[op1, op2, op3, op4, op5, op6,
+    assert number_of_errors(_FILE, database, models=[op1, op2, op3, op4, op5, op6,
                                                                op7, op8, op9, op10, op11]) == 0
 
 
@@ -102,7 +102,7 @@ def test_optionals(database):
                                      availability_type_code='1', main_account_code='1', sub_account_code='1',
                                      object_class='1', program_activity_code='1', by_direct_reimbursable_fun='r')
 
-    assert number_of_errors(_FILE, database.stagingDb, models=[op1, op2]) == 1
+    assert number_of_errors(_FILE, database, models=[op1, op2]) == 1
 
 
 def test_failure(database):
@@ -121,4 +121,4 @@ def test_failure(database):
                                      main_account_code='1', sub_account_code='1', object_class='1',
                                      program_activity_code='1', by_direct_reimbursable_fun='r')
 
-    assert number_of_errors(_FILE, database.stagingDb, models=[op1, op2]) == 1
+    assert number_of_errors(_FILE, database, models=[op1, op2]) == 1

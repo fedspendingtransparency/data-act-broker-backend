@@ -43,7 +43,7 @@ def test_valueFromMapping_tuple():
 def test_relevantFainPiids(database):
     """We should be retrieving a pair of all FAINs and PIIDs associated with a
     particular submission"""
-    sess = database.stagingDb.session
+    sess = database.session
     award1 = AwardFinancialFactory()
     award2 = AwardFinancialFactory(submission_id=award1.submission_id,
                                    piid=None)
@@ -59,7 +59,7 @@ def test_generateFRows(database, monkeypatch):
     """generateFRows should find and convert subaward data relevant to a
     specific submission id. We'll compare the resulting DUNs values for
     uniqueness"""
-    sess = database.stagingDb.session
+    sess = database.session
 
     mock_fn = Mock(return_value=({'fain1', 'fain2'}, {'piid1'}))
     monkeypatch.setattr(fileF, 'relevantFainsPiids', mock_fn)
