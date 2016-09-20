@@ -54,7 +54,7 @@ def createAdmin():
     adminEmail = CONFIG_BROKER['admin_email']
     adminPass = CONFIG_BROKER['admin_password']
     with databaseSession() as sess:
-        user = sess.query(User).filter(User.email==adminEmail).one_or_none()
+        user = sess.query(User).filter(User.email == adminEmail).one_or_none()
         sess.close()
     if not user:
         user = createUserWithPassword(

@@ -7,8 +7,10 @@ from random import randint
 from webtest import TestApp
 from dataactbroker.app import createApp
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
-from dataactcore.models.userModel import AccountType
 from dataactcore.models.baseInterface import BaseInterface
+from dataactcore.interfaces.db import databaseSession
+from dataactcore.interfaces.dbInterface import createUserWithPassword, getPasswordHash
+from dataactcore.models.userModel import AccountType, User, UserStatus
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
@@ -18,7 +20,6 @@ from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import dataactcore.config
 from dataactbroker.scripts.setupEmails import setupEmails
-from dataactbroker.handlers.userHandler import UserHandler
 from flask_bcrypt import Bcrypt
 
 class BaseTestAPI(unittest.TestCase):
@@ -27,7 +28,6 @@ class BaseTestAPI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up resources to be shared within a test class"""
-        #TODO: refactor into a pytest class fixtures and inject as necessary
         # Prevent interface being reused from last suite
         BaseInterface.interfaces = None
         # Create an empty session ID
@@ -73,84 +73,88 @@ class BaseTestAPI(unittest.TestCase):
         user_password = '!passw0rdUp!'
         admin_password = '@pprovedPassw0rdy'
 
-        # Add new users
-        userDb = UserHandler()
-        userDb.createUserWithPassword(
+        # set up users for status tests
+        StatusTestUser = namedtuple('StatusTestUser', ['email', 'user_status', 'permissions', 'user_type'])
+        StatusTestUser.__new__.__defaults__ = (None, None, AccountType.AGENCY_USER, None)
+        status_test_users = []
+        status_test_users.append(StatusTestUser('user@agency.gov', 'awaiting_confirmation', 0))
+        status_test_users.append(StatusTestUser('realEmail@agency.gov', 'email_confirmed'))
+        status_test_users.append(StatusTestUser('waiting@agency.gov', 'awaiting_approval'))
+        status_test_users.append(StatusTestUser('impatient@agency.gov', 'awaiting_approval'))
+        status_test_users.append(StatusTestUser('watchingPaintDry@agency.gov', 'awaiting_approval'))
+        status_test_users.append(StatusTestUser(test_users['admin_email'], 'approved',
+                                          AccountType.WEBSITE_ADMIN + AccountType.AGENCY_USER))
+        status_test_users.append(StatusTestUser(test_users['approved_email'], 'approved'))
+        status_test_users.append(StatusTestUser('nefarious@agency.gov', 'denied'))
+
+        # add new users
+        createUserWithPassword(
             test_users["submission_email"], user_password, Bcrypt())
-        userDb.createUserWithPassword(
+        createUserWithPassword(
             test_users["change_user_email"], user_password, Bcrypt())
-        userDb.createUserWithPassword(
+        createUserWithPassword(
             test_users["password_reset_email"], user_password, Bcrypt())
-        userDb.createUserWithPassword(
+        createUserWithPassword(
             test_users["inactive_email"], user_password, Bcrypt())
-        userDb.createUserWithPassword(
+        createUserWithPassword(
             test_users["password_lock_email"], user_password, Bcrypt())
-        userDb.createUserWithPassword(
+        createUserWithPassword(
             test_users['expired_lock_email'], user_password, Bcrypt())
-        userDb.createUserWithPassword(
+        createUserWithPassword(
             test_users['agency_admin_email'], admin_password, Bcrypt(), permission=4)
-        userDb.createUserWithPassword(
+        createUserWithPassword(
             test_users['agency_user'], user_password, Bcrypt())
 
-        # save info about agency user
-        agencyUser = userDb.getUserByEmail(test_users['agency_user'])
-        userDb.session.commit()
-        cls.agency_user_id = agencyUser.user_id
+        # get user info and save as class variables for use by tests
+        with databaseSession() as sess:
 
-        # set the specified account to be expired
-        expiredUser = userDb.getUserByEmail(test_users['expired_lock_email'])
-        today = parse(time.strftime("%c"))
-        expiredUser.last_login_date = (today-timedelta(days=120)).strftime("%c")
-        userDb.session.commit()
+            agencyUser = sess.query(User).filter(User.email == test_users['agency_user']).one()
+            cls.agency_user_id = agencyUser.user_id
 
-        # create users for status testing
-        TestUser = namedtuple('TestUser', ['email', 'status', 'permissions', 'user_type'])
-        TestUser.__new__.__defaults__ = (None, None, AccountType.AGENCY_USER, None)
-        status_test_users = []
-        status_test_users.append(TestUser('user@agency.gov', 'awaiting_confirmation', 0))
-        status_test_users.append(TestUser('realEmail@agency.gov', 'email_confirmed'))
-        status_test_users.append(TestUser('waiting@agency.gov', 'awaiting_approval'))
-        status_test_users.append(TestUser('impatient@agency.gov', 'awaiting_approval'))
-        status_test_users.append(TestUser('watchingPaintDry@agency.gov', 'awaiting_approval'))
-        status_test_users.append(TestUser(test_users['admin_email'], 'approved',
-                                   AccountType.WEBSITE_ADMIN + AccountType.AGENCY_USER))
-        status_test_users.append(TestUser(test_users['approved_email'], 'approved'))
-        status_test_users.append(TestUser('nefarious@agency.gov', 'denied'))
+            # set the specified account to be expired
+            expiredUser = sess.query(User).filter(User.email == test_users['expired_lock_email']).one()
+            today = parse(time.strftime("%c"))
+            expiredUser.last_login_date = (today-timedelta(days=120)).strftime("%c")
+            sess.add(expiredUser)
 
-        for u in status_test_users:
-            userDb.addUnconfirmedEmail(u.email)
-            user = userDb.getUserByEmail(u.email)
-            userDb.changeStatus(user, u.status)
-            userDb.setPermission(user, u.permissions)
+            # create users for status testing
+            for u in status_test_users:
+                user = User(
+                    email=u.email,
+                    permissions=u.permissions,
+                    user_status=sess.query(UserStatus).filter(UserStatus.name == u.user_status).one()
+                )
+                sess.add(user)
 
-        # set up approved user
-        user = userDb.getUserByEmail(test_users['approved_email'])
-        user.username = "approvedUser"
-        user.cgac_code = "000"
-        userDb.setPassword(user, user_password, Bcrypt())
-        cls.approved_user_id = user.user_id
+            # set up approved user
+            user = sess.query(User).filter(User.email == test_users['approved_email']).one()
+            user.username = "approvedUser"
+            user.cgac_code = "000"
+            user.salt, user.password_hash = getPasswordHash(user_password, Bcrypt())
+            sess.add(user)
+            cls.approved_user_id = user.user_id
 
-        # set up admin user
-        admin = userDb.getUserByEmail(test_users['admin_email'])
-        userDb.setPassword(admin, admin_password, Bcrypt())
-        admin.name = "Mr. Manager"
-        admin.cgac_code = "SYS"
-        userDb.session.commit()
+            # set up admin user
+            admin = sess.query(User).filter(User.email == test_users['admin_email']).one()
+            admin.salt, admin.password_hash = getPasswordHash(admin_password, Bcrypt())
+            admin.name = "Mr. Manager"
+            admin.cgac_code = "SYS"
+            sess.add(admin)
 
-        # set up status changed user
-        statusChangedUser = userDb.getUserByEmail(
-            test_users["change_user_email"])
-        cls.status_change_user_id = statusChangedUser.user_id
-        statusChangedUser.name = "Test User"
-        statusChangedUser.user_status_id = userDb.getUserStatusId(
-            "email_confirmed")
-        userDb.session.commit()
+            # set up status changed user
+            statusChangedUser = sess.query(User).filter(User.email == test_users['change_user_email']).one()
+            statusChangedUser.name = "Test User"
+            statusChangedUser.user_status = sess.query(UserStatus).filter(UserStatus.name == 'email_confirmed').one()
+            sess.add(statusChangedUser)
+            cls.status_change_user_id = statusChangedUser.user_id
 
-        # set up deactivated user
-        user = userDb.getUserByEmail(test_users["inactive_email"])
-        user.last_login_date = time.strftime("%c")
-        user.is_active = False
-        userDb.session.commit()
+            # set up deactivated user
+            deactivated_user = sess.query(User).filter(User.email == test_users['inactive_email']).one()
+            deactivated_user.last_login_date = time.strftime("%c")
+            deactivated_user.is_active = False
+            sess.add(deactivated_user)
+
+            sess.commit()
 
         # set up info needed by the individual test classes
         cls.test_users = test_users
