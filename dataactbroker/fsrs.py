@@ -189,7 +189,6 @@ def fetchAndReplaceBatch(sess, serviceType, minId=None):
     model = SERVICE_MODEL[serviceType]
     if minId is None:
         minId = model.nextId(sess)
-    print(minId)
 
     awards = list(retrieveBatch(serviceType, minId))
     ids = [a.id for a in awards]
