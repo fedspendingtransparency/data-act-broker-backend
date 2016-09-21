@@ -4,7 +4,7 @@ import os
 import json
 from datetime import datetime
 from dataactcore.utils.responseException import ResponseException
-from dataactcore.config import CONFIG_LOGGING
+from dataactcore.read_config import CONFIG_LOGGING
 
 class CloudLogger(object):
     """Singleton Logging object."""
