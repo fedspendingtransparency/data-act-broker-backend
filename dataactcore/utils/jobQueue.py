@@ -8,11 +8,23 @@ from dataactcore.utils.cloudLogger import CloudLogger
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
-# We'll use this to make sure our database connection is safe. Hopefully we'll
-# avoid the need in the future
-job_app = Flask(__name__)
+def brokerUrl(host):
+    """We use a different brokerUrl when running the workers than when
+    running within the flask app. Generate an appropriate URL with that in
+    mind"""
+    return '{broker_scheme}://{username}:{password}@{host}:{port}//'.format(
+        host=host, **CONFIG_JOB_QUEUE)
 
 
+# Set up backend persistent URL
+backendUrl = ('db+{scheme}://{username}:{password}@{host}'
+              '/{job_queue_db_name}').format(**CONFIG_DB)
+celery_app = Celery('tasks', backend=backendUrl,
+                    broker=brokerUrl(CONFIG_JOB_QUEUE['url']))
+celery_app.config_from_object('celeryconfig')
+
+
+@celery_app.task(name='jobQueue.enqueue')
 def enqueue(jobID):
     """POST a job to the validator"""
     CloudLogger.log("Adding job {} to the queue".format(str(jobID)))
@@ -30,13 +42,15 @@ def enqueue(jobID):
     return response.json()
 
 
+@celery_app.task(name='jobQueue.generate_f_file')
 def generate_f_file(submission_id, job_id, interface_holder_class,
                     timestamped_name, is_local):
     """Write rows from fileF.generateFRows to an appropriate CSV. Here the
     third parameter, interface_holder_class, is a bit of a hack. Importing
     InterfaceHolder directly causes cyclic dependency woes, so we're passing
     in a class"""
-    with job_app.app_context():
+    # Setup a Flask context
+    with Flask(__name__).app_context():
         job_manager = interface_holder_class().jobDb
 
         try:
@@ -58,24 +72,5 @@ def generate_f_file(submission_id, job_id, interface_holder_class,
         job_manager.close()
 
 
-class JobQueue:
-    def __init__(self, job_queue_url="localhost"):
-        # Set up backend persistent URL
-        backendUrl = ('db+{scheme}://{username}:{password}@{host}'
-                      '/{job_queue_db_name}').format(**CONFIG_DB)
-
-        # Set up url to the job queue to establish connection
-        queueUrl = ('{broker_scheme}://{username}:{password}@{host}:{port}'
-                    '//').format(host=job_queue_url, **CONFIG_JOB_QUEUE)
-
-        # Create remote connection to the job queue
-        self.jobQueue = Celery('tasks', backend=backendUrl, broker=queueUrl)
-        self.jobQueue.config_from_object('celeryconfig')
-
-        self.enqueue = self.jobQueue.task(name='jobQueue.enqueue')(enqueue)
-        self.generate_f_file = self.jobQueue.task(
-            name='jobQueue.generate_f_file')(generate_f_file)
-
 if __name__ in ['__main__', 'jobQueue']:
-    jobQueue = JobQueue()
-    queue = jobQueue.jobQueue
+    celery_app.conf.update(BROKER_URL=brokerUrl('localhost'))
