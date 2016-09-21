@@ -1,4 +1,4 @@
-SELECT
+SELECT DISTINCT
     approp.row_number,
     approp.contract_authority_amount_cpe
 FROM appropriation AS approp
