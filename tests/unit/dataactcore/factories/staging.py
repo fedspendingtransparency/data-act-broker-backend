@@ -35,7 +35,6 @@ class AppropriationFactory(factory.Factory):
     tas = fuzzy.FuzzyText()
     is_first_quarter = False
 
-
 class AwardFinancialFactory(factory.Factory):
     class Meta:
         model = stagingModels.AwardFinancial
