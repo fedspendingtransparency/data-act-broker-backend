@@ -144,6 +144,15 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
              "agency_identifier": {"pad_to_length": 3},
              "main_account_code": {"pad_to_length": 4},
              "sub_account_code": {"pad_to_length": 3},
+             # next 3 lines handle the TAS fields that shouldn't
+             # be padded but should still be empty spaces,
+             # at least temporarily, so that downstream formatting
+             # and cleaning functions work correctly. this works
+             # around the fact that sometimes the incoming data
+             # is a single space and sometimes it's blank.
+             "beginning_period_of_availa": {"pad_to_length": 0},
+             "ending_period_of_availabil": {"pad_to_length": 0},
+             "availability_type_code": {"pad_to_length": 0},
              "amount": {"strip_commas": True}}
         )
 
