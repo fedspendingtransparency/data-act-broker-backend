@@ -1,5 +1,6 @@
 SELECT
     DISTINCT NULL as row_number,
+    op.tas,
     SUM(op.ussgl480100_undelivered_or_cpe) as ussgl480100_undelivered_or_cpe_sum,
     SUM(op.ussgl480100_undelivered_or_fyb) as ussgl480100_undelivered_or_fyb_sum,
     SUM(op.ussgl480200_undelivered_or_cpe) as ussgl480200_undelivered_or_cpe_sum,
