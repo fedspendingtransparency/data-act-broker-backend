@@ -35,7 +35,8 @@ def configValid():
 class ControlFilter(MessagePlugin):
     """Suds (apparently) doesn't know how to decode certain control characters
     like ^V (synchronous idle) and ^A (start of heading). As we don't really
-    care about these characters, swap them out for spaces"""
+    care about these characters, swap them out for spaces. MessagePlugins are
+    Suds's mechanism to transform SOAP content before it gets parsed."""
     @staticmethod
     def is_control(char):
         """Unicode has a several "categories" related to "control" characters;
