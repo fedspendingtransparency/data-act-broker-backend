@@ -1,7 +1,8 @@
+from dataactbroker.app import createApp
 from dataactbroker.scripts.setupEmails import setupEmails
 from dataactcore.models.userModel import User
 from dataactcore.interfaces.db import databaseSession
-from dataactcore.interfaces.dbInterface import createUserWithPassword
+from dataactcore.interfaces.function_bag import createUserWithPassword
 from dataactcore.scripts.setupAllDB import setupAllDB
 from dataactbroker.handlers.aws.session import SessionTable
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
@@ -57,8 +58,12 @@ def createAdmin():
         user = sess.query(User).filter(User.email == adminEmail).one_or_none()
         sess.close()
     if not user:
-        user = createUserWithPassword(
-            adminEmail, adminPass, Bcrypt(), permission=2)
+        # once the rest of the setup scripts are updated to use
+        # GlobalDB instead of databaseSession, move the app_context
+        # creation up to initialize()
+        with createApp().app_context():
+            user = createUserWithPassword(
+                adminEmail, adminPass, Bcrypt(), permission=2)
     return user
 
 

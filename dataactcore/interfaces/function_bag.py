@@ -19,16 +19,15 @@ from dataactbroker.app import createApp
 
 def createUserWithPassword(email, password, bcrypt, permission=1, cgac_code="SYS"):
     """Convenience function to set up fully-baked user (used for setup/testing only)."""
-    with createApp().app_context():
-        sess = GlobalDB.db().session
-        status = sess.query(UserStatus).filter(UserStatus.name == 'approved').one()
-        user = User(email=email, user_status=status, permissions=permission,
-                    cgac_code=cgac_code)
-        pwd = getPasswordHash(password, bcrypt)
-        user.salt = pwd[0]
-        user.password_hash = pwd[1]
-        sess.add(user)
-        sess.commit()
+    sess = GlobalDB.db().session
+    status = sess.query(UserStatus).filter(UserStatus.name == 'approved').one()
+    user = User(email=email, user_status=status, permissions=permission,
+                cgac_code=cgac_code)
+    pwd = getPasswordHash(password, bcrypt)
+    user.salt = pwd[0]
+    user.password_hash = pwd[1]
+    sess.add(user)
+    sess.commit()
 
     return user
 

@@ -33,80 +33,81 @@ class BaseTestAPI(unittest.TestCase):
         # Create an empty session ID
         cls.session_id = ""
 
-        # update application's db config options so unittests
-        # run against test databases
-        suite = cls.__name__.lower()
-        config = dataactcore.config.CONFIG_DB
-        cls.num = randint(1, 9999)
-        config['db_name'] = 'unittest{}_{}_data_broker'.format(
-            cls.num, suite)
-        dataactcore.config.CONFIG_DB = config
-        createDatabase(CONFIG_DB['db_name'])
-        runMigrations()
+        with createApp().app_context():
 
-        # drop and re-create test user db/tables
-        setupUserDB()
-        # drop and re-create test job db/tables
-        setupJobTrackerDB()
-        # drop and re-create test error db/tables
-        setupErrorDB()
-        # drop and re-create test validation db/tables
-        setupValidationDB()
-        # load e-mail templates
-        setupEmails()
+            # update application's db config options so unittests
+            # run against test databases
+            suite = cls.__name__.lower()
+            config = dataactcore.config.CONFIG_DB
+            cls.num = randint(1, 9999)
+            config['db_name'] = 'unittest{}_{}_data_broker'.format(
+                cls.num, suite)
+            dataactcore.config.CONFIG_DB = config
+            createDatabase(CONFIG_DB['db_name'])
+            runMigrations()
 
-        # set up default e-mails for tests
-        test_users = {}
-        test_users['admin_email'] = 'data.act.tester.1@gmail.com'
-        test_users['change_user_email'] = 'data.act.tester.2@gmail.com'
-        test_users['password_reset_email'] = 'data.act.tester.3@gmail.com'
-        test_users['inactive_email'] = 'data.act.tester.4@gmail.com'
-        test_users['password_lock_email'] = 'data.act.test.5@gmail.com'
-        test_users['expired_lock_email'] = 'data.act.test.6@gmail.com'
-        test_users['agency_admin_email'] = 'data.act.test.7@gmail.com'
+            # drop and re-create test user db/tables
+            setupUserDB()
+            # drop and re-create test job db/tables
+            setupJobTrackerDB()
+            # drop and re-create test error db/tables
+            setupErrorDB()
+            # drop and re-create test validation db/tables
+            setupValidationDB()
+            # load e-mail templates
+            setupEmails()
 
-        # this email is for a regular agency_user email that is to be used for
-        # testing functionality expected by a normal, base user
-        test_users['agency_user'] = 'data.act.test.8@gmail.com'
-        test_users['approved_email'] = 'approved@agency.gov'
-        test_users['submission_email'] = 'submission_test@agency.gov'
-        user_password = '!passw0rdUp!'
-        admin_password = '@pprovedPassw0rdy'
+            # set up default e-mails for tests
+            test_users = {}
+            test_users['admin_email'] = 'data.act.tester.1@gmail.com'
+            test_users['change_user_email'] = 'data.act.tester.2@gmail.com'
+            test_users['password_reset_email'] = 'data.act.tester.3@gmail.com'
+            test_users['inactive_email'] = 'data.act.tester.4@gmail.com'
+            test_users['password_lock_email'] = 'data.act.test.5@gmail.com'
+            test_users['expired_lock_email'] = 'data.act.test.6@gmail.com'
+            test_users['agency_admin_email'] = 'data.act.test.7@gmail.com'
 
-        # set up users for status tests
-        StatusTestUser = namedtuple('StatusTestUser', ['email', 'user_status', 'permissions', 'user_type'])
-        StatusTestUser.__new__.__defaults__ = (None, None, AccountType.AGENCY_USER, None)
-        status_test_users = []
-        status_test_users.append(StatusTestUser('user@agency.gov', 'awaiting_confirmation', 0))
-        status_test_users.append(StatusTestUser('realEmail@agency.gov', 'email_confirmed'))
-        status_test_users.append(StatusTestUser('waiting@agency.gov', 'awaiting_approval'))
-        status_test_users.append(StatusTestUser('impatient@agency.gov', 'awaiting_approval'))
-        status_test_users.append(StatusTestUser('watchingPaintDry@agency.gov', 'awaiting_approval'))
-        status_test_users.append(StatusTestUser(test_users['admin_email'], 'approved',
-                                          AccountType.WEBSITE_ADMIN + AccountType.AGENCY_USER))
-        status_test_users.append(StatusTestUser(test_users['approved_email'], 'approved'))
-        status_test_users.append(StatusTestUser('nefarious@agency.gov', 'denied'))
+            # this email is for a regular agency_user email that is to be used for
+            # testing functionality expected by a normal, base user
+            test_users['agency_user'] = 'data.act.test.8@gmail.com'
+            test_users['approved_email'] = 'approved@agency.gov'
+            test_users['submission_email'] = 'submission_test@agency.gov'
+            user_password = '!passw0rdUp!'
+            admin_password = '@pprovedPassw0rdy'
 
-        # add new users
-        createUserWithPassword(
-            test_users["submission_email"], user_password, Bcrypt())
-        createUserWithPassword(
-            test_users["change_user_email"], user_password, Bcrypt())
-        createUserWithPassword(
-            test_users["password_reset_email"], user_password, Bcrypt())
-        createUserWithPassword(
-            test_users["inactive_email"], user_password, Bcrypt())
-        createUserWithPassword(
-            test_users["password_lock_email"], user_password, Bcrypt())
-        createUserWithPassword(
-            test_users['expired_lock_email'], user_password, Bcrypt())
-        createUserWithPassword(
-            test_users['agency_admin_email'], admin_password, Bcrypt(), permission=4)
-        createUserWithPassword(
-            test_users['agency_user'], user_password, Bcrypt())
+            # set up users for status tests
+            StatusTestUser = namedtuple('StatusTestUser', ['email', 'user_status', 'permissions', 'user_type'])
+            StatusTestUser.__new__.__defaults__ = (None, None, AccountType.AGENCY_USER, None)
+            status_test_users = []
+            status_test_users.append(StatusTestUser('user@agency.gov', 'awaiting_confirmation', 0))
+            status_test_users.append(StatusTestUser('realEmail@agency.gov', 'email_confirmed'))
+            status_test_users.append(StatusTestUser('waiting@agency.gov', 'awaiting_approval'))
+            status_test_users.append(StatusTestUser('impatient@agency.gov', 'awaiting_approval'))
+            status_test_users.append(StatusTestUser('watchingPaintDry@agency.gov', 'awaiting_approval'))
+            status_test_users.append(StatusTestUser(test_users['admin_email'], 'approved',
+                                              AccountType.WEBSITE_ADMIN + AccountType.AGENCY_USER))
+            status_test_users.append(StatusTestUser(test_users['approved_email'], 'approved'))
+            status_test_users.append(StatusTestUser('nefarious@agency.gov', 'denied'))
+
+            # add new users
+            createUserWithPassword(
+                test_users["submission_email"], user_password, Bcrypt())
+            createUserWithPassword(
+                test_users["change_user_email"], user_password, Bcrypt())
+            createUserWithPassword(
+                test_users["password_reset_email"], user_password, Bcrypt())
+            createUserWithPassword(
+                test_users["inactive_email"], user_password, Bcrypt())
+            createUserWithPassword(
+                test_users["password_lock_email"], user_password, Bcrypt())
+            createUserWithPassword(
+                test_users['expired_lock_email'], user_password, Bcrypt())
+            createUserWithPassword(
+                test_users['agency_admin_email'], admin_password, Bcrypt(), permission=4)
+            createUserWithPassword(
+                test_users['agency_user'], user_password, Bcrypt())
 
         # get user info and save as class variables for use by tests
-        with createApp().app_context():
 
             sess = GlobalDB.db().session
 
