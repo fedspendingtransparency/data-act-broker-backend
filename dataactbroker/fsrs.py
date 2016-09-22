@@ -1,8 +1,10 @@
 import logging
+import unicodedata
 from urllib.parse import urlparse
 
 from suds import sudsobject
 from suds.client import Client
+from suds.plugin import MessagePlugin
 from suds.transport.https import HttpAuthenticated
 from suds.xsd import doctor
 
@@ -30,6 +32,32 @@ def configValid():
     return bool(procWSDL) and bool(grantWSDL)
 
 
+class ControlFilter(MessagePlugin):
+    """Suds (apparently) doesn't know how to decode certain control characters
+    like ^V (synchronous idle) and ^A (start of heading). As we don't really
+    care about these characters, swap them out for spaces. MessagePlugins are
+    Suds's mechanism to transform SOAP content before it gets parsed."""
+    @staticmethod
+    def is_control(char):
+        """Unicode has a several "categories" related to "control" characters;
+        all of the categories begin with 'C'. Note that newlines _are_ a
+        control character; we're banking on this swap for spaces not being
+        super important.
+        http://www.unicode.org/reports/tr44/#GC_Values_Table
+        """
+        return unicodedata.category(char).startswith('C')
+
+    def received(self, context):
+        """Overrides this method in MessagePlugin to replace control
+        characters with spaces"""
+        with_controls = context.reply.decode('UTF-8')
+        without_controls = ''.join(
+            char if not self.is_control(char) else ' '
+            for char in with_controls
+        )
+        context.reply = without_controls.encode('UTF-8')
+
+
 def newClient(serviceType):
     """Make a `suds` client, accounting for ?wsdl suffixes, failing to import
     appropriate schemas, and http auth"""
@@ -47,6 +75,7 @@ def newClient(serviceType):
         '{}://{}/'.format(parsedWsdl.scheme, parsedWsdl.netloc))
 
     options['doctor'] = doctor.ImportDoctor(importFix)
+    options['plugins'] = [ControlFilter()]
 
     if config.get('username') and config.get('password'):
         options['transport'] = HttpAuthenticated(
@@ -117,7 +146,7 @@ def toPrimeContract(soapDict):
     modelAttrs = flattenSoapDict(
         _primeContract, _contractAddrs, 'bus_types', soapDict)
     modelAttrs['subawards'] = [
-        toSubcontract(sub) for sub in soapDict['subcontractors']
+        toSubcontract(sub) for sub in soapDict.get('subcontractors', [])
     ]
     return FSRSProcurement(**modelAttrs)
 
@@ -132,7 +161,7 @@ def toPrimeGrant(soapDict):
     modelAttrs = flattenSoapDict(
         _primeGrant, _grantAddrs, 'cfda_numbers', soapDict)
     modelAttrs['subawards'] = [
-        toSubgrant(sub) for sub in soapDict['subawardees']
+        toSubgrant(sub) for sub in soapDict.get('subawardees', [])
     ]
     return FSRSGrant(**modelAttrs)
 
