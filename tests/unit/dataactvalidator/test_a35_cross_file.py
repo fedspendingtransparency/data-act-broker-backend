@@ -20,25 +20,24 @@ def test_success(database):
     all corresponding entries for Object Class Program Acitivity fields ussgl487100_downward_adjus_cpe,
     ussgl497100_downward_adjus_cpe, ussgl487200_downward_adjus_cpe, ussgl497200_downward_adjus_cpe"""
 
-    tas = _TAS + "_success"
-    tas_ignore = _TAS + "_ignore"
+    tas_ignore = ''.join([_TAS + "_ignore"])
 
-    ap = AppropriationFactory(tas=tas, deobligations_recoveries_r_cpe=8)
+    ap = AppropriationFactory(tas=_TAS, deobligations_recoveries_r_cpe=8)
 
-    op_1 = ObjectClassProgramActivityFactory(tas=tas, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
+    op_1 = ObjectClassProgramActivityFactory(tas=_TAS, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
                                              ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
 
-    op_2 = ObjectClassProgramActivityFactory(tas=tas, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
+    op_2 = ObjectClassProgramActivityFactory(tas=_TAS, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
                                              ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
 
     assert number_of_errors(_FILE, database, models=[ap, op_1, op_2]) == 0
 
-    ap = AppropriationFactory(tas=tas, deobligations_recoveries_r_cpe=8)
+    ap = AppropriationFactory(tas=_TAS, deobligations_recoveries_r_cpe=8)
 
-    op_1 = ObjectClassProgramActivityFactory(tas=tas, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
+    op_1 = ObjectClassProgramActivityFactory(tas=_TAS, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
                                              ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
 
-    op_2 = ObjectClassProgramActivityFactory(tas=tas, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
+    op_2 = ObjectClassProgramActivityFactory(tas=_TAS, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
                                              ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
 
     op_3 = ObjectClassProgramActivityFactory(tas=tas_ignore, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
@@ -52,16 +51,15 @@ def test_failure(database):
     the sum of all corresponding entries for Object Class Program Acitivity fields ussgl487100_downward_adjus_cpe,
     ussgl497100_downward_adjus_cpe, ussgl487200_downward_adjus_cpe, ussgl497200_downward_adjus_cpe"""
 
-    tas = _TAS + "_failure"
-    tas_ignore = _TAS + "_ignore"
+    tas_ignore = ''.join([_TAS + "_ignore"])
 
-    ap = AppropriationFactory(tas=tas, deobligations_recoveries_r_cpe=7)
+    ap = AppropriationFactory(tas=_TAS, deobligations_recoveries_r_cpe=7)
 
-    op_1 = ObjectClassProgramActivityFactory(tas=tas, ussgl487100_downward_adjus_cpe=1,
+    op_1 = ObjectClassProgramActivityFactory(tas=_TAS, ussgl487100_downward_adjus_cpe=1,
                                              ussgl497100_downward_adjus_cpe=1,
                                              ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
 
-    op_2 = ObjectClassProgramActivityFactory(tas=tas, ussgl487100_downward_adjus_cpe=1,
+    op_2 = ObjectClassProgramActivityFactory(tas=_TAS, ussgl487100_downward_adjus_cpe=1,
                                              ussgl497100_downward_adjus_cpe=1,
                                              ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
 

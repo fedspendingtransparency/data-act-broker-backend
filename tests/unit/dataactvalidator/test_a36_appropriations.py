@@ -17,15 +17,13 @@ def test_success(database):
     """ Tests that if the SF-133 amount for line 1000 for the same fiscal year and period is populated, then
     Appropriation budget_authority_unobligat_fyb is also populated"""
 
-    tas = _TAS + "_success"
-
-    sf = SF133Factory(line=1000, tas=tas, period=1, fiscal_year=2016, amount=1)
-    ap = AppropriationFactory(tas=tas, budget_authority_unobligat_fyb=1)
+    sf = SF133Factory(line=1000, tas=_TAS, period=1, fiscal_year=2016, amount=1)
+    ap = AppropriationFactory(tas=_TAS, budget_authority_unobligat_fyb=1)
 
     assert number_of_errors(_FILE, database, models=[sf, ap]) == 0
 
-    sf = SF133Factory(line=1000, tas=tas, period=1, fiscal_year=2016, amount=0)
-    ap = AppropriationFactory(tas=tas, budget_authority_unobligat_fyb=None)
+    sf = SF133Factory(line=1000, tas=_TAS, period=1, fiscal_year=2016, amount=0)
+    ap = AppropriationFactory(tas=_TAS, budget_authority_unobligat_fyb=None)
 
     assert number_of_errors(_FILE, database, models=[sf, ap]) == 0
 
@@ -34,9 +32,7 @@ def test_failure(database):
     """ Tests that if the SF-133 amount for line 1000 for the same fiscal year and period is populated, then
     Appropriation budget_authority_unobligat_fyb is not populated"""
 
-    tas = _TAS + "_failure"
-
-    sf = SF133Factory(line=1000, tas=tas, period=1, fiscal_year=2016, amount=1)
-    ap = AppropriationFactory(tas=tas, budget_authority_unobligat_fyb=None)
+    sf = SF133Factory(line=1000, tas=_TAS, period=1, fiscal_year=2016, amount=1)
+    ap = AppropriationFactory(tas=_TAS, budget_authority_unobligat_fyb=None)
 
     assert number_of_errors(_FILE, database, models=[sf, ap]) == 1
