@@ -10,4 +10,4 @@ FROM appropriation as approp
 WHERE approp.submission_id = {} AND
     sf.line = 1000 AND
     sf.amount <> 0 AND
-    approp.budget_authority_available_cpe IS NULL
+    approp.budget_authority_unobligat_fyb IS NULL
