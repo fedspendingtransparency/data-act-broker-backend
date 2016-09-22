@@ -26,7 +26,7 @@ class ValidatorErrorInterface(ErrorInterface):
         self.session.commit()
         return fileRec
 
-    def createFileIfNeeded(self, jobId, filename):
+    def createFileIfNeeded(self, jobId, filename = None):
         """ Return the existing file object if it exists, or create a new one """
         try:
             fileRec = self.getFileByJobId(jobId)
@@ -73,7 +73,7 @@ class ValidatorErrorInterface(ErrorInterface):
         self.session.commit()
         return True
 
-    def markFileComplete(self, jobId, filename):
+    def markFileComplete(self, jobId, filename = None):
         """ Marks file's status as complete
 
         Args:

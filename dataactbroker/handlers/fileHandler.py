@@ -1,26 +1,30 @@
-import os
-import requests
 from csv import reader
-from flask import session, request
 from datetime import datetime
-from werkzeug import secure_filename
+import os
 from uuid import uuid4
+
+from flask import session, request
+import requests
+from requests.exceptions import Timeout
 from sqlalchemy.orm import joinedload
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
-from dataactcore.utils.requestDictionary import RequestDictionary
-from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.statusCode import StatusCode
-from dataactcore.utils.responseException import ResponseException
-from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_LOGGING
-from dataactcore.models.jobModels import JobDependency
-from dataactcore.models.errorModels import File
-from dataactcore.models.jobModels import FileGenerationTask
-from dataactbroker.handlers.aws.session import LoginSession
 from sqlalchemy.orm.exc import NoResultFound
-from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
-from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
+from werkzeug import secure_filename
+
+from dataactbroker.handlers.aws.session import LoginSession
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
+from dataactcore.aws.s3UrlHandler import s3UrlHandler
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
+from dataactcore.models.jobModels import FileGenerationTask, JobDependency
+from dataactcore.models.errorModels import File
 from dataactcore.utils.cloudLogger import CloudLogger
+from dataactcore.utils.jobQueue import generate_f_file
+from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.requestDictionary import RequestDictionary
+from dataactcore.utils.statusCode import StatusCode
+from dataactcore.utils.stringCleaner import StringCleaner
+from dataactvalidator.filestreaming.csv_selection import write_csv
+
 
 class FileHandler:
     """ Responsible for all tasks relating to file upload
@@ -506,11 +510,14 @@ class FileHandler:
             CloudLogger.log("DEBUG: Adding job info for job id of " + str(job.job_id),
                             log_type="debug",
                             file_name=self.debug_file_name)
-            self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
+            return self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
+        elif file_type == 'F':
+            generate_f_file.delay(
+                submission_id, job.job_id, InterfaceHolder, timestamped_name,
+                self.isLocal)
         else:
-            # TODO add generate calls for E and F
+            # TODO add generate calls for E
             jobDb.markJobStatus(job.job_id,"finished")
-
             pass
 
         return True, None
@@ -550,18 +557,20 @@ class FileHandler:
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
             return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
         # Create file D API URL with dates and callback URL
-        if CONFIG_SERVICES["broker_api_port"] == 443:
-            # Use https
-            protocol = "https"
-        else:
-            protocol = "http"
-        callback = "{}://{}:{}/v1/complete_generation/{}/".format(protocol,CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
+        callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
         get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+
         CloudLogger.log("DEBUG: Calling D file API => " + str(get_url),
                         log_type="debug",
                         file_name=self.debug_file_name)
-        if not self.call_d_file_api(get_url):
-            self.handleEmptyResponse(job, valJob)
+        try:
+            if not self.call_d_file_api(get_url):
+                self.handleEmptyResponse(job, valJob)
+        except Timeout as e:
+            exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
+            return False, JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
+
+        return True, None
 
     def handleEmptyResponse(self, job, valJob):
         """ Handles an empty response from the D file API by marking jobs as finished with no errors or rows
@@ -596,7 +605,7 @@ class FileHandler:
         CloudLogger.log("DEBUG: Getting XML response",
                         log_type="debug",
                         file_name=self.debug_file_name)
-        return requests.get(api_url, verify=False, timeout = 20).text
+        return requests.get(api_url, verify=False, timeout=20).text
 
     def call_d_file_api(self, api_url):
         """ Call D file API, return True if results found, False otherwise """
@@ -630,23 +639,7 @@ class FileHandler:
             self.download_file(full_file_path, url)
             lines = self.get_lines_from_csv(full_file_path)
 
-            headers = lines[0]
-
-            if isLocal:
-                file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
-                csv_writer = CsvLocalWriter(file_name, headers)
-            else:
-                bucket = CONFIG_BROKER['aws_bucket']
-                region = CONFIG_BROKER['aws_region']
-                csv_writer = CsvS3Writer(region, bucket, upload_name, headers)
-
-            message = "DEBUG: Writing file locally..." if isLocal else "DEBUG: Writing file to S3..."
-            CloudLogger.log(message, log_type="debug", file_name=self.smx_log_file_name)
-
-            with csv_writer as writer:
-                for line in lines[1:]:
-                    writer.write(line)
-                writer.finishBatch()
+            write_csv(timestamped_name, isLocal, lines[0], lines[1:])
 
             CloudLogger.log("DEBUG: Marking job id of " + str(job_id) + " as finished", log_type="debug", file_name=self.smx_log_file_name)
             job_manager.markJobStatus(job_id, "finished")
@@ -701,6 +694,8 @@ class FileHandler:
                         log_type="debug",
                         file_name=self.debug_file_name)
         if not success:
+            # If not successful, set job status as "failed"
+            self.interfaces.jobDb.markJobStatus(job.job_id, "failed")
             return error_response
 
         # Return same response as check generation route
