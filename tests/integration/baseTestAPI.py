@@ -8,8 +8,8 @@ from webtest import TestApp
 from dataactbroker.app import createApp
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.interfaces.db import databaseSession
-from dataactcore.interfaces.dbInterface import createUserWithPassword, getPasswordHash
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
 from dataactcore.models.userModel import AccountType, User, UserStatus
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupUserDB import setupUserDB
@@ -106,55 +106,55 @@ class BaseTestAPI(unittest.TestCase):
             test_users['agency_user'], user_password, Bcrypt())
 
         # get user info and save as class variables for use by tests
-        with databaseSession() as sess:
+        sess = GlobalDB.db().session
 
-            agencyUser = sess.query(User).filter(User.email == test_users['agency_user']).one()
-            cls.agency_user_id = agencyUser.user_id
+        agencyUser = sess.query(User).filter(User.email == test_users['agency_user']).one()
+        cls.agency_user_id = agencyUser.user_id
 
-            # set the specified account to be expired
-            expiredUser = sess.query(User).filter(User.email == test_users['expired_lock_email']).one()
-            today = parse(time.strftime("%c"))
-            expiredUser.last_login_date = (today-timedelta(days=120)).strftime("%c")
-            sess.add(expiredUser)
+        # set the specified account to be expired
+        expiredUser = sess.query(User).filter(User.email == test_users['expired_lock_email']).one()
+        today = parse(time.strftime("%c"))
+        expiredUser.last_login_date = (today-timedelta(days=120)).strftime("%c")
+        sess.add(expiredUser)
 
-            # create users for status testing
-            for u in status_test_users:
-                user = User(
-                    email=u.email,
-                    permissions=u.permissions,
-                    user_status=sess.query(UserStatus).filter(UserStatus.name == u.user_status).one()
-                )
-                sess.add(user)
-
-            # set up approved user
-            user = sess.query(User).filter(User.email == test_users['approved_email']).one()
-            user.username = "approvedUser"
-            user.cgac_code = "000"
-            user.salt, user.password_hash = getPasswordHash(user_password, Bcrypt())
+        # create users for status testing
+        for u in status_test_users:
+            user = User(
+                email=u.email,
+                permissions=u.permissions,
+                user_status=sess.query(UserStatus).filter(UserStatus.name == u.user_status).one()
+            )
             sess.add(user)
-            cls.approved_user_id = user.user_id
 
-            # set up admin user
-            admin = sess.query(User).filter(User.email == test_users['admin_email']).one()
-            admin.salt, admin.password_hash = getPasswordHash(admin_password, Bcrypt())
-            admin.name = "Mr. Manager"
-            admin.cgac_code = "SYS"
-            sess.add(admin)
+        # set up approved user
+        user = sess.query(User).filter(User.email == test_users['approved_email']).one()
+        user.username = "approvedUser"
+        user.cgac_code = "000"
+        user.salt, user.password_hash = getPasswordHash(user_password, Bcrypt())
+        sess.add(user)
+        cls.approved_user_id = user.user_id
 
-            # set up status changed user
-            statusChangedUser = sess.query(User).filter(User.email == test_users['change_user_email']).one()
-            statusChangedUser.name = "Test User"
-            statusChangedUser.user_status = sess.query(UserStatus).filter(UserStatus.name == 'email_confirmed').one()
-            sess.add(statusChangedUser)
-            cls.status_change_user_id = statusChangedUser.user_id
+        # set up admin user
+        admin = sess.query(User).filter(User.email == test_users['admin_email']).one()
+        admin.salt, admin.password_hash = getPasswordHash(admin_password, Bcrypt())
+        admin.name = "Mr. Manager"
+        admin.cgac_code = "SYS"
+        sess.add(admin)
 
-            # set up deactivated user
-            deactivated_user = sess.query(User).filter(User.email == test_users['inactive_email']).one()
-            deactivated_user.last_login_date = time.strftime("%c")
-            deactivated_user.is_active = False
-            sess.add(deactivated_user)
+        # set up status changed user
+        statusChangedUser = sess.query(User).filter(User.email == test_users['change_user_email']).one()
+        statusChangedUser.name = "Test User"
+        statusChangedUser.user_status = sess.query(UserStatus).filter(UserStatus.name == 'email_confirmed').one()
+        sess.add(statusChangedUser)
+        cls.status_change_user_id = statusChangedUser.user_id
 
-            sess.commit()
+        # set up deactivated user
+        deactivated_user = sess.query(User).filter(User.email == test_users['inactive_email']).one()
+        deactivated_user.last_login_date = time.strftime("%c")
+        deactivated_user.is_active = False
+        sess.add(deactivated_user)
+
+        sess.commit()
 
         # set up info needed by the individual test classes
         cls.test_users = test_users
