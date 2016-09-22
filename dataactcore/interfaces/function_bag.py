@@ -2,6 +2,8 @@ import uuid
 
 from dataactcore.models.userModel import User, UserStatus
 from dataactcore.interfaces.db import GlobalDB
+from dataactbroker.app import createApp
+
 
 # First step to deprecating BaseInterface, its children, and corresponding
 # interface holders is to start moving all db access logic into one big
@@ -17,15 +19,16 @@ from dataactcore.interfaces.db import GlobalDB
 
 def createUserWithPassword(email, password, bcrypt, permission=1, cgac_code="SYS"):
     """Convenience function to set up fully-baked user (used for setup/testing only)."""
-    sess = GlobalDB.db().session
-    status = sess.query(UserStatus).filter(UserStatus.name == 'approved').one()
-    user = User(email=email, user_status=status, permissions=permission,
-                cgac_code=cgac_code)
-    pwd = getPasswordHash(password, bcrypt)
-    user.salt = pwd[0]
-    user.password_hash = pwd[1]
-    sess.add(user)
-    sess.commit()
+    with createApp().app_context():
+        sess = GlobalDB.db().session
+        status = sess.query(UserStatus).filter(UserStatus.name == 'approved').one()
+        user = User(email=email, user_status=status, permissions=permission,
+                    cgac_code=cgac_code)
+        pwd = getPasswordHash(password, bcrypt)
+        user.salt = pwd[0]
+        user.password_hash = pwd[1]
+        sess.add(user)
+        sess.commit()
 
     return user
 
