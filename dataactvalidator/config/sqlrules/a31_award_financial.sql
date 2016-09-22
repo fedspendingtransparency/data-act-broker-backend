@@ -1,9 +1,9 @@
 SELECT
-    af.row_number,
-    af.availability_type_code,
-    af.beginning_period_of_availa,
-    af.ending_period_of_availabil
-FROM award_financial AS af
-WHERE af.submission_id = {}
-    AND (af.availability_type_code = 'x' OR af.availability_type_code = 'X')
-    AND (af.beginning_period_of_availa IS NOT NULL OR af.ending_period_of_availabil IS NOT NULL);
+    row_number,
+    availability_type_code,
+    beginning_period_of_availa,
+    ending_period_of_availabil
+FROM award_financial
+WHERE submission_id = {}
+    AND LOWER(availability_type_code) = 'x'
+    AND (beginning_period_of_availa IS NOT NULL OR ending_period_of_availabil IS NOT NULL);

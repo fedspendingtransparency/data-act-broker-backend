@@ -1,9 +1,9 @@
 SELECT
-    op.row_number,
-    op.availability_type_code,
-    op.beginning_period_of_availa,
-    op.ending_period_of_availabil
-FROM object_class_program_activity AS op
-WHERE op.submission_id = {}
-    AND (op.availability_type_code = 'x' OR op.availability_type_code = 'X')
-    AND (op.beginning_period_of_availa IS NOT NULL OR op.ending_period_of_availabil IS NOT NULL);
+    row_number,
+    availability_type_code,
+    beginning_period_of_availa,
+    ending_period_of_availabil
+FROM object_class_program_activity
+WHERE submission_id = {}
+    AND LOWER(availability_type_code) = 'x'
+    AND (beginning_period_of_availa IS NOT NULL OR ending_period_of_availabil IS NOT NULL);
