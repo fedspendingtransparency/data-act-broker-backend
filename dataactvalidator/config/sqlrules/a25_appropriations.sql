@@ -1,8 +1,8 @@
 SELECT DISTINCT
     approp.row_number,
     approp.borrowing_authority_amount_cpe,
-    string_agg(CAST(sf.line AS varchar), ',') AS lines,
-    string_agg(CAST(sf.amount AS varchar), ',') AS amounts
+    string_agg(CAST(sf.line AS varchar), ', ') AS lines,
+    string_agg(CAST(sf.amount AS varchar), ', ') AS amounts
 FROM appropriation AS approp
     INNER JOIN sf_133 AS sf ON approp.tas = sf.tas
     INNER JOIN submission AS sub ON approp.submission_id = sub.submission_id
