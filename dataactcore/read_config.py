@@ -19,12 +19,13 @@ VALUES_TO_LOG = {"CONFIG_BROKER":["path","use_aws","local",'aws_bucket', 'aws_ro
 CONFIG_PATH = os.path.join(dirname(abspath(__file__)), 'config.yml')
 if "env" in os.environ:
     env = os.environ["env"]
-    ENV_PATH = os.path.join(dirname(abspath(__file__)), '{}_config.yml'.format(env))
-    SECRET_PATH = os.path.join(dirname(abspath(__file__)), '{}_secrets.yml'.format(env))
-    path_list = [CONFIG_PATH, ENV_PATH, SECRET_PATH]
 else:
-    # If no environment set, just use the base config
-    path_list = [CONFIG_PATH]
+    env = "local"
+
+ENV_PATH = os.path.join(dirname(abspath(__file__)), '{}_config.yml'.format(env))
+SECRET_PATH = os.path.join(dirname(abspath(__file__)), '{}_secrets.yml'.format(env))
+path_list = [CONFIG_PATH, ENV_PATH, SECRET_PATH]
+
 # set the location of the Alembic config file
 ALEMBIC_PATH = os.path.join(dirname(abspath(__file__)), 'alembic.ini')
 MIGRATION_PATH = os.path.join(dirname(abspath(__file__)), 'migrations')
@@ -107,7 +108,6 @@ else:
         CONFIG_DB['dynamo_host'] = '127.0.0.1'
     if not CONFIG_DB['dynamo_port']:
         CONFIG_DB['dynamo_port'] = 8000
-    # TODO: can we test that local dynamo is up and running? if not, route calls hang
 
 storage_path = CONFIG_BROKER['d_file_storage_path']
 if storage_path[-1] != os.path.sep:
@@ -154,11 +154,11 @@ else:
 
 # Log some values from config
 for category_name in VALUES_TO_LOG:
-    category = globals()[category_name]
+    category = locals()[category_name]
     category_message = "### {}".format(category_name)
     for key in VALUES_TO_LOG[category_name]:
         value = category[key]
-        category_message = ", ".join([category_message, "{}:{}".format(key,value)])
+        category_message = "{}, {}:{}".format(category_message, key,value)
     log_message = " ".join([log_message, category_message])
 
 # TODO: error-handling for db config?
