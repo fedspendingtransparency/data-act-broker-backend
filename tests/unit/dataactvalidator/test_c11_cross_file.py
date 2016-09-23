@@ -27,15 +27,14 @@ def test_success(database):
 
 
 def test_failure(database):
-    def test_success(database):
-        """ Unique PIID, ParentAwardId from file C doesn't exist in file D1 during the same reporting period. """
+    """ Unique PIID, ParentAwardId from file C doesn't exist in file D1 during the same reporting period. """
 
-        af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id')
-        ap = AwardProcurementFactory(piid='some_other_piid', parent_award_id='some_parent_award_id')
+    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id')
+    ap = AwardProcurementFactory(piid='some_other_piid', parent_award_id='some_parent_award_id')
 
-        assert number_of_errors(_FILE, database, models=[af, ap]) == 1
+    assert number_of_errors(_FILE, database, models=[af, ap]) == 1
 
-        af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id')
-        ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
+    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id')
+    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
 
-        assert number_of_errors(_FILE, database, models=[af, ap]) == 1
+    assert number_of_errors(_FILE, database, models=[af, ap]) == 1
