@@ -22,6 +22,13 @@ def test_success(database):
 
     assert number_of_errors(_FILE, database, models=[sf, ap]) == 0
 
+    # Checks that if data for the end of the last fiscal year isn't present, the validation should still pass since
+    # it only looks for a specific fiscal year and period when executing the SQL
+    sf = SF133Factory(line=2490, tas=_TAS, period=12, fiscal_year=2016, amount=1)
+    ap = AppropriationFactory(tas=_TAS, budget_authority_unobligat_fyb=0)
+
+    assert number_of_errors(_FILE, database, models=[sf, ap]) == 0
+
 
 def test_failure(database):
     """ Tests that SF-133 amount for line 2490 for the end of the last fiscal year
