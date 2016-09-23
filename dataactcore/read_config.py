@@ -52,7 +52,7 @@ for config_path in path_list:
     # File successfully loaded, mark as no longer first
     first_config = False
     for category_name in CONFIG_CATEGORIES:
-        if category_name in CONFIG_ALL: locals()[CONFIG_CATEGORIES[category_name]].update(CONFIG_ALL[category_name])
+        locals()[CONFIG_CATEGORIES[category_name]].update(CONFIG_ALL.get(category_name, {}))
 
 # Get path to installation
 CONFIG_BROKER['path'] = dirname(dirname(abspath(__file__)))
