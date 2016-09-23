@@ -210,6 +210,7 @@ logging:
             - generated_files_folder
             - sf_133_folder
             - sf_133_file
+            - full_url
         services:
             - error_report_path
             - broker_api_host
