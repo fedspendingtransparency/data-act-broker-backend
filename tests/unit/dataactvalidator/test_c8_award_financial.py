@@ -117,18 +117,6 @@ def test_unequal_uri_null(database):
     errors = number_of_errors(_FILE, database, models=[af, afa])
     assert errors == 1
 
-def test_unequal_uri_null(database):
-    """Tests NULL File C (award financial) uri compared to a non-NULL
-    uri in File D2 (award financial assistance)."""
-    tas = _TAS
-    af = AwardFinancialFactory(
-        tas=tas, fain=None, uri=None, allocation_transfer_agency=None)
-    afa = AwardFinancialAssistanceFactory(
-        tas=tas, submission_id=af.submission_id, fain=None, uri='abc')
-
-    errors = number_of_errors(_FILE, database, models=[af, afa])
-    assert errors == 1
-
 
 def test_equal_fain_unequal_uri(database):
     """Tests equal fain and unequal uri values between File C
