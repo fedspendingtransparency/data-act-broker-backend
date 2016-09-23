@@ -30,14 +30,11 @@ MIGRATION_PATH = os.path.join(dirname(abspath(__file__)), 'migrations')
 for config_path in path_list:
     try:
         with open(config_path) as c:
-            CONFIG_ALL = yaml.load(c)
+            # Default to empty dictionary if file is empty
+            CONFIG_ALL = yaml.load(c) or {}
     except IOError:
         raise IOError('Error reading a config file. Please make sure this file exists'
            ' before starting the DATA Act broker: {}'.format(config_path))
-
-    if CONFIG_ALL is None:
-        # Nothing to load here, skip
-        continue
 
     for category_name in CONFIG_CATEGORIES:
         CONFIG_CATEGORIES[category_name].update(CONFIG_ALL.get(category_name, {}))
