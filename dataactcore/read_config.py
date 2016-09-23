@@ -131,7 +131,6 @@ if "values_to_log" in CONFIG_LOGGING:
     # If no values specified, don't do logging
     for category_yaml_name in CONFIG_LOGGING["values_to_log"]:
         category = CONFIG_CATEGORIES[category_yaml_name]
-        category = category
         category_message = "### {}".format(category_yaml_name)
         for key in CONFIG_LOGGING["values_to_log"][category_yaml_name]:
             value = category[key]
