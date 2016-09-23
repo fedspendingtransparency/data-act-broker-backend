@@ -14,6 +14,8 @@ VALUES_TO_LOG = {"CONFIG_BROKER":["path","use_aws","local",'aws_bucket', 'aws_ro
                  "CONFIG_DB":["dynamo_host","dynamo_port","base_db_name","scheme"],
                  "CONFIG_LOGGING":["log_files","use_logstash","logstash_host","logstash_port"],
                  "CONFIG_JOB_QUEUE":["url", "port", "broker_scheme"]}
+CONFIG_CATEGORIES = {"broker":"CONFIG_BROKER", "services":"CONFIG_SERVICES", "db":"CONFIG_DB",
+                     "logging":"CONFIG_LOGGING","job-queue":"CONFIG_JOB_QUEUE"}
 
 # set the location of the DATA Act broker config files
 CONFIG_PATH = os.path.join(dirname(abspath(__file__)), 'config.yml')
@@ -29,18 +31,9 @@ path_list = [CONFIG_PATH, ENV_PATH, SECRET_PATH]
 # set the location of the Alembic config file
 ALEMBIC_PATH = os.path.join(dirname(abspath(__file__)), 'alembic.ini')
 MIGRATION_PATH = os.path.join(dirname(abspath(__file__)), 'migrations')
-CONFIG_BROKER = {}
-CONFIG_SERVICES = {}
-CONFIG_DB = {}
-CONFIG_LOGGING = {}
-CONFIG_JOB_QUEUE = {}
 
-def merge_config(existing_config, new_config):
-    if type(existing_config) is not dict or type(new_config) is not dict:
-        raise ValueError("Both args to merge_config must be dicts")
-    for key in new_config.keys():
-        existing_config[key] = new_config[key]
-    return existing_config
+for value in CONFIG_CATEGORIES.values():
+    locals()[value] = {}
 
 first_config = True
 log_message = ""
@@ -58,12 +51,8 @@ for config_path in path_list:
             continue
     # File successfully loaded, mark as no longer first
     first_config = False
-
-    CONFIG_BROKER = merge_config(CONFIG_BROKER, CONFIG_ALL['broker']) if "broker" in CONFIG_ALL else CONFIG_BROKER
-    CONFIG_SERVICES = merge_config(CONFIG_SERVICES, CONFIG_ALL['services']) if "services" in CONFIG_ALL else CONFIG_SERVICES
-    CONFIG_DB = merge_config(CONFIG_DB, CONFIG_ALL['db']) if "db" in CONFIG_ALL else CONFIG_DB
-    CONFIG_LOGGING = merge_config(CONFIG_LOGGING, CONFIG_ALL['logging']) if "logging" in CONFIG_ALL else CONFIG_LOGGING
-    CONFIG_JOB_QUEUE = merge_config(CONFIG_JOB_QUEUE, CONFIG_ALL['job-queue']) if "job-queue" in CONFIG_ALL else CONFIG_JOB_QUEUE
+    for category_name in CONFIG_CATEGORIES:
+        if category_name in CONFIG_ALL: locals()[CONFIG_CATEGORIES[category_name]].update(CONFIG_ALL[category_name])
 
 # Get path to installation
 CONFIG_BROKER['path'] = dirname(dirname(abspath(__file__)))
