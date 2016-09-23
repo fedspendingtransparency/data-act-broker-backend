@@ -82,7 +82,7 @@ class _PrimeAwardAttributes:
 
 class FSRSProcurement(Base, _ContractAttributes, _PrimeAwardAttributes):
     __tablename__ = "fsrs_procurement"
-    contract_number = Column(String)
+    contract_number = Column(String, index=True)
     idv_reference_number = Column(String, nullable=True)
     report_type = Column(String)
     contract_agency_code = Column(String)
@@ -115,7 +115,7 @@ FSRSProcurement.subawards = relationship(
 
 class FSRSGrant(Base, _GrantAttributes, _PrimeAwardAttributes):
     __tablename__ = "fsrs_grant"
-    fain = Column(String)
+    fain = Column(String, index=True)
     total_fed_funding_amount = Column(String)
     obligation_date = Column(Date)
 

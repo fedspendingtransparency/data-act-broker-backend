@@ -144,6 +144,18 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
              "agency_identifier": {"pad_to_length": 3},
              "main_account_code": {"pad_to_length": 4},
              "sub_account_code": {"pad_to_length": 3},
+             # next 3 lines handle the TAS fields that shouldn't
+             # be padded but should still be empty spaces rather
+             # than NULLs. this ensures that the downstream pivot & melt
+             # (which insert the missing 0-value SF-133 lines)
+             # will work as expected (values used in the pivot
+             # index cannot be NULL).
+             # the "pad_to_length: 0" works around the fact
+             # that sometimes the incoming data for these columns
+             # is a single space and sometimes it is blank/NULL.
+             "beginning_period_of_availa": {"pad_to_length": 0},
+             "ending_period_of_availabil": {"pad_to_length": 0},
+             "availability_type_code": {"pad_to_length": 0},
              "amount": {"strip_commas": True}}
         )
 
@@ -157,7 +169,16 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
         # add concatenated TAS field for internal use (i.e., joining to staging tables)
         data['tas'] = data.apply(lambda row: formatInternalTas(row), axis=1)
 
-        # zero out line numbers not supplied in the file
+        # incoming .csv does not always include rows for zero-value SF-133 lines
+        # so we add those here because they're needed for the SF-133 validations.
+        # 1. "pivot" the sf-133 dataset to explode it horizontally, creating one
+        # row for each tas/fiscal year/period, with columns for each SF-133 line.
+        # the "fill_value=0" parameter puts a 0 into any Sf-133 line number cell
+        # with a missing value for a specific tas/fiscal year/period.
+        # 2. Once the zeroes are filled in, "melt" the pivoted data back to its normal
+        # format of one row per tas/fiscal year/period.
+        # NOTE: fields used for the pivot in step #1 (i.e., items in pivot_idx) cannot
+        # have NULL values, else they will be silently dropped by pandas :(
         pivot_idx = ['created_at', 'updated_at', 'agency_identifier', 'allocation_transfer_agency',
                      'availability_type_code', 'beginning_period_of_availa', 'ending_period_of_availabil',
                      'main_account_code', 'sub_account_code', 'tas', 'fiscal_year', 'period']
@@ -169,7 +190,7 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
         # we don't actually use in the validations. Arguably, it would be better just to include
         # everything, but that drastically increases the number of records we're inserting to the
         # sf_133 table. If we ever decide that we need *all* SF 133 lines that are zero value,
-        # uncomment the next line.
+        # remove the next two lines.
         sf_133_validation_lines = [
             '1000', '1010', '1011', '1012', '1013', '1020', '1021', '1022',
             '1023', '1024', '1025', '1026', '1029', '1030', '1031', '1032',
@@ -181,9 +202,11 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
         data = data[(data.line.isin(sf_133_validation_lines)) | (data.amount != 0)]
 
         # we didn't use the the 'keep_null' option when padding allocation transfer agency,
-        # because nulls in that column break the above pivot we use to zero out the line values.
+        # because nulls in that column break the pivot (see above comments).
         # so, replace the ata '000' with an empty value before inserting to db
         data['allocation_transfer_agency'] = data['allocation_transfer_agency'].str.replace('000', '')
+        # make a pass through the dataframe, changing any empty values to None, to ensure
+        # that those are represented as NULL in the db.
         data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
 
         # insert to db
