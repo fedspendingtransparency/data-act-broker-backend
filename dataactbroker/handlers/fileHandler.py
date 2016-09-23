@@ -605,7 +605,7 @@ class FileHandler:
         CloudLogger.log("DEBUG: Getting XML response",
                         log_type="debug",
                         file_name=self.debug_file_name)
-        return requests.get(api_url, verify=False, timeout=20).text
+        return requests.get(api_url, verify=False, timeout=120).text
 
     def call_d_file_api(self, api_url):
         """ Call D file API, return True if results found, False otherwise """
