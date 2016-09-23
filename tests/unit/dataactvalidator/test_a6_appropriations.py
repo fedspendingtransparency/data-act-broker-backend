@@ -17,7 +17,7 @@ def test_success(database):
                main_account_code="000", sub_account_code="000")
     ap = Appropriation(job_id=1, row_number=1, tas=tas, budget_authority_available_cpe=1)
 
-    assert number_of_errors(_FILE, database.stagingDb, models=[sf, ap]) == 0
+    assert number_of_errors(_FILE, database, models=[sf, ap]) == 0
 
 
 def test_failure(database):
@@ -29,4 +29,4 @@ def test_failure(database):
                main_account_code="000", sub_account_code="000")
     ap = Appropriation(job_id=1, row_number=1, tas=tas, budget_authority_available_cpe=0)
 
-    assert number_of_errors(_FILE, database.stagingDb, models=[sf, ap]) == 1
+    assert number_of_errors(_FILE, database, models=[sf, ap]) == 1

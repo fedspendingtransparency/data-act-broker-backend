@@ -1,11 +1,12 @@
 from random import randint
+import os.path
 
 import pytest
 
 import dataactcore.config
 from dataactcore.scripts.databaseSetup import (
     createDatabase, dropDatabase, runMigrations)
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.db import dbConnection
 
 
 @pytest.fixture(scope='session')
@@ -19,9 +20,29 @@ def database():
 
     createDatabase(config['db_name'])
     runMigrations()
-    interface = InterfaceHolder()
+    db = dbConnection()
 
-    yield interface
+    yield db
 
-    interface.close()
+    db.close()
     dropDatabase(config['db_name'])
+
+
+@pytest.fixture()
+def mock_broker_config_paths(tmpdir):
+    """Replace configured paths with temp directories which will be cleaned up
+    at the end of testing."""
+    # Expand as needed
+    keys_to_replace = {'d_file_storage_path', 'broker_files'}
+    original = dict(dataactcore.config.CONFIG_BROKER)   # shallow copy
+
+    paths = {}
+    for key in keys_to_replace:
+        tmp_path = tmpdir.mkdir(key)
+        paths[key] = tmp_path
+        dataactcore.config.CONFIG_BROKER[key] = str(tmp_path) + os.path.sep
+
+    yield paths
+
+    for key in keys_to_replace:
+        dataactcore.config.CONFIG_BROKER[key] = original[key]

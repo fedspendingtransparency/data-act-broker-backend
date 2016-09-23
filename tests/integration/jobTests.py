@@ -1,5 +1,7 @@
 from __future__ import print_function
+from dataactcore.interfaces.db import databaseSession
 from dataactcore.models.jobModels import JobDependency
+from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from tests.integration.baseTestValidator import BaseTestValidator
 import unittest
 
@@ -16,11 +18,6 @@ class JobTests(BaseTestValidator):
 
         validationDb = cls.validationDb
         jobTracker = cls.jobTracker
-
-        # Clear validation rules
-        for fileType in ["award", "award_financial",
-                "appropriations", "program_activity"]:
-            validationDb.removeColumnsByFileType(fileType)
 
         # Create submissions and get IDs back
         submissionIDs = {}
@@ -100,7 +97,7 @@ class JobTests(BaseTestValidator):
         else:
             status = 400
         response = self.run_test(
-            jobId, status, "invalid", False, False, "single_row_error", 0, False)
+            jobId, status, "invalid", False, False, "single_row_error", 0)
 
         if not self.useThreads:
             self.assertEqual(
@@ -110,19 +107,19 @@ class JobTests(BaseTestValidator):
         """Test job ID not found in job table."""
         jobId = -1
         response = self.run_test(
-            jobId, 400, False, False, False, False, 0, None)
+            jobId, 400, False, False, False, False, 0)
 
     def test_bad_prereq_job(self):
         """Test job with unfinished prerequisites."""
         jobId = self.jobIdDict["bad_prereq"]
         response = self.run_test(
-            jobId, 400, "ready", False, False, "job_error", 0, None)
+            jobId, 400, "ready", False, False, "job_error", 0)
 
     def test_bad_type_job(self):
         """Test job with wrong type."""
         jobId = self.jobIdDict["wrong_type"]
         response = self.run_test(
-            jobId, 400, "ready", False, False, "job_error", 0, None)
+            jobId, 400, "ready", False, False, "job_error", 0)
 
     # removing long tests because 1) we don't run them and 2) the file formats need updated
     # TODO: add a compliant file for this test if we want to use it
@@ -131,7 +128,7 @@ class JobTests(BaseTestValidator):
     #     if self.includeLongTests:
     #         jobId = self.jobIdDict["many_bad"]
     #         response = self.run_test(
-    #             jobId, 200, "finished", 151665643, 0, "complete", 2302930, True)
+    #             jobId, 200, "finished", 151665643, 0, "complete", 2302930)
     #     else:
     #         self.skipTest("includeLongTests flag is off")
 
@@ -142,7 +139,7 @@ class JobTests(BaseTestValidator):
     #     if self.includeLongTests:
     #         jobId = self.jobIdDict["many"]
     #         response = self.run_test(
-    #             jobId, 200, "finished", 52, 22380, "complete", 0, False)
+    #             jobId, 200, "finished", 52, 22380, "complete", 0)
     #     else:
     #         self.skipTest("includeLongTests flag is off")
 

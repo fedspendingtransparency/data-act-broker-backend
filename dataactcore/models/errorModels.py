@@ -30,7 +30,6 @@ class File(Base):
     file_status = relationship("FileStatus", uselist=False)
     headers_missing = Column(Text, nullable=True)
     headers_duplicated = Column(Text, nullable=True)
-    row_errors_present = Column(Boolean)
 
 class ErrorMetadata(Base):
     __tablename__ = "error_metadata"

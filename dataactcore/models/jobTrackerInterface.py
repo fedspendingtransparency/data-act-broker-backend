@@ -6,18 +6,12 @@ from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType,
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
-from dataactcore.utils.jobQueue import JobQueue
-from dataactcore.config import CONFIG_JOB_QUEUE
+from dataactcore.utils.jobQueue import enqueue
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
 
 class JobTrackerInterface(BaseInterface):
     """Manages all interaction with the job tracker database."""
-
-    def __init__(self):
-        self.jobQueue = JobQueue(job_queue_url=CONFIG_JOB_QUEUE['url'])
-        super(JobTrackerInterface, self).__init__()
-
     @staticmethod
     def checkJobUnique(query):
         """ Checks if sqlalchemy queryResult has only one entry, error messages are specific to unique jobs
@@ -230,7 +224,7 @@ class JobTrackerInterface(BaseInterface):
                 self.markJobStatus(depJobId, 'ready')
                 # add to the job queue
                 CloudLogger.log("Sending job {} to the job manager".format(str(depJobId)))
-                jobQueueResult = self.jobQueue.enqueue.delay(depJobId)
+                enqueue.delay(depJobId)
 
     def runChecks(self,jobId):
         """ Checks that specified job has no unsatisfied prerequisites

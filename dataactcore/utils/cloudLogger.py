@@ -46,8 +46,8 @@ class CloudLogger(object):
                 os.makedirs(path)
             localFile = os.path.join(path, "error.log")
             with open(localFile, "a") as file:
-                file.write("\n\n".join(["\n\n", message,
-                    str(exception), json.dumps(logging_helpers)]))
+                file.write("{} {} {}\n".format(message,
+                    str(exception), json.dumps(logging_helpers)))
 
     @staticmethod
     def log(message, log_type="info", file_name="info.log"):

@@ -379,16 +379,13 @@ class ValidationManager:
                     if valid:
                         skipRow = self.writeToStaging(record, jobId, submissionId, passedValidations, interfaces, writer, rowNumber, fileType)
                         if skipRow:
-                            rowErrorPresent = True
                             errorRows.append(rowNumber)
                             continue
 
                     if not passedValidations:
                         if self.writeErrors(failures, interfaces, jobId, shortColnames, writer, warningWriter, rowNumber):
-                            rowErrorPresent = True
                             errorRows.append(rowNumber)
 
-                interfaces.errorDb.setRowErrorsPresent(jobId,rowErrorPresent)
                 CloudLogger.logError("VALIDATOR_INFO: ", "Loading complete on jobID: " + str(jobId) + ". Total rows added to staging: " + str(rowNumber), "")
 
                 #
@@ -476,6 +473,9 @@ class ValidationManager:
 
     def runCrossValidation(self, jobId, interfaces):
         """ Cross file validation job, test all rules with matching rule_timing """
+        # Create File Status object
+        interfaces.errorDb.createFileIfNeeded(jobId)
+        
         validationDb = interfaces.validationDb
         errorDb = interfaces.errorDb
         submissionId = interfaces.jobDb.getSubmissionId(jobId)
@@ -535,6 +535,9 @@ class ValidationManager:
         # Publish only if no errors are present
         if interfaces.jobDb.getSubmissionById(submissionId).number_of_errors == 0:
             interfaces.jobDb.setPublishableFlag(submissionId, True)
+
+        # Mark validation complete
+        interfaces.errorDb.markFileComplete(jobId)
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
