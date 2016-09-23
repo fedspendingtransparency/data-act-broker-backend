@@ -19,7 +19,7 @@ class SQLLoader():
         with open(full_path, 'rU') as f:
             for line in f:
                 line = line.replace('\n', '')
-                line = FieldCleaner.cleanString(line, removeSpaces=False)
+                line = line.strip()
                 lines.append(line)
         return ' '.join(lines)
 
