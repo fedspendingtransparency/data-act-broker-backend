@@ -25,22 +25,14 @@ MIGRATION_PATH = os.path.join(dirname(abspath(__file__)), 'migrations')
 for value in CONFIG_CATEGORIES.values():
     locals()[value] = {}
 
-first_config = True
-log_message = ""
 for config_path in path_list:
     try:
         with open(config_path) as c:
             CONFIG_ALL = yaml.load(c)
     except IOError:
-        if first_config:
-            # First config file must be present, the rest are optional
-            raise IOError('Error reading the config file. Please make sure this file exists'
-               ' before starting the DATA Act broker: {}'.format(config_path))
-        else:
-            log_message = " ".join([log_message, "### Did not load config file from {}".format(config_path), "warning"])
-            continue
-    # File successfully loaded, mark as no longer first
-    first_config = False
+        raise IOError('Error reading a config file. Please make sure this file exists'
+           ' before starting the DATA Act broker: {}'.format(config_path))
+
     for category_name in CONFIG_CATEGORIES:
         locals()[CONFIG_CATEGORIES[category_name]].update(CONFIG_ALL.get(category_name, {}))
 
@@ -132,6 +124,7 @@ else:
     CONFIG_SERVICES["protocol"] = "http"
 
 # Log some values from config
+log_message = ""
 if "values_to_log" in CONFIG_LOGGING:
     # If no values specified, don't do logging
     for category_yaml_name in CONFIG_LOGGING["values_to_log"]:
