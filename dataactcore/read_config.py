@@ -4,16 +4,6 @@ from os.path import expanduser, normpath, dirname, abspath
 import yaml
 import re
 
-"""VALUES_TO_LOG = {"CONFIG_BROKER":["path","use_aws","local",'aws_bucket', 'aws_role', 'aws_region', 'aws_create_temp_credentials',
-                                  "static_files_bucket", "help_files_path", "d_file_storage_path", "broker_files","award_procurement_url",
-                                  "award_procurement_file_name", "award_url", "award_file_name", "awardee_attributes_url",
-                                  "awardee_attributes_file_name", "sub_award_url", "sub_award_file_name", "rss_folder",
-                                  "rss_file", "generated_files_folder", "sf_133_folder", "sf_133_file"],
-                 "CONFIG_SERVICES":["error_report_path","broker_api_host","validator_host","broker_api_port","validator_port",
-                                    "protocol", "rest_trace", "server_debug"],
-                 "CONFIG_DB":["dynamo_host","dynamo_port","base_db_name","scheme"],
-                 "CONFIG_LOGGING":["log_files","use_logstash","logstash_host","logstash_port"],
-                 "CONFIG_JOB_QUEUE":["url", "port", "broker_scheme"]}"""
 CONFIG_CATEGORIES = {"broker":"CONFIG_BROKER", "services":"CONFIG_SERVICES", "db":"CONFIG_DB",
                      "logging":"CONFIG_LOGGING","job-queue":"CONFIG_JOB_QUEUE"}
 
