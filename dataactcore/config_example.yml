@@ -184,6 +184,56 @@ logging:
     # so you can mostly likely keep this as is.
     logstash_port: 514
 
+    values_to_log:
+        broker:
+            - path
+            - use_aws
+            - local
+            - aws_bucket
+            - aws_role
+            - aws_region
+            - aws_create_temp_credentials
+            - static_files_bucket
+            - help_files_path
+            - d_file_storage_path
+            - broker_files
+            - award_procurement_url
+            - award_procurement_file_name
+            - award_url
+            - award_file_name
+            - awardee_attributes_url
+            - awardee_attributes_file_name
+            - sub_award_url
+            - sub_award_file_name
+            - rss_folder
+            - rss_file
+            - generated_files_folder
+            - sf_133_folder
+            - sf_133_file
+        services:
+            - error_report_path
+            - broker_api_host
+            - validator_host
+            - broker_api_port
+            - validator_port
+            - protocol
+            - rest_trace
+            - server_debug
+        db:
+            - dynamo_host
+            - dynamo_port
+            - base_db_name
+            - scheme
+        logging:
+            - log_files
+            - use_logstash
+            - logstash_host
+            - logstash_port
+        job-queue:
+            - url
+            - port
+            - broker_scheme
+
 job-queue:
     # RabbitMQ username
     username: guest

@@ -4,7 +4,7 @@ from os.path import expanduser, normpath, dirname, abspath
 import yaml
 import re
 
-VALUES_TO_LOG = {"CONFIG_BROKER":["path","use_aws","local",'aws_bucket', 'aws_role', 'aws_region', 'aws_create_temp_credentials',
+"""VALUES_TO_LOG = {"CONFIG_BROKER":["path","use_aws","local",'aws_bucket', 'aws_role', 'aws_region', 'aws_create_temp_credentials',
                                   "static_files_bucket", "help_files_path", "d_file_storage_path", "broker_files","award_procurement_url",
                                   "award_procurement_file_name", "award_url", "award_file_name", "awardee_attributes_url",
                                   "awardee_attributes_file_name", "sub_award_url", "sub_award_file_name", "rss_folder",
@@ -13,7 +13,7 @@ VALUES_TO_LOG = {"CONFIG_BROKER":["path","use_aws","local",'aws_bucket', 'aws_ro
                                     "protocol", "rest_trace", "server_debug"],
                  "CONFIG_DB":["dynamo_host","dynamo_port","base_db_name","scheme"],
                  "CONFIG_LOGGING":["log_files","use_logstash","logstash_host","logstash_port"],
-                 "CONFIG_JOB_QUEUE":["url", "port", "broker_scheme"]}
+                 "CONFIG_JOB_QUEUE":["url", "port", "broker_scheme"]}"""
 CONFIG_CATEGORIES = {"broker":"CONFIG_BROKER", "services":"CONFIG_SERVICES", "db":"CONFIG_DB",
                      "logging":"CONFIG_LOGGING","job-queue":"CONFIG_JOB_QUEUE"}
 
@@ -142,13 +142,16 @@ else:
     CONFIG_SERVICES["protocol"] = "http"
 
 # Log some values from config
-for category_name in VALUES_TO_LOG:
-    category = locals()[category_name]
-    category_message = "### {}".format(category_name)
-    for key in VALUES_TO_LOG[category_name]:
-        value = category[key]
-        category_message = "{}, {}:{}".format(category_message, key,value)
-    log_message = " ".join([log_message, category_message])
+if "values_to_log" in CONFIG_LOGGING:
+    # If no values specified, don't do logging
+    for category_yaml_name in CONFIG_LOGGING["values_to_log"]:
+        category_name = CONFIG_CATEGORIES[category_yaml_name]
+        category = locals()[category_name]
+        category_message = "### {}".format(category_name)
+        for key in CONFIG_LOGGING["values_to_log"][category_yaml_name]:
+            value = category[key]
+            category_message = "{}, {}: {}".format(category_message, key,value)
+        log_message = " ".join([log_message, category_message])
 
 # TODO: error-handling for db config?
 # TODO: type checking and fixing for int stuff like ports?

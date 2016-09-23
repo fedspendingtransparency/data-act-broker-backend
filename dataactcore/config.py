@@ -3,4 +3,5 @@ from dataactcore.read_config import CONFIG_BROKER, CONFIG_LOGGING, CONFIG_SERVIC
 from dataactcore.utils.cloudLogger import CloudLogger
 
 # Log config values along with warnings for missing files
-CloudLogger.log(log_message)
+if log_message:
+    CloudLogger.log(log_message)
