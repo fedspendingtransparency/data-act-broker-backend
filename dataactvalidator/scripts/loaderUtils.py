@@ -52,7 +52,7 @@ class LoaderUtils:
 
         # apply column options as specified in fieldOptions param
         for col, options in fieldOptions.items():
-            if options.get('pad_to_length'):
+            if 'pad_to_length' in options:
                 # pad to specified length
                 data[col] = data[col].apply(
                     cls.padFunction, args=(
