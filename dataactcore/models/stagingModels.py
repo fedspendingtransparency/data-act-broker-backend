@@ -477,4 +477,4 @@ class AwardProcurement(Base):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
         cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(Appropriation, self).__init__(**cleanKwargs)
+        super(AwardProcurement, self).__init__(**cleanKwargs)
