@@ -489,6 +489,9 @@ class FileHandler:
 
         # Generate and upload file to S3
         user_id = LoginSession.getName(session)
+        CloudLogger.log("DEBUG: UserId is {}".format(user_id))
+        CloudLogger.log("DEBUG: Session object is {}".format(str(session)))
+        CloudLogger.log("DEBUG: isLocal flag is {}".format(str(self.isLocal)))
         timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["".join([str(file_type_name),"_file_name"])])
         if self.isLocal:
             upload_file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
