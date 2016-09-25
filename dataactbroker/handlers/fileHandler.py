@@ -636,7 +636,7 @@ class FileHandler:
             self.download_file(full_file_path, url)
             lines = self.get_lines_from_csv(full_file_path)
 
-            write_csv(timestamped_name, isLocal, lines[0], lines[1:])
+            write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])
 
             CloudLogger.log("DEBUG: Marking job id of " + str(job_id) + " as finished", log_type="debug", file_name=self.smx_log_file_name)
             job_manager.markJobStatus(job_id, "finished")
