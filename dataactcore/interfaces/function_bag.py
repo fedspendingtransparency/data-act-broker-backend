@@ -2,7 +2,6 @@ import uuid
 
 from dataactcore.models.userModel import User, UserStatus
 from dataactcore.interfaces.db import GlobalDB
-from dataactbroker.app import createApp
 
 
 # First step to deprecating BaseInterface, its children, and corresponding
@@ -17,15 +16,17 @@ from dataactbroker.app import createApp
 # these transitional functions.
 
 
+# todo: move this value to config when re-factoring location passwords
+HASH_ROUNDS = 12
+
+
 def createUserWithPassword(email, password, bcrypt, permission=1, cgac_code="SYS"):
     """Convenience function to set up fully-baked user (used for setup/testing only)."""
     sess = GlobalDB.db().session
     status = sess.query(UserStatus).filter(UserStatus.name == 'approved').one()
     user = User(email=email, user_status=status, permissions=permission,
-                cgac_code=cgac_code)
-    pwd = getPasswordHash(password, bcrypt)
-    user.salt = pwd[0]
-    user.password_hash = pwd[1]
+                cgac_code=cgac_code, name='Administrator', title='System Admin')
+    user.salt, user.password_hash = getPasswordHash(password, bcrypt)
     sess.add(user)
     sess.commit()
 
@@ -37,6 +38,6 @@ def getPasswordHash(password, bcrypt):
     # TODO: handle password hashing/lookup in the User model
     salt = uuid.uuid4().hex
     # number 12 below iw the number of rounds for bcrypt
-    hash = bcrypt.generate_password_hash(password + salt, 12)
+    hash = bcrypt.generate_password_hash(password + salt, HASH_ROUNDS)
     password_hash = hash.decode("utf-8")
     return salt, password_hash

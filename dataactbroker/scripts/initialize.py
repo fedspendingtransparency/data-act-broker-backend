@@ -56,7 +56,6 @@ def createAdmin():
     adminPass = CONFIG_BROKER['admin_password']
     with databaseSession() as sess:
         user = sess.query(User).filter(User.email == adminEmail).one_or_none()
-        sess.close()
     if not user:
         # once the rest of the setup scripts are updated to use
         # GlobalDB instead of databaseSession, move the app_context
