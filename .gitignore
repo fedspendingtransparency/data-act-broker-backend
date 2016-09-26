@@ -2,7 +2,8 @@
 .cache/*
 dataactcore/.idea/*
 dataactcore/dbErrors.log
-config.yml
+*config.yml
+*secrets.yml
 dataactcore/scripts/dbSpec.txt
 dataactcore/scripts/createEmpty.py
 dataactbroker/logFile.dat
