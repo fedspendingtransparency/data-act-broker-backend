@@ -321,6 +321,9 @@ class JobHandler(JobTrackerInterface):
                 # Add dependency between file upload and db upload
                 uploadDependency = JobDependency(job_id = valJob.job_id, prerequisite_id = uploadJob.job_id)
                 self.session.add(uploadDependency)
+                self.session.commit()
+                jobsRequired.append(valJob.job_id)
+
                 if fileType == "award_financial":
                     # Record D2 val job ID
                     self.cValId = valJob.job_id
@@ -328,6 +331,7 @@ class JobHandler(JobTrackerInterface):
                     self.d1ValId = valJob.job_id
 
             self.session.commit()
+
         uploadDict[fileType] = uploadJob.job_id
         return jobsRequired, uploadDict
 
@@ -343,7 +347,6 @@ class JobHandler(JobTrackerInterface):
         jobsRequired -- List of job ids required for validation jobs, used to populate the prerequisite table
         uploadDict -- Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
         """
-
         # Keep list of job ids required for validation jobs
         jobsRequired = []
         # Dictionary of upload ids by filename to return to client
@@ -354,15 +357,13 @@ class JobHandler(JobTrackerInterface):
         # First do award_financial and award_procurement jobs so they will be available for later dependencies
         for fileType, filePath, filename in filenames:
             if fileType in ["award_financial", "award_procurement"]:
-                jobsRequiredByFile, uploadDictByFile = self.addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
-                jobsRequired.extend(jobsRequiredByFile)
-                uploadDict.update(uploadDictByFile)
+                jobsRequired, uploadDict = self.addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
+
         # Then do all other file types
         for fileType, filePath, filename in filenames:
             if fileType not in ["award_financial", "award_procurement"]:
-                jobsRequiredByFile, uploadDictByFile = self.addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
-                jobsRequired.extend(jobsRequiredByFile)
-                uploadDict.update(uploadDictByFile)
+                jobsRequired, uploadDict = self.addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
+
         # Return list of upload jobs
         return jobsRequired, uploadDict
 
