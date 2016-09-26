@@ -18,6 +18,7 @@ class _DB(namedtuple('_DB', ['engine', 'connection', 'Session', 'session'])):
         self.connection.close()
         self.engine.dispose()
 
+
 class GlobalDB:
     @classmethod
     def _holder(cls):
