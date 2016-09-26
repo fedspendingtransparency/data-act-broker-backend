@@ -11,3 +11,8 @@ WHERE af.submission_id = {}
 		    AND ap.piid = af.piid
 		    AND ap.parent_award_id = af.parent_award_id
 	)
+	AND NOT EXISTS (
+        SELECT cgac_code
+        FROM cgac
+        WHERE cgac_code = af.allocation_transfer_agency
+     )
