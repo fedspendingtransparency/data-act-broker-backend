@@ -21,3 +21,11 @@ class SF133Factory(factory.Factory):
     period = fuzzy.FuzzyInteger(1, 4)
     line = fuzzy.FuzzyInteger(1, 9999)
     amount = 0
+
+class CGACFactory(factory.Factory):
+    class Meta:
+        model = domainModels.CGAC
+
+    cgac_id = None
+    cgac_code = fuzzy.FuzzyText()
+    agency_name = fuzzy.FuzzyText()

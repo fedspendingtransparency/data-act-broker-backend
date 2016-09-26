@@ -45,7 +45,7 @@ Assumptions:
 [PostgreSQL](https://en.wikipedia.org/wiki/PostgreSQL) is an object-relational database management system (ORDBMS) with an emphasis on extensibility and standards-compliance.
 
 1. Download the correct PostgreSQL installer for your operating system from [EnterpriseDB](http://www.enterprisedb.com/products-services-training/pgdownload) (we recommend PostgreSQL 9.4.x).
-2. Run the installer. As you proceed through the installation wizard, note your choices for port number, username, and password. You will need those when creating the broker's configuration file.
+2. Run the installer. As you proceed through the installation wizard, note your choices for port number, username, and password. You will need those when creating the broker's configuration files.
 
 More complete install documentation is available on the PostgreSQL [wiki](https://wiki.postgresql.org/wiki/Detailed_installation_guides).
 
@@ -121,7 +121,7 @@ Don't worry about setting DynamoDB endpoints or creating tables: the broker's co
 RabbitMQ is used to pass jobs to the validator, and requires Erlang to be installed before RabbitMQ.
 
 1.  Install Erlang based on the [download instructions](https://www.erlang.org/downloads)
-2.  Choose an installation guide based on your OS for [RabbitMQ](https://www.rabbitmq.com/download.html).  Be sure to install Erlang before installing RabbitMQ.  The default user and password is "guest"/"guest", if you change these you'll need to keep that information to be placed in the config file later in the process.
+2.  Choose an installation guide based on your OS for [RabbitMQ](https://www.rabbitmq.com/download.html).  Be sure to install Erlang before installing RabbitMQ.  The default user and password is "guest"/"guest", if you change these you'll need to keep that information to be placed in the config files later in the process.
 
 ### Clone Broker Backend Code Repository
 
@@ -159,28 +159,24 @@ If you are using virtualenvwrapper-powershell in Windows, the following command 
 
         $ add2virtualenv [location of your code]/data-act-broker-backend
 
-### Create Broker Config File
+### Create Broker Config Files
 
-Before running the broker, you'll need to provide a few configuration options. Use the provided sample config file as a starting point:
+Before running the broker, you'll need to provide a few configuration options. The broker uses three config files:
 
-1. From the `data-act-broker-backend` directory, go to `dataactcore` and open the file called `config_example.yml` in a text editor.
-2. Save `config_example.yml` as `config.yml`.
-3. Update the values in `config.yml` as appropriate for your environment. In many cases the default values will work just fine. The most important config values to change when getting started are:
+* `config.yml`: Config parameters shared across broker instances (_e.g._, production, staging, development, local).
+* `[instance]_config.yml`: Config parameters specific to a broker instance (_e.g._, location of the development database, url for the development broker instance). Values in this file override their corresponding values in `config.yml`.
+* `[instance]_secrets.yml`: Sensitive config values specific to a broker instance (_e.g._, database passwords).
 
-    * under _broker_:
-        * `full_url`
-        * `reply_to_email`
-        * `admin_email`
-        * `admin_password`
-        * `broker_files`
-    * under _services_:
-        * `error_report_path`
-    * under _db_:
-        * `username`
-        * `password`
-    * under _logging_:
-        * `log_files`
-4. Save your changes to config.yml
+At startup, the broker looks for an environment variable called `env` and will use that to set the instance name. If there is no `env` environment variable, the broker will set the instance name to `local` and look for `local_config.yml` and `local_secrets.yml`.
+
+There are sample config files in `data-act-broker-backend/dataactcore`. Use these as a starting point when setting up the broker. The instructions below assume that you're installing the broker for local development.
+
+1. Open `config_example.yml` in a text editor and save it as `config.yml`.
+2. Update the values in `config.yml` as appropriate for your installation and save. In many cases the default values will work just fine. The most important config values to change will be in `local_config.yml` and `local_secrets.yml`
+3. Open `local_config_example.yml` in a text editor and save it as `local_config.yml`.
+4. Update the values in `local_config.yml` as appropriate for your installation and save.
+5. Open `local_secrets_example.yml` in a text editor and save it as `local_secrets.yml`.
+6. Update the values in `local_secrets.yml` as appropriate for your installation and save.
 
 ### Initialize Broker Backend Applications
 

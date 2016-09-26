@@ -5,7 +5,7 @@ import multiprocessing
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask import Flask, send_from_directory
-from dataactcore.models.baseInterface import GlobalDB
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactbroker.handlers.aws.sesEmail import sesEmail

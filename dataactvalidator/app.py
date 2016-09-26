@@ -2,7 +2,7 @@ import sys
 import traceback
 from threading import Thread
 from flask import Flask, request, copy_current_request_context
-from dataactcore.models.baseInterface import GlobalDB
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
