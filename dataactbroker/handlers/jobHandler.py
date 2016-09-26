@@ -354,13 +354,15 @@ class JobHandler(JobTrackerInterface):
         # First do award_financial and award_procurement jobs so they will be available for later dependencies
         for fileType, filePath, filename in filenames:
             if fileType in ["award_financial", "award_procurement"]:
-                jobsRequired, uploadDict = self.addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
-
+                jobsRequiredByFile, uploadDictByFile = self.addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
+                jobsRequired.extend(jobsRequiredByFile)
+                uploadDict.update(uploadDictByFile)
         # Then do all other file types
         for fileType, filePath, filename in filenames:
             if fileType not in ["award_financial", "award_procurement"]:
-                jobsRequired, uploadDict = self.addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
-
+                jobsRequiredByFile, uploadDictByFile = self.addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
+                jobsRequired.extend(jobsRequiredByFile)
+                uploadDict.update(uploadDictByFile)
         # Return list of upload jobs
         return jobsRequired, uploadDict
 
