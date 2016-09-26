@@ -508,7 +508,7 @@ class FileHandler:
         elif file_type == 'F':
             generate_f_file.delay(
                 submission_id, job.job_id, InterfaceHolder, timestamped_name,
-                self.isLocal)
+                upload_file_name, self.isLocal)
         else:
             # TODO add generate calls for E
             jobDb.markJobStatus(job.job_id,"finished")
