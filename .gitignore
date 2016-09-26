@@ -40,3 +40,5 @@ dataactcore/scripts/dropMany.py
 runDynamo.py
 dataactvalidator/config/sf_133*.csv
 runBothTestPackages.py
+dataactcore/local_config.yml
+dataactcore/local_secrets.yml
