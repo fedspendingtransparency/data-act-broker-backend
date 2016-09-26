@@ -39,10 +39,10 @@ class FileTests(BaseTestAPI):
 
         # setup submission/jobs data for test_check_status
         cls.status_check_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
+            sess, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
 
         cls.generation_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
+            sess, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
 
         cls.setupFileGenerationSubmission()
 
@@ -51,17 +51,17 @@ class FileTests(BaseTestAPI):
 
         # setup submission/jobs data for test_error_report
         cls.error_report_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016")
+            sess, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016")
         cls.setupJobsForReports(cls.jobTracker, cls.error_report_submission_id)
 
         # setup file status data for test_metrics
         cls.test_metrics_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016")
+            sess, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016")
         cls.setupFileData(cls.jobTracker, cls.errorDatabase,
             cls.test_metrics_submission_id)
 
         cls.row_error_submission_id = cls.insertSubmission(
-            cls.jobTracker, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
+            sess, cls.submission_user_id, cgac_code = "SYS", startDate = "10/2015", endDate = "06/2016", is_quarter = True)
         cls.setupSubmissionWithError(cls.interfaces, cls.row_error_submission_id)
 
     def setUp(self):
@@ -504,15 +504,15 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["message"],"User does not have permission to view that submission")
 
     @staticmethod
-    def insertSubmission(jobTracker, submission_user_id, submission=None, cgac_code = None, startDate = None, endDate = None, is_quarter = False):
+    def insertSubmission(sess, submission_user_id, submission=None, cgac_code = None, startDate = None, endDate = None, is_quarter = False):
         """Insert one submission into job tracker and get submission ID back."""
         if submission:
             sub = Submission(submission_id=submission,
                 datetime_utc=datetime.utcnow(), user_id=submission_user_id, cgac_code = cgac_code, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter)
         else:
             sub = Submission(datetime_utc=datetime.utcnow(), user_id=submission_user_id, cgac_code = cgac_code, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter)
-        jobTracker.session.add(sub)
-        jobTracker.session.commit()
+        sess.add(sub)
+        sess.commit()
         return sub.submission_id
 
     @staticmethod
