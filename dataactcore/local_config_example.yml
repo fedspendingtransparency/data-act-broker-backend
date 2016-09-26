@@ -21,7 +21,6 @@ services:
 
 db:
 
-    base_db_name: postgres
     scheme: postgres
     host: localhost
     port: 5432
@@ -41,4 +40,3 @@ job-queue:
     url: localhost
     port: 5672
     broker_scheme: amqp
-
