@@ -44,7 +44,7 @@ def enqueue(jobID):
 
 @celery_app.task(name='jobQueue.generate_f_file')
 def generate_f_file(submission_id, job_id, interface_holder_class,
-                    timestamped_name, is_local):
+                    timestamped_name, upload_file_name, is_local):
     """Write rows from fileF.generateFRows to an appropriate CSV. Here the
     third parameter, interface_holder_class, is a bit of a hack. Importing
     InterfaceHolder directly causes cyclic dependency woes, so we're passing
@@ -61,7 +61,8 @@ def generate_f_file(submission_id, job_id, interface_holder_class,
             for row in rows_of_dicts:
                 body.append([row[key] for key in header])
 
-            write_csv(timestamped_name, is_local, header, body)
+            write_csv(timestamped_name, upload_file_name, is_local, header,
+                      body)
             job_manager.markJobStatus(job_id, "finished")
         except Exception as e:
             # Log the error
