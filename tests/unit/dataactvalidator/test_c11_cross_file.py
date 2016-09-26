@@ -1,4 +1,5 @@
 from tests.unit.dataactcore.factories.staging import AwardFinancialFactory, AwardProcurementFactory
+from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
@@ -29,12 +30,25 @@ def test_success(database):
 def test_failure(database):
     """ Unique PIID, ParentAwardId from file C doesn't exist in file D1 during the same reporting period. """
 
-    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id')
+    af = AwardFinancialFactory(
+        piid='some_piid', parent_award_id='some_parent_award_id', allocation_transfer_agency=None)
     ap = AwardProcurementFactory(piid='some_other_piid', parent_award_id='some_parent_award_id')
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 1
 
-    af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id')
+    af = AwardFinancialFactory(
+        piid='some_piid', parent_award_id='some_parent_award_id', allocation_transfer_agency='bad')
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 1
+
+
+def test_valid_allocation_transfer_agency(database):
+    """If File C (award financial) record has a valid allocation transfer agency, rule always passes."""
+
+    cgac = CGACFactory(cgac_code='good')
+    af = AwardFinancialFactory(
+        piid='some_piid', parent_award_id='some_parent_award_id', allocation_transfer_agency=cgac.cgac_code)
+    ap = AwardProcurementFactory(piid='some_other_piid', parent_award_id='some_parent_award_id')
+
+    assert number_of_errors(_FILE, database, models=[af, ap, cgac]) == 0
