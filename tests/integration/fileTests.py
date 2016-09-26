@@ -1,14 +1,14 @@
 import unittest
 import os
-import inspect
 import boto
 from datetime import datetime
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from tests.integration.baseTestAPI import BaseTestAPI
-from dataactcore.models.baseInterface import BaseInterface
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission, Job, JobDependency
 from dataactcore.models.errorModels import ErrorMetadata, File
+from dataactcore.models.userModel import User
 from dataactcore.config import CONFIG_BROKER
 from dataactbroker.handlers.jobHandler import JobHandler
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
@@ -28,11 +28,13 @@ class FileTests(BaseTestAPI):
         #TODO: refactor into a pytest fixture
 
         # get the submission test user
-        submission_user = cls.userDb.getUserByEmail(
-            cls.test_users['submission_email'])
+        sess = GlobalDB.db().session
+        submission_user = sess.query(User).filter(
+            User.email == cls.test_users['submission_email']).one_or_none()
         cls.submission_user_id = submission_user.user_id
 
-        other_user = cls.userDb.getUserByEmail(cls.test_users['inactive_email'])
+        other_user = sess.query(User).filter(
+            User.email == cls.test_users['inactive_email']).one_or_none()
         cls.other_user_id = other_user.user_id
 
         # setup submission/jobs data for test_check_status
