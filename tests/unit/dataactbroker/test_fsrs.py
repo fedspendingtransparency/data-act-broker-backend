@@ -66,6 +66,18 @@ def test_newClient_auth(monkeypatch):
     assert call_args['transport'].options.password == 'p2'
 
 
+def test_newClient_controlFilter(monkeypatch):
+    """newClient should add the ControlFilter plugin. It should work."""
+    call_args = newClient_call_args(monkeypatch)
+    assert 'plugins' in call_args
+    assert len(call_args['plugins']) == 1
+
+    mock_context = Mock(reply=b'Some \x01thing\x16here')
+    control_filter = call_args['plugins'][0]
+    control_filter.received(mock_context)   # mutates in place
+    assert mock_context.reply == b'Some  thing here'
+
+
 def test_soap2Dict():
     today = date.today()
 
@@ -134,7 +146,7 @@ def test_flattenSoapDict():
 
 @pytest.fixture()
 def no_award_db(database):
-    sess = database.validationDb.session
+    sess = database.session
     sess.query(FSRSProcurement).delete(synchronize_session=False)
     sess.query(FSRSGrant).delete(synchronize_session=False)
     sess.commit()

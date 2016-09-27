@@ -2,7 +2,8 @@
 .cache/*
 dataactcore/.idea/*
 dataactcore/dbErrors.log
-config.yml
+*config.yml
+*secrets.yml
 dataactcore/scripts/dbSpec.txt
 dataactcore/scripts/createEmpty.py
 dataactbroker/logFile.dat
@@ -40,3 +41,5 @@ dataactcore/scripts/dropMany.py
 runDynamo.py
 dataactvalidator/config/sf_133*.csv
 runBothTestPackages.py
+dataactcore/local_config.yml
+dataactcore/local_secrets.yml

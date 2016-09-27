@@ -112,7 +112,7 @@ class ErrorInterface(BaseInterface):
         if self.getFileStatusLabelByJobId(jobId) == "header_error":
             # Header errors occurred, return that
             return "header_errors"
-        elif self.getFileByJobId(jobId).row_errors_present:
+        elif self.interfaces.jobDb.getJobById(jobId).number_of_errors > 0:
             # Row errors occurred
             return "row_errors"
         else:

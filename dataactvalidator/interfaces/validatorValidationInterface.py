@@ -1,5 +1,4 @@
 from sqlalchemy.orm import subqueryload
-from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.validationInterface import ValidationInterface
 from dataactcore.models.validationModels import FileColumn, FileTypeValidation, FieldType, RuleSeverity, RuleSql
 from dataactcore.models.domainModels import TASLookup
@@ -8,14 +7,6 @@ from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 class ValidatorValidationInterface(ValidationInterface):
     """ Manages all interaction with the validation database """
-
-    def deleteTAS(self) :
-        """
-        Removes the TAS table
-        """
-        queryResult = self.session.query(TASLookup).delete(synchronize_session='fetch')
-        self.session.commit()
-
 
     def addTAS(self,ata,aid,bpoa,epoa,availability,main,sub):
         """
@@ -53,94 +44,6 @@ class ValidatorValidationInterface(ValidationInterface):
             self.session.commit()
             return True
         return False
-
-    def addColumnByFileType(self, fileType, fieldName, fieldNameShort, required, field_type, paddedFlag = "False", fieldLength = None):
-        """
-        Adds a new column to the schema
-
-        Args:
-        fileType -- One of the set of valid types of files (e.g. Award, AwardFinancial)
-
-        fieldName -- The name of the schema column
-        fieldNameShort -- The machine-friendly, short column name
-        required --  marks the column if data is allways required
-        field_type  -- sets the type of data allowed in the column
-        paddedFlag -- True if this column should be padded
-        fieldLength -- Maximum allowed length for this field
-
-        Returns:
-            ID of new column
-        """
-        fileId = self.getFileTypeIdByName(fileType)
-        if(fileId is None) :
-            raise ValueError("Filetype does not exist")
-        newColumn = FileColumn()
-        newColumn.required = False
-        newColumn.name = fieldName
-        newColumn.name_short = fieldNameShort
-        newColumn.file_id = fileId
-        field_type = field_type.upper()
-
-        types = self.getDataTypes()
-        #Allow for other names
-        if(field_type == "STR") :
-            field_type = "STRING"
-        elif(field_type  == "FLOAT") :
-            field_type = "DECIMAL"
-        elif(field_type  == "BOOL"):
-            field_type = "BOOLEAN"
-
-        # Translate padded flag to true or false
-        if not paddedFlag:
-            newColumn.padded_flag = False
-        elif paddedFlag.lower() == "true":
-            newColumn.padded_flag = True
-        else:
-            newColumn.padded_flag = False
-
-        #Check types
-        if field_type in types :
-            newColumn.field_types_id =  types[field_type]
-        else :
-            raise ValueError("".join(["Type ",field_type," is not valid for  ",str(fieldName)]))
-        #Check Required
-        required = required.upper()
-        if( required in ["TRUE","FALSE"]) :
-            if( required == "TRUE") :
-                newColumn.required = True
-        else :
-            raise ValueError("".join(["Required is not boolean for ",str(fieldName)]))
-
-        # Add length if present
-        if fieldLength is not None and str(fieldLength).strip() != "":
-            lengthInt = int(str(fieldLength).strip())
-            newColumn.length = lengthInt
-
-        # Save
-        self.session.add(newColumn)
-
-    def getDataTypes(self) :
-        """"
-        Returns a dictionary of data types that contains the id of the types
-        """
-        dataTypes  = {}
-        queryResult = self.session.query(FieldType).all()
-        for column in queryResult :
-            dataTypes[column.name] = column.field_type_id
-        return dataTypes
-
-    def removeColumnsByFileType(self,fileType) :
-        """
-        Removes the schema for a file
-
-        Args:
-        fileType -- One of the set of valid types of files (e.g. Award, AwardFinancial)
-        """
-        fileId = self.getFileTypeIdByName(fileType)
-        if(fileId is None) :
-            raise ValueError("Filetype does not exist")
-        queryResult = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).delete(synchronize_session='fetch')
-        self.session.commit()
 
     def getFieldsByFileList(self, fileType):
         """ Returns a list of valid field names that can appear in this type of file

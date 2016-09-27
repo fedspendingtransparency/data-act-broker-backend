@@ -106,15 +106,19 @@ def generateFRows(sess, submissionId):
     to those relevant to a particular submissionId"""
     fains, piids = relevantFainsPiids(sess, submissionId)
 
-    for proc, sub in sess.query(FSRSProcurement, FSRSSubcontract).filter(
-            FSRSProcurement.contract_number.in_(piids)):
+    query = sess.query(FSRSProcurement, FSRSSubcontract).\
+        filter(FSRSProcurement.id == FSRSSubcontract.parent_id).\
+        filter(FSRSProcurement.contract_number.in_(piids))
+    for proc, sub in query:
         result = OrderedDict()
         for key, mapping in mappings.items():
             result[key] = valueFromMapping(proc, sub, None, None, mapping)
         yield result
 
-    for grant, sub in sess.query(FSRSGrant, FSRSSubgrant).filter(
-            FSRSGrant.fain.in_(fains)):
+    query = sess.query(FSRSGrant, FSRSSubgrant).\
+        filter(FSRSGrant.id == FSRSSubgrant.parent_id).\
+        filter(FSRSGrant.fain.in_(fains))
+    for grant, sub in query:
         result = OrderedDict()
         for key, mapping in mappings.items():
             result[key] = valueFromMapping(None, None, grant, sub, mapping)

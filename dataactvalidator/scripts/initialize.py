@@ -7,7 +7,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.scripts.loadTas import loadTas
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
-from dataactvalidator.filestreaming.loadFile import loadDomainValues
+from dataactvalidator.scripts.loadFile import loadDomainValues
 
 def options():
 
@@ -39,16 +39,13 @@ def initialize():
     setupDB()
     print ("Loading validator fields and rules...")
     loadValidator()
-    print ("Loading TAS file...")
-    validator_config_path = os.path.join(
-    os.path.dirname(dataactvalidator.__file__), "config")
-    tas = os.path.join(validator_config_path, "all_tas_betc.csv")
-    loadTas(tas)
-    print("Loading SQL Rules...")
+    print("Loading SQL-based validation rules")
     SQLLoader.loadSql("sqlRules.csv")
-    # Load other domain values files
+    print("Loading TAS file...")
+    loadTas()
+    print("Loading other domain values...")
     loadDomainValues(os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config"))
-    print ("The validator has been initialized. You may now run the validator with the -start argument.")
+    print("The validator has been initialized. You may now run the validator with the -start argument.")
 
 def loadValidator():
     """Load validator fields and rules from config."""

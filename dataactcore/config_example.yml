@@ -9,7 +9,7 @@ broker:
     # For a local installation this will most likely be localhost or the 
     # location where the /public files are located. If a port is required, 
     # it should be appended to the URL.
-    full_url: http://localhost:3000 
+    full_url: http://dataactbroker.domain.com
 
 
     # Set the key (string) used to serialize tokens for email validations.
@@ -17,14 +17,7 @@ broker:
 
     # Specify valid email address to be used as reply-to for
     # administrative emails sent by the broker.
-    reply_to_email: valid.email@domain.com 
-
-    # Set valid email address and password to be used as the DATA Act
-    # broker's admin account. This is what you will use to log into
-    # the broker website. The password should contain a combination
-    # of letters, numbers, and special characters.
-    admin_email: valid.email@domain.com
-    admin_password: AdminP@ssw0rd!
+    reply_to_email: valid.email@domain.com
 
     # The path where the broker will store submitted files and emails
     # when the broker is not using an AWS S3 bucket.
@@ -55,40 +48,10 @@ broker:
     sub_award_url: https://sample.gov
     sub_award_file_name: sub_award_data.csv
 
-    ## AWS Configuration Settings ##
-
-    # If set to true the application will use AWS for the storage of files 
-    # submitted to the broker, to send e-mail, AND to access the dynamo db
-    # for session handling.
-    # Note that you must have the aws cli installed and credentials set in  
-    # order to use AWS (see install instructions for more information).
-    use_aws: false 
-
-    # If using AWS, set your region here
-    aws_region: us-east-1
-
-    # Add your AWS Key to use for sending SES emails
-    aws_access_key_id: ACCESSKEYID123
-    aws_secret_access_key: test123abc/123testsecretkeY
-
-    # Name of AWS S3 bucket for uploaded broker files. Ignored if use_aws
-    # is false. NOTE: the dummy value below MUST be changed to the correct
-    # value if use_aws is true.
-    aws_bucket: sample-aws-bucket-name
-
     # Include folder and filename of RSS file if running on AWS, if running locally the RSS folder and file should be in
     # the broker_files directory specified above
     rss_folder: rss
     rss_file: rss_file.xls
-
-    # Name of the AWS role you're using to upload broker files. Ignored if
-    # use_aws is false. NOTE: the dummy value below MUST be changed to the
-    # correct value if use_aws is true.
-    aws_role: arn:aws:iam::123456789012:role/roleName
- 
-    # Set the following to true to allow the broker to create temporary
-    # AWS credentials for uploading files. Ignored if use_aws is false.
-    aws_create_temp_credentials: true
 
     # S3 filenames for SF-133 file, only required if planning to load SF-133 table
     sf_133_folder: config
@@ -105,12 +68,12 @@ services:
     server_debug: true
 
     # URL/IP address that hosts the broker API
-    broker_api_host: 127.0.0.1
-    broker_api_port: 3333
+    broker_api_host: http://dataactbroker-api.domain.com
+    broker_api_port: 443
 
     # URL/IP address that hosts the validator API
-    validator_host: 127.0.0.1
-    validator_port: 3334
+    validator_host: http://dataactbroker-validator-api.domain.com
+    validator_port: 80
 
     # If you would like to restrict access from other origins, set the
     # allowed origins here. Otherwise, leave as '*'.
@@ -146,12 +109,8 @@ db:
 
     # Host and port of db instance. Set to localhost if running locally or set 
     # the remote address
-    host: localhost
+    host: dataactbroker.postgreshost.domain.com
     port: 5432
-
-    # Set your username and password for the db instance
-    username: yourusername
-    password: yourpassword
 
     # Set the names for each of the application databases
     base_db_name: postgres #This is the default db on the instance. 
@@ -184,15 +143,61 @@ logging:
     # so you can mostly likely keep this as is.
     logstash_port: 514
 
+    values_to_log:
+        broker:
+            - path
+            - use_aws
+            - local
+            - aws_bucket
+            - aws_role
+            - aws_region
+            - aws_create_temp_credentials
+            - static_files_bucket
+            - help_files_path
+            - d_file_storage_path
+            - broker_files
+            - award_procurement_url
+            - award_procurement_file_name
+            - award_url
+            - award_file_name
+            - awardee_attributes_url
+            - awardee_attributes_file_name
+            - sub_award_url
+            - sub_award_file_name
+            - rss_folder
+            - rss_file
+            - generated_files_folder
+            - sf_133_folder
+            - sf_133_file
+            - full_url
+        services:
+            - error_report_path
+            - broker_api_host
+            - validator_host
+            - broker_api_port
+            - validator_port
+            - protocol
+            - rest_trace
+            - server_debug
+        db:
+            - dynamo_host
+            - dynamo_port
+            - base_db_name
+            - scheme
+        logging:
+            - log_files
+            - use_logstash
+            - logstash_host
+            - logstash_port
+        job-queue:
+            - url
+            - port
+            - broker_scheme
+
 job-queue:
-    # RabbitMQ username
-    username: guest
 
-    # RabbitMQ password
-    password: guest
-
-    # URL for the job queue server
-    url: 127.0.0.1
+    # URL for the job queue server (do not add http)
+    url: dataactbroker.jobqueue.host.domain.com
 
     # Port on which Celery is listening
     port: 5672

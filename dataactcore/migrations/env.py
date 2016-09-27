@@ -2,10 +2,9 @@ from __future__ import with_statement
 from alembic import context
 # Load all DB tables into metadata object
 # @todo - load these dynamically
-from dataactcore.models import (
-    baseModel, domainModels, fsrs, errorModels, jobModels, stagingModels,
-    userModel, validationModels)
+from dataactcore.models import baseModel, domainModels, fsrs, errorModels, jobModels, stagingModels, userModel, validationModels # noqa
 from dataactcore.config import CONFIG_DB
+from dataactcore.interfaces.db import dbURI
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
 import logging
@@ -50,15 +49,11 @@ for name in re.split(r',\s*', db_names):
 target_metadata = {key: value[1].Base.metadata for (key, value) in db_dict.items()}
 
 # Set up database URLs based on config file
-username = str(CONFIG_DB['username'])
-password = str(CONFIG_DB['password'])
-host = str(CONFIG_DB['host'])
-port = str(CONFIG_DB['port'])
 for (key, value) in db_dict.items():
     # key = db-related names expected by Alembic config/scripts
     # value[0] = actual db names as set in broker config file
-    baseUrl = 'postgres://' + username + ':' + password + '@' + host + ':' + port
-    config.set_section_option(key, 'sqlalchemy.url', baseUrl + '/' + value[0])
+    baseUrl = dbURI(value[0])
+    config.set_section_option(key, 'sqlalchemy.url', baseUrl)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

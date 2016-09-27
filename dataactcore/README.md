@@ -66,13 +66,6 @@ Database interfaces are defined for logical data functions in the data broker (e
 
 The `scripts/` folder contains various python scripts used in the DATA Act broker backend install process as well as various utility scripts.
 
-To clean out the databases for testing proposes, use the following scripts:
-
-- clearErrors (Clears error_metadata and file tables)
-- clearJobs (Clears job_dependency, job, and submission tables)
-
-These scripts should **not** be used in a live production environment, as existing queries may hold references to the deleted data.
-
 #### Utils
 
 The `utils/` folder contains common REST requests and error handling objects.

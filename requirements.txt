@@ -1,7 +1,7 @@
 boto==2.38.0
 psycopg2==2.6.1
 SQLAlchemy==1.0.9
-Flask==0.10.1
+Flask==0.11.0
 Decorator==4.0.4
 Requests==2.8.1
 flask-cors==2.1.2
