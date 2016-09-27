@@ -4,7 +4,7 @@ from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 
 
-def write_csv(file_name, is_local, header, body):
+def write_csv(file_name, upload_name, is_local, header, body):
     """Derive the relevant location and write a CSV to it.
     :return: the final file name (complete with prefix)"""
     if is_local:
@@ -14,7 +14,7 @@ def write_csv(file_name, is_local, header, body):
     else:
         bucket = CONFIG_BROKER['aws_bucket']
         region = CONFIG_BROKER['aws_region']
-        csv_writer = CsvS3Writer(region, bucket, file_name, header)
+        csv_writer = CsvS3Writer(region, bucket, upload_name, header)
         message = 'DEBUG: Writing file to S3...'
 
     CloudLogger.log(message, log_type="debug", file_name='smx_request.log')
