@@ -12,8 +12,7 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 
 class JobTrackerInterface(BaseInterface):
     """Manages all interaction with the job tracker database."""
-    @staticmethod
-    def checkJobUnique(query):
+    def checkJobUnique(self, query):
         """ Checks if sqlalchemy queryResult has only one entry, error messages are specific to unique jobs
 
         Args:
@@ -22,7 +21,7 @@ class JobTrackerInterface(BaseInterface):
         Returns:
         True if single result, otherwise exception
         """
-        return BaseInterface.runUniqueQuery(query, "Job ID not found in job table","Conflicting jobs found for this ID")
+        return self.runUniqueQuery(query, "Job ID not found in job table","Conflicting jobs found for this ID")
 
     def getJobById(self,jobId):
         """ Return job model object based on ID """

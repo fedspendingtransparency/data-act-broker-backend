@@ -1,12 +1,12 @@
 from dataactcore.models.validationInterface import ValidationInterface
-from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity, AwardFinancial, AwardFinancialAssistance
+from dataactcore.models.stagingModels import Appropriation, ObjectClassProgramActivity, AwardFinancial, AwardFinancialAssistance, AwardProcurement
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
 
 class ValidatorStagingInterface(ValidationInterface):
     """Manages all interaction with the staging tables in the validation database."""
-    MODEL_MAP = {"award":AwardFinancialAssistance,"award_financial":AwardFinancial,"appropriations":Appropriation,"program_activity":ObjectClassProgramActivity}
+    MODEL_MAP = {"award":AwardFinancialAssistance,"award_financial":AwardFinancial,"appropriations":Appropriation,"program_activity":ObjectClassProgramActivity,"award_procurement":AwardProcurement}
 
     def insertSubmissionRecordByFileType(self, record, fileType):
         """Insert a submitted file row into its corresponding staging table
@@ -24,7 +24,7 @@ class ValidatorStagingInterface(ValidationInterface):
     def getModel(self,fileType):
         """ Get model object for specified file type """
         if fileType not in self.MODEL_MAP:
-            raise ResponseException("Not a valid file type: {}".format(fileType),StatusCode.INTERNAL_ERROR,KeyError)
+            raise ResponseException("Not found in model map: {}".format(fileType),StatusCode.INTERNAL_ERROR,KeyError)
         return self.MODEL_MAP[fileType]
 
     def getSubmissionsByFileType(self, submissionId, fileType):
