@@ -11,6 +11,9 @@ from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
 from dataactcore.models.userModel import AccountType, User, UserStatus
+from dataactcore.models.jobModels import JobType, JobStatus, FileType
+from dataactcore.models.validationModels import RuleSeverity
+from dataactcore.models.errorInterface import FileStatus, ErrorType
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
@@ -107,7 +110,7 @@ class BaseTestAPI(unittest.TestCase):
             createUserWithPassword(
                 test_users['agency_user'], user_password, Bcrypt())
 
-        # get user info and save as class variables for use by tests
+            # get user info and save as class variables for use by tests
 
             sess = GlobalDB.db().session
 
@@ -158,6 +161,21 @@ class BaseTestAPI(unittest.TestCase):
             sess.add(deactivated_user)
 
             sess.commit()
+
+            # todo: refactor below when we figure out best way for enums in help tables
+            # Create lookup dictionaries
+            js = sess.query(JobStatus)
+            cls.jobStatusDict = {j.name: j.job_status_id for j in js.all()}
+            jt = sess.query(JobType)
+            cls.jobTypeDict = {j.name: j.job_type_id for j in jt.all()}
+            ft = sess.query(FileType)
+            cls.fileTypeDict = {f.name: f.file_type_id for f in ft.all()}
+            fs = sess.query(FileStatus)
+            cls.fileStatusDict = {f.name: f.file_status_id for f in fs.all()}
+            sev = sess.query(RuleSeverity)
+            cls.ruleSeverityDict = {s.name: s.rule_severity_id for s in sev.all()}
+            et = sess.query(ErrorType)
+            cls.errorTypeDict = {e.name: e.error_type_id for e in et.all()}
 
         # set up info needed by the individual test classes
         cls.test_users = test_users

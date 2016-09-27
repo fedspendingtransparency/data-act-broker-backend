@@ -6,10 +6,9 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from tests.integration.baseTestAPI import BaseTestAPI
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.jobModels import Submission, Job, JobDependency, FileType, JobStatus, JobType
-from dataactcore.models.errorModels import ErrorMetadata, File, FileStatus
+from dataactcore.models.jobModels import Submission, Job, JobDependency
+from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.userModel import User
-from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.config import CONFIG_BROKER
 from dataactbroker.app import createApp
 from dataactbroker.handlers.jobHandler import JobHandler
@@ -547,15 +546,15 @@ class FileTests(BaseTestAPI):
         sess.commit()
         return fs.file_id
 
-    @staticmethod
-    def insertRowLevelError(sess, job_id):
+    #@staticmethod
+    @classmethod
+    def insertRowLevelError(cls, sess, job_id):
         """Insert one error into error database."""
-        #TODO: remove hard-coded surrogate keys and filename
         ed = ErrorMetadata(
             job_id=job_id,
             filename='test.csv',
             field_name='header 1',
-            error_type_id=1,
+            error_type_id=cls.errorTypeDict['type_error'],
             occurrences=100,
             first_row=123,
             rule_failed='Type Check'
@@ -567,44 +566,37 @@ class FileTests(BaseTestAPI):
     @classmethod
     def setupFileGenerationSubmission(cls, sess):
         """Create jobs for D, E, and F files."""
-        # todo: figure out best way to handle enums/helper data w/ SqlAlchemy/postgresql
-        # Create job status, job type, and file type lookups
-        js = sess.query(JobStatus)
-        jobStatusDict = {j.name: j.job_status_id for j in js.all()}
-        jt = sess.query(JobType)
-        jobTypeDict = {j.name: j.job_type_id for j in jt.all()}
-        ft = sess.query(FileType)
-        fileTypeDict = {f.name: f.file_type_id for f in ft.all()}
-        submission = sess.query(Submission).filter(Submission.submission_id == cls.generation_submission_id).one()
+        submission = sess.query(Submission).filter(
+            Submission.submission_id == cls.generation_submission_id).one()
 
         # Create D1 jobs ready for generation route to be called
         cls.insertJob(
             sess,
-            fileTypeDict['award_procurement'],
-            jobStatusDict['ready'],
-            jobTypeDict['file_upload'],
+            cls.fileTypeDict['award_procurement'],
+            cls.jobStatusDict['ready'],
+            cls.jobTypeDict['file_upload'],
             submission.submission_id
         )
         awardProcValJob = cls.insertJob(
             sess,
-            fileTypeDict['award_procurement'],
-            jobStatusDict['waiting'],
-            jobTypeDict['csv_record_validation'],
+            cls.fileTypeDict['award_procurement'],
+            cls.jobStatusDict['waiting'],
+            cls.jobTypeDict['csv_record_validation'],
             submission.submission_id
         )
         # Create E and F jobs ready for check route
         awardeeAttJob = cls.insertJob(
             sess,
-            fileTypeDict['awardee_attributes'],
-            jobStatusDict['finished'],
-            jobTypeDict['file_upload'],
+            cls.fileTypeDict['awardee_attributes'],
+            cls.jobStatusDict['finished'],
+            cls.jobTypeDict['file_upload'],
             submission.submission_id
         )
         subAwardJob = cls.insertJob(
             sess,
-            fileTypeDict['sub_award'],
-            jobStatusDict['invalid'],
-            jobTypeDict['file_upload'],
+            cls.fileTypeDict['sub_award'],
+            cls.jobStatusDict['invalid'],
+            cls.jobTypeDict['file_upload'],
             submission.submission_id
         )
         subAwardJob.error_message = "File was invalid"
@@ -612,16 +604,16 @@ class FileTests(BaseTestAPI):
         # Create D2 jobs
         cls.insertJob(
             sess,
-            fileTypeDict['award'],
-            jobStatusDict['finished'],
-            jobTypeDict['file_upload'],
+            cls.fileTypeDict['award'],
+            cls.jobStatusDict['finished'],
+            cls.jobTypeDict['file_upload'],
             submission.submission_id
         )
         cls.insertJob(
             sess,
-            fileTypeDict['award'],
-            jobStatusDict['invalid'],
-            jobTypeDict['csv_record_validation'],
+            cls.fileTypeDict['award'],
+            cls.jobStatusDict['invalid'],
+            cls.jobTypeDict['csv_record_validation'],
             submission.submission_id
         )
         # Create dependency
@@ -632,15 +624,14 @@ class FileTests(BaseTestAPI):
         sess.add(awardeeAttDep)
         sess.commit()
 
-    @staticmethod
-    def setupSubmissionWithError(sess, row_error_submission_id):
+    @classmethod
+    def setupSubmissionWithError(cls, sess, row_error_submission_id):
         """ Set up a submission that will come back with a status of validation_errors """
         jobValues = {}
         jobValues["awardFin"] = [3, 4, 2, "awardFin.csv", 100, 100]
         jobValues["appropriations"] = [1, 4, 2, "approp.csv", 2345, 567]
         jobValues["program_activity"] = [2, 4, 2, "programActivity.csv", None, None]
         jobValues["cross_file"] = [None,4,4,2,None,None,None]
-        fatalRuleSeverity = sess.query(RuleSeverity).filter(RuleSeverity.name == "fatal").one()
 
         for jobKey, values in jobValues.items():
             job = FileTests.insertJob(
@@ -657,24 +648,22 @@ class FileTests(BaseTestAPI):
         metadata = ErrorMetadata(
             job_id=job.job_id,
             occurrences=2,
-            severity=fatalRuleSeverity
+            severity_id=cls.ruleSeverityDict['fatal']
         )
         sess.add(metadata)
         sess.commit()
 
-    @staticmethod
-    def setupJobsForStatusCheck(sess, submission_id):
+    @classmethod
+    def setupJobsForStatusCheck(cls, sess, submission_id):
         """Set up test jobs for job status test."""
-
-        # TODO: remove hard-coded surrogate keys
         jobValues = {}
-        jobValues["uploadFinished"] = [4, 4, 1, None, None, None]
-        jobValues["recordRunning"] = [4, 3, 2, None, None, None]
-        jobValues["externalWaiting"] = [4, 1, 5, None, None, None]
-        jobValues["awardFin"] = [3, 2, 2, "awardFin.csv", 100, 100]
-        jobValues["appropriations"] = [1, 2, 2, "approp.csv", 2345, 567]
-        jobValues["program_activity"] = [2, 2, 2, "programActivity.csv", None, None]
-        jobValues["cross_file"] = [None,4,4,2,None,None,None]
+        jobValues["uploadFinished"] = [cls.fileTypeDict['award'], cls.jobStatusDict['finished'], cls.jobTypeDict['file_upload'], None, None, None]
+        jobValues["recordRunning"] = [cls.fileTypeDict['award'], cls.jobStatusDict['running'], cls.jobTypeDict['csv_record_validation'], None, None, None]
+        jobValues["externalWaiting"] = [cls.fileTypeDict['award'], cls.jobStatusDict['waiting'], cls.jobTypeDict['external_validation'], None, None, None]
+        jobValues["awardFin"] = [cls.fileTypeDict['award_financial'], cls.jobStatusDict['ready'], cls.jobTypeDict['csv_record_validation'], "awardFin.csv", 100, 100]
+        jobValues["appropriations"] = [cls.fileTypeDict['appropriations'], cls.jobStatusDict['ready'], cls.jobTypeDict['csv_record_validation'], "approp.csv", 2345, 567]
+        jobValues["program_activity"] = [cls.fileTypeDict['program_activity'], cls.jobStatusDict['ready'], cls.jobTypeDict['csv_record_validation'], "programActivity.csv", None, None]
+        jobValues["cross_file"] = [None, cls.jobStatusDict['finished'], cls.jobTypeDict['validation'], 2, None, None, None]
         jobIdDict = {}
 
         for jobKey, values in jobValues.items():
@@ -690,17 +679,11 @@ class FileTests(BaseTestAPI):
             )
             jobIdDict[jobKey] = job.job_id
 
-        completeFileStatus = sess.query(FileStatus).filter(FileStatus.name == "complete").one()
-        appropFileType = sess.query(FileType).filter(FileType.name == "appropriations").one()
-        awardFileType = sess.query(FileType).filter(FileType.name == "award").one()
-        fatalRuleSeverity = sess.query(RuleSeverity).filter(RuleSeverity.name == "fatal").one()
-        warningRuleSeverity = sess.query(RuleSeverity).filter(RuleSeverity.name == "warning").one()
-
         # For appropriations job, create an entry in file for this job
         fileRec = File(
             job_id=jobIdDict["appropriations"],
             filename="approp.csv",
-            file_status=completeFileStatus,
+            file_status_id=cls.fileStatusDict['complete'],
             headers_missing="missing_header_one, missing_header_two",
             headers_duplicated="duplicated_header_one, duplicated_header_two")
         sess.add(fileRec)
@@ -708,7 +691,7 @@ class FileTests(BaseTestAPI):
         crossFile = File(
             job_id=jobIdDict["cross_file"],
             filename="approp.csv",
-            file_status=completeFileStatus,
+            file_status_id=cls.fileStatusDict['complete'],
             headers_missing="",
             headers_duplicated="")
         sess.add(crossFile)
@@ -718,13 +701,13 @@ class FileTests(BaseTestAPI):
             job_id=jobIdDict["appropriations"],
             filename="approp.csv",
             field_name="header_three",
-            error_type_id=6,
+            error_type_id=cls.errorTypeDict['rule_failed'],
             occurrences=7,
             rule_failed="Header three value must be real",
             original_rule_label="A1",
-            file_type=appropFileType,
-            target_file_type=awardFileType,
-            severity=fatalRuleSeverity
+            file_type_id=cls.fileTypeDict['appropriations'],
+            target_file_type_id=cls.fileTypeDict['award'],
+            severity_id=cls.ruleSeverityDict['fatal']
         )
         sess.add(ruleError)
 
@@ -732,13 +715,13 @@ class FileTests(BaseTestAPI):
             job_id=jobIdDict["appropriations"],
             filename="approp.csv",
             field_name="header_three",
-            error_type_id=6,
+            error_type_id=cls.errorTypeDict['rule_failed'],
             occurrences=7,
             rule_failed="Header three value looks odd",
             original_rule_label="A2",
-            file_type=appropFileType,
-            target_file_type=awardFileType,
-            severity=warningRuleSeverity
+            file_type_id=cls.fileTypeDict['appropriations'],
+            target_file_type_id=cls.fileTypeDict['award'],
+            severity_id=cls.ruleSeverityDict['warning']
         )
         sess.add(warningError)
 
@@ -746,10 +729,10 @@ class FileTests(BaseTestAPI):
             job_id=jobIdDict["appropriations"],
             filename="approp.csv",
             field_name="header_four",
-            error_type_id=2,
+            error_type_id=cls.errorTypeDict['required_error'],
             occurrences=5,
             rule_failed="A required value was not provided",
-            severity=fatalRuleSeverity
+            severity_id=cls.ruleSeverityDict['fatal']
         )
         sess.add(reqError)
 
@@ -757,62 +740,65 @@ class FileTests(BaseTestAPI):
             job_id=jobIdDict["cross_file"],
             filename="approp.csv",
             field_name="header_four",
-            error_type_id=2,
+            error_type_id=cls.errorTypeDict['required_error'],
             occurrences=5,
             rule_failed="A required value was not provided",
-            file_type=appropFileType,
-            target_file_type=awardFileType,
-            severity=fatalRuleSeverity
+            file_type_id=cls.fileTypeDict['appropriations'],
+            target_file_type_id=cls.fileTypeDict['award'],
+            severity_id=cls.ruleSeverityDict['fatal']
         )
         sess.add(crossError)
 
         sess.commit()
         return jobIdDict
 
-    @staticmethod
-    def setupJobsForReports(sess, error_report_submission_id):
+    @classmethod
+    def setupJobsForReports(cls, sess, error_report_submission_id):
         """Setup jobs table for checking validator unit test error reports."""
-        FileTests.insertJob(sess, filetype=4, status=4, type_id=2,
+        finished = cls.jobStatusDict['finished']
+        csv_validation = cls.jobTypeDict['csv_record_validation']
+        FileTests.insertJob(sess, filetype=cls.fileTypeDict['award'], status=finished, type_id=csv_validation,
             submission=error_report_submission_id)
-        FileTests.insertJob(sess, filetype=3, status=4, type_id=2,
+        FileTests.insertJob(sess, filetype=cls.fileTypeDict['award_financial'], status=finished, type_id=csv_validation,
             submission=error_report_submission_id)
-        FileTests.insertJob(sess, filetype=1, status=4, type_id=2,
+        FileTests.insertJob(sess, filetype=cls.fileTypeDict['appropriations'], status=finished, type_id=csv_validation,
             submission=error_report_submission_id)
-        FileTests.insertJob(sess, filetype=2, status=4, type_id=2,
+        FileTests.insertJob(sess, filetype=cls.fileTypeDict['program_activity'], status=finished, type_id=csv_validation,
             submission=error_report_submission_id)
 
-    @staticmethod
-    def setupFileData(sess, submission_id):
+    @classmethod
+    def setupFileData(cls, sess, submission_id):
         """Setup test data for the route test"""
-
-        # TODO: remove hard-coded surrogate keys
-        job = FileTests.insertJob(
-            sess,
-            filetype=4,
-            status=2,
-            type_id=2,
-            submission=submission_id
-        )
-        FileTests.insertFile(sess, job.job_id, 1) # Everything Is Fine
+        ready = cls.jobStatusDict['ready']
+        csv_validation = cls.jobTypeDict['csv_record_validation']
 
         job = FileTests.insertJob(
             sess,
-            filetype=3,
-            status=2,
-            type_id=2,
+            filetype=cls.fileTypeDict['award'],
+            status=ready,
+            type_id=csv_validation,
             submission=submission_id
         )
-        FileTests.insertFile(sess, job.job_id, 3) # Bad Header
+        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['complete']) # Everything Is Fine
 
         job = FileTests.insertJob(
             sess,
-            filetype=1,
-            status=2,
-            type_id=2,
+            filetype=cls.fileTypeDict['award_financial'],
+            status=ready,
+            type_id=csv_validation,
             submission=submission_id
         )
-        FileTests.insertFile(sess, job.job_id, 1) # Validation level Errors
-        FileTests.insertRowLevelError(sess, job.job_id)
+        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['unknown_error']) # Bad Header
+
+        job = FileTests.insertJob(
+            sess,
+            filetype=cls.fileTypeDict['appropriations'],
+            status=ready,
+            type_id=csv_validation,
+            submission=submission_id
+        )
+        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['complete']) # Validation level Errors
+        cls.insertRowLevelError(sess, job.job_id)
 
 if __name__ == '__main__':
     unittest.main()
