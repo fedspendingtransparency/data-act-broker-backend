@@ -15,13 +15,13 @@ def test_success(database):
     # Create a 12 character random piid
     piid = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     piid_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 1234, piid = piid)
-    first_piid_row_two = AwardFinancialFactory(transaction_obligated_amou = 2345, piid = piid)
+    first_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, piid = piid)
+    first_piid_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, piid = piid)
     # And add a row for a different piid
     second_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, piid = piid_two)
-    first_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -2468)
-    second_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -1100)
-    third_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -11)
+    first_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -1100)
+    second_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -10)
+    third_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -1)
     other_piid_ap_row = AwardProcurementFactory(piid = piid_two, federal_action_obligation = -9999)
 
     errors = number_of_errors(_FILE, database, models=[first_piid_row_one, first_piid_row_two, second_piid_row_one, first_ap_row, second_ap_row, third_ap_row, other_piid_ap_row])
@@ -33,15 +33,12 @@ def test_failure(database):
     # Create a 12 character random piid
     piid = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     piid_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_piid_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 1234, piid = piid)
-    first_piid_row_two = AwardFinancialFactory(object_class = randint(1000,1099),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 2345, piid = piid)
+    first_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, piid = piid)
+    first_piid_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, piid = piid)
     # And add a row that shouldn't be included
-    second_piid_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 9999, piid = piid_two)
-    first_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -2468)
-    second_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -1000)
+    second_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, piid = piid_two)
+    first_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -1100)
+    second_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -10)
     other_piid_ap_row = AwardProcurementFactory(piid = piid_two, federal_action_obligation = -1111)
 
     errors = number_of_errors(_FILE, database, models=[first_piid_row_one, first_piid_row_two, second_piid_row_one, first_ap_row, second_ap_row, other_piid_ap_row])

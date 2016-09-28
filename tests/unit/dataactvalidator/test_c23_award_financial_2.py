@@ -15,13 +15,13 @@ def test_success(database):
     # Create a 12 character random parent_award_id
     parent_award_id = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     parent_award_id_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_parent_award_id_row_one = AwardFinancialFactory(transaction_obligated_amou = 1234, parent_award_id = parent_award_id)
-    first_parent_award_id_row_two = AwardFinancialFactory(transaction_obligated_amou = 2345, parent_award_id = parent_award_id)
+    first_parent_award_id_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, parent_award_id = parent_award_id)
+    first_parent_award_id_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, parent_award_id = parent_award_id)
     # And add a row for a different parent_award_id
     second_parent_award_id_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, parent_award_id = parent_award_id_two)
-    first_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -2468)
-    second_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -1100)
-    third_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -11)
+    first_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -1100)
+    second_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -10)
+    third_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -1)
     other_parent_award_id_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id_two, federal_action_obligation = -9999)
 
     errors = number_of_errors(_FILE, database, models=[first_parent_award_id_row_one, first_parent_award_id_row_two, second_parent_award_id_row_one, first_ap_row, second_ap_row, third_ap_row, other_parent_award_id_ap_row])
@@ -33,12 +33,12 @@ def test_failure(database):
     # Create a 12 character random parent_award_id
     parent_award_id = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     parent_award_id_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_parent_award_id_row_one = AwardFinancialFactory(transaction_obligated_amou = 1234, parent_award_id = parent_award_id)
-    first_parent_award_id_row_two = AwardFinancialFactory(transaction_obligated_amou = 2345, parent_award_id = parent_award_id)
+    first_parent_award_id_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, parent_award_id = parent_award_id)
+    first_parent_award_id_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, parent_award_id = parent_award_id)
     # And add a row that shouldn't be included
     second_parent_award_id_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, parent_award_id = parent_award_id_two)
-    first_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -2468)
-    second_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -1000)
+    first_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -1100)
+    second_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -10)
     other_parent_award_id_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id_two, federal_action_obligation = -1111)
 
     errors = number_of_errors(_FILE, database, models=[first_parent_award_id_row_one, first_parent_award_id_row_two, second_parent_award_id_row_one, first_ap_row, second_ap_row, other_parent_award_id_ap_row])

@@ -16,15 +16,15 @@ def test_success(database):
     # Create a 12 character random fain
     fain = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     fain_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 1234, fain = fain)
-    first_fain_row_two = AwardFinancialFactory(transaction_obligated_amou = 2345, fain = fain)
+    first_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, fain = fain)
+    first_fain_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, fain = fain)
     # And add a row for a different fain
     second_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, fain = fain_two)
-    first_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -2468,
+    first_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -1100,
                                                     original_loan_subsidy_cost = None)
-    second_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -1100,
+    second_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -10,
                                                      original_loan_subsidy_cost = None)
-    third_afa_row = AwardFinancialAssistanceFactory(fain = fain, original_loan_subsidy_cost = -11, assistance_type = '08',
+    third_afa_row = AwardFinancialAssistanceFactory(fain = fain, original_loan_subsidy_cost = -1, assistance_type = '08',
                                                     federal_action_obligation = None)
     wrong_type_afa_row = AwardFinancialAssistanceFactory(fain = fain, original_loan_subsidy_cost = -2222,
                                                          assistance_type = '09', federal_action_obligation = None)
@@ -40,13 +40,13 @@ def test_failure(database):
     # Create a 12 character random fain
     fain = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     fain_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 1234, fain = fain)
-    first_fain_row_two = AwardFinancialFactory(transaction_obligated_amou = 2345, fain = fain)
+    first_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, fain = fain)
+    first_fain_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, fain = fain)
     # And add a row that shouldn't be included
     second_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, fain = fain_two)
-    first_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -2468,
+    first_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -1100,
                                                     original_loan_subsidy_cost = None)
-    second_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -1000,
+    second_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -10,
                                                      original_loan_subsidy_cost = None)
     other_fain_afa_row = AwardFinancialAssistanceFactory(fain = fain_two, federal_action_obligation = -9999,
                                                          original_loan_subsidy_cost = None)

@@ -16,15 +16,15 @@ def test_success(database):
     # Create a 12 character random uri
     uri = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     uri_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 1234, uri = uri)
-    first_uri_row_two = AwardFinancialFactory(transaction_obligated_amou = 2345, uri = uri)
+    first_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, uri = uri)
+    first_uri_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, uri = uri)
     # And add a row for a different uri
     second_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, uri = uri_two)
-    first_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -2468,
+    first_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -1100,
                                                     original_loan_subsidy_cost = None)
-    second_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -1100,
+    second_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -10,
                                                      original_loan_subsidy_cost = None)
-    third_afa_row = AwardFinancialAssistanceFactory(uri = uri, original_loan_subsidy_cost = -11, assistance_type = '08',
+    third_afa_row = AwardFinancialAssistanceFactory(uri = uri, original_loan_subsidy_cost = -1, assistance_type = '08',
                                                     federal_action_obligation = None)
     wrong_type_afa_row = AwardFinancialAssistanceFactory(uri = uri, original_loan_subsidy_cost = -2222,
                                                          assistance_type = '09', federal_action_obligation = None)
@@ -40,13 +40,13 @@ def test_failure(database):
     # Create a 12 character random uri
     uri = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     uri_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 1234, uri = uri)
-    first_uri_row_two = AwardFinancialFactory(transaction_obligated_amou = 2345, uri = uri)
+    first_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, uri = uri)
+    first_uri_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, uri = uri)
     # And add a row that shouldn't be included
     second_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, uri = uri_two)
-    first_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -2468,
+    first_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -1100,
                                                     original_loan_subsidy_cost = None)
-    second_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -1000,
+    second_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -10,
                                                      original_loan_subsidy_cost = None)
     other_uri_afa_row = AwardFinancialAssistanceFactory(uri = uri_two, federal_action_obligation = -9999,
                                                          original_loan_subsidy_cost = None)
