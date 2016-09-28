@@ -30,7 +30,6 @@ def error_rows(rule_file, staging_db, submission=None, models=None):
 
     staging_db.session.commit()
     result = staging_db.connection.execute(sql).fetchall()
-    print(str(result))
 
     # clean up
     for model in models:
