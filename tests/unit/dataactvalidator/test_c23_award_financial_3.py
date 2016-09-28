@@ -16,13 +16,10 @@ def test_success(database):
     # Create a 12 character random fain
     fain = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     fain_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_fain_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 1234, fain = fain)
-    first_fain_row_two = AwardFinancialFactory(object_class = randint(1000,1099),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 2345, fain = fain)
+    first_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 1234, fain = fain)
+    first_fain_row_two = AwardFinancialFactory(transaction_obligated_amou = 2345, fain = fain)
     # And add a row for a different fain
-    second_fain_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 9999, fain = fain_two)
+    second_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, fain = fain_two)
     first_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -2468,
                                                     original_loan_subsidy_cost = None)
     second_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -1100,
@@ -43,13 +40,10 @@ def test_failure(database):
     # Create a 12 character random fain
     fain = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     fain_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_fain_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 1234, fain = fain)
-    first_fain_row_two = AwardFinancialFactory(object_class = randint(1000,1099),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 2345, fain = fain)
+    first_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 1234, fain = fain)
+    first_fain_row_two = AwardFinancialFactory(transaction_obligated_amou = 2345, fain = fain)
     # And add a row that shouldn't be included
-    second_fain_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 9999, fain = fain_two)
+    second_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, fain = fain_two)
     first_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -2468,
                                                     original_loan_subsidy_cost = None)
     second_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -1000,

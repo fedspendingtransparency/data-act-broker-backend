@@ -15,13 +15,10 @@ def test_success(database):
     # Create a 12 character random parent_award_id
     parent_award_id = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     parent_award_id_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_parent_award_id_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 1234, parent_award_id = parent_award_id)
-    first_parent_award_id_row_two = AwardFinancialFactory(object_class = randint(1000,1099),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 2345, parent_award_id = parent_award_id)
+    first_parent_award_id_row_one = AwardFinancialFactory(transaction_obligated_amou = 1234, parent_award_id = parent_award_id)
+    first_parent_award_id_row_two = AwardFinancialFactory(transaction_obligated_amou = 2345, parent_award_id = parent_award_id)
     # And add a row for a different parent_award_id
-    second_parent_award_id_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 9999, parent_award_id = parent_award_id_two)
+    second_parent_award_id_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, parent_award_id = parent_award_id_two)
     first_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -2468)
     second_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -1100)
     third_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -11)
@@ -36,13 +33,10 @@ def test_failure(database):
     # Create a 12 character random parent_award_id
     parent_award_id = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     parent_award_id_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_parent_award_id_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 1234, parent_award_id = parent_award_id)
-    first_parent_award_id_row_two = AwardFinancialFactory(object_class = randint(1000,1099),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 2345, parent_award_id = parent_award_id)
+    first_parent_award_id_row_one = AwardFinancialFactory(transaction_obligated_amou = 1234, parent_award_id = parent_award_id)
+    first_parent_award_id_row_two = AwardFinancialFactory(transaction_obligated_amou = 2345, parent_award_id = parent_award_id)
     # And add a row that shouldn't be included
-    second_parent_award_id_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 9999, parent_award_id = parent_award_id_two)
+    second_parent_award_id_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, parent_award_id = parent_award_id_two)
     first_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -2468)
     second_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id, federal_action_obligation = -1000)
     other_parent_award_id_ap_row = AwardProcurementFactory(parent_award_id = parent_award_id_two, federal_action_obligation = -1111)

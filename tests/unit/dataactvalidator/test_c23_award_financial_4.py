@@ -16,13 +16,10 @@ def test_success(database):
     # Create a 12 character random uri
     uri = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     uri_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_uri_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 1234, uri = uri)
-    first_uri_row_two = AwardFinancialFactory(object_class = randint(1000,1099),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 2345, uri = uri)
+    first_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 1234, uri = uri)
+    first_uri_row_two = AwardFinancialFactory(transaction_obligated_amou = 2345, uri = uri)
     # And add a row for a different uri
-    second_uri_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 9999, uri = uri_two)
+    second_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, uri = uri_two)
     first_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -2468,
                                                     original_loan_subsidy_cost = None)
     second_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -1100,
@@ -43,13 +40,10 @@ def test_failure(database):
     # Create a 12 character random uri
     uri = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     uri_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_uri_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 1234, uri = uri)
-    first_uri_row_two = AwardFinancialFactory(object_class = randint(1000,1099),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 2345, uri = uri)
+    first_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 1234, uri = uri)
+    first_uri_row_two = AwardFinancialFactory(transaction_obligated_amou = 2345, uri = uri)
     # And add a row that shouldn't be included
-    second_uri_row_one = AwardFinancialFactory(object_class = randint(1100,1999),
-        by_direct_reimbursable_fun = "d", transaction_obligated_amou = 9999, uri = uri_two)
+    second_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, uri = uri_two)
     first_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -2468,
                                                     original_loan_subsidy_cost = None)
     second_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -1000,
