@@ -353,12 +353,6 @@ class FileHandler:
                 if jobType != "csv_record_validation" and jobType != "validation":
                     continue
 
-                # TODO Skip D1 file until validation is added, remove these lines once D1 validation is added
-                if jobType == "csv_record_validation":
-                    fileType = self.jobManager.getFileType(jobId)
-                    if fileType == "award_procurement":
-                        continue
-
                 jobInfo["job_id"] = jobId
                 jobInfo["job_status"] = self.jobManager.getJobStatusName(jobId)
                 jobInfo["job_type"] = jobType
@@ -514,7 +508,7 @@ class FileHandler:
         elif file_type == 'F':
             generate_f_file.delay(
                 submission_id, job.job_id, InterfaceHolder, timestamped_name,
-                self.isLocal)
+                upload_file_name, self.isLocal)
         else:
             # TODO add generate calls for E
             jobDb.markJobStatus(job.job_id,"finished")
@@ -639,7 +633,7 @@ class FileHandler:
             self.download_file(full_file_path, url)
             lines = self.get_lines_from_csv(full_file_path)
 
-            write_csv(timestamped_name, isLocal, lines[0], lines[1:])
+            write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])
 
             CloudLogger.log("DEBUG: Marking job id of " + str(job_id) + " as finished", log_type="debug", file_name=self.smx_log_file_name)
             job_manager.markJobStatus(job_id, "finished")
@@ -713,7 +707,7 @@ class FileHandler:
         self.checkSubmissionById(submission_id, file_type)
 
         uploadJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "file_upload")
-        if file_type in ["D2"]: # TODO add D1 to this list once D1 validation exists
+        if file_type in ["D1","D2"]:
             validationJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "csv_record_validation")
         else:
             validationJob = None
