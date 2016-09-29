@@ -15,16 +15,28 @@ def test_success(database):
     # Create a 12 character random piid
     piid = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     piid_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, piid = piid)
-    first_piid_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, piid = piid)
+    piid_three = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
+    first_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, piid = piid,
+                                               allocation_transfer_agency = None)
+    first_piid_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, piid = piid,
+                                               allocation_transfer_agency = None)
     # And add a row for a different piid
-    second_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, piid = piid_two)
+    second_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, piid = piid_two,
+                                                allocation_transfer_agency = None)
+    third_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 8888, piid = piid_three,
+                                               allocation_transfer_agency = 123)
+    third_piid_row_two = AwardFinancialFactory(transaction_obligated_amou = 8888, piid = piid_three,
+                                               allocation_transfer_agency = None)
+
     first_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -1100)
     second_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -10)
     third_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -1)
-    other_piid_ap_row = AwardProcurementFactory(piid = piid_two, federal_action_obligation = -9999)
+    second_piid_ap_row = AwardProcurementFactory(piid = piid_two, federal_action_obligation = -9999)
+    third_piid_ap_row = AwardProcurementFactory(piid = piid_three, federal_action_obligation = -9999)
 
-    errors = number_of_errors(_FILE, database, models=[first_piid_row_one, first_piid_row_two, second_piid_row_one, first_ap_row, second_ap_row, third_ap_row, other_piid_ap_row])
+    errors = number_of_errors(_FILE, database, models=[first_piid_row_one, first_piid_row_two, second_piid_row_one,
+       third_piid_row_one, first_ap_row, second_ap_row, third_ap_row, second_piid_ap_row, third_piid_ap_row,
+       third_piid_row_two])
     assert errors == 0
 
 
@@ -33,10 +45,10 @@ def test_failure(database):
     # Create a 12 character random piid
     piid = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     piid_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, piid = piid)
-    first_piid_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, piid = piid)
+    first_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, piid = piid, allocation_transfer_agency = None)
+    first_piid_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, piid = piid, allocation_transfer_agency = None)
     # And add a row that shouldn't be included
-    second_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, piid = piid_two)
+    second_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, piid = piid_two, allocation_transfer_agency = None)
     first_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -1100)
     second_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -10)
     other_piid_ap_row = AwardProcurementFactory(piid = piid_two, federal_action_obligation = -1111)

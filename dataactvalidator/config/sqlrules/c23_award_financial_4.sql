@@ -27,3 +27,5 @@ HAVING
 		(SELECT COALESCE(SUM(sub_afa.original_loan_subsidy_cost::numeric),0) AS obligation_sum
 		FROM award_financial_assistance as sub_afa
 		WHERE submission_id = {0} AND sub_afa.uri = af.uri and COALESCE(sub_afa.assistance_type,'') in ('07','08')))
+		AND NOT EXISTS (SELECT sub_af.allocation_transfer_agency FROM award_financial as sub_af WHERE sub_af.uri = af.uri
+			AND sub_af.allocation_transfer_agency is not null)

@@ -16,10 +16,17 @@ def test_success(database):
     # Create a 12 character random uri
     uri = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     uri_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, uri = uri)
-    first_uri_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, uri = uri)
+    uri_three = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
+    first_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, uri = uri,
+                                              allocation_transfer_agency = None)
+    first_uri_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, uri = uri,
+                                              allocation_transfer_agency = None)
     # And add a row for a different uri
-    second_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, uri = uri_two)
+    second_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, uri = uri_two,
+                                               allocation_transfer_agency = None)
+    third_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 8888, uri = uri_three,
+                                              allocation_transfer_agency = 123)
+
     first_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -1100,
                                                     original_loan_subsidy_cost = None)
     second_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -10,
@@ -30,8 +37,11 @@ def test_success(database):
                                                          assistance_type = '09', federal_action_obligation = None)
     other_uri_afa_row = AwardFinancialAssistanceFactory(uri = uri_two, federal_action_obligation = -9999,
                                                          original_loan_subsidy_cost = None)
+    third_uri_ap_row = AwardFinancialAssistanceFactory(uri = uri_three, federal_action_obligation = -9999)
 
-    errors = number_of_errors(_FILE, database, models=[first_uri_row_one, first_uri_row_two, second_uri_row_one, first_afa_row, second_afa_row, third_afa_row, wrong_type_afa_row, other_uri_afa_row])
+    errors = number_of_errors(_FILE, database, models=[first_uri_row_one, first_uri_row_two, second_uri_row_one,
+       first_afa_row, second_afa_row, third_afa_row, wrong_type_afa_row, other_uri_afa_row, third_uri_row_one,
+       third_uri_ap_row])
     assert errors == 0
 
 
@@ -40,10 +50,13 @@ def test_failure(database):
     # Create a 12 character random uri
     uri = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     uri_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, uri = uri)
-    first_uri_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, uri = uri)
+    first_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, uri = uri,
+                                              allocation_transfer_agency = None)
+    first_uri_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, uri = uri,
+                                              allocation_transfer_agency = None)
     # And add a row that shouldn't be included
-    second_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, uri = uri_two)
+    second_uri_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, uri = uri_two,
+                                               allocation_transfer_agency = None)
     first_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -1100,
                                                     original_loan_subsidy_cost = None)
     second_afa_row = AwardFinancialAssistanceFactory(uri = uri, federal_action_obligation = -10,
