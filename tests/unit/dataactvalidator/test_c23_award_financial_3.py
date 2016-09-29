@@ -16,10 +16,17 @@ def test_success(database):
     # Create a 12 character random fain
     fain = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     fain_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, fain = fain)
-    first_fain_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, fain = fain)
+    fain_three = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
+    first_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, fain = fain,
+                                               allocation_transfer_agency = None)
+    first_fain_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, fain = fain,
+                                               allocation_transfer_agency = None)
     # And add a row for a different fain
-    second_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, fain = fain_two)
+    second_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, fain = fain_two,
+                                                allocation_transfer_agency = None)
+    third_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 8888, fain = fain_three,
+                                               allocation_transfer_agency = 123)
+
     first_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -1100,
                                                     original_loan_subsidy_cost = None)
     second_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -10,
@@ -30,8 +37,11 @@ def test_success(database):
                                                          assistance_type = '09', federal_action_obligation = None)
     other_fain_afa_row = AwardFinancialAssistanceFactory(fain = fain_two, federal_action_obligation = -9999,
                                                          original_loan_subsidy_cost = None)
+    third_fain_ap_row = AwardFinancialAssistanceFactory(fain = fain_three, federal_action_obligation = -9999)                                                         
 
-    errors = number_of_errors(_FILE, database, models=[first_fain_row_one, first_fain_row_two, second_fain_row_one, first_afa_row, second_afa_row, third_afa_row, wrong_type_afa_row, other_fain_afa_row])
+    errors = number_of_errors(_FILE, database, models=[first_fain_row_one, first_fain_row_two, second_fain_row_one,
+       first_afa_row, second_afa_row, third_afa_row, wrong_type_afa_row, other_fain_afa_row, third_fain_row_one,
+       third_fain_ap_row])
     assert errors == 0
 
 
@@ -40,10 +50,13 @@ def test_failure(database):
     # Create a 12 character random fain
     fain = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
     fain_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, fain = fain)
-    first_fain_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, fain = fain)
+    first_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, fain = fain,
+                                               allocation_transfer_agency = None)
+    first_fain_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, fain = fain,
+                                               allocation_transfer_agency = None)
     # And add a row that shouldn't be included
-    second_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, fain = fain_two)
+    second_fain_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, fain = fain_two,
+                                                allocation_transfer_agency = None)
     first_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -1100,
                                                     original_loan_subsidy_cost = None)
     second_afa_row = AwardFinancialAssistanceFactory(fain = fain, federal_action_obligation = -10,
