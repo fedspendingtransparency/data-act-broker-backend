@@ -28,4 +28,4 @@ HAVING
 		FROM award_financial_assistance as sub_afa
 		WHERE submission_id = {0} AND sub_afa.fain = af.fain and COALESCE(sub_afa.assistance_type,'') in ('07','08')))
 		AND NOT EXISTS (SELECT sub_af.allocation_transfer_agency FROM award_financial as sub_af WHERE sub_af.fain = af.fain
-			AND sub_af.allocation_transfer_agency is not null)
+			AND COALESCE(sub_af.allocation_transfer_agency,'') <> '')

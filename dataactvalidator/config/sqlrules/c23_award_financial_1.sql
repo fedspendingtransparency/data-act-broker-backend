@@ -17,4 +17,4 @@ HAVING
 		-1*(SELECT COALESCE(SUM(sub_ap.federal_action_obligation::numeric),0) AS obligation_sum
 			FROM award_procurement as sub_ap WHERE submission_id = {0} AND sub_ap.piid = af.piid)
 		AND NOT EXISTS (SELECT sub_af.allocation_transfer_agency FROM award_financial as sub_af WHERE sub_af.piid = af.piid
-			AND sub_af.allocation_transfer_agency is not null)
+			AND COALESCE(sub_af.allocation_transfer_agency,'') <> '')
