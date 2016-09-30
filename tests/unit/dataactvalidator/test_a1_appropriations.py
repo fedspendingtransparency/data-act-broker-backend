@@ -14,9 +14,8 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test that TAS values can be found, and null matches work correctly"""
-    # Create a 12 character random piid
     tas = TASFactory()
-    tas_null = TASFactory(allocation_transfer_agency = None)
+    tas_null = TASFactory(allocation_transfer_agency = None, availability_type_code = None, sub_account_code = None)
     approp = AppropriationFactory(allocation_transfer_agency = tas.allocation_transfer_agency,
                                   agency_identifier = tas.agency_identifier,
                                   beginning_period_of_availa = tas.beginning_period_of_availability,
@@ -25,44 +24,36 @@ def test_success(database):
                                   main_account_code = tas.main_account_code,
                                   sub_account_code = tas.sub_account_code)
     approp_null = AppropriationFactory(allocation_transfer_agency = None,
-                                       agency_identifier = tas.agency_identifier,
-                                       beginning_period_of_availa = tas.beginning_period_of_availability,
-                                       ending_period_of_availabil = tas.ending_period_of_availability,
+                                       agency_identifier = tas_null.agency_identifier,
+                                       beginning_period_of_availa = tas_null.beginning_period_of_availability,
+                                       ending_period_of_availabil = tas_null.ending_period_of_availability,
                                        availability_type_code = None,
-                                       main_account_code = tas.main_account_code,
+                                       main_account_code = tas_null.main_account_code,
                                        sub_account_code = None)
-    # And add a row for a different piid
-    second_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, piid = piid_two,
-                                                allocation_transfer_agency = None)
-    third_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 8888, piid = piid_three,
-                                               allocation_transfer_agency = 123)
-    third_piid_row_two = AwardFinancialFactory(transaction_obligated_amou = 8888, piid = piid_three,
-                                               allocation_transfer_agency = None)
 
-    first_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -1100)
-    second_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -10)
-    third_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -1)
-    second_piid_ap_row = AwardProcurementFactory(piid = piid_two, federal_action_obligation = -9999)
-    third_piid_ap_row = AwardProcurementFactory(piid = piid_three, federal_action_obligation = -9999)
-
-    errors = number_of_errors(_FILE, database, models=[first_piid_row_one, first_piid_row_two, second_piid_row_one,
-       third_piid_row_one, first_ap_row, second_ap_row, third_ap_row, second_piid_ap_row, third_piid_ap_row,
-       third_piid_row_two])
+    errors = number_of_errors(_FILE, database, models=[tas, tas_null, approp, approp_null])
     assert errors == 0
 
-
 def test_failure(database):
-    """ Test that a three digit object class with no flag is an error"""
-    # Create a 12 character random piid
-    piid = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    piid_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(12))
-    first_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 1100, piid = piid, allocation_transfer_agency = None)
-    first_piid_row_two = AwardFinancialFactory(transaction_obligated_amou = 11, piid = piid, allocation_transfer_agency = None)
-    # And add a row that shouldn't be included
-    second_piid_row_one = AwardFinancialFactory(transaction_obligated_amou = 9999, piid = piid_two, allocation_transfer_agency = None)
-    first_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -1100)
-    second_ap_row = AwardProcurementFactory(piid = piid, federal_action_obligation = -10)
-    other_piid_ap_row = AwardProcurementFactory(piid = piid_two, federal_action_obligation = -1111)
+    """ Test that tas that does not match is an error"""
 
-    errors = number_of_errors(_FILE, database, models=[first_piid_row_one, first_piid_row_two, second_piid_row_one, first_ap_row, second_ap_row, other_piid_ap_row])
+    tas = TASFactory(agency_identifier = randint(1,100))
+    tas_null = TASFactory(agency_identifier = randint(1,100), allocation_transfer_agency = None, availability_type_code = None, sub_account_code = None)
+    approp = AppropriationFactory(allocation_transfer_agency = tas.allocation_transfer_agency,
+                                  agency_identifier = randint(101,200),
+                                  beginning_period_of_availa = tas.beginning_period_of_availability,
+                                  ending_period_of_availabil = tas.ending_period_of_availability,
+                                  availability_type_code = tas.availability_type_code,
+                                  main_account_code = tas.main_account_code,
+                                  sub_account_code = tas.sub_account_code)
+    approp_null = AppropriationFactory(allocation_transfer_agency = None,
+                                       agency_identifier = randint(101,200),
+                                       beginning_period_of_availa = tas_null.beginning_period_of_availability,
+                                       ending_period_of_availabil = tas_null.ending_period_of_availability,
+                                       availability_type_code = None,
+                                       main_account_code = tas_null.main_account_code,
+                                       sub_account_code = None)
+
+    # Non-overlapping ranges of agency IDs should generate two errors
+    errors = number_of_errors(_FILE, database, models=[tas, tas_null, approp, approp_null])
     assert errors == 2
