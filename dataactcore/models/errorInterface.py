@@ -1,7 +1,8 @@
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.errorModels import FileStatus, ErrorType, File, ErrorMetadata
-
+from dataactcore.utils.responseException import ResponseException
 
 
 class ErrorInterface(BaseInterface):
@@ -131,3 +132,32 @@ class ErrorInterface(BaseInterface):
     def getCrossWarningReportName(self, submissionId, sourceFile, targetFile):
         """ Create error report filename based on source and target file """
         return "submission_{}_cross_warning_{}_{}.csv".format(submissionId, sourceFile, targetFile)
+
+    def createFileIfNeeded(self, jobId, filename = None):
+        """ Return the existing file object if it exists, or create a new one """
+        try:
+            fileRec = self.getFileByJobId(jobId)
+            # Set new filename for changes to an existing submission
+            fileRec.filename = filename
+        except ResponseException as e:
+            if isinstance(e.wrappedException, NoResultFound):
+                # No File object for this job ID, just create one
+                fileRec = self.createFile(jobId, filename)
+            else:
+                # Other error types should be handled at a higher level, so re-raise
+                raise
+        return fileRec
+
+    def createFile(self, jobId, filename):
+        """ Create a new file object for specified job and filename """
+        try:
+            int(jobId)
+        except:
+            raise ValueError("".join(["Bad jobId: ", str(jobId)]))
+
+        fileRec = File(job_id=jobId,
+                       filename=filename,
+                       file_status_id=self.getFileStatusId("incomplete"))
+        self.session.add(fileRec)
+        self.session.commit()
+        return fileRec
