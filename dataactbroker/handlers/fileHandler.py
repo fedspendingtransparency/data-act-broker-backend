@@ -583,7 +583,7 @@ class FileHandler:
         if valJob is not None:
             jobDb.markJobStatus(valJob.job_id, "finished")
             # Create File object for this validation job
-            valFile = errorDb.createFileIfNeeded(valJob.jobId, filename = valJob.filename)
+            valFile = errorDb.createFileIfNeeded(valJob.job_id, filename = valJob.filename)
             valFile.file_status_id = errorDb.getFileStatusId("complete")
             errorDb.session.commit()
             valJob.number_of_rows = 0
