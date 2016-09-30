@@ -22,7 +22,7 @@ def loadTas(tasFile=None):
             "dataactvalidator",
             "config",
             "all_tas_betc.csv")
-    data = pd.read_csv(tasFile, skiprows=1, dtype=str,
+    data = pd.read_csv(tasFile, dtype=str,
                        # something in the file format skews the columns/names
                        # so grab the tas-related columns by index. not going
                        # to do a deep investigation here, since we're about
