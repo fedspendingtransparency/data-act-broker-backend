@@ -22,7 +22,7 @@ def test_success(database):
 
     models = [sf_1, sf_2, sf_3, ap]
 
-    assert number_of_errors(_FILE, database.stagingDb, models=models) == 0
+    assert number_of_errors(_FILE, database, models=models) == 0
 
 
 def test_failure(database):
@@ -40,4 +40,4 @@ def test_failure(database):
 
     models = [sf_1, sf_2, sf_3, ap]
 
-    assert number_of_errors(_FILE, database.stagingDb, models=models) == 1
+    assert number_of_errors(_FILE, database, models=models) == 1

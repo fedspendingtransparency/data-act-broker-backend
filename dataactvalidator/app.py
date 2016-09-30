@@ -2,7 +2,7 @@ import sys
 import traceback
 from threading import Thread
 from flask import Flask, request, copy_current_request_context
-from dataactcore.models.baseInterface import BaseInterface
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
@@ -16,7 +16,7 @@ from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
 def createApp():
     """Create the Flask app."""
     try:
-        app = Flask(__name__)
+        app = Flask(__name__.split('.')[0])
         app.debug = CONFIG_SERVICES['server_debug']
         local = CONFIG_BROKER['local']
         error_report_path = CONFIG_SERVICES['error_report_path']
@@ -27,21 +27,13 @@ def createApp():
 
         validationManager = ValidationManager(local, error_report_path)
 
-        def clearInterfaces(response):
-            try:
-                interfaces =BaseInterface.interfaces
-                if interfaces is not None:
-                    interfaces.close()
-            except Exception as e:
-                print("Could not close connections")
-                print(str(type(e)) + ": " + str(e))
-                pass
-            return response
-        app.after_request(clearInterfaces)
+        @app.teardown_appcontext
+        def teardown_appcontext(exception):
+            GlobalDB.close()
 
-        def createInterfaces():
-            BaseInterface.interfaces = InterfaceHolder()
-        app.before_request(createInterfaces)
+        @app.before_request
+        def before_request():
+            GlobalDB.db()
 
         @app.route("/", methods=["GET"])
         def testApp():

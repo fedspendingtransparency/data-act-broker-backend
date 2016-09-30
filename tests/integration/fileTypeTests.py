@@ -9,7 +9,7 @@ from dataactcore.models.validationModels import RuleSql
 from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
-from dataactvalidator.filestreaming.loadFile import loadDomainValues
+from dataactvalidator.scripts.loadFile import loadDomainValues
 from dataactvalidator.scripts.loadTas import loadTas
 from tests.integration.baseTestValidator import BaseTestValidator
 import unittest
@@ -32,6 +32,7 @@ class FileTypeTests(BaseTestValidator):
         s3FileNameProgramValid = cls.uploadFile("programActivityValid.csv", user)
         s3FileNameAwardFinValid = cls.uploadFile("awardFinancialValid.csv", user)
         s3FileNameAwardValid = cls.uploadFile("awardValid.csv", user)
+        s3FileNameAwardProcValid = cls.uploadFile("awardProcValid.csv", user)
 
         # Create submissions and get IDs back
         submissionIDs = {}
@@ -46,7 +47,8 @@ class FileTypeTests(BaseTestValidator):
             "valid": [statusReady, jobTypeCsv, str(submissionIDs[1]), s3FileNameValid, jobDb.getFileTypeId("appropriations")],
             "programValid": [statusReady, jobTypeCsv, str(submissionIDs[4]), s3FileNameProgramValid, jobDb.getFileTypeId("program_activity")],
             "awardFinValid": [statusReady, jobTypeCsv, str(submissionIDs[6]), s3FileNameAwardFinValid, jobDb.getFileTypeId("award_financial")],
-            "awardValid": [statusReady, jobTypeCsv, str(submissionIDs[8]), s3FileNameAwardValid, jobDb.getFileTypeId("award")]
+            "awardValid": [statusReady, jobTypeCsv, str(submissionIDs[8]), s3FileNameAwardValid, jobDb.getFileTypeId("award")],
+            "awardProcValid": [statusReady, jobTypeCsv, str(submissionIDs[8]), s3FileNameAwardProcValid, jobDb.getFileTypeId("award_procurement")]
         }
 
         jobIdDict = {}
@@ -85,29 +87,35 @@ class FileTypeTests(BaseTestValidator):
         if (interfaces.validationDb.session.query(TASLookup).count() == 0
                 or force_tas_load):
             # TAS table is empty, load it
-            loadTas(tasFile=os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data", "all_tas_betc.csv"), dropIdx=False)
+            loadTas(tasFile=os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data", "all_tas_betc.csv"))
 
     def test_approp_valid(self):
         """Test valid job."""
         jobId = self.jobIdDict["valid"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 63, 10, "complete", 0, False, numWarnings=10)
+            jobId, 200, "finished", 63, 10, "complete", 0, numWarnings=10)
 
     def test_program_valid(self):
         """Test valid job."""
         jobId = self.jobIdDict["programValid"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 63, 10, "complete", 0, False)
+            jobId, 200, "finished", 63, 10, "complete", 0)
 
     def test_award_fin_valid(self):
         """Test valid job."""
         jobId = self.jobIdDict["awardFinValid"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 63, 10, "complete", 0, False)
+            jobId, 200, "finished", 63, 10, "complete", 0)
 
     def test_award_valid(self):
         """Test valid job."""
         jobId = self.jobIdDict["awardValid"]
+        self.passed = self.run_test(
+            jobId, 200, "finished", 63, 10, "complete", 0)
+
+    def test_award_proc_valid(self):
+        """Test valid job."""
+        jobId = self.jobIdDict["awardProcValid"]
         self.passed = self.run_test(
             jobId, 200, "finished", 63, 10, "complete", 0, False)
 

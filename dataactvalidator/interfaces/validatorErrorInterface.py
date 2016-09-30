@@ -12,36 +12,6 @@ class ValidatorErrorInterface(ErrorInterface):
         self.rowErrors = {}
         super(ValidatorErrorInterface, self).__init__()
 
-    def createFile(self, jobId, filename):
-        """ Create a new file object for specified job and filename """
-        try:
-            int(jobId)
-        except:
-            raise ValueError("".join(["Bad jobId: ", str(jobId)]))
-
-        fileRec = File(job_id=jobId,
-                       filename=filename,
-                       row_errors_present=False,
-                       file_status_id=self.getFileStatusId("incomplete"))
-        self.session.add(fileRec)
-        self.session.commit()
-        return fileRec
-
-    def createFileIfNeeded(self, jobId, filename):
-        """ Return the existing file object if it exists, or create a new one """
-        try:
-            fileRec = self.getFileByJobId(jobId)
-            # Set new filename for changes to an existing submission
-            fileRec.filename = filename
-        except ResponseException as e:
-            if isinstance(e.wrappedException, NoResultFound):
-                # No File object for this job ID, just create one
-                fileRec = self.createFile(jobId, filename)
-            else:
-                # Other error types should be handled at a higher level, so re-raise
-                raise
-        return fileRec
-
     def writeFileError(self, jobId, filename, errorType, extraInfo = None):
         """ Write a file-level error to the file table
 
@@ -74,7 +44,7 @@ class ValidatorErrorInterface(ErrorInterface):
         self.session.commit()
         return True
 
-    def markFileComplete(self, jobId, filename):
+    def markFileComplete(self, jobId, filename = None):
         """ Marks file's status as complete
 
         Args:
@@ -182,14 +152,3 @@ class ValidatorErrorInterface(ErrorInterface):
         # Create single string out of duplicated header list
         fileRec.headers_duplicated = ",".join(duplicatedHeaders)
         self.session.commit()
-
-    def setRowErrorsPresent(self, jobId, errorsPresent):
-        """ Set errors present for the specified job ID to true or false.  Note this refers only to row-level errors, not file-level errors. """
-        fileRec = self.getFileByJobId(jobId)
-        # If errorsPresent is not a bool, this function will raise a TypeError
-        fileRec.row_errors_present = bool(errorsPresent)
-        self.session.commit()
-
-    def getRowErrorsPresent(self, jobId):
-        """ Returns True or False depending on if errors were found in the specified job """
-        return self.getFileByJobId(jobId).row_errors_present

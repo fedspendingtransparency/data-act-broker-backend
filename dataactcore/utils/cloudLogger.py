@@ -4,7 +4,7 @@ import os
 import json
 from datetime import datetime
 from dataactcore.utils.responseException import ResponseException
-from dataactcore.config import CONFIG_LOGGING
+from dataactcore.read_config import CONFIG_LOGGING
 
 class CloudLogger(object):
     """Singleton Logging object."""
@@ -46,8 +46,8 @@ class CloudLogger(object):
                 os.makedirs(path)
             localFile = os.path.join(path, "error.log")
             with open(localFile, "a") as file:
-                file.write("\n\n".join(["\n\n", message,
-                    str(exception), json.dumps(logging_helpers)]))
+                file.write("{} {} {}\n".format(message,
+                    str(exception), json.dumps(logging_helpers)))
 
     @staticmethod
     def log(message, log_type="info", file_name="info.log"):

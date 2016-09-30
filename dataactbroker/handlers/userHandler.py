@@ -2,7 +2,7 @@ import uuid
 import time
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm import joinedload
-from sqlalchemy import func, and_
+from sqlalchemy import func
 from dataactcore.models.userModel import User, PermissionType
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
@@ -413,47 +413,6 @@ class UserHandler(UserInterface):
         """
         queryResult = self.session.query(PermissionType).all()
         return queryResult
-
-    def createUserWithPassword(self,email,password,bcrypt,permission=1,cgac_code="SYS"):
-        """ This directly creates a valid user in the database with password and permissions set.  Not used during normal
-        behavior of the app, but useful for configuration and testing.
-
-        Arguments:
-            email - Email for new user
-            password - Password to assign to user
-            bcrypt - bcrypt to use for password hashing
-            admin - Whether the new user should be an admin
-        """
-        user = User(email = email)
-        self.session.add(user)
-        self.setPassword(user,password,bcrypt)
-        self.changeStatus(user,"approved")
-        self.setPermission(user,permission)
-        user.cgac_code = cgac_code
-        self.session.commit()
-
-    def loadEmailTemplate(self, subject, contents, emailType):
-        """ Upsert a broker e-mail template.
-
-        Args:
-            subject - Subject line
-            contents - Body of email, can include tags to be replaced
-            emailType - Type of template, if there is already an entry for this type it will be overwritten
-        """
-        emailId = self.session.query(
-            EmailTemplateType.email_template_type_id).filter(
-            EmailTemplateType.name == emailType).one()
-        templateId = self.session.query(
-            EmailTemplate.email_template_id).filter(
-            EmailTemplate.template_type_id == emailId).one_or_none()
-        template = EmailTemplate()
-        if templateId:
-            template.email_template_id = templateId
-        template.subject = subject
-        template.content = contents
-        template.template_type_id = emailId
-        self.session.merge(template)
-        self.session.commit()
 
     def updateLastLogin(self, user, unlock_user=False):
         """ This updates the last login date to today's datetime for the user to the current date upon successful login.
