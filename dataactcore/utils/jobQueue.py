@@ -1,9 +1,12 @@
+from contextlib import contextmanager
+
 from celery import Celery
 from flask import Flask
 import requests
 
 from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE
-from dataactcore.utils import fileF
+from dataactcore.models.stagingModels import AwardProcurement
+from dataactcore.utils import fileE, fileF
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
@@ -79,6 +82,22 @@ def generate_f_file(submission_id, job_id, interface_holder_class,
 
         write_csv(timestamped_name, upload_file_name, is_local, header,
                   body)
+
+
+@celery_app.task(name='jobQueue.generate_e_file')
+def generate_e_file(submission_id, job_id, interface_holder_class,
+                    timestamped_name, upload_file_name, is_local):
+    """Write file E to an appropriate CSV. See generate_file_file for an
+    explanation of interface_holder_class"""
+    with job_context(interface_holder_class, job_id) as job_manager:
+        results = job_manager.session.\
+            query(AwardProcurement.awardee_or_recipient_uniqu).\
+            filter(AwardProcurement.submission_id == submission_id).\
+            distinct()
+        duns = [r.awardee_or_recipient_uniqu for r in results]
+
+        write_csv(timestamped_name, upload_file_name, is_local,
+                  fileE.Row._fields, fileE.retrieveRows(duns))
 
 
 if __name__ in ['__main__', 'jobQueue']:
