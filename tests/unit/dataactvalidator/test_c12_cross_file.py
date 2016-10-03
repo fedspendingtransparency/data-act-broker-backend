@@ -30,6 +30,12 @@ def test_success(database):
 
     assert number_of_errors(_FILE, database, models=[ap]) == 0
 
+    # Checks null = null
+    ap = AwardProcurementFactory(piid='some_piid', parent_award_id=None, federal_action_obligation='1')
+    af = AwardFinancialFactory(piid='some_piid', parent_award_id=None)
+
+    assert number_of_errors(_FILE, database, models=[ap, af]) == 0
+
 
 def test_failure(database):
     """ Unique PIID, ParentAwardId from file D1 doesn't exist in file C during the same reporting period, except D1 records
