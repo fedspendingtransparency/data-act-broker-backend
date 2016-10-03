@@ -17,7 +17,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency
 from dataactcore.models.errorModels import File
 from dataactcore.utils.cloudLogger import CloudLogger
-from dataactcore.utils.jobQueue import generate_f_file
+from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -505,14 +505,14 @@ class FileHandler:
                             log_type="debug",
                             file_name=self.debug_file_name)
             return self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
+        elif file_type == 'E':
+            generate_e_file.delay(
+                submission_id, job.job_id, InterfaceHolder, timestamped_name,
+                upload_file_name, self.isLocal)
         elif file_type == 'F':
             generate_f_file.delay(
                 submission_id, job.job_id, InterfaceHolder, timestamped_name,
                 upload_file_name, self.isLocal)
-        else:
-            # TODO add generate calls for E
-            jobDb.markJobStatus(job.job_id,"finished")
-            pass
 
         return True, None
 
