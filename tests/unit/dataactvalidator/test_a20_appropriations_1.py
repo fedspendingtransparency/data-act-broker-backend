@@ -4,7 +4,7 @@ from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 from random import choice
 from string import ascii_uppercase, ascii_lowercase, digits
 
-_FILE = 'a20_appropriations'
+_FILE = 'a20_appropriations_1'
 
 def test_column_headers(database):
     expected_subset = {"row_number", "allocation_transfer_agency"}
@@ -14,9 +14,10 @@ def test_column_headers(database):
 def test_success(database):
     """ Test that TAS values can be found, and null matches work correctly"""
     approp = AppropriationFactory()
+    approp_null = AppropriationFactory(allocation_transfer_agency = None)
     cgac = CGACFactory(cgac_code = approp.allocation_transfer_agency)
 
-    errors = number_of_errors(_FILE, database, models=[approp, cgac])
+    errors = number_of_errors(_FILE, database, models=[approp, approp_null, cgac])
     assert errors == 0
 
 def test_failure(database):
@@ -25,7 +26,7 @@ def test_failure(database):
     cgac_one = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(5))
     cgac_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(4))
     approp = AppropriationFactory(allocation_transfer_agency = cgac_one)
-    cgac = AppropriationFactory(cgac_code = cgac_two)
+    cgac = CGACFactory(cgac_code = cgac_two)
 
     errors = number_of_errors(_FILE, database, models=[approp, cgac])
-    assert errors == 2
+    assert errors == 1
