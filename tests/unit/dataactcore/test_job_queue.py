@@ -3,17 +3,10 @@ import csv
 import os
 from unittest.mock import Mock
 
-import pytest
-from pytest import raises
-
 from dataactcore.utils import jobQueue
-from dataactcore.config import CONFIG_BROKER
-from dataactcore.utils.responseException import ResponseException
 
 
-def read_f_file_rows(suffix, file_path):
-    jobQueue.generate_f_file(1, 1, Mock(), suffix, suffix, is_local=True)
-
+def read_file_rows(file_path):
     assert os.path.isfile(file_path)
 
     with open(file_path) as f:
@@ -31,13 +24,15 @@ def test_generate_f_file(monkeypatch, mock_broker_config_paths):
 
     fileF_mock.mappings = OrderedDict(
         [('key4', 'mapping4'), ('key11', 'mapping11')])
-    file_path = str(mock_broker_config_paths['broker_files'].join('unique1'))
+    file_path = str(mock_broker_config_paths['broker_files'].join('uniq1'))
     expected = [['key4', 'key11'], ['a', 'b'], ['c', 'd']]
-    assert read_f_file_rows('unique1', file_path) == expected
+    jobQueue.generate_f_file(1, 1, Mock(), 'uniq1', 'uniq1', is_local=True)
+    assert read_file_rows(file_path) == expected
 
     # re-order
     fileF_mock.mappings = OrderedDict(
         [('key11', 'mapping11'), ('key4', 'mapping4')])
-    file_path = str(mock_broker_config_paths['broker_files'].join('unique2'))
+    file_path = str(mock_broker_config_paths['broker_files'].join('uniq2'))
     expected = [['key11', 'key4'], ['b', 'a'], ['d', 'c']]
-    assert read_f_file_rows('unique2', file_path) == expected
+    jobQueue.generate_f_file(1, 1, Mock(), 'uniq2', 'uniq2', is_local=True)
+    assert read_file_rows(file_path) == expected
