@@ -12,7 +12,7 @@ def test_column_headers(database):
     assert expected_subset <= actual
 
 def test_success(database):
-    """ Test that TAS values can be found, and null matches work correctly"""
+    """ Test that agency codes are matched against cgac correctly """
     ocpa = ObjectClassProgramActivityFactory()
     ocpa_null = ObjectClassProgramActivityFactory(allocation_transfer_agency = None)
     cgac = CGACFactory(cgac_code = ocpa.allocation_transfer_agency)
@@ -21,7 +21,7 @@ def test_success(database):
     assert errors == 0
 
 def test_failure(database):
-    """ Test that tas that does not match is an error"""
+    """ Test a cgac not present in cgac table"""
     # These cgacs are different lengths to avoid being equal
     cgac_one = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(5))
     cgac_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(4))
