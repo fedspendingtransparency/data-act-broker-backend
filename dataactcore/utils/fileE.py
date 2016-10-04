@@ -27,21 +27,21 @@ def createAuth(client):
     return auth
 
 
-def createSearch(client, duns):
+def createSearch(client, dunsList):
     search = client.factory.create('entitySearchCriteriaType')
     search.DUNSList = client.factory.create('DUNSList')
-    search.DUNSList.DUNSNumber = duns
+    search.DUNSList.DUNSNumber = dunsList
     return search
 
 
-def getEntities(client, duns):
+def getEntities(client, dunsList):
     """Hit the SAM SOAP API, searching for the provided DUNS numbers. Return
     the results as a list of Suds objects"""
     params = client.factory.create('requestedData')
     params.coreData.value = 'Y'
 
     result = client.service.getEntities(
-        createAuth(client), createSearch(client, duns), params)
+        createAuth(client), createSearch(client, dunsList), params)
 
     if result.listOfEntities:
         return result.listOfEntities.entity
