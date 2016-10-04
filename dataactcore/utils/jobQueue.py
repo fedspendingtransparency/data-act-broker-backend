@@ -5,7 +5,8 @@ from flask import Flask
 import requests
 
 from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE
-from dataactcore.models.stagingModels import AwardProcurement
+from dataactcore.models.stagingModels import (
+    AwardFinancialAssistance, AwardProcurement)
 from dataactcore.utils import fileE, fileF
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactvalidator.filestreaming.csv_selection import write_csv
@@ -90,14 +91,18 @@ def generate_e_file(submission_id, job_id, interface_holder_class,
     """Write file E to an appropriate CSV. See generate_file_file for an
     explanation of interface_holder_class"""
     with job_context(interface_holder_class, job_id) as job_manager:
-        results = job_manager.session.\
+        d1 = job_manager.session.\
             query(AwardProcurement.awardee_or_recipient_uniqu).\
             filter(AwardProcurement.submission_id == submission_id).\
             distinct()
-        duns = [r.awardee_or_recipient_uniqu for r in results]
+        d2 = job_manager.session.\
+            query(AwardFinancialAssistance.awardee_or_recipient_uniqu).\
+            filter(AwardFinancialAssistance.submission_id == submission_id).\
+            distinct()
+        dunsSet = {r.awardee_or_recipient_uniqu for r in d1.union(d2)}
 
         write_csv(timestamped_name, upload_file_name, is_local,
-                  fileE.Row._fields, fileE.retrieveRows(duns))
+                  fileE.Row._fields, fileE.retrieveRows(list(dunsSet)))
 
 
 if __name__ in ['__main__', 'jobQueue']:

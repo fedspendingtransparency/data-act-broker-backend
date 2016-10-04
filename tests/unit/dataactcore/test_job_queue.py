@@ -4,7 +4,8 @@ import os
 from unittest.mock import Mock
 
 from dataactcore.utils import fileE, jobQueue
-from tests.unit.dataactcore.factories.staging import AwardProcurementFactory
+from tests.unit.dataactcore.factories.staging import (
+    AwardFinancialAssistanceFactory, AwardProcurementFactory)
 
 
 def read_file_rows(file_path):
@@ -39,27 +40,25 @@ def test_generate_f_file(monkeypatch, mock_broker_config_paths):
     assert read_file_rows(file_path) == expected
 
 
-def test_generate_e_file(monkeypatch, mock_broker_config_paths, database):
-    """A CSV with fields in the right order should be written to the file
-    system"""
+def test_generate_e_file_query(monkeypatch, mock_broker_config_paths,
+                               database):
+    """Verify that generate_e_file makes an appropriate query (matching both
+    D1 and D2 entries)"""
     # Generate several file D1 entries, largely with the same submission_id,
-    # and with two overlapping DUNS
+    # and with two overlapping DUNS. Generate several D2 entries with the same
+    # submission_id as well
     model = AwardProcurementFactory()
     aps = [AwardProcurementFactory(submission_id=model.submission_id)
            for i in range(4)]
+    afas = [AwardFinancialAssistanceFactory(submission_id=model.submission_id)
+            for i in range(5)]
     same_duns = AwardProcurementFactory(
         submission_id=model.submission_id,
         awardee_or_recipient_uniqu=model.awardee_or_recipient_uniqu)
     unrelated = AwardProcurementFactory(submission_id=model.submission_id + 1)
-    database.session.add_all(aps + [model, same_duns, unrelated])
+    database.session.add_all(aps + afas + [model, same_duns, unrelated])
 
     monkeypatch.setattr(jobQueue.fileE, 'retrieveRows', Mock())
-    jobQueue.fileE.retrieveRows.return_value = [
-        fileE.Row('a', 'b', 'c', '1a', '1b', '2a', '2b', '3a', '3b',
-                  '4a', '4b', '5a', '5b'),
-        fileE.Row('A', 'B', 'C', '1A', '1B', '2A', '2B', '3A', '3B',
-                  '4A', '4B', '5A', '5B')
-    ]
 
     # Mock out the interface holder class; rather nasty, as we want to _keep_
     # the database session handler
@@ -68,6 +67,31 @@ def test_generate_e_file(monkeypatch, mock_broker_config_paths, database):
     jobQueue.generate_e_file(
         model.submission_id, 1, interface_class, 'uniq', 'uniq',
         is_local=True)
+
+    # [0][0] gives us the first, non-keyword args
+    call_args = jobQueue.fileE.retrieveRows.call_args[0][0]
+    expected = [ap.awardee_or_recipient_uniqu for ap in aps]
+    expected.append(model.awardee_or_recipient_uniqu)
+    expected.extend(afa.awardee_or_recipient_uniqu for afa in afas)
+    assert list(sorted(call_args)) == list(sorted(expected))
+
+
+def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
+    """Verify that an appropriate CSV is written, based on fileE.Row's
+    structure"""
+    monkeypatch.setattr(jobQueue.fileE, 'retrieveRows', Mock())
+    jobQueue.fileE.retrieveRows.return_value = [
+        fileE.Row('a', 'b', 'c', '1a', '1b', '2a', '2b', '3a', '3b',
+                  '4a', '4b', '5a', '5b'),
+        fileE.Row('A', 'B', 'C', '1A', '1B', '2A', '2B', '3A', '3B',
+                  '4A', '4B', '5A', '5B')
+    ]
+
+    interface_class = Mock()
+    interface_class.return_value.jobDb.session = database.session
+    jobQueue.generate_e_file(
+        1, 1, interface_class, 'uniq', 'uniq', is_local=True)
+
     file_path = str(mock_broker_config_paths['broker_files'].join('uniq'))
     expected = [
         ['AwardeeOrRecipientUniqueIdentifier',
@@ -84,9 +108,3 @@ def test_generate_e_file(monkeypatch, mock_broker_config_paths, database):
          '5A', '5B']
     ]
     assert read_file_rows(file_path) == expected
-
-    # [0][0] gives us the first, non-keyword args
-    call_args = jobQueue.fileE.retrieveRows.call_args[0][0]
-    expected = [ap.awardee_or_recipient_uniqu for ap in aps]
-    expected.append(model.awardee_or_recipient_uniqu)
-    assert list(sorted(call_args)) == list(sorted(expected))

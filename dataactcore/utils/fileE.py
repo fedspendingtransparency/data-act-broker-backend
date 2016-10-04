@@ -90,12 +90,12 @@ def sudsToRow(sudsObj):
     )
 
 
-def retrieveRows(duns):
+def retrieveRows(dunsList):
     """Soup-to-nuts creates a list of Row tuples from a set of DUNS
     numbers."""
     if configValid():
         client = Client(CONFIG_BROKER['sam']['wsdl'])
-        return [sudsToRow(e) for e in getEntities(client, duns)]
+        return [sudsToRow(e) for e in getEntities(client, dunsList)]
     else:
         logger.error("Invalid sam config")
         return []
