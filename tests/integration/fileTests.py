@@ -122,20 +122,21 @@ class FileTests(BaseTestAPI):
 
         # Test that job ids are returned
         responseDict = json
-        fileKeys = ["program_activity", "award_financial",
-            "appropriations"]
-        for key in fileKeys:
-            idKey = "".join([key,"_id"])
-            self.assertIn(idKey, responseDict)
-            jobId = responseDict[idKey]
-            self.assertIsInstance(jobId, int)
-            # Check that original filenames were stored in DB
-            originalFilename = self.interfaces.jobDb.getOriginalFilenameById(jobId)
-            self.assertEquals(originalFilename,self.filenames[key])
-        # check that submission got mapped to the correct user
-        submissionId = responseDict["submission_id"]
-        self.file_submission_id = submissionId
-        submission = self.interfaces.jobDb.getSubmissionById(submissionId)
+        fileKeys = ["program_activity", "award_financial", "appropriations"]
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            for key in fileKeys:
+                idKey = '{}_id'.format(key)
+                self.assertIn(idKey, responseDict)
+                jobId = responseDict[idKey]
+                self.assertIsInstance(jobId, int)
+                # Check that original filenames were stored in DB
+                originalFilename = sess.query(Job).filter(Job.job_id == jobId).one().original_filename
+                self.assertEquals(originalFilename, self.filenames[key])
+            # check that submission got mapped to the correct user
+            submissionId = responseDict["submission_id"]
+            self.file_submission_id = submissionId
+            submission = sess.query(Submission).filter(Submission.submission_id == submissionId).one()
         self.assertEqual(submission.user_id, self.submission_user_id)
         # Check that new submission is unpublished
         self.assertEqual(submission.publish_status_id, self.interfaces.jobDb.getPublishStatusId("unpublished"))
