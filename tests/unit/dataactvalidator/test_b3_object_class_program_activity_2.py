@@ -1,4 +1,3 @@
-from tests.unit.dataactcore.factories.domain import SF133Factory
 from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 from random import uniform, randint
@@ -36,8 +35,8 @@ def test_success(database):
 
 def test_failure(database):
     """ Test that calculation fails for unequal values """
-    value = round(uniform(0,1000),2)
-    value2 = round(uniform(1001,2000),2)
+    value = Decimal(randint(0,100000)) / Decimal(100)
+    value2 = Decimal(randint(100001,200000)) / Decimal(100)
     ocpa = ObjectClassProgramActivityFactory(obligations_undelivered_or_cpe = value,
                                              ussgl480100_undelivered_or_cpe = value2,
                                              ussgl483100_undelivered_or_cpe = value2,
