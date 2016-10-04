@@ -4,13 +4,17 @@ import os.path
 import pytest
 
 import dataactcore.config
+# Load all models so we can access them through baseModel.Base.__subclasses__
+from dataactcore.models import (    # noqa
+    baseModel, domainModels, fsrs, errorModels, jobModels, stagingModels,
+    userModel, validationModels)
 from dataactcore.scripts.databaseSetup import (
     createDatabase, dropDatabase, runMigrations)
 from dataactcore.interfaces.db import dbConnection
 
 
 @pytest.fixture(scope='session')
-def database():
+def full_database_setup():
     """Sets up a clean database, yielding a relevant interface holder"""
     rand_id = str(randint(1, 9999))
 
@@ -26,6 +30,18 @@ def database():
 
     db.close()
     dropDatabase(config['db_name'])
+
+
+@pytest.fixture()
+def database(full_database_setup):
+    """Sets up a clean database if needed, deletes any models after each
+    test"""
+    yield full_database_setup
+    sess = full_database_setup.session
+
+    for model in baseModel.Base.__subclasses__():
+        sess.query(model).delete(synchronize_session=False)
+    sess.expire_all()
 
 
 @pytest.fixture()
