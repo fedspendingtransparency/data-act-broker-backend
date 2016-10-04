@@ -92,3 +92,64 @@ def test_sudsToRow_too_many_compensation():
         'B Duns', 'Par DunsB', 'Par NameB',
         'Person 9', 99.99, 'Person 8', 88.88, 'Person 7', 77.77,
         'Person 6', 66.66, 'Person 5', 55.55)
+
+
+def test_retrieveRows(monkeypatch):
+    """Mock out a response from the SAM API and spot check several of the
+    components that built it up"""
+    monkeypatch.setattr(fileE, 'CONFIG_BROKER', _VALID_CONFIG)
+    mock_result = Mock(
+        listOfEntities=Mock(
+            entity=[
+                Mock(
+                    entityIdentification=Mock(DUNS='entity1'),
+                    coreData=Mock(
+                        listOfExecutiveCompensationInformation=Mock(
+                            executiveCompensationDetail=[
+                                Mock(compensation=123.45),
+                                Mock(compensation=234.56)
+                            ]
+                        ),
+                        DUNSInformation=Mock(
+                            globalParentDUNS=Mock(
+                                DUNSNumber='parent1Duns',
+                                legalBusinessName='parent1'
+                            )
+                        )
+                    )
+                ),
+                Mock(
+                    entityIdentification=Mock(DUNS='entity2'),
+                    coreData=Mock(
+                        # Indicates no data
+                        listOfExecutiveCompensationInformation='',
+                        DUNSInformation=Mock(
+                            globalParentDUNS=Mock(
+                                DUNSNumber='parent2Duns',
+                                legalBusinessName='parent2'
+                            )
+                        )
+                    )
+                ),
+            ]
+        )
+    )
+    mock_Client = Mock()
+    mock_Client.return_value.service.getEntities.return_value = mock_result
+    monkeypatch.setattr(fileE, 'Client', mock_Client)
+
+    rows = fileE.retrieveRows(['duns1', 'duns2'])
+    assert len(rows) == 2
+    assert rows[0].AwardeeOrRecipientUniqueIdentifier == 'entity1'
+    assert rows[0].HighCompOfficer1Amount == 234.56
+    assert rows[0].HighCompOfficer5Amount == ''
+    assert rows[1].UltimateParentUniqueIdentifier == 'parent2Duns'
+    assert rows[1].UltimateParentLegalEntityName == 'parent2'
+
+    # [0] for positional args
+    call_params = mock_Client.return_value.service.getEntities.call_args[0]
+    auth, search, params = call_params
+    assert auth.userID == _VALID_CONFIG['sam']['username']
+    assert auth.password == _VALID_CONFIG['sam']['password']
+    assert search.DUNSList.DUNSNumber == ['duns1', 'duns2']
+    assert params.coreData.value == 'Y'
