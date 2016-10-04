@@ -162,21 +162,23 @@ class FileTests(BaseTestAPI):
                 "reporting_period_start_date":"02/2016",
                 "reporting_period_end_date":"03/2016"}
         # Mark submission as published
-        updateSubmission = self.interfaces.jobDb.getSubmissionById(self.updateSubmissionId)
-        updateSubmission.publish_status_id = self.interfaces.jobDb.getPublishStatusId("published")
-        self.interfaces.jobDb.session.commit()
-        updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id":self.session_id})
-        self.assertEqual(updateResponse.status_code, 200)
-        self.assertEqual(updateResponse.headers.get("Content-Type"), "application/json")
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            updateSubmission = sess.query(Submission).filter(Submission.submission_id == self.updateSubmissionId).one()
+            updateSubmission.publish_status_id = self.publishStatusDict['published']
+            sess.commit()
+            updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id": self.session_id})
+            self.assertEqual(updateResponse.status_code, 200)
+            self.assertEqual(updateResponse.headers.get("Content-Type"), "application/json")
 
-        json = updateResponse.json
-        self.assertIn("updated.csv", json["award_financial_key"])
-        submissionId = json["submission_id"]
-        submission = self.interfaces.jobDb.getSubmissionById(submissionId)
-        self.assertEqual(submission.cgac_code,"SYS") # Should not have changed agency name
-        self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"),"02/2016")
-        self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"),"03/2016")
-        self.assertEqual(submission.publish_status_id, self.interfaces.jobDb.getPublishStatusId("updated"))
+            json = updateResponse.json
+            self.assertIn("updated.csv", json["award_financial_key"])
+            submissionId = json["submission_id"]
+            submission = sess.query(Submission).filter(Submission.submission_id == submissionId).one()
+            self.assertEqual(submission.cgac_code, "SYS")  # Should not have changed agency name
+            self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"), "02/2016")
+            self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"), "03/2016")
+            self.assertEqual(submission.publish_status_id, self.publishStatusDict['updated'])
 
     def test_bad_quarter_or_month(self):
         """ Test file submissions for Q5, 13, and AB, and year of ABCD """
