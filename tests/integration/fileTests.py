@@ -140,7 +140,7 @@ class FileTests(BaseTestAPI):
             submission = sess.query(Submission).filter(Submission.submission_id == submissionId).one()
         self.assertEqual(submission.user_id, self.submission_user_id)
         # Check that new submission is unpublished
-        self.assertEqual(submission.publish_status_id, self.interfaces.jobDb.getPublishStatusId("unpublished"))
+        self.assertEqual(submission.publish_status_id, self.publishStatusDict['unpublished'])
 
         # Call upload complete route
         finalizeResponse = self.check_upload_complete(
@@ -553,7 +553,6 @@ class FileTests(BaseTestAPI):
         sess.commit()
         return fs.file_id
 
-    #@staticmethod
     @classmethod
     def insertRowLevelError(cls, sess, job_id):
         """Insert one error into error database."""
