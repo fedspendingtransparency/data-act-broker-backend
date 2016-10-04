@@ -10,6 +10,7 @@ from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
+from dataactcore.models import lookups
 from dataactcore.models.userModel import AccountType, User, UserStatus
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupUserDB import setupUserDB
@@ -107,7 +108,7 @@ class BaseTestAPI(unittest.TestCase):
             createUserWithPassword(
                 test_users['agency_user'], user_password, Bcrypt())
 
-        # get user info and save as class variables for use by tests
+            # get user info and save as class variables for use by tests
 
             sess = GlobalDB.db().session
 
@@ -158,6 +159,14 @@ class BaseTestAPI(unittest.TestCase):
             sess.add(deactivated_user)
 
             sess.commit()
+
+        # get lookup dictionaries
+        cls.jobStatusDict = lookups.JOB_STATUS_DICT
+        cls.jobTypeDict = lookups.JOB_TYPE_DICT
+        cls.fileTypeDict = lookups.FILE_TYPE_DICT
+        cls.fileStatusDict = lookups.FILE_STATUS_DICT
+        cls.ruleSeverityDict = lookups.RULE_SEVERITY_DICT
+        cls.errorTypeDict = lookups.ERROR_TYPE_DICT
 
         # set up info needed by the individual test classes
         cls.test_users = test_users
