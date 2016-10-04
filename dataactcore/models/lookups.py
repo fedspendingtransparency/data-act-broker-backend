@@ -18,7 +18,7 @@ FILE_STATUS = [
     LookupType(5, 'job_error', 'File has not yet been validated'),
     LookupType(6, 'incomplete', 'File has not yet been validated')
 ]
-FILE_STATUS_DICT = {item.id: item.name for item in FILE_STATUS}
+FILE_STATUS_DICT = {item.name: item.id for item in FILE_STATUS}
 
 ERROR_TYPE = [
     LookupType(1, 'type_error', 'The value provided was of the wrong type'),
@@ -29,7 +29,7 @@ ERROR_TYPE = [
     LookupType(6, 'rule_failed', 'A rule failed for this value'),
     LookupType(7, 'length_error', 'Value was longer than allowed length')
 ]
-ERROR_TYPE_DICT = {item.id: item.name for item in ERROR_TYPE}
+ERROR_TYPE_DICT = {item.name: item.id for item in ERROR_TYPE}
 
 JOB_STATUS = [
     LookupType(1, 'waiting', 'check dependency table'),
@@ -39,7 +39,7 @@ JOB_STATUS = [
     LookupType(5, 'invalid', 'job is invalid'),
     LookupType(6, 'failed', 'job failed to complete')
 ]
-JOB_STATUS_DICT = {item.id: item.name for item in JOB_STATUS}
+JOB_STATUS_DICT = {item.name: item.id for item in JOB_STATUS}
 
 JOB_TYPE = [
     LookupType(1, 'file_upload', 'file must be uploaded to S3'),
@@ -48,14 +48,14 @@ JOB_TYPE = [
     LookupType(4, 'validation', 'new information must be validated'),
     LookupType(5, 'external_validation', 'new information must be validated against external sources')
 ]
-JOB_TYPE_DICT = {item.id: item.name for item in JOB_TYPE}
+JOB_TYPE_DICT = {item.name: item.id for item in JOB_TYPE}
 
 PUBLISH_STATUS = [
     LookupType(1, 'unpublished', 'Has not yet been moved to data store'),
     LookupType(2, 'published', 'Has been moved to data store'),
     LookupType(3, 'updated', 'Submission was updated after being published')
 ]
-PUBLISH_STATUS_DICT = {item.id: item.name for item in PUBLISH_STATUS}
+PUBLISH_STATUS_DICT = {item.name: item.id for item in PUBLISH_STATUS}
 
 FILE_TYPE = [
     LookupFileType(1, 'appropriations', '', 'A', 1),
@@ -66,7 +66,7 @@ FILE_TYPE = [
     LookupFileType(6, 'awardee_attributes', '', 'E', None),
     LookupFileType(7, 'sub_award', '', 'F', None)
 ]
-FILE_TYPE_DICT = {item.id: item.name for item in FILE_TYPE}
+FILE_TYPE_DICT = {item.name: item.id for item in FILE_TYPE}
 
 USER_STATUS = [
     LookupType(1, 'awaiting_confirmation', 'User has entered email but not confirmed'),
@@ -75,14 +75,14 @@ USER_STATUS = [
     LookupType(4, 'approved', 'User has been approved'),
     LookupType(5, 'denied', 'User registration was denied')
 ]
-USER_STATUS_DICT = {item.id: item.name for item in USER_STATUS}
+USER_STATUS_DICT = {item.name: item.id for item in USER_STATUS}
 
 PERMISSION_TYPE = [
     LookupType(0, 'agency_user', 'This user is allowed to upload data to be validated'),
     LookupType(1, 'website_admin', 'This user is allowed to manage user accounts'),
     LookupType(2, 'agency_admin', 'This user is allowed to manage user accounts within their agency')
 ]
-PERMISSION_TYPE_DICT = {item.id: item.name for item in PERMISSION_TYPE}
+PERMISSION_TYPE_DICT = {item.name: item.id for item in PERMISSION_TYPE}
 
 FIELD_TYPE = [
     LookupType(1, 'INT', 'integer type'),
@@ -91,10 +91,10 @@ FIELD_TYPE = [
     LookupType(4, 'STRING', 'string type'),
     LookupType(5, 'LONG', 'long integer')
 ]
-FIELD_TYPE_DICT = {item.id: item.name for item in FIELD_TYPE}
+FIELD_TYPE_DICT = {item.name: item.id for item in FIELD_TYPE}
 
 RULE_SEVERITY = [
     LookupType(1, 'warning', 'warning'),
     LookupType(2, 'fatal', 'fatal error')
 ]
-RULE_SEVERITY_DICT = {item.id: item.name for item in RULE_SEVERITY}
+RULE_SEVERITY_DICT = {item.name: item.id for item in RULE_SEVERITY}
