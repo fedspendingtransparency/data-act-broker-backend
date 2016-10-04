@@ -552,6 +552,9 @@ class FileHandler:
             return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
         # Create file D API URL with dates and callback URL
         callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
+        CloudLogger.log(
+            'DEBUG: Callback URL for {}: {}'.format(file_type, callback),
+            log_type='debug', file_name=self.debug_file_name)
         get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
 
         CloudLogger.log("DEBUG: Calling D file API => " + str(get_url),
