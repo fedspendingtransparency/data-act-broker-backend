@@ -17,7 +17,7 @@ def insertCodes(sess):
     # insert validation file type
     # todo: combine this table with file_types table
     for f in lookups.FILE_TYPE:
-        if f.order:
+        if f.order is not None:
             fileType = FileTypeValidation(file_id=f.id, name=f.name, description=f.desc, file_order=f.order)
             sess.merge(fileType)
 
