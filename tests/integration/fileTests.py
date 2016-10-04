@@ -13,7 +13,6 @@ from dataactcore.models.userModel import User
 from dataactcore.config import CONFIG_BROKER
 from dataactbroker.app import createApp
 from dataactbroker.handlers.jobHandler import JobHandler
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from shutil import copy
 
 class FileTests(BaseTestAPI):
@@ -71,8 +70,6 @@ class FileTests(BaseTestAPI):
         super(FileTests, self).setUp()
         self.login_other_user(
             self.test_users["submission_email"], self.user_password)
-        # Here to repopulate BaseInterface.interfaces after login route clears them
-        InterfaceHolder()
 
     def call_file_submission(self):
         """Call the broker file submission route."""
