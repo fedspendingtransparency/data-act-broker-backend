@@ -305,7 +305,7 @@ class JobTrackerInterface(BaseInterface):
         return self.runUniqueQuery(query, "No submission with that ID", "Multiple submissions with that ID")
 
     def populateSubmissionErrorInfo(self, submissionId):
-        """ Set number of errors and warnings for submission """
+        """Deprecated: moved to function_bag.py."""
         submission = self.getSubmissionById(submissionId)
         # TODO find where interfaces is set as an instance variable which overrides the static variable, fix that and then remove this line
         self.interfaces = BaseInterface.interfaces
@@ -314,14 +314,7 @@ class JobTrackerInterface(BaseInterface):
         self.session.commit()
 
     def setJobNumberOfErrors(self, jobId, numberOfErrors, errorType):
-        """ Label nuber of errors or warnings for specified job
-
-        Args:
-            jobId: Job to set number for
-            numberOfErrors: Number to be set
-            errorType: Type of error to set, can be either 'fatal' or 'warning'
-
-        """
+        """Deprecated: moved to sumNumberOfErrorsForJobList in function_bag.py."""
         job = self.getJobById(jobId)
         if errorType == "fatal":
             job.number_of_errors = numberOfErrors

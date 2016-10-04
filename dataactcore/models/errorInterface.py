@@ -57,14 +57,7 @@ class ErrorInterface(BaseInterface):
         return self.runUniqueQuery(query,"No file for that job ID", "Multiple files have been associated with that job ID").file_status.name
 
     def checkNumberOfErrorsByJobId(self, jobId, valDb, errorType = "fatal"):
-        """ Get the total number of errors for a specified job
-
-        Args:
-            jobId: job to get errors for
-
-        Returns:
-            Number of errors for specified job
-        """
+        """Deprecated: moved to function_bag.py."""
         queryResult = self.session.query(ErrorMetadata).filter(ErrorMetadata.job_id == jobId).all()
         numErrors = 0
         for result in queryResult:
@@ -85,7 +78,7 @@ class ErrorInterface(BaseInterface):
         self.session.commit()
 
     def sumNumberOfErrorsForJobList(self,jobIdList, valDb, errorType = "fatal"):
-        """ Add number of errors for all jobs in list """
+        """Deprecated: moved to function_bag.py."""
         errorSum = 0
         for jobId in jobIdList:
             jobErrors = self.checkNumberOfErrorsByJobId(jobId, valDb, errorType)
