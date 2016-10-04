@@ -414,24 +414,6 @@ class UserHandler(UserInterface):
         queryResult = self.session.query(PermissionType).all()
         return queryResult
 
-    def createUserWithPassword(self,email,password,bcrypt,permission=1,cgac_code="SYS"):
-        """ This directly creates a valid user in the database with password and permissions set.  Not used during normal
-        behavior of the app, but useful for configuration and testing.
-
-        Arguments:
-            email - Email for new user
-            password - Password to assign to user
-            bcrypt - bcrypt to use for password hashing
-            admin - Whether the new user should be an admin
-        """
-        user = User(email = email)
-        self.session.add(user)
-        self.setPassword(user,password,bcrypt)
-        self.changeStatus(user,"approved")
-        self.setPermission(user,permission)
-        user.cgac_code = cgac_code
-        self.session.commit()
-
     def updateLastLogin(self, user, unlock_user=False):
         """ This updates the last login date to today's datetime for the user to the current date upon successful login.
         """

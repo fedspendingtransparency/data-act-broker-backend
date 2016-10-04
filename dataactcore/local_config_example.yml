@@ -1,0 +1,42 @@
+#######################################################
+### Sample Local Data Act Broker Configuration.     ###
+### Values here will override values in config.yml. ###
+#######################################################
+
+broker:
+
+    use_aws: false
+    full_url: http://localhost:3000
+    reply_to_email: valid.developer.email@domain.com
+    broker_files: /full/path/to/local/broker/files
+    d_file_storage_path: /full/path/to/local/d/file/storage
+
+services:
+
+    broker_api_host: 127.0.0.1
+    broker_api_port: 3333
+    validator_host: 127.0.0.1
+    validator_port: 3334
+    error_report_path: error_report_path: /full/path/to/local/error/reports
+
+db:
+
+    scheme: postgres
+    host: localhost
+    port: 5432
+    base_db_name: postgres #This is the default db on the instance.
+    job_queue_db_name: da_job_queue # Job queue db
+    db_name: data_broker
+    dynamo_host: 127.0.0.1
+    dynamo_port: 8000
+
+logging:
+
+    use_logstash: false
+    log_files: /full/path/to/local/logfiles
+
+job-queue:
+
+    url: localhost
+    port: 5672
+    broker_scheme: amqp
