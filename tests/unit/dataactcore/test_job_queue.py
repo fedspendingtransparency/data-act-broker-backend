@@ -58,7 +58,7 @@ def test_generate_e_file_query(monkeypatch, mock_broker_config_paths,
     unrelated = AwardProcurementFactory(submission_id=model.submission_id + 1)
     database.session.add_all(aps + afas + [model, same_duns, unrelated])
 
-    monkeypatch.setattr(jobQueue.fileE, 'retrieveRows', Mock())
+    monkeypatch.setattr(jobQueue.fileE, 'retrieveRows', Mock(return_value=[]))
 
     # Mock out the interface holder class; rather nasty, as we want to _keep_
     # the database session handler
