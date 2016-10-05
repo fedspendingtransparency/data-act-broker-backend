@@ -77,8 +77,7 @@ def sumNumberOfErrorsForJobList(submissionId, errorType='fatal'):
 def checkNumberOfErrorsByJobId(jobId, errorType='fatal'):
     """Get the number of errors for a specified job and severity."""
     sess = GlobalDB.db().session
-    errors = sess.query(
-        func.sum(ErrorMetadata.occurrences)).join(
-        ErrorMetadata.severity).filter(
-        ErrorMetadata.job_id == jobId, RuleSeverity.name == errorType).scalar()
+    errors = sess.query(func.sum(ErrorMetadata.occurrences)).\
+        join(ErrorMetadata.severity).\
+        filter(ErrorMetadata.job_id == jobId, RuleSeverity.name == errorType).scalar()
     return errors or 0
