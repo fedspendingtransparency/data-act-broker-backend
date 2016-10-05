@@ -47,7 +47,7 @@ def enqueue(jobID):
 
 
 @contextmanager
-def job_context(interface_holder_class, job_id):
+def job_context(task, interface_holder_class, job_id):
     """Common context for file E and F generation. Handles marking the job
     finished and/or failed"""
     # Flask context ensures we have access to global.g
@@ -66,14 +66,14 @@ def job_context(interface_holder_class, job_id):
         job_manager.close()
 
 
-@celery_app.task(name='jobQueue.generate_f_file')
-def generate_f_file(submission_id, job_id, interface_holder_class,
+@celery_app.task(name='jobQueue.generate_f_file', bind=True)
+def generate_f_file(task, submission_id, job_id, interface_holder_class,
                     timestamped_name, upload_file_name, is_local):
     """Write rows from fileF.generateFRows to an appropriate CSV. Here the
     third parameter, interface_holder_class, is a bit of a hack. Importing
     InterfaceHolder directly causes cyclic dependency woes, so we're passing
     in a class"""
-    with job_context(interface_holder_class, job_id) as job_manager:
+    with job_context(task, interface_holder_class, job_id) as job_manager:
         rows_of_dicts = fileF.generateFRows(job_manager.session,
                                             submission_id)
         header = [key for key in fileF.mappings]    # keep order
@@ -85,12 +85,12 @@ def generate_f_file(submission_id, job_id, interface_holder_class,
                   body)
 
 
-@celery_app.task(name='jobQueue.generate_e_file')
-def generate_e_file(submission_id, job_id, interface_holder_class,
+@celery_app.task(name='jobQueue.generate_e_file', bind=True)
+def generate_e_file(task, submission_id, job_id, interface_holder_class,
                     timestamped_name, upload_file_name, is_local):
     """Write file E to an appropriate CSV. See generate_file_file for an
     explanation of interface_holder_class"""
-    with job_context(interface_holder_class, job_id) as job_manager:
+    with job_context(task, interface_holder_class, job_id) as job_manager:
         d1 = job_manager.session.\
             query(AwardProcurement.awardee_or_recipient_uniqu).\
             filter(AwardProcurement.submission_id == submission_id).\
