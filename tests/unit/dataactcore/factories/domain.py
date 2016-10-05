@@ -29,3 +29,25 @@ class CGACFactory(factory.Factory):
     cgac_id = None
     cgac_code = fuzzy.FuzzyText()
     agency_name = fuzzy.FuzzyText()
+
+
+class ProgramActivityFactory(factory.Factory):
+    class Meta:
+        model = domainModels.ProgramActivity
+
+    program_activity_id = None
+    budget_year = fuzzy.FuzzyText()
+    agency_id = fuzzy.FuzzyText()
+    allocation_transfer_id = fuzzy.FuzzyText()
+    account_number = fuzzy.FuzzyText()
+    program_activity_code = fuzzy.FuzzyText()
+    program_activity_name = fuzzy.FuzzyText()
+
+
+class ObjectClassFactory(factory.Factory):
+    class Meta:
+        model = domainModels.ObjectClass
+
+    object_class_id = None
+    object_class_code = fuzzy.FuzzyText()
+    object_class_name = fuzzy.FuzzyText()
