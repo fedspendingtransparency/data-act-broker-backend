@@ -68,7 +68,6 @@ def sumNumberOfErrorsForJobList(submissionId, errorType='fatal'):
             job.number_of_errors = jobErrors
         elif errorType == 'warning':
             job.number_of_warnings = jobErrors
-        sess.add(job)
         errorSum += jobErrors
     sess.commit()
     return errorSum
