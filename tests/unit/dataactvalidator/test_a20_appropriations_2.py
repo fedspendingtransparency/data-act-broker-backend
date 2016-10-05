@@ -9,7 +9,7 @@ _FILE = 'a20_appropriations_2'
 def test_column_headers(database):
     expected_subset = {"row_number", "agency_identifier"}
     actual = set(query_columns(_FILE, database))
-    assert expected_subset <= actual
+    assert expected_subset == actual
 
 def test_success(database):
     """ Test that agency codes are matched against cgac correctly """

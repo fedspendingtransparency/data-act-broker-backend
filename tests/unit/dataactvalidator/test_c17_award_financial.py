@@ -35,7 +35,7 @@ def test_success(database):
                                              ussgl497200_downward_adjus_cpe = None,
                                              ussgl498100_upward_adjustm_cpe = None,
                                              ussgl498200_upward_adjustm_cpe = None)
-    award_fin_one = AwardFinancialFactory(transaction_obligated_amou = None,
+    award_fin_one = AwardFinancialFactory(transaction_obligated_amou = 0,
                                              ussgl480100_undelivered_or_cpe = None,
                                              ussgl480100_undelivered_or_fyb = None,
 		                                     ussgl480200_undelivered_or_cpe = None,

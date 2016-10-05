@@ -8,7 +8,7 @@ def test_column_headers(database):
     expected_subset = {"row_number", "status_of_budgetary_resour_cpe",
     "budget_authority_available_cpe"}
     actual = set(query_columns(_FILE, database))
-    assert expected_subset <= actual
+    assert expected_subset == actual
 
 def test_success(database):
     """ Test that calculation works for equal values and for null """

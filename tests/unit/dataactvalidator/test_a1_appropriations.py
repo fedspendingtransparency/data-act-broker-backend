@@ -8,8 +8,10 @@ _FILE = 'a1_appropriations'
 def test_column_headers(database):
     expected_subset = {"row_number", "allocation_transfer_agency", "agency_identifier", "beginning_period_of_availa",
         "ending_period_of_availabil", "availability_type_code", "main_account_code", "sub_account_code"}
+
     actual = set(query_columns(_FILE, database))
-    assert expected_subset <= actual
+    print(str(actual))
+    assert expected_subset == actual
 
 def test_success(database):
     """ Test that TAS values can be found, and null matches work correctly"""
@@ -22,13 +24,13 @@ def test_success(database):
                                   availability_type_code = tas.availability_type_code,
                                   main_account_code = tas.main_account_code,
                                   sub_account_code = tas.sub_account_code)
-    approp_null = AppropriationFactory(allocation_transfer_agency = None,
+    approp_null = AppropriationFactory(allocation_transfer_agency = tas_null.allocation_transfer_agency,
                                        agency_identifier = tas_null.agency_identifier,
                                        beginning_period_of_availa = tas_null.beginning_period_of_availability,
                                        ending_period_of_availabil = tas_null.ending_period_of_availability,
-                                       availability_type_code = None,
+                                       availability_type_code = tas_null.availability_type_code,
                                        main_account_code = tas_null.main_account_code,
-                                       sub_account_code = None)
+                                       sub_account_code = tas_null.sub_account_code)
 
     errors = number_of_errors(_FILE, database, models=[tas, tas_null, approp, approp_null])
     assert errors == 0
@@ -45,13 +47,13 @@ def test_failure(database):
                                   availability_type_code = tas.availability_type_code,
                                   main_account_code = tas.main_account_code,
                                   sub_account_code = tas.sub_account_code)
-    approp_null = AppropriationFactory(allocation_transfer_agency = None,
+    approp_null = AppropriationFactory(allocation_transfer_agency = tas_null.allocation_transfer_agency,
                                        agency_identifier = randint(101,200),
                                        beginning_period_of_availa = tas_null.beginning_period_of_availability,
                                        ending_period_of_availabil = tas_null.ending_period_of_availability,
-                                       availability_type_code = None,
+                                       availability_type_code = tas_null.availability_type_code,
                                        main_account_code = tas_null.main_account_code,
-                                       sub_account_code = None)
+                                       sub_account_code = tas_null.sub_account_code)
 
     # Non-overlapping ranges of agency IDs should generate two errors
     errors = number_of_errors(_FILE, database, models=[tas, tas_null, approp, approp_null])
