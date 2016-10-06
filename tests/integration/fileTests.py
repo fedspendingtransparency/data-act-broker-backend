@@ -6,13 +6,13 @@ from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 from tests.integration.baseTestAPI import BaseTestAPI
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import populateSubmissionErrorInfo
 from dataactcore.models.jobModels import Submission, Job, JobDependency
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.userModel import User
 from dataactcore.config import CONFIG_BROKER
 from dataactbroker.app import createApp
 from dataactbroker.handlers.jobHandler import JobHandler
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from shutil import copy
 
 class FileTests(BaseTestAPI):
@@ -70,8 +70,6 @@ class FileTests(BaseTestAPI):
         super(FileTests, self).setUp()
         self.login_other_user(
             self.test_users["submission_email"], self.user_password)
-        # Here to repopulate BaseInterface.interfaces after login route clears them
-        InterfaceHolder()
 
     def call_file_submission(self):
         """Call the broker file submission route."""
@@ -122,23 +120,24 @@ class FileTests(BaseTestAPI):
 
         # Test that job ids are returned
         responseDict = json
-        fileKeys = ["program_activity", "award_financial",
-            "appropriations"]
-        for key in fileKeys:
-            idKey = "".join([key,"_id"])
-            self.assertIn(idKey, responseDict)
-            jobId = responseDict[idKey]
-            self.assertIsInstance(jobId, int)
-            # Check that original filenames were stored in DB
-            originalFilename = self.interfaces.jobDb.getOriginalFilenameById(jobId)
-            self.assertEquals(originalFilename,self.filenames[key])
-        # check that submission got mapped to the correct user
-        submissionId = responseDict["submission_id"]
-        self.file_submission_id = submissionId
-        submission = self.interfaces.jobDb.getSubmissionById(submissionId)
+        fileKeys = ["program_activity", "award_financial", "appropriations"]
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            for key in fileKeys:
+                idKey = '{}_id'.format(key)
+                self.assertIn(idKey, responseDict)
+                jobId = responseDict[idKey]
+                self.assertIsInstance(jobId, int)
+                # Check that original filenames were stored in DB
+                originalFilename = sess.query(Job).filter(Job.job_id == jobId).one().original_filename
+                self.assertEquals(originalFilename, self.filenames[key])
+            # check that submission got mapped to the correct user
+            submissionId = responseDict["submission_id"]
+            self.file_submission_id = submissionId
+            submission = sess.query(Submission).filter(Submission.submission_id == submissionId).one()
         self.assertEqual(submission.user_id, self.submission_user_id)
         # Check that new submission is unpublished
-        self.assertEqual(submission.publish_status_id, self.interfaces.jobDb.getPublishStatusId("unpublished"))
+        self.assertEqual(submission.publish_status_id, self.publishStatusDict['unpublished'])
 
         # Call upload complete route
         finalizeResponse = self.check_upload_complete(
@@ -161,21 +160,23 @@ class FileTests(BaseTestAPI):
                 "reporting_period_start_date":"02/2016",
                 "reporting_period_end_date":"03/2016"}
         # Mark submission as published
-        updateSubmission = self.interfaces.jobDb.getSubmissionById(self.updateSubmissionId)
-        updateSubmission.publish_status_id = self.interfaces.jobDb.getPublishStatusId("published")
-        self.interfaces.jobDb.session.commit()
-        updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id":self.session_id})
-        self.assertEqual(updateResponse.status_code, 200)
-        self.assertEqual(updateResponse.headers.get("Content-Type"), "application/json")
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            updateSubmission = sess.query(Submission).filter(Submission.submission_id == self.updateSubmissionId).one()
+            updateSubmission.publish_status_id = self.publishStatusDict['published']
+            sess.commit()
+            updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id": self.session_id})
+            self.assertEqual(updateResponse.status_code, 200)
+            self.assertEqual(updateResponse.headers.get("Content-Type"), "application/json")
 
-        json = updateResponse.json
-        self.assertIn("updated.csv", json["award_financial_key"])
-        submissionId = json["submission_id"]
-        submission = self.interfaces.jobDb.getSubmissionById(submissionId)
-        self.assertEqual(submission.cgac_code,"SYS") # Should not have changed agency name
-        self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"),"02/2016")
-        self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"),"03/2016")
-        self.assertEqual(submission.publish_status_id, self.interfaces.jobDb.getPublishStatusId("updated"))
+            json = updateResponse.json
+            self.assertIn("updated.csv", json["award_financial_key"])
+            submissionId = json["submission_id"]
+            submission = sess.query(Submission).filter(Submission.submission_id == submissionId).one()
+            self.assertEqual(submission.cgac_code, "SYS")  # Should not have changed agency name
+            self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"), "02/2016")
+            self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"), "03/2016")
+            self.assertEqual(submission.publish_status_id, self.publishStatusDict['updated'])
 
     def test_bad_quarter_or_month(self):
         """ Test file submissions for Q5, 13, and AB, and year of ABCD """
@@ -238,102 +239,105 @@ class FileTests(BaseTestAPI):
         # Assert 200 status
         self.assertEqual(response.status_code,200)
 
-
-
     def test_check_status(self):
         """Test broker status route response."""
         postJson = {"submission_id": self.status_check_submission_id}
         # Populating error info before calling route to avoid changing last update time
 
-        self.interfaces.jobDb.populateSubmissionErrorInfo(self.status_check_submission_id)
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            populateSubmissionErrorInfo(self.status_check_submission_id)
 
-        response = self.app.post_json("/v1/check_status/", postJson, headers={"x-session-id":self.session_id})
+            response = self.app.post_json("/v1/check_status/", postJson, headers={"x-session-id": self.session_id})
 
-        self.assertEqual(response.status_code, 200, msg=str(response.json))
-        self.assertEqual(
-            response.headers.get("Content-Type"), "application/json")
-        json = response.json
-        # response ids are coming back as string, so patch the jobIdDict
-        jobIdDict = {k: str(self.jobIdDict[k]) for k in self.jobIdDict.keys()}
-        jobList = json["jobs"]
-        appropJob = None
-        crossJob = None
-        for job in jobList:
-            if str(job["job_id"]) == str(jobIdDict["appropriations"]):
-                # Found the job to be checked
-                appropJob = job
-            elif str(job["job_id"]) == str(jobIdDict["cross_file"]):
-                # Found cross file job
-                crossJob = job
+            self.assertEqual(response.status_code, 200, msg=str(response.json))
+            self.assertEqual(
+                response.headers.get("Content-Type"), "application/json")
+            json = response.json
+            # response ids are coming back as string, so patch the jobIdDict
+            jobIdDict = {k: str(self.jobIdDict[k]) for k in self.jobIdDict.keys()}
+            jobList = json["jobs"]
+            appropJob = None
+            crossJob = None
+            for job in jobList:
+                if str(job["job_id"]) == str(jobIdDict["appropriations"]):
+                    # Found the job to be checked
+                    appropJob = job
+                elif str(job["job_id"]) == str(jobIdDict["cross_file"]):
+                    # Found cross file job
+                    crossJob = job
 
-        # Must have an approp job and cross-file job
-        self.assertNotEqual(appropJob, None)
-        self.assertNotEqual(crossJob, None)
-        # And that job must have the following
-        self.assertEqual(appropJob["job_status"],"ready")
-        self.assertEqual(appropJob["job_type"],"csv_record_validation")
-        self.assertEqual(appropJob["file_type"],"appropriations")
-        self.assertEqual(appropJob["filename"],"approp.csv")
-        self.assertEqual(appropJob["file_status"],"complete")
-        self.assertIn("missing_header_one", appropJob["missing_headers"])
-        self.assertIn("missing_header_two", appropJob["missing_headers"])
-        self.assertIn("duplicated_header_one", appropJob["duplicated_headers"])
-        self.assertIn("duplicated_header_two", appropJob["duplicated_headers"])
-        # Check file size and number of rows
-        self.assertEqual(appropJob["file_size"], 2345)
-        self.assertEqual(appropJob["number_of_rows"], 567)
-        self.assertEqual(appropJob["error_type"], "row_errors")
+            # Must have an approp job and cross-file job
+            self.assertNotEqual(appropJob, None)
+            self.assertNotEqual(crossJob, None)
+            # And that job must have the following
+            self.assertEqual(appropJob["job_status"], "ready")
+            self.assertEqual(appropJob["job_type"], "csv_record_validation")
+            self.assertEqual(appropJob["file_type"], "appropriations")
+            self.assertEqual(appropJob["filename"], "approp.csv")
+            self.assertEqual(appropJob["file_status"], "complete")
+            self.assertIn("missing_header_one", appropJob["missing_headers"])
+            self.assertIn("missing_header_two", appropJob["missing_headers"])
+            self.assertIn("duplicated_header_one", appropJob["duplicated_headers"])
+            self.assertIn("duplicated_header_two", appropJob["duplicated_headers"])
+            # Check file size and number of rows
+            self.assertEqual(appropJob["file_size"], 2345)
+            self.assertEqual(appropJob["number_of_rows"], 567)
+            self.assertEqual(appropJob["error_type"], "row_errors")
 
-        # Check error metadata for specified error
-        ruleErrorData = None
-        for data in appropJob["error_data"]:
-            if data["field_name"] == "header_three":
-                ruleErrorData = data
-        self.assertIsNotNone(ruleErrorData)
-        self.assertEqual(ruleErrorData["field_name"],"header_three")
-        self.assertEqual(ruleErrorData["error_name"],"rule_failed")
-        self.assertEqual(ruleErrorData["error_description"],"A rule failed for this value")
-        self.assertEqual(ruleErrorData["occurrences"],"7")
-        self.assertEqual(ruleErrorData["rule_failed"],"Header three value must be real")
-        self.assertEqual(ruleErrorData["original_label"],"A1")
-        # Check warning metadata for specified warning
-        warningErrorData = None
-        for data in appropJob["warning_data"]:
-            if data["field_name"] == "header_three":
-                warningErrorData = data
-        self.assertIsNotNone(warningErrorData)
-        self.assertEqual(warningErrorData["field_name"],"header_three")
-        self.assertEqual(warningErrorData["error_name"],"rule_failed")
-        self.assertEqual(warningErrorData["error_description"],"A rule failed for this value")
-        self.assertEqual(warningErrorData["occurrences"],"7")
-        self.assertEqual(warningErrorData["rule_failed"],"Header three value looks odd")
-        self.assertEqual(warningErrorData["original_label"],"A2")
+            # Check error metadata for specified error
+            ruleErrorData = None
+            for data in appropJob["error_data"]:
+                if data["field_name"] == "header_three":
+                    ruleErrorData = data
+            self.assertIsNotNone(ruleErrorData)
+            self.assertEqual(ruleErrorData["field_name"], "header_three")
+            self.assertEqual(ruleErrorData["error_name"], "rule_failed")
+            self.assertEqual(ruleErrorData["error_description"], "A rule failed for this value")
+            self.assertEqual(ruleErrorData["occurrences"], "7")
+            self.assertEqual(ruleErrorData["rule_failed"], "Header three value must be real")
+            self.assertEqual(ruleErrorData["original_label"], "A1")
+            # Check warning metadata for specified warning
+            warningErrorData = None
+            for data in appropJob["warning_data"]:
+                if data["field_name"] == "header_three":
+                    warningErrorData = data
+            self.assertIsNotNone(warningErrorData)
+            self.assertEqual(warningErrorData["field_name"], "header_three")
+            self.assertEqual(warningErrorData["error_name"], "rule_failed")
+            self.assertEqual(warningErrorData["error_description"], "A rule failed for this value")
+            self.assertEqual(warningErrorData["occurrences"], "7")
+            self.assertEqual(warningErrorData["rule_failed"], "Header three value looks odd")
+            self.assertEqual(warningErrorData["original_label"], "A2")
 
-        ruleErrorData = None
-        for data in crossJob["error_data"]:
-            if data["field_name"] == "header_four":
-                ruleErrorData = data
+            ruleErrorData = None
+            for data in crossJob["error_data"]:
+                if data["field_name"] == "header_four":
+                    ruleErrorData = data
 
-        self.assertEqual(ruleErrorData["source_file"],"appropriations")
-        self.assertEqual(ruleErrorData["target_file"],"award")
+            self.assertEqual(ruleErrorData["source_file"], "appropriations")
+            self.assertEqual(ruleErrorData["target_file"], "award")
 
-        # Check submission metadata
-        self.assertEqual(json["cgac_code"], "SYS")
-        self.assertEqual(json["reporting_period_start_date"], "Q1/2016")
-        self.assertEqual(json["reporting_period_end_date"], "Q3/2016")
+            # Check submission metadata
+            self.assertEqual(json["cgac_code"], "SYS")
+            self.assertEqual(json["reporting_period_start_date"], "Q1/2016")
+            self.assertEqual(json["reporting_period_end_date"], "Q3/2016")
 
-        # Check submission level info
-        self.assertEqual(json["number_of_errors"],17)
-        self.assertEqual(json["number_of_rows"],667)
-        # Check number of errors and warnings in submission table
+            # Check submission level info
+            self.assertEqual(json["number_of_errors"], 17)
+            self.assertEqual(json["number_of_rows"], 667)
 
-        submission = self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id)
-        self.assertEqual(submission.number_of_errors, 17)
-        self.assertEqual(submission.number_of_warnings, 7)
+            # Get submission from db for attribute checks
+            submission = sess.query(Submission).filter(
+                Submission.submission_id == self.status_check_submission_id).one()
 
-        # Check that submission was created today, this test may fail if run right at midnight UTC
-        self.assertEqual(json["created_on"],datetime.utcnow().strftime("%m/%d/%Y"))
-        self.assertEqual(json["last_updated"],self.interfaces.jobDb.getSubmissionById(self.status_check_submission_id).updated_at.strftime("%Y-%m-%dT%H:%M:%S"))
+            # Check number of errors and warnings in submission table
+            self.assertEqual(submission.number_of_errors, 17)
+            self.assertEqual(submission.number_of_warnings, 7)
+
+            # Check that submission was created today, this test may fail if run right at midnight UTC
+            self.assertEqual(json["created_on"], datetime.utcnow().strftime("%m/%d/%Y"))
+            self.assertEqual(json["last_updated"], submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"))
 
     def test_list_submissions(self):
         """ Check list submissions route on status check submission """
@@ -546,7 +550,6 @@ class FileTests(BaseTestAPI):
         sess.commit()
         return fs.file_id
 
-    #@staticmethod
     @classmethod
     def insertRowLevelError(cls, sess, job_id):
         """Insert one error into error database."""

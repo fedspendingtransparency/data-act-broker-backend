@@ -1,6 +1,11 @@
 import uuid
 
+from sqlalchemy.sql import func
+
+from dataactcore.models.errorModels import ErrorMetadata
+from dataactcore.models.jobModels import Job, Submission
 from dataactcore.models.userModel import User, UserStatus
+from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.interfaces.db import GlobalDB
 
 
@@ -41,3 +46,41 @@ def getPasswordHash(password, bcrypt):
     hash = bcrypt.generate_password_hash(password + salt, HASH_ROUNDS)
     password_hash = hash.decode("utf-8")
     return salt, password_hash
+
+
+def populateSubmissionErrorInfo(submissionId):
+    """Set number of errors and warnings for submission."""
+    sess = GlobalDB.db().session
+    submission = sess.query(Submission).filter(Submission.submission_id == submissionId).one()
+    submission.number_of_errors = sumNumberOfErrorsForJobList(submissionId)
+    submission.number_of_warnings = sumNumberOfErrorsForJobList(submissionId, errorType='warning')
+    sess.commit()
+
+
+def sumNumberOfErrorsForJobList(submissionId, errorType='fatal'):
+    """Add number of errors for all jobs in list."""
+    sess = GlobalDB.db().session
+    errorSum = 0
+    jobs = sess.query(Job).filter(Job.submission_id == submissionId).all()
+    for job in jobs:
+        jobErrors = checkNumberOfErrorsByJobId(job.job_id, errorType)
+        if errorType == 'fatal':
+            job.number_of_errors = jobErrors
+        elif errorType == 'warning':
+            job.number_of_warnings = jobErrors
+        errorSum += jobErrors
+    sess.commit()
+    return errorSum
+
+
+def checkNumberOfErrorsByJobId(jobId, errorType='fatal'):
+    """Get the number of errors for a specified job and severity."""
+    sess = GlobalDB.db().session
+    errors = sess.query(func.sum(ErrorMetadata.occurrences)).\
+        join(ErrorMetadata.severity).\
+        filter(ErrorMetadata.job_id == jobId, RuleSeverity.name == errorType).scalar()
+    # error_metadata table tallies total errors by job/file/field/error type. jobs that
+    # don't have errors or warnings won't be in the table at all. thus, if the above query
+    # returns an empty value that means the job didn't have any errors that matched
+    # the specified severity type, so return 0
+    return errors or 0

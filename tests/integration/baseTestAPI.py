@@ -167,6 +167,7 @@ class BaseTestAPI(unittest.TestCase):
         cls.fileStatusDict = lookups.FILE_STATUS_DICT
         cls.ruleSeverityDict = lookups.RULE_SEVERITY_DICT
         cls.errorTypeDict = lookups.ERROR_TYPE_DICT
+        cls.publishStatusDict = lookups.PUBLISH_STATUS_DICT
 
         # set up info needed by the individual test classes
         cls.test_users = test_users
