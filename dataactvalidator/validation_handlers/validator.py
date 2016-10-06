@@ -43,7 +43,7 @@ class Validator(object):
                     values = ", ".join(values)
                     targetFileType = interfaces.validationDb.getFileTypeById(rule.target_file_id)
                     failures.append([rule.file.name, targetFileType, columnString,
-                        str(rule.rule_description), values, row['row_number'],str(rule.rule_label),rule.file_id,rule.target_file_id,rule.rule_severity_id])
+                        str(rule.rule_error_message), values, row['row_number'],str(rule.rule_label),rule.file_id,rule.target_file_id,rule.rule_severity_id])
 
         # Return list of cross file validation failures
         return failures
