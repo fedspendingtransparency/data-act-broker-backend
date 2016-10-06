@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import logging
 
 from celery import Celery
 from flask import Flask
@@ -10,6 +11,9 @@ from dataactcore.models.stagingModels import (
 from dataactcore.utils import fileE, fileF
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactvalidator.filestreaming.csv_selection import write_csv
+
+
+logger = logging.getLogger(__name__)
 
 
 def brokerUrl(host):
@@ -58,6 +62,8 @@ def job_context(task, interface_holder_class, job_id):
             yield job_manager
             job_manager.markJobStatus(job_id, "finished")
         except Exception as e:
+            # logger.exception() automatically adds traceback info
+            logger.exception('Job %s failed', job_id)
             # Log the error
             job_manager.getJobById(job_id).error_message = str(e)
             job_manager.markJobStatus(job_id, "failed")
