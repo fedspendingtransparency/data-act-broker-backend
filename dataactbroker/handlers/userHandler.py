@@ -33,21 +33,6 @@ class UserHandler(UserInterface):
         """
         return  self.session.query(EmailToken.salt).filter(EmailToken.token == token).one()
 
-    def saveToken(self,salt,token):
-        """ saves token into database
-
-        Arguments:
-            token - Token to save in the database
-            salt - Salt to save for this token
-        Returns:
-            No return value
-        """
-        newToken = EmailToken()
-        newToken.salt = salt
-        newToken.token = token
-        self.session.add(newToken)
-        self.session.commit()
-
     def deleteToken(self,token):
         """ deletes old token
 

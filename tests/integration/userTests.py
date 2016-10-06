@@ -60,12 +60,11 @@ class UserTests(BaseTestAPI):
         super(UserTests, self).setUp()
         self.login_admin_user()
 
-    def setUpToken(self,email):
+    def setUpToken(self, email):
         """Test e-mail token."""
-        userDb = self.userDb
-        self.registerToken = sesEmail.createToken(email, userDb, "validate_email")
+        self.registerToken = sesEmail.createToken(email, "validate_email")
         postJson = {"token": self.registerToken}
-        return self.app.post_json("/v1/confirm_email_token/", postJson, headers={"x-session-id":self.session_id})
+        return self.app.post_json("/v1/confirm_email_token/", postJson, headers={"x-session-id": self.session_id})
 
     def test_registration_no_token(self):
         """Test without token."""
@@ -260,9 +259,8 @@ class UserTests(BaseTestAPI):
 
     def test_check_email_token(self):
         """Test valid e-mail token."""
-        userDb = self.userDb
         #make a token based on a user
-        token = sesEmail.createToken(self.test_users["password_reset_email"], userDb, "validate_email")
+        token = sesEmail.createToken(self.test_users["password_reset_email"], "validate_email")
         postJson = {"token": token}
         response = self.app.post_json("/v1/confirm_email_token/", postJson, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK, "success")
@@ -292,7 +290,7 @@ class UserTests(BaseTestAPI):
 
         # Test route to confirm tokens
         token = sesEmail.createToken(
-            self.test_users["password_reset_email"], userDb, "password_reset")
+            self.test_users["password_reset_email"], "password_reset")
         postJson = {"token": token}
         response = self.app.post_json("/v1/confirm_password_token/", postJson, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK, "success")
@@ -311,10 +309,9 @@ class UserTests(BaseTestAPI):
 
     def test_check_password_token(self):
         """Test password reset with valid token."""
-        userDb = self.userDb
         #make a token based on a user
         token = sesEmail.createToken(
-            self.test_users["admin_email"], userDb, "password_reset")
+            self.test_users["admin_email"], "password_reset")
         postJson = {"token": token}
         response = self.app.post_json("/v1/confirm_password_token/", postJson, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK, "success")

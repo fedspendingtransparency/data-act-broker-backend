@@ -21,7 +21,7 @@ from dataactcore.interfaces.db import GlobalDB
 # these transitional functions.
 
 
-# todo: move this value to config when re-factoring location passwords
+# todo: move these value to config when re-factoring user management
 HASH_ROUNDS = 12
 
 
