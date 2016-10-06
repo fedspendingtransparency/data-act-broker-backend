@@ -121,11 +121,30 @@ def test_job_context_success(database, job_constants):
         job_type=sess.query(JobType).filter_by(name='validation').one(),
         file_type=sess.query(FileType).filter_by(name='sub_award').one(),
     )
-    database.session.add(job)
-    database.session.commit()
+    sess.add(job)
+    sess.commit()
 
     with jobQueue.job_context(Mock(), InterfaceHolder, job.job_id):
         pass    # i.e. be successful
 
-    database.session.refresh(job)
+    sess.refresh(job)
     assert job.job_status.name == 'finished'
+
+
+def test_job_context_fail(database, job_constants):
+    """When a job raises an exception, it should be marked as failed"""
+    sess = database.session
+    job = JobFactory(
+        job_status=sess.query(JobStatus).filter_by(name='running').one(),
+        job_type=sess.query(JobType).filter_by(name='validation').one(),
+        file_type=sess.query(FileType).filter_by(name='sub_award').one(),
+    )
+    sess.add(job)
+    sess.commit()
+
+    with jobQueue.job_context(Mock(), InterfaceHolder, job.job_id):
+        raise Exception('This failed!')
+
+    sess.refresh(job)
+    assert job.job_status.name == 'failed'
+    assert job.error_message == 'This failed!'
