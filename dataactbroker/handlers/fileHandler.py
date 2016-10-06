@@ -642,7 +642,7 @@ class FileHandler:
                 job_manager.markJobStatus(job_id, "failed")
                 job = job_manager.getJobById(job_id)
                 job.error_message = "Could not download D file"
-                return {"message": "Failed to download file", "file_name": None}
+                raise ResponseException("Failed to download file", StatusCode.CLIENT_ERROR)
             lines = self.get_lines_from_csv(full_file_path)
 
             write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])
