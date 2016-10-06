@@ -3,6 +3,9 @@ import csv
 import os
 from unittest.mock import Mock
 
+from celery.exceptions import MaxRetriesExceededError, Retry
+import pytest
+
 from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactcore.models.jobModels import FileType, JobStatus, JobType
 from dataactcore.utils import fileE, jobQueue
@@ -132,7 +135,8 @@ def test_job_context_success(database, job_constants):
 
 
 def test_job_context_fail(database, job_constants):
-    """When a job raises an exception, it should be marked as failed"""
+    """When a job raises an exception and has no retries left, it should be
+    marked as failed"""
     sess = database.session
     job = JobFactory(
         job_status=sess.query(JobStatus).filter_by(name='running').one(),
@@ -142,9 +146,33 @@ def test_job_context_fail(database, job_constants):
     sess.add(job)
     sess.commit()
 
-    with jobQueue.job_context(Mock(), InterfaceHolder, job.job_id):
+    task = Mock()
+    task.retry.return_value = MaxRetriesExceededError()
+    with jobQueue.job_context(task, InterfaceHolder, job.job_id):
         raise Exception('This failed!')
 
     sess.refresh(job)
     assert job.job_status.name == 'failed'
     assert job.error_message == 'This failed!'
+
+
+def test_job_context_retry(database, job_constants):
+    """When a job raises an exception but can still retry, we should expect a
+    particular exception (which signifies to celery that it should retry)"""
+    sess = database.session
+    job = JobFactory(
+        job_status=sess.query(JobStatus).filter_by(name='running').one(),
+        job_type=sess.query(JobType).filter_by(name='validation').one(),
+        file_type=sess.query(FileType).filter_by(name='sub_award').one(),
+    )
+    sess.add(job)
+    sess.commit()
+
+    task = Mock()
+    task.retry.return_value = Retry()
+    with pytest.raises(Retry):
+        with jobQueue.job_context(task, InterfaceHolder, job.job_id):
+            raise Exception('This failed!')
+
+    sess.refresh(job)
+    assert job.job_status.name == 'running'     # still going
