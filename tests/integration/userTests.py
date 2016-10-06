@@ -3,6 +3,7 @@ from dataactbroker.app import createApp
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission, Job
+from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
 
 from datetime import datetime
@@ -234,11 +235,13 @@ class UserTests(BaseTestAPI):
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.CLIENT_ERROR, "Cannot finalize a job for a different agency")
         # Give submission this user's cgac code
-        submission = self.interfaces.jobDb.getSubmissionById(self.submission_id)
-        submission.cgac_code = self.interfaces.userDb.getUserByEmail(self.test_users["approved_email"]).cgac_code
-        self.interfaces.jobDb.session.commit()
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            submission = sess.query(Submission).filter(Submission.submission_id == self.submission_id).one()
+            submission.cgac_code = sess.query(User).filter(User.email == self.test_users['approved_email']).one().cgac_code
+            sess.commit()
         response = self.app.post_json("/v1/finalize_job/",
-            postJson, expect_errors=True, headers={"x-session-id":self.session_id})
+            postJson, expect_errors=True, headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         self.logout()
 
