@@ -3,9 +3,12 @@ import csv
 import os
 from unittest.mock import Mock
 
+from dataactbroker.handlers.interfaceHolder import InterfaceHolder
+from dataactcore.models.jobModels import FileType, JobStatus, JobType
 from dataactcore.utils import fileE, jobQueue
 from tests.unit.dataactcore.factories.staging import (
     AwardFinancialAssistanceFactory, AwardProcurementFactory)
+from tests.unit.dataactcore.factories.job import JobFactory
 
 
 def read_file_rows(file_path):
@@ -108,3 +111,21 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
          '5A', '5B']
     ]
     assert read_file_rows(file_path) == expected
+
+
+def test_job_context_success(database, job_constants):
+    """When a job successfully runs, it should be marked as "finished" """
+    sess = database.session
+    job = JobFactory(
+        job_status=sess.query(JobStatus).filter_by(name='running').one(),
+        job_type=sess.query(JobType).filter_by(name='validation').one(),
+        file_type=sess.query(FileType).filter_by(name='sub_award').one(),
+    )
+    database.session.add(job)
+    database.session.commit()
+
+    with jobQueue.job_context(Mock(), InterfaceHolder, job.job_id):
+        pass    # i.e. be successful
+
+    database.session.refresh(job)
+    assert job.job_status.name == 'finished'
