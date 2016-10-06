@@ -2,6 +2,7 @@ from tests.integration.baseTestAPI import BaseTestAPI
 from dataactbroker.app import createApp
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import getUsersByType
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
@@ -182,7 +183,7 @@ class UserTests(BaseTestAPI):
 
     def test_get_users_by_type(self):
         """Test getting user list by type."""
-        agencyUsers = self.userDb.getUsersByType("agency_user")
+        agencyUsers = getUsersByType("agency_user")
         emails = []
         for admin in agencyUsers:
             emails.append(admin.email)
@@ -340,11 +341,13 @@ class UserTests(BaseTestAPI):
     def test_skip_guide(self):
         """ Set skip guide to True and check value in DB """
         self.login_approved_user()
-        params = {"skip_guide":True}
-        response = self.app.post_json("/v1/set_skip_guide/", params, headers={"x-session-id":self.session_id})
-        self.check_response(response,StatusCode.OK,"skip_guide set successfully")
+        params = {"skip_guide": True}
+        response = self.app.post_json("/v1/set_skip_guide/", params, headers={"x-session-id": self.session_id})
+        self.check_response(response,StatusCode.OK, "skip_guide set successfully")
         self.assertTrue(response.json["skip_guide"])
-        user = self.userDb.getUserByEmail(self.test_users['approved_email'])
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            user = sess.query(User).filter(User.email == self.test_users['approved_email']).one()
         self.assertTrue(user.skip_guide)
 
     def test_update_user(self):
