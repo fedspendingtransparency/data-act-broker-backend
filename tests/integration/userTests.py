@@ -1,7 +1,10 @@
 from tests.integration.baseTestAPI import BaseTestAPI
+from dataactbroker.app import createApp
 from dataactbroker.handlers.aws.sesEmail import sesEmail
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.utils.statusCode import StatusCode
+
 from datetime import datetime
 
 class UserTests(BaseTestAPI):
@@ -12,36 +15,45 @@ class UserTests(BaseTestAPI):
         """Set up class-wide resources like submissions and jobs."""
         super(UserTests, cls).setUpClass()
 
-        # Add submissions to one of the users
-        jobDb = cls.jobTracker
+        with createApp().app_context():
+            sess = GlobalDB.db().session
 
-        # Delete existing submissions for approved user
-        jobDb.deleteSubmissionsForUserId(cls.approved_user_id)
+            # Add submissions to one of the users
 
-        for i in range(0,5):
-            sub = Submission(user_id = cls.approved_user_id)
-            sub.reporting_start_date = datetime(2015,10,1)
-            sub.reporting_end_date = datetime(2015,12,31)
-            jobDb.session.add(sub)
-            jobDb.session.commit()
+            # Delete existing submissions for approved user
+            sess.query(Submission).filter(Submission.user_id == cls.approved_user_id).delete()
+            sess.commit()
 
-        # Add submissions for agency user
-        jobDb.deleteSubmissionsForUserId(cls.agency_user_id)
-        for i in range(0,6):
-            sub = Submission(user_id = cls.agency_user_id)
-            sub.reporting_start_date = datetime(2015,10,1)
-            sub.reporting_end_date = datetime(2015, 12, 31)
-            sub.cgac_code = "SYS"
-            jobDb.session.add(sub)
-            jobDb.session.commit()
-            if i == 0:
-                cls.submission_id = sub.submission_id
+            for i in range(0, 5):
+                sub = Submission(user_id=cls.approved_user_id)
+                sub.reporting_start_date = datetime(2015, 10, 1)
+                sub.reporting_end_date = datetime(2015, 12, 31)
+                sess.add(sub)
+            sess.commit()
 
-        # Add job to first submission
-        job = Job(submission_id=cls.submission_id, job_status_id=3, job_type_id=1, file_type_id=1)
-        jobDb.session.add(job)
-        jobDb.session.commit()
-        cls.uploadId = job.job_id
+            # Add submissions for agency user
+            sess.query(Submission).filter(Submission.user_id == cls.agency_user_id).delete()
+            sess.commit()
+            for i in range(0, 6):
+                sub = Submission(user_id=cls.agency_user_id)
+                sub.reporting_start_date = datetime(2015, 10, 1)
+                sub.reporting_end_date = datetime(2015, 12, 31)
+                sub.cgac_code = "SYS"
+                sess.add(sub)
+                sess.commit()
+                if i == 0:
+                    cls.submission_id = sub.submission_id
+
+            # Add job to first submission
+            job = Job(
+                submission_id=cls.submission_id,
+                job_status_id=cls.jobStatusDict['running'],
+                job_type_id=cls.jobTypeDict['file_upload'],
+                file_type_id=cls.fileTypeDict['appropriations']
+            )
+            sess.add(job)
+            sess.commit()
+            cls.uploadId = job.job_id
 
     def setUp(self):
         """Test set-up."""
