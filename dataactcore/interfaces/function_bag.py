@@ -79,4 +79,8 @@ def checkNumberOfErrorsByJobId(jobId, errorType='fatal'):
     errors = sess.query(func.sum(ErrorMetadata.occurrences)).\
         join(ErrorMetadata.severity).\
         filter(ErrorMetadata.job_id == jobId, RuleSeverity.name == errorType).scalar()
+    # error_metadata table tallies total errors by job/file/field/error type. jobs that
+    # don't have errors or warnings won't be in the table at all. thus, if the above query
+    # returns an empty value that means the job didn't have any errors that matched
+    # the specified severity type, so return 0
     return errors or 0
