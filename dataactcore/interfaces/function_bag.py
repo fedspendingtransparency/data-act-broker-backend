@@ -4,7 +4,7 @@ from sqlalchemy.sql import func
 
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job, Submission
-from dataactcore.models.userModel import User, UserStatus
+from dataactcore.models.userModel import User, UserStatus, PermissionType
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.interfaces.db import GlobalDB
 
@@ -21,7 +21,7 @@ from dataactcore.interfaces.db import GlobalDB
 # these transitional functions.
 
 
-# todo: move this value to config when re-factoring location passwords
+# todo: move these value to config when re-factoring user management
 HASH_ROUNDS = 12
 
 
@@ -46,6 +46,40 @@ def getPasswordHash(password, bcrypt):
     hash = bcrypt.generate_password_hash(password + salt, HASH_ROUNDS)
     password_hash = hash.decode("utf-8")
     return salt, password_hash
+
+
+def getUsersByType(permissionName):
+    """Get list of users with specified permission."""
+    sess = GlobalDB.db().session
+    # This could likely be simplified, but since we're moving towards using MAX for authentication,
+    # it's not worth spending too much time reworking.
+    userList = []
+    bitNumber = sess.query(PermissionType).filter(PermissionType.name == permissionName).one().permission_type_id
+    users = sess.query(User).all()
+    for user in users:
+        if checkPermissionByBitNumber(user, bitNumber):
+            # This user has this permission, include them in list
+            userList.append(user)
+    return userList
+
+
+def checkPermissionByBitNumber(user, bitNumber):
+    """Check whether user has the specified permission, determined by whether a binary representation of user's
+    permissions has the specified bit set to 1.  Use hasPermission to check by permission name."""
+    # This could likely be simplified, but since we're moving towards using MAX for authentication,
+    # it's not worth spending too much time reworking.
+
+    if user.permissions == None:
+        # This user has no permissions
+        return False
+    # First get the value corresponding to the specified bit (i.e. 2^bitNumber)
+    bitValue = 2 ** (bitNumber)
+    # Remove all bits above the target bit by modding with the value of the next higher bit
+    # This leaves the target bit and all lower bits as the remaining value, all higher bits are set to 0
+    lowEnd = user.permissions % (bitValue * 2)
+    # Now compare the remaining value to the value for the target bit to determine if that bit is 0 or 1
+    # If the remaining value is still at least the value of the target bit, that bit is 1, so we have that permission
+    return lowEnd >= bitValue
 
 
 def populateSubmissionErrorInfo(submissionId):

@@ -429,11 +429,6 @@ class JobHandler(JobTrackerInterface):
                     raise
         return rowSum
 
-    def deleteSubmissionsForUserId(self,userId):
-        """ Delete all submissions for a given user ID """
-        self.session.query(Submission).filter(Submission.user_id == userId).delete()
-        self.session.commit()
-
     def getFormattedDatetimeBySubmissionId(self, submissionId):
         """ Given a submission ID, return MM/DD/YYYY for the datetime of that submission """
         datetime = self.getSubmissionById(submissionId).datetime_utc

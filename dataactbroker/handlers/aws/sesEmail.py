@@ -6,16 +6,21 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.userModel import EmailToken
+
 
 class sesEmail(object):
 
-    SIGNING_KEY  ="1234"
-    INVALID_LINK  = 1
-    LINK_EXPIRED =  2
+    # todo: is SIGNING_KEY something that should live in the config file?
+    SIGNING_KEY = "1234"
+    INVALID_LINK = 1
+    LINK_EXPIRED = 2
     LINK_ALREADY_USED = 3
-    LINK_VALID  = 0
+    LINK_VALID = 0
     isLocal = False
     emailLog = "Email.log"
+
     def __init__(self,toAddress,fromAddress,content="",subject="",templateType=None,parameters=None, database=None):
         """ Creates an email object to be sent
         Args:
@@ -59,14 +64,18 @@ class sesEmail(object):
 
 
     @staticmethod
-    def createToken(emailAddress,database,token_type) :
-        """Creates a token to be used and saves it with the salt in the database"""
-        salt = uuid.uuid1().int
+    def createToken(emailAddress, token_type):
+        """Creates a token and saves it with the salt in the database."""
+        sess = GlobalDB.db().session
+        salt = str(uuid.uuid1().int)
         ts = URLSafeTimedSerializer(sesEmail.SIGNING_KEY)
-        token = ts.dumps(emailAddress, salt=str(salt)+token_type)
-        #saves the token and salt pair
-        database.saveToken(str(salt),str(token))
+        token = ts.dumps(emailAddress, salt=salt + token_type)
+        # save the token and salt pair
+        newToken = EmailToken(salt=salt, token=token)
+        sess.add(newToken)
+        sess.commit()
         return urllib.parse.quote_plus(str(token))
+
 
     @staticmethod
     def checkToken(token,database,token_type):
