@@ -375,7 +375,12 @@ class ValidationManager:
                     # second phase of validations: do basic schema checks
                     # (e.g., require fields, field length, data type)
                     #
-                    passedValidations, failures, valid = Validator.validate(record,csvSchema,fileType,interfaces)
+                    if fileType in ["award", "award_procurement"]:
+                        # Skip basic validations for D files, set as valid to trigger write to staging
+                        passedValidations = True
+                        valid = True
+                    else:
+                        passedValidations, failures, valid = Validator.validate(record,csvSchema,fileType,interfaces)
                     if valid:
                         skipRow = self.writeToStaging(record, jobId, submissionId, passedValidations, interfaces, writer, rowNumber, fileType)
                         if skipRow:

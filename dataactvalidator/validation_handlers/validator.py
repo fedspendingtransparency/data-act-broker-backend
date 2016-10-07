@@ -67,11 +67,6 @@ class Validator(object):
         List of failed rules, each with field, description of failure, value that failed, rule label, and severity
         True if type check passed, False if type failed
         """
-        if fileType in ["award", "award_procurement"]:
-            # D files skip basic validations as there is no way to report errors on these, so we assume that data coming
-            # from existing systems is valid
-            return (True, [], True)
-
         recordFailed = False
         recordTypeFailure = False
         failedRules = []
