@@ -609,13 +609,17 @@ class FileHandler:
         return "numFound='0'" not in self.get_xml_response_content(api_url)
 
     def download_file(self, local_file_path, file_url):
-        """ Download a file locally from the specified URL """
+        """ Download a file locally from the specified URL, returns True if successful """
         with open(local_file_path, "w") as file:
             # get request
             response = requests.get(file_url)
+            if response.status_code != 200:
+                # Could not download the file, return False
+                return False
             # write to file
             response.encoding = "utf-8"
             file.write(response.text)
+            return True
 
     def get_lines_from_csv(self, file_path):
         """ Retrieve all lines from specified CSV file """
@@ -632,7 +636,12 @@ class FileHandler:
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
             CloudLogger.log("DEBUG: Downloading file...", log_type="debug", file_name=self.smx_log_file_name)
-            self.download_file(full_file_path, url)
+            if not self.download_file(full_file_path, url):
+                # Error occurred while downloading file, mark job as failed and record error message
+                job_manager.markJobStatus(job_id, "failed")
+                job = job_manager.getJobById(job_id)
+                job.error_message = "Could not download D file"
+                raise ResponseException("Failed to download file", StatusCode.CLIENT_ERROR)
             lines = self.get_lines_from_csv(full_file_path)
 
             write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])
