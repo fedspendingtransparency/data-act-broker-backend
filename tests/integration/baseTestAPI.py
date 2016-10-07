@@ -6,7 +6,7 @@ from dateutil.parser import parse
 from random import randint
 from webtest import TestApp
 from dataactbroker.app import createApp
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
