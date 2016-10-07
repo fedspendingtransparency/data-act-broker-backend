@@ -11,7 +11,7 @@ def insert_submission(db, submission):
     return submission.submission_id
 
 
-def error_rows(rule_file, staging_db, submission=None, models=None):
+def error_rows(rule_file, staging_db, submission=None, models=None, assert_num = None):
     """Insert the models into the database, then run the rule SQL against
     those models. Return the resulting (invalid) rows"""
     if submission is None:
@@ -31,6 +31,9 @@ def error_rows(rule_file, staging_db, submission=None, models=None):
     staging_db.session.commit()
     result = staging_db.connection.execute(sql).fetchall()
 
+    if assert_num is not None:
+        assert(len(result) == assert_num)
+
     # clean up
     for model in models:
         staging_db.session.delete(model)
@@ -39,8 +42,8 @@ def error_rows(rule_file, staging_db, submission=None, models=None):
     return result
 
 
-def number_of_errors(rule_file, staging_db, submission=None, models=None):
-    return len(error_rows(rule_file, staging_db, submission, models))
+def number_of_errors(rule_file, staging_db, submission=None, models=None, assert_num = None):
+    return len(error_rows(rule_file, staging_db, submission, models, assert_num))
 
 
 def query_columns(rule_file, staging_db):

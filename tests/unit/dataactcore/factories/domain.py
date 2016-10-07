@@ -30,6 +30,19 @@ class CGACFactory(factory.Factory):
     cgac_code = fuzzy.FuzzyText()
     agency_name = fuzzy.FuzzyText()
 
+class TASFactory(factory.Factory):
+    class Meta:
+        model = domainModels.TASLookup
+
+    tas_id = None
+    allocation_transfer_agency = fuzzy.FuzzyText()
+    agency_identifier = fuzzy.FuzzyText()
+    beginning_period_of_availability = fuzzy.FuzzyText()
+    ending_period_of_availability = fuzzy.FuzzyText()
+    availability_type_code = fuzzy.FuzzyText()
+    main_account_code = fuzzy.FuzzyText()
+    sub_account_code = fuzzy.FuzzyText()
+
 
 class ProgramActivityFactory(factory.Factory):
     class Meta:

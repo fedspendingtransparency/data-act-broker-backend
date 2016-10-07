@@ -1,9 +1,13 @@
+from contextlib import contextmanager
+
 from celery import Celery
 from flask import Flask
 import requests
 
 from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE
-from dataactcore.utils import fileF
+from dataactcore.models.stagingModels import (
+    AwardFinancialAssistance, AwardProcurement)
+from dataactcore.utils import fileE, fileF
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
@@ -42,27 +46,16 @@ def enqueue(jobID):
     return response.json()
 
 
-@celery_app.task(name='jobQueue.generate_f_file')
-def generate_f_file(submission_id, job_id, interface_holder_class,
-                    timestamped_name, upload_file_name, is_local):
-    """Write rows from fileF.generateFRows to an appropriate CSV. Here the
-    third parameter, interface_holder_class, is a bit of a hack. Importing
-    InterfaceHolder directly causes cyclic dependency woes, so we're passing
-    in a class"""
-    # Setup a Flask context
+@contextmanager
+def job_context(interface_holder_class, job_id):
+    """Common context for file E and F generation. Handles marking the job
+    finished and/or failed"""
+    # Flask context ensures we have access to global.g
     with Flask(__name__).app_context():
         job_manager = interface_holder_class().jobDb
 
         try:
-            rows_of_dicts = fileF.generateFRows(job_manager.session,
-                                                submission_id)
-            header = [key for key in fileF.mappings]    # keep order
-            body = []
-            for row in rows_of_dicts:
-                body.append([row[key] for key in header])
-
-            write_csv(timestamped_name, upload_file_name, is_local, header,
-                      body)
+            yield job_manager
             job_manager.markJobStatus(job_id, "finished")
         except Exception as e:
             # Log the error
@@ -71,6 +64,45 @@ def generate_f_file(submission_id, job_id, interface_holder_class,
             job_manager.session.commit()
 
         job_manager.close()
+
+
+@celery_app.task(name='jobQueue.generate_f_file')
+def generate_f_file(submission_id, job_id, interface_holder_class,
+                    timestamped_name, upload_file_name, is_local):
+    """Write rows from fileF.generateFRows to an appropriate CSV. Here the
+    third parameter, interface_holder_class, is a bit of a hack. Importing
+    InterfaceHolder directly causes cyclic dependency woes, so we're passing
+    in a class"""
+    with job_context(interface_holder_class, job_id) as job_manager:
+        rows_of_dicts = fileF.generateFRows(job_manager.session,
+                                            submission_id)
+        header = [key for key in fileF.mappings]    # keep order
+        body = []
+        for row in rows_of_dicts:
+            body.append([row[key] for key in header])
+
+        write_csv(timestamped_name, upload_file_name, is_local, header,
+                  body)
+
+
+@celery_app.task(name='jobQueue.generate_e_file')
+def generate_e_file(submission_id, job_id, interface_holder_class,
+                    timestamped_name, upload_file_name, is_local):
+    """Write file E to an appropriate CSV. See generate_file_file for an
+    explanation of interface_holder_class"""
+    with job_context(interface_holder_class, job_id) as job_manager:
+        d1 = job_manager.session.\
+            query(AwardProcurement.awardee_or_recipient_uniqu).\
+            filter(AwardProcurement.submission_id == submission_id).\
+            distinct()
+        d2 = job_manager.session.\
+            query(AwardFinancialAssistance.awardee_or_recipient_uniqu).\
+            filter(AwardFinancialAssistance.submission_id == submission_id).\
+            distinct()
+        dunsSet = {r.awardee_or_recipient_uniqu for r in d1.union(d2)}
+
+        write_csv(timestamped_name, upload_file_name, is_local,
+                  fileE.Row._fields, fileE.retrieveRows(list(dunsSet)))
 
 
 if __name__ in ['__main__', 'jobQueue']:
