@@ -1,7 +1,8 @@
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
+
 
 class RouteUtils:
     """ Holds utility functions for routes """

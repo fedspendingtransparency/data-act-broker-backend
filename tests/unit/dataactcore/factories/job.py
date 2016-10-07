@@ -23,3 +23,52 @@ class SubmissionFactory(factory.Factory):
     publishable = False
     number_of_errors = 0
     number_of_warnings = 0
+
+
+class JobStatusFactory(factory.Factory):
+    class Meta:
+        model = jobModels.JobStatus
+
+    job_status_id = None
+    name = fuzzy.FuzzyText()
+    description = fuzzy.FuzzyText()
+
+
+class JobTypeFactory(factory.Factory):
+    class Meta:
+        model = jobModels.JobType
+
+    job_type_id = None
+    name = fuzzy.FuzzyText()
+    description = fuzzy.FuzzyText()
+
+
+class FileTypeFactory(factory.Factory):
+    class Meta:
+        model = jobModels.FileType
+
+    file_type_id = None
+    name = fuzzy.FuzzyText()
+    description = fuzzy.FuzzyText()
+    letter_name = fuzzy.FuzzyText()
+
+
+class JobFactory(factory.Factory):
+    class Meta:
+        model = jobModels.Job
+
+    job_id = None
+    filename = fuzzy.FuzzyText()
+    job_status = factory.SubFactory(JobStatusFactory)
+    job_type = factory.SubFactory(JobTypeFactory)
+    submission = factory.SubFactory(SubmissionFactory)
+    file_type = factory.SubFactory(FileTypeFactory)
+    original_filename = fuzzy.FuzzyText()
+    file_size = fuzzy.FuzzyInteger(9999)
+    number_of_rows = fuzzy.FuzzyInteger(9999)
+    number_of_rows_valid = fuzzy.FuzzyInteger(9999)
+    number_of_errors = fuzzy.FuzzyInteger(9999)
+    number_of_warnings = fuzzy.FuzzyInteger(9999)
+    error_message = fuzzy.FuzzyText()
+    start_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+    end_date = fuzzy.FuzzyDate(date(2010, 1, 1))

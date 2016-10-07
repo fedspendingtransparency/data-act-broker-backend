@@ -1,16 +1,18 @@
-from flask import session as flaskSession
-from threading import Thread
 import re
 import time
+from threading import Thread
+
 from dateutil.parser import parse
-from dataactcore.utils.requestDictionary import RequestDictionary
-from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.responseException import ResponseException
-from dataactcore.utils.statusCode import StatusCode
-from dataactbroker.handlers.userHandler import UserHandler
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
+from flask import session as flaskSession
+
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactbroker.handlers.aws.session import LoginSession
+from dataactbroker.handlers.userHandler import UserHandler
+from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.requestDictionary import RequestDictionary
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
+
 
 class AccountHandler:
     """

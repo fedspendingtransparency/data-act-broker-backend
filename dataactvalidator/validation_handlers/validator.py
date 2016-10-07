@@ -1,7 +1,7 @@
 from decimal import *
 from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.utils.cloudLogger import CloudLogger
 
 class Validator(object):

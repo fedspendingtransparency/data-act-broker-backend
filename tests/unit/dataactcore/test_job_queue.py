@@ -3,9 +3,15 @@ import csv
 import os
 from unittest.mock import Mock
 
+from celery.exceptions import MaxRetriesExceededError, Retry
+import pytest
+
+from dataactcore.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.models.jobModels import FileType, JobStatus, JobType
 from dataactcore.utils import fileE, jobQueue
 from tests.unit.dataactcore.factories.staging import (
     AwardFinancialAssistanceFactory, AwardProcurementFactory)
+from tests.unit.dataactcore.factories.job import JobFactory
 
 
 def read_file_rows(file_path):
@@ -58,7 +64,7 @@ def test_generate_e_file_query(monkeypatch, mock_broker_config_paths,
     unrelated = AwardProcurementFactory(submission_id=model.submission_id + 1)
     database.session.add_all(aps + afas + [model, same_duns, unrelated])
 
-    monkeypatch.setattr(jobQueue.fileE, 'retrieveRows', Mock())
+    monkeypatch.setattr(jobQueue.fileE, 'retrieveRows', Mock(return_value=[]))
 
     # Mock out the interface holder class; rather nasty, as we want to _keep_
     # the database session handler
@@ -108,3 +114,65 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
          '5A', '5B']
     ]
     assert read_file_rows(file_path) == expected
+
+
+def test_job_context_success(database, job_constants):
+    """When a job successfully runs, it should be marked as "finished" """
+    sess = database.session
+    job = JobFactory(
+        job_status=sess.query(JobStatus).filter_by(name='running').one(),
+        job_type=sess.query(JobType).filter_by(name='validation').one(),
+        file_type=sess.query(FileType).filter_by(name='sub_award').one(),
+    )
+    sess.add(job)
+    sess.commit()
+
+    with jobQueue.job_context(Mock(), InterfaceHolder, job.job_id):
+        pass    # i.e. be successful
+
+    sess.refresh(job)
+    assert job.job_status.name == 'finished'
+
+
+def test_job_context_fail(database, job_constants):
+    """When a job raises an exception and has no retries left, it should be
+    marked as failed"""
+    sess = database.session
+    job = JobFactory(
+        job_status=sess.query(JobStatus).filter_by(name='running').one(),
+        job_type=sess.query(JobType).filter_by(name='validation').one(),
+        file_type=sess.query(FileType).filter_by(name='sub_award').one(),
+    )
+    sess.add(job)
+    sess.commit()
+
+    task = Mock()
+    task.retry.return_value = MaxRetriesExceededError()
+    with jobQueue.job_context(task, InterfaceHolder, job.job_id):
+        raise Exception('This failed!')
+
+    sess.refresh(job)
+    assert job.job_status.name == 'failed'
+    assert job.error_message == 'This failed!'
+
+
+def test_job_context_retry(database, job_constants):
+    """When a job raises an exception but can still retry, we should expect a
+    particular exception (which signifies to celery that it should retry)"""
+    sess = database.session
+    job = JobFactory(
+        job_status=sess.query(JobStatus).filter_by(name='running').one(),
+        job_type=sess.query(JobType).filter_by(name='validation').one(),
+        file_type=sess.query(FileType).filter_by(name='sub_award').one(),
+    )
+    sess.add(job)
+    sess.commit()
+
+    task = Mock()
+    task.retry.return_value = Retry()
+    with pytest.raises(Retry):
+        with jobQueue.job_context(task, InterfaceHolder, job.job_id):
+            raise Exception('This failed!')
+
+    sess.refresh(job)
+    assert job.job_status.name == 'running'     # still going
