@@ -17,14 +17,18 @@ def test_success(database):
     """ Testing valid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
     A-11. """
 
-    af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+    af_1 = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+                               allocation_transfer_agency='test', main_account_code='test',
+                               program_activity_name='test', program_activity_code='test')
+
+    af_2 = AwardFinancialFactory(row_number=2, beginning_period_of_availa=2016, agency_identifier='test',
                                allocation_transfer_agency='test', main_account_code='test',
                                program_activity_name='test', program_activity_code='test')
 
     pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
-    assert number_of_errors(_FILE, database, models=[af, pa]) == 0
+    assert number_of_errors(_FILE, database, models=[af_1, af_2, pa]) == 0
 
     # program activity name/code as null
     af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',

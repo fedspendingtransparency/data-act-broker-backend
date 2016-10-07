@@ -17,14 +17,18 @@ def test_success(database):
     """ Testing valid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
     A-11. """
 
-    op = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+    op_1 = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+                               allocation_transfer_agency='test', main_account_code='test',
+                               program_activity_name='test', program_activity_code='test')
+
+    op_2 = ObjectClassProgramActivityFactory(row_number=2, beginning_period_of_availa=2016, agency_identifier='test',
                                allocation_transfer_agency='test', main_account_code='test',
                                program_activity_name='test', program_activity_code='test')
 
     pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
-    assert number_of_errors(_FILE, database, models=[op, pa]) == 0
+    assert number_of_errors(_FILE, database, models=[op_1, op_2, pa]) == 0
 
 
 def test_failure(database):
@@ -46,26 +50,5 @@ def test_failure(database):
 
     pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
-
-    assert number_of_errors(_FILE, database, models=[op, pa]) == 1
-
-
-    # program activity name/code as null
-    op = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test_wrong',
-                               allocation_transfer_agency='test', main_account_code='test',
-                               program_activity_name=None, program_activity_code=None)
-
-    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
-                                account_number='test')
-
-    assert number_of_errors(_FILE, database, models=[op, pa]) == 1
-
-    # program activity name/code as null
-    op = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
-                               allocation_transfer_agency='test', main_account_code='test',
-                               program_activity_name=None, program_activity_code=None)
-
-    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
-                                account_number='test')
 
     assert number_of_errors(_FILE, database, models=[op, pa]) == 1
