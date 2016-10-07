@@ -1,6 +1,6 @@
 from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
-
+import pytest
 
 _FILE = 'b12_object_class_program_activity_2'
 
@@ -11,22 +11,15 @@ def test_column_headers(database):
     assert (actual & expected_subset) == expected_subset
 
 
-def test_success(database):
+@pytest.mark.parametrize('op', [ObjectClassProgramActivityFactory(by_direct_reimbursable_fun=None),
+                                ObjectClassProgramActivityFactory(by_direct_reimbursable_fun=''),
+                                ObjectClassProgramActivityFactory(by_direct_reimbursable_fun='R'),
+                                ObjectClassProgramActivityFactory(by_direct_reimbursable_fun='r'),
+                                ObjectClassProgramActivityFactory(by_direct_reimbursable_fun='D'),
+                                ObjectClassProgramActivityFactory(by_direct_reimbursable_fun='d')])
+def test_success(database, op):
     """ Test by_direct_reimbursable_fun is '', R, or D """
 
-    op = ObjectClassProgramActivityFactory(by_direct_reimbursable_fun=None)
-    assert number_of_errors(_FILE, database, models=[op]) == 0
-
-    op = ObjectClassProgramActivityFactory(by_direct_reimbursable_fun='R')
-    assert number_of_errors(_FILE, database, models=[op]) == 0
-
-    op = ObjectClassProgramActivityFactory(by_direct_reimbursable_fun='r')
-    assert number_of_errors(_FILE, database, models=[op]) == 0
-
-    op = ObjectClassProgramActivityFactory(by_direct_reimbursable_fun='D')
-    assert number_of_errors(_FILE, database, models=[op]) == 0
-
-    op = ObjectClassProgramActivityFactory(by_direct_reimbursable_fun='d')
     assert number_of_errors(_FILE, database, models=[op]) == 0
 
 
