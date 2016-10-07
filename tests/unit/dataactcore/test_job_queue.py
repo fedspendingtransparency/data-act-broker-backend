@@ -6,7 +6,7 @@ from unittest.mock import Mock
 from celery.exceptions import MaxRetriesExceededError, Retry
 import pytest
 
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.models.jobModels import FileType, JobStatus, JobType
 from dataactcore.utils import fileE, jobQueue
 from tests.unit.dataactcore.factories.staging import (
