@@ -18,7 +18,7 @@ from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.models.validationModels import RuleSql
 

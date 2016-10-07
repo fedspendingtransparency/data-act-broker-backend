@@ -1,6 +1,3 @@
-import sys
-import traceback
-from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.models.baseInterface import BaseInterface
 from dataactbroker.handlers.errorHandler import ErrorHandler
 from dataactbroker.handlers.jobHandler import JobHandler
@@ -16,12 +13,14 @@ class InterfaceHolder:
             self.errorDb = ErrorHandler()
             self.userDb = UserHandler()
             self.validationDb = ValidationBrokerInterface()
+            self.stagingDb = self.validationDb
             BaseInterface.interfaces = self
         else:
             self.jobDb = BaseInterface.interfaces.jobDb
             self.errorDb = BaseInterface.interfaces.errorDb
             self.userDb = BaseInterface.interfaces.userDb
             self.validationDb = BaseInterface.interfaces.validationDb
+            self.stagingDb = self.validationDb
 
     def close(self):
         """ Close all open connections """

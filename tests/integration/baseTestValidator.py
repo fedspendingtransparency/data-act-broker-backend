@@ -7,7 +7,7 @@ import boto.s3
 from random import randint
 from webtest import TestApp
 from dataactvalidator.app import createApp
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
