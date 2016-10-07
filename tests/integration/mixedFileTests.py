@@ -112,7 +112,7 @@ class MixedFileTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 7332, 7, "complete", 45, 32, 9831)
+        jobId, 200, "finished", 7537, 6, "complete", 47, 30, 9626)
 
         # Test that whitespace is converted to null
         rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parent_award_id == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
@@ -126,7 +126,7 @@ class MixedFileTests(BaseTestValidator):
         """Test award financial job with some rows failing & short colnames."""
         jobId = self.jobIdDict["awardFinMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 7332, 7, "complete", 45, 34, 11773)
+            jobId, 200, "finished", 7537, 6, "complete", 47, 32, 11568)
 
     def test_award_valid_shortcols(self):
         """Test valid award (financial assistance) job with short colnames."""
