@@ -43,6 +43,10 @@ def getEntities(client, dunsList):
     result = client.service.getEntities(
         createAuth(client), createSearch(client, dunsList), params)
 
+    if result.transactionInformation.transactionMessage:
+        logger.warning("Message from SAM API: %s",
+                       result.transactionInformation.transactionMessage)
+
     if result.listOfEntities:
         return result.listOfEntities.entity
     else:
