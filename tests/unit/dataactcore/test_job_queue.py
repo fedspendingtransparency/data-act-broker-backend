@@ -85,6 +85,11 @@ def test_generate_e_file_query(monkeypatch, mock_broker_config_paths,
 def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
     """Verify that an appropriate CSV is written, based on fileE.Row's
     structure"""
+    # Create an award so that we have _a_ duns
+    ap = AwardProcurementFactory()
+    database.session.add(ap)
+    database.session.commit()
+
     monkeypatch.setattr(jobQueue.fileE, 'retrieveRows', Mock())
     jobQueue.fileE.retrieveRows.return_value = [
         fileE.Row('a', 'b', 'c', '1a', '1b', '2a', '2b', '3a', '3b',
@@ -96,18 +101,18 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
     interface_class = Mock()
     interface_class.return_value.jobDb.session = database.session
     jobQueue.generate_e_file(
-        1, 1, interface_class, 'uniq', 'uniq', is_local=True)
+        ap.submission_id, 1, interface_class, 'uniq', 'uniq', is_local=True)
 
     file_path = str(mock_broker_config_paths['broker_files'].join('uniq'))
     expected = [
         ['AwardeeOrRecipientUniqueIdentifier',
          'UltimateParentUniqueIdentifier',
          'UltimateParentLegalEntityName',
-         'HighCompOfficer1Name', 'HighCompOfficer1Amount',
-         'HighCompOfficer2Name', 'HighCompOfficer2Amount',
-         'HighCompOfficer3Name', 'HighCompOfficer3Amount',
-         'HighCompOfficer4Name', 'HighCompOfficer4Amount',
-         'HighCompOfficer5Name', 'HighCompOfficer5Amount'],
+         'HighCompOfficer1FullName', 'HighCompOfficer1Amount',
+         'HighCompOfficer2FullName', 'HighCompOfficer2Amount',
+         'HighCompOfficer3FullName', 'HighCompOfficer3Amount',
+         'HighCompOfficer4FullName', 'HighCompOfficer4Amount',
+         'HighCompOfficer5FullName', 'HighCompOfficer5Amount'],
         ['a', 'b', 'c', '1a', '1b', '2a', '2b', '3a', '3b', '4a', '4b',
          '5a', '5b'],
         ['A', 'B', 'C', '1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B',

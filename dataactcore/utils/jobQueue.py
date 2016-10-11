@@ -110,9 +110,13 @@ def generate_e_file(task, submission_id, job_id, interface_holder_class,
             filter(AwardFinancialAssistance.submission_id == submission_id).\
             distinct()
         dunsSet = {r.awardee_or_recipient_uniqu for r in d1.union(d2)}
+        dunsList = list(dunsSet)    # get an order
 
+        rows = []
+        for i in range(0, len(dunsList), 100):
+            rows.extend(fileE.retrieveRows(dunsList[i:i+100]))
         write_csv(timestamped_name, upload_file_name, is_local,
-                  fileE.Row._fields, fileE.retrieveRows(list(dunsSet)))
+                  fileE.Row._fields, rows)
 
 
 if __name__ in ['__main__', 'jobQueue']:
