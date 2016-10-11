@@ -14,10 +14,12 @@ from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
-from dataactcore.models.jobModels import FileGenerationTask, JobDependency
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.report import getReportPath
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -80,13 +82,17 @@ class FileHandler:
             safeDictionary = RequestDictionary(self.request)
             submissionId = safeDictionary.getValue("submission_id")
             responseDict ={}
+            sess = GlobalDB.db().session
             for jobId in self.jobManager.getJobsBySubmission(submissionId):
-                if(self.jobManager.getJobType(jobId) == "csv_record_validation"):
+                # get the job object here so we can call the refactored getReportPath
+                # todo: replace other db access functions with job object attributes
+                job = sess.query(Job).filter(Job.job_id == jobId).one()
+                if self.jobManager.getJobType(jobId) == "csv_record_validation":
                     if isWarning:
-                        reportName = self.jobManager.getWarningReportPath(jobId)
+                        reportName = getReportPath(job, 'warning')
                         key = "job_"+str(jobId)+"_warning_url"
                     else:
-                        reportName = self.jobManager.getReportPath(jobId)
+                        reportName = getReportPath(job, 'error')
                         key = "job_"+str(jobId)+"_error_url"
                     if(not self.isLocal):
                         responseDict[key] = self.s3manager.getSignedUrl("errors",reportName,method="GET")

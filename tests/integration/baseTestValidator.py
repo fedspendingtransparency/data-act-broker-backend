@@ -1,25 +1,27 @@
 import unittest
 from datetime import datetime
 import os
-import inspect
-import time
 import boto.s3
 from random import randint
 from webtest import TestApp
 from dataactvalidator.app import createApp
+from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.models.lookups import JOB_STATUS_DICT, FILE_STATUS_DICT
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.scripts.setupValidationDB import setupValidationDB
-from boto.s3.connection import S3Connection
+from dataactcore.utils.report import getReportPath
 from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Job, Submission
 from dataactcore.models.validationModels import FileColumn
+from dataactcore.models.errorModels import File
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
-from dataactcore.scripts.databaseSetup import createDatabase,runMigrations
+from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 import dataactcore.config
 
 class BaseTestValidator(unittest.TestCase):
@@ -48,8 +50,6 @@ class BaseTestValidator(unittest.TestCase):
 
         # Allow us to augment default test failure msg w/ more detail
         cls.longMessage = True
-        # Flag for each route call to launch a new thread
-        cls.useThreads = False
         # Upload files to S3 (False = skip re-uploading on subsequent runs)
         cls.uploadFiles = True
         # Run tests for local broker or not
@@ -79,7 +79,7 @@ class BaseTestValidator(unittest.TestCase):
     def tearDownClass(cls):
         """Tear down class-level resources."""
         cls.interfaces.close()
-        dropDatabase(cls.interfaces.jobDb.dbName)
+        dropDatabase(CONFIG_DB['db_name'])
 
     def tearDown(self):
         """Tear down broker unit tests."""
@@ -116,57 +116,58 @@ class BaseTestValidator(unittest.TestCase):
         Returns:
 
         """
-        response = self.validateJob(jobId, self.useThreads)
-        jobTracker = self.jobTracker
-        stagingDb = self.stagingDb
-        self.assertEqual(response.status_code, statusId,
-            msg="{}".format(self.getResponseInfo(response)))
-        if statusName != False:
-            self.waitOnJob(jobTracker, jobId, statusName, self.useThreads)
-            self.assertEqual(jobTracker.getJobStatus(jobId), jobTracker.getJobStatusId(statusName))
+        with createApp().app_context():
+            sess = GlobalDB.db().session
 
-        self.assertEqual(
-            response.headers.get("Content-Type"), "application/json")
+            response = self.validateJob(jobId)
+            self.assertEqual(response.status_code, statusId, msg="{}".format(self.getResponseInfo(response)))
 
-        # Check valid row count for this job
-        if stagingRows:
-            numValidRows = jobTracker.getNumberOfValidRowsById(jobId)
-            self.assertEqual(numValidRows, stagingRows)
+            # get the job from db
+            job = sess.query(Job).filter(Job.job_id == jobId).one()
+            if statusName is not False:
+                self.assertEqual(job.job_status_id, JOB_STATUS_DICT[statusName])
 
-        errorInterface = self.errorInterface
-        if errorStatus is not False:
-            self.assertEqual(errorInterface.checkFileStatusByJobId(jobId), errorInterface.getFileStatusId(errorStatus))
-            self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId, self.validationDb,"fatal"), numErrors)
-            self.assertEqual(errorInterface.checkNumberOfErrorsByJobId(jobId, self.validationDb,"warning"), numWarnings)
-        if(fileSize != False):
-            if self.local:
-                self.assertFileSizeAppxy(
-                    fileSize, jobTracker.getReportPath(jobId))
-            else:
-                self.assertGreater(s3UrlHandler.getFileSize(
-                    "errors/"+jobTracker.getReportPath(jobId)), fileSize - 5)
-                self.assertLess(s3UrlHandler.getFileSize(
-                    "errors/"+jobTracker.getReportPath(jobId)), fileSize + 5)
-        if(warningFileSize is not None and warningFileSize != False):
-            if self.local:
-                self.assertFileSizeAppxy(
-                    warningFileSize, jobTracker.getWarningReportPath(jobId))
-            else:
-                self.assertGreater(s3UrlHandler.getFileSize(
-                    "errors/"+jobTracker.getWarningReportPath(jobId)), warningFileSize - 5)
-                self.assertLess(s3UrlHandler.getFileSize(
-                    "errors/"+jobTracker.getWarningReportPath(jobId)), warningFileSize + 5)
+            self.assertEqual(
+                response.headers.get("Content-Type"), "application/json")
+
+            # Check valid row count for this job
+            if stagingRows:
+                self.assertEqual(job.number_of_rows_valid, stagingRows)
+
+            if errorStatus is not False:
+                self.assertEqual(
+                    sess.query(File).filter(File.job_id == jobId).one().file_status_id,
+                    FILE_STATUS_DICT[errorStatus]
+                )
+                self.assertEqual(checkNumberOfErrorsByJobId(jobId, 'fatal'), numErrors)
+                self.assertEqual(checkNumberOfErrorsByJobId(jobId, 'warning'), numWarnings)
+
+            if fileSize is not False:
+                reportPath = getReportPath(job, 'error')
+                if self.local:
+                    self.assertFileSizeAppxy(fileSize, reportPath)
+                else:
+                    self.assertGreater(s3UrlHandler.getFileSize(
+                        'errors/{}'.format(reportPath)), fileSize - 5)
+                    self.assertLess(s3UrlHandler.getFileSize(
+                        'errors/{}'.format(reportPath)), fileSize + 5)
+
+            if warningFileSize is not None and warningFileSize is not False:
+                reportPath = getReportPath(job, 'warning')
+                if self.local:
+                    self.assertFileSizeAppxy(warningFileSize, reportPath)
+                else:
+                    self.assertGreater(s3UrlHandler.getFileSize(
+                        'errors/{}'.format(reportPath)), warningFileSize - 5)
+                    self.assertLess(s3UrlHandler.getFileSize(
+                        'errors/{}'.format(reportPath)), warningFileSize + 5)
 
         return response
 
-    def validateJob(self, jobId, useThreads):
+    def validateJob(self, jobId):
         """ Send request to validate specified job """
-        if useThreads:
-            route = "/validate_threaded/"
-        else:
-            route = "/validate/"
         postJson = {"job_id": jobId}
-        response = self.app.post_json(route, postJson, expect_errors=True)
+        response = self.app.post_json('/validate/', postJson, expect_errors=True)
         return response
 
     @staticmethod
@@ -177,18 +178,6 @@ class BaseTestValidator(unittest.TestCase):
         session.add(job)
         session.commit()
         return job
-
-    def waitOnJob(self, jobTracker, jobId, status, useThreads):
-        """Wait until job gets set to the correct status in job tracker, this is done to wait for validation to complete when running tests."""
-        currentID = jobTracker.getJobStatusId("running")
-        targetStatus = jobTracker.getJobStatusId(status)
-        if useThreads:
-            while jobTracker.getJobStatus(jobId) == currentID:
-                time.sleep(1)
-            self.assertEqual(targetStatus, jobTracker.getJobStatus(jobId))
-        else:
-            self.assertEqual(targetStatus, jobTracker.getJobStatus(jobId))
-            return
 
     @staticmethod
     def insertSubmission(jobTracker, userId, endDate = None):
