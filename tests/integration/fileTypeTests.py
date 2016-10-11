@@ -1,18 +1,22 @@
 from __future__ import print_function
 import os
-from sqlalchemy import not_
 from datetime import datetime
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
+import unittest
+
+from sqlalchemy import not_
+
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import TASLookup
-from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.models.jobModels import Submission
 from dataactcore.models.validationModels import RuleSql
 from dataactcore.config import CONFIG_BROKER
+from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.loadFile import loadDomainValues
 from dataactvalidator.scripts.loadTas import loadTas
 from tests.integration.baseTestValidator import BaseTestValidator
-import unittest
+
 
 class FileTypeTests(BaseTestValidator):
 
@@ -34,36 +38,48 @@ class FileTypeTests(BaseTestValidator):
         s3FileNameAwardValid = cls.uploadFile("awardValid.csv", user)
         s3FileNameAwardProcValid = cls.uploadFile("awardProcValid.csv", user)
 
-        # Create submissions and get IDs back
-        submissionIDs = {}
-        for i in range(0, 9):
-            submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
+        with createApp().app_context():
+            # get the submission test user
+            sess = GlobalDB.db().session
 
-        # Create jobs
-        jobDb = cls.jobTracker
-        statusReady = str(jobDb.getJobStatusId("ready"))
-        jobTypeCsv = str(jobDb.getJobTypeId("csv_record_validation"))
-        jobInfoList = {
-            "valid": [statusReady, jobTypeCsv, str(submissionIDs[1]), s3FileNameValid, jobDb.getFileTypeId("appropriations")],
-            "programValid": [statusReady, jobTypeCsv, str(submissionIDs[4]), s3FileNameProgramValid, jobDb.getFileTypeId("program_activity")],
-            "awardFinValid": [statusReady, jobTypeCsv, str(submissionIDs[6]), s3FileNameAwardFinValid, jobDb.getFileTypeId("award_financial")],
-            "awardValid": [statusReady, jobTypeCsv, str(submissionIDs[8]), s3FileNameAwardValid, jobDb.getFileTypeId("award")],
-            "awardProcValid": [statusReady, jobTypeCsv, str(submissionIDs[8]), s3FileNameAwardProcValid, jobDb.getFileTypeId("award_procurement")]
-        }
+            # Create submissions and get IDs back
+            submissionIDs = {}
+            for i in range(0, 9):
+                sub = Submission(
+                    user_id=user,
+                    reporting_start_date=cls.SUBMISSION_START_DEFAULT,
+                    reporting_end_date=cls.SUBMISSION_END_DEFAULT,
+                    datetime_utc=datetime.utcnow())
+                sess.add(sub)
+                sess.flush()
+                submissionIDs[i] = sub.submission_id
+            sess.commit()
 
-        jobIdDict = {}
-        for key in jobInfoList:
-            jobInfo = jobInfoList[key]  # Done this way to be compatible with python 2 and 3
-            jobInfo.append(jobDb.session)
-            job = cls.addJob(*jobInfo)
-            jobId = job.job_id
-            jobIdDict[key] = jobId
-            print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]), end = "")
+            # Create jobs
+            jobDb = cls.jobTracker
+            statusReady = str(jobDb.getJobStatusId("ready"))
+            jobTypeCsv = str(jobDb.getJobTypeId("csv_record_validation"))
+            jobInfoList = {
+                "valid": [statusReady, jobTypeCsv, str(submissionIDs[1]), s3FileNameValid, jobDb.getFileTypeId("appropriations")],
+                "programValid": [statusReady, jobTypeCsv, str(submissionIDs[4]), s3FileNameProgramValid, jobDb.getFileTypeId("program_activity")],
+                "awardFinValid": [statusReady, jobTypeCsv, str(submissionIDs[6]), s3FileNameAwardFinValid, jobDb.getFileTypeId("award_financial")],
+                "awardValid": [statusReady, jobTypeCsv, str(submissionIDs[8]), s3FileNameAwardValid, jobDb.getFileTypeId("award")],
+                "awardProcValid": [statusReady, jobTypeCsv, str(submissionIDs[8]), s3FileNameAwardProcValid, jobDb.getFileTypeId("award_procurement")]
+            }
 
-        # Load fields and rules
-        FileTypeTests.load_definitions(cls.interfaces, force_tas_load)
+            jobIdDict = {}
+            for key in jobInfoList:
+                jobInfo = jobInfoList[key]  # Done this way to be compatible with python 2 and 3
+                jobInfo.append(jobDb.session)
+                job = cls.addJob(*jobInfo)
+                jobId = job.job_id
+                jobIdDict[key] = jobId
+                print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]), end = "")
 
-        cls.jobIdDict = jobIdDict
+            # Load fields and rules
+            FileTypeTests.load_definitions(cls.interfaces, force_tas_load)
+
+            cls.jobIdDict = jobIdDict
 
     @staticmethod
     def load_definitions(interfaces, force_tas_load, ruleList = None):

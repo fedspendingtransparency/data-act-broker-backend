@@ -1,10 +1,15 @@
 from __future__ import print_function
 from datetime import datetime
+import unittest
+
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.jobModels import Submission
 from dataactcore.models.stagingModels import AwardFinancial
+from dataactvalidator.app import createApp
 from tests.integration.baseTestValidator import BaseTestValidator
 from tests.integration.fileTypeTests import FileTypeTests
-import unittest
+
 
 class MixedFileTests(BaseTestValidator):
 
@@ -34,55 +39,64 @@ class MixedFileTests(BaseTestValidator):
         s3FileNameAppropValidShortcols = cls.uploadFile("appropValidShortcols.csv", user)
         s3FileNameAwardValidShortcols = cls.uploadFile("awardValidShortcols.csv", user)
 
-        # Create submissions and get IDs back
-        submissionIDs = {}
-        for i in range(0, 16):
-            if i == 7:
-               # Award financial mixed will be second quarter
-                submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user, datetime(2015,3,15))
-            else:
-                submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
+        with createApp().app_context():
+            # get the submission test user
+            sess = GlobalDB.db().session
 
-        # Create jobs
-        jobDb = cls.jobTracker
-        statusReady = str(jobDb.getJobStatusId("ready"))
-        jobTypeCsv = str(jobDb.getJobTypeId("csv_record_validation"))
-        jobTypeValidation = str(jobDb.getJobTypeId("validation"))
-        appropType = jobDb.getFileTypeId("appropriations")
-        programType = jobDb.getFileTypeId("program_activity")
-        awardFinType = jobDb.getFileTypeId("award_financial")
-        awardType = jobDb.getFileTypeId("award")
-        jobInfoList = {
-            "mixed": [statusReady, jobTypeCsv, str(submissionIDs[2]), s3FileNameMixed, appropType],
-            "programMixed": [statusReady, jobTypeCsv, str(submissionIDs[5]), s3FileNameProgramMixed, programType],
-            "awardFinMixed": [statusReady, jobTypeCsv, str(submissionIDs[7]), s3FileNameAwardFinMixed, awardFinType],
-            "awardMixed": [statusReady, jobTypeCsv, str(submissionIDs[9]), s3FileNameAwardMixed, awardType],
-            "awardMixedDelimiter": [statusReady, jobTypeCsv, str(submissionIDs[10]), s3FileNameAwardMixedDelimiter, awardType],
-            "crossApprop": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossApprop, appropType],
-            "crossPgmAct": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossPgmAct, programType],
-            "crossAwardFin": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossAwardFin, awardFinType],
-            "crossAward": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossAward, awardType],
-            "crossFile": [statusReady, jobTypeValidation, str(submissionIDs[11]), None, None],
-            "appropValidShortcols": [statusReady, jobTypeCsv, str(submissionIDs[12]), s3FileNameAppropValidShortcols, appropType],
-            "programMixedShortcols": [statusReady, jobTypeCsv, str(submissionIDs[13]), s3FileNameProgramMixedShortcols, programType],
-            "awardFinMixedShortcols": [statusReady, jobTypeCsv, str(submissionIDs[14]), s3FileNameAwardFinMixedShortcols, awardFinType],
-            "awardValidShortcols": [statusReady, jobTypeCsv, str(submissionIDs[15]), s3FileNameAwardValidShortcols, awardType]
-        }
+            # Create submissions and get IDs back
+            submissionIDs = {}
+            for i in range(0, 16):
+                end_date = datetime(2015, 3, 15) if i == 7 else cls.SUBMISSION_END_DEFAULT
+                sub = Submission(
+                    user_id=user,
+                    reporting_start_date=cls.SUBMISSION_START_DEFAULT,
+                    reporting_end_date=end_date,
+                    datetime_utc=datetime.utcnow())
+                sess.add(sub)
+                sess.flush()
+                submissionIDs[i] = sub.submission_id
+            sess.commit()
 
-        jobIdDict = {}
-        for key in jobInfoList:
-            jobInfo = jobInfoList[key]  # Done this way to be compatible with python 2 and 3
-            jobInfo.append(jobDb.session)
-            job = cls.addJob(*jobInfo)
-            jobId = job.job_id
-            jobIdDict[key] = jobId
-            print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]), end = "")
+            # Create jobs
+            jobDb = cls.jobTracker
+            statusReady = str(jobDb.getJobStatusId("ready"))
+            jobTypeCsv = str(jobDb.getJobTypeId("csv_record_validation"))
+            jobTypeValidation = str(jobDb.getJobTypeId("validation"))
+            appropType = jobDb.getFileTypeId("appropriations")
+            programType = jobDb.getFileTypeId("program_activity")
+            awardFinType = jobDb.getFileTypeId("award_financial")
+            awardType = jobDb.getFileTypeId("award")
+            jobInfoList = {
+                "mixed": [statusReady, jobTypeCsv, str(submissionIDs[2]), s3FileNameMixed, appropType],
+                "programMixed": [statusReady, jobTypeCsv, str(submissionIDs[5]), s3FileNameProgramMixed, programType],
+                "awardFinMixed": [statusReady, jobTypeCsv, str(submissionIDs[7]), s3FileNameAwardFinMixed, awardFinType],
+                "awardMixed": [statusReady, jobTypeCsv, str(submissionIDs[9]), s3FileNameAwardMixed, awardType],
+                "awardMixedDelimiter": [statusReady, jobTypeCsv, str(submissionIDs[10]), s3FileNameAwardMixedDelimiter, awardType],
+                "crossApprop": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossApprop, appropType],
+                "crossPgmAct": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossPgmAct, programType],
+                "crossAwardFin": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossAwardFin, awardFinType],
+                "crossAward": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossAward, awardType],
+                "crossFile": [statusReady, jobTypeValidation, str(submissionIDs[11]), None, None],
+                "appropValidShortcols": [statusReady, jobTypeCsv, str(submissionIDs[12]), s3FileNameAppropValidShortcols, appropType],
+                "programMixedShortcols": [statusReady, jobTypeCsv, str(submissionIDs[13]), s3FileNameProgramMixedShortcols, programType],
+                "awardFinMixedShortcols": [statusReady, jobTypeCsv, str(submissionIDs[14]), s3FileNameAwardFinMixedShortcols, awardFinType],
+                "awardValidShortcols": [statusReady, jobTypeCsv, str(submissionIDs[15]), s3FileNameAwardValidShortcols, awardType]
+            }
 
-        # Load fields and rules
-        # TODO load only subset of rules
-        FileTypeTests.load_definitions(cls.interfaces, force_tas_load, cls.RULES_TO_APPLY)
+            jobIdDict = {}
+            for key in jobInfoList:
+                jobInfo = jobInfoList[key]  # Done this way to be compatible with python 2 and 3
+                jobInfo.append(jobDb.session)
+                job = cls.addJob(*jobInfo)
+                jobId = job.job_id
+                jobIdDict[key] = jobId
+                print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]), end = "")
 
-        cls.jobIdDict = jobIdDict
+            # Load fields and rules
+            # TODO load only subset of rules
+            FileTypeTests.load_definitions(cls.interfaces, force_tas_load, cls.RULES_TO_APPLY)
+
+            cls.jobIdDict = jobIdDict
 
     def test_approp_valid_shortcol(self):
         """Test valid approp job with short colnames."""

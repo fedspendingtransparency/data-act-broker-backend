@@ -1,9 +1,11 @@
 from __future__ import print_function
-from dataactcore.interfaces.db import databaseSession
-from dataactcore.models.jobModels import JobDependency
-from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
-from tests.integration.baseTestValidator import BaseTestValidator
+from datetime import datetime
 import unittest
+
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.jobModels import JobDependency, Submission
+from dataactvalidator.app import createApp
+from tests.integration.baseTestValidator import BaseTestValidator
 
 class JobTests(BaseTestValidator):
 
@@ -19,71 +21,82 @@ class JobTests(BaseTestValidator):
         validationDb = cls.validationDb
         jobTracker = cls.jobTracker
 
-        # Create submissions and get IDs back
-        submissionIDs = {}
-        for i in range(1, 17):
-            submissionIDs[i] = cls.insertSubmission(
-                jobTracker, userId=cls.userId)
+        with createApp().app_context():
+            # get the submission test user
+            sess = GlobalDB.db().session
 
-        csvFiles = {
-            "bad_upload": {"filename": "", "status": "ready", "jobType": "file_upload", "submissionLocalId": 2, "fileType": 1},
-            "bad_prereq": {"filename": "", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId" :2,  "fileType": 1},
-            "wrong_type": {"filename": "", "status": "ready", "jobType": "external_validation", "submissionLocalId": 4, "fileType": 1},
-            "not_ready": {"filename": "", "status": "finished", "jobType": "csv_record_validation", "submissionLocalId": 5, "fileType": 1},
-            "empty": {"filename": "testEmpty.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 10, "fileType": 1},
-        }
+            # Create submissions and get IDs back
+            submissionIDs = {}
+            for i in range(1, 17):
+                sub = Submission(
+                    user_id=cls.userId,
+                    reporting_start_date=cls.SUBMISSION_START_DEFAULT,
+                    reporting_end_date=cls.SUBMISSION_END_DEFAULT,
+                    datetime_utc=datetime.utcnow())
+                sess.add(sub)
+                sess.flush()
+                submissionIDs[i] = sub.submission_id
+            sess.commit()
 
-        # Upload needed files to S3
-        for key in csvFiles.keys():
-            csvFiles[key]["s3Filename"] = cls.uploadFile(
-                csvFiles[key]["filename"], cls.userId)
-        jobIdDict = {}
+            csvFiles = {
+                "bad_upload": {"filename": "", "status": "ready", "jobType": "file_upload", "submissionLocalId": 2, "fileType": 1},
+                "bad_prereq": {"filename": "", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId" :2,  "fileType": 1},
+                "wrong_type": {"filename": "", "status": "ready", "jobType": "external_validation", "submissionLocalId": 4, "fileType": 1},
+                "not_ready": {"filename": "", "status": "finished", "jobType": "csv_record_validation", "submissionLocalId": 5, "fileType": 1},
+                "empty": {"filename": "testEmpty.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 10, "fileType": 1},
+            }
 
-        for key in csvFiles.keys():
-            file = csvFiles[key]
-            job = cls.addJob(
-                str(jobTracker.getJobStatusId(file["status"])),
-                str(jobTracker.getJobTypeId(file["jobType"])),
-                str(submissionIDs[file["submissionLocalId"]]),
-                file["s3Filename"],
-                str(file["fileType"]),
-                jobTracker.session)
-            # TODO: fix statement below--does this error really happen?
-            if(job.job_id == None):
-                # Failed to commit job correctly
-                raise Exception(
-                    "".join(["Job for ", str(key), " did not get an id back"]))
-            jobIdDict[key] = job.job_id
-            # Print submission IDs for error report checking
-            print("".join([str(key),": ",str(jobTracker.getSubmissionId(job.job_id)), ", "]), end = "")
+            # Upload needed files to S3
+            for key in csvFiles.keys():
+                csvFiles[key]["s3Filename"] = cls.uploadFile(
+                    csvFiles[key]["filename"], cls.userId)
+            jobIdDict = {}
 
-        # Create dependencies
-        dependencies = [
-            JobDependency(
-                job_id = str(jobIdDict["bad_prereq"]),
-                prerequisite_id = str(jobIdDict["bad_upload"]))
-        ]
+            for key in csvFiles.keys():
+                file = csvFiles[key]
+                job = cls.addJob(
+                    str(jobTracker.getJobStatusId(file["status"])),
+                    str(jobTracker.getJobTypeId(file["jobType"])),
+                    str(submissionIDs[file["submissionLocalId"]]),
+                    file["s3Filename"],
+                    str(file["fileType"]),
+                    jobTracker.session)
+                # TODO: fix statement below--does this error really happen?
+                if(job.job_id == None):
+                    # Failed to commit job correctly
+                    raise Exception(
+                        "".join(["Job for ", str(key), " did not get an id back"]))
+                jobIdDict[key] = job.job_id
+                # Print submission IDs for error report checking
+                print("".join([str(key),": ",str(jobTracker.getSubmissionId(job.job_id)), ", "]), end = "")
 
-        for dependency in dependencies:
-            jobTracker.session.add(dependency)
-        jobTracker.session.commit()
+            # Create dependencies
+            dependencies = [
+                JobDependency(
+                    job_id = str(jobIdDict["bad_prereq"]),
+                    prerequisite_id = str(jobIdDict["bad_upload"]))
+            ]
 
-        colIdDict = {}
-        for fileId in range(1, 5):
-            for columnId in range(1, 6):
-                #TODO: get rid of hard-coded surrogate keys
-                if columnId < 3:
-                    fieldType = 1
-                else:
-                    fieldType = 4
-                columnName = "header_{}".format(columnId)
-                column = cls.addFileColumn(
-                    fileId, fieldType, columnName, "",
-                    (columnId != 3), validationDb.session)
-                colIdDict["header_{}_file_type_{}".format(
-                    columnId, fileId)] = column.file_column_id
+            for dependency in dependencies:
+                jobTracker.session.add(dependency)
+            jobTracker.session.commit()
 
-        cls.jobIdDict = jobIdDict
+            colIdDict = {}
+            for fileId in range(1, 5):
+                for columnId in range(1, 6):
+                    #TODO: get rid of hard-coded surrogate keys
+                    if columnId < 3:
+                        fieldType = 1
+                    else:
+                        fieldType = 4
+                    columnName = "header_{}".format(columnId)
+                    column = cls.addFileColumn(
+                        fileId, fieldType, columnName, "",
+                        (columnId != 3), validationDb.session)
+                    colIdDict["header_{}_file_type_{}".format(
+                        columnId, fileId)] = column.file_column_id
+
+            cls.jobIdDict = jobIdDict
 
     def tearDown(self):
         super(JobTests, self).tearDown()

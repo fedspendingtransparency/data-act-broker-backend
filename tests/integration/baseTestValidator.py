@@ -70,6 +70,9 @@ class BaseTestValidator(unittest.TestCase):
         cls.errorInterface = cls.interfaces.errorDb
         cls.validationDb = cls.interfaces.validationDb
         cls.userId = 1
+        # constants to use for default submission start and end dates
+        cls.SUBMISSION_START_DEFAULT = datetime(2015, 10, 1)
+        cls.SUBMISSION_END_DEFAULT = datetime(2015, 10, 31)
 
     def setUp(self):
         """Set up broker unit tests."""
@@ -189,17 +192,6 @@ class BaseTestValidator(unittest.TestCase):
         else:
             self.assertEqual(targetStatus, jobTracker.getJobStatus(jobId))
             return
-
-    @staticmethod
-    def insertSubmission(jobTracker, userId, endDate = None):
-        """Insert submission into job tracker and return submission ID"""
-        if endDate is None:
-            sub = Submission(datetime_utc=datetime.utcnow(), user_id=userId, reporting_start_date = datetime(2015,10,1), reporting_end_date = datetime(2015,10,31))
-        else:
-            sub = Submission(datetime_utc=datetime.utcnow(), user_id=userId, reporting_start_date = datetime(2015,10,1), reporting_end_date = endDate)
-        jobTracker.session.add(sub)
-        jobTracker.session.commit()
-        return sub.submission_id
 
     @classmethod
     def uploadFile(cls, filename, user):
