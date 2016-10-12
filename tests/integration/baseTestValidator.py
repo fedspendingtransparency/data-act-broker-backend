@@ -194,6 +194,21 @@ class BaseTestValidator(unittest.TestCase):
             return
 
     @classmethod
+    def insertSubmission(cls, sess, userId, reporting_end_date=None):
+        """Insert submission and return id."""
+        reporting_start_date = cls.SUBMISSION_START_DEFAULT
+        if reporting_end_date is None:
+            reporting_end_date = cls.SUBMISSION_END_DEFAULT
+        sub = Submission(
+            datetime_utc=datetime.utcnow(),
+            user_id=userId,
+            reporting_start_date=reporting_start_date,
+            reporting_end_date=reporting_end_date)
+        sess.add(sub)
+        sess.commit()
+        return sub.submission_id
+
+    @classmethod
     def uploadFile(cls, filename, user):
         """ Upload file to S3 and return S3 filename"""
         if len(filename.strip()) == 0:

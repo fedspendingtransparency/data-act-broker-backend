@@ -1,13 +1,13 @@
 from __future__ import print_function
 import os
-from datetime import datetime
 import unittest
 
 from sqlalchemy import not_
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import TASLookup
-from dataactcore.models.jobModels import Submission
+from dataactcore.models.jobModels import Job
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.validationModels import RuleSql
 from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.app import createApp
@@ -30,56 +30,79 @@ class FileTypeTests(BaseTestValidator):
         # TODO: get rid of this flag once we're using a tempdb for test fixtures
         force_tas_load = False
 
-        print("Uploading files")
-        # Upload needed files to S3
-        s3FileNameValid = cls.uploadFile("appropValid.csv", user)
-        s3FileNameProgramValid = cls.uploadFile("programActivityValid.csv", user)
-        s3FileNameAwardFinValid = cls.uploadFile("awardFinancialValid.csv", user)
-        s3FileNameAwardValid = cls.uploadFile("awardValid.csv", user)
-        s3FileNameAwardProcValid = cls.uploadFile("awardProcValid.csv", user)
-
         with createApp().app_context():
-            # get the submission test user
             sess = GlobalDB.db().session
 
-            # Create submissions and get IDs back
-            submissionIDs = {}
-            for i in range(0, 9):
-                sub = Submission(
-                    user_id=user,
-                    reporting_start_date=cls.SUBMISSION_START_DEFAULT,
-                    reporting_end_date=cls.SUBMISSION_END_DEFAULT,
-                    datetime_utc=datetime.utcnow())
-                sess.add(sub)
-                sess.flush()
-                submissionIDs[i] = sub.submission_id
+            # Create submissions and jobs, also uploading
+            # the files needed for each job.
+            statusReadyId = JOB_STATUS_DICT['ready']
+            jobTypeCsvId = JOB_TYPE_DICT['csv_record_validation']
+            jobDict = {}
+
+            submissionId = cls.insertSubmission(sess, user)
+            job_info = Job(
+                filename=cls.uploadFile("appropValid.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['appropriations'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['valid'] = job_info.job_id
+
+            submissionId = cls.insertSubmission(sess, user)
+            job_info = Job(
+                filename=cls.uploadFile("programActivityValid.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['program_activity'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['programValid'] = job_info.job_id
+
+            submissionId = cls.insertSubmission(sess, user)
+            job_info = Job(
+                filename=cls.uploadFile("awardFinancialValid.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['award_financial'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['awardFinValid'] = job_info.job_id
+
+            # next two jobs have the same submission id
+            submissionId = cls.insertSubmission(sess, user)
+            job_info = Job(
+                filename=cls.uploadFile("awardValid.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['award'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['awardValid'] = job_info.job_id
+
+            job_info = Job(
+                filename=cls.uploadFile("awardProcValid.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['award_procurement'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['awardProcValid'] = job_info.job_id
+
+            # commit submissions/jobs and output IDs
             sess.commit()
-
-            # Create jobs
-            jobDb = cls.jobTracker
-            statusReady = str(jobDb.getJobStatusId("ready"))
-            jobTypeCsv = str(jobDb.getJobTypeId("csv_record_validation"))
-            jobInfoList = {
-                "valid": [statusReady, jobTypeCsv, str(submissionIDs[1]), s3FileNameValid, jobDb.getFileTypeId("appropriations")],
-                "programValid": [statusReady, jobTypeCsv, str(submissionIDs[4]), s3FileNameProgramValid, jobDb.getFileTypeId("program_activity")],
-                "awardFinValid": [statusReady, jobTypeCsv, str(submissionIDs[6]), s3FileNameAwardFinValid, jobDb.getFileTypeId("award_financial")],
-                "awardValid": [statusReady, jobTypeCsv, str(submissionIDs[8]), s3FileNameAwardValid, jobDb.getFileTypeId("award")],
-                "awardProcValid": [statusReady, jobTypeCsv, str(submissionIDs[8]), s3FileNameAwardProcValid, jobDb.getFileTypeId("award_procurement")]
-            }
-
-            jobIdDict = {}
-            for key in jobInfoList:
-                jobInfo = jobInfoList[key]  # Done this way to be compatible with python 2 and 3
-                jobInfo.append(jobDb.session)
-                job = cls.addJob(*jobInfo)
-                jobId = job.job_id
-                jobIdDict[key] = jobId
-                print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]), end = "")
+            for job_type, job_id in jobDict.items():
+                print('{}: {}'.format(job_type, job_id))
 
             # Load fields and rules
             FileTypeTests.load_definitions(cls.interfaces, force_tas_load)
 
-            cls.jobIdDict = jobIdDict
+            cls.jobDict = jobDict
 
     @staticmethod
     def load_definitions(interfaces, force_tas_load, ruleList = None):
@@ -107,31 +130,31 @@ class FileTypeTests(BaseTestValidator):
 
     def test_approp_valid(self):
         """Test valid job."""
-        jobId = self.jobIdDict["valid"]
+        jobId = self.jobDict["valid"]
         self.passed = self.run_test(
             jobId, 200, "finished", 63, 10, "complete", 0, numWarnings=10)
 
     def test_program_valid(self):
         """Test valid job."""
-        jobId = self.jobIdDict["programValid"]
+        jobId = self.jobDict["programValid"]
         self.passed = self.run_test(
             jobId, 200, "finished", 63, 10, "complete", 0)
 
     def test_award_fin_valid(self):
         """Test valid job."""
-        jobId = self.jobIdDict["awardFinValid"]
+        jobId = self.jobDict["awardFinValid"]
         self.passed = self.run_test(
             jobId, 200, "finished", 63, 10, "complete", 0)
 
     def test_award_valid(self):
         """Test valid job."""
-        jobId = self.jobIdDict["awardValid"]
+        jobId = self.jobDict["awardValid"]
         self.passed = self.run_test(
             jobId, 200, "finished", 63, 10, "complete", 0)
 
     def test_award_proc_valid(self):
         """Test valid job."""
-        jobId = self.jobIdDict["awardProcValid"]
+        jobId = self.jobDict["awardProcValid"]
         self.passed = self.run_test(
             jobId, 200, "finished", 63, 10, "complete", 0, False)
 
