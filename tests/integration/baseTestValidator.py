@@ -172,15 +172,6 @@ class BaseTestValidator(unittest.TestCase):
         response = self.app.post_json(route, postJson, expect_errors=True)
         return response
 
-    @staticmethod
-    def addJob(status, jobType, submissionId, s3Filename, fileType, session):
-        """ Create a job model and add it to the session """
-        job = Job(job_status_id=status, job_type_id=jobType,
-            submission_id=submissionId, filename=s3Filename, file_type_id=fileType)
-        session.add(job)
-        session.commit()
-        return job
-
     def waitOnJob(self, jobTracker, jobId, status, useThreads):
         """Wait until job gets set to the correct status in job tracker, this is done to wait for validation to complete when running tests."""
         currentID = jobTracker.getJobStatusId("running")
@@ -235,28 +226,6 @@ class BaseTestValidator(unittest.TestCase):
 
                 assert(bytesWritten > 0)
             return s3FileName
-
-    @staticmethod
-    def addFileColumn(fileId, fieldTypeId, columnName,
-            description, required, session):
-        """ Add information for one field
-
-        Args:
-            fileId: Which file this field is part of
-            fieldTypeId: Data type found in this field
-            columnName: Name of field
-            description: Description of field
-            required: True if field is required
-            session: session object to be used for queries
-
-        Returns:
-
-        """
-        column = FileColumn(file_id=fileId, field_types_id=fieldTypeId,
-            name=columnName, description=description, required=required)
-        session.add(column)
-        session.commit()
-        return column
 
     def getResponseInfo(self, response):
         """ Format response object in readable form """
