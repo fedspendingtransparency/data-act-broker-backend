@@ -1,16 +1,18 @@
-from flask import session as flaskSession
-from threading import Thread
 import re
 import time
+from threading import Thread
+
 from dateutil.parser import parse
-from dataactcore.utils.requestDictionary import RequestDictionary
-from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.responseException import ResponseException
-from dataactcore.utils.statusCode import StatusCode
-from dataactbroker.handlers.userHandler import UserHandler
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
+from flask import session as flaskSession
+
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactbroker.handlers.aws.session import LoginSession
+from dataactbroker.handlers.userHandler import UserHandler
+from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.requestDictionary import RequestDictionary
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
+
 
 class AccountHandler:
     """
@@ -261,7 +263,7 @@ class AccountHandler:
             if(not (user.user_status_id == self.interfaces.userDb.getUserStatusId("awaiting_confirmation") or user.user_status_id == self.interfaces.userDb.getUserStatusId("email_confirmed"))):
                 exc = ResponseException("User already registered", StatusCode.CLIENT_ERROR)
                 return JsonResponse.error(exc,exc.status)
-        emailToken = sesEmail.createToken(email,self.interfaces.userDb,"validate_email")
+        emailToken = sesEmail.createToken(email, "validate_email")
         link= "".join([AccountHandler.FRONT_END,'#/registration/',emailToken])
         emailTemplate = {'[USER]': email, '[URL]':link}
         newEmail = sesEmail(email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)
@@ -626,7 +628,7 @@ class AccountHandler:
 
         self.interfaces.userDb.session.commit()
         # Send email with token
-        emailToken = sesEmail.createToken(email, self.interfaces.userDb, "password_reset")
+        emailToken = sesEmail.createToken(email, "password_reset")
         link = "".join([AccountHandler.FRONT_END, '#/forgotpassword/', emailToken])
         emailTemplate = {'[URL]': link}
         templateType = "unlock_account" if unlock_user else "reset_password"

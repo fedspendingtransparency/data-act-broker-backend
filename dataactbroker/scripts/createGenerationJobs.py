@@ -1,6 +1,6 @@
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
-from dataactcore.models.jobModels import Submission, Job, JobDependency
+from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.models.baseInterface import databaseSession
+from dataactcore.models.jobModels import Submission, Job, JobDependency
 
 EXTERNAL_FILE_TYPES = ["award_procurement", "award", "awardee_attributes", "sub_award"]
 # Get all submission IDs

@@ -1,11 +1,20 @@
+from contextlib import contextmanager
+import logging
+
 from celery import Celery
+from celery.exceptions import MaxRetriesExceededError
 from flask import Flask
 import requests
 
 from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE
-from dataactcore.utils import fileF
+from dataactcore.models.stagingModels import (
+    AwardFinancialAssistance, AwardProcurement)
+from dataactcore.utils import fileE, fileF
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactvalidator.filestreaming.csv_selection import write_csv
+
+
+logger = logging.getLogger(__name__)
 
 
 def brokerUrl(host):
@@ -42,35 +51,72 @@ def enqueue(jobID):
     return response.json()
 
 
-@celery_app.task(name='jobQueue.generate_f_file')
-def generate_f_file(submission_id, job_id, interface_holder_class,
+@contextmanager
+def job_context(task, interface_holder_class, job_id):
+    """Common context for file E and F generation. Handles marking the job
+    finished and/or failed"""
+    # Flask context ensures we have access to global.g
+    with Flask(__name__).app_context():
+        job_manager = interface_holder_class().jobDb
+
+        try:
+            yield job_manager
+            job_manager.markJobStatus(job_id, "finished")
+        except Exception as e:
+            # logger.exception() automatically adds traceback info
+            logger.exception('Job %s failed, retrying', job_id)
+            try:
+                raise task.retry()
+            except MaxRetriesExceededError:
+                logger.warning('Job %s completely failed', job_id)
+                # Log the error
+                job_manager.getJobById(job_id).error_message = str(e)
+                job_manager.markJobStatus(job_id, "failed")
+
+        job_manager.close()
+
+
+@celery_app.task(name='jobQueue.generate_f_file', max_retries=0, bind=True)
+def generate_f_file(task, submission_id, job_id, interface_holder_class,
                     timestamped_name, upload_file_name, is_local):
     """Write rows from fileF.generateFRows to an appropriate CSV. Here the
     third parameter, interface_holder_class, is a bit of a hack. Importing
     InterfaceHolder directly causes cyclic dependency woes, so we're passing
     in a class"""
-    # Setup a Flask context
-    with Flask(__name__).app_context():
-        job_manager = interface_holder_class().jobDb
+    with job_context(task, interface_holder_class, job_id) as job_manager:
+        rows_of_dicts = fileF.generateFRows(job_manager.session,
+                                            submission_id)
+        header = [key for key in fileF.mappings]    # keep order
+        body = []
+        for row in rows_of_dicts:
+            body.append([row[key] for key in header])
 
-        try:
-            rows_of_dicts = fileF.generateFRows(job_manager.session,
-                                                submission_id)
-            header = [key for key in fileF.mappings]    # keep order
-            body = []
-            for row in rows_of_dicts:
-                body.append([row[key] for key in header])
+        write_csv(timestamped_name, upload_file_name, is_local, header,
+                  body)
 
-            write_csv(timestamped_name, upload_file_name, is_local, header,
-                      body)
-            job_manager.markJobStatus(job_id, "finished")
-        except Exception as e:
-            # Log the error
-            job_manager.getJobById(job_id).error_message = str(e)
-            job_manager.markJobStatus(job_id, "failed")
-            job_manager.session.commit()
 
-        job_manager.close()
+@celery_app.task(name='jobQueue.generate_e_file', max_retires=3, bind=True)
+def generate_e_file(task, submission_id, job_id, interface_holder_class,
+                    timestamped_name, upload_file_name, is_local):
+    """Write file E to an appropriate CSV. See generate_file_file for an
+    explanation of interface_holder_class"""
+    with job_context(task, interface_holder_class, job_id) as job_manager:
+        d1 = job_manager.session.\
+            query(AwardProcurement.awardee_or_recipient_uniqu).\
+            filter(AwardProcurement.submission_id == submission_id).\
+            distinct()
+        d2 = job_manager.session.\
+            query(AwardFinancialAssistance.awardee_or_recipient_uniqu).\
+            filter(AwardFinancialAssistance.submission_id == submission_id).\
+            distinct()
+        dunsSet = {r.awardee_or_recipient_uniqu for r in d1.union(d2)}
+        dunsList = list(dunsSet)    # get an order
+
+        rows = []
+        for i in range(0, len(dunsList), 100):
+            rows.extend(fileE.retrieveRows(dunsList[i:i+100]))
+        write_csv(timestamped_name, upload_file_name, is_local,
+                  fileE.Row._fields, rows)
 
 
 if __name__ in ['__main__', 'jobQueue']:

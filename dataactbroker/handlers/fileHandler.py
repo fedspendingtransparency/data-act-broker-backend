@@ -1,26 +1,25 @@
+import os
 from csv import reader
 from datetime import datetime
-import os
 from uuid import uuid4
 
-from flask import session, request
 import requests
+from flask import session, request
 from requests.exceptions import Timeout
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug import secure_filename
 
 from dataactbroker.handlers.aws.session import LoginSession
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
+from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency
-from dataactcore.models.errorModels import File
 from dataactcore.utils.cloudLogger import CloudLogger
-from dataactcore.utils.jobQueue import generate_f_file
+from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.requestDictionary import RequestDictionary
+from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactvalidator.filestreaming.csv_selection import write_csv
@@ -505,14 +504,14 @@ class FileHandler:
                             log_type="debug",
                             file_name=self.debug_file_name)
             return self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
+        elif file_type == 'E':
+            generate_e_file.delay(
+                submission_id, job.job_id, InterfaceHolder, timestamped_name,
+                upload_file_name, self.isLocal)
         elif file_type == 'F':
             generate_f_file.delay(
                 submission_id, job.job_id, InterfaceHolder, timestamped_name,
                 upload_file_name, self.isLocal)
-        else:
-            # TODO add generate calls for E
-            jobDb.markJobStatus(job.job_id,"finished")
-            pass
 
         return True, None
 
@@ -552,6 +551,9 @@ class FileHandler:
             return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
         # Create file D API URL with dates and callback URL
         callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
+        CloudLogger.log(
+            'DEBUG: Callback URL for {}: {}'.format(file_type, callback),
+            log_type='debug', file_name=self.debug_file_name)
         get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
 
         CloudLogger.log("DEBUG: Calling D file API => " + str(get_url),
@@ -607,13 +609,17 @@ class FileHandler:
         return "numFound='0'" not in self.get_xml_response_content(api_url)
 
     def download_file(self, local_file_path, file_url):
-        """ Download a file locally from the specified URL """
+        """ Download a file locally from the specified URL, returns True if successful """
         with open(local_file_path, "w") as file:
             # get request
             response = requests.get(file_url)
+            if response.status_code != 200:
+                # Could not download the file, return False
+                return False
             # write to file
             response.encoding = "utf-8"
             file.write(response.text)
+            return True
 
     def get_lines_from_csv(self, file_path):
         """ Retrieve all lines from specified CSV file """
@@ -630,7 +636,12 @@ class FileHandler:
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
             CloudLogger.log("DEBUG: Downloading file...", log_type="debug", file_name=self.smx_log_file_name)
-            self.download_file(full_file_path, url)
+            if not self.download_file(full_file_path, url):
+                # Error occurred while downloading file, mark job as failed and record error message
+                job_manager.markJobStatus(job_id, "failed")
+                job = job_manager.getJobById(job_id)
+                job.error_message = "Could not download D file"
+                raise ResponseException("Failed to download file", StatusCode.CLIENT_ERROR)
             lines = self.get_lines_from_csv(full_file_path)
 
             write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])

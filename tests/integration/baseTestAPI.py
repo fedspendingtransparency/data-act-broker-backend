@@ -6,10 +6,9 @@ from dateutil.parser import parse
 from random import randint
 from webtest import TestApp
 from dataactbroker.app import createApp
-from dataactbroker.handlers.interfaceHolder import InterfaceHolder
-from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
+from dataactcore.models import lookups
 from dataactcore.models.userModel import AccountType, User, UserStatus
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupUserDB import setupUserDB
@@ -28,9 +27,6 @@ class BaseTestAPI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up resources to be shared within a test class"""
-        # Prevent interface being reused from last suite
-        BaseInterface.interfaces = None
-        # Create an empty session ID
         cls.session_id = ""
 
         with createApp().app_context():
@@ -107,7 +103,7 @@ class BaseTestAPI(unittest.TestCase):
             createUserWithPassword(
                 test_users['agency_user'], user_password, Bcrypt())
 
-        # get user info and save as class variables for use by tests
+            # get user info and save as class variables for use by tests
 
             sess = GlobalDB.db().session
 
@@ -159,21 +155,24 @@ class BaseTestAPI(unittest.TestCase):
 
             sess.commit()
 
+        # get lookup dictionaries
+        cls.jobStatusDict = lookups.JOB_STATUS_DICT
+        cls.jobTypeDict = lookups.JOB_TYPE_DICT
+        cls.fileTypeDict = lookups.FILE_TYPE_DICT
+        cls.fileStatusDict = lookups.FILE_STATUS_DICT
+        cls.ruleSeverityDict = lookups.RULE_SEVERITY_DICT
+        cls.errorTypeDict = lookups.ERROR_TYPE_DICT
+        cls.publishStatusDict = lookups.PUBLISH_STATUS_DICT
+        cls.userStatusDict = lookups.USER_STATUS_DICT
+
         # set up info needed by the individual test classes
         cls.test_users = test_users
         cls.user_password = user_password
         cls.admin_password = admin_password
-        cls.interfaces = InterfaceHolder()
-        cls.jobTracker = cls.interfaces.jobDb
-        cls.errorDatabase = cls.interfaces.errorDb
-        cls.userDb = cls.interfaces.userDb
-        cls.validationDb = cls.interfaces.validationDb
         cls.local = CONFIG_BROKER['local']
 
     def setUp(self):
         """Set up broker unit tests."""
-        # Repopulate interfaces if needed
-        self.interfaces = InterfaceHolder()
         app = createApp()
         app.config['TESTING'] = True
         self.app = TestApp(app)
@@ -181,8 +180,7 @@ class BaseTestAPI(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """Tear down class-level resources."""
-        cls.interfaces.close()
-        dropDatabase(cls.interfaces.jobDb.dbName)
+        dropDatabase(CONFIG_DB['db_name'])
 
     def tearDown(self):
         """Tear down broker unit tests."""

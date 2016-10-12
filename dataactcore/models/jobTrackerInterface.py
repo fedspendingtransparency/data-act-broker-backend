@@ -305,7 +305,7 @@ class JobTrackerInterface(BaseInterface):
         return self.runUniqueQuery(query, "No submission with that ID", "Multiple submissions with that ID")
 
     def populateSubmissionErrorInfo(self, submissionId):
-        """ Set number of errors and warnings for submission """
+        """Deprecated: moved to function_bag.py."""
         submission = self.getSubmissionById(submissionId)
         # TODO find where interfaces is set as an instance variable which overrides the static variable, fix that and then remove this line
         self.interfaces = BaseInterface.interfaces
@@ -314,14 +314,7 @@ class JobTrackerInterface(BaseInterface):
         self.session.commit()
 
     def setJobNumberOfErrors(self, jobId, numberOfErrors, errorType):
-        """ Label nuber of errors or warnings for specified job
-
-        Args:
-            jobId: Job to set number for
-            numberOfErrors: Number to be set
-            errorType: Type of error to set, can be either 'fatal' or 'warning'
-
-        """
+        """Deprecated: moved to sumNumberOfErrorsForJobList in function_bag.py."""
         job = self.getJobById(jobId)
         if errorType == "fatal":
             job.number_of_errors = numberOfErrors
@@ -385,3 +378,32 @@ class JobTrackerInterface(BaseInterface):
     def findGenerationTask(self, key):
         """ Given a key, return a file generation task """
         return self.session.query(FileGenerationTask).filter(FileGenerationTask.generation_task_key == key).first()
+
+    def checkJobType(self, jobId):
+        """ Job should be of type csv_record_validation, or this is the wrong service
+
+        Args:
+        jobId -- job ID to check
+
+        Returns:
+        True if correct type, False or exception otherwise
+        """
+        query = self.session.query(Job.job_type_id).filter(Job.job_id == jobId)
+        result = self.checkJobUnique(query)
+        if result.job_type_id == self.getJobTypeId("csv_record_validation") or result.job_type_id == self.getJobTypeId(
+                "validation"):
+            # Correct type
+            return result.job_type_id
+        else:
+            # Wrong type
+            raise ResponseException("Wrong type of job for this service", StatusCode.CLIENT_ERROR, None,
+                                    ValidationError.jobError)
+
+    def checkFirstQuarter(self, jobId):
+        """ Return True if end date is in the first quarter """
+        submission = self.getSubmission(jobId)
+        endDate = submission.reporting_end_date
+        if endDate is None:
+            # No date provided, consider this to not be first quarter
+            return False
+        return (endDate.month >= 10 and endDate.month <= 12)
