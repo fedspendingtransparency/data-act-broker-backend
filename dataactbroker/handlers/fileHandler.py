@@ -640,8 +640,16 @@ class FileHandler:
                 # Error occurred while downloading file, mark job as failed and record error message
                 job_manager.markJobStatus(job_id, "failed")
                 job = job_manager.getJobById(job_id)
-                job.error_message = "Could not download D file"
-                raise ResponseException("Failed to download file", StatusCode.CLIENT_ERROR)
+                file_type = job_manager.getFileType(job_id)
+                if file_type == "award":
+                    source= "ASP"
+                elif file_type == "award_procurement":
+                    source = "FPDS"
+                else:
+                    source = "unknown source"
+                job.error_message = "A problem occurred receiving data from {}".format(source)
+
+                raise ResponseException(job.error_message, StatusCode.CLIENT_ERROR)
             lines = self.get_lines_from_csv(full_file_path)
 
             write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])
