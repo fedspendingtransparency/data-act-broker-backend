@@ -333,7 +333,7 @@ class ValidationManager:
 
         # Get file size and write to jobs table
         if CONFIG_BROKER["use_aws"]:
-            fileSize = s3UrlHandler.getFileSize("errors/"+errorFileName)
+            fileSize = s3UrlHandler.getFileSize(errorFileName)
         else:
             fileSize = os.path.getsize(jobTracker.getFileName(jobId))
         jobTracker.setFileSizeById(jobId, fileSize)
