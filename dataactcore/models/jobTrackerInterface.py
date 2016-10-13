@@ -238,10 +238,6 @@ class JobTrackerInterface(BaseInterface):
         """ Get number of rows in file for job matching ID """
         return self.getJobById(jobId).number_of_rows
 
-    def getNumberOfValidRowsById(self, jobId):
-        """Get number of file's rows that passed validations."""
-        return self.getJobById(jobId).number_of_rows_valid
-
     def setFileSizeById(self,jobId, fileSize):
         """ Set file size for job matching ID """
         job = self.getJobById(jobId)
