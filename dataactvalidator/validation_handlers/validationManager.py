@@ -375,6 +375,8 @@ class ValidationManager:
                     # second phase of validations: do basic schema checks
                     # (e.g., require fields, field length, data type)
                     #
+                    # D files are obtained from upstream systems (ASP and FPDS) that perform their own basic validations,
+                    # so these validations are not repeated here
                     if fileType in ["award", "award_procurement"]:
                         # Skip basic validations for D files, set as valid to trigger write to staging
                         passedValidations = True
