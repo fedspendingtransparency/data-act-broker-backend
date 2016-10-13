@@ -16,10 +16,10 @@ def test_column_headers(database):
 def test_success(database):
     """ Test that calculation passes with equal values and with a null """
 
-    value_one = Decimal(randint(0,100000)) / Decimal(100)
-    value_two = Decimal(randint(0,100000)) / Decimal(100)
-    value_three = Decimal(randint(0,100000)) / Decimal(100)
-    value_four = Decimal(randint(0,100000)) / Decimal(100)
+    value_one = Decimal('100.00')
+    value_two = Decimal('200.00')
+    value_three = Decimal('300.00')
+    value_four = Decimal('400.00')
     ocpa = ObjectClassProgramActivityFactory(obligations_undelivered_or_cpe = value_one+value_two+value_three+value_four,
                                              ussgl480100_undelivered_or_cpe = value_one,
                                              ussgl483100_undelivered_or_cpe = value_two,
@@ -35,8 +35,8 @@ def test_success(database):
 
 def test_failure(database):
     """ Test that calculation fails for unequal values """
-    value = Decimal(randint(0,100000)) / Decimal(100)
-    value2 = Decimal(randint(100001,200000)) / Decimal(100)
+    value = Decimal('500.00')
+    value2 = Decimal('100.00')
     ocpa = ObjectClassProgramActivityFactory(obligations_undelivered_or_cpe = value,
                                              ussgl480100_undelivered_or_cpe = value2,
                                              ussgl483100_undelivered_or_cpe = value2,

@@ -15,10 +15,10 @@ def test_column_headers(database):
 def test_success(database):
     """ Test that calculation passes with equal values and with a null """
 
-    value_one = Decimal(randint(0,100000)) / Decimal(100)
-    value_two = Decimal(randint(0,100000)) / Decimal(100)
-    value_three = Decimal(randint(0,100000)) / Decimal(100)
-    value_four = Decimal(randint(0,100000)) / Decimal(100)
+    value_one = Decimal('101.23')
+    value_two = Decimal('102.34')
+    value_three = Decimal('103.45')
+    value_four = Decimal('104.56')
     award_fin = AwardFinancialFactory(deobligations_recov_by_awa_cpe = value_one + value_two + value_three + value_four,
                                  ussgl487100_downward_adjus_cpe = value_one,
                                  ussgl487200_downward_adjus_cpe = value_two,
@@ -34,8 +34,8 @@ def test_success(database):
 
 def test_failure(database):
     """ Test that calculation fails for unequal values """
-    value_one = Decimal(randint(0,100000)) / Decimal(100)
-    value_two = Decimal(randint(100001,200000)) / Decimal(100)
+    value_one = Decimal('101.23')
+    value_two = Decimal('102.34')
     award_fin = AwardFinancialFactory(deobligations_recov_by_awa_cpe = value_one,
                                  ussgl487100_downward_adjus_cpe = value_two,
                                  ussgl487200_downward_adjus_cpe = value_two,

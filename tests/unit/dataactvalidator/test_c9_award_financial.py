@@ -1,6 +1,5 @@
 from tests.unit.dataactcore.factories.staging import AwardFinancialFactory, AwardFinancialAssistanceFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
-from random import randint
 
 _FILE = 'c9_award_financial'
 
@@ -16,11 +15,11 @@ def test_success(database):
     # Test with only one of fain/uri
     award_fin_fain = AwardFinancialFactory(uri = None)
     award_fin_uri = AwardFinancialFactory(fain = None)
-    afa_fain = AwardFinancialAssistanceFactory(fain = award_fin_fain.fain, uri = None, federal_action_obligation = randint(1,1000))
-    afa_uri = AwardFinancialAssistanceFactory(fain = None, uri = award_fin_uri.uri, federal_action_obligation = randint(1,1000))
+    afa_fain = AwardFinancialAssistanceFactory(fain = award_fin_fain.fain, uri = None, federal_action_obligation = 123)
+    afa_uri = AwardFinancialAssistanceFactory(fain = None, uri = award_fin_uri.uri, federal_action_obligation = 234)
     # Test with both fain and uri
     award_fin = AwardFinancialFactory()
-    afa = AwardFinancialAssistanceFactory(fain = award_fin.fain, uri = award_fin.uri, federal_action_obligation = randint(1,1000))
+    afa = AwardFinancialAssistanceFactory(fain = award_fin.fain, uri = award_fin.uri, federal_action_obligation = 345)
     # Test with zero federal action obligation
     afa_zero = AwardFinancialAssistanceFactory(federal_action_obligation = 0)
 
@@ -30,9 +29,9 @@ def test_success(database):
 def test_failure(database):
     """ Test fain and uri present in D2 but not in C """
     award_fin = AwardFinancialFactory(fain = None, uri = None)
-    afa_fain = AwardFinancialAssistanceFactory(uri = None, federal_action_obligation = randint(1,1000))
-    afa_uri = AwardFinancialAssistanceFactory(fain = None, federal_action_obligation = randint(1,1000))
+    afa_fain = AwardFinancialAssistanceFactory(uri = None, federal_action_obligation = 123)
+    afa_uri = AwardFinancialAssistanceFactory(fain = None, federal_action_obligation = 234)
     # Test with both fain and uri
-    afa = AwardFinancialAssistanceFactory(federal_action_obligation = randint(1,1000))
+    afa = AwardFinancialAssistanceFactory(federal_action_obligation = 345)
 
     assert number_of_errors(_FILE, database, models=[award_fin, afa_fain, afa_uri, afa]) == 3
