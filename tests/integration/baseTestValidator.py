@@ -120,7 +120,7 @@ class BaseTestValidator(unittest.TestCase):
             sess = GlobalDB.db().session
 
             response = self.validateJob(jobId)
-            self.assertEqual(response.status_code, statusId, msg="{}".format(self.getResponseInfo(response)))
+            self.assertEqual(response.status_code, statusId, str(self.getResponseInfo(response)))
 
             # get the job from db
             job = sess.query(Job).filter(Job.job_id == jobId).one()
@@ -131,7 +131,7 @@ class BaseTestValidator(unittest.TestCase):
                 response.headers.get("Content-Type"), "application/json")
 
             # Check valid row count for this job
-            if stagingRows:
+            if stagingRows is not False:
                 self.assertEqual(job.number_of_rows_valid, stagingRows)
 
             if errorStatus is not False:
