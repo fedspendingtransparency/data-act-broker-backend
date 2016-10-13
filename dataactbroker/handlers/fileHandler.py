@@ -87,7 +87,7 @@ class FileHandler:
                 # get the job object here so we can call the refactored getReportPath
                 # todo: replace other db access functions with job object attributes
                 job = sess.query(Job).filter(Job.job_id == jobId).one()
-                if self.jobManager.getJobType(jobId) == "csv_record_validation":
+                if job.job_type.name == 'csv_record_validation':
                     if isWarning:
                         reportName = getReportPath(job, 'warning')
                         key = "job_"+str(jobId)+"_warning_url"
