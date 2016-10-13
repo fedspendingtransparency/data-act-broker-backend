@@ -4,10 +4,13 @@ import sys
 from csv import Error
 from sqlalchemy import or_, and_
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.validationModels import FileTypeValidation
 from dataactcore.models.baseInterface import BaseInterface
+from dataactcore.models.jobModels import Job
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.report import getReportPath
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -288,6 +291,11 @@ class ValidationManager:
             True if successful
         """
 
+        sess = GlobalDB.db().session
+        # get the job object here so we can call the refactored getReportPath
+        # todo: replace other db access functions with job object attributes
+        job = sess.query(Job).filter(Job.job_id == jobId).one()
+
         CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runValidation on jobID: "+str(jobId), "")
 
         jobTracker = interfaces.jobDb
@@ -311,8 +319,8 @@ class ValidationManager:
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
 
-        errorFileName = self.getFileName(jobTracker.getReportPath(jobId))
-        warningFileName = self.getFileName(jobTracker.getWarningReportPath(jobId))
+        errorFileName = self.getFileName(getReportPath(job, 'error'))
+        warningFileName = self.getFileName(getReportPath(job, 'warning'))
 
         # Create File Status object
         interfaces.errorDb.createFileIfNeeded(jobId,fileName)
@@ -325,7 +333,7 @@ class ValidationManager:
 
         # Get file size and write to jobs table
         if CONFIG_BROKER["use_aws"]:
-            fileSize = s3UrlHandler.getFileSize("errors/"+jobTracker.getReportPath(jobId))
+            fileSize = s3UrlHandler.getFileSize(errorFileName)
         else:
             fileSize = os.path.getsize(jobTracker.getFileName(jobId))
         jobTracker.setFileSizeById(jobId, fileSize)
