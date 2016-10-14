@@ -16,7 +16,7 @@ WHERE af.submission_id = {}
 		WHERE af.tas IS NOT DISTINCT FROM op.tas
 			AND (af.program_activity_code IS NOT DISTINCT FROM op.program_activity_code
 				OR COALESCE(af.program_activity_code, '') = ''
-				OR af.program_activity_code = '0')
+				OR af.program_activity_code = '0000')
 			AND af.object_class IS NOT DISTINCT FROM op.object_class
 			AND af.submission_id = op.submission_id
 	);
