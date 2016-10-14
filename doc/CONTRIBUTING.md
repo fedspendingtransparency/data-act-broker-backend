@@ -56,7 +56,7 @@ A "superuser" will do.
 
 ### Install Xcode CLI (Mac users only)
 
-Xcode Command Line Interface (CLI) is needed to install several of the items listed in requirements.txt on a Mac.
+Xcode Command Line Interface (CLI) is a prerequisite for installing several of the requirements on a Mac.
 
 [This tutorial](https://developer.xamarin.com/guides/testcloud/calabash/configuring/osx/install-xcode-command-line-tools/ "Xcode CLI installation") covers setting up Xcode CLI on your Mac and checking if you have it installed.
 
