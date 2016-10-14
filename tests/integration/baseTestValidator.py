@@ -31,8 +31,6 @@ class BaseTestValidator(unittest.TestCase):
     def setUpClass(cls):
         """Set up resources to be shared within a test class"""
         #TODO: refactor into a pytest class fixtures and inject as necessary
-        # Prevent interface being reused from last suite
-        # BaseInterface.interfaces = None
         # update application's db config options so unittests
         # run against test databases
         suite = cls.__name__.lower()
