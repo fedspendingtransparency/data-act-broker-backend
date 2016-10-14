@@ -1,9 +1,10 @@
 from __future__ import print_function
-from dataactcore.interfaces.db import databaseSession
+
+from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.jobModels import JobDependency
-from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from tests.integration.baseTestValidator import BaseTestValidator
 import unittest
+
 
 class JobTests(BaseTestValidator):
 
@@ -92,22 +93,24 @@ class JobTests(BaseTestValidator):
     def test_empty(self):
         """Test empty file."""
         jobId = self.jobIdDict["empty"]
-        if self.useThreads:
-            status = 200
-        else:
-            status = 400
+        status = 400
         response = self.run_test(
             jobId, status, "invalid", False, False, "single_row_error", 0)
 
-        if not self.useThreads:
-            self.assertEqual(
-                response.json["message"], "CSV file must have a header")
+        self.assertEqual(response.json["message"], "CSV file must have a header")
 
     def test_bad_id_job(self):
         """Test job ID not found in job table."""
+        # This test is in an in-between place as we refactor database access.
+        # Because run_test now retrieves a job directly from the db instead of
+        # using getJobById from the job interface, sending a bad job id now
+        # results in a SQLAlchemy exception rather than a 400. So for now, the
+        # test is testing the test code. Arguably, we could remove this entirely
+        # and replace it with a unit test as the logging and umbrella exeception
+        # handling is refactored.
         jobId = -1
-        response = self.run_test(
-            jobId, 400, False, False, False, False, 0)
+        with self.assertRaises(NoResultFound):
+            self.run_test(jobId, 400, False, False, False, False, 0)
 
     def test_bad_prereq_job(self):
         """Test job with unfinished prerequisites."""

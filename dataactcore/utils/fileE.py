@@ -43,6 +43,10 @@ def getEntities(client, dunsList):
     result = client.service.getEntities(
         createAuth(client), createSearch(client, dunsList), params)
 
+    if result.transactionInformation.transactionMessage:
+        logger.warning("Message from SAM API: %s",
+                       result.transactionInformation.transactionMessage)
+
     if result.listOfEntities:
         return result.listOfEntities.entity
     else:
@@ -53,15 +57,15 @@ Row = namedtuple('Row', (
     'AwardeeOrRecipientUniqueIdentifier',
     'UltimateParentUniqueIdentifier',
     'UltimateParentLegalEntityName',
-    'HighCompOfficer1Name',
+    'HighCompOfficer1FullName',
     'HighCompOfficer1Amount',
-    'HighCompOfficer2Name',
+    'HighCompOfficer2FullName',
     'HighCompOfficer2Amount',
-    'HighCompOfficer3Name',
+    'HighCompOfficer3FullName',
     'HighCompOfficer3Amount',
-    'HighCompOfficer4Name',
+    'HighCompOfficer4FullName',
     'HighCompOfficer4Amount',
-    'HighCompOfficer5Name',
+    'HighCompOfficer5FullName',
     'HighCompOfficer5Amount'))
 
 
