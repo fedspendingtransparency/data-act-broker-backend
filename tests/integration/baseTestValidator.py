@@ -1,9 +1,12 @@
 import unittest
 from datetime import datetime
 import os
-import boto.s3
 from random import randint
+
+import boto.s3
 from webtest import TestApp
+from boto.s3.key import Key
+
 from dataactvalidator.app import createApp
 from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId
 from dataactcore.interfaces.db import GlobalDB
@@ -14,15 +17,14 @@ from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.scripts.setupValidationDB import setupValidationDB
 from dataactcore.utils.report import getReportPath
-from boto.s3.key import Key
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Job, Submission
-from dataactcore.models.validationModels import FileColumn
 from dataactcore.models.errorModels import File
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
 from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 import dataactcore.config
+
 
 class BaseTestValidator(unittest.TestCase):
     """ Test login, logout, and session handling """
@@ -68,6 +70,9 @@ class BaseTestValidator(unittest.TestCase):
         cls.errorInterface = cls.interfaces.errorDb
         cls.validationDb = cls.interfaces.validationDb
         cls.userId = 1
+        # constants to use for default submission start and end dates
+        cls.SUBMISSION_START_DEFAULT = datetime(2015, 10, 1)
+        cls.SUBMISSION_END_DEFAULT = datetime(2015, 10, 31)
 
     def setUp(self):
         """Set up broker unit tests."""
@@ -168,24 +173,19 @@ class BaseTestValidator(unittest.TestCase):
         response = self.app.post_json('/validate/', postJson, expect_errors=True)
         return response
 
-    @staticmethod
-    def addJob(status, jobType, submissionId, s3Filename, fileType, session):
-        """ Create a job model and add it to the session """
-        job = Job(job_status_id=status, job_type_id=jobType,
-            submission_id=submissionId, filename=s3Filename, file_type_id=fileType)
-        session.add(job)
-        session.commit()
-        return job
-
-    @staticmethod
-    def insertSubmission(jobTracker, userId, endDate = None):
-        """Insert submission into job tracker and return submission ID"""
-        if endDate is None:
-            sub = Submission(datetime_utc=datetime.utcnow(), user_id=userId, reporting_start_date = datetime(2015,10,1), reporting_end_date = datetime(2015,10,31))
-        else:
-            sub = Submission(datetime_utc=datetime.utcnow(), user_id=userId, reporting_start_date = datetime(2015,10,1), reporting_end_date = endDate)
-        jobTracker.session.add(sub)
-        jobTracker.session.commit()
+    @classmethod
+    def insertSubmission(cls, sess, userId, reporting_end_date=None):
+        """Insert submission and return id."""
+        reporting_start_date = cls.SUBMISSION_START_DEFAULT
+        if reporting_end_date is None:
+            reporting_end_date = cls.SUBMISSION_END_DEFAULT
+        sub = Submission(
+            datetime_utc=datetime.utcnow(),
+            user_id=userId,
+            reporting_start_date=reporting_start_date,
+            reporting_end_date=reporting_end_date)
+        sess.add(sub)
+        sess.commit()
         return sub.submission_id
 
     @classmethod
@@ -215,28 +215,6 @@ class BaseTestValidator(unittest.TestCase):
 
                 assert(bytesWritten > 0)
             return s3FileName
-
-    @staticmethod
-    def addFileColumn(fileId, fieldTypeId, columnName,
-            description, required, session):
-        """ Add information for one field
-
-        Args:
-            fileId: Which file this field is part of
-            fieldTypeId: Data type found in this field
-            columnName: Name of field
-            description: Description of field
-            required: True if field is required
-            session: session object to be used for queries
-
-        Returns:
-
-        """
-        column = FileColumn(file_id=fileId, field_types_id=fieldTypeId,
-            name=columnName, description=description, required=required)
-        session.add(column)
-        session.commit()
-        return column
 
     def getResponseInfo(self, response):
         """ Format response object in readable form """
