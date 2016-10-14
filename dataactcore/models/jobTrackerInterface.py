@@ -50,18 +50,6 @@ class JobTrackerInterface(BaseInterface):
         submissionId = self.getSubmissionId(jobId)
         return self.session.query(Submission).filter(Submission.submission_id == submissionId).one()
 
-    def getReportPath(self,jobId):
-        """ Return the filename for the error report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
-        return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_error_report.csv"
-
-    def getWarningReportPath(self, jobId):
-        """ Return the filename for the warning report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
-        return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_warning_report.csv"
-
-    def getCrossFileReportPath(self,submissionId):
-        """ Returns the filename for the cross file error report. """
-        return "".join(["submission_",str(submissionId),"_cross_file_error_report.csv"])
-
     def getJobsBySubmission(self,submissionId):
         """ Get list of jobs that are part of the specified submission
 
@@ -249,10 +237,6 @@ class JobTrackerInterface(BaseInterface):
     def getNumberOfRowsById(self,jobId):
         """ Get number of rows in file for job matching ID """
         return self.getJobById(jobId).number_of_rows
-
-    def getNumberOfValidRowsById(self, jobId):
-        """Get number of file's rows that passed validations."""
-        return self.getJobById(jobId).number_of_rows_valid
 
     def setFileSizeById(self,jobId, fileSize):
         """ Set file size for job matching ID """

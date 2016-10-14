@@ -1,6 +1,7 @@
 from __future__ import print_function
 from datetime import datetime
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
+from dataactcore.models.lookups import JOB_STATUS_DICT
 from dataactcore.models.stagingModels import AwardFinancial
 from tests.integration.baseTestValidator import BaseTestValidator
 from tests.integration.fileTypeTests import FileTypeTests
@@ -151,22 +152,22 @@ class MixedFileTests(BaseTestValidator):
         # Run jobs for A, B, C, and D2, then cross file validation job
         # Note: test files used for cross validation use the short column names
         # as a way to ensure those are handled correctly by the validator
-        awardFinResponse = self.validateJob(self.jobIdDict["crossAwardFin"],self.useThreads)
+        awardFinResponse = self.validateJob(self.jobIdDict["crossAwardFin"])
         self.assertEqual(awardFinResponse.status_code, 200, msg=str(awardFinResponse.json))
-        awardResponse = self.validateJob(self.jobIdDict["crossAward"],self.useThreads)
+        awardResponse = self.validateJob(self.jobIdDict["crossAward"])
         self.assertEqual(awardResponse.status_code, 200, msg=str(awardResponse.json))
-        appropResponse = self.validateJob(self.jobIdDict["crossApprop"], self.useThreads)
+        appropResponse = self.validateJob(self.jobIdDict["crossApprop"])
         self.assertEqual(appropResponse.status_code, 200, msg=str(appropResponse.json))
-        pgmActResponse = self.validateJob(self.jobIdDict["crossPgmAct"], self.useThreads)
+        pgmActResponse = self.validateJob(self.jobIdDict["crossPgmAct"])
         self.assertEqual(pgmActResponse.status_code, 200, msg=str(pgmActResponse.json))
-        crossFileResponse = self.validateJob(crossId, self.useThreads)
+        crossFileResponse = self.validateJob(crossId)
         self.assertEqual(crossFileResponse.status_code, 200, msg=str(crossFileResponse.json))
 
         # Check number of cross file validation errors in DB for this job
         self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId, self.interfaces.validationDb, "fatal"), 0)
         self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId, self.interfaces.validationDb, "warning"), 5)
-        # Check cross file job complete
-        self.waitOnJob(self.interfaces.jobDb, crossId, "finished", self.useThreads)
+        self.assertEqual(self.interfaces.jobDb.getJobStatus(crossId), JOB_STATUS_DICT['finished'])
+
         # Check that cross file validation report exists and is the right size
         jobTracker = self.interfaces.jobDb
 
