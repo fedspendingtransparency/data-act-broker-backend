@@ -135,16 +135,6 @@ class MixedFileTests(BaseTestValidator):
             jobDict['crossAward'] = job_info.job_id
 
             job_info = Job(
-                filename=cls.uploadFile("cross_file_D2.csv", user),
-                job_status_id=statusReadyId,
-                job_type_id=jobTypeCsvId,
-                file_type_id=FILE_TYPE_DICT['award'],
-                submission_id=submissionId)
-            sess.add(job_info)
-            sess.flush()
-            jobDict['crossAward'] = job_info.job_id
-
-            job_info = Job(
                 job_status_id=statusReadyId,
                 job_type_id=JOB_TYPE_DICT['validation'],
                 submission_id=submissionId)

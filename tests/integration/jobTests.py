@@ -149,34 +149,6 @@ class JobTests(BaseTestValidator):
         response = self.run_test(
             jobId, 400, "ready", False, False, "job_error", 0)
 
-    # removing long tests because 1) we don't run them and 2) the file formats need updated
-    # TODO: add a compliant file for this test if we want to use it
-    # def test_many_bad_values_job(self):
-    #     # Test job with many bad values
-    #     if self.includeLongTests:
-    #         jobId = self.jobDict["many_bad"]
-    #         response = self.run_test(
-    #             jobId, 200, "finished", 151665643, 0, "complete", 2302930)
-    #     else:
-    #         self.skipTest("includeLongTests flag is off")
-
-    # removing long tests because 1) we don't run them and 2) the file formats need updated
-    # TODO: add a compliant file for this test if we want to use it
-    # def test_many_rows(self):
-    #     """Test many rows."""
-    #     if self.includeLongTests:
-    #         jobId = self.jobDict["many"]
-    #         response = self.run_test(
-    #             jobId, 200, "finished", 52, 22380, "complete", 0)
-    #     else:
-    #         self.skipTest("includeLongTests flag is off")
-
-    # TODO uncomment this test if we start limiting the validator to only jobs that are "ready"
-    #def test_finished_job(self):
-    #    """ Test job that is already finished """
-    #    jobId = self.jobDict["finished"]
-    #    self.run_test(jobId,400,"finished",False,False,"job_error",0)
-
 
 if __name__ == '__main__':
     unittest.main()
