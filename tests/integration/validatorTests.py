@@ -122,7 +122,6 @@ class ValidatorTests(BaseTestValidator):
     def test_schema_optional_field(self):
         """Test optional fields."""
         schema = self.schema
-        interfaces = self.interfaces
         record = {
             "test1": "hello",
             "test2": "1.0",
@@ -130,18 +129,15 @@ class ValidatorTests(BaseTestValidator):
             "test4": "1",
             "test5": "1",
          }
-        self.assertTrue(Validator.validate(
-            record, schema, "award_financial", interfaces)[0])
+        self.assertTrue(Validator.validate(record, schema))
         record["test5"] = ""
-        self.assertTrue(Validator.validate(
-            record, schema, "award_financial", interfaces)[0])
+        self.assertTrue(Validator.validate(record, schema))
         record["test5"] = "s"
-        self.assertFalse(Validator.validate(
-            record, schema, "award_financial", interfaces)[0])
+        self.assertTrue(Validator.validate(record, schema))
         record["test5"] = ""
         record["test3"] = ""
-        self.assertFalse(Validator.validate(
-            record, schema, "award_financial", interfaces)[0])
+        self.assertTrue(Validator.validate(record, schema))
+
 
 if __name__ == '__main__':
     unittest.main()

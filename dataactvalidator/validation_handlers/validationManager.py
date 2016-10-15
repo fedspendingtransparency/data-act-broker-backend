@@ -390,7 +390,7 @@ class ValidationManager:
                         passedValidations = True
                         valid = True
                     else:
-                        passedValidations, failures, valid = Validator.validate(record,csvSchema,fileType,interfaces)
+                        passedValidations, failures, valid = Validator.validate(record, csvSchema)
                     if valid:
                         skipRow = self.writeToStaging(record, jobId, submissionId, passedValidations, interfaces, writer, rowNumber, fileType)
                         if skipRow:
