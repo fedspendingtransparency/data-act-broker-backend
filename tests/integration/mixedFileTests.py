@@ -190,7 +190,7 @@ class MixedFileTests(BaseTestValidator):
                 print('{}: {}'.format(job_type, job_id))
 
             # Load fields and rules
-            FileTypeTests.load_definitions(cls.interfaces, force_tas_load, cls.RULES_TO_APPLY)
+            FileTypeTests.load_definitions(sess, force_tas_load, cls.RULES_TO_APPLY)
 
             cls.jobDict = jobDict
 
