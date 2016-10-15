@@ -224,13 +224,21 @@ class MixedFileTests(BaseTestValidator):
         self.passed = self.run_test(
         jobId, 200, "finished", 7537, 6, "complete", 47, 30, 8378)
 
-        # Test that whitespace is converted to null
-        rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parent_award_id == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
-        self.assertIsNone(rowThree.agency_identifier)
-        self.assertIsNone(rowThree.piid)
-        # And commas removed for numeric
-        rowThirteen = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parent_award_id == "YYYY").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
-        self.assertEqual(rowThirteen.deobligations_recov_by_awa_cpe,26000)
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            job = sess.query(Job).filter(Job.job_id == jobId).one()
+            # todo: these whitespace and comma cases probably belong in unit tests
+            # Test that whitespace is converted to null
+            rowThree = sess.query(AwardFinancial).\
+                filter(AwardFinancial.parent_award_id == "ZZZZ", AwardFinancial.submission_id == job.submission_id).\
+                first()
+            self.assertIsNone(rowThree.agency_identifier)
+            self.assertIsNone(rowThree.piid)
+            # Test that commas are removed for numeric values
+            rowThirteen = sess.query(AwardFinancial).\
+                filter(AwardFinancial.parent_award_id == "YYYY", AwardFinancial.submission_id == job.submission_id).\
+                first()
+            self.assertEqual(rowThirteen.deobligations_recov_by_awa_cpe, 26000)
 
     def test_award_fin_mixed_shortcols(self):
         """Test award financial job with some rows failing & short colnames."""
