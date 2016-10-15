@@ -4,9 +4,11 @@ import unittest
 
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId
 from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.utils.report import getCrossReportName, getCrossWarningReportName
 from dataactvalidator.app import createApp
 from tests.integration.baseTestValidator import BaseTestValidator
 from tests.integration.fileTypeTests import FileTypeTests
@@ -280,21 +282,24 @@ class MixedFileTests(BaseTestValidator):
         crossFileResponse = self.validateJob(crossId)
         self.assertEqual(crossFileResponse.status_code, 200, msg=str(crossFileResponse.json))
 
-        # Check number of cross file validation errors in DB for this job
-        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId, self.interfaces.validationDb, "fatal"), 0)
-        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId, self.interfaces.validationDb, "warning"), 5)
-        self.assertEqual(self.interfaces.jobDb.getJobStatus(crossId), JOB_STATUS_DICT['finished'])
+        with createApp().app_context():
+            sess = GlobalDB.db().session
 
-        # Check that cross file validation report exists and is the right size
-        jobTracker = self.interfaces.jobDb
+            job = sess.query(Job).filter(Job.job_id == crossId).one()
 
-        submissionId = jobTracker.getSubmissionId(crossId)
-        sizePathPairs = [
-            (89, self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")),
-            (89, self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")),
-            (2348, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "appropriations", "program_activity")),
-            (424, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "award_financial", "award")),
-        ]
+            # Check number of cross file validation errors in DB for this job
+            self.assertEqual(checkNumberOfErrorsByJobId(crossId, "fatal"), 0)
+            self.assertEqual(checkNumberOfErrorsByJobId(crossId, "warning"), 5)
+            self.assertEqual(job.job_status_id, JOB_STATUS_DICT['finished'])
+
+            # Check that cross file validation report exists and is the right size
+            submissionId = job.submission_id
+            sizePathPairs = [
+                (89, getCrossReportName(submissionId, "appropriations", "program_activity")),
+                (89, getCrossReportName(submissionId, "award_financial", "award")),
+                (2348, getCrossWarningReportName(submissionId, "appropriations", "program_activity")),
+                (424, getCrossWarningReportName(submissionId, "award_financial", "award")),
+            ]
 
         for size, path in sizePathPairs:
             if self.local:
