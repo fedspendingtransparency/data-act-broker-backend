@@ -63,7 +63,7 @@ def test_equal_uri_fain(database):
         tas=tas, submission_id=af.submission_id, fain=af.fain, uri=af.uri)
 
     errors = number_of_errors(_FILE, database, models=[af, afa])
-    assert errors == 0
+    assert errors == 1
 
 
 def test_unequal_fain(database):
