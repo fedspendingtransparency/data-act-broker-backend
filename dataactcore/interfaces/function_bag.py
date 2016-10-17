@@ -146,8 +146,11 @@ def addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmi
 
     if existingSubmission:
         # mark existing upload job as running
-        uploadJob = sess.query(Job).filter(Job.submission_id == submissionId).\
-            filter(Job.file_type_id == fileTypeId, Job.job_type_id == JOB_TYPE_DICT['file_upload']).one()
+        uploadJob = sess.query(Job).filter_by(
+            submission_id=submissionId,
+            file_type_id=fileTypeId,
+            job_type_id=JOB_TYPE_DICT['file_upload']
+        ).one()
         # Mark as running and set new file name and path
         uploadJob.job_status_id = JOB_STATUS_DICT['running']
         uploadJob.original_filename = filename
@@ -178,12 +181,11 @@ def addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmi
         # if the file's validation job is attached to an existing submission,
         # reset its status and delete any validation artifacts (e.g., error metadata) that
         # might exist from a previous run.
-        valJob = sess.query(Job).\
-            filter(
-                Job.submission_id == submissionId,
-                Job.file_type_id == fileTypeId,
-                Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).\
-            one()
+        valJob = sess.query(Job).filter_by(
+            submission_id=submissionId,
+            file_type_id=fileTypeId,
+            job_type_id=JOB_TYPE_DICT['csv_record_validation']
+        ).one()
         valJob.job_status_id = JOB_STATUS_DICT['waiting']
         valJob.original_filename = filename
         valJob.filename = filePath
