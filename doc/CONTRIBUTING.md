@@ -212,7 +212,40 @@ You will need to run two scripts to setup the broker's backend components. These
 
 **Important Notes:**
 * If you're using a local DynamoDB, make sure it's running before executing these scripts.
-* By default, the broker installs with a small sample of [GTAS financial data](https://www.fiscal.treasury.gov/fsservices/gov/acctg/gtas/gtas_home.htm "GTAS"), which is used during the validation process. If you'd like to install the broker using real GTAS data for your agency, replace the sample file with data representing the GTAS periods you want to validate against (using the same headers and data format as the sample file). The files should be named `dataactvalidator/config/sf_133_yyyy_mm.csv`, where `yyyy` is the fiscal year, and `mm` is the fiscal year period. This is only necessary for local installs.
+* By default, the broker installs with a small sample of [GTAS financial
+  data](https://www.fiscal.treasury.gov/fsservices/gov/acctg/gtas/gtas_home.htm
+  "GTAS"), which is used during the validation process. See the next section
+  for more comprehensive options.
+
+### Loading SF-133 data
+
+If you'd like to install the broker using real GTAS data for your agency,
+replace the sample file with data representing the GTAS periods you want to
+validate against (using the same headers and data format as the sample file).
+The files should be named `dataactvalidator/config/sf_133_yyyy_mm.csv`, where
+`yyyy` is the fiscal year, and `mm` is the fiscal year period. This is only
+necessary for local installs.
+
+If instead, you want to match the production environment (and are a developer
+on the DATA Act team), you can access our SF-133 files through S3. The data is
+sensitive, so we do not host it publicly. In the `prod-data-act-submission`
+bucket, within the `config` directory, you should see a series of
+`sf_133_yyyy_mm.csv` files. Download these and store them in your local
+`dataactvalidator/config` folder. 
+
+In either case, you'll need to make a local tweak to
+`dataactvalidator/scipts/loadFile.py` and run it. The file needs an additional
+line, to look like this:
+
+```python
+if __name__ == '__main__':
+    loadDomainValues(
+        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
+        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
+    )
+```
+
+This will take several minutes to process.
 
 ### Run Broker Backend Applications
 
