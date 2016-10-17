@@ -1,4 +1,4 @@
-from dataactbroker.app import createApp
+from dataactvalidator.app import createApp
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models import lookups
 from dataactcore.models.errorModels import FileStatus, ErrorType

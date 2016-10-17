@@ -190,10 +190,3 @@ def dbConnection():
     connection = engine.connect()
     Session = scoped_session(sessionmaker(bind=engine, autoflush=True))
     return _DB(engine, connection, Session, Session())
-
-
-@contextmanager
-def databaseSession():
-    db = dbConnection()
-    yield db.session
-    db.close()

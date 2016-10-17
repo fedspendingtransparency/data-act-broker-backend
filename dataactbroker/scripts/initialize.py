@@ -1,7 +1,6 @@
 from dataactvalidator.app import createApp
 from dataactbroker.scripts.setupEmails import setupEmails
 from dataactcore.models.userModel import User
-from dataactcore.interfaces.db import databaseSession
 from dataactcore.interfaces.function_bag import createUserWithPassword
 from dataactcore.scripts.setupAllDB import setupAllDB
 from dataactbroker.handlers.aws.session import SessionTable
@@ -54,13 +53,13 @@ def createAdmin():
     """Create initial admin user."""
     adminEmail = CONFIG_BROKER['admin_email']
     adminPass = CONFIG_BROKER['admin_password']
-    with databaseSession() as sess:
+    with createApp().app_context():
+        sess = GlobalDB.db().session
         user = sess.query(User).filter(User.email == adminEmail).one_or_none()
-    if not user:
-        # once the rest of the setup scripts are updated to use
-        # GlobalDB instead of databaseSession, move the app_context
-        # creation up to initialize()
-        with createApp().app_context():
+        if not user:
+            # once the rest of the setup scripts are updated to use
+            # GlobalDB instead of databaseSession, move the app_context
+            # creation up to initialize()
             user = createUserWithPassword(
                 adminEmail, adminPass, Bcrypt(), permission=2)
     return user
