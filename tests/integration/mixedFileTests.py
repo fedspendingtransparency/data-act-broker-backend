@@ -1,11 +1,16 @@
 from __future__ import print_function
 from datetime import datetime
+import unittest
+
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
-from dataactcore.models.lookups import JOB_STATUS_DICT
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.jobModels import Job
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import AwardFinancial
+from dataactvalidator.app import createApp
 from tests.integration.baseTestValidator import BaseTestValidator
 from tests.integration.fileTypeTests import FileTypeTests
-import unittest
+
 
 class MixedFileTests(BaseTestValidator):
 
@@ -19,99 +24,203 @@ class MixedFileTests(BaseTestValidator):
         user = cls.userId
         force_tas_load = False
 
-        print("Uploading files")
-        # Upload needed files to S3
-        s3FileNameMixed = cls.uploadFile("appropMixed.csv", user)
-        s3FileNameProgramMixed = cls.uploadFile("programActivityMixed.csv", user)
-        s3FileNameAwardFinMixed = cls.uploadFile("awardFinancialMixed.csv", user)
-        s3FileNameAwardMixed = cls.uploadFile("awardMixed.csv", user)
-        s3FileNameAwardMixedDelimiter = cls.uploadFile("awardMixedDelimiter.csv", user)
-        s3FileNameCrossAwardFin = cls.uploadFile("cross_file_C.csv", user)
-        s3FileNameCrossAward = cls.uploadFile("cross_file_D2.csv", user)
-        s3FileNameCrossApprop = cls.uploadFile("cross_file_A.csv", user)
-        s3FileNameCrossPgmAct = cls.uploadFile("cross_file_B.csv", user)
-        s3FileNameProgramMixedShortcols = cls.uploadFile("programActivityMixedShortcols.csv", user)
-        s3FileNameAwardFinMixedShortcols = cls.uploadFile("awardFinancialMixedShortcols.csv", user)
-        s3FileNameAppropValidShortcols = cls.uploadFile("appropValidShortcols.csv", user)
-        s3FileNameAwardValidShortcols = cls.uploadFile("awardValidShortcols.csv", user)
+        with createApp().app_context():
+            # get the submission test user
+            sess = GlobalDB.db().session
 
-        # Create submissions and get IDs back
-        submissionIDs = {}
-        for i in range(0, 16):
-            if i == 7:
-               # Award financial mixed will be second quarter
-                submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user, datetime(2015,3,15))
-            else:
-                submissionIDs[i] = cls.insertSubmission(cls.jobTracker, user)
+            # Create test submissions and jobs, also uploading
+            # the files needed for each job.
+            statusReadyId = JOB_STATUS_DICT['ready']
+            jobTypeCsvId = JOB_TYPE_DICT['csv_record_validation']
+            jobDict = {}
 
-        # Create jobs
-        jobDb = cls.jobTracker
-        statusReady = str(jobDb.getJobStatusId("ready"))
-        jobTypeCsv = str(jobDb.getJobTypeId("csv_record_validation"))
-        jobTypeValidation = str(jobDb.getJobTypeId("validation"))
-        appropType = jobDb.getFileTypeId("appropriations")
-        programType = jobDb.getFileTypeId("program_activity")
-        awardFinType = jobDb.getFileTypeId("award_financial")
-        awardType = jobDb.getFileTypeId("award")
-        jobInfoList = {
-            "mixed": [statusReady, jobTypeCsv, str(submissionIDs[2]), s3FileNameMixed, appropType],
-            "programMixed": [statusReady, jobTypeCsv, str(submissionIDs[5]), s3FileNameProgramMixed, programType],
-            "awardFinMixed": [statusReady, jobTypeCsv, str(submissionIDs[7]), s3FileNameAwardFinMixed, awardFinType],
-            "awardMixed": [statusReady, jobTypeCsv, str(submissionIDs[9]), s3FileNameAwardMixed, awardType],
-            "awardMixedDelimiter": [statusReady, jobTypeCsv, str(submissionIDs[10]), s3FileNameAwardMixedDelimiter, awardType],
-            "crossApprop": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossApprop, appropType],
-            "crossPgmAct": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossPgmAct, programType],
-            "crossAwardFin": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossAwardFin, awardFinType],
-            "crossAward": [statusReady, jobTypeCsv, str(submissionIDs[11]), s3FileNameCrossAward, awardType],
-            "crossFile": [statusReady, jobTypeValidation, str(submissionIDs[11]), None, None],
-            "appropValidShortcols": [statusReady, jobTypeCsv, str(submissionIDs[12]), s3FileNameAppropValidShortcols, appropType],
-            "programMixedShortcols": [statusReady, jobTypeCsv, str(submissionIDs[13]), s3FileNameProgramMixedShortcols, programType],
-            "awardFinMixedShortcols": [statusReady, jobTypeCsv, str(submissionIDs[14]), s3FileNameAwardFinMixedShortcols, awardFinType],
-            "awardValidShortcols": [statusReady, jobTypeCsv, str(submissionIDs[15]), s3FileNameAwardValidShortcols, awardType]
-        }
+            # next three jobs belong to the same submission and are tests
+            # for single-file validations that contain failing rows
+            submissionId = cls.insertSubmission(sess, user)
+            job_info = Job(
+                filename=cls.uploadFile("appropMixed.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['appropriations'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['mixed'] = job_info.job_id
 
-        jobIdDict = {}
-        for key in jobInfoList:
-            jobInfo = jobInfoList[key]  # Done this way to be compatible with python 2 and 3
-            jobInfo.append(jobDb.session)
-            job = cls.addJob(*jobInfo)
-            jobId = job.job_id
-            jobIdDict[key] = jobId
-            print("".join([str(key),": ",str(cls.jobTracker.getSubmissionId(jobId)), ", "]), end = "")
+            job_info = Job(
+                filename=cls.uploadFile("programActivityMixed.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['program_activity'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['programMixed'] = job_info.job_id
 
-        # Load fields and rules
-        # TODO load only subset of rules
-        FileTypeTests.load_definitions(cls.interfaces, force_tas_load, cls.RULES_TO_APPLY)
+            job_info = Job(
+                filename=cls.uploadFile("awardMixed.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['award'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['awardMixed'] = job_info.job_id
 
-        cls.jobIdDict = jobIdDict
+            # next job tests single-file validations for award_financial
+            # (submission has a non-Q1 end date)
+            submissionId = cls.insertSubmission(sess, user, datetime(2015, 3, 15))
+            job_info = Job(
+                filename=cls.uploadFile("awardFinancialMixed.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['award_financial'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['awardFinMixed'] = job_info.job_id
+
+            # job below tests a file that has a mixed-delimiter heading
+            submissionId = cls.insertSubmission(sess, user)
+            job_info = Job(
+                filename=cls.uploadFile("awardMixedDelimiter.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['award'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['awardMixedDelimiter'] = job_info.job_id
+
+            # next five jobs are cross-file and belong to the same submission
+            submissionId = cls.insertSubmission(sess, user)
+            job_info = Job(
+                filename=cls.uploadFile("cross_file_A.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['appropriations'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['crossApprop'] = job_info.job_id
+
+            job_info = Job(
+                filename=cls.uploadFile("cross_file_B.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['program_activity'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['crossPgmAct'] = job_info.job_id
+
+            job_info = Job(
+                filename=cls.uploadFile("cross_file_C.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['award_financial'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['crossAwardFin'] = job_info.job_id
+
+            job_info = Job(
+                filename=cls.uploadFile("cross_file_D2.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['award'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['crossAward'] = job_info.job_id
+
+            job_info = Job(
+                job_status_id=statusReadyId,
+                job_type_id=JOB_TYPE_DICT['validation'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['crossFile'] = job_info.job_id
+
+            # next four jobs test short columns names and belong to the same submission
+            submissionId = cls.insertSubmission(sess, user)
+            job_info = Job(
+                filename=cls.uploadFile("appropValidShortcols.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['appropriations'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['appropValidShortcols'] = job_info.job_id
+
+            job_info = Job(
+                filename=cls.uploadFile("programActivityMixedShortcols.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['program_activity'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['programMixedShortcols'] = job_info.job_id
+
+            job_info = Job(
+                filename=cls.uploadFile("awardFinancialMixedShortcols.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['award_financial'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['awardFinMixedShortcols'] = job_info.job_id
+
+            job_info = Job(
+                filename=cls.uploadFile("awardValidShortcols.csv", user),
+                job_status_id=statusReadyId,
+                job_type_id=jobTypeCsvId,
+                file_type_id=FILE_TYPE_DICT['award'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['awardValidShortcols'] = job_info.job_id
+
+            # commit submissions/jobs and output IDs
+            sess.commit()
+            for job_type, job_id in jobDict.items():
+                print('{}: {}'.format(job_type, job_id))
+
+            # Load fields and rules
+            FileTypeTests.load_definitions(cls.interfaces, force_tas_load, cls.RULES_TO_APPLY)
+
+            cls.jobDict = jobDict
 
     def test_approp_valid_shortcol(self):
         """Test valid approp job with short colnames."""
-        jobId = self.jobIdDict["appropValidShortcols"]
+        jobId = self.jobDict["appropValidShortcols"]
         self.passed = self.run_test(
             jobId, 200, "finished", 63, 10, "complete", 0)
 
     def test_approp_mixed(self):
         """Test mixed job with some rows failing."""
-        jobId = self.jobIdDict["mixed"]
+        jobId = self.jobDict["mixed"]
         self.passed = self.run_test(
             jobId, 200, "finished", 8212, 4, "complete", 39, 8, 841)
 
     def test_program_mixed(self):
         """Test mixed job with some rows failing."""
-        jobId = self.jobIdDict["programMixed"]
+        jobId = self.jobDict["programMixed"]
         self.passed = self.run_test(
         jobId, 200, "finished", 11390, 4, "complete", 81, 29, 9544)
 
     def test_program_mixed_shortcols(self):
         """Test object class/program activity job with some rows failing & short colnames."""
-        jobId = self.jobIdDict["programMixedShortcols"]
+        jobId = self.jobDict["programMixedShortcols"]
         self.passed = self.run_test(
             jobId, 200, "finished", 11390, 4, "complete", 81, 29, 9544)
 
     def test_award_fin_mixed(self):
-        """Test mixed job with some rows failing."""
-        jobId = self.jobIdDict["awardFinMixed"]
+        """Test mixed award job with some rows failing."""
+        jobId = self.jobDict["awardFinMixed"]
         self.passed = self.run_test(
         jobId, 200, "finished", 7537, 6, "complete", 47, 30, 8378)
 
@@ -125,40 +234,40 @@ class MixedFileTests(BaseTestValidator):
 
     def test_award_fin_mixed_shortcols(self):
         """Test award financial job with some rows failing & short colnames."""
-        jobId = self.jobIdDict["awardFinMixedShortcols"]
+        jobId = self.jobDict["awardFinMixedShortcols"]
         self.passed = self.run_test(
             jobId, 200, "finished", 7537, 6, "complete", 47, 32, 10320)
 
     def test_award_valid_shortcols(self):
         """Test valid award (financial assistance) job with short colnames."""
-        jobId = self.jobIdDict["awardValidShortcols"]
+        jobId = self.jobDict["awardValidShortcols"]
         self.passed = self.run_test(
             jobId, 200, "finished", 63, 10, "complete", 0)
 
     def test_award_mixed(self):
         """Test mixed job with some rows failing."""
-        jobId = self.jobIdDict["awardMixed"]
+        jobId = self.jobDict["awardMixed"]
         self.passed = self.run_test(
             jobId, 200, "finished", 123, 10, "complete", 1, 0, 63)
 
     def test_award_mixed_delimiter(self):
         """Test mixed job with mixed delimiter"""
-        jobId = self.jobIdDict["awardMixedDelimiter"]
+        jobId = self.jobDict["awardMixedDelimiter"]
         self.passed = self.run_test(
             jobId, 400, "invalid", False, False, "header_error", 0)
 
     def test_cross_file(self):
-        crossId = self.jobIdDict["crossFile"]
+        crossId = self.jobDict["crossFile"]
         # Run jobs for A, B, C, and D2, then cross file validation job
         # Note: test files used for cross validation use the short column names
         # as a way to ensure those are handled correctly by the validator
-        awardFinResponse = self.validateJob(self.jobIdDict["crossAwardFin"])
+        awardFinResponse = self.validateJob(self.jobDict["crossAwardFin"])
         self.assertEqual(awardFinResponse.status_code, 200, msg=str(awardFinResponse.json))
-        awardResponse = self.validateJob(self.jobIdDict["crossAward"])
+        awardResponse = self.validateJob(self.jobDict["crossAward"])
         self.assertEqual(awardResponse.status_code, 200, msg=str(awardResponse.json))
-        appropResponse = self.validateJob(self.jobIdDict["crossApprop"])
+        appropResponse = self.validateJob(self.jobDict["crossApprop"])
         self.assertEqual(appropResponse.status_code, 200, msg=str(appropResponse.json))
-        pgmActResponse = self.validateJob(self.jobIdDict["crossPgmAct"])
+        pgmActResponse = self.validateJob(self.jobDict["crossPgmAct"])
         self.assertEqual(pgmActResponse.status_code, 200, msg=str(pgmActResponse.json))
         crossFileResponse = self.validateJob(crossId)
         self.assertEqual(crossFileResponse.status_code, 200, msg=str(crossFileResponse.json))
