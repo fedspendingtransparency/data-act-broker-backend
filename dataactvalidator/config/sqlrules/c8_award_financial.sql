@@ -8,15 +8,16 @@ WHERE af.submission_id = {0}
 	)
 	AND (
 		af.row_number NOT IN (
-		SELECT af.row_number
-		FROM award_financial AS af
-			JOIN award_financial_assistance AS afa
-				ON (af.submission_id = afa.submission_id
-					AND (af.fain IS NOT DISTINCT FROM afa.fain
-						AND af.uri IS NOT DISTINCT FROM afa.uri)
-				)
-		WHERE af.submission_id = {0}
-	) OR
-		af.fain IS DISTINCT FROM NULL
-		AND af.uri IS DISTINCT FROM NULL
+            SELECT af.row_number
+            FROM award_financial AS af
+                JOIN award_financial_assistance AS afa
+                    ON (af.submission_id = afa.submission_id
+                        AND (af.fain IS NOT DISTINCT FROM afa.fain
+                            AND af.uri IS NOT DISTINCT FROM afa.uri)
+                    )
+            WHERE af.submission_id = {0}
+        ) OR (
+            af.fain IS DISTINCT FROM NULL
+            AND af.uri IS DISTINCT FROM NULL
+        )
 	);

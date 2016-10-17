@@ -1,7 +1,11 @@
-from tests.unit.dataactcore.factories.staging import AwardFinancialFactory, AwardFinancialAssistanceFactory
+from tests.unit.dataactcore.factories.staging import AwardFinancialFactory
+from tests.unit.dataactcore.factories.staging import AwardFinancialAssistanceFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
+
 _FILE = 'c9_award_financial'
+_TAS = 'c9_award_financial_tas'
+
 
 def test_column_headers(database):
     expected_subset = {'row_number', "fain", "uri"}
@@ -9,29 +13,139 @@ def test_column_headers(database):
     assert (actual & expected_subset) == expected_subset
 
 
-def test_success(database):
-    """ Test case where all fain and uri in D2 are present in C """
+def test_equal_fain(database):
+    """Tests that File D2 (award financial assistance) fain matches
+    File C (award financial) fain."""
+    tas = _TAS
+    afa = AwardFinancialAssistanceFactory(
+        tas=tas, fain='abc', uri=None, federal_action_obligation='1', original_loan_subsidy_cost='1')
+    af = AwardFinancialFactory(
+        tas=tas, submisson_id=afa.submission_id, fain=afa.fain, uri=None)
 
-    # Test with only one of fain/uri
-    award_fin_fain = AwardFinancialFactory(uri = None)
-    award_fin_uri = AwardFinancialFactory(fain = None)
-    afa_fain = AwardFinancialAssistanceFactory(fain = award_fin_fain.fain, uri = None, federal_action_obligation = 123)
-    afa_uri = AwardFinancialAssistanceFactory(fain = None, uri = award_fin_uri.uri, federal_action_obligation = 234)
-    # Test with both fain and uri
-    award_fin = AwardFinancialFactory()
-    afa = AwardFinancialAssistanceFactory(fain = award_fin.fain, uri = award_fin.uri, federal_action_obligation = 345)
-    # Test with zero federal action obligation
-    afa_zero = AwardFinancialAssistanceFactory(federal_action_obligation = 0)
+    errors = number_of_errors(_FILE, database, models=[afa, af])
+    assert errors == 0
 
-    assert number_of_errors(_FILE, database, models=[award_fin_fain, award_fin_uri, afa_fain, afa_uri, afa_zero,
-                                                     award_fin, afa]) == 0
 
-def test_failure(database):
-    """ Test fain and uri present in D2 but not in C """
-    award_fin = AwardFinancialFactory(fain = None, uri = None)
-    afa_fain = AwardFinancialAssistanceFactory(uri = None, federal_action_obligation = 123)
-    afa_uri = AwardFinancialAssistanceFactory(fain = None, federal_action_obligation = 234)
-    # Test with both fain and uri
-    afa = AwardFinancialAssistanceFactory(federal_action_obligation = 345)
+def test_equal_uri(database):
+    """Tests that File D2 (award financial assistance) uri matches
+    File C (award financial) uri."""
+    tas = _TAS
+    afa = AwardFinancialAssistanceFactory(
+        tas=tas, fain=None, uri='xyz', federal_action_obligation='1', original_loan_subsidy_cost='1')
+    af = AwardFinancialFactory(
+        tas=tas, submisson_id=afa.submission_id, fain=None, uri=afa.uri)
 
-    assert number_of_errors(_FILE, database, models=[award_fin, afa_fain, afa_uri, afa]) == 3
+    errors = number_of_errors(_FILE, database, models=[afa, af])
+    assert errors == 0
+
+
+def test_null_uri_fain(database):
+    """Tests File D2 (award financial assistance) and File C (award financial)
+    having NULL values for both fain and uri."""
+    tas = _TAS
+    afa = AwardFinancialAssistanceFactory(
+        tas=tas, fain=None, uri=None, federal_action_obligation='1', original_loan_subsidy_cost='1')
+    af = AwardFinancialFactory(
+        tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
+
+    errors = number_of_errors(_FILE, database, models=[afa, af])
+    assert errors == 0
+
+
+def test_both_fain_and_url_supplied(database):
+    """Tests File D2 (award financial assistance) having both uri and fain populated."""
+    tas = _TAS
+    afa = AwardFinancialAssistanceFactory(
+        tas=tas, fain='abc', uri='xyz', federal_action_obligation='1', original_loan_subsidy_cost='1')
+
+    errors = number_of_errors(_FILE, database, models=[afa])
+    assert errors == 1
+
+
+def test_unequal_fain(database):
+    """Tests File D2 (award financial assistance) fain different than File C (award financial) fain."""
+    tas = _TAS
+    afa = AwardFinancialAssistanceFactory(
+        tas=tas, fain='abc', uri=None, federal_action_obligation='1', original_loan_subsidy_cost='1')
+    af = AwardFinancialFactory(
+        tas=tas, submisson_id=afa.submission_id, fain='xyz', uri=None)
+
+    errors = number_of_errors(_FILE, database, models=[afa, af])
+    assert errors == 1
+
+
+def test_unequal_uri(database):
+    """Tests File D2 (award financial assistance) uri different than File C (award financial) uri."""
+    tas = _TAS
+    afa = AwardFinancialAssistanceFactory(
+        tas=tas, fain=None, uri='abc', federal_action_obligation='1', original_loan_subsidy_cost='1')
+    af = AwardFinancialFactory(
+        tas=tas, submisson_id=afa.submission_id, fain=None, uri='xyz')
+
+    errors = number_of_errors(_FILE, database, models=[afa, af])
+    assert errors == 1
+
+
+def test_unequal_fain_null(database):
+    """Tests non-NULL File D2 (award financial assistance) fain compared to a NULL
+    fain in File C (award financial)."""
+    tas = _TAS
+    afa = AwardFinancialAssistanceFactory(
+        tas=tas, fain='abc', uri=None, federal_action_obligation='1', original_loan_subsidy_cost='1')
+    af = AwardFinancialFactory(
+        tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
+
+    errors = number_of_errors(_FILE, database, models=[afa, af])
+    assert errors == 1
+
+
+def test_unequal_uri_null(database):
+    """Tests NULL File D2 (award financial assistance) uri compared to a non-NULL
+    uri in File C (award financial)."""
+    tas = _TAS
+    afa = AwardFinancialAssistanceFactory(
+        tas=tas, fain=None, uri=None, federal_action_obligation='1', original_loan_subsidy_cost='1')
+    af = AwardFinancialFactory(
+        tas=tas, submisson_id=afa.submission_id, fain=None, uri='abc')
+
+    errors = number_of_errors(_FILE, database, models=[afa, af])
+    assert errors == 1
+
+
+def test_zero_federal_action_obligation_and_original_loan_subsidy_cost(database):
+    """Tests that a single warning is thrown for both a federal action obligation of 0
+     and an original loan subsidy cost of 0"""
+    tas = _TAS
+    afa = AwardFinancialAssistanceFactory(
+        tas=tas, fain='abc', uri=None, federal_action_obligation='0', original_loan_subsidy_cost='0')
+    af = AwardFinancialFactory(
+        tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
+
+    errors = number_of_errors(_FILE, database, models=[afa, af])
+    assert errors == 0
+
+
+def test_zero_federal_action_obligation_and_positive_original_loan_subsidy_cost(database):
+    """Tests that a single warning is thrown for both a federal action obligation of 0
+     and an original loan subsidy cost of 0"""
+    tas = _TAS
+    afa = AwardFinancialAssistanceFactory(
+        tas=tas, fain='abc', uri=None, federal_action_obligation='0', original_loan_subsidy_cost='1')
+    af = AwardFinancialFactory(
+        tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
+
+    errors = number_of_errors(_FILE, database, models=[afa, af])
+    assert errors == 0
+
+
+def test_positive_federal_action_obligation_and_zero_original_loan_subsidy_cost(database):
+    """Tests that a single warning is thrown for both a federal action obligation of 0
+     and an original loan subsidy cost of 0"""
+    tas = _TAS
+    afa = AwardFinancialAssistanceFactory(
+        tas=tas, fain='abc', uri=None, federal_action_obligation='1', original_loan_subsidy_cost='0')
+    af = AwardFinancialFactory(
+        tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
+
+    errors = number_of_errors(_FILE, database, models=[afa, af])
+    assert errors == 0
