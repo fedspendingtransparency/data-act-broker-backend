@@ -237,7 +237,7 @@ def addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmi
             sess.add(uploadDependency)
             jobsRequired.append(valJob.job_id)
 
-        sess.commit()
+    sess.commit()
 
     uploadDict[fileType] = uploadJob.job_id
     return jobsRequired, uploadDict
