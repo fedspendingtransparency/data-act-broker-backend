@@ -1,4 +1,4 @@
-from dataactbroker.app import createApp
+from dataactvalidator.app import createApp
 from dataactbroker.scripts.setupEmails import setupEmails
 from dataactcore.models.userModel import User
 from dataactcore.interfaces.db import databaseSession
