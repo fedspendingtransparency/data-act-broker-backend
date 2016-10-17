@@ -1,7 +1,8 @@
 import csv
 import os
-from dataactcore.interfaces.db import databaseSession
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.validationModels import RuleSql, RuleSeverity, FileTypeValidation
+from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.config import CONFIG_BROKER
 
@@ -26,7 +27,8 @@ class SQLLoader():
     @classmethod
     def loadSql(cls, filename):
         """Load SQL-based validation rules to db."""
-        with databaseSession() as sess:
+        with createApp().app_context():
+            sess = GlobalDB.db().session
 
             # Delete all records currently in table
             sess.query(RuleSql).delete()
