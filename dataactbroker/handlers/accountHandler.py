@@ -336,6 +336,17 @@ class AccountHandler:
             #failure but alert UI of issue
             return JsonResponse.create(StatusCode.OK,{"errorCode":errorCode,"message":message})
 
+    def deleteUser(self):
+        """ Deletes user specified by 'email' in request """
+        requestDict = RequestDictionary(self.request)
+        if not requestDict.exists("email"):
+            # missing required fields, return 400
+            exc = ResponseException("Request body must include email of user to be deleted",
+                                    StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+        email = requestDict.getValue("email")
+        self.interfaces.userDb.deleteUser(email)
+
     def updateUser(self, system_email):
         """
         Update editable fields for specified user. Editable fields for a user:
