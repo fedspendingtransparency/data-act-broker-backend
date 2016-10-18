@@ -10,7 +10,6 @@ from boto.s3.key import Key
 from dataactvalidator.app import createApp
 from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.models.lookups import JOB_STATUS_DICT, FILE_STATUS_DICT
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
@@ -18,7 +17,6 @@ from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.scripts.setupValidationDB import setupValidationDB
 from dataactcore.utils.report import getReportPath
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
-from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Job, Submission
 from dataactcore.models.errorModels import File
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
@@ -64,24 +62,14 @@ class BaseTestValidator(unittest.TestCase):
         # drop and re-create test validation db
         setupValidationDB()
 
-        cls.interfaces = InterfaceHolder()
-        cls.jobTracker = cls.interfaces.jobDb
-        cls.stagingDb = cls.interfaces.stagingDb
-        cls.errorInterface = cls.interfaces.errorDb
-        cls.validationDb = cls.interfaces.validationDb
         cls.userId = 1
         # constants to use for default submission start and end dates
         cls.SUBMISSION_START_DEFAULT = datetime(2015, 10, 1)
         cls.SUBMISSION_END_DEFAULT = datetime(2015, 10, 31)
 
-    def setUp(self):
-        """Set up broker unit tests."""
-        self.interfaces = InterfaceHolder()
-
     @classmethod
     def tearDownClass(cls):
         """Tear down class-level resources."""
-        cls.interfaces.close()
         dropDatabase(CONFIG_DB['db_name'])
 
     def tearDown(self):
