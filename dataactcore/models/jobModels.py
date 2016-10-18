@@ -49,7 +49,7 @@ class Submission(Base):
 
     submission_id = Column(Integer, primary_key=True)
     datetime_utc = Column(DateTime)
-    user_id = Column(Integer, nullable=False) # This refers to the users table in the User DB
+    user_id = Column(Integer, nullable=True) # This refers to the users table in the User DB
     cgac_code = Column(Text)
     reporting_start_date = Column(Date, nullable=False)
     reporting_end_date = Column(Date, nullable=False)
