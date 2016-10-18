@@ -10,7 +10,7 @@ from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Job
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import getReportPath
+from dataactcore.utils.report import getReportPath, getCrossWarningReportName, getCrossReportName
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -390,7 +390,7 @@ class ValidationManager:
                         passedValidations = True
                         valid = True
                     else:
-                        passedValidations, failures, valid = Validator.validate(record,csvSchema,fileType,interfaces)
+                        passedValidations, failures, valid = Validator.validate(record, csvSchema)
                     if valid:
                         skipRow = self.writeToStaging(record, jobId, submissionId, passedValidations, interfaces, writer, rowNumber, fileType)
                         if skipRow:
@@ -523,8 +523,8 @@ class ValidationManager:
             # send comboRules to validator.crossValidate sql
             failures = Validator.crossValidateSql(comboRules.all(),submissionId)
             # get error file name
-            reportFilename = self.getFileName(interfaces.errorDb.getCrossReportName(submissionId, row.first_file_name, row.second_file_name))
-            warningReportFilename = self.getFileName(interfaces.errorDb.getCrossWarningReportName(submissionId, row.first_file_name, row.second_file_name))
+            reportFilename = self.getFileName(getCrossReportName(submissionId, row.first_file_name, row.second_file_name))
+            warningReportFilename = self.getFileName(getCrossWarningReportName(submissionId, row.first_file_name, row.second_file_name))
 
             # loop through failures to create the error report
             with self.getWriter(regionName, bucketName, reportFilename, self.crossFileReportHeaders) as writer, \
