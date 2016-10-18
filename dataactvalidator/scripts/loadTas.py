@@ -52,7 +52,11 @@ def loadTas(tasFile=None):
              "sub_account_code": {"pad_to_length": 3},
              }
         )
-        data = data.where((pd.notnull(data)), None)
+        # Account for single-character strings
+        for field in ('beginning_period_of_availability',
+                      'ending_period_of_availability'):
+            data[field] = data[field].str.strip()
+        data = data.where(pd.notnull(data), None)
 
         # instead of using the pandas to_sql dataframe method like
         # some of the other domain load processes, iterate through
@@ -61,6 +65,7 @@ def loadTas(tasFile=None):
         # ultimately decided not to go outside the unit of work
         # for the sake of a performance gain)
         for index, row in data.iterrows():
+            row = {k: v or None for k, v in row.items()}
             sess.add(TASLookup(**row))
 
         sess.commit()
