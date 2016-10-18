@@ -254,7 +254,7 @@ class DynamoInterface(SessionInterface):
             else:
                 expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
         if(not "_uid" in session):
-            session["_uid"] = "{}|{}".format(_create_identifier(),uuid4())
+            LoginSession.resetID(session)
         SessionTable.newSession(session.sid,session,expiration)
         DynamoInterface.CountLimit = DynamoInterface.CountLimit + 1
         if DynamoInterface.CountLimit % DynamoInterface.SESSSION_CLEAR_COUNT_LIMIT == 0 :
