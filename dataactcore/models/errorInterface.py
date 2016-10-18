@@ -116,11 +116,6 @@ class ErrorInterface(BaseInterface):
             # No errors occurred during validation
             return "none"
 
-    def resetFileByJobId(self, jobId):
-        """ Delete file for job ID """
-        self.session.query(File).filter(File.job_id == jobId).delete()
-        self.session.commit()
-
     def createFileIfNeeded(self, jobId, filename = None):
         """ Return the existing file object if it exists, or create a new one """
         try:

@@ -1,23 +1,28 @@
 import os
-import pandas as pd
 import boto
 import glob
 import logging
 import re
 from collections import namedtuple
+
+import pandas as pd
+
+from dataactvalidator.app import createApp
 from dataactvalidator.scripts.loaderUtils import LoaderUtils
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, ObjectClass, ProgramActivity, SF133
-from dataactcore.interfaces.db import databaseSession
 from dataactcore.config import CONFIG_BROKER
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+
 def loadCgac(filename):
     """Load CGAC (high-level agency names) lookup table."""
     model = CGAC
 
-    with databaseSession() as sess:
+    with createApp().app_context():
+        sess = GlobalDB.db().session
 
         # for CGAC, delete and replace values
         sess.query(model).delete()
@@ -45,7 +50,8 @@ def loadObjectClass(filename):
     """Load object class lookup table."""
     model = ObjectClass
 
-    with databaseSession() as sess:
+    with createApp().app_context():
+        sess = GlobalDB.db().session
         # for object class, delete and replace values
         sess.query(model).delete()
 
@@ -71,7 +77,8 @@ def loadProgramActivity(filename):
     """Load program activity lookup table."""
     model = ProgramActivity
 
-    with databaseSession() as sess:
+    with createApp().app_context():
+        sess = GlobalDB.db().session
 
         # for program activity, delete and replace values??
         sess.query(model).delete()
@@ -108,7 +115,8 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
     """Load SF 133 (budget execution report) lookup table."""
     model = SF133
 
-    with databaseSession() as sess:
+    with createApp().app_context():
+        sess = GlobalDB.db().session
 
         existing_records = sess.query(model).filter(
             model.fiscal_year == fiscal_year, model.period == fiscal_period)
