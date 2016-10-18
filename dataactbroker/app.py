@@ -15,8 +15,9 @@ from dataactbroker.fileRoutes import add_file_routes
 from dataactbroker.loginRoutes import add_login_routes
 from dataactbroker.userRoutes import add_user_routes
 from dataactbroker.domainRoutes import add_domain_routes
-from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_DB, CONFIG_PATH
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_DB
 from dataactcore.utils.timeout import timeout
+
 
 def createApp():
     """Set up the application."""

@@ -1,10 +1,10 @@
 from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityFactory
 from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
-from random import choice
-from string import ascii_uppercase, ascii_lowercase, digits
+
 
 _FILE = 'a20_object_class_program_activity_2'
+
 
 def test_column_headers(database):
     expected_subset = {"row_number", "agency_identifier"}
