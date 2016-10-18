@@ -112,7 +112,7 @@ def test_unequal_uri_null(database):
         tas=tas, submission_id=af.submission_id, fain=None, uri='abc')
 
     errors = number_of_errors(_FILE, database, models=[af, afa])
-    assert errors == 1
+    assert errors == 0
 
 
 def test_equal_fain_unequal_uri(database):
@@ -125,7 +125,7 @@ def test_equal_fain_unequal_uri(database):
         tas=tas, submission_id=af.submission_id, fain=af.fain, uri='xyz')
 
     errors = number_of_errors(_FILE, database, models=[af, afa])
-    assert errors == 1
+    assert errors == 0
 
 
 def test_unequal_fain_equal_uri(database):

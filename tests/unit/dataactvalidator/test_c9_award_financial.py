@@ -109,7 +109,7 @@ def test_unequal_uri_null(database):
         tas=tas, submisson_id=afa.submission_id, fain=None, uri='abc')
 
     errors = number_of_errors(_FILE, database, models=[afa, af])
-    assert errors == 1
+    assert errors == 0
 
 
 def test_zero_federal_action_obligation_and_original_loan_subsidy_cost(database):
@@ -135,7 +135,7 @@ def test_zero_federal_action_obligation_and_positive_original_loan_subsidy_cost(
         tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
 
     errors = number_of_errors(_FILE, database, models=[afa, af])
-    assert errors == 0
+    assert errors == 1
 
 
 def test_positive_federal_action_obligation_and_zero_original_loan_subsidy_cost(database):
@@ -148,4 +148,4 @@ def test_positive_federal_action_obligation_and_zero_original_loan_subsidy_cost(
         tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
 
     errors = number_of_errors(_FILE, database, models=[afa, af])
-    assert errors == 0
+    assert errors == 1
