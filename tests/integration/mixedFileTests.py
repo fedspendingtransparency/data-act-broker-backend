@@ -95,25 +95,25 @@ class MixedFileTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 8212, 4, "complete", 39, 8, 841)
+            jobId, 200, "finished", 8212, 4, "complete", 39, 8, 869)
 
     def test_program_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["programMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 11390, 4, "complete", 81, 29, 9544)
+        jobId, 200, "finished", 11390, 4, "complete", 81, 29, 9572)
 
     def test_program_mixed_shortcols(self):
         """Test object class/program activity job with some rows failing & short colnames."""
         jobId = self.jobIdDict["programMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 11390, 4, "complete", 81, 29, 9544)
+            jobId, 200, "finished", 11390, 4, "complete", 81, 29, 9572)
 
     def test_award_fin_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobIdDict["awardFinMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 7537, 6, "complete", 47, 30, 8378)
+        jobId, 200, "finished", 7537, 6, "complete", 47, 32, 9476)
 
         # Test that whitespace is converted to null
         rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parent_award_id == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
@@ -127,7 +127,7 @@ class MixedFileTests(BaseTestValidator):
         """Test award financial job with some rows failing & short colnames."""
         jobId = self.jobIdDict["awardFinMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 7537, 6, "complete", 47, 32, 10320)
+            jobId, 200, "finished", 7537, 6, "complete", 47, 32, 9476)
 
     def test_award_valid_shortcols(self):
         """Test valid award (financial assistance) job with short colnames."""
