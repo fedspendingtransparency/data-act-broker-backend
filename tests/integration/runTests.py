@@ -30,11 +30,11 @@ def runTests(argv=''):
     # Create test suite
     suite = unittest.TestSuite()
 
-    #suite.addTests(unittest.makeSuite(LoginTests))
-    #suite.addTests(unittest.makeSuite(FileTests))
-    #suite.addTests(unittest.makeSuite(UserTests))
-    #suite.addTests(unittest.makeSuite(ValidatorTests))
-    #suite.addTests(unittest.makeSuite(JobTests))
+    suite.addTests(unittest.makeSuite(LoginTests))
+    suite.addTests(unittest.makeSuite(FileTests))
+    suite.addTests(unittest.makeSuite(UserTests))
+    suite.addTests(unittest.makeSuite(ValidatorTests))
+    suite.addTests(unittest.makeSuite(JobTests))
     suite.addTests(unittest.makeSuite(FileTypeTests))
     suite.addTests(unittest.makeSuite(MixedFileTests))
 
