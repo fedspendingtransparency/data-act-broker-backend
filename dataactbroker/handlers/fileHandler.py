@@ -848,3 +848,16 @@ class FileHandler:
         except NoResultFound as e:
             # Did not find file generation task
             return JsonResponse.error(ResponseException("Generation task key not found", StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
+
+    def getObligations(self):
+        inputDictionary = RequestDictionary(self.request)
+
+        # Get submission
+        submissionId = inputDictionary.getValue("submission_id")
+
+        obligationsInfo = {}
+        obligationsInfo["total_obligations"] = str(self.interfaces.jobDb.getTotalObligations(submissionId))
+        obligationsInfo["total_procurement_obligations"] = str(self.interfaces.jobDb.getTotalProcurementObligations(submissionId))
+        obligationsInfo["total_financial_assistance_obligations"] = str(self.interfaces.jobDb.getTotalFinancialAssistanceObligations(submissionId))
+
+        return JsonResponse.create(StatusCode.OK,obligationsInfo)

@@ -1,8 +1,10 @@
 import traceback
 from uuid import uuid4
+from sqlalchemy import func, or_, and_
 from sqlalchemy.orm import joinedload
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, FileType, PublishStatus, FileGenerationTask
+from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -391,3 +393,25 @@ class JobTrackerInterface(BaseInterface):
             # No date provided, consider this to not be first quarter
             return False
         return (endDate.month >= 10 and endDate.month <= 12)
+
+    def getTotalObligations(self,submissionId):
+        """ Return sum of all obligations incurred """
+        query = self.session.query(func.sum(AwardFinancial.transaction_obligated_amou)).filter(AwardFinancial.submission_id == submissionId).scalar()
+        if query == None:
+            query = 0
+        return query
+
+    def getTotalProcurementObligations(self,submissionId):
+        """ Return sum of all procurement obligations incurred """
+        query = self.session.query(func.sum(AwardFinancial.transaction_obligated_amou)).filter(and_(AwardFinancial.submission_id == submissionId, AwardFinancial.piid != None)).scalar()
+        if query == None:
+            query = 0
+        return query
+
+    def getTotalFinancialAssistanceObligations(self,submissionId):
+        """ Return sum of all procurement obligations incurred """
+        query = self.session.query(func.sum(AwardFinancial.transaction_obligated_amou)).filter(and_(AwardFinancial.submission_id == submissionId, or_(AwardFinancial.fain != None, AwardFinancial.uri != None))).scalar()
+        print(query)
+        if query == None:
+            query = 0
+        return query
