@@ -76,8 +76,7 @@ def createApp():
             # Only define this route when running locally
             @app.route(localFiles)
             def sendFile(filename):
-                if(config["local"]) :
-                    return send_from_directory(broker_file_path, filename)
+                return send_from_directory(broker_file_path, filename)
         else:
             # For non-local installs, set Dynamo Region
             SessionTable.DYNAMO_REGION = CONFIG_BROKER['aws_region']
