@@ -1,11 +1,12 @@
 from dataactcore.models.userModel import EmailTemplateType, EmailTemplate
-
-from dataactcore.interfaces.db import databaseSession
+from dataactvalidator.app import createApp
+from dataactcore.interfaces.db import GlobalDB
 
 
 def setupEmails():
     """Create email templates from model metadata."""
-    with databaseSession() as sess:
+    with createApp().app_context():
+        sess = GlobalDB.db().session
 
         # insert email template types
         typeList = [

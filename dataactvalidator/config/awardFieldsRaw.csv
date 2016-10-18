@@ -1,61 +1,61 @@
 fieldname,fieldname_short,required,data_type,field_length,rule_labels
-ActionDate,action_date,ASP: Optional,string,,"D3, D4"
-ActionType,action_type,ASP: Optional,string,,"D1, D2"
-AssistanceType,assistance_type,ASP: Optional,string,,D1
-AwardDescription,award_description,ASP: Optional,string,,D2
-AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,ASP: Optional,string,,D22
-AwardeeOrRecipientUniqueIdentifier,awardee_or_recipient_uniqu,ASP: Optional,string,,"D2, D10"
-AwardingAgencyCode,awarding_agency_code,ASP: Optional,string,,D1
-AwardingAgencyName,awarding_agency_name,ASP: Optional,string,,
-AwardingOfficeCode,awarding_office_code,ASP: Optional,string,,
-AwardingOfficeName,awarding_office_name,ASP: Optional,string,,
-AwardingSubTierAgencyCode,awarding_sub_tier_agency_c,ASP: Optional,string,,"D1, D6"
-AwardingSubTierAgencyName,awarding_sub_tier_agency_n,ASP: Optional,string,,
-AwardModificationAmendmentNumber,award_modification_amendme,ASP: Optional,string,,D6
-BusinessFundsIndicator,business_funds_indicator,ASP: Optional,string,,D1
-BusinessTypes,business_types,ASP: Optional,string,,D1
-CFDA_Number,cfda_number,ASP: Optional,string,,D13
-CFDA_Title,cfda_title,ASP: Optional,string,,
-CorrectionLateDeleteIndicator,correction_late_delete_ind,ASP: Optional,string,,D1
-FaceValueLoanGuarantee,face_value_loan_guarantee,ASP: Optional,string,,D21
-FAIN,fain,ASP: Optional,string,,"C9, D2, D5, D6"
-FederalActionObligation,federal_action_obligation,ASP: Optional,string,,"C12, D20"
-FiscalYearAndQuarterCorrection,fiscal_year_and_quarter_co,ASP: Optional,string,,D8
-FundingAgencyCode,funding_agency_code,ASP: Optional,string,,D1
-FundingAgencyName,funding_agency_name,ASP: Optional,string,,
-FundingAgencyOfficeName,funding_office_name,ASP: Optional,string,,
-FundingOfficeCode,funding_office_code,ASP: Optional,string,,
-FundingSubTierAgencyCode,funding_sub_tier_agency_co,ASP: Optional,string,,D1
-FundingSubTierAgencyName,funding_sub_tier_agency_na,ASP: Optional,string,,
-LegalEntityAddressLine1,legal_entity_address_line1,ASP: Optional,string,,D2
-LegalEntityAddressLine2,legal_entity_address_line2,ASP: Optional,string,,
-LegalEntityAddressLine3,legal_entity_address_line3,ASP: Optional,string,,
-LegalEntityCityCode,legal_entity_city_code,ASP: Optional,string,,
-LegalEntityCityName,legal_entity_city_name,ASP: Optional,string,,
-LegalEntityCongressionalDistrict,legal_entity_congressional,ASP: Optional,string,,
-LegalEntityCountryCode,legal_entity_country_code,ASP: Optional,string,,"D1, D2, D12"
-LegalEntityCountyCode,legal_entity_county_code,ASP: Optional,string,,
-LegalEntityCountyName,legal_entity_county_name,ASP: Optional,string,,
-LegalEntityForeignCityName,legal_entity_foreign_city,ASP: Optional,string,,D9
-LegalEntityForeignPostalCode,legal_entity_foreign_posta,ASP: Optional,string,,
-LegalEntityForeignProvinceName,legal_entity_foreign_provi,ASP: Optional,string,,
-LegalEntityStateCode,legal_entity_state_code,ASP: Optional,string,,
-LegalEntityStateName,legal_entity_state_name,ASP: Optional,string,,
-LegalEntityZIP5,legal_entity_zip5,ASP: Optional,string,,"D2, D11"
-LegalEntityZIPLast4,legal_entity_zip_last4,ASP: Optional,string,,"D2, D11"
-NonFederalFundingAmount,non_federal_funding_amount,ASP: Optional,string,,
-OriginalLoanSubsidyCost,original_loan_subsidy_cost,ASP: Optional,string,,D21
-PeriodOfPerformanceCurrentEndDate,period_of_performance_curr,ASP: Optional,string,,"D3, D4, D19"
-PeriodOfPerformanceStartDate,period_of_performance_star,ASP: Optional,string,,"D3, D18"
-PrimaryPlaceOfPerformanceCityName,place_of_performance_city,ASP: Optional,string,,
-PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Optional,string,,"D1, D14, D15"
-PrimaryPlaceOfPerformanceCongressionalDistrict,place_of_performance_congr,ASP: Optional,string,,
-PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Optional,string,,D1
-PrimaryPlaceOfPerformanceCountyName,place_of_perform_county_na,ASP: Optional,string,,
-PrimaryPlaceOfPerformanceForeignLocationDescription,place_of_performance_forei,ASP: Optional,string,,D17
-PrimaryPlaceOfPerformanceStateName,place_of_perform_state_nam,ASP: Optional,string,,
-PrimaryPlaceOfPerformanceZIP_4,place_of_performance_zip4a,ASP: Optional,string,,"D2, D16"
-RecordType,record_type,ASP: Optional,string,,D1
-SAI_Number,sai_number,ASP: Optional,string,,
-TotalFundingAmount,total_funding_amount,ASP: Optional,string,,
-URI,uri,ASP: Optional,string,,"C9, D6, D7"
+ActionDate,action_date,ASP: Required,string,8,"D3, D4"
+ActionType,action_type,ASP: Conditional per Validation Rule,string,1,"D1, D2"
+AssistanceType,assistance_type,ASP: Required,string,2,D1
+AwardDescription,award_description,ASP: Conditional per Validation Rule,string,4000,D2
+AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,ASP: Required,string,120,D22
+AwardeeOrRecipientUniqueIdentifier,awardee_or_recipient_uniqu,ASP: Conditional per Validation Rule,string,9,"D2, D10"
+AwardingAgencyCode,awarding_agency_code,ASP: Optional,string,3,D1
+AwardingAgencyName,awarding_agency_name,ASP: Derived,string,100,
+AwardingOfficeCode,awarding_office_code,ASP: Optional,string,3,
+AwardingOfficeName,awarding_office_name,ASP: Derived,string,100,
+AwardingSubTierAgencyCode,awarding_sub_tier_agency_c,ASP: Required,string,4,"D1, D6"
+AwardingSubTierAgencyName,awarding_sub_tier_agency_n,ASP: Derived,string,100,
+AwardModificationAmendmentNumber,award_modification_amendme,ASP: Optional,string,25,D6
+BusinessFundsIndicator,business_funds_indicator,ASP: Optional,string,3,D1
+BusinessTypes,business_types,ASP: Optional,string,3,D1
+CFDA_Number,cfda_number,ASP: Required,string,7,D13
+CFDA_Title,cfda_title,ASP: Derived,string,100,
+CorrectionLateDeleteIndicator,correction_late_delete_ind,ASP: Optional,string,1,D1
+FaceValueLoanGuarantee,face_value_loan_guarantee,ASP: Conditional per Validation Rule,numeric,20,D21
+FAIN,fain,ASP: Conditional per Validation Rule,string,30,"C9, D2, D5, D6"
+FederalActionObligation,federal_action_obligation,ASP: Conditional per Validation Rule,numeric,20,"C12, D20"
+FiscalYearAndQuarterCorrection,fiscal_year_and_quarter_co,ASP: Optional,string,5,D8
+FundingAgencyCode,funding_agency_code,ASP: Optional,string,3,D1
+FundingAgencyName,funding_agency_name,ASP: Derived,string,100,
+FundingAgencyOfficeName,funding_office_name,ASP: Derived,string,100,
+FundingOfficeCode,funding_office_code,ASP: Optional,string,3,
+FundingSubTierAgencyCode,funding_sub_tier_agency_co,ASP: Optional,string,4,D1
+FundingSubTierAgencyName,funding_sub_tier_agency_na,ASP: Derived,string,100,
+LegalEntityAddressLine1,legal_entity_address_line1,ASP: Conditional per Validation Rule,string,150,D2
+LegalEntityAddressLine2,legal_entity_address_line2,ASP: Optional,string,150,
+LegalEntityAddressLine3,legal_entity_address_line3,ASP: Optional,string,35,
+LegalEntityCityCode,legal_entity_city_code,ASP: Derived,string,5,
+LegalEntityCityName,legal_entity_city_name,ASP: Derived,string,40,
+LegalEntityCongressionalDistrict,legal_entity_congressional,ASP: Derived,string,2,
+LegalEntityCountryCode,legal_entity_country_code,ASP: Conditional per Validation Rule,string,3,"D1, D2, D12"
+LegalEntityCountyCode,legal_entity_county_code,ASP: Derived,string,3,
+LegalEntityCountyName,legal_entity_county_name,ASP: Derived,string,40,
+LegalEntityForeignCityName,legal_entity_foreign_city,ASP: Conditional per Validation Rule,string,40,D9
+LegalEntityForeignPostalCode,legal_entity_foreign_posta,ASP: Optional,string,50,
+LegalEntityForeignProvinceName,legal_entity_foreign_provi,ASP: Optional,string,25,
+LegalEntityStateCode,legal_entity_state_code,ASP: Derived,string,2,
+LegalEntityStateName,legal_entity_state_name,ASP: Derived,string,50,
+LegalEntityZIP5,legal_entity_zip5,ASP: Conditional per Validation Rule,string,5,"D2, D11"
+LegalEntityZIPLast4,legal_entity_zip_last4,ASP: Conditional per Validation Rule,string,4,"D2, D11"
+NonFederalFundingAmount,non_federal_funding_amount,ASP: Optional,numeric,20,
+OriginalLoanSubsidyCost,original_loan_subsidy_cost,ASP: Conditional per Validation Rule,numeric,20,D21
+PeriodOfPerformanceCurrentEndDate,period_of_performance_curr,ASP: Optional,string,8,"D3, D4, D19"
+PeriodOfPerformanceStartDate,period_of_performance_star,ASP: Optional,string,8,"D3, D18"
+PrimaryPlaceOfPerformanceCityName,place_of_performance_city,ASP: Derived,string,100,
+PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Required,string,7,"D1, D14, D15"
+PrimaryPlaceOfPerformanceCongressionalDistrict,place_of_performance_congr,ASP: Derived,string,2,
+PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Required,string,3,D1
+PrimaryPlaceOfPerformanceCountyName,place_of_perform_county_na,ASP: Derived,string,40,
+PrimaryPlaceOfPerformanceForeignLocationDescription,place_of_performance_forei,ASP: Conditional per Validation Rule,string,100,D17
+PrimaryPlaceOfPerformanceStateName,place_of_perform_state_nam,ASP: Derived,string,50,
+PrimaryPlaceOfPerformanceZIP_4,place_of_performance_zip4a,ASP: Conditional per Validation Rule,string,10,"D2, D16"
+RecordType,record_type,ASP: Required,integer,1,D1
+SAI_Number,sai_number,ASP: Optional,string,50,
+TotalFundingAmount,total_funding_amount,ASP: Derived,numeric,20,
+URI,uri,ASP: Conditional per Validation Rule,string,70,"C9, D6, D7"

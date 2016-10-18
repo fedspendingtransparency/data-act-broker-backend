@@ -137,17 +137,17 @@ class ValidatorTests(BaseTestValidator):
             "test5": "1",
          }
         self.assertTrue(Validator.validate(
-            record, schema, "award", interfaces)[0])
+            record, schema, "award_financial", interfaces)[0])
         record["test5"] = ""
         self.assertTrue(Validator.validate(
-            record, schema, "award", interfaces)[0])
+            record, schema, "award_financial", interfaces)[0])
         record["test5"] = "s"
         self.assertFalse(Validator.validate(
-            record, schema, "award", interfaces)[0])
+            record, schema, "award_financial", interfaces)[0])
         record["test5"] = ""
         record["test3"] = ""
         self.assertFalse(Validator.validate(
-            record, schema, "award", interfaces)[0])
+            record, schema, "award_financial", interfaces)[0])
 
 if __name__ == '__main__':
     unittest.main()
