@@ -2,11 +2,11 @@ from tests.integration.baseTestAPI import BaseTestAPI
 from dataactbroker.app import createApp
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import getUsersByType
+from dataactcore.interfaces.function_bag import getUsersByType, createUserWithPassword
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
-
+from flask_bcrypt import Bcrypt
 from datetime import datetime
 
 class UserTests(BaseTestAPI):
@@ -401,3 +401,18 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/email_users/", badInput, expect_errors=True,
                                       headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.CLIENT_ERROR)
+
+    def test_delete_user(self):
+        # Need to be an admin to delete
+        self.login_admin_user()
+        # Create user to be deleted
+        email = "to_be_deleted@agency.gov"
+        createUserWithPassword(email, "unused", Bcrypt())
+        # TODO Give this user a submission
+
+        input = {"email": email}
+        response = self.app.post_json("/v1/delete_user/", input, headers={"x-session-id": self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+        # TODO Check that user is not in database
+        # TODO check that submission has no user
