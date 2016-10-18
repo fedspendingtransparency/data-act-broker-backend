@@ -289,7 +289,7 @@ class MixedFileTests(BaseTestValidator):
 
             # Check number of cross file validation errors in DB for this job
             self.assertEqual(checkNumberOfErrorsByJobId(crossId, "fatal"), 0)
-            self.assertEqual(checkNumberOfErrorsByJobId(crossId, "warning"), 8)
+            self.assertEqual(checkNumberOfErrorsByJobId(crossId, "warning"), 5)
             self.assertEqual(job.job_status_id, JOB_STATUS_DICT['finished'])
 
             # Check that cross file validation report exists and is the right size
