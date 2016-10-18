@@ -139,7 +139,7 @@ class LoginSession():
 
         resets the _uid in cases that the session becomes invalid
         """
-        session["_uid"] = _create_identifier()
+        session["_uid"] = "{}|{}".format(_create_identifier(),uuid4())
 
     @staticmethod
     def isSessionSecure(session):
@@ -152,7 +152,7 @@ class LoginSession():
 
         """
         if( "_uid" in session):
-            if(not session["_uid"] ==  _create_identifier()):
+            if not _create_identifier() in session["_uid"]:
                 return False
             return True
         else :
@@ -254,7 +254,7 @@ class DynamoInterface(SessionInterface):
             else:
                 expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
         if(not "_uid" in session):
-            session["_uid"] = _create_identifier()
+            LoginSession.resetID(session)
         SessionTable.newSession(session.sid,session,expiration)
         DynamoInterface.CountLimit = DynamoInterface.CountLimit + 1
         if DynamoInterface.CountLimit % DynamoInterface.SESSSION_CLEAR_COUNT_LIMIT == 0 :
