@@ -411,7 +411,6 @@ class JobTrackerInterface(BaseInterface):
     def getTotalFinancialAssistanceObligations(self,submissionId):
         """ Return sum of all procurement obligations incurred """
         query = self.session.query(func.sum(AwardFinancial.transaction_obligated_amou)).filter(and_(AwardFinancial.submission_id == submissionId, or_(AwardFinancial.fain != None, AwardFinancial.uri != None))).scalar()
-        print(query)
         if query == None:
             query = 0
         return query

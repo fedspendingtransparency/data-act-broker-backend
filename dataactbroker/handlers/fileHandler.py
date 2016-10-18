@@ -852,12 +852,22 @@ class FileHandler:
     def getObligations(self):
         inputDictionary = RequestDictionary(self.request)
 
-        # Get submission
-        submissionId = inputDictionary.getValue("submission_id")
+        try:
+             # Get submission
+            submissionId = inputDictionary.getValue("submission_id")
+            submission = self.jobManager.getSubmissionById(submissionId)
 
-        obligationsInfo = {}
-        obligationsInfo["total_obligations"] = str(self.interfaces.jobDb.getTotalObligations(submissionId))
-        obligationsInfo["total_procurement_obligations"] = str(self.interfaces.jobDb.getTotalProcurementObligations(submissionId))
-        obligationsInfo["total_financial_assistance_obligations"] = str(self.interfaces.jobDb.getTotalFinancialAssistanceObligations(submissionId))
+            # Check that user has access to submission
+            user = self.checkSubmissionPermission(submission)
 
-        return JsonResponse.create(StatusCode.OK,obligationsInfo)
+            obligationsInfo = {}
+            obligationsInfo["total_obligations"] = str(self.interfaces.jobDb.getTotalObligations(submissionId))
+            obligationsInfo["total_procurement_obligations"] = str(self.interfaces.jobDb.getTotalProcurementObligations(submissionId))
+            obligationsInfo["total_financial_assistance_obligations"] = str(self.interfaces.jobDb.getTotalFinancialAssistanceObligations(submissionId))
+
+            return JsonResponse.create(StatusCode.OK,obligationsInfo)
+        except ResponseException as e:
+            return JsonResponse.error(e,e.status)
+        except Exception as e:
+            # Unexpected exception, this is a 500 server error
+            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)

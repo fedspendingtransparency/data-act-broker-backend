@@ -11,6 +11,7 @@ from tests.integration.baseTestAPI import BaseTestAPI
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import populateSubmissionErrorInfo
 from dataactcore.models.jobModels import Submission, Job, JobDependency
+from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.userModel import User
 from dataactcore.config import CONFIG_BROKER
@@ -67,6 +68,13 @@ class FileTests(BaseTestAPI):
             cls.row_error_submission_id = cls.insertSubmission(
                 sess, cls.submission_user_id, cgac_code="SYS", startDate="10/2015", endDate="06/2016", is_quarter=True)
             cls.setupSubmissionWithError(sess, cls.row_error_submission_id)
+
+            cls.obligations_submission_id = cls.insertSubmission(
+                sess, cls.submission_user_id, cgac_code="SYS", startDate="10/2015", endDate="06/2016", is_quarter=True)
+            cls.setupObligations(sess, cls.obligations_submission_id)
+
+            cls.empty_obligations_submission_id = cls.insertSubmission(
+                sess, cls.submission_user_id, cgac_code="SYS", startDate="10/2015", endDate="06/2016", is_quarter=True)
 
     def setUp(self):
         """Test set-up."""
@@ -342,6 +350,31 @@ class FileTests(BaseTestAPI):
             self.assertEqual(json["created_on"], datetime.utcnow().strftime("%m/%d/%Y"))
             self.assertEqual(json["last_updated"], submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"))
 
+    def test_get_obligations(self):
+        """Test get obligations route."""
+        postJson = {"submission_id": self.obligations_submission_id}
+
+        response = self.app.post_json("/v1/get_obligations/", postJson, headers={"x-session-id": self.session_id})
+        json = response.json
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json["total_obligations"], "5000")
+        self.assertEqual(json["total_procurement_obligations"], "2000")
+        self.assertEqual(json["total_financial_assistance_obligations"], "3000")
+
+    def test_empty_obligations(self):
+        """Test get obligations route with no obligations."""
+        postJson = {"submission_id": self.empty_obligations_submission_id}
+
+        response = self.app.post_json("/v1/get_obligations/", postJson, headers={"x-session-id": self.session_id})
+        json = response.json
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json["total_obligations"], "0")
+        self.assertEqual(json["total_procurement_obligations"], "0")
+        self.assertEqual(json["total_financial_assistance_obligations"], "0")
+        
+
     def test_list_submissions(self):
         """ Check list submissions route on status check submission """
         response = self.app.get("/v1/list_submissions/", headers={"x-session-id":self.session_id})
@@ -568,6 +601,24 @@ class FileTests(BaseTestAPI):
         sess.add(ed)
         sess.commit()
         return ed.error_metadata_id
+
+    @staticmethod
+    def insertObligation(sess, submission, job_id, row_number, obligation_id=None, transaction_amount=None, piid=None, fain=None, uri=None):
+        """Insert one obligation into obligation tracker and get ID back."""
+        obligation = AwardFinancial(
+            submission_id=submission,
+            job_id=job_id,
+            row_number=row_number,
+            transaction_obligated_amou=transaction_amount,
+            piid=piid,
+            fain=fain,
+            uri=uri
+        )
+        if obligation_id:
+            obligation.award_financial_id = obligation_id
+        sess.add(obligation)
+        sess.commit()
+        return obligation
 
     @classmethod
     def setupFileGenerationSubmission(cls, sess):
@@ -805,6 +856,24 @@ class FileTests(BaseTestAPI):
         )
         FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['complete']) # Validation level Errors
         cls.insertRowLevelError(sess, job.job_id)
+
+    # obligation_id=None, transaction_amount=None, piid=None, fain=None, uri=None
+    @classmethod
+    def setupObligations(cls, sess, submission_id):
+        """Setup test data for the obligation test"""
+        job = FileTests.insertJob(
+            sess,
+            filetype=cls.fileTypeDict['award_financial'],
+            status=cls.jobStatusDict['ready'],
+            type_id=cls.jobTypeDict['csv_record_validation'],
+            submission=submission_id
+        )
+
+        FileTests.insertObligation(sess, job_id=job.job_id, row_number=1, transaction_amount=1000, piid="1234", submission=submission_id)
+        FileTests.insertObligation(sess, job_id=job.job_id, row_number=2, transaction_amount=1000, piid="1235", submission=submission_id)
+        FileTests.insertObligation(sess, job_id=job.job_id, row_number=3, transaction_amount=1000, fain="1235", submission=submission_id)
+        FileTests.insertObligation(sess, job_id=job.job_id, row_number=4, transaction_amount=1000, uri="1235", submission=submission_id)
+        FileTests.insertObligation(sess, job_id=job.job_id, row_number=5, transaction_amount=1000, uri="1235", fain="1234", submission=submission_id)
 
 if __name__ == '__main__':
     unittest.main()
