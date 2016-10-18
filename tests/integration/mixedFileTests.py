@@ -298,7 +298,7 @@ class MixedFileTests(BaseTestValidator):
                 (89, getCrossReportName(submissionId, "appropriations", "program_activity")),
                 (89, getCrossReportName(submissionId, "award_financial", "award")),
                 (2348, getCrossWarningReportName(submissionId, "appropriations", "program_activity")),
-                (1797, getCrossWarningReportName(submissionId, "award_financial", "award")),
+                (675, getCrossWarningReportName(submissionId, "award_financial", "award")),
             ]
 
         for size, path in sizePathPairs:
