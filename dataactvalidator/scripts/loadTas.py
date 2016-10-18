@@ -1,9 +1,12 @@
 import os
 import logging
+
 import pandas as pd
+
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import TASLookup
-from dataactcore.interfaces.db import databaseSession
+from dataactvalidator.app import createApp
 from dataactvalidator.scripts.loaderUtils import LoaderUtils
 
 
@@ -31,7 +34,8 @@ def loadTas(tasFile=None):
     # we only need one row for each unique TAS
     data.drop_duplicates(inplace=True)
 
-    with databaseSession() as sess:
+    with createApp().app_context():
+        sess = GlobalDB.db().session
 
         # delete existing data
         # TODO: when we swtich to loading TAS from CARS, do we sill want to delete existing recs?
