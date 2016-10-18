@@ -19,7 +19,7 @@ from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import getReportPath
+from dataactcore.utils.report import getReportPath, getCrossReportName, getCrossWarningReportName
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -111,9 +111,9 @@ class FileHandler:
                         continue
                     # Retrieve filename
                     if isWarning:
-                        reportName = self.interfaces.errorDb.getCrossWarningReportName(submissionId, source, target)
+                        reportName = getCrossWarningReportName(submissionId, source, target)
                     else:
-                        reportName = self.interfaces.errorDb.getCrossReportName(submissionId, source, target)
+                        reportName = getCrossReportName(submissionId, source, target)
                     # If not local, get a signed URL
                     if self.isLocal:
                         reportPath = os.path.join(self.serverPath,reportName)

@@ -49,7 +49,7 @@ class Validator(object):
         return failures
 
     @classmethod
-    def validate(cls,record,csvSchema, fileType, interfaces):
+    def validate(cls, record, csvSchema):
         """
         Run initial set of single file validation:
         - check if required fields are present
@@ -59,7 +59,6 @@ class Validator(object):
         Args:
         record -- dict representation of a single record of data
         csvSchema -- dict of schema for the current file.
-        fileType -- name of file type to check against
 
         Returns:
         Tuple of three values:
