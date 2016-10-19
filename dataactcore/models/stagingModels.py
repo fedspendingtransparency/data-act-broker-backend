@@ -51,7 +51,6 @@ class Appropriation(Base):
     sub_account_code = Column(Text)
     unobligated_balance_cpe = Column(Numeric)
     tas = Column(Text, index=True, nullable=False, default=concatTas, onupdate=concatTas)
-    is_first_quarter = Column(Boolean, nullable=False, default=False, server_default="False")
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -111,7 +110,6 @@ class ObjectClassProgramActivity(Base):
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
-    is_first_quarter = Column(Boolean, nullable=False, default=False, server_default="False")
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -182,7 +180,6 @@ class AwardFinancial(Base):
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
-    is_first_quarter = Column(Boolean, nullable=False, default=False, server_default="False")
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -264,7 +261,6 @@ class AwardFinancialAssistance(Base):
     sai_number = Column(Text)
     total_funding_amount = Column(Text)
     uri = Column(Text, index=True)
-    is_first_quarter = Column(Boolean, nullable=False, default=False, server_default="False")
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

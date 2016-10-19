@@ -1,5 +1,5 @@
 from dataactcore.models.stagingModels import concatTas
-from sqlalchemy import Column, Integer, Text, Boolean, Index, Numeric
+from sqlalchemy import Column, Integer, Text, Index, Numeric
 from dataactcore.models.baseModel import Base
 
 

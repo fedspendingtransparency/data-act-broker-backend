@@ -1,8 +1,6 @@
-import io
-import csv
-import boto
-import smart_open
 from dataactvalidator.filestreaming.csvAbstractWriter import CsvAbstractWriter
+
+
 class CsvLocalWriter(CsvAbstractWriter):
     """
     Writes a CSV to the local file system in a steaming manner

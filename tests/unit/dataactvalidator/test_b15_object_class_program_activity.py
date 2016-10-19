@@ -14,7 +14,7 @@ def test_success(database):
     tas2 = "".join([_TAS, "_other_tas"])
 
     # This uses the default submission created in utils for 10/2015 which is period 1 of FY 2016
-    sf = SF133(line=2104, tas=tas, period=1, fiscal_year=2016, amount=15, agency_identifier="sys",
+    sf = SF133(line=2104, tas=tas, period=1, fiscal_year=2016, amount=-15, agency_identifier="sys",
                main_account_code="000", sub_account_code="000")
 
     op = ObjectClassProgramActivity(job_id=1, row_number=1, tas=tas, by_direct_reimbursable_fun='r',

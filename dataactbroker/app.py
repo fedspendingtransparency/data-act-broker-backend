@@ -15,6 +15,7 @@ from dataactbroker.domainRoutes import add_domain_routes
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_DB
 from dataactcore.utils.timeout import timeout
 
+
 def createApp():
     """Set up the application."""
     app = Flask(__name__.split('.')[0])

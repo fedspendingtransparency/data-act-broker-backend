@@ -1,9 +1,6 @@
 import requests
-import json
-import os
-from urlparse import urljoin
-import inspect
 from dataactcore.config import CONFIG_SERVICES
+
 
 class ManagerProxy(object):
     """ Temporary bypass of job manager, used to call validator directly """
