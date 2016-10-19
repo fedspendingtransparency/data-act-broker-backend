@@ -51,10 +51,9 @@ def updateTASLookups(csvPath):
     sess = GlobalDB.db().session
 
     data = cleanTas(csvPath)
-    # delete any existing data
-    sess.query(TASLookup).\
-        filter(TASLookup.tas_id.in_(int(i) for i in data['tas_id'])).\
-        delete(synchronize_session=False)
+    # Delete all existing TAS records -- we don't want to accept submissions
+    # after the entries fall off the CARS file
+    sess.query(TASLookup).delete(synchronize_session=False)
 
     # instead of using the pandas to_sql dataframe method like some of the
     # other domain load processes, iterate through the dataframe rows so we

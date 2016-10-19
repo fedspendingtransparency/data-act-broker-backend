@@ -72,15 +72,17 @@ def test_updateTASLookups(database, monkeypatch):
     sess.add(TASFactory(tas_id=444, agency_identifier='other'))
     sess.commit()
 
+    results = sess.query(TASLookup).order_by(TASLookup.tas_id).all()
+    assert len(results) == 2
+    sess.invalidate()
+
     loadTas.updateTASLookups('ignored')
 
     results = sess.query(TASLookup).order_by(TASLookup.tas_id).all()
-    assert len(results) == 4
+    assert len(results) == 3    # there is no 444
     assert results[0].tas_id == 111
     assert results[0].agency_identifier == '0'
     assert results[1].tas_id == 222
-    assert results[1].agency_identifier == '1'
+    assert results[1].agency_identifier == '1'  # replaces previous value
     assert results[2].tas_id == 333
     assert results[2].agency_identifier == '2'
-    assert results[3].tas_id == 444
-    assert results[3].agency_identifier == 'other'
