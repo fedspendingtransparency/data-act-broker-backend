@@ -4,7 +4,7 @@ import traceback
 import multiprocessing
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
-from flask import Flask, send_from_directory
+from flask import Flask
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -71,17 +71,6 @@ def createApp():
         def root():
             return "Broker is running"
 
-        if local:
-            localFiles = os.path.join(broker_file_path, "<path:filename>")
-            # Only define this route when running locally
-            @app.route(localFiles)
-            def sendFile(filename):
-                if(config["local"]) :
-                    return send_from_directory(broker_file_path, filename)
-        else:
-            # For non-local installs, set Dynamo Region
-            SessionTable.DYNAMO_REGION = CONFIG_BROKER['aws_region']
-
         # Add routes for modules here
         add_login_routes(app, bcrypt)
 
@@ -96,6 +85,8 @@ def createApp():
 
         if local:
             checkDynamo()
+        else:
+            SessionTable.DYNAMO_REGION = CONFIG_BROKER['aws_region']
 
         return app
 
