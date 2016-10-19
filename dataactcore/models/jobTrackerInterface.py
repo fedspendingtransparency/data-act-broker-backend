@@ -388,20 +388,20 @@ class JobTrackerInterface(BaseInterface):
     def getTotalObligations(self,submissionId):
         """ Return sum of all obligations incurred """
         query = self.session.query(func.sum(AwardFinancial.transaction_obligated_amou)).filter(AwardFinancial.submission_id == submissionId).scalar()
-        if query == None:
+        if query is None:
             query = 0
         return query
 
     def getTotalProcurementObligations(self,submissionId):
         """ Return sum of all procurement obligations incurred """
         query = self.session.query(func.sum(AwardFinancial.transaction_obligated_amou)).filter(and_(AwardFinancial.submission_id == submissionId, AwardFinancial.piid != None)).scalar()
-        if query == None:
+        if query is None:
             query = 0
         return query
 
     def getTotalFinancialAssistanceObligations(self,submissionId):
         """ Return sum of all procurement obligations incurred """
         query = self.session.query(func.sum(AwardFinancial.transaction_obligated_amou)).filter(and_(AwardFinancial.submission_id == submissionId, or_(AwardFinancial.fain != None, AwardFinancial.uri != None))).scalar()
-        if query == None:
+        if query is None:
             query = 0
         return query
