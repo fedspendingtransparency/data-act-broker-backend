@@ -1,7 +1,7 @@
 from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
-from random import randint
 from decimal import Decimal
+
 
 _FILE = 'b4_object_class_program_activity_1'
 

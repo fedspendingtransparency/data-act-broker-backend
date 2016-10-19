@@ -10,7 +10,7 @@ from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Job
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import getReportPath
+from dataactcore.utils.report import getReportPath, getCrossWarningReportName, getCrossReportName
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -165,7 +165,7 @@ class ValidationManager:
         # Forcing forward slash here instead of using os.path to write a valid path for S3
         return "".join(["errors/", path])
 
-    def readRecord(self,reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter, fields):
+    def readRecord(self,reader,writer,fileType,interfaces,rowNumber,jobId,fields):
         """ Read and process the next record
 
         Args:
@@ -175,7 +175,6 @@ class ValidationManager:
             interfaces: InterfaceHolder object
             rowNumber: Next row number to be read
             jobId: ID of current job
-            isFirstQuarter: True if submission ends in first quarter
 
         Returns:
             Tuple with four elements:
@@ -192,7 +191,6 @@ class ValidationManager:
 
             record = FieldCleaner.cleanRow(reader.getNextRecord(), fileType, interfaces.validationDb, self.longToShortDict, fields)
             record["row_number"] = rowNumber
-            record["is_first_quarter"] = isFirstQuarter
             if reader.isFinished and len(record) < 2:
                 # This is the last line and is empty, don't record an error
                 return {}, True, True, True, False  # Don't count this row
@@ -299,7 +297,6 @@ class ValidationManager:
         CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runValidation on jobID: "+str(jobId), "")
 
         jobTracker = interfaces.jobDb
-        isFirstQuarter = jobTracker.checkFirstQuarter(jobId)
         submissionId = jobTracker.getSubmissionId(jobId)
 
         rowNumber = 1
@@ -366,7 +363,7 @@ class ValidationManager:
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
                     #
-                    (record, reduceRow, skipRow, doneReading, rowErrorHere) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,jobId,isFirstQuarter, fields)
+                    (record, reduceRow, skipRow, doneReading, rowErrorHere) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,jobId,fields)
                     if reduceRow:
                         rowNumber -= 1
                     if rowErrorHere:
@@ -390,7 +387,7 @@ class ValidationManager:
                         passedValidations = True
                         valid = True
                     else:
-                        passedValidations, failures, valid = Validator.validate(record,csvSchema,fileType,interfaces)
+                        passedValidations, failures, valid = Validator.validate(record, csvSchema)
                     if valid:
                         skipRow = self.writeToStaging(record, jobId, submissionId, passedValidations, interfaces, writer, rowNumber, fileType)
                         if skipRow:
@@ -523,8 +520,8 @@ class ValidationManager:
             # send comboRules to validator.crossValidate sql
             failures = Validator.crossValidateSql(comboRules.all(),submissionId)
             # get error file name
-            reportFilename = self.getFileName(interfaces.errorDb.getCrossReportName(submissionId, row.first_file_name, row.second_file_name))
-            warningReportFilename = self.getFileName(interfaces.errorDb.getCrossWarningReportName(submissionId, row.first_file_name, row.second_file_name))
+            reportFilename = self.getFileName(getCrossReportName(submissionId, row.first_file_name, row.second_file_name))
+            warningReportFilename = self.getFileName(getCrossWarningReportName(submissionId, row.first_file_name, row.second_file_name))
 
             # loop through failures to create the error report
             with self.getWriter(regionName, bucketName, reportFilename, self.crossFileReportHeaders) as writer, \

@@ -4,9 +4,11 @@ import unittest
 
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId
 from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.utils.report import getCrossReportName, getCrossWarningReportName
 from dataactvalidator.app import createApp
 from tests.integration.baseTestValidator import BaseTestValidator
 from tests.integration.fileTypeTests import FileTypeTests
@@ -190,7 +192,7 @@ class MixedFileTests(BaseTestValidator):
                 print('{}: {}'.format(job_type, job_id))
 
             # Load fields and rules
-            FileTypeTests.load_definitions(cls.interfaces, force_tas_load, cls.RULES_TO_APPLY)
+            FileTypeTests.load_definitions(sess, force_tas_load, cls.RULES_TO_APPLY)
 
             cls.jobDict = jobDict
 
@@ -204,39 +206,47 @@ class MixedFileTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 8212, 4, "complete", 39, 8, 841)
+            jobId, 200, "finished", 8212, 4, "complete", 39, 8, 869)
 
     def test_program_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobDict["programMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 11390, 4, "complete", 81, 29, 9544)
+        jobId, 200, "finished", 11390, 4, "complete", 81, 29, 9572)
 
     def test_program_mixed_shortcols(self):
         """Test object class/program activity job with some rows failing & short colnames."""
         jobId = self.jobDict["programMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 11390, 4, "complete", 81, 29, 9544)
+            jobId, 200, "finished", 11390, 4, "complete", 81, 29, 9572)
 
     def test_award_fin_mixed(self):
         """Test mixed award job with some rows failing."""
         jobId = self.jobDict["awardFinMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 7537, 6, "complete", 47, 30, 8378)
+        jobId, 200, "finished", 7537, 6, "complete", 47, 36, 9091)
 
-        # Test that whitespace is converted to null
-        rowThree = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parent_award_id == "ZZZZ").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
-        self.assertIsNone(rowThree.agency_identifier)
-        self.assertIsNone(rowThree.piid)
-        # And commas removed for numeric
-        rowThirteen = self.interfaces.validationDb.session.query(AwardFinancial).filter(AwardFinancial.parent_award_id == "YYYY").filter(AwardFinancial.submission_id == self.interfaces.jobDb.getSubmissionId(jobId)).first()
-        self.assertEqual(rowThirteen.deobligations_recov_by_awa_cpe,26000)
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            job = sess.query(Job).filter(Job.job_id == jobId).one()
+            # todo: these whitespace and comma cases probably belong in unit tests
+            # Test that whitespace is converted to null
+            rowThree = sess.query(AwardFinancial).\
+                filter(AwardFinancial.parent_award_id == "ZZZZ", AwardFinancial.submission_id == job.submission_id).\
+                first()
+            self.assertIsNone(rowThree.agency_identifier)
+            self.assertIsNone(rowThree.piid)
+            # Test that commas are removed for numeric values
+            rowThirteen = sess.query(AwardFinancial).\
+                filter(AwardFinancial.parent_award_id == "YYYY", AwardFinancial.submission_id == job.submission_id).\
+                first()
+            self.assertEqual(rowThirteen.deobligations_recov_by_awa_cpe, 26000)
 
     def test_award_fin_mixed_shortcols(self):
         """Test award financial job with some rows failing & short colnames."""
         jobId = self.jobDict["awardFinMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 7537, 6, "complete", 47, 32, 10320)
+            jobId, 200, "finished", 7537, 6, "complete", 47, 36, 9091)
 
     def test_award_valid_shortcols(self):
         """Test valid award (financial assistance) job with short colnames."""
@@ -272,21 +282,24 @@ class MixedFileTests(BaseTestValidator):
         crossFileResponse = self.validateJob(crossId)
         self.assertEqual(crossFileResponse.status_code, 200, msg=str(crossFileResponse.json))
 
-        # Check number of cross file validation errors in DB for this job
-        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId, self.interfaces.validationDb, "fatal"), 0)
-        self.assertEqual(self.interfaces.errorDb.checkNumberOfErrorsByJobId(crossId, self.interfaces.validationDb, "warning"), 5)
-        self.assertEqual(self.interfaces.jobDb.getJobStatus(crossId), JOB_STATUS_DICT['finished'])
+        with createApp().app_context():
+            sess = GlobalDB.db().session
 
-        # Check that cross file validation report exists and is the right size
-        jobTracker = self.interfaces.jobDb
+            job = sess.query(Job).filter(Job.job_id == crossId).one()
 
-        submissionId = jobTracker.getSubmissionId(crossId)
-        sizePathPairs = [
-            (89, self.interfaces.errorDb.getCrossReportName(submissionId, "appropriations", "program_activity")),
-            (89, self.interfaces.errorDb.getCrossReportName(submissionId, "award_financial", "award")),
-            (2348, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "appropriations", "program_activity")),
-            (424, self.interfaces.errorDb.getCrossWarningReportName(submissionId, "award_financial", "award")),
-        ]
+            # Check number of cross file validation errors in DB for this job
+            self.assertEqual(checkNumberOfErrorsByJobId(crossId, "fatal"), 0)
+            self.assertEqual(checkNumberOfErrorsByJobId(crossId, "warning"), 3)
+            self.assertEqual(job.job_status_id, JOB_STATUS_DICT['finished'])
+
+            # Check that cross file validation report exists and is the right size
+            submissionId = job.submission_id
+            sizePathPairs = [
+                (89, getCrossReportName(submissionId, "appropriations", "program_activity")),
+                (89, getCrossReportName(submissionId, "award_financial", "award")),
+                (2348, getCrossWarningReportName(submissionId, "appropriations", "program_activity")),
+                (89, getCrossWarningReportName(submissionId, "award_financial", "award")),
+            ]
 
         for size, path in sizePathPairs:
             if self.local:

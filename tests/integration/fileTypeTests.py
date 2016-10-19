@@ -100,31 +100,28 @@ class FileTypeTests(BaseTestValidator):
                 print('{}: {}'.format(job_type, job_id))
 
             # Load fields and rules
-            FileTypeTests.load_definitions(cls.interfaces, force_tas_load)
+            FileTypeTests.load_definitions(sess, force_tas_load)
 
             cls.jobDict = jobDict
 
     @staticmethod
-    def load_definitions(interfaces, force_tas_load, ruleList = None):
+    def load_definitions(sess, force_tas_load, ruleList=None):
         """Load file definitions."""
-        SchemaLoader.loadAllFromPath(os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config"))
+        SchemaLoader.loadAllFromPath(os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"))
         SQLLoader.loadSql("sqlRules.csv")
 
         if ruleList is not None:
             # If rule list provided, drop all other rules
-            to_delete = interfaces.validationDb.session.query(RuleSql).filter(not_(
-                RuleSql.rule_label.in_(ruleList)))
-            for rule in to_delete:
-                interfaces.validationDb.session.delete(rule)
-            interfaces.validationDb.session.commit()
+            sess.query(RuleSql).filter(not_(
+                RuleSql.rule_label.in_(ruleList))).delete(synchronize_session='fetch')
+            sess.commit()
 
         # Load domain values tables
         loadDomainValues(
             os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config"),
             os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data"),
             os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data", "program_activity.csv"))
-        if (interfaces.validationDb.session.query(TASLookup).count() == 0
-                or force_tas_load):
+        if sess.query(TASLookup).count() == 0 or force_tas_load:
             # TAS table is empty, load it
             loadTas(tasFile=os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data", "all_tas_betc.csv"))
 
@@ -144,7 +141,7 @@ class FileTypeTests(BaseTestValidator):
         """Test valid job."""
         jobId = self.jobDict["awardFinValid"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 63, 10, "complete", 0)
+            jobId, 200, "finished", 63, 10, "complete", 0, numWarnings=3)
 
     def test_award_valid(self):
         """Test valid job."""
