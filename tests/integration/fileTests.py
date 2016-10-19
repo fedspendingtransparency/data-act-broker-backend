@@ -360,7 +360,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(json["total_obligations"], "5000")
         self.assertEqual(json["total_procurement_obligations"], "2000")
-        self.assertEqual(json["total_financial_assistance_obligations"], "3000")
+        self.assertEqual(json["total_assistance_obligations"], "3000")
 
     def test_empty_obligations(self):
         """Test get obligations route with no obligations."""
@@ -372,7 +372,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(json["total_obligations"], "0")
         self.assertEqual(json["total_procurement_obligations"], "0")
-        self.assertEqual(json["total_financial_assistance_obligations"], "0")
+        self.assertEqual(json["total_assistance_obligations"], "0")
         
 
     def test_list_submissions(self):

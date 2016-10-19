@@ -863,7 +863,7 @@ class FileHandler:
             obligationsInfo = {}
             obligationsInfo["total_obligations"] = str(self.interfaces.jobDb.getTotalObligations(submissionId))
             obligationsInfo["total_procurement_obligations"] = str(self.interfaces.jobDb.getTotalProcurementObligations(submissionId))
-            obligationsInfo["total_financial_assistance_obligations"] = str(self.interfaces.jobDb.getTotalFinancialAssistanceObligations(submissionId))
+            obligationsInfo["total_assistance_obligations"] = str(self.interfaces.jobDb.getTotalFinancialAssistanceObligations(submissionId))
 
             return JsonResponse.create(StatusCode.OK,obligationsInfo)
         except ResponseException as e:
