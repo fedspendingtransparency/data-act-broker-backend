@@ -1,6 +1,7 @@
 from dataactvalidator.app import createApp
 from dataactbroker.scripts.setupEmails import setupEmails
 from dataactcore.models.userModel import User
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword
 from dataactcore.scripts.setupAllDB import setupAllDB
 from dataactbroker.handlers.aws.session import SessionTable
