@@ -405,14 +405,28 @@ class UserTests(BaseTestAPI):
     def test_delete_user(self):
         # Need to be an admin to delete
         self.login_admin_user()
-        # Create user to be deleted
+        # Create user to be deleted, done within test to avoid interfering with tests on number of users
         email = "to_be_deleted@agency.gov"
-        createUserWithPassword(email, "unused", Bcrypt())
-        # TODO Give this user a submission
-
+        user_to_be_deleted = createUserWithPassword(email, "unused", Bcrypt())
+        # Give this user a submission
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            sub = Submission(user_id = user_to_be_deleted.user_id)
+            sub.reporting_start_date = datetime(2015, 10, 1)
+            sub.reporting_end_date = datetime(2015, 12, 31)
+            sess.add(sub)
+            sess.commit()
+            sub_id = sub.submission_id
         input = {"email": email}
         response = self.app.post_json("/v1/delete_user/", input, headers={"x-session-id": self.session_id})
 
         self.assertEqual(response.status_code, 200)
-        # TODO Check that user is not in database
-        # TODO check that submission has no user
+
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            # Check that user is not in database
+            result = sess.query(User).filter(User.user_id == user_to_be_deleted.user_id).all()
+            self.assertEqual(len(result),0)
+            # Check that submission has no user
+            sub_after_delete = sess.query(Submission).filter(Submission.submission_id == sub_id).one()
+            self.assertIsNone(sub_after_delete.user_id)

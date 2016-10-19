@@ -346,6 +346,7 @@ class AccountHandler:
             return JsonResponse.error(exc, exc.status)
         email = requestDict.getValue("email")
         self.interfaces.userDb.deleteUser(email)
+        return JsonResponse.create(StatusCode.OK,{"message":"success"})
 
     def updateUser(self, system_email):
         """
