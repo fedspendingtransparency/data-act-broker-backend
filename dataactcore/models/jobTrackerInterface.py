@@ -385,15 +385,6 @@ class JobTrackerInterface(BaseInterface):
             raise ResponseException("Wrong type of job for this service", StatusCode.CLIENT_ERROR, None,
                                     ValidationError.jobError)
 
-    def checkFirstQuarter(self, jobId):
-        """ Return True if end date is in the first quarter """
-        submission = self.getSubmission(jobId)
-        endDate = submission.reporting_end_date
-        if endDate is None:
-            # No date provided, consider this to not be first quarter
-            return False
-        return (endDate.month >= 10 and endDate.month <= 12)
-
     def getTotalObligations(self,submissionId):
         """ Return sum of all obligations incurred """
         query = self.session.query(func.sum(AwardFinancial.transaction_obligated_amou)).filter(AwardFinancial.submission_id == submissionId).scalar()
