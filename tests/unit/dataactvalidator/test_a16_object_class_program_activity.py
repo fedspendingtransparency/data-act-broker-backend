@@ -26,11 +26,10 @@ def test_previous_published(database):
     sub_prev_published = SubmissionFactory(publish_status_id = PUBLISH_STATUS_DICT['published'])
     insert_submission(database, sub_prev_published)
     sub_new_published = SubmissionFactory(cgac_code = sub_prev_published.cgac_code, reporting_fiscal_year = sub_prev_published.reporting_fiscal_year)
-    ocpa_prev_published = ObjectClassProgramActivityFactory(submission_id = sub_prev_published.submission_id)
     ocpa_new_published = ObjectClassProgramActivityFactory(submission_id = sub_new_published.submission_id, 
        gross_outlays_delivered_or_fyb = None, ussgl480100_undelivered_or_fyb = None)
     assert number_of_errors(_FILE, database, submission = sub_new_published,
-                      models=[ocpa_prev_published, ocpa_new_published]) == 0
+                      models=[ocpa_new_published]) == 0
 
 def test_previous_publishable(database):
     """ Previous submission marked as publishable also allows null """
@@ -38,10 +37,9 @@ def test_previous_publishable(database):
     sub_prev_publishable = SubmissionFactory(publishable = True)
     insert_submission(database, sub_prev_publishable)
     sub_new_publishable = SubmissionFactory(cgac_code = sub_prev_publishable.cgac_code, reporting_fiscal_year = sub_prev_publishable.reporting_fiscal_year)
-    ocpa_prev_publishable = ObjectClassProgramActivityFactory(submission_id = sub_prev_publishable.submission_id)
     ocpa_new_publishable = ObjectClassProgramActivityFactory(submission_id = sub_new_publishable.submission_id, gross_outlays_delivered_or_fyb = None)
     assert number_of_errors(_FILE, database, submission = sub_new_publishable,
-                      models=[ocpa_prev_publishable, ocpa_new_publishable]) == 0
+                      models=[ocpa_new_publishable]) == 0
 
 
 def test_no_previous_submission(database):
@@ -57,8 +55,7 @@ def test_previous_unpublished(database):
     sub_prev_published = SubmissionFactory(publish_status_id = PUBLISH_STATUS_DICT['unpublished'], publishable = False)
     insert_submission(database, sub_prev_published)
     sub_new_published = SubmissionFactory(cgac_code = sub_prev_published.cgac_code, reporting_fiscal_year = sub_prev_published.reporting_fiscal_year)
-    ocpa_prev_published = ObjectClassProgramActivityFactory(submission_id = sub_prev_published.submission_id)
     ocpa_new_published = ObjectClassProgramActivityFactory(submission_id = sub_new_published.submission_id,
        ussgl480100_undelivered_or_fyb = None, ussgl490800_undelivered_or_fyb = None)
     assert number_of_errors(_FILE, database, submission = sub_new_published,
-                      models=[ocpa_prev_published, ocpa_new_published]) == 1
+                      models=[ocpa_new_published]) == 1
