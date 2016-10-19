@@ -224,7 +224,7 @@ class MixedFileTests(BaseTestValidator):
         """Test mixed award job with some rows failing."""
         jobId = self.jobDict["awardFinMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 7537, 6, "complete", 47, 30, 8378)
+        jobId, 200, "finished", 7537, 6, "complete", 47, 36, 9086)
 
         with createApp().app_context():
             sess = GlobalDB.db().session
@@ -246,7 +246,7 @@ class MixedFileTests(BaseTestValidator):
         """Test award financial job with some rows failing & short colnames."""
         jobId = self.jobDict["awardFinMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 7537, 6, "complete", 47, 32, 10320)
+            jobId, 200, "finished", 7537, 6, "complete", 47, 38, 11028)
 
     def test_award_valid_shortcols(self):
         """Test valid award (financial assistance) job with short colnames."""
@@ -289,7 +289,7 @@ class MixedFileTests(BaseTestValidator):
 
             # Check number of cross file validation errors in DB for this job
             self.assertEqual(checkNumberOfErrorsByJobId(crossId, "fatal"), 0)
-            self.assertEqual(checkNumberOfErrorsByJobId(crossId, "warning"), 5)
+            self.assertEqual(checkNumberOfErrorsByJobId(crossId, "warning"), 3)
             self.assertEqual(job.job_status_id, JOB_STATUS_DICT['finished'])
 
             # Check that cross file validation report exists and is the right size
@@ -298,7 +298,7 @@ class MixedFileTests(BaseTestValidator):
                 (89, getCrossReportName(submissionId, "appropriations", "program_activity")),
                 (89, getCrossReportName(submissionId, "award_financial", "award")),
                 (2348, getCrossWarningReportName(submissionId, "appropriations", "program_activity")),
-                (675, getCrossWarningReportName(submissionId, "award_financial", "award")),
+                (89, getCrossWarningReportName(submissionId, "award_financial", "award")),
             ]
 
         for size, path in sizePathPairs:
