@@ -1,4 +1,3 @@
-from tests.unit.dataactcore.factories.domain import SF133Factory
 from tests.unit.dataactcore.factories.staging import AppropriationFactory, ObjectClassProgramActivityFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 

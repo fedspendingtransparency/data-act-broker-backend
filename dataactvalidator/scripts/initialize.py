@@ -1,7 +1,6 @@
 import os
 import os.path
 import argparse
-import dataactvalidator
 from dataactcore.scripts.setupAllDB import setupAllDB
 from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.scripts.loadTas import loadTas
