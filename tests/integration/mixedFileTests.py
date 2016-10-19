@@ -224,7 +224,7 @@ class MixedFileTests(BaseTestValidator):
         """Test mixed award job with some rows failing."""
         jobId = self.jobDict["awardFinMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 7537, 6, "complete", 47, 36, 9086)
+        jobId, 200, "finished", 7537, 6, "complete", 47, 36, 9091)
 
         with createApp().app_context():
             sess = GlobalDB.db().session
@@ -246,7 +246,7 @@ class MixedFileTests(BaseTestValidator):
         """Test award financial job with some rows failing & short colnames."""
         jobId = self.jobDict["awardFinMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 7537, 6, "complete", 47, 36, 9086)
+            jobId, 200, "finished", 7537, 6, "complete", 47, 36, 9091)
 
     def test_award_valid_shortcols(self):
         """Test valid award (financial assistance) job with short colnames."""
