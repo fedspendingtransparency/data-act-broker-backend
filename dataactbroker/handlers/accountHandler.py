@@ -160,24 +160,29 @@ class AccountHandler:
         try:
             safeDictionary = RequestDictionary(self.request)
 
+            # Obtain POST content
             ticket = safeDictionary.getValue("ticket")
             service = safeDictionary.getValue('service')
             parent_group = CONFIG_BROKER['parent_group']
 
+            # Call MAX's serviceValidate endpoint and retrieve the response
             url = CONFIG_BROKER['max_service_url'].format(ticket, service)
             max_xml = requests.get(url).content
             max_dict = xmltodict.parse(max_xml)
 
+            # Grab the email and list of groups from MAX's response
             email = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes']['maxAttribute:Email-Address']
             group_list_all = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes']['maxAttribute:GroupList'].split(',')
             group_list = list(filter(lambda g:  g.startswith(parent_group), group_list_all))
 
+            # Deny access if not in the parent group aka they're not allowed to access the website all together
             if not parent_group in group_list:
                 raise ValueError("You have logged in with MAX but do not have permission to access the broker. Please "
                                  "contact DATABroker@fiscal.treasury.gov to obtain access.")
 
             cgac_group = list(filter(lambda g: len(g) == len(parent_group + "-CGAC_")+3, group_list))
 
+            # Deny access if they are not aligned with an agency
             if not cgac_group:
                 raise ValueError("You have logged in with MAX but do not have permission to access the broker. Please "
                                  "contact DATABroker@fiscal.treasury.gov to obtain access.")
@@ -227,6 +232,13 @@ class AccountHandler:
                                                        "name": user.name, "title": user.title,
                                                        "agency_name": agency_name,
                                                        "cgac_code": user.cgac_code, "permissions": permissionList})
+
+        except (TypeError, KeyError, NotImplementedError) as e:
+            # Return a 400 with appropriate message
+            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+        except ValueError as e:
+            # Return a 401 for login denied
+            return JsonResponse.error(e,StatusCode.LOGIN_REQUIRED)
         except Exception as e:
             # Return 500
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
