@@ -8,7 +8,7 @@ from dataactvalidator.scripts import loadTas
 from tests.unit.dataactcore.factories.domain import TASFactory
 
 
-def import_tas(session, tmpdir, *rows):
+def import_tas(tmpdir, *rows):
     """Write the provided rows to a CSV, then read them in via pandas and
     clean them"""
     csv_file = tmpdir.join("cars_tas.csv")
@@ -25,10 +25,10 @@ def import_tas(session, tmpdir, *rows):
     return loadTas.cleanTas(str(csv_file))
 
 
-def test_loadTas_multiple(database, tmpdir):
+def test_loadTas_multiple(tmpdir):
     """If we have two rows in the CSV, we should have two TASLookups"""
     results = import_tas(
-        database.session, tmpdir,
+        tmpdir,
         {'ACCT_NUM': '6', 'ATA': 'aaa', 'AID': 'bbb', 'A': 'ccc',
          'BPOA': 'ddd', 'EPOA': 'eee', 'MAIN': 'ffff', 'SUB': 'ggg'},
         {'ACCT_NUM': '12345', 'ATA': '111', 'AID': '222', 'A': '333',
@@ -45,9 +45,8 @@ def test_loadTas_multiple(database, tmpdir):
     assert results['sub_account_code'].tolist() == ['ggg', '777']
 
 
-def test_loadTas_space_nulls(database, tmpdir):
-    results = import_tas(
-        database.session, tmpdir, {'BPOA': '', 'EPOA': ' ', 'A': '   '})
+def test_loadTas_space_nulls(tmpdir):
+    results = import_tas(tmpdir, {'BPOA': '', 'EPOA': ' ', 'A': '   '})
     assert results['beginning_period_of_availability'][0] is None
     assert results['ending_period_of_availability'][0] is None
     assert results['availability_type_code'][0] is None
