@@ -20,9 +20,10 @@ def cleanTas(csvPath):
     data = LoaderUtils.cleanData(
         data,
         TASLookup,
-        {"ata": "allocation_transfer_agency",
+        {"a": "availability_type_code",
+         "acct_num": "tas_id",
          "aid": "agency_identifier",
-         "a": "availability_type_code",
+         "ata": "allocation_transfer_agency",
          "bpoa": "beginning_period_of_availability",
          "epoa": "ending_period_of_availability",
          "main": "main_account_code",
@@ -40,7 +41,31 @@ def cleanTas(csvPath):
          "sub_account_code": {"pad_to_length": 3},
          }
     )
+    data["tas_id"] = pd.to_numeric(data["tas_id"])
     return data.where(pd.notnull(data), None)
+
+
+def updateTASLookups(csvPath):
+    """Load TAS data from the provided CSV and replace/insert any
+    TASLookups"""
+    sess = GlobalDB.db().session
+
+    data = cleanTas(csvPath)
+    # Delete all existing TAS records -- we don't want to accept submissions
+    # after the entries fall off the CARS file
+    sess.query(TASLookup).delete(synchronize_session=False)
+
+    # instead of using the pandas to_sql dataframe method like some of the
+    # other domain load processes, iterate through the dataframe rows so we
+    # can load using the orm model (note: toyed with the SQLAlchemy bulk load
+    # options but ultimately decided not to go outside the unit of work for
+    # the sake of a performance gain)
+    for _, row in data.iterrows():
+        sess.add(TASLookup(**row))
+
+    sess.commit()
+    logger.info('%s records inserted to %s', len(data.index),
+                TASLookup.__tablename__)
 
 
 def loadTas(tasFile=None):
@@ -52,31 +77,10 @@ def loadTas(tasFile=None):
             CONFIG_BROKER["path"],
             "dataactvalidator",
             "config",
-            "all_tas_betc.csv")
+            "cars_tas.csv")
 
     with createApp().app_context():
-        sess = GlobalDB.db().session
-
-        # delete existing data
-        # TODO: when we switch to loading TAS from CARS, do we sill want to
-        # delete existing recs?
-        sess.query(TASLookup).delete()
-
-        data = cleanTas(tasFile)
-
-        # instead of using the pandas to_sql dataframe method like
-        # some of the other domain load processes, iterate through
-        # the dataframe rows so we can load using the orm model
-        # (note: toyed with the SQLAlchemy bulk load options but
-        # ultimately decided not to go outside the unit of work
-        # for the sake of a performance gain)
-        for index, row in data.iterrows():
-            sess.add(TASLookup(**row))
-
-        sess.commit()
-        logger.info('{} records inserted to {}'.format(
-            len(data.index), TASLookup.__tablename__))
-        return data
+        updateTASLookups(tasFile)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
