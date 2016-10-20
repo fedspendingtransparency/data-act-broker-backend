@@ -1,5 +1,9 @@
 import re
 import time
+import requests
+import xmltodict
+import json
+
 from threading import Thread
 
 from dateutil.parser import parse
@@ -11,8 +15,12 @@ from dataactbroker.handlers.userHandler import UserHandler
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
+from dataactcore.interfaces.db import GlobalDB
+from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy import func
+from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
-
+from dataactcore.config import CONFIG_BROKER
 
 class AccountHandler:
     """
@@ -136,6 +144,93 @@ class AccountHandler:
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
         return self.response
 
+
+    def max_login(self,session):
+        """
+
+        Logs a user in if their password matches
+
+        arguments:
+
+        session  -- (Session) object from flask
+
+        return the reponse object
+
+        """
+        try:
+            safeDictionary = RequestDictionary(self.request)
+
+            ticket = safeDictionary.getValue("ticket")
+            service = safeDictionary.getValue('service')
+            parent_group = CONFIG_BROKER['parent_group']
+
+            url = CONFIG_BROKER['max_service_url'].format(ticket, service)
+            max_xml = requests.get(url).content
+            max_dict = xmltodict.parse(max_xml)
+
+            email = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes']['maxAttribute:Email-Address']
+            group_list_all = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes']['maxAttribute:GroupList'].split(',')
+            group_list = list(filter(lambda g:  g.startswith(parent_group), group_list_all))
+
+            if not parent_group in group_list:
+                raise ValueError("You have logged in with MAX but do not have permission to access the broker. Please "
+                                 "contact DATABroker@fiscal.treasury.gov to obtain access.")
+
+            cgac_group = list(filter(lambda g: len(g) == len(parent_group + "-CGAC_")+3, group_list))
+
+            if not cgac_group:
+                raise ValueError("You have logged in with MAX but do not have permission to access the broker. Please "
+                                 "contact DATABroker@fiscal.treasury.gov to obtain access.")
+
+            try:
+                sess = GlobalDB.db().session
+                user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()
+
+                # If the user does not exist, create them since they are allowed to access the site because they got
+                # past the above group membership checks
+                if user is None:
+                    user = User()
+
+                    first_name = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes'][
+                        'maxAttribute:First-Name']
+                    middle_name = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes'][
+                        'maxAttribute:Middle-Name']
+                    last_name = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes'][
+                        'maxAttribute:Last-Name']
+
+                    user.email = email
+                    user.name = first_name + " " + last_name if middle_name is None else \
+                        first_name + " " + middle_name[0] + ". " + last_name
+                    user.user_status_id = UserHandler().getUserStatusId('approved')
+                    user.permissions = 1
+
+                    if len(cgac_group) > 1 and list(filter(lambda g: g.endswith("SYS"), cgac_group)):
+                        user.cgac_code = "SYS"
+                    else:
+                        user.cgac_code = cgac_group[0][-3:]
+
+                    sess.add(user)
+                    sess.commit()
+
+            except MultipleResultsFound:
+                raise ValueError("An error occurred during login.")
+
+            # Create session
+            LoginSession.login(session, user.user_id)
+            permissionList = []
+            for permission in self.interfaces.userDb.getPermissionList():
+                if (self.interfaces.userDb.hasPermission(user, permission.name)):
+                    permissionList.append(permission.permission_type_id)
+            self.interfaces.userDb.updateLastLogin(user)
+            agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+            return JsonResponse.create(StatusCode.OK, {"message": "Login successful", "user_id": int(user.user_id),
+                                                       "name": user.name, "title": user.title,
+                                                       "agency_name": agency_name,
+                                                       "cgac_code": user.cgac_code, "permissions": permissionList})
+        except Exception as e:
+            # Return 500
+            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+        return self.response
 
     def logout(self,session):
         """
