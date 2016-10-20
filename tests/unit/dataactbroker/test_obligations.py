@@ -6,7 +6,6 @@ def test_obligationStatsForSubmission_nonzero(database):
     submission = SubmissionFactory()
     database.session.add(submission)
     database.session.commit()
-    print(submission.submission_id)
     financials = [
         AwardFinancialFactory(transaction_obligated_amou=1000, piid="1234", fain=None, uri=None, 
                               submission_id=submission.submission_id),
