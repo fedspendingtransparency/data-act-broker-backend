@@ -209,7 +209,8 @@ class AccountHandler:
                     user.user_status_id = UserHandler().getUserStatusId('approved')
                     user.permissions = 1
 
-                    if len(cgac_group) > 1 and list(filter(lambda g: g.endswith("SYS"), cgac_group)):
+                    # If part of the SYS agency, use that as the cgac otherwise use the first agency provided
+                    if list(filter(lambda g: g.endswith("SYS"), cgac_group)):
                         user.cgac_code = "SYS"
                     else:
                         user.cgac_code = cgac_group[0][-3:]
