@@ -430,3 +430,10 @@ class UserTests(BaseTestAPI):
             # Check that submission has no user
             sub_after_delete = sess.query(Submission).filter(Submission.submission_id == sub_id).one()
             self.assertIsNone(sub_after_delete.user_id)
+
+        # Try deleting again, should get a 400
+        input = {"email": email}
+        response = self.app.post_json("/v1/delete_user/", input, headers={"x-session-id": self.session_id},
+                                      expect_errors = True)
+
+        self.assertEqual(response.status_code, 400)
