@@ -9,7 +9,7 @@ from werkzeug.datastructures import CallbackDict
 from boto.dynamodb2 import connect_to_region
 from boto.dynamodb2.layer1 import DynamoDBConnection
 from flask_login import _create_identifier
-from dataactcore.utils.requestDictionary import RequestDictionary
+
 
 class LoginSession():
     """

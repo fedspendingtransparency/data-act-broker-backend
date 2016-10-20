@@ -1,9 +1,10 @@
 from tests.unit.dataactcore.factories.staging import AwardFinancialFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
-from random import randint
 from decimal import Decimal
 
+
 _FILE = 'c18_award_financial'
+
 
 def test_column_headers(database):
     expected_subset = {'row_number', 'deobligations_recov_by_awa_cpe', 'ussgl487100_downward_adjus_cpe',

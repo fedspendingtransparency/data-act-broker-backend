@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean, UniqueConstraint, Enum
+from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 

@@ -1,6 +1,5 @@
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.userModel import UserStatus
-from dataactcore.config import CONFIG_DB
 
 
 class UserInterface(BaseInterface):
