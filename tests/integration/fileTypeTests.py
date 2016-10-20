@@ -123,7 +123,10 @@ class FileTypeTests(BaseTestValidator):
             os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data", "program_activity.csv"))
         if sess.query(TASLookup).count() == 0 or force_tas_load:
             # TAS table is empty, load it
-            loadTas(tasFile=os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data", "all_tas_betc.csv"))
+            loadTas(tasFile=os.path.join(
+                CONFIG_BROKER["path"], "tests", "integration", "data",
+                "cars_tas.csv"
+            ))
 
     def test_approp_valid(self):
         """Test valid job."""

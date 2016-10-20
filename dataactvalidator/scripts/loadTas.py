@@ -77,7 +77,7 @@ def loadTas(tasFile=None):
             CONFIG_BROKER["path"],
             "dataactvalidator",
             "config",
-            "all_tas_betc.csv")
+            "cars_tas.csv")
 
     with createApp().app_context():
         updateTASLookups(tasFile)

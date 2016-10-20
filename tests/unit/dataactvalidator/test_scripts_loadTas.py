@@ -11,7 +11,7 @@ from tests.unit.dataactcore.factories.domain import TASFactory
 def import_tas(session, tmpdir, *rows):
     """Write the provided rows to a CSV, then read them in via pandas and
     clean them"""
-    csv_file = tmpdir.join("all_tas_betc.csv")
+    csv_file = tmpdir.join("cars_tas.csv")
     with open(str(csv_file), 'w') as f:
         writer = DictWriter(
             f, ['ACCT_NUM', 'ATA', 'AID', 'A', 'BPOA', 'EPOA', 'MAIN', 'SUB']
