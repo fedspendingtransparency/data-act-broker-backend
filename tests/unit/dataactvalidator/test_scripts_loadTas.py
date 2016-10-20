@@ -8,9 +8,9 @@ from dataactvalidator.scripts import loadTas
 from tests.unit.dataactcore.factories.domain import TASFactory
 
 
-def import_tas(tmpdir, *rows):
-    """Write the provided rows to a CSV, then read them in via pandas and
-    clean them"""
+def write_then_read_tas(tmpdir, *rows):
+    """Helper function to write the provided rows to a CSV, then read them in
+    via `loadTas.cleanTas`"""
     csv_file = tmpdir.join("cars_tas.csv")
     with open(str(csv_file), 'w') as f:
         writer = DictWriter(
@@ -25,9 +25,10 @@ def import_tas(tmpdir, *rows):
     return loadTas.cleanTas(str(csv_file))
 
 
-def test_loadTas_multiple(tmpdir):
-    """If we have two rows in the CSV, we should have two TASLookups"""
-    results = import_tas(
+def test_cleanTas_multiple(tmpdir):
+    """Happy path test that cleanTas will correctly read in a written CSV as a
+    pandas dataframe"""
+    results = write_then_read_tas(
         tmpdir,
         {'ACCT_NUM': '6', 'ATA': 'aaa', 'AID': 'bbb', 'A': 'ccc',
          'BPOA': 'ddd', 'EPOA': 'eee', 'MAIN': 'ffff', 'SUB': 'ggg'},
@@ -45,8 +46,10 @@ def test_loadTas_multiple(tmpdir):
     assert results['sub_account_code'].tolist() == ['ggg', '777']
 
 
-def test_loadTas_space_nulls(tmpdir):
-    results = import_tas(tmpdir, {'BPOA': '', 'EPOA': ' ', 'A': '   '})
+def test_cleanTas_space_nulls(tmpdir):
+    """Verify that spaces are converted into `None`s"""
+    results = write_then_read_tas(
+        tmpdir, {'BPOA': '', 'EPOA': ' ', 'A': '   '})
     assert results['beginning_period_of_availability'][0] is None
     assert results['ending_period_of_availability'][0] is None
     assert results['availability_type_code'][0] is None
@@ -75,7 +78,7 @@ def test_updateTASLookups(database, monkeypatch):
     assert len(results) == 2
     sess.invalidate()
 
-    loadTas.updateTASLookups('ignored')
+    loadTas.updateTASLookups('file-name-ignored-due-to-mock')
 
     results = sess.query(TASLookup).order_by(TASLookup.tas_id).all()
     assert len(results) == 3    # there is no 444
