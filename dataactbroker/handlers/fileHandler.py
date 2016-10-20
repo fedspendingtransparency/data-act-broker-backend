@@ -16,6 +16,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
+from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -850,24 +851,15 @@ class FileHandler:
             return JsonResponse.error(ResponseException("Generation task key not found", StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
 
     def getObligations(self):
-        inputDictionary = RequestDictionary(self.request)
+        input_dictionary = RequestDictionary(self.request)
 
-        try:
-             # Get submission
-            submissionId = inputDictionary.getValue("submission_id")
-            submission = self.jobManager.getSubmissionById(submissionId)
+        # Get submission
+        submission_id = input_dictionary.getValue("submission_id")
+        submission = self.jobManager.getSubmissionById(submission_id)
 
-            # Check that user has access to submission
-            user = self.checkSubmissionPermission(submission)
+        # Check that user has access to submission
+        user = self.checkSubmissionPermission(submission)
 
-            obligationsInfo = {}
-            obligationsInfo["total_obligations"] = str(self.interfaces.jobDb.getTotalObligations(submissionId))
-            obligationsInfo["total_procurement_obligations"] = str(self.interfaces.jobDb.getTotalProcurementObligations(submissionId))
-            obligationsInfo["total_assistance_obligations"] = str(self.interfaces.jobDb.getTotalFinancialAssistanceObligations(submissionId))
+        obligations_info = obligationStatsForSubmission(submission_id)
 
-            return JsonResponse.create(StatusCode.OK,obligationsInfo)
-        except ResponseException as e:
-            return JsonResponse.error(e,e.status)
-        except Exception as e:
-            # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+        return JsonResponse.create(StatusCode.OK,obligations_info)

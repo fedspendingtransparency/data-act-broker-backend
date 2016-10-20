@@ -1,7 +1,8 @@
 import traceback
 from uuid import uuid4
-from sqlalchemy import func, or_, and_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, FileType, PublishStatus, FileGenerationTask
 from dataactcore.models.stagingModels import AwardFinancial
@@ -10,6 +11,18 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import enqueue
 from dataactvalidator.validation_handlers.validationError import ValidationError
+
+def obligationStatsForSubmission(submission_id):
+    sess = GlobalDB.db().session
+    base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
+        filter(AwardFinancial.submission_id == submission_id)
+    procurement = base_query.filter(AwardFinancial.piid != None)
+    fin_assist = base_query.filter(or_(AwardFinancial.fain != None, AwardFinancial.uri != None))
+    return {
+        "total_obligations": float(base_query.scalar() or 0),
+        "total_procurement_obligations": float(procurement.scalar() or 0),
+        "total_assistance_obligations": float(fin_assist.scalar() or 0)
+    }
 
 
 class JobTrackerInterface(BaseInterface):
@@ -384,24 +397,3 @@ class JobTrackerInterface(BaseInterface):
             # Wrong type
             raise ResponseException("Wrong type of job for this service", StatusCode.CLIENT_ERROR, None,
                                     ValidationError.jobError)
-
-    def getTotalObligations(self,submissionId):
-        """ Return sum of all obligations incurred """
-        query = self.session.query(func.sum(AwardFinancial.transaction_obligated_amou)).filter(AwardFinancial.submission_id == submissionId).scalar()
-        if query is None:
-            query = 0
-        return query
-
-    def getTotalProcurementObligations(self,submissionId):
-        """ Return sum of all procurement obligations incurred """
-        query = self.session.query(func.sum(AwardFinancial.transaction_obligated_amou)).filter(and_(AwardFinancial.submission_id == submissionId, AwardFinancial.piid != None)).scalar()
-        if query is None:
-            query = 0
-        return query
-
-    def getTotalFinancialAssistanceObligations(self,submissionId):
-        """ Return sum of all procurement obligations incurred """
-        query = self.session.query(func.sum(AwardFinancial.transaction_obligated_amou)).filter(and_(AwardFinancial.submission_id == submissionId, or_(AwardFinancial.fain != None, AwardFinancial.uri != None))).scalar()
-        if query is None:
-            query = 0
-        return query
