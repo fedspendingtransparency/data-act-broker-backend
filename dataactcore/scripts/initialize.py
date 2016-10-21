@@ -18,20 +18,21 @@ from dataactvalidator.scripts.loadFile import loadDomainValues
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 basePath = CONFIG_BROKER["path"]
 validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
 
 
 def setup_db():
     """Set up broker database and initialize data."""
-    logger.info('Setting up databases')
+    logger.info('Setting up db')
     setupAllDB()
     setupEmails()
+    setup_session_table()
 
 
 def create_admin():
     """Create initial admin user."""
+    print('admin')
     logger.info('Creating admin user')
     admin_email = CONFIG_BROKER['admin_email']
     admin_pass = CONFIG_BROKER['admin_password']
@@ -102,9 +103,7 @@ def main():
     args = parser.parse_args()
 
     if args.initialize:
-        setupAllDB()
-        setupEmails()
-        setup_session_table()
+        setup_db()
         load_sql_rules()
         load_domain_value_files(validator_config_path)
         load_tas_lookup()
@@ -113,10 +112,7 @@ def main():
         return
 
     if args.setup_db:
-        logger.info('Setting up databases')
-        setupAllDB()
-        setupEmails()
-        setup_session_table()
+        setup_db()
 
     if args.create_admin:
         create_admin()
@@ -137,5 +133,6 @@ def main():
         load_validator_schema()
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     main()
 
