@@ -2,7 +2,6 @@ import re
 import time
 import requests
 import xmltodict
-import json
 
 from threading import Thread
 
@@ -166,13 +165,16 @@ class AccountHandler:
             parent_group = CONFIG_BROKER['parent_group']
 
             # Call MAX's serviceValidate endpoint and retrieve the response
-            url = CONFIG_BROKER['max_service_url'].format(ticket, service)
+            url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
             max_xml = requests.get(url).content
             max_dict = xmltodict.parse(max_xml)
 
+            if not 'cas:authenticationSuccess' in max_dict['cas:serviceResponse']:
+                raise ValueError("You have failed to login successfully with MAX")
+
             # Grab the email and list of groups from MAX's response
-            email = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes']['maxAttribute:Email-Address']
-            group_list_all = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes']['maxAttribute:GroupList'].split(',')
+            email = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['maxAttribute:Email-Address']
+            group_list_all = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['maxAttribute:GroupList'].split(',')
             group_list = list(filter(lambda g:  g.startswith(parent_group), group_list_all))
 
             # Deny access if not in the parent group aka they're not allowed to access the website all together
@@ -204,16 +206,24 @@ class AccountHandler:
                         'maxAttribute:Last-Name']
 
                     user.email = email
-                    user.name = first_name + " " + last_name if middle_name is None else \
-                        first_name + " " + middle_name[0] + ". " + last_name
+
+                    # Check for None first so the condition can short-circuit without
+                    # having to worry about calling strip() on a None object
+                    if middle_name is None or middle_name.strip() == '':
+                        user.name = first_name + " " + last_name
+                    else:
+                        user.name = first_name + " " + middle_name[0] + ". " + last_name
                     user.user_status_id = UserHandler().getUserStatusId('approved')
-                    user.permissions = 1
 
                     # If part of the SYS agency, use that as the cgac otherwise use the first agency provided
                     if list(filter(lambda g: g.endswith("SYS"), cgac_group)):
                         user.cgac_code = "SYS"
+                        # website admin permissions
+                        user.permissions = 2
                     else:
                         user.cgac_code = cgac_group[0][-3:]
+                        # regular user permissions
+                        user.permissions = 1
 
                     sess.add(user)
                     sess.commit()
