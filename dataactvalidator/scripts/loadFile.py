@@ -5,9 +5,8 @@ import pandas as pd
 
 from dataactvalidator.app import createApp
 from dataactvalidator.scripts.loaderUtils import LoaderUtils
-from dataactvalidator.scripts.loadSf133 import loadAllSf133
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC, ObjectClass, ProgramActivity, SF133
+from dataactcore.models.domainModels import CGAC, ObjectClass, ProgramActivity
 from dataactcore.config import CONFIG_BROKER
 
 logger = logging.getLogger(__name__)
@@ -108,13 +107,12 @@ def loadProgramActivity(filename):
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
-def loadDomainValues(basePath, localSF133Dir = None, localProgramActivity = None):
+def loadDomainValues(basePath, localProgramActivity = None):
     """Load all domain value files.
 
     Parameters
     ----------
         basePath : directory that contains the domain values files.
-        localSF133Dir : location of the SF 133 files (None = get from S3).
         localProgramActivity : optional location of the program activity file (None = use basePath)
     """
 
@@ -128,12 +126,6 @@ def loadDomainValues(basePath, localSF133Dir = None, localProgramActivity = None
         loadProgramActivity(localProgramActivity)
     else:
         loadProgramActivity(os.path.join(basePath, "program_activity.csv"))
-
-    # todo: once the broker init scripts are consolidated, remove next 4 lines
-    if localSF133Dir:
-        loadAllSf133(localSF133Dir)
-    else:
-        loadAllSf133()
 
 
 if __name__ == '__main__':
