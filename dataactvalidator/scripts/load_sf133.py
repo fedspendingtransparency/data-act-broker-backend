@@ -37,13 +37,12 @@ def load_all_sf133(sf133_path=None):
 
 def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
     """Load SF 133 (budget execution report) lookup table."""
-    model = SF133
 
     with createApp().app_context():
         sess = GlobalDB.db().session
 
-        existing_records = sess.query(model).filter(
-            model.fiscal_year == fiscal_year, model.period == fiscal_period)
+        existing_records = sess.query(SF133).filter(
+            SF133.fiscal_year == fiscal_year, SF133.period == fiscal_period)
         if force_load:
             # force a reload of this period's current data
             logger.info('Force SF 133 load: deleting existing records for {} {}'.format(
@@ -59,7 +58,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
         data = pd.read_csv(filename, dtype=str)
         data = LoaderUtils.cleanData(
             data,
-            model,
+            SF133,
             {"ata": "allocation_transfer_agency",
              "aid": "agency_identifier",
              "availability_type_code": "availability_type_code",
@@ -142,7 +141,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
         data = data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
 
         # insert to db
-        table_name = model.__table__.name
+        table_name = SF133.__table__.name
         num = LoaderUtils.insertDataframe(data, table_name, sess.connection())
         sess.commit()
 
