@@ -126,7 +126,7 @@ class FileTypeTests(BaseTestValidator):
             os.path.join(integration_test_data_path, "program_activity.csv"))
         if sess.query(TASLookup).count() == 0 or force_tas_load:
             # TAS table is empty, load it
-            loadTas(tasFile=os.path.join(integration_test_data_path, "all_tas_betc.csv"))
+            loadTas(tasFile=os.path.join(integration_test_data_path, "cars_tas.csv"))
 
         # Load test SF-133
         load_all_sf133(integration_test_data_path)

@@ -773,6 +773,27 @@ Example output if there are no files available:
 }
 ```
 
+#### POST "/v1/get_obligations/"
+Get total obligations and specific obligations. Calls to this route should include the key "submission_id" to specify which submission we are calculating obligations from.
+
+##### Body (JSON)
+
+```
+{
+    "submission_id": 123,
+}
+```
+
+##### Response (JSON)
+
+```
+{
+  "total_obligations": 75000.01,
+  "total_procurement_obligations": 32500.01,
+  "total_assistance_obligations": 42500
+}
+```
+
 ## File Generation Routes
 
 ## Generate Files
