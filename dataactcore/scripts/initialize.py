@@ -32,7 +32,6 @@ def setup_db():
 
 def create_admin():
     """Create initial admin user."""
-    print('admin')
     logger.info('Creating admin user')
     admin_email = CONFIG_BROKER['admin_email']
     admin_pass = CONFIG_BROKER['admin_password']
