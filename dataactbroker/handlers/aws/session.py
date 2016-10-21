@@ -319,12 +319,10 @@ class SessionTable :
             return Table(SessionTable.TABLE_NAME,connection=SessionTable.getLocalConnection())
         return Table(SessionTable.TABLE_NAME,connection=connect_to_region(SessionTable.DYNAMO_REGION))
 
-
-
     @staticmethod
-    def createTable(isLocal,localPort):
-        """Used to create table for Dyanmo DB"""
-        SessionTable.LOCAL_PORT =localPort
+    def createTable(isLocal, localPort):
+        """Create SessionTable in DynamoDB."""
+        SessionTable.LOCAL_PORT = localPort
         secondaryIndex = [
             GlobalAllIndex('expiration-index',
                 parts=[
@@ -333,25 +331,24 @@ class SessionTable :
                 throughput={'read': 5, 'write': 5}
             )
         ]
-        if isLocal:
-            try:
+        try:
+            if isLocal:
                 Table.create(
                     SessionTable.TABLE_NAME,
                     schema=[HashKey(SessionTable.KEY_NAME)],
                     global_indexes=secondaryIndex,
                     connection=SessionTable.getLocalConnection()
                 )
-            except exceptions.JSONResponseError as jre:
-                if jre.status == 400 and "preexisting" in jre.message.lower():
-                    #table already exists
-                    pass
-
-        else:
-            Table.create(
-                SessionTable.TABLE_NAME,
-                schema=[HashKey(SessionTable.KEY_NAME)],
-                global_indexes=secondaryIndex
-            )
+            else:
+                Table.create(
+                    SessionTable.TABLE_NAME,
+                    schema=[HashKey(SessionTable.KEY_NAME)],
+                    global_indexes=secondaryIndex
+                )
+        except exceptions.JSONResponseError as jre:
+            if jre.status == 400 and "preexisting" in jre.message.lower():
+                # table already exists
+                pass
 
     @staticmethod
     def setup(app,isLocalHost):
