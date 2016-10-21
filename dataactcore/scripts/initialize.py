@@ -94,6 +94,7 @@ parser = argparse.ArgumentParser(description='Initialize the DATA Act Broker.')
 parser.add_argument('-db', '--setup_db', help='Create broker database and helper tables', action='store_true')
 parser.add_argument('-a', '--create_admin', help='Create an admin user', action='store_true')
 parser.add_argument('-r', '--load_rules', help='Load SQL-based validation rules', action='store_true')
+parser.add_argument('-d', '--update_domain', help='load slowly changing domain values such s object class', action='store_true')
 parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
 parser.add_argument('-s', '--update_sf133', help='Update broker SF-133 reports', action='store_true')
 parser.add_argument('-v', '--update_validator', help='Update validator schema', action='store_true')
@@ -112,6 +113,9 @@ if args.create_admin:
 
 if args.load_rules:
     loadSqlRules()
+
+if args.update_domain:
+    loadDomainValueFiles(validator_config_path)
 
 if args.update_tas:
     loadTas()
