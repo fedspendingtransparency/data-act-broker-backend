@@ -10,7 +10,7 @@ from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 
 
 def createApp():

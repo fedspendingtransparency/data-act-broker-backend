@@ -11,7 +11,7 @@ def test_column_headers(database):
     assert expected_subset <= actual
 
 def test_skip_three_digits(database):
-    check_query(database, ObjectClassProgramActivityFactory(object_class = randint(0,999),
+    check_query(database, ObjectClassProgramActivityFactory(object_class = str(randint(0,999)).zfill(3),
         by_direct_reimbursable_fun = "d"), 0)
 
 def test_skip_blank_flags(database):

@@ -1,12 +1,13 @@
 import csv
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.models.validationInterface import ValidationInterface
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
-from dataactvalidator.interfaces.validatorValidationInterface import ValidatorValidationInterface
+
 
 class CsvAbstractReader(object):
     """
@@ -62,7 +63,7 @@ class CsvAbstractReader(object):
 
         self.delimiter = "|" if line.count("|") != 0 else ","
 
-        validation_db = ValidatorValidationInterface()
+        validation_db = ValidationInterface()
         longNameDict = validation_db.getLongToShortColname()
         # Set the list of possibleFields, using  the shorter,
         # machine-readable column names

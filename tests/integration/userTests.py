@@ -1,7 +1,12 @@
 from tests.integration.baseTestAPI import BaseTestAPI
+from dataactbroker.app import createApp
 from dataactbroker.handlers.aws.sesEmail import sesEmail
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import getUsersByType
 from dataactcore.models.jobModels import Submission, Job
+from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
+
 from datetime import datetime
 
 class UserTests(BaseTestAPI):
@@ -12,48 +17,56 @@ class UserTests(BaseTestAPI):
         """Set up class-wide resources like submissions and jobs."""
         super(UserTests, cls).setUpClass()
 
-        # Add submissions to one of the users
-        jobDb = cls.jobTracker
+        with createApp().app_context():
+            sess = GlobalDB.db().session
 
-        # Delete existing submissions for approved user
-        jobDb.deleteSubmissionsForUserId(cls.approved_user_id)
+            # Add submissions to one of the users
 
-        for i in range(0,5):
-            sub = Submission(user_id = cls.approved_user_id)
-            sub.reporting_start_date = datetime(2015,10,1)
-            sub.reporting_end_date = datetime(2015,12,31)
-            jobDb.session.add(sub)
-            jobDb.session.commit()
+            # Delete existing submissions for approved user
+            sess.query(Submission).filter(Submission.user_id == cls.approved_user_id).delete()
+            sess.commit()
 
-        # Add submissions for agency user
-        jobDb.deleteSubmissionsForUserId(cls.agency_user_id)
-        for i in range(0,6):
-            sub = Submission(user_id = cls.agency_user_id)
-            sub.reporting_start_date = datetime(2015,10,1)
-            sub.reporting_end_date = datetime(2015, 12, 31)
-            sub.cgac_code = "SYS"
-            jobDb.session.add(sub)
-            jobDb.session.commit()
-            if i == 0:
-                cls.submission_id = sub.submission_id
+            for i in range(0, 5):
+                sub = Submission(user_id=cls.approved_user_id)
+                sub.reporting_start_date = datetime(2015, 10, 1)
+                sub.reporting_end_date = datetime(2015, 12, 31)
+                sess.add(sub)
+            sess.commit()
 
-        # Add job to first submission
-        job = Job(submission_id=cls.submission_id, job_status_id=3, job_type_id=1, file_type_id=1)
-        jobDb.session.add(job)
-        jobDb.session.commit()
-        cls.uploadId = job.job_id
+            # Add submissions for agency user
+            sess.query(Submission).filter(Submission.user_id == cls.agency_user_id).delete()
+            sess.commit()
+            for i in range(0, 6):
+                sub = Submission(user_id=cls.agency_user_id)
+                sub.reporting_start_date = datetime(2015, 10, 1)
+                sub.reporting_end_date = datetime(2015, 12, 31)
+                sub.cgac_code = "SYS"
+                sess.add(sub)
+                sess.commit()
+                if i == 0:
+                    cls.submission_id = sub.submission_id
+
+            # Add job to first submission
+            job = Job(
+                submission_id=cls.submission_id,
+                job_status_id=cls.jobStatusDict['running'],
+                job_type_id=cls.jobTypeDict['file_upload'],
+                file_type_id=cls.fileTypeDict['appropriations']
+            )
+            sess.add(job)
+            sess.commit()
+            cls.uploadId = job.job_id
 
     def setUp(self):
         """Test set-up."""
         super(UserTests, self).setUp()
         self.login_admin_user()
 
-    def setUpToken(self,email):
+    def setUpToken(self, email):
         """Test e-mail token."""
-        userDb = self.userDb
-        self.registerToken = sesEmail.createToken(email, userDb, "validate_email")
+        self.registerToken = sesEmail.createToken(email, "validate_email")
         postJson = {"token": self.registerToken}
-        return self.app.post_json("/v1/confirm_email_token/", postJson, headers={"x-session-id":self.session_id})
+        return self.app.post_json("/v1/confirm_email_token/", postJson, headers={"x-session-id": self.session_id})
 
     def test_registration_no_token(self):
         """Test without token."""
@@ -170,7 +183,7 @@ class UserTests(BaseTestAPI):
 
     def test_get_users_by_type(self):
         """Test getting user list by type."""
-        agencyUsers = self.userDb.getUsersByType("agency_user")
+        agencyUsers = getUsersByType("agency_user")
         emails = []
         for admin in agencyUsers:
             emails.append(admin.email)
@@ -223,11 +236,13 @@ class UserTests(BaseTestAPI):
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.CLIENT_ERROR, "Cannot finalize a job for a different agency")
         # Give submission this user's cgac code
-        submission = self.interfaces.jobDb.getSubmissionById(self.submission_id)
-        submission.cgac_code = self.interfaces.userDb.getUserByEmail(self.test_users["approved_email"]).cgac_code
-        self.interfaces.jobDb.session.commit()
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            submission = sess.query(Submission).filter(Submission.submission_id == self.submission_id).one()
+            submission.cgac_code = sess.query(User).filter(User.email == self.test_users['approved_email']).one().cgac_code
+            sess.commit()
         response = self.app.post_json("/v1/finalize_job/",
-            postJson, expect_errors=True, headers={"x-session-id":self.session_id})
+            postJson, expect_errors=True, headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         self.logout()
 
@@ -248,9 +263,8 @@ class UserTests(BaseTestAPI):
 
     def test_check_email_token(self):
         """Test valid e-mail token."""
-        userDb = self.userDb
         #make a token based on a user
-        token = sesEmail.createToken(self.test_users["password_reset_email"], userDb, "validate_email")
+        token = sesEmail.createToken(self.test_users["password_reset_email"], "validate_email")
         postJson = {"token": token}
         response = self.app.post_json("/v1/confirm_email_token/", postJson, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK, "success")
@@ -265,44 +279,44 @@ class UserTests(BaseTestAPI):
         self.check_response(response, StatusCode.OK)
 
         # Test password reset for unapproved user and locked user
-        userDb = self.userDb
-        user = userDb.getUserByEmail(email)
-        user.user_status_id = userDb.getUserStatusId("awaiting_approval")
-        userDb.session.commit()
-        response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
-        self.check_response(response, StatusCode.CLIENT_ERROR)
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            user = sess.query(User).filter(User.email == email).one()
+            user.user_status_id = self.userStatusDict['awaiting_approval']
+            sess.commit()
+            response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id": self.session_id}, expect_errors=True)
+            self.check_response(response, StatusCode.CLIENT_ERROR)
 
-        user.user_status_id = userDb.getUserStatusId("approved")
-        user.is_active = False
-        userDb.session.commit()
-        response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
-        self.check_response(response, StatusCode.CLIENT_ERROR)
+            user.user_status_id = self.userStatusDict['approved']
+            user.is_active = False
+            sess.commit()
+            response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id": self.session_id}, expect_errors=True)
+            self.check_response(response, StatusCode.CLIENT_ERROR)
 
-        # Test route to confirm tokens
-        token = sesEmail.createToken(
-            self.test_users["password_reset_email"], userDb, "password_reset")
-        postJson = {"token": token}
-        response = self.app.post_json("/v1/confirm_password_token/", postJson, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK, "success")
-        self.assertEqual(response.json["errorCode"], sesEmail.LINK_VALID)
+            # Test route to confirm tokens
+            token = sesEmail.createToken(
+                self.test_users["password_reset_email"], "password_reset")
+            postJson = {"token": token}
+            response = self.app.post_json("/v1/confirm_password_token/", postJson, headers={"x-session-id": self.session_id})
+            self.check_response(response, StatusCode.OK, "success")
+            self.assertEqual(response.json["errorCode"], sesEmail.LINK_VALID)
 
-        postJson = {"user_email": email, "password": self.user_password}
-        response = self.app.post_json("/v1/set_password/", postJson, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK, "Password successfully changed")
-        user = userDb.getUserByEmail(email)
-        self.assertTrue(user.password_hash)
+            postJson = {"user_email": email, "password": self.user_password}
+            response = self.app.post_json("/v1/set_password/", postJson, headers={"x-session-id": self.session_id})
+            self.check_response(response, StatusCode.OK, "Password successfully changed")
+            user = sess.query(User).filter(User.email == email).one()
+            self.assertTrue(user.password_hash)
 
         # Call again, should error
         postJson = {"user_email": email, "password": self.user_password}
-        response = self.app.post_json("/v1/set_password/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
+        response = self.app.post_json("/v1/set_password/", postJson, headers={"x-session-id": self.session_id}, expect_errors=True)
         self.check_response(response, StatusCode.LOGIN_REQUIRED)
 
     def test_check_password_token(self):
         """Test password reset with valid token."""
-        userDb = self.userDb
         #make a token based on a user
         token = sesEmail.createToken(
-            self.test_users["admin_email"], userDb, "password_reset")
+            self.test_users["admin_email"], "password_reset")
         postJson = {"token": token}
         response = self.app.post_json("/v1/confirm_password_token/", postJson, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK, "success")
@@ -327,11 +341,13 @@ class UserTests(BaseTestAPI):
     def test_skip_guide(self):
         """ Set skip guide to True and check value in DB """
         self.login_approved_user()
-        params = {"skip_guide":True}
-        response = self.app.post_json("/v1/set_skip_guide/", params, headers={"x-session-id":self.session_id})
-        self.check_response(response,StatusCode.OK,"skip_guide set successfully")
+        params = {"skip_guide": True}
+        response = self.app.post_json("/v1/set_skip_guide/", params, headers={"x-session-id": self.session_id})
+        self.check_response(response,StatusCode.OK, "skip_guide set successfully")
         self.assertTrue(response.json["skip_guide"])
-        user = self.userDb.getUserByEmail(self.test_users['approved_email'])
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            user = sess.query(User).filter(User.email == self.test_users['approved_email']).one()
         self.assertTrue(user.skip_guide)
 
     def test_update_user(self):

@@ -1,7 +1,7 @@
 from decimal import *
 from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactvalidator.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.utils.cloudLogger import CloudLogger
 
 class Validator(object):
@@ -43,7 +43,7 @@ class Validator(object):
                     values = ", ".join(values)
                     targetFileType = interfaces.validationDb.getFileTypeById(rule.target_file_id)
                     failures.append([rule.file.name, targetFileType, columnString,
-                        str(rule.rule_description), values, row['row_number'],str(rule.rule_label),rule.file_id,rule.target_file_id,rule.rule_severity_id])
+                        str(rule.rule_error_message), values, row['row_number'],str(rule.rule_label),rule.file_id,rule.target_file_id,rule.rule_severity_id])
 
         # Return list of cross file validation failures
         return failures
