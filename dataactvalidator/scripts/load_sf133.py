@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-def loadAllSf133(sf133_path=None):
+def load_all_sf133(sf133_path=None):
     """Load any SF-133 files that are not yet in the database."""
     # get a list of SF 133 files to load
-    sf133_list = getSF133List(sf133_path)
+    sf133_list = get_sf133_list(sf133_path)
     SF_RE = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
     for sf133 in sf133_list:
         # for each SF file, parse out fiscal year and period
@@ -31,11 +31,11 @@ def loadAllSf133(sf133_path=None):
                 os.linesep, sf133.full_file))
             continue
         logger.info('{}Starting {}...'.format(os.linesep, sf133.full_file))
-        loadSF133(
+        load_sf133(
             sf133.full_file, file_match.group('year'), file_match.group('period'))
 
 
-def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
+def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
     """Load SF 133 (budget execution report) lookup table."""
     model = SF133
 
@@ -99,7 +99,7 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
         data = data[~data.line.isin(dupe_line_numbers)]
 
         # add concatenated TAS field for internal use (i.e., joining to staging tables)
-        data['tas'] = data.apply(lambda row: formatInternalTas(row), axis=1)
+        data['tas'] = data.apply(lambda row: format_internal_tas(row), axis=1)
 
         # incoming .csv does not always include rows for zero-value SF-133 lines
         # so we add those here because they're needed for the SF-133 validations.
@@ -149,7 +149,7 @@ def loadSF133(filename, fiscal_year, fiscal_period, force_load=False):
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
-def formatInternalTas(row):
+def format_internal_tas(row):
     """Concatenate TAS components into a single field for internal use."""
     # This formatting should match formatting in dataactcore.models.stagingModels concatTas
     tas = ''.join([
@@ -164,7 +164,7 @@ def formatInternalTas(row):
     return tas
 
 
-def getSF133List(sf133_path):
+def get_sf133_list(sf133_path):
     """Return info about existing SF133 files as a list of named tuples."""
     SF133File = namedtuple('SF133', ['full_file', 'file'])
     if sf133_path is not None:
@@ -188,6 +188,6 @@ def getSF133List(sf133_path):
     return sf133_list
 
 if __name__ == '__main__':
-    loadAllSf133(
+    load_all_sf133(
         os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
     )

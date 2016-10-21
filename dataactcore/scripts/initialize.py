@@ -2,7 +2,6 @@ import argparse
 import logging
 import os
 
-from flask_bcrypt import Bcrypt
 
 from dataactvalidator.app import createApp
 from dataactbroker.scripts.setupEmails import setupEmails
@@ -16,7 +15,7 @@ from dataactvalidator.scripts.loadTas import loadTas
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.loadFile import loadDomainValues
-from dataactvalidator.scripts.loadSf133 import loadAllSf133
+from dataactvalidator.scripts.load_sf133 import load_all_sf133
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -24,67 +23,67 @@ basePath = CONFIG_BROKER["path"]
 validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
 
 
-def setupDB():
+def setup_db():
     """Set up broker database and initialize data."""
     logger.info('Setting up databases')
     setupAllDB()
     setupEmails()
 
 
-def createAdmin():
+def create_admin():
     """Create initial admin user."""
     logger.info('Creating admin user')
-    adminEmail = CONFIG_BROKER['admin_email']
-    adminPass = CONFIG_BROKER['admin_password']
+    admin_email = CONFIG_BROKER['admin_email']
+    admin_pass = CONFIG_BROKER['admin_password']
     with createApp().app_context():
         sess = GlobalDB.db().session
-        user = sess.query(User).filter(User.email == adminEmail).one_or_none()
+        user = sess.query(User).filter(User.email == admin_email).one_or_none()
         if not user:
             # once the rest of the setup scripts are updated to use
             # GlobalDB instead of databaseSession, move the app_context
             # creation up to initialize()
             user = createUserWithPassword(
-                adminEmail, adminPass, Bcrypt(), permission=2)
+                admin_email, admin_pass, Bcrypt(), permission=2)
     return user
 
 
-def setupSessionTable():
+def setup_session_table():
     """Create Dynamo session table."""
     logger.info('Setting up DynamoDB session table')
     SessionTable.createTable(CONFIG_BROKER['local'], CONFIG_DB['dynamo_port'])
 
 
-def loadTasLookup():
+def load_tas_lookup():
     """Load/update the TAS table to reflect the latest list."""
     logger.info('Loading TAS')
     loadTas()
 
 
-def loadSqlRules():
+def load_sql_rules():
     """Load the SQL-based validation rules."""
     logger.info('Loading SQL-based validation rules')
     SQLLoader.loadSql("sqlRules.csv")
 
 
-def loadDomainValueFiles(basePath):
+def load_domain_value_files(basePath):
     """Load domain values (e.g., CGAC codes, object class, SF-133)."""
     logger.info('Loading domain values')
     loadDomainValues(basePath)
 
 
-def loadSf133():
+def load_sf133():
     logger.info('Loading SF-133')
     # Unlike other domain value files, SF 133 data is stored
     # on S3. If the application's 'use_aws' option is turned
     # off, tell the SF 133 load to look for files in the
     # validator's local config file instead
     if CONFIG_BROKER['use_aws']:
-        loadAllSf133()
+        load_all_sf133()
     else:
-        loadAllSf133(validator_config_path)
+        load_all_sf133(validator_config_path)
 
 
-def loadValidatorSchema():
+def load_validator_schema():
     """Load file-level .csv schemas into the broker database."""
     logger.info('Loading validator schemas')
     SchemaLoader.loadAllFromPath(validator_config_path)
@@ -105,37 +104,37 @@ def main():
     if args.initialize:
         setupAllDB()
         setupEmails()
-        setupSessionTable()
-        loadSqlRules()
-        loadDomainValueFiles(validator_config_path)
-        loadTas()
-        loadSf133()
-        loadValidatorSchema()
+        setup_session_table()
+        load_sql_rules()
+        load_domain_value_files(validator_config_path)
+        load_tas_lookup()
+        load_sf133()
+        load_validator_schema()
         return
 
     if args.setup_db:
         logger.info('Setting up databases')
         setupAllDB()
         setupEmails()
-        setupSessionTable()
+        setup_session_table()
 
     if args.create_admin:
-        createAdmin()
+        create_admin()
 
     if args.load_rules:
-        loadSqlRules()
+        load_sql_rules()
 
     if args.update_domain:
-        loadDomainValueFiles(validator_config_path)
+        load_domain_value_files(validator_config_path)
 
     if args.update_tas:
-        loadTas()
+        load_tas_lookup()
 
     if args.update_sf133:
-        loadSf133()
+        load_sf133()
 
     if args.update_validator:
-        loadValidatorSchema()
+        load_validator_schema()
 
 if __name__ == '__main__':
     main()
