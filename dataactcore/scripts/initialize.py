@@ -27,7 +27,6 @@ validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
 def setupDB():
     """Set up broker database and initialize data."""
     logger.info('Setting up databases')
-    print('setting up db')
     setupAllDB()
     setupEmails()
 
@@ -90,39 +89,54 @@ def loadValidatorSchema():
     logger.info('Loading validator schemas')
     SchemaLoader.loadAllFromPath(validator_config_path)
 
-parser = argparse.ArgumentParser(description='Initialize the DATA Act Broker.')
-parser.add_argument('-db', '--setup_db', help='Create broker database and helper tables', action='store_true')
-parser.add_argument('-a', '--create_admin', help='Create an admin user', action='store_true')
-parser.add_argument('-r', '--load_rules', help='Load SQL-based validation rules', action='store_true')
-parser.add_argument('-d', '--update_domain', help='load slowly changing domain values such s object class', action='store_true')
-parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
-parser.add_argument('-s', '--update_sf133', help='Update broker SF-133 reports', action='store_true')
-parser.add_argument('-v', '--update_validator', help='Update validator schema', action='store_true')
-args = parser.parse_args()
 
+def main():
+    parser = argparse.ArgumentParser(description='Initialize the DATA Act Broker.')
+    parser.add_argument('-i', '--initialize', help='Run all broker initialization tasks', action='store_true')
+    parser.add_argument('-db', '--setup_db', help='Create broker database and helper tables', action='store_true')
+    parser.add_argument('-a', '--create_admin', help='Create an admin user', action='store_true')
+    parser.add_argument('-r', '--load_rules', help='Load SQL-based validation rules', action='store_true')
+    parser.add_argument('-d', '--update_domain', help='load slowly changing domain values such s object class', action='store_true')
+    parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
+    parser.add_argument('-s', '--update_sf133', help='Update broker SF-133 reports', action='store_true')
+    parser.add_argument('-v', '--update_validator', help='Update validator schema', action='store_true')
+    args = parser.parse_args()
 
-print(args)
-if args.setup_db:
-    logger.info('Setting up databases')
-    setupAllDB()
-    setupEmails()
-    setupSessionTable()
+    if args.initialize:
+        setupAllDB()
+        setupEmails()
+        setupSessionTable()
+        loadSqlRules()
+        loadDomainValueFiles(validator_config_path)
+        loadTas()
+        loadSf133()
+        loadValidatorSchema()
+        return
 
-if args.create_admin:
-    createAdmin()
+    if args.setup_db:
+        logger.info('Setting up databases')
+        setupAllDB()
+        setupEmails()
+        setupSessionTable()
 
-if args.load_rules:
-    loadSqlRules()
+    if args.create_admin:
+        createAdmin()
 
-if args.update_domain:
-    loadDomainValueFiles(validator_config_path)
+    if args.load_rules:
+        loadSqlRules()
 
-if args.update_tas:
-    loadTas()
+    if args.update_domain:
+        loadDomainValueFiles(validator_config_path)
 
-if args.update_sf133:
-    loadSf133()
+    if args.update_tas:
+        loadTas()
 
-if args.update_validator:
-    loadValidatorSchema()
+    if args.update_sf133:
+        loadSf133()
+
+    if args.update_validator:
+        loadValidatorSchema()
+
+if __name__ == '__main__':
+    main()
 
