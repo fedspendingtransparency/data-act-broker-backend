@@ -15,8 +15,9 @@ from dataactbroker.fileRoutes import add_file_routes
 from dataactbroker.loginRoutes import add_login_routes
 from dataactbroker.userRoutes import add_user_routes
 from dataactbroker.domainRoutes import add_domain_routes
-from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_DB, CONFIG_PATH
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_DB
 from dataactcore.utils.timeout import timeout
+
 
 def createApp():
     """Set up the application."""
@@ -76,8 +77,7 @@ def createApp():
             # Only define this route when running locally
             @app.route(localFiles)
             def sendFile(filename):
-                if(config["local"]) :
-                    return send_from_directory(broker_file_path, filename)
+                return send_from_directory(broker_file_path, filename)
         else:
             # For non-local installs, set Dynamo Region
             SessionTable.DYNAMO_REGION = CONFIG_BROKER['aws_region']

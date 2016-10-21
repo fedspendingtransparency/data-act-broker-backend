@@ -1,9 +1,10 @@
 from datetime import datetime, date
+
+from dataactcore.interfaces.function_bag import addJobsForFileType
 from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactbroker.handlers.errorHandler import ErrorHandler
 from sqlalchemy import and_
 import time
 
@@ -242,99 +243,6 @@ class JobHandler(JobTrackerInterface):
         uploadDict["submission_id"] = submissionId
         return uploadDict
 
-    def addJobsForFileType(self, fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict):
-        """ Add upload and validation jobs for a single filetype
-
-        Args:
-            fileType: What type of file to add jobs for
-            filePath: Path to upload the file to
-            filename: Original filename
-            submissionId -- Submission ID to attach to jobs
-            existingSubmission -- True if we should update existing jobs rather than creating new ones
-            jobsRequired: List of job ids that will be prerequisites for cross-file job
-            uploadDict: Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
-
-        Returns:
-            jobsRequired: List of job ids that will be prerequisites for cross-file job
-            uploadDict: Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
-        """
-        fileTypeQuery = self.session.query(FileType.file_type_id).filter(FileType.name == fileType)
-        fileTypeResult = self.runUniqueQuery(fileTypeQuery,"No matching file type", "Multiple matching file types")
-        fileTypeId = fileTypeResult.file_type_id
-
-        if existingSubmission:
-            # Find existing upload job and mark as running
-            uploadQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.file_type_id == fileTypeId).filter(Job.job_type_id == self.getJobTypeId("file_upload"))
-            uploadJob = self.runUniqueQuery(uploadQuery,"No upload job found for this file","Conflicting jobs found")
-            # Mark as running and set new file name and path
-            uploadJob.job_status_id = self.getJobStatusId("running")
-            uploadJob.original_filename = filename
-            uploadJob.filename = filePath
-            self.session.commit()
-        else:
-            if fileType in ["award","award_procurement"]:
-                # File generation handled on backend, mark as ready
-                uploadStatus = self.getJobStatusId("ready")
-            elif fileType in ["awardee_attributes", "sub_award"]:
-                # These are dependent on file D2 validation
-                uploadStatus = self.getJobStatusId("waiting")
-            else:
-                # Mark as running since frontend should be doing this upload
-                uploadStatus = self.getJobStatusId("running")
-            uploadJob = Job(original_filename=filename, filename=filePath, file_type_id=fileTypeId, job_status_id=uploadStatus, job_type_id=self.getJobTypeId("file_upload"), submission_id=submissionId)
-            self.session.add(uploadJob)
-            self.session.commit()
-        if existingSubmission:
-            valQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.file_type_id == fileTypeId).filter(Job.job_type_id == self.getJobTypeId("csv_record_validation"))
-            valJob = self.runUniqueQuery(valQuery,"No validation job found for this file","Conflicting jobs found")
-            valJob.job_status_id = self.getJobStatusId("waiting")
-            valJob.original_filename = filename
-            valJob.filename = filePath
-            # Reset file size and number of rows to be set during validation of new file
-            valJob.file_size = None
-            valJob.number_of_rows = None
-            # Reset number of errors
-            errorDb = ErrorHandler()
-            errorDb.resetErrorsByJobId(valJob.job_id)
-            errorDb.resetFileByJobId(valJob.job_id)
-            self.session.commit()
-        else:
-            # Create parse into DB job
-            if fileType == "awardee_attributes":
-                if self.d1ValId is None:
-                    raise Exception("Cannot create E job without a D1 job")
-                # Add dependency on D1 validation job
-                d1Dependency = JobDependency(job_id = uploadJob.job_id, prerequisite_id = self.d1ValId)
-                self.session.add(d1Dependency)
-
-            elif fileType == "sub_award":
-                if self.cValId is None:
-                    raise Exception("Cannot create F job without a C job")
-                # Add dependency on C validation job
-                d2Dependency = JobDependency(job_id = uploadJob.job_id, prerequisite_id = self.cValId)
-                self.session.add(d2Dependency)
-            else:
-                # E and F don't get validation jobs
-                valJob = Job(original_filename=filename, filename=filePath, file_type_id=fileTypeId, job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("csv_record_validation"), submission_id=submissionId)
-                self.session.add(valJob)
-                self.session.flush()
-                # Add dependency between file upload and db upload
-                uploadDependency = JobDependency(job_id = valJob.job_id, prerequisite_id = uploadJob.job_id)
-                self.session.add(uploadDependency)
-                self.session.commit()
-                jobsRequired.append(valJob.job_id)
-
-                if fileType == "award_financial":
-                    # Record D2 val job ID
-                    self.cValId = valJob.job_id
-                elif fileType == "award_procurement":
-                    self.d1ValId = valJob.job_id
-
-            self.session.commit()
-
-        uploadDict[fileType] = uploadJob.job_id
-        return jobsRequired, uploadDict
-
     def addUploadJobs(self,filenames,submissionId,existingSubmission):
         """  Add upload jobs to job tracker database
 
@@ -351,18 +259,16 @@ class JobHandler(JobTrackerInterface):
         jobsRequired = []
         # Dictionary of upload ids by filename to return to client
         uploadDict = {}
-        self.d1ValId = None
-        self.cValId = None
 
         # First do award_financial and award_procurement jobs so they will be available for later dependencies
         for fileType, filePath, filename in filenames:
             if fileType in ["award_financial", "award_procurement"]:
-                jobsRequired, uploadDict = self.addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
+                jobsRequired, uploadDict = addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
 
         # Then do all other file types
         for fileType, filePath, filename in filenames:
             if fileType not in ["award_financial", "award_procurement"]:
-                jobsRequired, uploadDict = self.addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
+                jobsRequired, uploadDict = addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
 
         # Return list of upload jobs
         return jobsRequired, uploadDict
@@ -428,11 +334,6 @@ class JobHandler(JobTrackerInterface):
                 else:
                     raise
         return rowSum
-
-    def deleteSubmissionsForUserId(self,userId):
-        """ Delete all submissions for a given user ID """
-        self.session.query(Submission).filter(Submission.user_id == userId).delete()
-        self.session.commit()
 
     def getFormattedDatetimeBySubmissionId(self, submissionId):
         """ Given a submission ID, return MM/DD/YYYY for the datetime of that submission """

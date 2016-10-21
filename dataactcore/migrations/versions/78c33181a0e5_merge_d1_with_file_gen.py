@@ -12,9 +12,6 @@ down_revision = ('73db7d2cc754', '7d4f322c7661')
 branch_labels = None
 depends_on = None
 
-from alembic import op
-import sqlalchemy as sa
-
 
 def upgrade(engine_name):
     globals()["upgrade_%s" % engine_name]()

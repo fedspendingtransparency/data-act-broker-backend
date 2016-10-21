@@ -34,11 +34,6 @@ class CsvS3Reader(CsvAbstractReader):
         super(CsvS3Reader, self).openFile(
             region, bucket, filename, csvSchema, bucketName, errorFilename)
 
-    def downloadFile(self, region, bucket, filename, targetLocation):
-        """ After opening a file, download entire file to filename """
-        self.s3File = initializeFile(region, bucket, filename)
-        self.s3File.get_contents_to_filename(targetLocation)
-
     def close(self):
         """ Don't need to close file when streaming from S3 """
         pass

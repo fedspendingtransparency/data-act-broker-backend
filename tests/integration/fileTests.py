@@ -1,9 +1,12 @@
 import unittest
 import os
-import boto
 from datetime import datetime
-from boto.s3.connection import S3Connection
+from shutil import copy
+
+import boto
 from boto.s3.key import Key
+
+from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.integration.baseTestAPI import BaseTestAPI
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import populateSubmissionErrorInfo
@@ -11,9 +14,9 @@ from dataactcore.models.jobModels import Submission, Job, JobDependency
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.userModel import User
 from dataactcore.config import CONFIG_BROKER
-from dataactbroker.app import createApp
 from dataactbroker.handlers.jobHandler import JobHandler
-from shutil import copy
+from dataactvalidator.app import createApp
+
 
 class FileTests(BaseTestAPI):
     """Test file submission routes."""
@@ -31,6 +34,7 @@ class FileTests(BaseTestAPI):
         with createApp().app_context():
             # get the submission test user
             sess = GlobalDB.db().session
+            cls.session = sess
             submission_user = sess.query(User).filter(
                 User.email == cls.test_users['submission_email']).one()
             cls.submission_user_id = submission_user.user_id
@@ -339,6 +343,14 @@ class FileTests(BaseTestAPI):
             self.assertEqual(json["created_on"], datetime.utcnow().strftime("%m/%d/%Y"))
             self.assertEqual(json["last_updated"], submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"))
 
+    def test_get_obligations(self):
+        submission = SubmissionFactory()
+        self.session.add(submission)
+        self.session.commit()
+        response = self.app.post_json("/v1/get_obligations/", {"submission_id": submission.submission_id}, headers={"x-session-id": self.session_id})
+        assert response.status_code == 200
+        assert "total_obligations" in response.json
+        
     def test_list_submissions(self):
         """ Check list submissions route on status check submission """
         response = self.app.get("/v1/list_submissions/", headers={"x-session-id":self.session_id})

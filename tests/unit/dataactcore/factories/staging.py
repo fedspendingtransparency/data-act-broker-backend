@@ -33,7 +33,6 @@ class AppropriationFactory(factory.Factory):
     sub_account_code = fuzzy.FuzzyText()
     unobligated_balance_cpe = fuzzy.FuzzyDecimal(9999)
     tas = fuzzy.FuzzyText()
-    is_first_quarter = False
 
 class AwardFinancialFactory(factory.Factory):
     class Meta:
@@ -92,7 +91,6 @@ class AwardFinancialFactory(factory.Factory):
     ussgl498100_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
     ussgl498200_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
     tas = fuzzy.FuzzyText()
-    is_first_quarter = False
 
 
 class ObjectClassProgramActivityFactory(factory.Factory):
@@ -147,7 +145,6 @@ class ObjectClassProgramActivityFactory(factory.Factory):
     ussgl498100_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
     ussgl498200_upward_adjustm_cpe = fuzzy.FuzzyDecimal(9999)
     tas = fuzzy.FuzzyText()
-    is_first_quarter = False
 
 
 class AwardFinancialAssistanceFactory(factory.Factory):
@@ -218,7 +215,6 @@ class AwardFinancialAssistanceFactory(factory.Factory):
     sai_number = fuzzy.FuzzyText()
     total_funding_amount = fuzzy.FuzzyText()
     uri = fuzzy.FuzzyText()
-    is_first_quarter = False
 
 
 class AwardProcurementFactory(factory.Factory):

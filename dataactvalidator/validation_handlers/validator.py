@@ -11,7 +11,7 @@ class Validator(object):
     BOOLEAN_VALUES = ["TRUE","FALSE","YES","NO","1","0"]
     tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op","appropriation":"approp"}
     # Set of metadata fields that should not be directly validated
-    META_FIELDS = ["row_number", "is_first_quarter"]
+    META_FIELDS = ["row_number"]
 
     @classmethod
     def crossValidateSql(cls, rules, submissionId):
@@ -49,7 +49,7 @@ class Validator(object):
         return failures
 
     @classmethod
-    def validate(cls,record,csvSchema, fileType, interfaces):
+    def validate(cls, record, csvSchema):
         """
         Run initial set of single file validation:
         - check if required fields are present
@@ -59,7 +59,6 @@ class Validator(object):
         Args:
         record -- dict representation of a single record of data
         csvSchema -- dict of schema for the current file.
-        fileType -- name of file type to check against
 
         Returns:
         Tuple of three values:

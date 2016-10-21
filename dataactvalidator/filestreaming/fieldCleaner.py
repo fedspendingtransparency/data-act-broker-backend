@@ -1,5 +1,4 @@
 import csv
-from decimal import *
 from dataactcore.utils.stringCleaner import StringCleaner
 
 class FieldCleaner(StringCleaner):

@@ -1,4 +1,3 @@
-from random import randint
 from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityFactory
 from tests.unit.dataactcore.factories.domain import TASFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
@@ -36,17 +35,17 @@ def test_success(database):
 def test_failure(database):
     """ Test that tas that does not match is an error"""
 
-    tas = TASFactory(agency_identifier = randint(1,100))
-    tas_null = TASFactory(agency_identifier = randint(1,100), allocation_transfer_agency = None, availability_type_code = None, sub_account_code = None)
+    tas = TASFactory(agency_identifier = 100)
+    tas_null = TASFactory(agency_identifier = 101, allocation_transfer_agency = None, availability_type_code = None, sub_account_code = None)
     ocpa = ObjectClassProgramActivityFactory(allocation_transfer_agency = tas.allocation_transfer_agency,
-                                  agency_identifier = randint(101,200),
+                                  agency_identifier = 102,
                                   beginning_period_of_availa = tas.beginning_period_of_availability,
                                   ending_period_of_availabil = tas.ending_period_of_availability,
                                   availability_type_code = tas.availability_type_code,
                                   main_account_code = tas.main_account_code,
                                   sub_account_code = tas.sub_account_code)
     ocpa_null = ObjectClassProgramActivityFactory(allocation_transfer_agency = tas_null.allocation_transfer_agency,
-                                       agency_identifier = randint(101,200),
+                                       agency_identifier = 103,
                                        beginning_period_of_availa = tas_null.beginning_period_of_availability,
                                        ending_period_of_availabil = tas_null.ending_period_of_availability,
                                        availability_type_code = tas_null.availability_type_code,

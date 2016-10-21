@@ -4,10 +4,11 @@ from collections import namedtuple
 from datetime import timedelta
 from dateutil.parser import parse
 from random import randint
+
+from flask_bcrypt import Bcrypt
 from webtest import TestApp
-from dataactbroker.app import createApp
-from dataactcore.interfaces.interfaceHolder import InterfaceHolder
-from dataactcore.models.baseInterface import BaseInterface
+
+from dataactbroker.app import createApp as createBrokerApp
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
 from dataactcore.models import lookups
@@ -21,7 +22,8 @@ from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import dataactcore.config
 from dataactbroker.scripts.setupEmails import setupEmails
-from flask_bcrypt import Bcrypt
+from dataactvalidator.app import createApp as createValidatorApp
+
 
 class BaseTestAPI(unittest.TestCase):
     """ Test login, logout, and session handling """
@@ -29,12 +31,9 @@ class BaseTestAPI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up resources to be shared within a test class"""
-        # Prevent interface being reused from last suite
-        BaseInterface.interfaces = None
-        # Create an empty session ID
         cls.session_id = ""
 
-        with createApp().app_context():
+        with createValidatorApp().app_context():
 
             # update application's db config options so unittests
             # run against test databases
@@ -168,31 +167,24 @@ class BaseTestAPI(unittest.TestCase):
         cls.ruleSeverityDict = lookups.RULE_SEVERITY_DICT
         cls.errorTypeDict = lookups.ERROR_TYPE_DICT
         cls.publishStatusDict = lookups.PUBLISH_STATUS_DICT
+        cls.userStatusDict = lookups.USER_STATUS_DICT
 
         # set up info needed by the individual test classes
         cls.test_users = test_users
         cls.user_password = user_password
         cls.admin_password = admin_password
-        cls.interfaces = InterfaceHolder()
-        cls.jobTracker = cls.interfaces.jobDb
-        cls.errorDatabase = cls.interfaces.errorDb
-        cls.userDb = cls.interfaces.userDb
-        cls.validationDb = cls.interfaces.validationDb
         cls.local = CONFIG_BROKER['local']
 
     def setUp(self):
         """Set up broker unit tests."""
-        # Repopulate interfaces if needed
-        self.interfaces = InterfaceHolder()
-        app = createApp()
+        app = createBrokerApp()
         app.config['TESTING'] = True
         self.app = TestApp(app)
 
     @classmethod
     def tearDownClass(cls):
         """Tear down class-level resources."""
-        cls.interfaces.close()
-        dropDatabase(cls.interfaces.jobDb.dbName)
+        dropDatabase(CONFIG_DB['db_name'])
 
     def tearDown(self):
         """Tear down broker unit tests."""
