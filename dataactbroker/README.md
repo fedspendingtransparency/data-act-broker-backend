@@ -436,7 +436,7 @@ Example input:
 
 ```json
 {
-    "email": user@agency.gov
+    "email": "user@agency.gov"
 }
 ```
 

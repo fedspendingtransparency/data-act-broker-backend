@@ -544,7 +544,10 @@ class AccountHandler:
 
             status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id, self.interfaces)
             error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds, self.interfaces.validationDb)
-            submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
+            if submission.user_id is None:
+                submission_user_name = "No user"
+            else:
+                submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
             submissionDetails.append({"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
                                       "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
                                       "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": submission.user_id,

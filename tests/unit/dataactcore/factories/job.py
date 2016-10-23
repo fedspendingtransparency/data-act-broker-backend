@@ -13,7 +13,7 @@ class SubmissionFactory(factory.Factory):
     submission_id = None
     datetime_utc = fuzzy.FuzzyDateTime(
         datetime(2010, 1, 1, tzinfo=timezone.utc))
-    user_id = fuzzy.FuzzyInteger(1, 9999)
+    user_id = None
     cgac_code = fuzzy.FuzzyText()
     reporting_start_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     reporting_end_date = fuzzy.FuzzyDate(date(2010, 1, 1))

@@ -74,14 +74,8 @@ class UserHandler(UserInterface):
         """ Delete user with specified email.  Submissions from that user are not deleted, instead they have
         user id set to null  """
 
-        # Find user
-        user_query = self.session.query(User).filter(User.email == email)
-        user_to_be_deleted = self.runUniqueQuery(user_query, "No user with that email", "Multiple users with that email")
-        # Set all their submissions to have no user
-        self.session.query(Submission).filter(Submission.user_id == user_to_be_deleted.user_id).update(
-            values = {"user_id":None})
-        # Delete the user
-        user_query.delete()
+        # Delete user
+        self.session.query(User).filter(User.email == email).delete()
         self.session.commit()
 
     def createUser(self, username):
