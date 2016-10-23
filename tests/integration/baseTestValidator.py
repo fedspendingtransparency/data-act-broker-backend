@@ -62,7 +62,7 @@ class BaseTestValidator(unittest.TestCase):
         # drop and re-create test validation db
         setupValidationDB()
 
-        cls.userId = 1
+        cls.userId = None
         # constants to use for default submission start and end dates
         cls.SUBMISSION_START_DEFAULT = datetime(2015, 10, 1)
         cls.SUBMISSION_END_DEFAULT = datetime(2015, 10, 31)
@@ -162,7 +162,7 @@ class BaseTestValidator(unittest.TestCase):
         return response
 
     @classmethod
-    def insertSubmission(cls, sess, userId, reporting_end_date=None):
+    def insertSubmission(cls, sess, userId=None, reporting_end_date=None):
         """Insert submission and return id."""
         reporting_start_date = cls.SUBMISSION_START_DEFAULT
         if reporting_end_date is None:

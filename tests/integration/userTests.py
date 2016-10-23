@@ -1,4 +1,5 @@
 from tests.integration.baseTestAPI import BaseTestAPI
+from tests.unit.dataactcore.factories.job import SubmissionFactory
 from dataactbroker.app import createApp
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.interfaces.db import GlobalDB
@@ -411,9 +412,7 @@ class UserTests(BaseTestAPI):
         # Give this user a submission
         with createApp().app_context():
             sess = GlobalDB.db().session
-            sub = Submission(user_id = user_to_be_deleted.user_id)
-            sub.reporting_start_date = datetime(2015, 10, 1)
-            sub.reporting_end_date = datetime(2015, 12, 31)
+            sub = SubmissionFactory(user_id = user_to_be_deleted.user_id)
             sess.add(sub)
             sess.commit()
             sub_id = sub.submission_id
@@ -430,10 +429,3 @@ class UserTests(BaseTestAPI):
             # Check that submission has no user
             sub_after_delete = sess.query(Submission).filter(Submission.submission_id == sub_id).one()
             self.assertIsNone(sub_after_delete.user_id)
-
-        # Try deleting again, should get a 400
-        input = {"email": email}
-        response = self.app.post_json("/v1/delete_user/", input, headers={"x-session-id": self.session_id},
-                                      expect_errors = True)
-
-        self.assertEqual(response.status_code, 400)
