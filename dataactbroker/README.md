@@ -59,7 +59,7 @@ Example output:
 #### POST "/v1/max_login/"
 This route sends a request to the backend with the ticket obtained from the MAX login endpoint in order to verify authentication and access to the Data Broker.
 
-### Body (JSON)
+#### Body (JSON)
 
 ```
 {
@@ -68,12 +68,12 @@ This route sends a request to the backend with the ticket obtained from the MAX 
 }
 ```
 
-### Body Description
+#### Body Description
 
 * `ticket` - ticket string received from MAX from initial login request (pending validation)
 * `service` - URL encoded string that is the source of the initial login request
 
-### Response (JSON)
+#### Response (JSON)
 Response will be somewhat similar to the original `/login` endpoint. More data will be added to the response depending on what we get back from MAX upon validating the ticket.
 
 ```
