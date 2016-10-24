@@ -20,6 +20,7 @@ from sqlalchemy import func
 from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
 class AccountHandler:
     """
@@ -175,14 +176,14 @@ class AccountHandler:
             # Grab the email and list of groups from MAX's response
             email = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['maxAttribute:Email-Address']
             group_list_all = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['maxAttribute:GroupList'].split(',')
-            group_list = list(filter(lambda g:  g.startswith(parent_group), group_list_all))
+            group_list = [g for g in group_list_all if g.startswith(parent_group)]
 
             # Deny access if not in the parent group aka they're not allowed to access the website all together
             if not parent_group in group_list:
                 raise ValueError("You have logged in with MAX but do not have permission to access the broker. Please "
                                  "contact DATABroker@fiscal.treasury.gov to obtain access.")
 
-            cgac_group = list(filter(lambda g: len(g) == len(parent_group + "-CGAC_")+3, group_list))
+            cgac_group = [g for g in group_list if len(g) == len(parent_group + "-CGAC_")+3]
 
             # Deny access if they are not aligned with an agency
             if not cgac_group:
@@ -213,17 +214,17 @@ class AccountHandler:
                         user.name = first_name + " " + last_name
                     else:
                         user.name = first_name + " " + middle_name[0] + ". " + last_name
-                    user.user_status_id = UserHandler().getUserStatusId('approved')
+                    user.user_status_id = user.user_status_id = USER_STATUS_DICT['approved']
 
                     # If part of the SYS agency, use that as the cgac otherwise use the first agency provided
-                    if list(filter(lambda g: g.endswith("SYS"), cgac_group)):
+                    if [g for g in cgac_group if g.endswith("SYS")]:
                         user.cgac_code = "SYS"
                         # website admin permissions
-                        user.permissions = 2
+                        UserHandler().grantPermission(user, 'website_admin')
                     else:
                         user.cgac_code = cgac_group[0][-3:]
                         # regular user permissions
-                        user.permissions = 1
+                        UserHandler().grantPermission(user, 'agency_user')
 
                     sess.add(user)
                     sess.commit()
