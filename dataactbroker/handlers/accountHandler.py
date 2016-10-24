@@ -108,16 +108,7 @@ class AccountHandler:
                     # Reset incorrect password attempt count to 0
                     self.resetPasswordCount(user)
 
-                    LoginSession.login(session,user.user_id)
-                    permissionList = []
-                    for permission in self.interfaces.userDb.getPermissionList():
-                        if(self.interfaces.userDb.hasPermission(user, permission.name)):
-                            permissionList.append(permission.permission_type_id)
-                    self.interfaces.userDb.updateLastLogin(user)
-                    agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
-                    return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),
-                                                              "name":user.name,"title":user.title,"agency_name":agency_name,
-                                                              "cgac_code":user.cgac_code, "permissions" : permissionList})
+                    return self.create_session_and_response(session, user)
                 else :
                     # increase incorrect password attempt count by 1
                     # if this is the 3rd incorrect attempt, lock account
@@ -232,18 +223,7 @@ class AccountHandler:
             except MultipleResultsFound:
                 raise ValueError("An error occurred during login.")
 
-            # Create session
-            LoginSession.login(session, user.user_id)
-            permissionList = []
-            for permission in self.interfaces.userDb.getPermissionList():
-                if (self.interfaces.userDb.hasPermission(user, permission.name)):
-                    permissionList.append(permission.permission_type_id)
-            self.interfaces.userDb.updateLastLogin(user)
-            agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
-            return JsonResponse.create(StatusCode.OK, {"message": "Login successful", "user_id": int(user.user_id),
-                                                       "name": user.name, "title": user.title,
-                                                       "agency_name": agency_name,
-                                                       "cgac_code": user.cgac_code, "permissions": permissionList})
+            return self.create_session_and_response(session, user)
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
@@ -255,6 +235,20 @@ class AccountHandler:
             # Return 500
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
         return self.response
+
+    def create_session_and_response(self, session, user):
+        # Create session
+        LoginSession.login(session, user.user_id)
+        permissionList = []
+        for permission in self.interfaces.userDb.getPermissionList():
+            if (self.interfaces.userDb.hasPermission(user, permission.name)):
+                permissionList.append(permission.permission_type_id)
+        self.interfaces.userDb.updateLastLogin(user)
+        agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+        return JsonResponse.create(StatusCode.OK, {"message": "Login successful", "user_id": int(user.user_id),
+                                                   "name": user.name, "title": user.title,
+                                                   "agency_name": agency_name,
+                                                   "cgac_code": user.cgac_code, "permissions": permissionList})
 
     def logout(self,session):
         """
