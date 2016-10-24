@@ -2,6 +2,8 @@ import argparse
 import logging
 import os
 
+from flask_bcrypt import Bcrypt
+
 
 from dataactvalidator.app import createApp
 from dataactbroker.scripts.setupEmails import setupEmails

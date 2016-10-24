@@ -6,7 +6,6 @@ from dataactcore.models import baseModel, domainModels, fsrs, errorModels, jobMo
 from dataactcore.config import CONFIG_DB
 from dataactcore.interfaces.db import dbURI
 from sqlalchemy import engine_from_config, pool
-from logging.config import fileConfig
 import logging
 import re
 
