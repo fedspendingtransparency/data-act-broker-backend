@@ -15,8 +15,10 @@ from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
 from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
+from dataactcore.models.lookups import FILE_STATUS_DICT
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -328,6 +330,7 @@ class FileHandler:
             A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding file_type, job_type, status, and filename
         """
         try:
+            sess = GlobalDB.db().session
             inputDictionary = RequestDictionary(self.request)
 
             # Get submission
@@ -352,20 +355,20 @@ class FileHandler:
             submissionInfo["number_of_rows"] = self.interfaces.jobDb.sumNumberOfRowsForJobList(jobs)
             submissionInfo["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
 
-            for jobId in jobs:
+            for job_id in jobs:
                 jobInfo = {}
-                jobType = self.jobManager.getJobType(jobId)
+                jobType = self.jobManager.getJobType(job_id)
 
                 if jobType != "csv_record_validation" and jobType != "validation":
                     continue
 
-                jobInfo["job_id"] = jobId
-                jobInfo["job_status"] = self.jobManager.getJobStatusName(jobId)
+                jobInfo["job_id"] = job_id
+                jobInfo["job_status"] = self.jobManager.getJobStatusName(job_id)
                 jobInfo["job_type"] = jobType
-                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(jobId)
+                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job_id)
                 try:
-                    jobInfo["file_status"] = self.interfaces.errorDb.getFileStatusLabelByJobId(jobId)
-                except ResponseException as e:
+                    jobInfo["file_status"] = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job_id).one().file_status.name
+                except NoResultFound as e:
                     # Job ID not in error database, probably did not make it to validation, or has not yet been validated
                     jobInfo["file_status"] = ""
                     jobInfo["missing_headers"] = []
@@ -376,30 +379,30 @@ class FileHandler:
                 else:
                     # If job ID was found in file, we should be able to get header error lists and file data
                     # Get string of missing headers and parse as a list
-                    missingHeaderString = self.interfaces.errorDb.getMissingHeadersByJobId(jobId)
+                    missingHeaderString = sess.query(File).filter(File.job_id == job_id).one().headers_missing
                     if missingHeaderString is not None:
                         # Split header string into list, excluding empty strings
                         jobInfo["missing_headers"] = [n.strip() for n in missingHeaderString.split(",") if len(n) > 0]
                     else:
                         jobInfo["missing_headers"] = []
                     # Get string of duplicated headers and parse as a list
-                    duplicatedHeaderString = self.interfaces.errorDb.getDuplicatedHeadersByJobId(jobId)
+                    duplicatedHeaderString = sess.query(File).filter(File.job_id == job_id).one().headers_duplicated
                     if duplicatedHeaderString is not None:
                         # Split header string into list, excluding empty strings
                         jobInfo["duplicated_headers"] = [n.strip() for n in duplicatedHeaderString.split(",") if len(n) > 0]
                     else:
                         jobInfo["duplicated_headers"] = []
-                    jobInfo["error_type"] = self.interfaces.errorDb.getErrorType(jobId)
-                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId,jobType=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("fatal"))
-                    jobInfo["warning_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(jobId,jobType=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("warning"))
+                    jobInfo["error_type"] = self.interfaces.errorDb.getErrorType(job_id)
+                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(job_id,jobType=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("fatal"))
+                    jobInfo["warning_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(job_id,jobType=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("warning"))
                 # File size and number of rows not dependent on error DB
                 # Get file size
-                jobInfo["file_size"] = self.jobManager.getFileSizeById(jobId)
+                jobInfo["file_size"] = self.jobManager.getFileSizeById(job_id)
                 # Get number of rows in file
-                jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(jobId)
+                jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(job_id)
 
                 try :
-                    jobInfo["file_type"] = self.jobManager.getFileType(jobId)
+                    jobInfo["file_type"] = self.jobManager.getFileType(job_id)
                 except Exception as e:
                     jobInfo["file_type"]  = ''
                 submissionInfo["jobs"].append(jobInfo)
@@ -593,7 +596,7 @@ class FileHandler:
             jobDb.markJobStatus(valJob.job_id, "finished")
             # Create File object for this validation job
             valFile = errorDb.createFileIfNeeded(valJob.job_id, filename = valJob.filename)
-            valFile.file_status_id = errorDb.getFileStatusId("complete")
+            valFile.file_status_id = FILE_STATUS_DICT['complete']
             errorDb.session.commit()
             valJob.number_of_rows = 0
             valJob.number_of_rows_valid = 0

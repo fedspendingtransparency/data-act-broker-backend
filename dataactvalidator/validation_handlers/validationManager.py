@@ -5,6 +5,7 @@ from csv import Error
 from sqlalchemy import or_, and_
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.validationModels import FileTypeValidation
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Job
@@ -483,20 +484,22 @@ class ValidationManager:
                                           error,rowNumber,original_label, file_type_id=fileTypeId, target_file_id = targetFileId, severity_id=severityId)
         return errorRows
 
-    def runCrossValidation(self, jobId, interfaces):
+    def runCrossValidation(self, job_id, interfaces):
         """ Cross file validation job, test all rules with matching rule_timing """
+        sess = GlobalDB.db().session
         # Create File Status object
-        interfaces.errorDb.createFileIfNeeded(jobId)
+        interfaces.errorDb.createFileIfNeeded(job_id)
         
         validationDb = interfaces.validationDb
         errorDb = interfaces.errorDb
-        submissionId = interfaces.jobDb.getSubmissionId(jobId)
+        submissionId = interfaces.jobDb.getSubmissionId(job_id)
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
         CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runCrossValidation on submissionID: "+str(submissionId), "")
 
         # Delete existing cross file errors for this submission
-        errorDb.resetErrorsByJobId(jobId)
+        sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == job_id).delete()
+        sess.commit()
 
         # use db to get a list of the cross-file combinations
         targetFiles = validationDb.session.query(FileTypeValidation).subquery()
@@ -531,13 +534,13 @@ class ValidationManager:
                         writer.write(failure[0:7])
                     if failure[9] == interfaces.validationDb.getRuleSeverityId("warning"):
                         warningWriter.write(failure[0:7])
-                    errorDb.recordRowError(jobId, "cross_file",
+                    errorDb.recordRowError(job_id, "cross_file",
                         failure[0], failure[3], failure[5], failure[6], failure[7], failure[8], severity_id=failure[9])
                 writer.finishBatch()
                 warningWriter.finishBatch()
 
-        errorDb.writeAllRowErrors(jobId)
-        interfaces.jobDb.markJobStatus(jobId, "finished")
+        errorDb.writeAllRowErrors(job_id)
+        interfaces.jobDb.markJobStatus(job_id, "finished")
         CloudLogger.logError("VALIDATOR_INFO: ", "Completed runCrossValidation on submissionID: "+str(submissionId), "")
         # Update error info for submission
         interfaces.jobDb.populateSubmissionErrorInfo(submissionId)
@@ -549,7 +552,7 @@ class ValidationManager:
             interfaces.jobDb.setPublishableFlag(submissionId, True)
 
         # Mark validation complete
-        interfaces.errorDb.markFileComplete(jobId)
+        interfaces.errorDb.markFileComplete(job_id)
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to a staging table

@@ -1,10 +1,12 @@
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.errorModels import FileStatus, ErrorType, File, ErrorMetadata
-from dataactcore.utils.responseException import ResponseException
+from dataactcore.models.errorModels import File, ErrorMetadata
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
+from dataactcore.interfaces.db import GlobalDB
+
+from dataactcore.models.lookups import FILE_STATUS_DICT, ERROR_TYPE_DICT
 
 class ErrorInterface(BaseInterface):
     """Manages communication with error database."""
@@ -13,51 +15,6 @@ class ErrorInterface(BaseInterface):
         """ Create empty row error dict """
         self.rowErrors = {}
         super(ErrorInterface, self).__init__()
-
-    def getFileStatusId(self,statusName):
-        """Get file status ID for given name."""
-        return self.getIdFromDict(
-            FileStatus, "FILE_STATUS_DICT", "name", statusName, "file_status_id")
-
-    def getTypeId(self,typeName):
-        """Get type ID for given name """
-        return self.getIdFromDict(
-            ErrorType, "TYPE_DICT", "name", typeName, "error_type_id")
-
-    def getFileByJobId(self, jobId):
-        """ Get the File object with the specified job ID
-
-        Args:
-            jobId: job to get file for
-
-        Returns:
-            A File model object
-        """
-        query = self.session.query(File).filter(File.job_id == jobId)
-        return self.runUniqueQuery(query,"No file for that job ID", "Multiple files have been associated with that job ID")
-
-    def checkFileStatusByJobId(self, jobId):
-        """ Query file status for specified job
-
-        Args:
-            jobId: job to check status for
-
-        Returns:
-            File Status ID of specified job
-        """
-        return self.getFileByJobId(jobId).file_status_id
-
-    def getFileStatusLabelByJobId(self, jobId):
-        """ Query file status label for specified job
-
-        Args:
-            jobId: job to check status for
-
-        Returns:
-            File status label (aka name) for specified job (string)
-        """
-        query = self.session.query(File).options(joinedload("file_status")).filter(File.job_id == jobId)
-        return self.runUniqueQuery(query,"No file for that job ID", "Multiple files have been associated with that job ID").file_status.name
 
     def checkNumberOfErrorsByJobId(self, jobId, valDb, errorType = "fatal"):
         """Deprecated: moved to function_bag.py."""
@@ -70,15 +27,6 @@ class ErrorInterface(BaseInterface):
             # For each row that matches jobId, add the number of that type of error
             numErrors += result.occurrences
         return numErrors
-
-    def resetErrorsByJobId(self, jobId):
-        """ Clear all entries in ErrorMetadata for a specified job
-
-        Args:
-            jobId: job to reset
-        """
-        self.session.query(ErrorMetadata).filter(ErrorMetadata.job_id == jobId).delete()
-        self.session.commit()
 
     def sumNumberOfErrorsForJobList(self,jobIdList, valDb, errorType = "fatal"):
         """Deprecated: moved to function_bag.py."""
@@ -96,39 +44,28 @@ class ErrorInterface(BaseInterface):
                     raise
         return errorSum
 
-    def getMissingHeadersByJobId(self, jobId):
-        """ Get a comma delimited string of all missing headers for specified job """
-        return self.getFileByJobId(jobId).headers_missing
-
-    def getDuplicatedHeadersByJobId(self, jobId):
-        """ Get a comma delimited string of all duplicated headers for specified job """
-        return self.getFileByJobId(jobId).headers_duplicated
-
-    def getErrorType(self,jobId):
+    def getErrorType(self,job_id):
         """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
-        if self.getFileStatusLabelByJobId(jobId) == "header_error":
+        sess = GlobalDB.db().session
+        if sess.query(File).options(joinedload("file_status")).filter(File.job_id == job_id).one().file_status.name == "header_error":
             # Header errors occurred, return that
             return "header_errors"
-        elif self.interfaces.jobDb.getJobById(jobId).number_of_errors > 0:
+        elif self.interfaces.jobDb.getJobById(job_id).number_of_errors > 0:
             # Row errors occurred
             return "row_errors"
         else:
             # No errors occurred during validation
             return "none"
 
-    def createFileIfNeeded(self, jobId, filename = None):
+    def createFileIfNeeded(self, job_id, filename = None):
         """ Return the existing file object if it exists, or create a new one """
+        sess = GlobalDB.db().session
         try:
-            fileRec = self.getFileByJobId(jobId)
+            fileRec = sess.query(File).filter(File.job_id == job_id).one()
             # Set new filename for changes to an existing submission
             fileRec.filename = filename
-        except ResponseException as e:
-            if isinstance(e.wrappedException, NoResultFound):
-                # No File object for this job ID, just create one
-                fileRec = self.createFile(jobId, filename)
-            else:
-                # Other error types should be handled at a higher level, so re-raise
-                raise
+        except NoResultFound as e:
+            fileRec = self.createFile(job_id, filename)
         return fileRec
 
     def createFile(self, jobId, filename):
@@ -140,7 +77,7 @@ class ErrorInterface(BaseInterface):
 
         fileRec = File(job_id=jobId,
                        filename=filename,
-                       file_status_id=self.getFileStatusId("incomplete"))
+                       file_status_id=FILE_STATUS_DICT['incomplete'])
         self.session.add(fileRec)
         self.session.commit()
         return fileRec
@@ -152,6 +89,7 @@ class ErrorInterface(BaseInterface):
             jobId: ID of job in job tracker
             filename: name of error report in S3
             errorType: type of error, value will be mapped to ValidationError class
+            extraInfo: list of extra information to be included in file
 
         Returns:
             True if successful
@@ -165,8 +103,7 @@ class ErrorInterface(BaseInterface):
         fileRec = self.createFileIfNeeded(jobId, filename)
 
         # Mark error type and add header info if present
-        fileRec.file_status_id = self.getFileStatusId(
-            ValidationError.getErrorTypeString(errorType))
+        fileRec.file_status_id = FILE_STATUS_DICT[ValidationError.getErrorTypeString(errorType)]
         if extraInfo is not None:
             if "missing_headers" in extraInfo:
                 fileRec.headers_missing = extraInfo["missing_headers"]
@@ -177,19 +114,19 @@ class ErrorInterface(BaseInterface):
         self.session.commit()
         return True
 
-    def markFileComplete(self, jobId, filename=None):
+    def markFileComplete(self, job_id, filename=None):
         """ Marks file's status as complete
 
         Args:
-            jobId: ID of job in job tracker
+            job_id: ID of job in job tracker
             filename: name of error report in S3
 
         Returns:
             True if successful
         """
 
-        fileComplete = self.createFileIfNeeded(jobId, filename)
-        fileComplete.file_status_id = self.getFileStatusId("complete")
+        fileComplete = self.createFileIfNeeded(job_id, filename)
+        fileComplete.file_status_id = FILE_STATUS_DICT['complete']
         self.session.commit()
         return True
 
@@ -244,9 +181,9 @@ class ErrorInterface(BaseInterface):
                 # For rule failures, it will hold the error message
                 errorMsg = errorDict["errorType"]
                 if "Field must be no longer than specified limit" in errorMsg:
-                    ruleFailedId = self.getTypeId("length_error")
+                    ruleFailedId = ERROR_TYPE_DICT['length_error']
                 else:
-                    ruleFailedId = self.getTypeId("rule_failed")
+                    ruleFailedId = ERROR_TYPE_DICT['rule_failed']
                 errorRow = ErrorMetadata(job_id=thisJob, filename=errorDict["filename"], field_name=fieldName,
                                          error_type_id=ruleFailedId, rule_failed=errorMsg,
                                          occurrences=errorDict["numErrors"], first_row=errorDict["firstRow"],
@@ -257,7 +194,7 @@ class ErrorInterface(BaseInterface):
             else:
                 # This happens if cast to int was successful
                 errorString = ValidationError.getErrorTypeString(errorType)
-                errorId = self.getTypeId(errorString)
+                errorId = ERROR_TYPE_DICT[errorString]
                 # Create error metadata
                 errorRow = ErrorMetadata(job_id=thisJob, filename=errorDict["filename"], field_name=fieldName,
                                          error_type_id=errorId, occurrences=errorDict["numErrors"],
@@ -274,29 +211,3 @@ class ErrorInterface(BaseInterface):
         self.session.commit()
         # Clear the dictionary
         self.rowErrors = {}
-
-    def writeMissingHeaders(self, jobId, missingHeaders):
-        """ Write list of missing headers into headers_missing field
-
-        Args:
-            jobId: Job to write error for
-            missingHeaders: List of missing headers
-
-        """
-        fileRec = self.getFileByJobId(jobId)
-        # Create single string out of missing header list
-        fileRec.headers_missing = ",".join(missingHeaders)
-        self.session.commit()
-
-    def writeDuplicatedHeaders(self, jobId, duplicatedHeaders):
-        """ Write list of duplicated headers into headers_missing field
-
-        Args:
-            jobId: Job to write error for
-            duplicatedHeaders: List of duplicated headers
-
-        """
-        fileRec = self.getFileByJobId(jobId)
-        # Create single string out of duplicated header list
-        fileRec.headers_duplicated = ",".join(duplicatedHeaders)
-        self.session.commit()

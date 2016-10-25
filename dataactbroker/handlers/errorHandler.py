@@ -2,6 +2,7 @@ from sqlalchemy.orm import joinedload
 from dataactcore.models.errorModels import File, ErrorMetadata
 from dataactcore.models.errorInterface import ErrorInterface
 
+from dataactcore.models.lookups import FILE_STATUS_DICT
 
 class ErrorHandler(ErrorInterface) :
     """ Manages communication with the error database """
@@ -13,7 +14,7 @@ class ErrorHandler(ErrorInterface) :
         query = self.session.query(File).options(joinedload("file_status")).filter(File.job_id == jobId)
         queryResult = self.runUniqueQuery(query,"No files for this job", "Conflicting file records for this job")
 
-        if(not queryResult.file_status.file_status_id == self.getFileStatusId("complete")) :
+        if not queryResult.file_status.file_status_id == FILE_STATUS_DICT['complete'] :
             return [{"field_name":"File Level Error","error_name": queryResult.file_status.name,"error_description":str(queryResult.file_status.description),"occurrences":1,"rule_failed":""}]
 
         queryResult = self.session.query(ErrorMetadata).options(joinedload("error_type")).filter(ErrorMetadata.job_id == jobId).filter(ErrorMetadata.severity_id == severityId).all()
