@@ -36,17 +36,6 @@ class ErrorInterface(BaseInterface):
         query = self.session.query(File).filter(File.job_id == jobId)
         return self.runUniqueQuery(query,"No file for that job ID", "Multiple files have been associated with that job ID")
 
-    def checkFileStatusByJobId(self, jobId):
-        """ Query file status for specified job
-
-        Args:
-            jobId: job to check status for
-
-        Returns:
-            File Status ID of specified job
-        """
-        return self.getFileByJobId(jobId).file_status_id
-
     def getFileStatusLabelByJobId(self, jobId):
         """ Query file status label for specified job
 
@@ -274,29 +263,3 @@ class ErrorInterface(BaseInterface):
         self.session.commit()
         # Clear the dictionary
         self.rowErrors = {}
-
-    def writeMissingHeaders(self, jobId, missingHeaders):
-        """ Write list of missing headers into headers_missing field
-
-        Args:
-            jobId: Job to write error for
-            missingHeaders: List of missing headers
-
-        """
-        fileRec = self.getFileByJobId(jobId)
-        # Create single string out of missing header list
-        fileRec.headers_missing = ",".join(missingHeaders)
-        self.session.commit()
-
-    def writeDuplicatedHeaders(self, jobId, duplicatedHeaders):
-        """ Write list of duplicated headers into headers_missing field
-
-        Args:
-            jobId: Job to write error for
-            duplicatedHeaders: List of duplicated headers
-
-        """
-        fileRec = self.getFileByJobId(jobId)
-        # Create single string out of duplicated header list
-        fileRec.headers_duplicated = ",".join(duplicatedHeaders)
-        self.session.commit()
