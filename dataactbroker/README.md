@@ -428,6 +428,26 @@ Example output:
 }
 ```
 
+#### POST "/v1/delete_user/"
+Delete specified user. Calls to this route should include the key "email" to specify user to be deleted, route is only
+accessible for users with website_admin or agency_admin permissions.
+
+Example input:
+
+```json
+{
+    "email": "user@agency.gov"
+}
+```
+
+Example output:
+
+```json
+{
+    "message": "success"
+}
+```
+
 ### File Routes
 
 #### GET "/"

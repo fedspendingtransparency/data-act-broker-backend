@@ -16,7 +16,7 @@ def error_rows(rule_file, staging_db, submission=None, models=None, assert_num =
     those models. Return the resulting (invalid) rows"""
     if submission is None:
         submission = Submission(
-            user_id=1, reporting_start_date=datetime(2015, 10, 1),
+            user_id=None, reporting_start_date=datetime(2015, 10, 1),
             reporting_end_date=datetime(2015, 10, 31))
     if models is None:
         models = []

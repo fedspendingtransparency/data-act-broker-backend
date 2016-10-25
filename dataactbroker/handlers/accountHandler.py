@@ -336,6 +336,18 @@ class AccountHandler:
             #failure but alert UI of issue
             return JsonResponse.create(StatusCode.OK,{"errorCode":errorCode,"message":message})
 
+    def deleteUser(self):
+        """ Deletes user specified by 'email' in request """
+        requestDict = RequestDictionary(self.request)
+        if not requestDict.exists("email"):
+            # missing required fields, return 400
+            exc = ResponseException("Request body must include email of user to be deleted",
+                                    StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
+        email = requestDict.getValue("email")
+        self.interfaces.userDb.deleteUser(email)
+        return JsonResponse.create(StatusCode.OK,{"message":"success"})
+
     def updateUser(self, system_email):
         """
         Update editable fields for specified user. Editable fields for a user:
@@ -532,7 +544,10 @@ class AccountHandler:
 
             status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id, self.interfaces)
             error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds, self.interfaces.validationDb)
-            submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
+            if submission.user_id is None:
+                submission_user_name = "No user"
+            else:
+                submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
             submissionDetails.append({"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
                                       "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
                                       "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": submission.user_id,
