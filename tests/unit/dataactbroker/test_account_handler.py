@@ -49,6 +49,8 @@ def test_max_login_success(database, monkeypatch):
 
 def test_max_login_failure(monkeypatch):
     ah = dataactbroker.handlers.accountHandler.AccountHandler(Mock())
+    config = {'parent_group': 'parent-group'}
+    monkeypatch.setattr(dataactbroker.handlers.accountHandler, 'CONFIG_BROKER', config)
 
     mock_dict = Mock()
     mock_dict.return_value.safeDictionary.side_effect = {'ticket': '', 'service': ''}
@@ -83,8 +85,6 @@ def test_max_login_failure(monkeypatch):
     # Not in parent group
     assert error_message == json.loads(json_response.get_data().decode("utf-8"))['message']
 
-    config = {'parent_group': 'parent-group'}
-    monkeypatch.setattr(dataactbroker.handlers.accountHandler, 'CONFIG_BROKER', config)
     max_dict = {
         'cas:serviceResponse':
             {
