@@ -16,34 +16,6 @@ class ErrorInterface(BaseInterface):
         self.rowErrors = {}
         super(ErrorInterface, self).__init__()
 
-    def checkNumberOfErrorsByJobId(self, jobId, valDb, errorType = "fatal"):
-        """Deprecated: moved to function_bag.py."""
-        queryResult = self.session.query(ErrorMetadata).filter(ErrorMetadata.job_id == jobId).all()
-        numErrors = 0
-        for result in queryResult:
-            if result.severity_id != valDb.getRuleSeverityId(errorType):
-                # Don't count other error types
-                continue
-            # For each row that matches jobId, add the number of that type of error
-            numErrors += result.occurrences
-        return numErrors
-
-    def sumNumberOfErrorsForJobList(self,jobIdList, valDb, errorType = "fatal"):
-        """Deprecated: moved to function_bag.py."""
-        errorSum = 0
-        for jobId in jobIdList:
-            jobErrors = self.checkNumberOfErrorsByJobId(jobId, valDb, errorType)
-            self.interfaces.jobDb.setJobNumberOfErrors(jobId, jobErrors, errorType)
-            try:
-                errorSum += int(jobErrors)
-            except TypeError:
-                # If jobRows is None or empty string, just don't add it, otherwise reraise
-                if jobErrors is None or jobErrors == "":
-                    continue
-                else:
-                    raise
-        return errorSum
-
     def getErrorType(self,job_id):
         """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
         sess = GlobalDB.db().session
@@ -64,7 +36,7 @@ class ErrorInterface(BaseInterface):
             fileRec = sess.query(File).filter(File.job_id == job_id).one()
             # Set new filename for changes to an existing submission
             fileRec.filename = filename
-        except NoResultFound as e:
+        except NoResultFound:
             fileRec = self.createFile(job_id, filename)
         return fileRec
 

@@ -27,6 +27,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
+from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -334,14 +335,14 @@ class FileHandler:
             inputDictionary = RequestDictionary(self.request)
 
             # Get submission
-            submissionId = inputDictionary.getValue("submission_id")
-            submission = self.jobManager.getSubmissionById(submissionId)
+            submission_id = inputDictionary.getValue("submission_id")
+            submission = self.jobManager.getSubmissionById(submission_id)
 
             # Check that user has access to submission
             user = self.checkSubmissionPermission(submission)
 
             # Get jobs in this submission
-            jobs = self.jobManager.getJobsBySubmission(submissionId)
+            jobs = self.jobManager.getJobsBySubmission(submission_id)
 
             # Build dictionary of submission info with info about each job
             submissionInfo = {}
@@ -349,9 +350,9 @@ class FileHandler:
             submissionInfo["cgac_code"] = submission.cgac_code
             submissionInfo["reporting_period_start_date"] = self.interfaces.jobDb.getStartDate(submission)
             submissionInfo["reporting_period_end_date"] = self.interfaces.jobDb.getEndDate(submission)
-            submissionInfo["created_on"] = self.interfaces.jobDb.getFormattedDatetimeBySubmissionId(submissionId)
+            submissionInfo["created_on"] = self.interfaces.jobDb.getFormattedDatetimeBySubmissionId(submission_id)
             # Include number of errors in submission
-            submissionInfo["number_of_errors"] = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobs, self.interfaces.validationDb)
+            submissionInfo["number_of_errors"] = sumNumberOfErrorsForJobList(submission_id)
             submissionInfo["number_of_rows"] = self.interfaces.jobDb.sumNumberOfRowsForJobList(jobs)
             submissionInfo["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
 
@@ -767,7 +768,7 @@ class FileHandler:
             validationStatus = None
         else:
             validationStatus = self.interfaces.jobDb.getJobStatusNameById(validationJob.job_status_id)
-            if self.interfaces.errorDb.checkNumberOfErrorsByJobId(validationJob.job_id, self.interfaces.validationDb, errorType = "fatal") > 0:
+            if checkNumberOfErrorsByJobId(validationJob.job_id) > 0:
                 errorsPresent = True
             else:
                 errorsPresent = False
