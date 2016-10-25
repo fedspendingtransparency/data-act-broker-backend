@@ -3,13 +3,9 @@ import dataactbroker.handlers.accountHandler
 import json
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
-from tests.unit.dataactbroker.utils import insert_permissions, insert_user_statuses
 
 
-def test_max_login_success(database, monkeypatch):
-    insert_permissions(database)
-    insert_user_statuses(database)
-
+def test_max_login_success(database, user_constants, monkeypatch):
     ah = dataactbroker.handlers.accountHandler.AccountHandler(Mock())
 
     mock_dict = Mock()
