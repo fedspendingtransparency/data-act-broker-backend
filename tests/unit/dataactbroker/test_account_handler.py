@@ -39,7 +39,6 @@ def test_max_login_success(database, user_constants, monkeypatch):
                         Mock(return_value=JsonResponse.create(StatusCode.OK, {"message": "Login successful"})))
     json_response = ah.max_login(Mock())
 
-    print(json.loads(json_response.get_data().decode("utf-8")))
     assert "Login successful" == json.loads(json_response.get_data().decode("utf-8"))['message']
 
 
