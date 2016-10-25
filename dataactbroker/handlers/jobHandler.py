@@ -36,10 +36,6 @@ class JobHandler(JobTrackerInterface):
         """ Returns all submissions associated with the specified user ID """
         return self.session.query(Submission).filter(Submission.user_id == userId).all()
 
-    def getSubmissionsByUser(self,user):
-        """ Returns all submissions associated with the provided user object """
-        return self.getSubmissionsByUserId(user.user_id)
-
     @classmethod
     def loadSubmitParams(cls,requestDict):
         """ Load params from request, return dictionary of values provided mapped to submission fields """
@@ -109,46 +105,6 @@ class JobHandler(JobTrackerInterface):
         quartersFromStart = monthsIntoFiscalYear / 3
         quarter = quartersFromStart + 1
         return "".join(["Q",str(int(quarter))])
-
-    @staticmethod
-    def quarterToMonth(quarter, isStart):
-        """ Translate quarter as 'Q#' to a 2 digit month
-
-        Args:
-            quarter: Q followed by 1,2,3, or 4
-            isStart: True if we want first month of quarter
-
-        Returns:
-            Two character string representing month
-        """
-        # If does not start with Q, this is an error
-        if quarter[0] != "Q":
-            raise ResponseException("Cannot translate quarter that does not begin with Q",StatusCode.CLIENT_ERROR,ValueError)
-
-        # Specified by quarter, translate to months
-        if quarter[1] == "1":
-            if isStart:
-                month = "10"
-            else:
-                month = "12"
-        elif quarter[1] == "2":
-            if isStart:
-                month = "01"
-            else:
-                month = "03"
-        elif quarter[1] == "3":
-            if isStart:
-                month = "04"
-            else:
-                month = "06"
-        elif quarter[1] == "4":
-            if isStart:
-                month = "07"
-            else:
-                month = "09"
-        else:
-            raise ResponseException("Invalid quarter, must be 1-4",StatusCode.CLIENT_ERROR,ValueError)
-        return month
 
     @staticmethod
     def createDate(dateString):
@@ -298,10 +254,6 @@ class JobHandler(JobTrackerInterface):
 
         """
         JobTrackerInterface.markJobStatus(self, jobId, 'finished')
-
-    def getUserForSubmission(self,submission):
-        """ Takes a submission object and returns the user ID """
-        return submission.user_id
 
     def getSubmissionForJob(self,job):
         """ Takes a job object and returns the associated submission object """
