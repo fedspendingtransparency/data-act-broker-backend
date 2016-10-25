@@ -20,7 +20,7 @@ from sqlalchemy import func
 from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
+from dataactcore.models.lookups import USER_STATUS_DICT
 
 class AccountHandler:
     """
@@ -157,9 +157,7 @@ class AccountHandler:
             parent_group = CONFIG_BROKER['parent_group']
 
             # Call MAX's serviceValidate endpoint and retrieve the response
-            url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
-            max_xml = requests.get(url).content
-            max_dict = xmltodict.parse(max_xml)
+            max_dict = self.get_max_dict(ticket, service)
 
             if not 'cas:authenticationSuccess' in max_dict['cas:serviceResponse']:
                 raise ValueError("You have failed to login successfully with MAX")
@@ -235,6 +233,11 @@ class AccountHandler:
             # Return 500
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
         return self.response
+
+    def get_max_dict(self, ticket, service):
+        url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
+        max_xml = requests.get(url).content
+        return xmltodict.parse(max_xml)
 
     def create_session_and_response(self, session, user):
         # Create session
