@@ -205,10 +205,10 @@ There are sample config files in `data-act-broker-backend/dataactcore`. Use thes
 
 ### Initialize Broker Backend Applications
 
-You will need to run two scripts to setup the broker's backend components. These create the necessary databases and data. From the `data-act-broker-backend` directory:
+You will need to run two scripts to setup the broker's backend components. The first one creates the databases and loads the information needed to validate data submissions: schemas, rules, and domain values such as object classes and account codes. The second script creates a local admin user that you can use to log in. From the `data-act-broker-backend` directory:
 
-        $ python dataactbroker/scripts/initialize.py -i
-        $ python dataactvalidator/scripts/initialize.py -i
+        $ python dataactcore/scripts/initialize.py -i
+        $ python dataactcore/scripts/initialize.py -a
 
 **Important Notes:**
 * If you're using a local DynamoDB, make sure it's running before executing these scripts.

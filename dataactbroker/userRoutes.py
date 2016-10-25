@@ -30,6 +30,13 @@ def add_user_routes(app,system_email,bcrypt):
         accountManager = AccountHandler(request, bcrypt=bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.updateUser, RouteUtils.SYSTEM_EMAIL)
 
+    @app.route("/v1/delete_user/", methods=["POST"])
+    @permissions_check(permissionList=["website_admin", "agency_admin"])
+    def delete_user():
+        """ Updates editable fields for the specified user """
+        accountManager = AccountHandler(request, bcrypt=bcrypt)
+        return RouteUtils.run_instance_function(accountManager, accountManager.deleteUser)
+
     @app.route("/v1/confirm_email/", methods = ["POST"])
     def confirm():
         """ Expects request to have email  """

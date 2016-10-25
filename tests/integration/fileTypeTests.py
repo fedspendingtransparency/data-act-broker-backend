@@ -15,6 +15,7 @@ from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.loadFile import loadDomainValues
 from dataactvalidator.scripts.loadTas import loadTas
+from dataactvalidator.scripts.load_sf133 import load_all_sf133
 from tests.integration.baseTestValidator import BaseTestValidator
 
 
@@ -107,7 +108,10 @@ class FileTypeTests(BaseTestValidator):
     @staticmethod
     def load_definitions(sess, force_tas_load, ruleList=None):
         """Load file definitions."""
-        SchemaLoader.loadAllFromPath(os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"))
+        validator_config_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
+        integration_test_data_path = os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data")
+
+        SchemaLoader.loadAllFromPath(validator_config_path)
         SQLLoader.loadSql("sqlRules.csv")
 
         if ruleList is not None:
@@ -118,15 +122,14 @@ class FileTypeTests(BaseTestValidator):
 
         # Load domain values tables
         loadDomainValues(
-            os.path.join(CONFIG_BROKER["path"],"dataactvalidator","config"),
-            os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data"),
-            os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data", "program_activity.csv"))
+            validator_config_path,
+            os.path.join(integration_test_data_path, "program_activity.csv"))
         if sess.query(TASLookup).count() == 0 or force_tas_load:
             # TAS table is empty, load it
-            loadTas(tasFile=os.path.join(
-                CONFIG_BROKER["path"], "tests", "integration", "data",
-                "cars_tas.csv"
-            ))
+            loadTas(tasFile=os.path.join(integration_test_data_path, "cars_tas.csv"))
+
+        # Load test SF-133
+        load_all_sf133(integration_test_data_path)
 
     def test_approp_valid(self):
         """Test valid job."""
