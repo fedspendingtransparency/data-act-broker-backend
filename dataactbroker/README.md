@@ -56,6 +56,37 @@ Example output:
 
 ### User Routes
 
+#### POST "/v1/max_login/"
+This route sends a request to the backend with the ticket obtained from the MAX login endpoint in order to verify authentication and access to the Data Broker.
+
+#### Body (JSON)
+
+```
+{
+    "ticket": ST-123456-abcdefghijklmnopqrst-login.max.gov,
+    "service": http%3A%2F%2Furl.encoded.requesting.url%2F
+}
+```
+
+#### Body Description
+
+* `ticket` - ticket string received from MAX from initial login request (pending validation)
+* `service` - URL encoded string that is the source of the initial login request
+
+#### Response (JSON)
+Response will be somewhat similar to the original `/login` endpoint. More data will be added to the response depending on what we get back from MAX upon validating the ticket.
+
+```
+{
+    "message": "Login successful",
+    "user_id": 42,
+    "name": "John",
+    "title":"Developer",
+    "agency": "Department of Labor",
+    "permissions" : [0,1]
+}
+```
+
 #### POST "/v1/login/"
 This route checks the username and password against a credentials file.  Accepts input as json or form-urlencoded, with keys "username" and "password".
 
@@ -428,6 +459,26 @@ Example output:
 }
 ```
 
+#### POST "/v1/delete_user/"
+Delete specified user. Calls to this route should include the key "email" to specify user to be deleted, route is only
+accessible for users with website_admin or agency_admin permissions.
+
+Example input:
+
+```json
+{
+    "email": "user@agency.gov"
+}
+```
+
+Example output:
+
+```json
+{
+    "message": "success"
+}
+```
+
 ### File Routes
 
 #### GET "/"
@@ -770,6 +821,27 @@ Example output if there are no files available:
 ```json
 {
     "urls": {}
+}
+```
+
+#### POST "/v1/get_obligations/"
+Get total obligations and specific obligations. Calls to this route should include the key "submission_id" to specify which submission we are calculating obligations from.
+
+##### Body (JSON)
+
+```
+{
+    "submission_id": 123,
+}
+```
+
+##### Response (JSON)
+
+```
+{
+  "total_obligations": 75000.01,
+  "total_procurement_obligations": 32500.01,
+  "total_assistance_obligations": 42500
 }
 ```
 

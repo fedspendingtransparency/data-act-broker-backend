@@ -1,8 +1,9 @@
 """ These classes define the ORM models to be used by sqlalchemy for the error database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
+
 
 class FileStatus(Base):
     __tablename__ = "file_status"

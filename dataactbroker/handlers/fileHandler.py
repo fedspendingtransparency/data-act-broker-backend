@@ -14,10 +14,13 @@ from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
-from dataactcore.models.jobModels import FileGenerationTask, JobDependency
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
+from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.report import getReportPath, getCrossReportName, getCrossWarningReportName
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -80,13 +83,17 @@ class FileHandler:
             safeDictionary = RequestDictionary(self.request)
             submissionId = safeDictionary.getValue("submission_id")
             responseDict ={}
+            sess = GlobalDB.db().session
             for jobId in self.jobManager.getJobsBySubmission(submissionId):
-                if(self.jobManager.getJobType(jobId) == "csv_record_validation"):
+                # get the job object here so we can call the refactored getReportPath
+                # todo: replace other db access functions with job object attributes
+                job = sess.query(Job).filter(Job.job_id == jobId).one()
+                if job.job_type.name == 'csv_record_validation':
                     if isWarning:
-                        reportName = self.jobManager.getWarningReportPath(jobId)
+                        reportName = getReportPath(job, 'warning')
                         key = "job_"+str(jobId)+"_warning_url"
                     else:
-                        reportName = self.jobManager.getReportPath(jobId)
+                        reportName = getReportPath(job, 'error')
                         key = "job_"+str(jobId)+"_error_url"
                     if(not self.isLocal):
                         responseDict[key] = self.s3manager.getSignedUrl("errors",reportName,method="GET")
@@ -105,9 +112,9 @@ class FileHandler:
                         continue
                     # Retrieve filename
                     if isWarning:
-                        reportName = self.interfaces.errorDb.getCrossWarningReportName(submissionId, source, target)
+                        reportName = getCrossWarningReportName(submissionId, source, target)
                     else:
-                        reportName = self.interfaces.errorDb.getCrossReportName(submissionId, source, target)
+                        reportName = getCrossReportName(submissionId, source, target)
                     # If not local, get a signed URL
                     if self.isLocal:
                         reportPath = os.path.join(self.serverPath,reportName)
@@ -640,8 +647,16 @@ class FileHandler:
                 # Error occurred while downloading file, mark job as failed and record error message
                 job_manager.markJobStatus(job_id, "failed")
                 job = job_manager.getJobById(job_id)
-                job.error_message = "Could not download D file"
-                raise ResponseException("Failed to download file", StatusCode.CLIENT_ERROR)
+                file_type = job_manager.getFileType(job_id)
+                if file_type == "award":
+                    source= "ASP"
+                elif file_type == "award_procurement":
+                    source = "FPDS"
+                else:
+                    source = "unknown source"
+                job.error_message = "A problem occurred receiving data from {}".format(source)
+
+                raise ResponseException(job.error_message, StatusCode.CLIENT_ERROR)
             lines = self.get_lines_from_csv(full_file_path)
 
             write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])
@@ -834,3 +849,17 @@ class FileHandler:
         except NoResultFound as e:
             # Did not find file generation task
             return JsonResponse.error(ResponseException("Generation task key not found", StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
+
+    def getObligations(self):
+        input_dictionary = RequestDictionary(self.request)
+
+        # Get submission
+        submission_id = input_dictionary.getValue("submission_id")
+        submission = self.jobManager.getSubmissionById(submission_id)
+
+        # Check that user has access to submission
+        user = self.checkSubmissionPermission(submission)
+
+        obligations_info = obligationStatsForSubmission(submission_id)
+
+        return JsonResponse.create(StatusCode.OK,obligations_info)

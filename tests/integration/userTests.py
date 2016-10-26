@@ -1,12 +1,13 @@
 from tests.integration.baseTestAPI import BaseTestAPI
+from tests.unit.dataactcore.factories.job import SubmissionFactory
 from dataactbroker.app import createApp
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import getUsersByType
+from dataactcore.interfaces.function_bag import getUsersByType, createUserWithPassword
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
-
+from flask_bcrypt import Bcrypt
 from datetime import datetime
 
 class UserTests(BaseTestAPI):
@@ -401,3 +402,30 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/email_users/", badInput, expect_errors=True,
                                       headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.CLIENT_ERROR)
+
+    def test_delete_user(self):
+        # Need to be an admin to delete
+        self.login_admin_user()
+        # Create user to be deleted, done within test to avoid interfering with tests on number of users
+        email = "to_be_deleted@agency.gov"
+        user_to_be_deleted = createUserWithPassword(email, "unused", Bcrypt())
+        # Give this user a submission
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            sub = SubmissionFactory(user_id = user_to_be_deleted.user_id)
+            sess.add(sub)
+            sess.commit()
+            sub_id = sub.submission_id
+        input = {"email": email}
+        response = self.app.post_json("/v1/delete_user/", input, headers={"x-session-id": self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+
+        with createApp().app_context():
+            sess = GlobalDB.db().session
+            # Check that user is not in database
+            result = sess.query(User).filter(User.user_id == user_to_be_deleted.user_id).all()
+            self.assertEqual(len(result),0)
+            # Check that submission has no user
+            sub_after_delete = sess.query(Submission).filter(Submission.submission_id == sub_id).one()
+            self.assertIsNone(sub_after_delete.user_id)

@@ -1,6 +1,6 @@
 from tests.unit.dataactcore.factories.staging import AppropriationFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
-from random import uniform
+from decimal import Decimal
 
 _FILE = 'a24_appropriations'
 
@@ -12,7 +12,7 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test that calculation works for equal values and for null """
-    value = round(uniform(0, 1000), 2)
+    value = Decimal('100.23')
     approp = AppropriationFactory(status_of_budgetary_resour_cpe = value,
     budget_authority_available_cpe = value)
     approp_null = AppropriationFactory(status_of_budgetary_resour_cpe = 0,
@@ -23,8 +23,8 @@ def test_success(database):
 
 def test_failure(database):
     """ Test that calculation fails for unequal values """
-    approp = AppropriationFactory(status_of_budgetary_resour_cpe = round(uniform(0, 1000), 2),
-    budget_authority_available_cpe = round(uniform(1001, 2000), 2))
+    approp = AppropriationFactory(status_of_budgetary_resour_cpe = Decimal(101.23),
+    budget_authority_available_cpe = Decimal(102.34))
 
     errors = number_of_errors(_FILE, database, models=[approp])
     assert errors == 1

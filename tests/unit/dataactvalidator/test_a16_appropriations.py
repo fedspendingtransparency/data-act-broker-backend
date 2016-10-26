@@ -1,21 +1,58 @@
-from dataactcore.models.stagingModels import Appropriation
-from tests.unit.dataactvalidator.utils import error_rows, number_of_errors
+from tests.unit.dataactcore.factories.staging import AppropriationFactory
+from tests.unit.dataactcore.factories.job import SubmissionFactory
+from dataactcore.models.jobModels import PublishStatus
+from dataactcore.models.lookups import PUBLISH_STATUS, PUBLISH_STATUS_DICT
+from tests.unit.dataactvalidator.utils import number_of_errors, insert_submission
 
 
 _FILE = 'a16_appropriations'
 
+def populate_publish_status(database):
+    for ps in PUBLISH_STATUS:
+        status = PublishStatus(publish_status_id=ps.id, name=ps.name, description=ps.desc)
+        database.session.merge(status)
+    database.session.commit()
 
-def test_success(database):
-    award = Appropriation(job_id=1, row_number=1)
-    assert error_rows(_FILE, database, models=[award]) == []
+def test_value_present(database):
+    """budget_authority_unobligat_fyb populated does not require a previous submission"""
+    populate_publish_status(database)
+    sub_new = SubmissionFactory()
+    ap_new = AppropriationFactory(submission_id = sub_new.submission_id)
+    assert number_of_errors(_FILE, database, submission = sub_new, models=[ap_new]) == 0
 
+def test_previous_published(database):
+    """ budget_authority_unobligat_fyb can be null if previous published submission shares cgac and fiscal year """
+    populate_publish_status(database)
+    sub_prev_published = SubmissionFactory(publish_status_id = PUBLISH_STATUS_DICT['published'])
+    insert_submission(database, sub_prev_published)
+    sub_new_published = SubmissionFactory(cgac_code = sub_prev_published.cgac_code, reporting_fiscal_year = sub_prev_published.reporting_fiscal_year)
+    ap_new_published = AppropriationFactory(submission_id = sub_new_published.submission_id, budget_authority_unobligat_fyb = None)
+    assert number_of_errors(_FILE, database, submission = sub_new_published,
+                      models=[ap_new_published]) == 0
 
-def test_null_authority(database):
-    award = Appropriation(job_id=1, row_number=1, is_first_quarter=True)
-    assert number_of_errors(_FILE, database, models=[award]) == 1
+def test_previous_publishable(database):
+    """Previous submission marked as publishable also allows null"""
+    populate_publish_status(database)
+    sub_prev_publishable = SubmissionFactory(publishable = True)
+    insert_submission(database, sub_prev_publishable)
+    sub_new_publishable = SubmissionFactory(cgac_code = sub_prev_publishable.cgac_code, reporting_fiscal_year = sub_prev_publishable.reporting_fiscal_year)
+    ap_new_publishable = AppropriationFactory(submission_id = sub_new_publishable.submission_id, budget_authority_unobligat_fyb = None)
+    assert number_of_errors(_FILE, database, submission = sub_new_publishable,
+                      models=[ap_new_publishable]) == 0
 
+def test_no_previous_submission(database):
+    """ No previous submission and null budget_authority_unobligat_fyb"""
+    populate_publish_status(database)
+    sub_new = SubmissionFactory()
+    ap_new = AppropriationFactory(submission_id = sub_new.submission_id, budget_authority_unobligat_fyb = None)
+    assert number_of_errors(_FILE, database, submission = sub_new, models=[ap_new]) == 1
 
-def test_nonnull_authority(database):
-    award = Appropriation(job_id=1, row_number=1, is_first_quarter=True,
-                          budget_authority_unobligat_fyb=5)
-    assert error_rows(_FILE, database, models=[award]) == []
+def test_previous_unpublished(database):
+    """ previous submission exists but is unpublished and has not been marked publishable """
+    populate_publish_status(database)
+    sub_prev_published = SubmissionFactory(publish_status_id = PUBLISH_STATUS_DICT['unpublished'], publishable = False)
+    insert_submission(database, sub_prev_published)
+    sub_new_published = SubmissionFactory(cgac_code = sub_prev_published.cgac_code, reporting_fiscal_year = sub_prev_published.reporting_fiscal_year)
+    ap_new_published = AppropriationFactory(submission_id = sub_new_published.submission_id, budget_authority_unobligat_fyb = None)
+    assert number_of_errors(_FILE, database, submission = sub_new_published,
+                      models= [ap_new_published]) == 1

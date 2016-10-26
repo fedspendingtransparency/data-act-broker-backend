@@ -261,14 +261,6 @@ class ValidationInterface(BaseInterface):
         return self.runUniqueQuery(column, "No field found with that name for that file type",
                                    "Multiple fields with that name for that file type")
 
-    def populateFile(self, column):
-        """ Populate file object in the ORM for the specified FileColumn object
-
-        Arguments:
-            column - FileColumn object to get File object for
-        """
-        column.file = self.session.query(FileTypeValidation).filter(FileTypeValidation.file_id == column.file_id)[0]
-
     def getFieldTypeById(self, id):
         """ Return name of field type based on id """
         return self.getNameFromDict(FieldType, "TYPE_DICT", "name", id, "field_type_id")

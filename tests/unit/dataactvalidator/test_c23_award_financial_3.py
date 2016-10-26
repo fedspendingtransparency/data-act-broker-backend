@@ -1,9 +1,11 @@
-from random import randint, choice
+from random import choice
 from string import ascii_uppercase, ascii_lowercase, digits
 from tests.unit.dataactcore.factories.staging import AwardFinancialFactory, AwardFinancialAssistanceFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
+
 _FILE = 'c23_award_financial_3'
+
 
 def test_column_headers(database):
     expected_subset = {"row_number", "transaction_obligated_amou_sum", "federal_action_obligation_sum",

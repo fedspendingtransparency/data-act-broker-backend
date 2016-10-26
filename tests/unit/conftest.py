@@ -8,7 +8,7 @@ import dataactcore.config
 from dataactcore.models import (    # noqa
     baseModel, domainModels, fsrs, errorModels, jobModels, stagingModels,
     userModel, validationModels)
-from dataactcore.scripts import setupJobTrackerDB
+from dataactcore.scripts import setupJobTrackerDB, setupUserDB
 from dataactcore.scripts.databaseSetup import (
     createDatabase, dropDatabase, runMigrations)
 from dataactcore.interfaces.db import dbConnection
@@ -51,6 +51,10 @@ def database(full_database_setup):
 def job_constants(database):
     setupJobTrackerDB.insertCodes(database.session)
 
+@pytest.fixture()
+def user_constants(database):
+    setupUserDB.insertCodes(database.session)
+    database.session.commit()
 
 @pytest.fixture()
 def mock_broker_config_paths(tmpdir):

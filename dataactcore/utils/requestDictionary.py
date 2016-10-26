@@ -1,6 +1,5 @@
-import json
-from dataactcore.utils.responseException import ResponseException
 from werkzeug.exceptions import BadRequest
+
 
 class RequestDictionary() :
     """ Provides an interface to an http request """

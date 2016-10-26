@@ -6,7 +6,6 @@ from dataactcore.models import baseModel, domainModels, fsrs, errorModels, jobMo
 from dataactcore.config import CONFIG_DB
 from dataactcore.interfaces.db import dbURI
 from sqlalchemy import engine_from_config, pool
-from logging.config import fileConfig
 import logging
 import re
 
@@ -17,8 +16,11 @@ USE_TWOPHASE = False
 config = context.config
 
 # Interpret the config file for Python logging.
-# This line sets up loggers basically.
-fileConfig(config.config_file_name)
+# Because the default logging settings stomp
+# on other app logging when alembic runs programmatically,
+# don't load up the fileConfig object form alembic.ini
+#fileConfig(config.config_file_name)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('alembic.env')
 
 # Use the broker's config file to gather section names referring to different

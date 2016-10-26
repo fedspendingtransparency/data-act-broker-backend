@@ -54,6 +54,12 @@ More complete install documentation is available on the PostgreSQL [wiki](https:
 **Note:** The database user will need to have permission to create databases.
 A "superuser" will do.
 
+### Install Xcode CLI (Mac users only)
+
+Xcode Command Line Interface (CLI) is a prerequisite for installing several of the requirements on a Mac.
+
+[This tutorial](https://developer.xamarin.com/guides/testcloud/calabash/configuring/osx/install-xcode-command-line-tools/ "Xcode CLI installation") covers setting up Xcode CLI on your Mac and checking if you have it installed.
+
 ### Install Python and Create Virtual Environment
 
 The broker's backend components currently run on Python 3.x. These instructions will walk you through the process of installing Python and creating a Python-based virtual environment to house the DATA Act backend components. A virtual environment will isolate the broker software and its libraries from those running on your local system and prevent potential conflicts.
@@ -73,6 +79,25 @@ If you already have a Python development environment on your machine and a prefe
 
 4. Tell virtualenvwrapper where on your machine to create virtual environments and add it to your profile. This is a one-time virtualenvwrapper setup step, and the process varies by operating system. [This tutorial](http://newcoder.io/begin/setup-your-machine/ "Python: setting up your computer") covers setting up virtualenvwrapper on OSX, Linux, and Windows.
    For Windows users, there may be extra steps needed.  If you run into an error on the import-module step, move the "VirtualEnvWrapper" folder from C:/Python27/Lib/site-packages/Users/*username*/Documents/WindowsPowerShell/Modules/ to C:/Users/*username*/Documents/WindowsPowerShell/Modules/.  Next, in powershell run the command "set-executionpolicy unrestricted".  Finally, in the VirtualEnvWrapper directory, open the file "VirtualEnvWrapperTabExpansion.psm1" and change "Function:TabExpansion" to "Function:TabExpansion2" in line 12.
+   
+   **Note to Mac and Linux users:** After running:
+   
+   		pip install virtualenvwrapper
+   		
+   	your computer may not be able to find the commands to create a new virtualenv. Run:
+   	
+   		which virtualenvwrapper.sh
+   		
+   	to locate where pip installed virtualenvwrapper. For example, `/Library/Frameworks/Python.framework/Versions/3.5/bin/virtualenvwrapper.sh`. Add a line at the end of `~/.bash_profile` that points it to that location. You may also need to add a VIRTUALENVWRAPPER_PYTHON variable if it isn't recognizing the python version: 
+   	
+   		export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python3
+   		source /Library/Frameworks/Python.framework/Versions/3.5/bin/virtualenvwrapper.s
+   		
+   	After saving this change, run:
+   		
+   		$ source ~/.bash_profile
+   	
+   	This will point to the ~/.bash_profile to get setup details and paths and should allow you to run virtualenv properly.
 
 5. Create a virtual environment for the DATA Act software. In this example we've named the environment *data-act*, but you can call it anything:
 
@@ -180,14 +205,47 @@ There are sample config files in `data-act-broker-backend/dataactcore`. Use thes
 
 ### Initialize Broker Backend Applications
 
-You will need to run two scripts to setup the broker's backend components. These create the necessary databases and data. From the `data-act-broker-backend` directory:
+You will need to run two scripts to setup the broker's backend components. The first one creates the databases and loads the information needed to validate data submissions: schemas, rules, and domain values such as object classes and account codes. The second script creates a local admin user that you can use to log in. From the `data-act-broker-backend` directory:
 
-        $ python dataactbroker/scripts/initialize.py -i
-        $ python dataactvalidator/scripts/initialize.py -i
+        $ python dataactcore/scripts/initialize.py -i
+        $ python dataactcore/scripts/initialize.py -a
 
 **Important Notes:**
 * If you're using a local DynamoDB, make sure it's running before executing these scripts.
-* By default, the broker installs with a small sample of [GTAS financial data](https://www.fiscal.treasury.gov/fsservices/gov/acctg/gtas/gtas_home.htm "GTAS"), which is used during the validation process. If you'd like to install the broker using real GTAS data for your agency, replace the sample file with data representing the GTAS periods you want to validate against (using the same headers and data format as the sample file). The files should be named `dataactvalidator/config/sf_133_yyyy_mm.csv`, where `yyyy` is the fiscal year, and `mm` is the fiscal year period. This is only necessary for local installs.
+* By default, the broker installs with a small sample of [GTAS financial
+  data](https://www.fiscal.treasury.gov/fsservices/gov/acctg/gtas/gtas_home.htm
+  "GTAS"), which is used during the validation process. See the next section
+  for more comprehensive options.
+
+### Loading SF-133 data
+
+If you'd like to install the broker using real GTAS data for your agency,
+replace the sample file with data representing the GTAS periods you want to
+validate against (using the same headers and data format as the sample file).
+The files should be named `dataactvalidator/config/sf_133_yyyy_mm.csv`, where
+`yyyy` is the fiscal year, and `mm` is the fiscal year period. This is only
+necessary for local installs.
+
+If instead, you want to match the production environment (and are a developer
+on the DATA Act team), you can access our SF-133 files through S3. The data is
+sensitive, so we do not host it publicly. In the `prod-data-act-submission`
+bucket, within the `config` directory, you should see a series of
+`sf_133_yyyy_mm.csv` files. Download these and store them in your local
+`dataactvalidator/config` folder. 
+
+In either case, you'll need to make a local tweak to
+`dataactvalidator/scipts/loadFile.py` and run it. The file needs an additional
+line, to look like this:
+
+```python
+if __name__ == '__main__':
+    loadDomainValues(
+        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
+        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
+    )
+```
+
+This will take several minutes to process.
 
 ### Run Broker Backend Applications
 
@@ -210,6 +268,15 @@ Make sure the validator is working by visiting by visiting the hostname and port
 Once the DATA Act broker's backend is up and running, you may also want to stand up a local version of the broker website. The directions for doing that are in the [website project's code repository](https://github.com/fedspendingtransparency/data-act-broker-web-app "DATA Act broker website").
 
 After following the website setup directions, you can log in with the admin e-mail and password you set in the [broker's backend config file](#create-broker-config-file "config file setup") (`admin_email` and `admin_password`).
+
+### Run Celery
+
+Celery puts jobs into the queue, which are then read into the validator. This will need to be running in the background while the app is running at all times.
+
+From the `data-act-broker-backend/dataactcore/utils/` directory:
+
+		$ celery -A jobQueue worker --loglevel=info
+
 
 
 ## Database Migrations

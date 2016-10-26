@@ -1,7 +1,7 @@
 from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
-from random import randint
 from decimal import Decimal
+
 
 _FILE = 'b3_object_class_program_activity_1'
 
@@ -15,7 +15,7 @@ def test_column_headers(database):
 def test_success(database):
     """ Test that calculation passes with equal values and with a null """
 
-    value = Decimal(randint(0,100000)) / Decimal(100)
+    value = Decimal('100.23')
     ocpa = ObjectClassProgramActivityFactory(obligations_undelivered_or_fyb = value,
                                              ussgl480100_undelivered_or_fyb = value)
     ocpa_null = ObjectClassProgramActivityFactory(obligations_undelivered_or_fyb = 0,
@@ -25,9 +25,7 @@ def test_success(database):
 
 def test_failure(database):
     """ Test that calculation fails for unequal values """
-    value = Decimal(randint(0,100000)) / Decimal(100)
-    value2 = Decimal(randint(100001,200000)) / Decimal(100)
-    ocpa = ObjectClassProgramActivityFactory(obligations_undelivered_or_fyb = value,
-                                             ussgl480100_undelivered_or_fyb = value2)
+    ocpa = ObjectClassProgramActivityFactory(obligations_undelivered_or_fyb = Decimal('101.23'),
+                                             ussgl480100_undelivered_or_fyb = Decimal('102.34'))
 
     assert number_of_errors(_FILE, database, models=[ocpa]) == 1

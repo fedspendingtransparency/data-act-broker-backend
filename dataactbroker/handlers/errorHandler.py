@@ -1,8 +1,7 @@
 from sqlalchemy.orm import joinedload
-from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.errorModels import File, ErrorMetadata
 from dataactcore.models.errorInterface import ErrorInterface
-from dataactcore.utils.responseException import ResponseException
+
 
 class ErrorHandler(ErrorInterface) :
     """ Manages communication with the error database """

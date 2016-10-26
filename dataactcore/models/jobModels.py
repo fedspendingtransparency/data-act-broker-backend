@@ -1,9 +1,9 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean, UniqueConstraint, Enum
+from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
-
+from dataactcore.models.userModel import User
 
 def generateFiscalYear(context):
     """ Generate fiscal year based on the date provided """
@@ -49,7 +49,7 @@ class Submission(Base):
 
     submission_id = Column(Integer, primary_key=True)
     datetime_utc = Column(DateTime)
-    user_id = Column(Integer, nullable=False) # This refers to the users table in the User DB
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_submission_user"), nullable=True)
     cgac_code = Column(Text)
     reporting_start_date = Column(Date, nullable=False)
     reporting_end_date = Column(Date, nullable=False)
@@ -69,13 +69,13 @@ class Job(Base):
     job_id = Column(Integer, primary_key=True)
     filename = Column(Text, nullable=True)
     job_status_id = Column(Integer, ForeignKey("job_status.job_status_id", name="fk_job_status_id"))
-    job_status = relationship("JobStatus", uselist=False)
+    job_status = relationship("JobStatus", uselist=False, lazy='joined')
     job_type_id = Column(Integer, ForeignKey("job_type.job_type_id", name="fk_job_type_id"))
-    job_type = relationship("JobType", uselist=False)
+    job_type = relationship("JobType", uselist=False, lazy='joined')
     submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_job_submission_id"))
     submission = relationship("Submission", uselist=False, cascade="delete")
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"), nullable=True)
-    file_type = relationship("FileType", uselist=False)
+    file_type = relationship("FileType", uselist=False, lazy='joined')
     original_filename = Column(Text, nullable=True)
     file_size = Column(Integer)
     number_of_rows = Column(Integer)
