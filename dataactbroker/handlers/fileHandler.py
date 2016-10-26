@@ -27,7 +27,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList
+from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType, createFileIfNeeded
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -393,7 +393,7 @@ class FileHandler:
                         jobInfo["duplicated_headers"] = [n.strip() for n in duplicatedHeaderString.split(",") if len(n) > 0]
                     else:
                         jobInfo["duplicated_headers"] = []
-                    jobInfo["error_type"] = self.interfaces.errorDb.getErrorType(job_id)
+                    jobInfo["error_type"] = getErrorType(job_id)
                     jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(job_id,jobType=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("fatal"))
                     jobInfo["warning_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(job_id,jobType=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("warning"))
                 # File size and number of rows not dependent on error DB
@@ -586,8 +586,8 @@ class FileHandler:
             job - Job object for upload job
             valJob - Job object for validation job
         """
+        sess = GlobalDB.db().session
         jobDb = self.interfaces.jobDb
-        errorDb = self.interfaces.errorDb
         # No results found, skip validation and mark as finished
         jobDb.session.query(JobDependency).filter(JobDependency.prerequisite_id == job.job_id).delete()
         jobDb.session.commit()
@@ -596,9 +596,9 @@ class FileHandler:
         if valJob is not None:
             jobDb.markJobStatus(valJob.job_id, "finished")
             # Create File object for this validation job
-            valFile = errorDb.createFileIfNeeded(valJob.job_id, filename = valJob.filename)
+            valFile = createFileIfNeeded(valJob.job_id, filename = valJob.filename)
             valFile.file_status_id = FILE_STATUS_DICT['complete']
-            errorDb.session.commit()
+            sess.commit()
             valJob.number_of_rows = 0
             valJob.number_of_rows_valid = 0
             valJob.file_size = 0

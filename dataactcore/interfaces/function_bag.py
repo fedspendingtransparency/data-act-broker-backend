@@ -1,13 +1,16 @@
 import uuid
 
 from sqlalchemy.sql import func
+from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.exc import NoResultFound
 
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency
 from dataactcore.models.userModel import User, UserStatus, PermissionType
 from dataactcore.models.validationModels import RuleSeverity
-from dataactcore.models.lookups import FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT
+from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT
 from dataactcore.interfaces.db import GlobalDB
+from dataactvalidator.validation_handlers.validationError import ValidationError
 
 
 # First step to deprecating BaseInterface, its children, and corresponding
@@ -243,3 +246,78 @@ def addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmi
 
     uploadDict[fileType] = uploadJob.job_id
     return jobsRequired, uploadDict
+
+""" ERROR DB FUNCTIONS """
+def getErrorType(job_id):
+    """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
+    sess = GlobalDB.db().session
+    if sess.query(File).options(joinedload("file_status")).filter(
+                    File.job_id == job_id).one().file_status.name == "header_error":
+        # Header errors occurred, return that
+        return "header_errors"
+    elif sess.query(Job).filter(Job.job_id == job_id).one().number_of_errors > 0:
+        # Row errors occurred
+        return "row_errors"
+    else:
+        # No errors occurred during validation
+        return "none"
+
+def createFileIfNeeded(job_id, filename = None):
+    """ Return the existing file object if it exists, or create a new one """
+    sess = GlobalDB.db().session
+    try:
+        fileRec = sess.query(File).filter(File.job_id == job_id).one()
+        # Set new filename for changes to an existing submission
+        fileRec.filename = filename
+    except NoResultFound:
+        fileRec = createFile(job_id, filename)
+    return fileRec
+
+def createFile(job_id, filename):
+    """ Create a new file object for specified job and filename """
+    sess = GlobalDB.db().session
+    try:
+        int(job_id)
+    except:
+        raise ValueError("".join(["Bad job_id: ", str(job_id)]))
+
+    fileRec = File(job_id=job_id,
+                   filename=filename,
+                   file_status_id=FILE_STATUS_DICT['incomplete'])
+    sess.add(fileRec)
+    sess.commit()
+    return fileRec
+
+
+def writeFileError(job_id, filename, error_type, extra_info=None):
+    """ Write a file-level error to the file table
+
+    Args:
+        job_id: ID of job in job tracker
+        filename: name of error report in S3
+        error_type: type of error, value will be mapped to ValidationError class
+        extra_info: list of extra information to be included in file
+
+    Returns:
+        True if successful
+    """
+    sess = GlobalDB.db().session
+    try:
+        int(job_id)
+    except:
+        raise ValueError("".join(["Bad jobId: ", str(job_id)]))
+
+    # Get File object for this job ID or create it if it doesn't exist
+    fileRec = createFileIfNeeded(job_id, filename)
+
+    # Mark error type and add header info if present
+    fileRec.file_status_id = FILE_STATUS_DICT[ValidationError.getErrorTypeString(error_type)]
+    if extra_info is not None:
+        if "missing_headers" in extra_info:
+            fileRec.headers_missing = extra_info["missing_headers"]
+        if "duplicated_headers" in extra_info:
+            fileRec.headers_duplicated = extra_info["duplicated_headers"]
+
+    sess.add(fileRec)
+    sess.commit()
+    return True

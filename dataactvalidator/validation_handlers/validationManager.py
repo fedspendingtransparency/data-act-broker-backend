@@ -5,6 +5,7 @@ from csv import Error
 from sqlalchemy import or_, and_
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import createFileIfNeeded
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.validationModels import FileTypeValidation
 from dataactcore.models.baseInterface import BaseInterface
@@ -321,7 +322,7 @@ class ValidationManager:
         warningFileName = self.getFileName(getReportPath(job, 'warning'))
 
         # Create File Status object
-        interfaces.errorDb.createFileIfNeeded(jobId,fileName)
+        createFileIfNeeded(jobId,fileName)
 
         validationDB = interfaces.validationDb
         fieldList = validationDB.getFieldsByFileList(fileType)
@@ -488,7 +489,7 @@ class ValidationManager:
         """ Cross file validation job, test all rules with matching rule_timing """
         sess = GlobalDB.db().session
         # Create File Status object
-        interfaces.errorDb.createFileIfNeeded(job_id)
+        createFileIfNeeded(job_id)
         
         validationDb = interfaces.validationDb
         errorDb = interfaces.errorDb

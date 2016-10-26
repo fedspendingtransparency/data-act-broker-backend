@@ -11,6 +11,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.function_bag import writeFileError
 
 
 def createApp():
@@ -60,38 +61,38 @@ def createApp():
                 exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
                 return JsonResponse.error(exc,exc.status)
 
-            jobId = None
+            job_id = None
             manager = ValidationManager(local, error_report_path)
 
             try:
-                jobId = manager.getJobID(request)
+                job_id = manager.getJobID(request)
             except ResponseException as e:
-                manager.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,manager.filename)
+                manager.markJob(job_id,jobTracker,"invalid",interfaces.errorDb,manager.filename)
                 CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
                 return JsonResponse.error(e,e.status)
             except Exception as e:
                 exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
-                manager.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,manager.filename)
+                manager.markJob(job_id,jobTracker,"invalid",interfaces.errorDb,manager.filename)
                 CloudLogger.logError(str(e),exc,traceback.extract_tb(sys.exc_info()[2]))
                 return JsonResponse.error(exc,exc.status)
 
             try:
-                manager.testJobID(jobId,interfaces)
+                manager.testJobID(job_id,interfaces)
             except ResponseException as e:
                 open("errorLog","a").write(str(e) + "\n")
                 # Job is not ready to run according to job tracker, do not change status of job in job tracker
-                interfaces.errorDb.writeFileError(jobId,manager.filename,ValidationError.jobError)
+                writeFileError(job_id,manager.filename,ValidationError.jobError)
                 return JsonResponse.error(e,e.status)
             except Exception as e:
                 open("errorLog","a").write(str(e) + "\n")
                 exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
-                interfaces.errorDb.writeFileError(jobId,manager.filename,ValidationError.jobError)
+                writeFileError(job_id,manager.filename,ValidationError.jobError)
                 return JsonResponse.error(exc,exc.status)
 
-            thread = Thread(target=ThreadedFunction, args= (jobId,))
+            thread = Thread(target=ThreadedFunction, args= (job_id,))
 
             try :
-                jobTracker.markJobStatus(jobId,"running")
+                jobTracker.markJobStatus(job_id,"running")
             except Exception as e:
                 open("errorLog","a").write(str(e) + "\n")
                 exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))

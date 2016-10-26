@@ -1,12 +1,12 @@
-from sqlalchemy.orm import joinedload
-from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.errorModels import File, ErrorMetadata
+from dataactcore.models.errorModels import ErrorMetadata
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
 from dataactcore.interfaces.db import GlobalDB
 
 from dataactcore.models.lookups import FILE_STATUS_DICT, ERROR_TYPE_DICT
+
+from dataactcore.interfaces.function_bag import createFileIfNeeded
 
 class ErrorInterface(BaseInterface):
     """Manages communication with error database."""
@@ -15,44 +15,6 @@ class ErrorInterface(BaseInterface):
         """ Create empty row error dict """
         self.rowErrors = {}
         super(ErrorInterface, self).__init__()
-
-    def getErrorType(self,job_id):
-        """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
-        sess = GlobalDB.db().session
-        if sess.query(File).options(joinedload("file_status")).filter(File.job_id == job_id).one().file_status.name == "header_error":
-            # Header errors occurred, return that
-            return "header_errors"
-        elif self.interfaces.jobDb.getJobById(job_id).number_of_errors > 0:
-            # Row errors occurred
-            return "row_errors"
-        else:
-            # No errors occurred during validation
-            return "none"
-
-    def createFileIfNeeded(self, job_id, filename = None):
-        """ Return the existing file object if it exists, or create a new one """
-        sess = GlobalDB.db().session
-        try:
-            fileRec = sess.query(File).filter(File.job_id == job_id).one()
-            # Set new filename for changes to an existing submission
-            fileRec.filename = filename
-        except NoResultFound:
-            fileRec = self.createFile(job_id, filename)
-        return fileRec
-
-    def createFile(self, jobId, filename):
-        """ Create a new file object for specified job and filename """
-        try:
-            int(jobId)
-        except:
-            raise ValueError("".join(["Bad jobId: ", str(jobId)]))
-
-        fileRec = File(job_id=jobId,
-                       filename=filename,
-                       file_status_id=FILE_STATUS_DICT['incomplete'])
-        self.session.add(fileRec)
-        self.session.commit()
-        return fileRec
 
     def writeFileError(self, jobId, filename, errorType, extraInfo=None):
         """ Write a file-level error to the file table
@@ -66,13 +28,14 @@ class ErrorInterface(BaseInterface):
         Returns:
             True if successful
         """
+        sess = GlobalDB.db().session
         try:
             int(jobId)
         except:
             raise ValueError("".join(["Bad jobId: ", str(jobId)]))
 
         # Get File object for this job ID or create it if it doesn't exist
-        fileRec = self.createFileIfNeeded(jobId, filename)
+        fileRec = createFileIfNeeded(jobId, filename)
 
         # Mark error type and add header info if present
         fileRec.file_status_id = FILE_STATUS_DICT[ValidationError.getErrorTypeString(errorType)]
@@ -82,8 +45,8 @@ class ErrorInterface(BaseInterface):
             if "duplicated_headers" in extraInfo:
                 fileRec.headers_duplicated = extraInfo["duplicated_headers"]
 
-        self.session.add(fileRec)
-        self.session.commit()
+        sess.add(fileRec)
+        sess.commit()
         return True
 
     def markFileComplete(self, job_id, filename=None):
@@ -97,7 +60,7 @@ class ErrorInterface(BaseInterface):
             True if successful
         """
 
-        fileComplete = self.createFileIfNeeded(job_id, filename)
+        fileComplete = createFileIfNeeded(job_id, filename)
         fileComplete.file_status_id = FILE_STATUS_DICT['complete']
         self.session.commit()
         return True
@@ -120,7 +83,7 @@ class ErrorInterface(BaseInterface):
             True if successful
         """
         key = "".join([str(jobId), fieldName, str(errorType)])
-        if (key in self.rowErrors):
+        if key in self.rowErrors:
             self.rowErrors[key]["numErrors"] += 1
         else:
             errorDict = {"filename": filename, "fieldName": fieldName, "jobId": jobId, "errorType": errorType,
@@ -142,7 +105,7 @@ class ErrorInterface(BaseInterface):
             errorDict = self.rowErrors[key]
             # Set info for this error
             thisJob = errorDict["jobId"]
-            if (int(jobId) != int(thisJob)):
+            if int(jobId) != int(thisJob):
                 # This row is for a different job, skip it
                 continue
             fieldName = errorDict["fieldName"]
