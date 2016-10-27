@@ -73,22 +73,6 @@ class s3UrlHandler:
         seconds = int((datetime.utcnow()-datetime(1970,1,1)).total_seconds())
         return str(seconds)+"_"+filename
 
-    @staticmethod
-    def doesFileExist(filename):
-        """ Returns True if specified filename exists in the S3 bucket """
-        # Get key
-        try:
-            s3UrlHandler.REGION
-        except AttributeError as e:
-            s3UrlHandler.REGION = CONFIG_BROKER["aws_region"]
-        s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
-        bucket = s3connection.get_bucket(CONFIG_BROKER['aws_bucket'])
-        key = bucket.get_key(filename)
-        if key:
-            return True
-        else:
-            return False
-
     def getTemporaryCredentials(self,user):
         """
         Gets token that allows for S3 Uploads for seconds set in STS_LIFETIME

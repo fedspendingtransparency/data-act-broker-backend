@@ -141,22 +141,6 @@ class LoginSession():
         """
         session["_uid"] = "{}|{}".format(_create_identifier(),uuid4())
 
-    @staticmethod
-    def isSessionSecure(session):
-        """
-        arguments:
-
-        session -- (Session) the session object
-
-        checks if the user is the one who created the session.
-
-        """
-        if( "_uid" in session):
-            if not _create_identifier() in session["_uid"]:
-                return False
-            return True
-        else :
-            return False
 
 def toUnixTime(datetimeValue) :
     """

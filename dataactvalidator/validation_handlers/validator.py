@@ -154,29 +154,6 @@ class Validator(object):
                 return False
         raise ValueError("".join(["Data Type Error, Type: ",datatype,", Value: ",data]))
 
-    @staticmethod
-    def padToLength(data,padLength):
-        """ Pad data with leading zeros
-
-        Args:
-            data: string to be padded
-            padLength: length of string after padding
-
-        Returns:
-            padded string of length padLength
-        """
-        if data is None:
-            # Convert None to empty string so it can be padded with zeros
-            return data
-        data = data.strip()
-        if data == "":
-            # Empty values treated as null
-            return None
-        if len(data) <= padLength:
-            return data.zfill(padLength)
-        else:
-            raise ValueError("".join(["Value is too long: ",str(data)]))
-
     @classmethod
     def validateFileBySql(cls, submissionId, fileType, interfaces):
         """ Check all SQL rules
