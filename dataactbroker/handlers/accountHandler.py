@@ -1,5 +1,8 @@
 import re
 import time
+import requests
+import xmltodict
+
 from threading import Thread
 
 from dateutil.parser import parse
@@ -11,9 +14,14 @@ from dataactbroker.handlers.userHandler import UserHandler
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
+from dataactcore.interfaces.db import GlobalDB
+from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy import func
+from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
-
+from dataactcore.config import CONFIG_BROKER
+from dataactcore.models.lookups import USER_STATUS_DICT
 
 class AccountHandler:
     """
@@ -101,16 +109,7 @@ class AccountHandler:
                     # Reset incorrect password attempt count to 0
                     self.resetPasswordCount(user)
 
-                    LoginSession.login(session,user.user_id)
-                    permissionList = []
-                    for permission in self.interfaces.userDb.getPermissionList():
-                        if(self.interfaces.userDb.hasPermission(user, permission.name)):
-                            permissionList.append(permission.permission_type_id)
-                    self.interfaces.userDb.updateLastLogin(user)
-                    agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
-                    return JsonResponse.create(StatusCode.OK,{"message":"Login successful","user_id": int(user.user_id),
-                                                              "name":user.name,"title":user.title,"agency_name":agency_name,
-                                                              "cgac_code":user.cgac_code, "permissions" : permissionList})
+                    return self.create_session_and_response(session, user)
                 else :
                     # increase incorrect password attempt count by 1
                     # if this is the 3rd incorrect attempt, lock account
@@ -137,6 +136,123 @@ class AccountHandler:
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
         return self.response
 
+
+    def max_login(self,session):
+        """
+
+        Logs a user in if their password matches
+
+        arguments:
+
+        session  -- (Session) object from flask
+
+        return the reponse object
+
+        """
+        try:
+            safeDictionary = RequestDictionary(self.request)
+
+            # Obtain POST content
+            ticket = safeDictionary.getValue("ticket")
+            service = safeDictionary.getValue('service')
+            parent_group = CONFIG_BROKER['parent_group']
+
+            # Call MAX's serviceValidate endpoint and retrieve the response
+            max_dict = self.get_max_dict(ticket, service)
+
+            if not 'cas:authenticationSuccess' in max_dict['cas:serviceResponse']:
+                raise ValueError("You have failed to login successfully with MAX")
+
+            # Grab the email and list of groups from MAX's response
+            email = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['maxAttribute:Email-Address']
+            group_list_all = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['maxAttribute:GroupList'].split(',')
+            group_list = [g for g in group_list_all if g.startswith(parent_group)]
+
+            # Deny access if not in the parent group aka they're not allowed to access the website all together
+            if not parent_group in group_list:
+                raise ValueError("You have logged in with MAX but do not have permission to access the broker. Please "
+                                 "contact DATABroker@fiscal.treasury.gov to obtain access.")
+
+            cgac_group = [g for g in group_list if len(g) == len(parent_group + "-CGAC_")+3]
+
+            # Deny access if they are not aligned with an agency
+            if not cgac_group:
+                raise ValueError("You have logged in with MAX but do not have permission to access the broker. Please "
+                                 "contact DATABroker@fiscal.treasury.gov to obtain access.")
+
+            try:
+                sess = GlobalDB.db().session
+                user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()
+
+                # If the user does not exist, create them since they are allowed to access the site because they got
+                # past the above group membership checks
+                if user is None:
+                    user = User()
+
+                    first_name = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes'][
+                        'maxAttribute:First-Name']
+                    middle_name = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes'][
+                        'maxAttribute:Middle-Name']
+                    last_name = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes'][
+                        'maxAttribute:Last-Name']
+
+                    user.email = email
+
+                    # Check for None first so the condition can short-circuit without
+                    # having to worry about calling strip() on a None object
+                    if middle_name is None or middle_name.strip() == '':
+                        user.name = first_name + " " + last_name
+                    else:
+                        user.name = first_name + " " + middle_name[0] + ". " + last_name
+                    user.user_status_id = user.user_status_id = USER_STATUS_DICT['approved']
+
+                    # If part of the SYS agency, use that as the cgac otherwise use the first agency provided
+                    if [g for g in cgac_group if g.endswith("SYS")]:
+                        user.cgac_code = "SYS"
+                        # website admin permissions
+                        UserHandler().grantPermission(user, 'website_admin')
+                    else:
+                        user.cgac_code = cgac_group[0][-3:]
+                        # regular user permissions
+                        UserHandler().grantPermission(user, 'agency_user')
+
+                    sess.add(user)
+                    sess.commit()
+
+            except MultipleResultsFound:
+                raise ValueError("An error occurred during login.")
+
+            return self.create_session_and_response(session, user)
+
+        except (TypeError, KeyError, NotImplementedError) as e:
+            # Return a 400 with appropriate message
+            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+        except ValueError as e:
+            # Return a 401 for login denied
+            return JsonResponse.error(e,StatusCode.LOGIN_REQUIRED)
+        except Exception as e:
+            # Return 500
+            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+        return self.response
+
+    def get_max_dict(self, ticket, service):
+        url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
+        max_xml = requests.get(url).content
+        return xmltodict.parse(max_xml)
+
+    def create_session_and_response(self, session, user):
+        # Create session
+        LoginSession.login(session, user.user_id)
+        permissionList = []
+        for permission in self.interfaces.userDb.getPermissionList():
+            if (self.interfaces.userDb.hasPermission(user, permission.name)):
+                permissionList.append(permission.permission_type_id)
+        self.interfaces.userDb.updateLastLogin(user)
+        agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+        return JsonResponse.create(StatusCode.OK, {"message": "Login successful", "user_id": int(user.user_id),
+                                                   "name": user.name, "title": user.title,
+                                                   "agency_name": agency_name,
+                                                   "cgac_code": user.cgac_code, "permissions": permissionList})
 
     def logout(self,session):
         """

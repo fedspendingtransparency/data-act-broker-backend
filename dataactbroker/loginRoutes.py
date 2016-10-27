@@ -12,6 +12,11 @@ def add_login_routes(app,bcrypt):
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return RouteUtils.run_instance_function(accountManager, accountManager.login, session)
 
+    @app.route("/v1/max_login/", methods = ["POST"])
+    def max_login():
+        accountManager = AccountHandler(request)
+        return RouteUtils.run_instance_function(accountManager, accountManager.max_login, session)
+
     @app.route("/v1/logout/", methods = ["POST"])
     def logout():
         accountManager = AccountHandler(request,bcrypt = bcrypt)
