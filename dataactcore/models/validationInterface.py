@@ -18,10 +18,6 @@ class ValidationInterface(BaseInterface):
     def __init__(self):
         super(ValidationInterface, self).__init__()
 
-    def getAllAgencies(self):
-        """ Return all agencies """
-        return self.session.query(CGAC).all()
-
     def getAgencyName(self, cgac_code):
         agency = self.session.query(CGAC).filter(CGAC.cgac_code == cgac_code).first()
         return agency.agency_name if agency is not None else None
