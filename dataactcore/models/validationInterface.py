@@ -1,7 +1,6 @@
 from sqlalchemy.orm import subqueryload
 
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.domainModels import CGAC
 from dataactcore.models.validationModels import (
     FileColumn, FileTypeValidation, RuleSeverity)
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardFinancial, Appropriation, ObjectClassProgramActivity, AwardProcurement
@@ -17,10 +16,6 @@ class ValidationInterface(BaseInterface):
 
     def __init__(self):
         super(ValidationInterface, self).__init__()
-
-    def getAgencyName(self, cgac_code):
-        agency = self.session.query(CGAC).filter(CGAC.cgac_code == cgac_code).first()
-        return agency.agency_name if agency is not None else None
 
     def getFileTypeById(self, id):
         """ Return name of file type """
