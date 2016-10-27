@@ -1,6 +1,7 @@
 import csv
 import os
 import logging
+
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.validationModels import FileColumn, FileTypeValidation, FieldType
 from dataactvalidator.app import createApp
@@ -39,6 +40,7 @@ class SchemaLoader(object):
             # add schema to database
             with open(schemaFileName, 'rU') as csvfile:
                 reader = csv.DictReader(csvfile)
+                col_count = 0
                 for record in reader:
                     record = FieldCleaner.cleanRecord(record)
 
@@ -54,10 +56,13 @@ class SchemaLoader(object):
                             record["data_type"],
                             record["padded_flag"],
                             record["field_length"])
+                        col_count += 1
                     else:
                             raise ValueError('CSV File does not follow schema')
 
                 sess.commit()
+                logger.info('{} {} schema records added to {}'.format(
+                    col_count, fileTypeName, FileColumn.__tablename__))
 
     @staticmethod
     def removeColumnsByFileType(sess, fileType):
@@ -87,8 +92,8 @@ class SchemaLoader(object):
         newColumn = FileColumn()
         newColumn.file = fileType
         newColumn.required = False
-        newColumn.name = fieldName
-        newColumn.name_short = fieldNameShort
+        newColumn.name = fieldName.lower().strip().replace(' ', '_')
+        newColumn.name_short = fieldNameShort.lower().strip().replace(' ', '_')
         field_type = field_type.upper()
 
         # Allow for other names
