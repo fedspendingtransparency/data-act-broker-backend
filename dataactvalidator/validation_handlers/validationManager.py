@@ -5,7 +5,7 @@ from csv import Error
 from sqlalchemy import or_, and_
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import createFileIfNeeded
+from dataactcore.interfaces.function_bag import createFileIfNeeded, writeFileError
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.validationModels import FileTypeValidation
 from dataactcore.models.baseInterface import BaseInterface
@@ -42,13 +42,12 @@ class ValidationManager:
         self.directory = directory
 
     @staticmethod
-    def markJob(jobId,jobTracker,status,errorDb,filename=None, fileError = ValidationError.unknownError, extraInfo = None):
+    def markJob(job_id,jobTracker,status,filename=None, fileError = ValidationError.unknownError, extraInfo = None):
         """ Update status of a job in job tracker database
         Args:
-            jobId: Job to be updated
+            job_id: Job to be updated
             jobTracker: Interface object for job tracker
             status: New status for specified job
-            errorDb: Interface object for error database
             filename: Filename of file to be validated
             fileError: Type of error that occurred if this is an invalid or failed status
             extraInfo: Dict of extra fields to attach to exception
@@ -56,8 +55,8 @@ class ValidationManager:
         try:
             if filename != None and (status == "invalid" or status == "failed"):
                 # Mark the file error that occurred
-                errorDb.writeFileError(jobId, filename, fileError, extraInfo)
-            jobTracker.markJobStatus(jobId, status)
+                writeFileError(job_id, filename, fileError, extraInfo)
+            jobTracker.markJobStatus(job_id, status)
         except ResponseException as e:
             # Could not get a unique job ID in the database, either a bad job ID was passed in
             # or the record of that job was lost.
@@ -125,17 +124,14 @@ class ValidationManager:
             return
         except ResponseException as e:
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId, jobTracker, "invalid", errorDb, self.filename,
-                         e.errorType, e.extraInfo)
+            self.markJob(jobId, jobTracker, "invalid", self.filename, e.errorType, e.extraInfo)
         except ValueError as e:
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId, jobTracker, "invalid", errorDb, self.filename,
-                         ValidationError.unknownError)
+            self.markJob(jobId, jobTracker, "invalid", self.filename, ValidationError.unknownError)
         except Exception as e:
             # Something unknown happened we may need to try again!
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId,jobTracker, "failed", errorDb, self.filename,
-                         ValidationError.unknownError)
+            self.markJob(jobId,jobTracker, "failed", self.filename, ValidationError.unknownError)
         finally:
             interfaces.close()
 
@@ -565,45 +561,44 @@ class ValidationManager:
         """
         # Create connection to job tracker database
         self.filename = None
-        jobId = None
+        job_id = None
         jobTracker = None
 
         try:
             jobTracker = interfaces.jobDb
             requestDict = RequestDictionary(request)
             if requestDict.exists("job_id"):
-                jobId = requestDict.getValue("job_id")
+                job_id = requestDict.getValue("job_id")
             else:
                 # Request does not have a job ID, can't validate
                 raise ResponseException("No job ID specified in request",
                                         StatusCode.CLIENT_ERROR)
 
             # Check that job exists and is ready
-            if not jobTracker.runChecks(jobId):
+            if not jobTracker.runChecks(job_id):
                 raise ResponseException("Checks failed on Job ID",
                                         StatusCode.CLIENT_ERROR)
-            jobType = interfaces.jobDb.checkJobType(jobId)
+            jobType = interfaces.jobDb.checkJobType(job_id)
 
         except ResponseException as e:
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
             if e.errorType == None:
                 # Error occurred while trying to get and check job ID
                 e.errorType = ValidationError.jobError
-            interfaces.errorDb.writeFileError(jobId, self.filename, e.errorType, e.extraInfo)
+            writeFileError(job_id, self.filename, e.errorType, e.extraInfo)
             return JsonResponse.error(e, e.status)
         except Exception as e:
             exc = ResponseException(str(e), StatusCode.INTERNAL_ERROR,type(e))
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId, jobTracker, "failed", interfaces.errorDb,
-                self.filename, ValidationError.unknownError)
+            self.markJob(job_id, jobTracker, "failed", self.filename, ValidationError.unknownError)
             return JsonResponse.error(exc, exc.status)
 
         try:
-            jobTracker.markJobStatus(jobId, "running")
+            jobTracker.markJobStatus(job_id, "running")
             if jobType == interfaces.jobDb.getJobTypeId("csv_record_validation"):
-                self.runValidation(jobId, interfaces)
+                self.runValidation(job_id, interfaces)
             elif jobType == interfaces.jobDb.getJobTypeId("validation"):
-                self.runCrossValidation(jobId, interfaces)
+                self.runCrossValidation(job_id, interfaces)
             else:
                 raise ResponseException("Bad job type for validator",
                     StatusCode.INTERNAL_ERROR)
@@ -611,25 +606,23 @@ class ValidationManager:
             return JsonResponse.create(StatusCode.OK, {"message":"Validation complete"})
         except ResponseException as e:
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId, jobTracker, "invalid", interfaces.errorDb,
-                self.filename,e.errorType, e.extraInfo)
+            self.markJob(job_id, jobTracker, "invalid", self.filename,e.errorType, e.extraInfo)
             return JsonResponse.error(e, e.status)
         except ValueError as e:
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
             # Problem with CSV headers
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e), ValidationError.unknownError) #"Internal value error"
-            self.markJob(jobId,jobTracker, "invalid", interfaces.errorDb, self.filename, ValidationError.unknownError)
+            self.markJob(job_id,jobTracker, "invalid", self.filename, ValidationError.unknownError)
             return JsonResponse.error(exc, exc.status)
         except Error as e:
             CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
             # CSV file not properly formatted (usually too much in one field)
             exc = ResponseException("Internal error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
-            self.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,self.filename,ValidationError.unknownError)
+            self.markJob(job_id,jobTracker,"invalid",self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc, exc.status)
         except Exception as e:
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
             exc = ResponseException(str(e), StatusCode.INTERNAL_ERROR, type(e),
                 ValidationError.unknownError)
-            self.markJob(jobId, jobTracker, "failed", interfaces.errorDb,
-                self.filename, ValidationError.unknownError)
+            self.markJob(job_id, jobTracker, "failed", self.filename, ValidationError.unknownError)
             return JsonResponse.error(exc, exc.status)

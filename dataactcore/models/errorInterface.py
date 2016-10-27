@@ -16,39 +16,6 @@ class ErrorInterface(BaseInterface):
         self.rowErrors = {}
         super(ErrorInterface, self).__init__()
 
-    def writeFileError(self, jobId, filename, errorType, extraInfo=None):
-        """ Write a file-level error to the file table
-
-        Args:
-            jobId: ID of job in job tracker
-            filename: name of error report in S3
-            errorType: type of error, value will be mapped to ValidationError class
-            extraInfo: list of extra information to be included in file
-
-        Returns:
-            True if successful
-        """
-        sess = GlobalDB.db().session
-        try:
-            int(jobId)
-        except:
-            raise ValueError("".join(["Bad jobId: ", str(jobId)]))
-
-        # Get File object for this job ID or create it if it doesn't exist
-        fileRec = createFileIfNeeded(jobId, filename)
-
-        # Mark error type and add header info if present
-        fileRec.file_status_id = FILE_STATUS_DICT[ValidationError.getErrorTypeString(errorType)]
-        if extraInfo is not None:
-            if "missing_headers" in extraInfo:
-                fileRec.headers_missing = extraInfo["missing_headers"]
-            if "duplicated_headers" in extraInfo:
-                fileRec.headers_duplicated = extraInfo["duplicated_headers"]
-
-        sess.add(fileRec)
-        sess.commit()
-        return True
-
     def markFileComplete(self, job_id, filename=None):
         """ Marks file's status as complete
 
