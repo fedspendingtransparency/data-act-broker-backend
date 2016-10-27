@@ -1,6 +1,8 @@
 from sqlalchemy.orm import joinedload
+
 from dataactcore.models.errorModels import File, ErrorMetadata
 from dataactcore.models.errorInterface import ErrorInterface
+from dataactcore.models.lookups import FILE_TYPE_DICT_ID
 
 
 class ErrorHandler(ErrorInterface) :
@@ -20,18 +22,7 @@ class ErrorHandler(ErrorInterface) :
         for result in queryResult:
             recordDict = {"field_name":result.field_name,"error_name": result.error_type.name, "error_description": result.error_type.description, "occurrences": str(result.occurrences), "rule_failed": result.rule_failed, "original_label":result.original_rule_label}
             if includeFileTypes:
-                try:
-                    recordDict["source_file"] = interfaces.validationDb.getFileTypeById(result.file_type_id)
-                except ValueError as e:
-                    # If no results, return empty string
-                    recordDict["source_file"] = ''
-
-                try:
-                    recordDict["target_file"] = interfaces.validationDb.getFileTypeById(result.target_file_type_id)
-                except ValueError as e:
-                    # If no results, return empty string
-                    recordDict["target_file"] = ''
-
-
+                recordDict['source_file'] = FILE_TYPE_DICT_ID.get(result.file_type_id, '')
+                recordDict['target_file'] = FILE_TYPE_DICT_ID.get(result.target_file_type_id, '')
             resultList.append(recordDict)
         return resultList

@@ -17,10 +17,6 @@ class ValidationInterface(BaseInterface):
     def __init__(self):
         super(ValidationInterface, self).__init__()
 
-    def getFileTypeById(self, id):
-        """ Return name of file type """
-        return self.getNameFromDict(FileTypeValidation,"TYPE_DICT","name",id,"file_id")
-
     def getFileTypeIdByName(self, fileType):
         """ Return file type ID for given name """
         return self.getNameFromDict(FileTypeValidation, "TYPE_ID_DICT", "file_id", fileType, "name")
