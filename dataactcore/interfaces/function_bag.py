@@ -288,7 +288,6 @@ def createFile(job_id, filename):
     sess.commit()
     return fileRec
 
-
 def writeFileError(job_id, filename, error_type, extra_info=None):
     """ Write a file-level error to the file table
 
@@ -319,5 +318,21 @@ def writeFileError(job_id, filename, error_type, extra_info=None):
             fileRec.headers_duplicated = extra_info["duplicated_headers"]
 
     sess.add(fileRec)
+    sess.commit()
+    return True
+
+def markFileComplete(job_id, filename=None):
+    """ Marks file's status as complete
+
+    Args:
+        job_id: ID of job in job tracker
+        filename: name of error report in S3
+
+    Returns:
+        True if successful
+    """
+    sess = GlobalDB.db().session
+    fileComplete = createFileIfNeeded(job_id, filename)
+    fileComplete.file_status_id = FILE_STATUS_DICT['complete']
     sess.commit()
     return True

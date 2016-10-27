@@ -5,7 +5,7 @@ from csv import Error
 from sqlalchemy import or_, and_
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import createFileIfNeeded, writeFileError
+from dataactcore.interfaces.function_bag import createFileIfNeeded, writeFileError, markFileComplete
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.validationModels import FileTypeValidation
 from dataactcore.models.baseInterface import BaseInterface
@@ -424,7 +424,7 @@ class ValidationManager:
             jobTracker.populateSubmissionErrorInfo(submissionId)
             # Mark validation as finished in job tracker
             jobTracker.markJobStatus(jobId,"finished")
-            interfaces.errorDb.markFileComplete(jobId, self.filename)
+            markFileComplete(jobId, self.filename)
         finally:
             # Ensure the file always closes
             reader.close()
@@ -549,7 +549,7 @@ class ValidationManager:
             interfaces.jobDb.setPublishableFlag(submissionId, True)
 
         # Mark validation complete
-        interfaces.errorDb.markFileComplete(job_id)
+        markFileComplete(job_id)
 
     def validateJob(self, request,interfaces):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
