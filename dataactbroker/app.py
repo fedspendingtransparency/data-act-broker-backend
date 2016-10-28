@@ -45,7 +45,7 @@ def createApp():
     else:
         cors = CORS(app, supports_credentials=False, origins=CONFIG_SERVICES['cross_origin_url'],
                     allow_headers = "*", expose_headers = "X-Session-Id")
-    # Enable AWS Sessions
+    # Enable DB session table handling
     app.session_interface = UserSessionInterface()
     # Set up bcrypt
     bcrypt = Bcrypt(app)

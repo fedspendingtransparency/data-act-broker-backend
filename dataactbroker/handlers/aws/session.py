@@ -3,7 +3,7 @@ from uuid import uuid4
 from datetime import datetime, timedelta
 from flask.sessions import SessionInterface, SessionMixin
 from flask_login import _create_identifier
-from dataactcore.models.baseInterface import GlobalDB
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.userModel import SessionMap
 
 
@@ -158,6 +158,7 @@ class UserSession(dict, SessionMixin):
     """
     Class that wraps around normal Flask Session object
     """
+    pass
 
 class UserSessionInterface(SessionInterface):
     """
@@ -270,7 +271,7 @@ class SessionTable :
         uid -- (String) the uid
         return (boolean) if the session
         """
-        item = GlobalDB.db().session.query(SessionMap).filter_by(uid=uid).first()
+        item = GlobalDB.db().session.query(SessionMap).filter_by(uid=uid).one_or_none()
         if item is not None:
             # session found
             return True
@@ -308,7 +309,7 @@ class SessionTable :
         Updates the exsiting session or creates a new one
         """
         sess = GlobalDB.db().session
-        user_session = sess.query(SessionMap).filter_by(uid=uid).first()
+        user_session = sess.query(SessionMap).filter_by(uid=uid).one_or_none()
         if user_session is None:
             # No existing session found, create a new one
             new_session = SessionMap(uid = uid, data = str(data), expiration = toUnixTime(expiration))

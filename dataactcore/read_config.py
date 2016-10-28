@@ -124,10 +124,7 @@ if "values_to_log" in CONFIG_LOGGING:
         category = CONFIG_CATEGORIES[category_yaml_name]
         category_message = "### {}".format(category_yaml_name)
         for key in CONFIG_LOGGING["values_to_log"][category_yaml_name]:
-            if key not in category:
-                value = "Value not provided in config"
-            else:
-                value = category[key]
+            value = category.get(key,"Value not provided in config")
             category_message = "{}, {}: {}".format(category_message, key,value)
         log_message = " ".join([log_message, category_message])
 
