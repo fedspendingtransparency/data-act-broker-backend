@@ -19,6 +19,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy import func
 from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT
 
@@ -647,19 +648,19 @@ class AccountHandler:
 
     def listSubmissionsByCurrentUserAgency(self):
         """ List all submission IDs associated with the current user's agency """
-        userId = LoginSession.getName(flaskSession)
-        user = self.interfaces.userDb.getUserByUID(userId)
+        user_id = LoginSession.getName(flaskSession)
+        user = self.interfaces.userDb.getUserByUID(user_id)
         submissions = self.interfaces.jobDb.getSubmissionsByUserAgency(user)
         submissionDetails = []
         for submission in submissions:
-            jobIds = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
+            job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
             total_size = 0
-            for jobId in jobIds:
-                file_size = self.interfaces.jobDb.getFileSize(jobId)
+            for job_id in job_ids:
+                file_size = self.interfaces.jobDb.getFileSize(job_id)
                 total_size += file_size if file_size is not None else 0
 
-            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id, self.interfaces)
-            error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds, self.interfaces.validationDb)
+            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
+            error_count = sumNumberOfErrorsForJobList(submission.submission_id)
             if submission.user_id is None:
                 submission_user_name = "No user"
             else:
@@ -672,23 +673,23 @@ class AccountHandler:
 
     def listSubmissionsByCurrentUser(self):
         """ List all submission IDs associated with the current user ID """
-        userId = LoginSession.getName(flaskSession)
-        user = self.interfaces.userDb.getUserByUID(userId)
-        submissions = self.interfaces.jobDb.getSubmissionsByUserId(userId)
+        user_id = LoginSession.getName(flaskSession)
+        user = self.interfaces.userDb.getUserByUID(user_id)
+        submissions = self.interfaces.jobDb.getSubmissionsByUserId(user_id)
         submissionDetails = []
         for submission in submissions:
-            jobIds = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
+            job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
             total_size = 0
-            for jobId in jobIds:
-                file_size = self.interfaces.jobDb.getFileSize(jobId)
+            for job_id in job_ids:
+                file_size = self.interfaces.jobDb.getFileSize(job_id)
                 total_size += file_size if file_size is not None else 0
 
-            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id, self.interfaces)
-            error_count = self.interfaces.errorDb.sumNumberOfErrorsForJobList(jobIds, self.interfaces.validationDb)
+            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
+            error_count = sumNumberOfErrorsForJobList(submission.submission_id)
             submissionDetails.append(
                 {"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
                  "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
-                                      "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": str(userId),
+                                      "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": str(user_id),
                                                                                                     "name": user.name}})
         return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
 

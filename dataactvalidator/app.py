@@ -11,6 +11,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.function_bag import writeFileError
 
 
 def createApp():
