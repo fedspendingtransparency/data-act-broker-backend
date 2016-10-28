@@ -11,6 +11,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.function_bag import writeFileError
 
 
 def createApp():
@@ -39,68 +40,6 @@ def createApp():
         def testApp():
             """Confirm server running."""
             return "Validator is running"
-
-        @app.route("/validate_threaded/", methods=["POST"])
-        def validate_threaded():
-            """Start the validation process on a new thread."""
-            @copy_current_request_context
-            def ThreadedFunction(arg):
-                """The new thread."""
-                threadedManager = ValidationManager(local, error_report_path)
-                threadedManager.threadedValidateJob(arg)
-
-            try:
-                interfaces = InterfaceHolder()
-                jobTracker = interfaces.jobDb
-            except ResponseException as e:
-                open("errorLog","a").write(str(e) + "\n")
-                return JsonResponse.error(e,e.status)
-            except Exception as e:
-                open("errorLog","a").write(str(e) + "\n")
-                exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-                return JsonResponse.error(exc,exc.status)
-
-            jobId = None
-            manager = ValidationManager(local, error_report_path)
-
-            try:
-                jobId = manager.getJobID(request)
-            except ResponseException as e:
-                manager.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,manager.filename)
-                CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
-                return JsonResponse.error(e,e.status)
-            except Exception as e:
-                exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
-                manager.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,manager.filename)
-                CloudLogger.logError(str(e),exc,traceback.extract_tb(sys.exc_info()[2]))
-                return JsonResponse.error(exc,exc.status)
-
-            try:
-                manager.testJobID(jobId,interfaces)
-            except ResponseException as e:
-                open("errorLog","a").write(str(e) + "\n")
-                # Job is not ready to run according to job tracker, do not change status of job in job tracker
-                interfaces.errorDb.writeFileError(jobId,manager.filename,ValidationError.jobError)
-                return JsonResponse.error(e,e.status)
-            except Exception as e:
-                open("errorLog","a").write(str(e) + "\n")
-                exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
-                interfaces.errorDb.writeFileError(jobId,manager.filename,ValidationError.jobError)
-                return JsonResponse.error(exc,exc.status)
-
-            thread = Thread(target=ThreadedFunction, args= (jobId,))
-
-            try :
-                jobTracker.markJobStatus(jobId,"running")
-            except Exception as e:
-                open("errorLog","a").write(str(e) + "\n")
-                exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-                return JsonResponse.error(exc,exc.status)
-
-            interfaces.close()
-            thread.start()
-
-            return JsonResponse.create(StatusCode.OK, {"message":"Validation complete"})
 
         @app.route("/validate/",methods=["POST"])
         def validate():
