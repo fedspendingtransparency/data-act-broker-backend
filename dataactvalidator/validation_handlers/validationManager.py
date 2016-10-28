@@ -94,49 +94,6 @@ class ValidationManager:
 
         return True
 
-    def threadedValidateJob(self, jobId):
-        """
-        args
-        jobId -- (Integer) a valid jobId
-        This method runs on a new thread thus
-        there are zero error messages other then the
-        job status being updated
-        """
-
-        # As this is the start of a new thread, first generate new connections to the databases
-        BaseInterface.interfaces = None
-        interfaces = InterfaceHolder()
-
-        self.filename = ""
-        jobTracker = interfaces.jobDb
-        errorDb = interfaces.errorDb
-        try:
-            jobType = interfaces.jobDb.checkJobType(jobId)
-            if jobType == interfaces.jobDb.getJobTypeId("csv_record_validation"):
-                self.runValidation(jobId, interfaces)
-            elif jobType == interfaces.jobDb.getJobTypeId("validation"):
-                self.runCrossValidation(jobId, interfaces)
-            else:
-                raise ResponseException("Bad job type for validator",
-                                        StatusCode.INTERNAL_ERROR)
-            self.runValidation(jobId, interfaces)
-            return
-        except ResponseException as e:
-            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId, jobTracker, "invalid", errorDb, self.filename,
-                         e.errorType, e.extraInfo)
-        except ValueError as e:
-            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId, jobTracker, "invalid", errorDb, self.filename,
-                         ValidationError.unknownError)
-        except Exception as e:
-            # Something unknown happened we may need to try again!
-            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
-            self.markJob(jobId,jobTracker, "failed", errorDb, self.filename,
-                         ValidationError.unknownError)
-        finally:
-            interfaces.close()
-
     def getReader(self):
         """
         Gets the reader type based on if its local install or not.
