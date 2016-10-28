@@ -1,12 +1,9 @@
-from sqlalchemy.orm import subqueryload
-
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.validationModels import (
     FileColumn, FileTypeValidation, RuleSeverity)
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardFinancial, Appropriation, ObjectClassProgramActivity, AwardProcurement
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 
 class ValidationInterface(BaseInterface):
@@ -16,10 +13,6 @@ class ValidationInterface(BaseInterface):
 
     def __init__(self):
         super(ValidationInterface, self).__init__()
-
-    def getFileTypeIdByName(self, fileType):
-        """ Return file type ID for given name """
-        return self.getNameFromDict(FileTypeValidation, "TYPE_ID_DICT", "file_id", fileType, "name")
 
     def getFileTypeList(self):
         """ Return list of file types """
@@ -62,62 +55,6 @@ class ValidationInterface(BaseInterface):
         # Delete existing records for this model
         self.session.query(model).filter(model.submission_id == submissionId).delete()
         self.session.commit()
-
-    def getFieldsByFileList(self, fileType):
-        """ Returns a list of valid field names that can appear in this type of file
-
-        Args:
-        fileType -- One of the set of valid types of files (e.g. Award, AwardFinancial)
-
-        Returns:
-        list of names
-        """
-        fileId = self.getFileTypeIdByName(fileType)
-        if (fileId is None):
-            raise ValueError("Filetype does not exist")
-        queryResult = self.session.query(FileColumn).filter(FileColumn.file_id == fileId).all()
-        for result in queryResult:
-            result.name = FieldCleaner.cleanString(result.name)  # Standardize field names
-            result.name_short = FieldCleaner.cleanString(result.name_short)
-        return queryResult
-
-    def getFieldsByFile(self, fileType, shortCols=False):
-        """ Returns a dict of valid field names that can appear in this type of file
-
-        Args:
-        fileType -- One of the set of valid types of files (e.g. Award, AwardFinancial)
-        shortCols -- If true, return the short column names instead of the long names
-
-        Returns:
-        dict with field names as keys and values are ORM object FileColumn
-        """
-        returnDict = {}
-        fileId = self.getFileTypeIdByName(fileType)
-        if (fileId is None):
-            raise ValueError("File type does not exist")
-        queryResult = self.session.query(FileColumn).options(subqueryload("field_type")).filter(
-            FileColumn.file_id == fileId).all()
-        for column in queryResult:
-            if shortCols:
-                returnDict[FieldCleaner.cleanString(column.name_short)] = column
-            else:
-                returnDict[FieldCleaner.cleanString(column.name)] = column
-        return returnDict
-
-    def getFileColumnsByFile(self, fileType):
-        """ Returns a list of File Column objects that appear in this type of file
-
-        Args:
-        fileType -- One of the set of valid types of files (e.g. Award, AwardFinancial)
-
-        Returns:
-        dict with field names as keys and values are ORM object FileColumn
-        """
-        fileId = self.getFileTypeIdByName(fileType)
-        if (fileId is None):
-            raise ValueError("File type does not exist")
-        return self.session.query(FileColumn).options(subqueryload("field_type")).filter(
-            FileColumn.file_id == fileId).all()
 
     def getLongToShortColname(self):
         """Return a dictionary that maps schema field names to shorter, machine-friendly versions."""

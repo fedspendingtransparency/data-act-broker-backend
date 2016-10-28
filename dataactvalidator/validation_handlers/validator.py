@@ -1,7 +1,7 @@
 from decimal import *
 
 from dataactcore.models.validationModels import RuleSql
-from dataactcore.models.lookups import FILE_TYPE_DICT_ID
+from dataactcore.models.lookups import FILE_TYPE_DICT_ID, FILE_TYPE_DICT
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -180,7 +180,7 @@ class Validator(object):
         CloudLogger.logError("VALIDATOR_INFO: ", "Beginning SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
 
         # Pull all SQL rules for this file type
-        fileId = interfaces.validationDb.getFileTypeIdByName(fileType)
+        fileId = FILE_TYPE_DICT[fileType]
         rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
             RuleSql.rule_cross_file_flag == False).all()
         errors = []

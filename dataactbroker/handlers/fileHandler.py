@@ -15,6 +15,7 @@ from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
 from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -104,9 +105,9 @@ class FileHandler:
             # For each pair of files, get url for the report
             fileTypes = self.interfaces.validationDb.getFileTypeList()
             for source in fileTypes:
-                sourceId = self.interfaces.validationDb.getFileTypeIdByName(source)
+                sourceId = FILE_TYPE_DICT[source]
                 for target in fileTypes:
-                    targetId = self.interfaces.validationDb.getFileTypeIdByName(target)
+                    targetId = FILE_TYPE_DICT[target]
                     if targetId <= sourceId:
                         # Skip redundant reports
                         continue
