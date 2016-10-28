@@ -154,12 +154,12 @@ def toUnixTime(datetimeValue) :
 
 
 
-class DynamoSession(dict, SessionMixin):
+class UserSession(dict, SessionMixin):
     """
     Class that wraps around normal Flask Session object
     """
 
-class DynamoInterface(SessionInterface):
+class UserSessionInterface(SessionInterface):
     """
 
     Class That implements the SessionInterface and uses SessionTable to store data
@@ -182,13 +182,13 @@ class DynamoInterface(SessionInterface):
         app -- (Flask) the Flask applcation
         request -- (Request)  the request object
 
-        implements the open_session method that pulls or creates a new DynamoSession object
+        implements the open_session method that pulls or creates a new UserSession object
 
         """
         sid = request.headers.get("x-session-id")
         if(sid and SessionTable.doesSessionExist(sid)):
             if SessionTable.getTimeout(sid)> toUnixTime(datetime.utcnow()):
-                session_dict =  DynamoSession()
+                session_dict =  UserSession()
                 # Replace single quotes with double and read as dict, also need to correct True, False, and None for json
                 data_string = SessionTable.getData(sid).replace("'",'"').replace("True","true")\
                     .replace("False","false").replace("None","null")
@@ -200,7 +200,7 @@ class DynamoInterface(SessionInterface):
         # This can be made better most likely need to do research
         # Maybe Hash(time + server id + random number)? Want to prevent any conflicts
         sid = str(uuid4())
-        session_dict = DynamoSession()
+        session_dict = UserSession()
         session_dict["sid"] = sid
         return session_dict
 
@@ -233,10 +233,10 @@ class DynamoInterface(SessionInterface):
         if(not "_uid" in session):
             LoginSession.resetID(session)
         SessionTable.newSession(session["sid"],session,expiration)
-        DynamoInterface.CountLimit = DynamoInterface.CountLimit + 1
-        if DynamoInterface.CountLimit % DynamoInterface.SESSSION_CLEAR_COUNT_LIMIT == 0 :
+        UserSessionInterface.CountLimit = UserSessionInterface.CountLimit + 1
+        if UserSessionInterface.CountLimit % UserSessionInterface.SESSSION_CLEAR_COUNT_LIMIT == 0 :
             SessionTable.clearSessions()
-            DynamoInterface.CountLimit = 1
+            UserSessionInterface.CountLimit = 1
 
         # Return session ID as header x-session-id
         response.headers["x-session-id"] = session["sid"]

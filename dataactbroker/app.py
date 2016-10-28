@@ -7,7 +7,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactbroker.handlers.accountHandler import AccountHandler
-from dataactbroker.handlers.aws.session import DynamoInterface
+from dataactbroker.handlers.aws.session import UserSessionInterface
 from dataactbroker.fileRoutes import add_file_routes
 from dataactbroker.loginRoutes import add_login_routes
 from dataactbroker.userRoutes import add_user_routes
@@ -38,8 +38,6 @@ def createApp():
     if local and not os.path.exists(broker_file_path):
         os.makedirs(broker_file_path)
 
-    # When runlocal is true, assume Dynamo is on the same server
-    # (should be false for prod)
     JsonResponse.debugMode = app.config['REST_TRACE']
 
     if CONFIG_SERVICES['cross_origin_url'] ==  "*":
@@ -48,7 +46,7 @@ def createApp():
         cors = CORS(app, supports_credentials=False, origins=CONFIG_SERVICES['cross_origin_url'],
                     allow_headers = "*", expose_headers = "X-Session-Id")
     # Enable AWS Sessions
-    app.session_interface = DynamoInterface()
+    app.session_interface = UserSessionInterface()
     # Set up bcrypt
     bcrypt = Bcrypt(app)
 
@@ -85,7 +83,7 @@ def runApp():
 
 if __name__ == '__main__':
     runApp()
-    proc = multiprocessing.Process(target=checkDynamo)
+    proc = multiprocessing.Process()
     proc.start()
     proc.join(5)
 

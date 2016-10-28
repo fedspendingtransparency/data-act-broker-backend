@@ -126,20 +126,8 @@ If you already have a Python development environment on your machine and a prefe
 When running the broker, you have the option to use Amazon Web Services (AWS) to handle:
 
 * Storage of data submissions and validation reports (via S3 buckets).
-* Session management (via DynamoDB).
 
 Using AWS is optional, and by default the broker will not use these services. If you'd like to use AWS, [follow these directions](AWS.md "set up Amazon Web Services") now.
-
-### Install Local DynamoDB (non-AWS users only)
-
-If you're not using AWS tools when running the broker, you'll need to install a local version of Amazon's DynamoDB to handle session management. The local DynamoDB is a Java executable the runs on Windows, Mac, and Linux systems.
-
-1. Install version 7+ of the [Java Development Kit (jdk)](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html "download Java Development Kit").
-2. Follow [Amazon's instructions](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html#Tools.DynamoDBLocal.DownloadingAndRunning "running DynamoDB on your computer") for downloading and running local DynamoDB. You should be able to start the local DynamoDB using the example command provided by Amazon, without overriding any of the default options.
-
-Don't worry about setting DynamoDB endpoints or creating tables: the broker's code handles this.
-
-**Note:** The local version of DynamoDB is not recommended for production.
 
 ### Install RabbitMQ
 
@@ -211,7 +199,6 @@ You will need to run two scripts to setup the broker's backend components. The f
         $ python dataactcore/scripts/initialize.py -a
 
 **Important Notes:**
-* If you're using a local DynamoDB, make sure it's running before executing these scripts.
 * By default, the broker installs with a small sample of [GTAS financial
   data](https://www.fiscal.treasury.gov/fsservices/gov/acctg/gtas/gtas_home.htm
   "GTAS"), which is used during the validation process. See the next section
