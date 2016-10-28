@@ -328,3 +328,36 @@ def markFileComplete(job_id, filename=None):
     fileComplete = createFileIfNeeded(job_id, filename)
     fileComplete.file_status_id = FILE_STATUS_DICT['complete']
     sess.commit()
+
+def getErrorMetricsByJobId(job_id, include_file_types=False, interfaces=None, severity_id=None):
+    """ Get error metrics for specified job, including number of errors for each field name and error type """
+    sess = GlobalDB.db().session
+    result_list = []
+
+    query_result = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job_id).one()
+
+    if not query_result.file_status.file_status_id == FILE_STATUS_DICT['complete']:
+        return [{"field_name": "File Level Error", "error_name": query_result.file_status.name,
+                 "error_description": str(query_result.file_status.description), "occurrences": 1, "rule_failed": ""}]
+
+    query_result = sess.query(ErrorMetadata).options(joinedload("error_type")).filter(
+        ErrorMetadata.job_id == job_id).filter(ErrorMetadata.severity_id == severity_id).all()
+    for result in query_result:
+        record_dict = {"field_name": result.field_name, "error_name": result.error_type.name,
+                       "error_description": result.error_type.description, "occurrences": str(result.occurrences),
+                       "rule_failed": result.rule_failed, "original_label": result.original_rule_label}
+        if include_file_types:
+            try:
+                record_dict["source_file"] = interfaces.validationDb.getFileTypeById(result.file_type_id)
+            except ValueError:
+                # If no results, return empty string
+                record_dict["source_file"] = ''
+
+            try:
+                record_dict["target_file"] = interfaces.validationDb.getFileTypeById(result.target_file_type_id)
+            except ValueError:
+                # If no results, return empty string
+                record_dict["target_file"] = ''
+
+        result_list.append(record_dict)
+    return result_list
