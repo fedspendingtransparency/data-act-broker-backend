@@ -339,7 +339,7 @@ class FileHandler:
             submission = self.jobManager.getSubmissionById(submission_id)
 
             # Check that user has access to submission
-            user = self.checkSubmissionPermission(submission)
+            self.checkSubmissionPermission(submission)
 
             # Get jobs in this submission
             jobs = self.jobManager.getJobsBySubmission(submission_id)
@@ -368,8 +368,9 @@ class FileHandler:
                 jobInfo["job_type"] = jobType
                 jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job_id)
                 try:
-                    jobInfo["file_status"] = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job_id).one().file_status.name
-                except NoResultFound as e:
+                    file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job_id).one()
+                    jobInfo["file_status"] = file_results.file_status.name
+                except NoResultFound:
                     # Job ID not in error database, probably did not make it to validation, or has not yet been validated
                     jobInfo["file_status"] = ""
                     jobInfo["missing_headers"] = []
@@ -380,14 +381,14 @@ class FileHandler:
                 else:
                     # If job ID was found in file, we should be able to get header error lists and file data
                     # Get string of missing headers and parse as a list
-                    missingHeaderString = sess.query(File).filter(File.job_id == job_id).one().headers_missing
+                    missingHeaderString = file_results.headers_missing
                     if missingHeaderString is not None:
                         # Split header string into list, excluding empty strings
                         jobInfo["missing_headers"] = [n.strip() for n in missingHeaderString.split(",") if len(n) > 0]
                     else:
                         jobInfo["missing_headers"] = []
                     # Get string of duplicated headers and parse as a list
-                    duplicatedHeaderString = sess.query(File).filter(File.job_id == job_id).one().headers_duplicated
+                    duplicatedHeaderString = file_results.headers_duplicated
                     if duplicatedHeaderString is not None:
                         # Split header string into list, excluding empty strings
                         jobInfo["duplicated_headers"] = [n.strip() for n in duplicatedHeaderString.split(",") if len(n) > 0]
@@ -404,7 +405,8 @@ class FileHandler:
 
                 try :
                     jobInfo["file_type"] = self.jobManager.getFileType(job_id)
-                except Exception as e:
+                except:
+                    # todo: add specific type of exception when we figure out what it is?
                     jobInfo["file_type"]  = ''
                 submissionInfo["jobs"].append(jobInfo)
 
