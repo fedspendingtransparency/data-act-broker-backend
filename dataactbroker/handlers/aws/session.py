@@ -1,6 +1,5 @@
 from json import loads
 from uuid import uuid4
-from decimal import Decimal
 from datetime import datetime, timedelta
 from flask.sessions import SessionInterface, SessionMixin
 from flask_login import _create_identifier
@@ -147,10 +146,11 @@ def toUnixTime(datetimeValue) :
 
     returns int
     """
-    if(type(datetimeValue) == Decimal):
-        # If argument is already Decimal, assume it's been converted previously
-        return datetimeValue
-    return (datetimeValue-datetime(1970,1,1)).total_seconds()
+    if(type(datetimeValue) == datetime):
+        # If argument is a datetime object, convert to timestamp
+        return (datetimeValue-datetime(1970,1,1)).total_seconds()
+    return datetimeValue
+
 
 
 
