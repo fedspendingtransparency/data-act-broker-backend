@@ -296,9 +296,6 @@ def writeFileError(job_id, filename, error_type, extra_info=None):
         filename: name of error report in S3
         error_type: type of error, value will be mapped to ValidationError class
         extra_info: list of extra information to be included in file
-
-    Returns:
-        True if successful
     """
     sess = GlobalDB.db().session
     try:
@@ -319,7 +316,6 @@ def writeFileError(job_id, filename, error_type, extra_info=None):
 
     sess.add(fileRec)
     sess.commit()
-    return True
 
 def markFileComplete(job_id, filename=None):
     """ Marks file's status as complete
@@ -327,12 +323,8 @@ def markFileComplete(job_id, filename=None):
     Args:
         job_id: ID of job in job tracker
         filename: name of error report in S3
-
-    Returns:
-        True if successful
     """
     sess = GlobalDB.db().session
     fileComplete = createFileIfNeeded(job_id, filename)
     fileComplete.file_status_id = FILE_STATUS_DICT['complete']
     sess.commit()
-    return True
