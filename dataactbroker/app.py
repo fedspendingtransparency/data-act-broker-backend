@@ -7,14 +7,12 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactbroker.handlers.accountHandler import AccountHandler
-from dataactbroker.handlers.aws.session import DynamoInterface, SessionTable
+from dataactbroker.handlers.aws.session import DynamoInterface
 from dataactbroker.fileRoutes import add_file_routes
 from dataactbroker.loginRoutes import add_login_routes
 from dataactbroker.userRoutes import add_user_routes
 from dataactbroker.domainRoutes import add_domain_routes
-from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_DB
-from dataactcore.utils.timeout import timeout
-
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 def createApp():
     """Set up the application."""
@@ -74,23 +72,7 @@ def createApp():
         local, broker_file_path, bcrypt)
     add_user_routes(app, app.config['SYSTEM_EMAIL'], bcrypt)
     add_domain_routes(app, local, bcrypt)
-
-    SessionTable.LOCAL_PORT = CONFIG_DB['dynamo_port']
-
-    SessionTable.setup(app, local)
-
-    if local:
-        checkDynamo()
-    else:
-        SessionTable.DYNAMO_REGION = CONFIG_BROKER['aws_region']
-
     return app
-
-
-@timeout(1, 'DynamoDB is not running')
-def checkDynamo():
-    """ Get information about the session table in Dynamo """
-    SessionTable.getTable().describe()
 
 def runApp():
     """runs the application"""

@@ -62,3 +62,11 @@ class EmailToken(Base):
     email_token_id = Column(Integer, primary_key=True)
     token = Column(Text)
     salt = Column(Text)
+
+class SessionMap(Base):
+    """ This table maps session IDs to user data """
+    __tablename__ = "session_map"
+    session_id = Column(Integer, primary_key=True)
+    uid = Column(Text)
+    data = Column(Text)
+    expiration = Column(Integer)
