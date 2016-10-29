@@ -253,7 +253,7 @@ class JobHandler(JobTrackerInterface):
         jobId -- job_id to mark as finished
 
         """
-        JobTrackerInterface.markJobStatus(self, jobId, 'finished')
+        self.markJobStatus(jobId, 'finished')
 
     def getSubmissionForJob(self,job):
         """ Takes a job object and returns the associated submission object """
