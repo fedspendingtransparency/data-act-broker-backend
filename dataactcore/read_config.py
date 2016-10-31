@@ -75,14 +75,6 @@ else:
     normpath(error_report_path)
     CONFIG_SERVICES['error_report_path'] = error_report_path
 
-    # if not using AWS and no DynamoDB settings specified, default
-    # to localhost and port 8000
-    if not CONFIG_DB['dynamo_host']:
-        # TODO: dynamo host/port don't do anything; code assumes localhost/8000
-        CONFIG_DB['dynamo_host'] = '127.0.0.1'
-    if not CONFIG_DB['dynamo_port']:
-        CONFIG_DB['dynamo_port'] = 8000
-
 storage_path = CONFIG_BROKER['d_file_storage_path']
 if storage_path[-1] != os.path.sep:
     CONFIG_BROKER['d_file_storage_path'] = "".join([storage_path, os.path.sep])
@@ -117,8 +109,6 @@ if CONFIG_SERVICES['broker_api_host'] == '0.0.0.0':
     CONFIG_SERVICES['broker_api_host'] = '127.0.0.1'
 if CONFIG_SERVICES['validator_host'] == '0.0.0.0':
     CONFIG_SERVICES['validator_host'] = '127.0.0.1'
-if CONFIG_DB['dynamo_host'] == '0.0.0.0':
-    CONFIG_DB['dynamo_host'] = '127.0.0.1'
 
 if CONFIG_SERVICES["broker_api_port"] == 443:
     # Use https
@@ -134,7 +124,7 @@ if "values_to_log" in CONFIG_LOGGING:
         category = CONFIG_CATEGORIES[category_yaml_name]
         category_message = "### {}".format(category_yaml_name)
         for key in CONFIG_LOGGING["values_to_log"][category_yaml_name]:
-            value = category[key]
+            value = category.get(key,"Value not provided in config")
             category_message = "{}, {}: {}".format(category_message, key,value)
         log_message = " ".join([log_message, category_message])
 

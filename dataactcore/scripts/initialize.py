@@ -29,8 +29,6 @@ def setup_db():
     logger.info('Setting up db')
     setupAllDB()
     setupEmails()
-    setup_session_table()
-
 
 def create_admin():
     """Create initial admin user."""
@@ -47,13 +45,6 @@ def create_admin():
             user = createUserWithPassword(
                 admin_email, admin_pass, Bcrypt(), permission=2)
     return user
-
-
-def setup_session_table():
-    """Create Dynamo session table."""
-    logger.info('Setting up DynamoDB session table')
-    SessionTable.createTable(CONFIG_BROKER['local'], CONFIG_DB['dynamo_port'])
-
 
 def load_tas_lookup():
     """Load/update the TAS table to reflect the latest list."""
