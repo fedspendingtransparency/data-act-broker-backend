@@ -28,8 +28,6 @@ class ErrorInterface(BaseInterface):
             file_type_id: Id of source file type
             target_file_id: Id of target file type
             severity_id: Id of error severity
-        Returns:
-            True if successful
         """
         key = "".join([str(job_id), field_name, str(error_type)])
         if key in self.rowErrors:
@@ -46,9 +44,6 @@ class ErrorInterface(BaseInterface):
 
         Args:
             job_id: ID to write errors for
-
-        Returns:
-            True if successful
         """
         sess = GlobalDB.db().session
         for key in self.rowErrors.keys():
