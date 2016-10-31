@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean
+from sqlalchemy import Column, Integer, Text, Numeric, Index
 from dataactcore.models.baseModel import Base
 
 

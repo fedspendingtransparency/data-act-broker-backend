@@ -1,4 +1,4 @@
-from json import loads
+from json import loads, dumps
 from uuid import uuid4
 from datetime import datetime, timedelta
 from flask.sessions import SessionInterface, SessionMixin
@@ -146,13 +146,10 @@ def toUnixTime(datetimeValue) :
 
     returns int
     """
-    if(type(datetimeValue) == datetime):
+    if isinstance(datetimeValue, datetime):
         # If argument is a datetime object, convert to timestamp
         return (datetimeValue-datetime(1970,1,1)).total_seconds()
     return datetimeValue
-
-
-
 
 class UserSession(dict, SessionMixin):
     """
@@ -190,13 +187,10 @@ class UserSessionInterface(SessionInterface):
         if(sid and SessionTable.doesSessionExist(sid)):
             if SessionTable.getTimeout(sid)> toUnixTime(datetime.utcnow()):
                 session_dict =  UserSession()
-                # Replace single quotes with double and read as dict, also need to correct True, False, and None for json
-                data_string = SessionTable.getData(sid).replace("'",'"').replace("True","true")\
-                    .replace("False","false").replace("None","null")
-                data = loads(data_string)
+                # Read data as json
+                data = loads(SessionTable.getData(sid))
                 for key in data.keys():
                     session_dict[key] = data[key]
-                session_dict["sid"] = sid
                 return session_dict
         # This can be made better most likely need to do research
         # Maybe Hash(time + server id + random number)? Want to prevent any conflicts
@@ -308,15 +302,16 @@ class SessionTable :
 
         Updates the exsiting session or creates a new one
         """
+        # Try converting session to json
         sess = GlobalDB.db().session
         user_session = sess.query(SessionMap).filter_by(uid=uid).one_or_none()
         if user_session is None:
             # No existing session found, create a new one
-            new_session = SessionMap(uid = uid, data = str(data), expiration = toUnixTime(expiration))
+            new_session = SessionMap(uid = uid, data = dumps(data), expiration = toUnixTime(expiration))
             sess.add(new_session)
         else:
             # Modify existing session
-            user_session.data = str(data)
+            user_session.data = dumps(data)
             user_session.expiration = toUnixTime(expiration)
         sess.commit()
         

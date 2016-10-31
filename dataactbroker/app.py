@@ -83,13 +83,6 @@ def runApp():
 
 if __name__ == '__main__':
     runApp()
-    proc = multiprocessing.Process()
-    proc.start()
-    proc.join(5)
-
-    if proc.is_alive():
-        proc.terminate()
-        proc.join()
 
 elif __name__[0:5]=="uwsgi":
     app = createApp()

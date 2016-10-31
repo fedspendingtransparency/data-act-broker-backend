@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the user database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, Boolean
+from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, Boolean, Index
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -70,3 +70,7 @@ class SessionMap(Base):
     uid = Column(Text)
     data = Column(Text)
     expiration = Column(Integer)
+
+Index("ix_session_uid",
+    SessionMap.uid,
+    unique=False)
