@@ -22,8 +22,12 @@ def test_success(database):
     op = ObjectClassProgramActivity(job_id=1, row_number=1, tas=tas, program_activity_code='1', object_class='1')
 
     af = AwardFinancial(job_id=1, row_number=1, tas=tas, program_activity_code='1', object_class='1')
+    # Allow program activity code to be null, empty, or zero
+    af2 = AwardFinancial(job_id=1, row_number=1, tas=tas, program_activity_code='', object_class='1')
+    af3 = AwardFinancial(job_id=1, row_number=1, tas=tas, program_activity_code='0000', object_class='1')
+    af4 = AwardFinancial(job_id=1, row_number=1, tas=tas, program_activity_code=None, object_class='1')
 
-    assert number_of_errors(_FILE, database, models=[op, af]) == 0
+    assert number_of_errors(_FILE, database, models=[op, af, af2, af3, af4]) == 0
 
 
 def test_failure(database):

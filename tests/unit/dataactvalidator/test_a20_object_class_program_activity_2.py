@@ -1,10 +1,10 @@
 from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityFactory
 from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
-from random import choice
-from string import ascii_uppercase, ascii_lowercase, digits
+
 
 _FILE = 'a20_object_class_program_activity_2'
+
 
 def test_column_headers(database):
     expected_subset = {"row_number", "agency_identifier"}
@@ -23,8 +23,8 @@ def test_success(database):
 def test_failure(database):
     """ Test a cgac not present in cgac table """
     # These cgacs are different lengths to avoid being equal
-    cgac_one = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(5))
-    cgac_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for i in range(4))
+    cgac_one = "cgac_one"
+    cgac_two = "cgac_two"
     ocpa = ObjectClassProgramActivityFactory(agency_identifier = cgac_one)
     cgac = CGACFactory(cgac_code = cgac_two)
 

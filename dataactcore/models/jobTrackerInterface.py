@@ -1,13 +1,28 @@
 import traceback
 from uuid import uuid4
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Job, JobDependency, JobStatus, JobType, Submission, FileType, PublishStatus, FileGenerationTask
+from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import enqueue
 from dataactvalidator.validation_handlers.validationError import ValidationError
+
+def obligationStatsForSubmission(submission_id):
+    sess = GlobalDB.db().session
+    base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
+        filter(AwardFinancial.submission_id == submission_id)
+    procurement = base_query.filter(AwardFinancial.piid != None)
+    fin_assist = base_query.filter(or_(AwardFinancial.fain != None, AwardFinancial.uri != None))
+    return {
+        "total_obligations": float(base_query.scalar() or 0),
+        "total_procurement_obligations": float(procurement.scalar() or 0),
+        "total_assistance_obligations": float(fin_assist.scalar() or 0)
+    }
 
 
 class JobTrackerInterface(BaseInterface):
@@ -49,18 +64,6 @@ class JobTrackerInterface(BaseInterface):
         """ Return submission object """
         submissionId = self.getSubmissionId(jobId)
         return self.session.query(Submission).filter(Submission.submission_id == submissionId).one()
-
-    def getReportPath(self,jobId):
-        """ Return the filename for the error report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
-        return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_error_report.csv"
-
-    def getWarningReportPath(self, jobId):
-        """ Return the filename for the warning report.  Does not include the folder to avoid conflicting with the S3 getSignedUrl method. """
-        return  "submission_" + str(self.getSubmissionId(jobId)) + "_" + self.getFileType(jobId) + "_warning_report.csv"
-
-    def getCrossFileReportPath(self,submissionId):
-        """ Returns the filename for the cross file error report. """
-        return "".join(["submission_",str(submissionId),"_cross_file_error_report.csv"])
 
     def getJobsBySubmission(self,submissionId):
         """ Get list of jobs that are part of the specified submission
@@ -250,10 +253,6 @@ class JobTrackerInterface(BaseInterface):
         """ Get number of rows in file for job matching ID """
         return self.getJobById(jobId).number_of_rows
 
-    def getNumberOfValidRowsById(self, jobId):
-        """Get number of file's rows that passed validations."""
-        return self.getJobById(jobId).number_of_rows_valid
-
     def setFileSizeById(self,jobId, fileSize):
         """ Set file size for job matching ID """
         job = self.getJobById(jobId)
@@ -398,12 +397,3 @@ class JobTrackerInterface(BaseInterface):
             # Wrong type
             raise ResponseException("Wrong type of job for this service", StatusCode.CLIENT_ERROR, None,
                                     ValidationError.jobError)
-
-    def checkFirstQuarter(self, jobId):
-        """ Return True if end date is in the first quarter """
-        submission = self.getSubmission(jobId)
-        endDate = submission.reporting_end_date
-        if endDate is None:
-            # No date provided, consider this to not be first quarter
-            return False
-        return (endDate.month >= 10 and endDate.month <= 12)

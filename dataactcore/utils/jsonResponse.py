@@ -2,10 +2,9 @@ import json
 import flask
 import sys
 import traceback
-from flask import Flask, request, make_response, session, g, redirect, url_for, \
-     abort, render_template, flash
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
+
 
 class JsonResponse :
     """ Used to create an http response object containing JSON """

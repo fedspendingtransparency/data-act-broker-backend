@@ -1,9 +1,15 @@
 from __future__ import print_function
-from dataactcore.interfaces.db import databaseSession
-from dataactcore.models.jobModels import JobDependency
-from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
-from tests.integration.baseTestValidator import BaseTestValidator
 import unittest
+
+from sqlalchemy.orm.exc import NoResultFound
+
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.jobModels import JobDependency, Job
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, FIELD_TYPE_DICT
+from dataactcore.models.validationModels import FileColumn
+from dataactvalidator.app import createApp
+from tests.integration.baseTestValidator import BaseTestValidator
+
 
 class JobTests(BaseTestValidator):
 
@@ -11,143 +17,137 @@ class JobTests(BaseTestValidator):
     def setUpClass(cls):
         """Set up class-wide resources (test data)"""
         super(JobTests, cls).setUpClass()
-        #TODO: refactor into a pytest fixture
+        user = cls.userId
 
         # Flag for testing a million+ errors (can take ~30 min to run)
         cls.includeLongTests = False
 
-        validationDb = cls.validationDb
-        jobTracker = cls.jobTracker
+        with createApp().app_context():
+            # get the submission test user
+            sess = GlobalDB.db().session
 
-        # Create submissions and get IDs back
-        submissionIDs = {}
-        for i in range(1, 17):
-            submissionIDs[i] = cls.insertSubmission(
-                jobTracker, userId=cls.userId)
+            # Create test submissions and jobs, also uploading
+            # the files needed for each job.
+            jobDict = {}
 
-        csvFiles = {
-            "bad_upload": {"filename": "", "status": "ready", "jobType": "file_upload", "submissionLocalId": 2, "fileType": 1},
-            "bad_prereq": {"filename": "", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId" :2,  "fileType": 1},
-            "wrong_type": {"filename": "", "status": "ready", "jobType": "external_validation", "submissionLocalId": 4, "fileType": 1},
-            "not_ready": {"filename": "", "status": "finished", "jobType": "csv_record_validation", "submissionLocalId": 5, "fileType": 1},
-            "empty": {"filename": "testEmpty.csv", "status": "ready", "jobType": "csv_record_validation", "submissionLocalId": 10, "fileType": 1},
-        }
+            submissionId = cls.insertSubmission(sess, user)
+            job_info = Job(
+                job_status_id=JOB_STATUS_DICT['ready'],
+                job_type_id=JOB_TYPE_DICT['file_upload'],
+                file_type_id=FILE_TYPE_DICT['appropriations'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['bad_upload'] = job_info.job_id
 
-        # Upload needed files to S3
-        for key in csvFiles.keys():
-            csvFiles[key]["s3Filename"] = cls.uploadFile(
-                csvFiles[key]["filename"], cls.userId)
-        jobIdDict = {}
+            submissionId = cls.insertSubmission(sess, user)
+            job_info = Job(
+                job_status_id=JOB_STATUS_DICT['ready'],
+                job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                file_type_id=FILE_TYPE_DICT['appropriations'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['bad_prereq'] = job_info.job_id
 
-        for key in csvFiles.keys():
-            file = csvFiles[key]
-            job = cls.addJob(
-                str(jobTracker.getJobStatusId(file["status"])),
-                str(jobTracker.getJobTypeId(file["jobType"])),
-                str(submissionIDs[file["submissionLocalId"]]),
-                file["s3Filename"],
-                str(file["fileType"]),
-                jobTracker.session)
-            # TODO: fix statement below--does this error really happen?
-            if(job.job_id == None):
-                # Failed to commit job correctly
-                raise Exception(
-                    "".join(["Job for ", str(key), " did not get an id back"]))
-            jobIdDict[key] = job.job_id
-            # Print submission IDs for error report checking
-            print("".join([str(key),": ",str(jobTracker.getSubmissionId(job.job_id)), ", "]), end = "")
+            submissionId = cls.insertSubmission(sess, user)
+            job_info = Job(
+                job_status_id=JOB_STATUS_DICT['ready'],
+                job_type_id=JOB_TYPE_DICT['external_validation'],
+                file_type_id=FILE_TYPE_DICT['appropriations'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['wrong_type'] = job_info.job_id
 
-        # Create dependencies
-        dependencies = [
-            JobDependency(
-                job_id = str(jobIdDict["bad_prereq"]),
-                prerequisite_id = str(jobIdDict["bad_upload"]))
-        ]
+            submissionId = cls.insertSubmission(sess, user)
+            job_info = Job(
+                job_status_id=JOB_STATUS_DICT['finished'],
+                job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                file_type_id=FILE_TYPE_DICT['appropriations'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['not_ready'] = job_info.job_id
 
-        for dependency in dependencies:
-            jobTracker.session.add(dependency)
-        jobTracker.session.commit()
+            submissionId = cls.insertSubmission(sess, user)
+            job_info = Job(
+                filename=cls.uploadFile('testEmpty.csv', user),
+                job_status_id=JOB_STATUS_DICT['ready'],
+                job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                file_type_id=FILE_TYPE_DICT['appropriations'],
+                submission_id=submissionId)
+            sess.add(job_info)
+            sess.flush()
+            jobDict['empty'] = job_info.job_id
 
-        colIdDict = {}
-        for fileId in range(1, 5):
-            for columnId in range(1, 6):
-                #TODO: get rid of hard-coded surrogate keys
-                if columnId < 3:
-                    fieldType = 1
-                else:
-                    fieldType = 4
-                columnName = "header_{}".format(columnId)
-                column = cls.addFileColumn(
-                    fileId, fieldType, columnName, "",
-                    (columnId != 3), validationDb.session)
-                colIdDict["header_{}_file_type_{}".format(
-                    columnId, fileId)] = column.file_column_id
+            # create dependency
+            dependency = JobDependency(
+                job_id=jobDict["bad_prereq"],
+                prerequisite_id=jobDict["bad_upload"])
+            sess.add(dependency)
 
-        cls.jobIdDict = jobIdDict
+            colIdDict = {}
+            for fileId in range(1, 5):
+                for columnId in range(1, 6):
+                    if columnId < 3:
+                        fieldType = FIELD_TYPE_DICT['INT']
+                    else:
+                        fieldType = FIELD_TYPE_DICT['STRING']
+                    columnName = "header_{}".format(columnId)
+
+                    fileCol = FileColumn(
+                        file_id=fileId,
+                        field_types_id=fieldType,
+                        name=columnName,
+                        required=(columnId != FIELD_TYPE_DICT['STRING']))
+                    sess.add(fileCol)
+                    sess.flush()
+                    colIdDict["header_{}_file_type_{}".format(
+                        columnId, fileId)] = fileCol.file_column_id
+
+            # commit submissions/jobs and output IDs
+            sess.commit()
+            for job_type, job_id in jobDict.items():
+                print('{}: {}'.format(job_type, job_id))
+
+            cls.jobDict = jobDict
 
     def tearDown(self):
         super(JobTests, self).tearDown()
-        # TODO: drop tables, etc.
 
     def test_empty(self):
         """Test empty file."""
-        jobId = self.jobIdDict["empty"]
-        if self.useThreads:
-            status = 200
-        else:
-            status = 400
+        jobId = self.jobDict["empty"]
         response = self.run_test(
-            jobId, status, "invalid", False, False, "single_row_error", 0)
+            jobId, 400, "invalid", False, False, "single_row_error", 0)
 
-        if not self.useThreads:
-            self.assertEqual(
-                response.json["message"], "CSV file must have a header")
+        self.assertEqual(response.json["message"], "CSV file must have a header")
 
     def test_bad_id_job(self):
         """Test job ID not found in job table."""
+        # This test is in an in-between place as we refactor database access.
+        # Because run_test now retrieves a job directly from the db instead of
+        # using getJobById from the job interface, sending a bad job id now
+        # results in a SQLAlchemy exception rather than a 400. So for now, the
+        # test is testing the test code. Arguably, we could remove this entirely
+        # and replace it with a unit test as the logging and umbrella exeception
+        # handling is refactored.
         jobId = -1
-        response = self.run_test(
-            jobId, 400, False, False, False, False, 0)
+        with self.assertRaises(NoResultFound):
+            self.run_test(jobId, 400, False, False, False, False, 0)
 
     def test_bad_prereq_job(self):
         """Test job with unfinished prerequisites."""
-        jobId = self.jobIdDict["bad_prereq"]
+        jobId = self.jobDict["bad_prereq"]
         response = self.run_test(
             jobId, 400, "ready", False, False, "job_error", 0)
 
     def test_bad_type_job(self):
         """Test job with wrong type."""
-        jobId = self.jobIdDict["wrong_type"]
+        jobId = self.jobDict["wrong_type"]
         response = self.run_test(
             jobId, 400, "ready", False, False, "job_error", 0)
-
-    # removing long tests because 1) we don't run them and 2) the file formats need updated
-    # TODO: add a compliant file for this test if we want to use it
-    # def test_many_bad_values_job(self):
-    #     # Test job with many bad values
-    #     if self.includeLongTests:
-    #         jobId = self.jobIdDict["many_bad"]
-    #         response = self.run_test(
-    #             jobId, 200, "finished", 151665643, 0, "complete", 2302930)
-    #     else:
-    #         self.skipTest("includeLongTests flag is off")
-
-    # removing long tests because 1) we don't run them and 2) the file formats need updated
-    # TODO: add a compliant file for this test if we want to use it
-    # def test_many_rows(self):
-    #     """Test many rows."""
-    #     if self.includeLongTests:
-    #         jobId = self.jobIdDict["many"]
-    #         response = self.run_test(
-    #             jobId, 200, "finished", 52, 22380, "complete", 0)
-    #     else:
-    #         self.skipTest("includeLongTests flag is off")
-
-    # TODO uncomment this test if we start limiting the validator to only jobs that are "ready"
-    #def test_finished_job(self):
-    #    """ Test job that is already finished """
-    #    jobId = self.jobIdDict["finished"]
-    #    self.run_test(jobId,400,"finished",False,False,"job_error",0)
 
 
 if __name__ == '__main__':

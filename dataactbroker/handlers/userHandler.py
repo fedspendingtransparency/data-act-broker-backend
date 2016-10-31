@@ -5,6 +5,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy import func
 from dataactcore.interfaces.function_bag import checkPermissionByBitNumber
 from dataactcore.models.userModel import User, PermissionType
+from dataactcore.models.jobModels import Submission
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -69,6 +70,13 @@ class UserHandler(UserInterface):
         result = self.runUniqueQuery(query,"No users with that uid", "Multiple users with that uid")
         return result
 
+    def deleteUser(self, email):
+        """ Delete user with specified email.  Submissions from that user are not deleted, instead they have
+        user id set to null  """
+
+        # Delete user
+        self.session.query(User).filter(User.email == email).delete()
+        self.session.commit()
 
     def createUser(self, username):
         """ Creates a new entry for new usernames, if a user is found with this email that has not yet registered, just returns that user's ID.  Raises an exception if multiple results found, or if user has already registered.

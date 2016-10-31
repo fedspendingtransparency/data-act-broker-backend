@@ -1,8 +1,7 @@
-import io
-import csv
 import boto
 import smart_open
 from dataactvalidator.filestreaming.csvAbstractWriter import CsvAbstractWriter
+
 
 class CsvS3Writer(CsvAbstractWriter):
     """

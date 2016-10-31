@@ -4,8 +4,11 @@ from collections import namedtuple
 from datetime import timedelta
 from dateutil.parser import parse
 from random import randint
+
+from flask_bcrypt import Bcrypt
 from webtest import TestApp
-from dataactbroker.app import createApp
+
+from dataactbroker.app import createApp as createBrokerApp
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
 from dataactcore.models import lookups
@@ -19,7 +22,8 @@ from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import dataactcore.config
 from dataactbroker.scripts.setupEmails import setupEmails
-from flask_bcrypt import Bcrypt
+from dataactvalidator.app import createApp as createValidatorApp
+
 
 class BaseTestAPI(unittest.TestCase):
     """ Test login, logout, and session handling """
@@ -29,7 +33,7 @@ class BaseTestAPI(unittest.TestCase):
         """Set up resources to be shared within a test class"""
         cls.session_id = ""
 
-        with createApp().app_context():
+        with createValidatorApp().app_context():
 
             # update application's db config options so unittests
             # run against test databases
@@ -173,7 +177,7 @@ class BaseTestAPI(unittest.TestCase):
 
     def setUp(self):
         """Set up broker unit tests."""
-        app = createApp()
+        app = createBrokerApp()
         app.config['TESTING'] = True
         self.app = TestApp(app)
 

@@ -1,5 +1,4 @@
 from collections import namedtuple
-from contextlib import contextmanager
 import logging
 import sqlalchemy
 import flask
@@ -70,14 +69,3 @@ def dbURI(dbName):
     uri = "postgresql://{username}:{password}@{host}:{port}/{}".format(
         dbName, **CONFIG_DB)
     return uri
-
-
-@contextmanager
-def databaseSession():
-    # option for application components
-    # that need to access the database
-    # outside of a Flask request
-    # context
-    db = dbConnection()
-    yield db.session
-    db.close()

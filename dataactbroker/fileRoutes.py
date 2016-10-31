@@ -93,3 +93,9 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     def complete_generation(generationId):
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.completeGeneration, generationId)
+
+    @app.route("/v1/get_obligations/", methods = ["POST"])
+    @permissions_check
+    def get_obligations():
+        fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return RouteUtils.run_instance_function(fileManager, fileManager.getObligations)

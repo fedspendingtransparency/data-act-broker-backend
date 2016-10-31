@@ -1,4 +1,5 @@
 import unittest
+
 from dataactcore.models.validationModels import FieldType, FileColumn
 from dataactvalidator.validation_handlers.validator import Validator
 from tests.integration.baseTestValidator import BaseTestValidator
@@ -39,7 +40,6 @@ class ValidatorTests(BaseTestValidator):
         column1.required = True
         column1.field_type = stringType
         column1.file_id = 1
-        cls.interfaces.validationDb.populateFile(column1)
 
         column2 = FileColumn()
         column2.file_column_id = 2
@@ -47,7 +47,6 @@ class ValidatorTests(BaseTestValidator):
         column2.required = True
         column2.field_type = floatType
         column2.file_id = 1
-        cls.interfaces.validationDb.populateFile(column2)
 
         column3 = FileColumn()
         column3.file_column_id = 3
@@ -55,7 +54,6 @@ class ValidatorTests(BaseTestValidator):
         column3.required = True
         column3.field_type = booleanType
         column3.file_id = 1
-        cls.interfaces.validationDb.populateFile(column3)
 
         column4 = FileColumn()
         column4.file_column_id = 3
@@ -63,7 +61,6 @@ class ValidatorTests(BaseTestValidator):
         column4.required = True
         column4.field_type = intType
         column4.file_id = 1
-        cls.interfaces.validationDb.populateFile(column4)
 
         column5 = FileColumn()
         column5.file_column_id = 3
@@ -71,7 +68,6 @@ class ValidatorTests(BaseTestValidator):
         column5.required = False
         column5.field_type = intType
         column5.file_id = 1
-        cls.interfaces.validationDb.populateFile(column5)
 
         column6 = FileColumn()
         column6.file_column_id = 6
@@ -79,7 +75,6 @@ class ValidatorTests(BaseTestValidator):
         column6.required = False
         column6.field_type = stringType
         column6.file_id = 1
-        cls.interfaces.validationDb.populateFile(column6)
 
         column7 = FileColumn()
         column7.file_column_id = 7
@@ -87,7 +82,6 @@ class ValidatorTests(BaseTestValidator):
         column7.required = False
         column7.field_type = longType
         column7.file_id = 1
-        cls.interfaces.validationDb.populateFile(column7)
 
         cls.schema = {
             "test1": column1,
@@ -128,7 +122,6 @@ class ValidatorTests(BaseTestValidator):
     def test_schema_optional_field(self):
         """Test optional fields."""
         schema = self.schema
-        interfaces = self.interfaces
         record = {
             "test1": "hello",
             "test2": "1.0",
@@ -136,18 +129,15 @@ class ValidatorTests(BaseTestValidator):
             "test4": "1",
             "test5": "1",
          }
-        self.assertTrue(Validator.validate(
-            record, schema, "award", interfaces)[0])
+        self.assertTrue(Validator.validate(record, schema))
         record["test5"] = ""
-        self.assertTrue(Validator.validate(
-            record, schema, "award", interfaces)[0])
+        self.assertTrue(Validator.validate(record, schema))
         record["test5"] = "s"
-        self.assertFalse(Validator.validate(
-            record, schema, "award", interfaces)[0])
+        self.assertTrue(Validator.validate(record, schema))
         record["test5"] = ""
         record["test3"] = ""
-        self.assertFalse(Validator.validate(
-            record, schema, "award", interfaces)[0])
+        self.assertTrue(Validator.validate(record, schema))
+
 
 if __name__ == '__main__':
     unittest.main()
