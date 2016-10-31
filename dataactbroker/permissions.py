@@ -45,6 +45,7 @@ def permissions_check(f=None,permissionList=[]):
                         return f(*args, **kwargs)
                     errorMessage  = "Wrong User Type"
 
+                # No user logged in
                 returnResponse = flask.Response()
                 returnResponse.headers["Content-Type"] = "application/json"
                 returnResponse.status_code = 401 # Error code
