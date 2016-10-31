@@ -1,6 +1,5 @@
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.validationInterface import ValidationInterface
-from dataactcore.models.errorInterface import ErrorInterface
 from dataactbroker.handlers.jobHandler import JobHandler
 from dataactbroker.handlers.userHandler import UserHandler
 
@@ -11,14 +10,12 @@ class InterfaceHolder:
         """ Create the interfaces """
         if BaseInterface.interfaces is None:
             self.jobDb = JobHandler()
-            self.errorDb = ErrorInterface()
             self.userDb = UserHandler()
             self.validationDb = ValidationInterface()
             self.stagingDb = self.validationDb
             BaseInterface.interfaces = self
         else:
             self.jobDb = BaseInterface.interfaces.jobDb
-            self.errorDb = BaseInterface.interfaces.errorDb
             self.userDb = BaseInterface.interfaces.userDb
             self.validationDb = BaseInterface.interfaces.validationDb
             self.stagingDb = self.validationDb
