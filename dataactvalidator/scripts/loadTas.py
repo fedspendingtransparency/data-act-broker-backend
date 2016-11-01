@@ -1,3 +1,4 @@
+from datetime import date
 import os
 import logging
 
@@ -81,6 +82,21 @@ def loadTas(tasFile=None):
 
     with createApp().app_context():
         updateTASLookups(tasFile)
+
+
+def add_start_date(data):
+    """We generally want to set the start date to the current quarter.
+    However, if this is a fresh install, we'll give more breathing room for
+    submissions, starting the epoch at 2015-01-01."""
+    if GlobalDB.db().session.query(TASLookup).count() == 0:  # i.e. fresh db
+        data['internal_start_date'] = date(2015, 1, 1)
+    else:
+        today = date.today()
+        fiscal_quarter_offset = (today.month - 1) % 3
+        fiscal_quarter_month = today.month - fiscal_quarter_offset
+        beginning_of_quarter = date(today.year, fiscal_quarter_month, 1)
+        data['internal_start_date'] = beginning_of_quarter
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
