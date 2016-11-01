@@ -3,6 +3,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import (
     Job, JobDependency, JobStatus, JobType, Submission, FileType,
@@ -262,14 +263,14 @@ class JobTrackerInterface(BaseInterface):
             {"number_of_rows_valid": numValidRows, "number_of_rows": numRows})
         self.session.commit()
 
-    def getSubmissionStatus(self,submissionId,interfaces):
-        jobIds = self.getJobsBySubmission(submissionId)
+    def getSubmissionStatus(self,submission_id):
+        job_ids = self.getJobsBySubmission(submission_id)
         status_names = self.getJobStatusNames()
         statuses = dict(zip(status_names,[0]*len(status_names)))
         skip_count = 0
 
-        for jobId in jobIds:
-            job = self.getJobById(jobId)
+        for job_id in job_ids:
+            job = self.getJobById(job_id)
             if job.job_type.name != "external_validation":
                 job_status = job.job_status.name
                 statuses[job_status] += 1
@@ -286,10 +287,9 @@ class JobTrackerInterface(BaseInterface):
             return "waiting"
         if statuses["ready"] != 0:
             return "ready"
-        if statuses["finished"] == len(jobIds)-skip_count: # need to account for the jobs that were skipped above
-            # Check if submission has errors,
-            jobs = self.getJobsBySubmission(submissionId)
-            if interfaces.errorDb.sumNumberOfErrorsForJobList(jobs, interfaces.validationDb) > 0:
+        if statuses["finished"] == len(job_ids)-skip_count: # need to account for the jobs that were skipped above
+            # Check if submission has errors
+            if sumNumberOfErrorsForJobList(submission_id) > 0:
                 return "validation_errors"
             else:
                 return "validation_successful"
@@ -300,13 +300,13 @@ class JobTrackerInterface(BaseInterface):
         query = self.session.query(Submission).filter(Submission.submission_id == submissionId)
         return self.runUniqueQuery(query, "No submission with that ID", "Multiple submissions with that ID")
 
-    def populateSubmissionErrorInfo(self, submissionId):
+    def populateSubmissionErrorInfo(self, submission_id):
         """Deprecated: moved to function_bag.py."""
-        submission = self.getSubmissionById(submissionId)
+        submission = self.getSubmissionById(submission_id)
         # TODO find where interfaces is set as an instance variable which overrides the static variable, fix that and then remove this line
         self.interfaces = BaseInterface.interfaces
-        submission.number_of_errors = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb)
-        submission.number_of_warnings = self.interfaces.errorDb.sumNumberOfErrorsForJobList(self.getJobsBySubmission(submissionId), self.interfaces.validationDb, errorType = "warning")
+        submission.number_of_errors = sumNumberOfErrorsForJobList(submission_id)
+        submission.number_of_warnings = sumNumberOfErrorsForJobList(submission_id, errorType = "warning")
         self.session.commit()
 
     def setJobNumberOfErrors(self, jobId, numberOfErrors, errorType):
