@@ -18,7 +18,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
 from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
-from dataactcore.models.lookups import FILE_STATUS_DICT
+from dataactcore.models.lookups import FILE_STATUS_DICT, FILE_TYPE_DICT
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -107,9 +107,9 @@ class FileHandler:
             # For each pair of files, get url for the report
             fileTypes = self.interfaces.validationDb.getFileTypeList()
             for source in fileTypes:
-                sourceId = self.interfaces.validationDb.getFileTypeIdByName(source)
+                sourceId = FILE_TYPE_DICT[source]
                 for target in fileTypes:
-                    targetId = self.interfaces.validationDb.getFileTypeIdByName(target)
+                    targetId = FILE_TYPE_DICT[target]
                     if targetId <= sourceId:
                         # Skip redundant reports
                         continue
