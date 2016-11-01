@@ -1,3 +1,5 @@
+from datetime import date
+
 import factory
 from factory import fuzzy
 
@@ -35,6 +37,7 @@ class TASFactory(factory.Factory):
         model = domainModels.TASLookup
 
     tas_id = None
+    account_num = fuzzy.FuzzyInteger(1, 9999)
     allocation_transfer_agency = fuzzy.FuzzyText()
     agency_identifier = fuzzy.FuzzyText()
     beginning_period_of_availability = fuzzy.FuzzyText()
@@ -42,6 +45,8 @@ class TASFactory(factory.Factory):
     availability_type_code = fuzzy.FuzzyText()
     main_account_code = fuzzy.FuzzyText()
     sub_account_code = fuzzy.FuzzyText()
+    internal_start_date = fuzzy.FuzzyDate(date(2015, 1, 1), date(2015, 12, 31))
+    internal_end_date = None
 
 
 class ProgramActivityFactory(factory.Factory):

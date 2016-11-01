@@ -38,7 +38,7 @@ def test_cleanTas_multiple(tmpdir):
         {'ACCT_NUM': '12345', 'ATA': '111', 'AID': '222', 'A': '333',
          'BPOA': '444', 'EPOA': '555', 'MAIN': '6666', 'SUB': '777'}
     )
-    assert results['tas_id'].tolist() == [6, 12345]
+    assert results['account_num'].tolist() == [6, 12345]
     assert results['allocation_transfer_agency'].tolist() == ['aaa', '111']
     assert results['agency_identifier'].tolist() == ['bbb', '222']
     assert results['availability_type_code'].tolist() == ['ccc', '333']
@@ -59,12 +59,14 @@ def test_cleanTas_space_nulls(tmpdir):
 
 
 def test_updateTASLookups(database, monkeypatch):
+    """Verify that TAS with the same account_num can be modified, that we
+    "close" any non-present TASes, and that we add new entries"""
     sess = database.session
     monkeypatch.setattr(
         loadTas, 'cleanTas', Mock(return_value=pd.DataFrame({
             'availability_type_code': ['0', '1', '2'],
-            'tas_id': [111, 222, 333],
-            'agency_identifier': ['0', '1', '2'],
+            'account_num': [111, 222, 333],
+            'agency_identifier': ['new', '1', 'new'],
             'allocation_transfer_agency': ['0', '1', '2'],
             'beginning_period_of_availability': ['0', '1', '2'],
             'ending_period_of_availability': ['0', '1', '2'],
@@ -73,24 +75,43 @@ def test_updateTASLookups(database, monkeypatch):
         }))
     )
 
-    sess.add(TASFactory(tas_id=222))
-    sess.add(TASFactory(tas_id=444, agency_identifier='other'))
+    sess.add_all([
+        # TAS present in both csv and db
+        TASFactory(account_num=222,
+                   **{field: '1' for field in loadTas._MATCH_FIELDS}),
+        # Example of TAS being modified
+        TASFactory(account_num=333, agency_identifier='old'),
+        # Example of TAS which is unrelated to anything of these entries
+        TASFactory(account_num=444, agency_identifier='old')
+    ])
     sess.commit()
 
-    results = sess.query(TASLookup).order_by(TASLookup.tas_id).all()
-    assert len(results) == 2
+    assert sess.query(TASLookup).count() == 3
     sess.invalidate()
 
     loadTas.updateTASLookups('file-name-ignored-due-to-mock')
 
-    results = sess.query(TASLookup).order_by(TASLookup.tas_id).all()
-    assert len(results) == 3    # there is no 444
-    assert results[0].tas_id == 111
-    assert results[0].agency_identifier == '0'
-    assert results[1].tas_id == 222
-    assert results[1].agency_identifier == '1'  # replaces previous value
-    assert results[2].tas_id == 333
-    assert results[2].agency_identifier == '2'
+    sess.invalidate()
+    results = sess.query(TASLookup).\
+        order_by(TASLookup.account_num, TASLookup.agency_identifier).all()
+    assert len(results) == 5
+    t111, t222, t333_new, t333_old, t444 = results
+
+    assert t111.account_num == 111
+    assert t111.internal_end_date == None               # still active
+    assert t111.agency_identifier == 'new'
+    assert t222.account_num == 222
+    assert t222.internal_end_date is None               # still active
+    assert t222.agency_identifier == '1'
+    assert t333_old.account_num == 333
+    assert t333_old.internal_end_date == date.today()   # closed
+    assert t333_old.agency_identifier == 'old'
+    assert t333_new.account_num == 333
+    assert t333_new.internal_end_date is None           # still active
+    assert t333_new.agency_identifier == 'new'
+    assert t444.account_num == 444
+    assert t444.internal_end_date == date.today()       # closed
+    assert t444.agency_identifier == 'old'
 
 
 def test_add_start_date_blank(database):
