@@ -1,7 +1,10 @@
+from flask import session
+
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactbroker.handlers.aws.session import LoginSession
-from flask import session
 
 
 class DomainHandler:
@@ -26,7 +29,8 @@ class DomainHandler:
         """ Retrieves a list of all agency names and their cgac codes. If there is
          a user logged in, it will check if that user is part of the 'SYS' agency.
          If so, 'SYS' will be added to the agency_list. """
-        agencies = self.validationManager.getAllAgencies()
+        sess = GlobalDB.db().session
+        agencies = sess.query(CGAC).all()
         agency_list = []
 
         for agency in agencies:

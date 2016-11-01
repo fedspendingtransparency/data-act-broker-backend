@@ -2,13 +2,16 @@ import os
 import traceback
 import sys
 from csv import Error
+
 from sqlalchemy import or_, and_
+from sqlalchemy.orm import joinedload
+
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.lookups import FILE_TYPE_DICT
+from dataactcore.models.validationModels import FileTypeValidation, FileColumn
 from dataactcore.interfaces.function_bag import createFileIfNeeded, writeFileError, markFileComplete
 from dataactcore.models.errorModels import ErrorMetadata
-from dataactcore.models.validationModels import FileTypeValidation
-from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Job
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -23,7 +26,6 @@ from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.models.validationModels import RuleSql
 
@@ -280,10 +282,6 @@ class ValidationManager:
         # Create File Status object
         createFileIfNeeded(jobId,fileName)
 
-        validationDB = interfaces.validationDb
-        fieldList = validationDB.getFieldsByFileList(fileType)
-        csvSchema = validationDB.getFieldsByFile(fileType, shortCols=True)
-
         reader = self.getReader()
 
         # Get file size and write to jobs table
@@ -293,10 +291,16 @@ class ValidationManager:
             fileSize = os.path.getsize(jobTracker.getFileName(jobId))
         jobTracker.setFileSizeById(jobId, fileSize)
 
-        fields = interfaces.validationDb.getFileColumnsByFile(fileType)
+        # Get fields for this file
+        fields = sess.query(FileColumn). \
+            options(joinedload('field_type')). \
+            filter(FileColumn.file_id == FILE_TYPE_DICT[fileType]). \
+            all()
+        csvSchema = {row.name_short: row for row in fields}
+
         try:
             # Pull file and return info on whether it's using short or long col headers
-            reader.openFile(regionName, bucketName, fileName, fieldList,
+            reader.openFile(regionName, bucketName, fileName, fields,
                             bucketName, errorFileName)
 
             errorInterface = interfaces.errorDb

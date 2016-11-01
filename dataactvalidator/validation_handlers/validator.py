@@ -1,5 +1,7 @@
 from decimal import *
+
 from dataactcore.models.validationModels import RuleSql
+from dataactcore.models.lookups import FILE_TYPE_DICT_ID, FILE_TYPE_DICT
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -41,7 +43,7 @@ class Validator(object):
                     # get list of values for each column
                     values = ["{}: {}".format(shortColnames[c], str(row[c])) if c in shortColnames else "{}: {}".format(c, str(row[c])) for c in cols]
                     values = ", ".join(values)
-                    targetFileType = interfaces.validationDb.getFileTypeById(rule.target_file_id)
+                    targetFileType = FILE_TYPE_DICT_ID[rule.target_file_id]
                     failures.append([rule.file.name, targetFileType, columnString,
                         str(rule.rule_error_message), values, row['row_number'],str(rule.rule_label),rule.file_id,rule.target_file_id,rule.rule_severity_id])
 
@@ -178,7 +180,7 @@ class Validator(object):
         CloudLogger.logError("VALIDATOR_INFO: ", "Beginning SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
 
         # Pull all SQL rules for this file type
-        fileId = interfaces.validationDb.getFileTypeIdByName(fileType)
+        fileId = FILE_TYPE_DICT[fileType]
         rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
             RuleSql.rule_cross_file_flag == False).all()
         errors = []
