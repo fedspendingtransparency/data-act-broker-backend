@@ -24,8 +24,7 @@ Index("ix_tas",
       TASLookup.ending_period_of_availability,
       TASLookup.availability_type_code,
       TASLookup.main_account_code,
-      TASLookup.sub_account_code,
-      unique=True)
+      TASLookup.sub_account_code)
 
 class CGAC(Base):
     __tablename__ = "cgac"
