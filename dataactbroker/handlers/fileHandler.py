@@ -395,8 +395,8 @@ class FileHandler:
                     else:
                         jobInfo["duplicated_headers"] = []
                     jobInfo["error_type"] = getErrorType(job_id)
-                    jobInfo["error_data"] = getErrorMetricsByJobId(job_id,job_type=='validation',self.interfaces, severity_id=self.interfaces.validationDb.getRuleSeverityId("fatal"))
-                    jobInfo["warning_data"] = getErrorMetricsByJobId(job_id,job_type=='validation',self.interfaces, severity_id=self.interfaces.validationDb.getRuleSeverityId("warning"))
+                    jobInfo["error_data"] = getErrorMetricsByJobId(job_id,job_type=='validation',severity_id=self.interfaces.validationDb.getRuleSeverityId("fatal"))
+                    jobInfo["warning_data"] = getErrorMetricsByJobId(job_id,job_type=='validation',severity_id=self.interfaces.validationDb.getRuleSeverityId("warning"))
                 # File size and number of rows not dependent on error DB
                 # Get file size
                 jobInfo["file_size"] = self.jobManager.getFileSizeById(job_id)
