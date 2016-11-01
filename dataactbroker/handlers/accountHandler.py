@@ -646,13 +646,27 @@ class AccountHandler:
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
-    def listSubmissionsByCurrentUserAgency(self):
-        """ List all submission IDs associated with the current user's agency """
+    def listSubmissions(self, page, limit, certified):
+        """ List submission based on current page and amount to display. If provided, filter based on
+        certification status """
         user_id = LoginSession.getName(flaskSession)
         user = self.interfaces.userDb.getUserByUID(user_id)
-        submissions = self.interfaces.jobDb.getSubmissionsByUserAgency(user)
+        submissions = self.interfaces.jobDb.getSubmissionsByUserId(user_id)
         submissionDetails = []
-        for submission in submissions:
+
+        start_index = (page - 1) * limit
+        end_index = (page * limit)
+
+        # If end index is out of bounds, go to the end of the list
+        if end_index > len(submissions)-1:
+            end_index = len(submissions)-1
+
+        # If start index is out of bounds, just start from the beginning
+        if start_index > len(submissions)-1:
+            start_index = 0
+        subs = submissions[start_index:end_index]
+
+        for submission in subs:
             job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
             total_size = 0
             for job_id in job_ids:
@@ -669,28 +683,7 @@ class AccountHandler:
                                       "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
                                       "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": submission.user_id,
                                                                                                     "name": submission_user_name}})
-        return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
 
-    def listSubmissionsByCurrentUser(self):
-        """ List all submission IDs associated with the current user ID """
-        user_id = LoginSession.getName(flaskSession)
-        user = self.interfaces.userDb.getUserByUID(user_id)
-        submissions = self.interfaces.jobDb.getSubmissionsByUserId(user_id)
-        submissionDetails = []
-        for submission in submissions:
-            job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
-            total_size = 0
-            for job_id in job_ids:
-                file_size = self.interfaces.jobDb.getFileSize(job_id)
-                total_size += file_size if file_size is not None else 0
-
-            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
-            error_count = sumNumberOfErrorsForJobList(submission.submission_id)
-            submissionDetails.append(
-                {"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
-                 "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
-                                      "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": str(user_id),
-                                                                                                    "name": user.name}})
         return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
 
     def setNewPassword(self, session):

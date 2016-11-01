@@ -60,13 +60,13 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     @permissions_check
     def list_submissions():
         """ List submission IDs associated with the current user """
-        filter_by = request.args.get('filter_by')
-        filter_by = filter_by.lower() if filter_by is not None else filter_by
+        page = int(request.args.get('page')) if request.args.get('page') is not None else 1
+        limit = int(request.args.get('limit')) if request.args.get('limit') is not None else 5
+        certified = request.args.get('certified') # If none, get all submissions without filtering
+
         accountManager = AccountHandler(request,bcrypt = bcrypt)
 
-        if filter_by == 'agency':
-            return RouteUtils.run_instance_function(accountManager, accountManager.listSubmissionsByCurrentUserAgency)
-        return RouteUtils.run_instance_function(accountManager, accountManager.listSubmissionsByCurrentUser)
+        return RouteUtils.run_instance_function(accountManager, accountManager.listSubmissions, page, limit, certified)
 
     @app.route("/v1/get_protected_files/", methods=["GET"])
     @permissions_check
