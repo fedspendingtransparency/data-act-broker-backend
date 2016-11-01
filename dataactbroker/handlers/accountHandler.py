@@ -18,6 +18,7 @@ from dataactcore.interfaces.db import GlobalDB
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy import func
 from dataactcore.models.userModel import User
+from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
 from dataactcore.config import CONFIG_BROKER
@@ -76,7 +77,7 @@ class AccountHandler:
 
         session  -- (Session) object from flask
 
-        return the reponse object
+        return the response object
 
         """
         try:
@@ -123,7 +124,7 @@ class AccountHandler:
                 raise ve
             except Exception as e:
                 LoginSession.logout(session)
-                raise ValueError("Invalid username and/or password")
+                raise e
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
@@ -241,14 +242,18 @@ class AccountHandler:
         return xmltodict.parse(max_xml)
 
     def create_session_and_response(self, session, user):
-        # Create session
+        """Create a session."""
         LoginSession.login(session, user.user_id)
+
+        sess = GlobalDB.db().session
         permissionList = []
         for permission in self.interfaces.userDb.getPermissionList():
             if (self.interfaces.userDb.hasPermission(user, permission.name)):
                 permissionList.append(permission.permission_type_id)
         self.interfaces.userDb.updateLastLogin(user)
-        agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+        agency_name = sess.query(CGAC.agency_name).\
+            filter(CGAC.cgac_code == user.cgac_code).\
+            one_or_none()
         return JsonResponse.create(StatusCode.OK, {"message": "Login successful", "user_id": int(user.user_id),
                                                    "name": user.name, "title": user.title,
                                                    "agency_name": agency_name,
@@ -285,20 +290,23 @@ class AccountHandler:
         Returns message that registration is successful or error message that fields are not valid
 
         """
-        def ThreadedFunction (from_email="",username="",title="",cgac_code="",userEmail="" ,link="") :
+        def ThreadedFunction (from_email="", username="", title="", cgac_code="", userEmail="" , link="") :
             """
             This inner function sends emails in a new thread as there could be lots of admins
 
             from_email -- (string) the from email address
             username -- (string) the name of the  user
             title  --   (string) the title of the  user
-            agency -- (string) the agency of the  user
+            cgac_code -- (string) the agency of the  user
             userEmail -- (string) the email of the user
             link  -- (string) the broker email link
             """
+            sess = GlobalDB.db().session
             threadedDatabase =  UserHandler()
             try:
-                agency_name = self.interfaces.validationDb.getAgencyName(cgac_code)
+                agency_name = sess.query(CGAC.agency_name).\
+                    filter(CGAC.cgac_code == cgac_code).\
+                    one_or_none()
                 agency_name = "Unknown" if agency_name is None else agency_name
                 for user in threadedDatabase.getUsersByType("website_admin"):
                     emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
@@ -582,6 +590,7 @@ class AccountHandler:
         """ List all users ordered by status. Associated request body must have key 'filter_by' """
         requestDict = RequestDictionary(self.request, optionalRequest=True)
         user_status = requestDict.getValue("status") if requestDict.exists("status") else "all"
+        sess = GlobalDB.db().session
 
         user = self.interfaces.userDb.getUserByUID(LoginSession.getName(flaskSession))
         isAgencyAdmin = self.userManager.hasPermission(user, "agency_admin") and not self.userManager.hasPermission(user, "website_admin")
@@ -596,7 +605,9 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
         userInfo = []
         for user in users:
-            agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+            agency_name = sess.query(CGAC.agency_name).\
+                filter(CGAC.cgac_code == user.cgac_code).\
+                one_or_none()
             thisInfo = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
                         "email":user.email, "id":user.user_id, "is_active":user.is_active,
                         "permissions": ",".join(self.interfaces.userDb.getUserPermissions(user)), "status": user.user_status.name}
@@ -627,6 +638,7 @@ class AccountHandler:
             exc = ResponseException("Request body must include status", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
 
+        sess = GlobalDB.db().session
         current_user = self.interfaces.userDb.getUserByUID(flaskSession["name"])
 
         try:
@@ -640,7 +652,9 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
         userInfo = []
         for user in users:
-            agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+            agency_name = sess.query(CGAC.agency_name).\
+                filter(CGAC.cgac_code == user.cgac_code).\
+                one_or_none()
             thisInfo = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
                         "email":user.email, "id":user.user_id }
             userInfo.append(thisInfo)
@@ -781,12 +795,15 @@ class AccountHandler:
 
         """
         uid =  session["name"]
+        sess = GlobalDB.db().session
         user =  self.interfaces.userDb.getUserByUID(uid)
         permissionList = []
         for permission in self.interfaces.userDb.getPermissionList():
             if(self.interfaces.userDb.hasPermission(user, permission.name)):
                 permissionList.append(permission.permission_type_id)
-        agency_name = self.interfaces.validationDb.getAgencyName(user.cgac_code)
+        agency_name = sess.query(CGAC.agency_name).\
+            filter(CGAC.cgac_code == user.cgac_code).\
+            one_or_none()
         return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency_name": agency_name,
                                                   "cgac_code":user.cgac_code,"title":user.title,
                                                   "permissions": permissionList, "skip_guide":user.skip_guide})

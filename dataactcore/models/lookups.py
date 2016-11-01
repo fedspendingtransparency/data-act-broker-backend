@@ -67,6 +67,7 @@ FILE_TYPE = [
     LookupFileType(7, 'sub_award', '', 'F', None)
 ]
 FILE_TYPE_DICT = {item.name: item.id for item in FILE_TYPE}
+FILE_TYPE_DICT_ID = {item.id: item.name for item in FILE_TYPE}
 
 USER_STATUS = [
     LookupType(1, 'awaiting_confirmation', 'User has entered email but not confirmed'),
