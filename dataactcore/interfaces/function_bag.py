@@ -8,7 +8,7 @@ from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency
 from dataactcore.models.userModel import User, UserStatus, PermissionType
 from dataactcore.models.validationModels import RuleSeverity
-from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT
+from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT, FILE_TYPE_DICT_ID
 from dataactcore.interfaces.db import GlobalDB
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
@@ -328,3 +328,26 @@ def markFileComplete(job_id, filename=None):
     fileComplete = createFileIfNeeded(job_id, filename)
     fileComplete.file_status_id = FILE_STATUS_DICT['complete']
     sess.commit()
+
+def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
+    """ Get error metrics for specified job, including number of errors for each field name and error type """
+    sess = GlobalDB.db().session
+    result_list = []
+
+    query_result = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job_id).one()
+
+    if not query_result.file_status.file_status_id == FILE_STATUS_DICT['complete']:
+        return [{"field_name": "File Level Error", "error_name": query_result.file_status.name,
+                 "error_description": query_result.file_status.description, "occurrences": 1, "rule_failed": ""}]
+
+    query_result = sess.query(ErrorMetadata).options(joinedload("error_type")).filter(
+        ErrorMetadata.job_id == job_id, ErrorMetadata.severity_id == severity_id).all()
+    for result in query_result:
+        record_dict = {"field_name": result.field_name, "error_name": result.error_type.name,
+                      "error_description": result.error_type.description, "occurrences": str(result.occurrences),
+                      "rule_failed": result.rule_failed, "original_label": result.original_rule_label}
+        if include_file_types:
+            record_dict['source_file'] = FILE_TYPE_DICT_ID.get(result.file_type_id, '')
+            record_dict['target_file'] = FILE_TYPE_DICT_ID.get(result.target_file_type_id, '')
+        result_list.append(record_dict)
+    return result_list

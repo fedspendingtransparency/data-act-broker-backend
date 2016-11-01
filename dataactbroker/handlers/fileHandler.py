@@ -27,7 +27,7 @@ from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType, createFileIfNeeded
+from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType, createFileIfNeeded, getErrorMetricsByJobId
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -380,14 +380,14 @@ class FileHandler:
 
             for job_id in jobs:
                 jobInfo = {}
-                jobType = self.jobManager.getJobType(job_id)
+                job_type = self.jobManager.getJobType(job_id)
 
-                if jobType != "csv_record_validation" and jobType != "validation":
+                if job_type != "csv_record_validation" and job_type != "validation":
                     continue
 
                 jobInfo["job_id"] = job_id
                 jobInfo["job_status"] = self.jobManager.getJobStatusName(job_id)
-                jobInfo["job_type"] = jobType
+                jobInfo["job_type"] = job_type
                 jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job_id)
                 try:
                     file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job_id).one()
@@ -417,8 +417,8 @@ class FileHandler:
                     else:
                         jobInfo["duplicated_headers"] = []
                     jobInfo["error_type"] = getErrorType(job_id)
-                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(job_id,jobType=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("fatal"))
-                    jobInfo["warning_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(job_id,jobType=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("warning"))
+                    jobInfo["error_data"] = getErrorMetricsByJobId(job_id,job_type=='validation',severity_id=self.interfaces.validationDb.getRuleSeverityId("fatal"))
+                    jobInfo["warning_data"] = getErrorMetricsByJobId(job_id,job_type=='validation',severity_id=self.interfaces.validationDb.getRuleSeverityId("warning"))
                 # File size and number of rows not dependent on error DB
                 # Get file size
                 jobInfo["file_size"] = self.jobManager.getFileSizeById(job_id)
@@ -442,22 +442,21 @@ class FileHandler:
 
     def getErrorMetrics(self) :
         """ Returns an Http response object containing error information for every validation job in specified submission """
-        responseDict = {}
-        returnDict = {}
+        return_dict = {}
         try:
-            safeDictionary = RequestDictionary(self.request)
-            submission_id =  safeDictionary.getValue("submission_id")
+            safe_dictionary = RequestDictionary(self.request)
+            submission_id =  safe_dictionary.getValue("submission_id")
 
             # Check if user has permission to specified submission
             self.checkSubmissionPermission(self.jobManager.getSubmissionById(submission_id))
 
-            jobIds = self.jobManager.getJobsBySubmission(submission_id)
-            for currentId in jobIds :
-                if(self.jobManager.getJobType(currentId) == "csv_record_validation"):
-                    fileName = self.jobManager.getFileType(currentId)
-                    dataList = self.interfaces.errorDb.getErrorMetricsByJobId(currentId)
-                    returnDict[fileName]  = dataList
-            return JsonResponse.create(StatusCode.OK,returnDict)
+            job_ids = self.jobManager.getJobsBySubmission(submission_id)
+            for current_id in job_ids :
+                if self.jobManager.getJobType(current_id) == "csv_record_validation":
+                    file_name = self.jobManager.getFileType(current_id)
+                    data_list = getErrorMetricsByJobId(current_id)
+                    return_dict[file_name]  = data_list
+            return JsonResponse.create(StatusCode.OK,return_dict)
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:
