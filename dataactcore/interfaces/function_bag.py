@@ -338,10 +338,10 @@ def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
 
     if not query_result.file_status.file_status_id == FILE_STATUS_DICT['complete']:
         return [{"field_name": "File Level Error", "error_name": query_result.file_status.name,
-                 "error_description": str(query_result.file_status.description), "occurrences": 1, "rule_failed": ""}]
+                 "error_description": query_result.file_status.description, "occurrences": 1, "rule_failed": ""}]
 
     query_result = sess.query(ErrorMetadata).options(joinedload("error_type")).filter(
-        ErrorMetadata.job_id == job_id).filter(ErrorMetadata.severity_id == severity_id).all()
+        ErrorMetadata.job_id == job_id, ErrorMetadata.severity_id == severity_id).all()
     for result in query_result:
         record_dict = {"field_name": result.field_name, "error_name": result.error_type.name,
                       "error_description": result.error_type.description, "occurrences": str(result.occurrences),

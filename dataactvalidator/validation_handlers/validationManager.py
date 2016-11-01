@@ -137,7 +137,7 @@ class ValidationManager:
             row_number: Next row number to be read
             job_id: ID of current job
             fields: List of FileColumn objects for this file type
-            error_list: list of errors found during this validation
+            error_list: instance of ErrorInterface to keep track of errors
 
         Returns:
             Tuple with four elements:
@@ -180,7 +180,7 @@ class ValidationManager:
             writer: CsvWriter object
             row_number: Current row number
             file_type: Type of file for current job
-            error_list: list of errors found during this validation
+            error_list: instance of ErrorInterface to keep track of errors
 
         Returns:
             Boolean indicating whether to skip current row
@@ -193,7 +193,7 @@ class ValidationManager:
             stagingInterface.insertSubmissionRecordByFileType(record, file_type)
         except ResponseException:
             # Write failed, move to next record
-            writer.write(["Formatting Error", ValidationError.writeErrorMsg, str(row_number),""])
+            writer.write(["Formatting Error", ValidationError.writeErrorMsg, row_number,""])
             error_list.recordRowError(job_id, self.filename,
                 "Formatting Error",ValidationError.writeError, row_number,severity_id=interfaces.validationDb.getRuleSeverityId("fatal"))
             return True
@@ -210,7 +210,7 @@ class ValidationManager:
             writer: CsvWriter object
             warning_writer: CsvWriter object
             row_number: Current row number
-            error_list: list of errors found during this validation
+            error_list: instance of ErrorInterface to keep track of errors
         Returns:
             True if any fatal errors were found, False if only warnings are present
         """
@@ -407,7 +407,7 @@ class ValidationManager:
             writer: CsvWriter object
             warning_writer: CsvWriter for warnings
             row_number: Current row number
-            error_list: list of errors found during this validation
+            error_list: instance of ErrorInterface to keep track of errors
 
         Returns:
             a list of the row numbers that failed one of the sql-based validations
