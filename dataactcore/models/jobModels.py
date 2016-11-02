@@ -103,6 +103,7 @@ class FileType(Base):
     name = Column(Text)
     description = Column(Text)
     letter_name = Column(Text)
+    file_order = Column(Integer)
 
 class FileGenerationTask(Base):
     __tablename__ = "file_generation_task"
