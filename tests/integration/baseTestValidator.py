@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from random import randint
 
@@ -164,9 +164,11 @@ class BaseTestValidator(unittest.TestCase):
     @classmethod
     def insertSubmission(cls, sess, userId=None, reporting_end_date=None):
         """Insert submission and return id."""
-        reporting_start_date = cls.SUBMISSION_START_DEFAULT
         if reporting_end_date is None:
+            reporting_start_date = cls.SUBMISSION_START_DEFAULT
             reporting_end_date = cls.SUBMISSION_END_DEFAULT
+        else:
+            reporting_start_date = reporting_end_date - timedelta(days=30)
         sub = Submission(
             datetime_utc=datetime.utcnow(),
             user_id=userId,
