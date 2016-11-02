@@ -10,9 +10,10 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactcore.models.validationModels import FileColumn
-from dataactcore.interfaces.function_bag import createFileIfNeeded, writeFileError, markFileComplete
+from dataactcore.interfaces.function_bag import (
+    createFileIfNeeded, writeFileError, markFileComplete, get_cross_file_combos)
 from dataactcore.models.errorModels import ErrorMetadata
-from dataactcore.models.jobModels import Job, FileType
+from dataactcore.models.jobModels import Job
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import getReportPath, getCrossWarningReportName, getCrossReportName
@@ -453,7 +454,6 @@ class ValidationManager:
         createFileIfNeeded(job_id)
         error_list = ErrorInterface()
         
-        validationDb = interfaces.validationDb
         submission_id = interfaces.jobDb.getSubmissionId(job_id)
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
@@ -463,14 +463,8 @@ class ValidationManager:
         sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == job_id).delete()
         sess.commit()
 
-        # use db to get a list of the cross-file combinations
-        targetFiles = sess.query(FileType).subquery()
-        crossFileCombos = sess.query(
-            FileType.name.label('first_file_name'),
-            FileType.file_type_id.label('first_file_type_id'),
-            targetFiles.c.name.label('second_file_name'),
-            targetFiles.c.file_type_id.label('second_file_type_id')
-        ).filter(FileType.file_order < targetFiles.c.file_order)
+        # get a list of the cross-file combinations
+        crossFileCombos = get_cross_file_combos()
 
         # get all cross file rules from db
         crossFileRules = sess.query(RuleSql).filter(RuleSql.rule_cross_file_flag==True)
