@@ -4,17 +4,6 @@ from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
-class FileTypeValidation(Base):
-    __tablename__ = "file_type_validation"
-
-    file_id = Column(Integer, primary_key=True)
-    name = Column(Text)
-    description = Column(Text)
-    file_order = Column(Integer, nullable=False, server_default="0")
-
-    TYPE_DICT = None
-    TYPE_ID_DICT = None
-
 class FieldType(Base):
     __tablename__ = "field_type"
 
