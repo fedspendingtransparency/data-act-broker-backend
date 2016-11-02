@@ -9,6 +9,7 @@ from dataactbroker.handlers.userHandler import UserHandler
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.interfaces.db import GlobalDB
 
 
 def permissions_check(f=None,permissionList=[]):

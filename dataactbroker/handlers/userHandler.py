@@ -10,6 +10,8 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.models.userModel import EmailToken, EmailTemplateType, EmailTemplate
 
+from dataactcore.models.lookups import USER_STATUS_DICT
+
 class UserHandler(UserInterface):
     """ Responsible for all interaction with the user database
 
@@ -23,16 +25,6 @@ class UserHandler(UserInterface):
     session - sqlalchemy session for ORM calls to user database
     """
     HASH_ROUNDS = 12 # How many rounds to use for hashing passwords
-
-    def getTokenSalt(self,token):
-        """ gets the salt from a given token so it can be decoded
-
-        Arguments:
-            token - Token to extract salt from
-        Returns:
-            salt for this token
-        """
-        return  self.session.query(EmailToken.salt).filter(EmailToken.token == token).one()
 
     def deleteToken(self,token):
         """ deletes old token
@@ -50,7 +42,7 @@ class UserHandler(UserInterface):
         if cgac_code is not None:
             query = query.filter(User.cgac_code == cgac_code)
         if status != "all":
-            status_id = self.getUserStatusId(status)
+            status_id = USER_STATUS_DICT[status]
             query = query.filter(User.user_status_id == status_id)
         if only_active:
             query = query.filter(User.is_active == True)
@@ -106,7 +98,7 @@ class UserHandler(UserInterface):
         user.title = title
         self.session.commit()
 
-    def changeStatus(self,user,statusName):
+    def changeStatus(self,user,status_name):
         """ Change status for specified user
 
         Arguments:
@@ -114,13 +106,13 @@ class UserHandler(UserInterface):
             statusName - Status to change to
         """
         try:
-            user.user_status_id = self.getUserStatusId(statusName)
+            user.user_status_id = USER_STATUS_DICT[status_name]
         except ValueError as e:
             # In this case having a bad status name is a client error
             raise ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
         self.session.commit()
 
-    def checkStatus(self,user,statusName):
+    def checkStatus(self,user,status_name):
         """ Check if a user has a specific status
 
         Arguments:
@@ -130,7 +122,7 @@ class UserHandler(UserInterface):
             True if user has that status, False otherwise, raises an exception if status name is not valid
         """
         try:
-            if(user.user_status_id == self.getUserStatusId(statusName) ):
+            if user.user_status_id == USER_STATUS_DICT[status_name]:
                 return True
             else :
                 return False
@@ -174,8 +166,7 @@ class UserHandler(UserInterface):
         Returns:
             list of User objects
         """
-        statusId = self.getUserStatusId(status)
-        query = self.session.query(User).filter(User.user_status_id == statusId)
+        query = self.session.query(User).filter(User.user_status_id == USER_STATUS_DICT[status])
         if cgac_code is not None:
             query = query.filter(User.cgac_code == cgac_code)
         return query.all()

@@ -362,7 +362,7 @@ class AccountHandler:
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
 
-    def createEmailConfirmation(self,system_email,session):
+    def createEmailConfirmation(self,system_email):
         """
 
         Creates user record and email
@@ -370,29 +370,28 @@ class AccountHandler:
         arguments:
 
         system_email  -- (string) email used to send messages
-        session  -- (Session) object from flask
 
         """
-        requestFields = RequestDictionary(self.request)
-        if(not requestFields.exists("email")):
+        request_fields = RequestDictionary(self.request)
+        if not request_fields.exists("email"):
             exc = ResponseException("Request body must include email", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
-        email = requestFields.getValue("email")
-        if( not re.match("[^@]+@[^@]+\.[^@]+",email)) :
+        email = request_fields.getValue("email")
+        if not re.match("[^@]+@[^@]+\.[^@]+",email):
             return JsonResponse.error(ValueError("Invalid Email Format"),StatusCode.CLIENT_ERROR)
         try :
-            user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
-        except ResponseException as e:
+            user = self.interfaces.userDb.getUserByEmail(request_fields.getValue("email"))
+        except ResponseException:
             self.interfaces.userDb.addUnconfirmedEmail(email)
         else:
-            if(not (user.user_status_id == self.interfaces.userDb.getUserStatusId("awaiting_confirmation") or user.user_status_id == self.interfaces.userDb.getUserStatusId("email_confirmed"))):
+            if not (user.user_status_id == USER_STATUS_DICT["awaiting_confirmation"] or user.user_status_id == USER_STATUS_DICT["email_confirmed"]):
                 exc = ResponseException("User already registered", StatusCode.CLIENT_ERROR)
                 return JsonResponse.error(exc,exc.status)
-        emailToken = sesEmail.createToken(email, "validate_email")
-        link= "".join([AccountHandler.FRONT_END,'#/registration/',emailToken])
-        emailTemplate = {'[USER]': email, '[URL]':link}
-        newEmail = sesEmail(email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)
-        newEmail.send()
+        email_token = sesEmail.createToken(email, "validate_email")
+        link= "".join([AccountHandler.FRONT_END,'#/registration/',email_token])
+        email_template = {'[USER]': email, '[URL]':link}
+        new_email = sesEmail(email, system_email,templateType="validate_email",parameters=email_template,database=self.interfaces.userDb)
+        new_email.send()
         return JsonResponse.create(StatusCode.OK,{"message":"Email Sent"})
 
     def checkEmailConfirmationToken(self,session):
@@ -763,7 +762,7 @@ class AccountHandler:
             email = user.email
 
         # User must be approved and active to reset password
-        if user.user_status_id != self.interfaces.userDb.getUserStatusId("approved"):
+        if user.user_status_id != USER_STATUS_DICT["approved"]:
             raise ResponseException("User must be approved before resetting password", StatusCode.CLIENT_ERROR)
         elif not unlock_user and not user.is_active:
             raise ResponseException("User is locked, cannot reset password", StatusCode.CLIENT_ERROR)
@@ -774,13 +773,13 @@ class AccountHandler:
 
         self.interfaces.userDb.session.commit()
         # Send email with token
-        emailToken = sesEmail.createToken(email, "password_reset")
-        link = "".join([AccountHandler.FRONT_END, '#/forgotpassword/', emailToken])
-        emailTemplate = {'[URL]': link}
-        templateType = "unlock_account" if unlock_user else "reset_password"
-        newEmail = sesEmail(user.email, system_email, templateType=templateType,
-                            parameters=emailTemplate, database=self.interfaces.userDb)
-        newEmail.send()
+        email_token = sesEmail.createToken(email, "password_reset")
+        link = "".join([AccountHandler.FRONT_END, '#/forgotpassword/', email_token])
+        email_template = {'[URL]': link}
+        template_type = "unlock_account" if unlock_user else "reset_password"
+        new_email = sesEmail(user.email, system_email, templateType=template_type,
+                            parameters=email_template, database=self.interfaces.userDb)
+        new_email.send()
 
     def getCurrentUser(self,session):
         """
