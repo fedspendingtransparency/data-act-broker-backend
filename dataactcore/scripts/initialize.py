@@ -5,18 +5,19 @@ import os
 from flask_bcrypt import Bcrypt
 
 
-from dataactvalidator.app import createApp
 from dataactbroker.scripts.setupEmails import setupEmails
-from dataactcore.models.userModel import User
-from dataactcore.interfaces.function_bag import createUserWithPassword
-from dataactcore.scripts.setupAllDB import setupAllDB
-from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
-from dataactvalidator.scripts.loadTas import loadTas
-from dataactvalidator.filestreaming.sqlLoader import SQLLoader
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import createUserWithPassword
+from dataactcore.logging import configure_logging
+from dataactcore.models.userModel import User
+from dataactcore.scripts.setupAllDB import setupAllDB
+from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
+from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.scripts.loadFile import loadDomainValues
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
+from dataactvalidator.scripts.loadTas import loadTas
 
 logger = logging.getLogger(__name__)
 basePath = CONFIG_BROKER["path"]
@@ -124,6 +125,6 @@ def main():
         load_validator_schema()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    configure_logging()
     main()
 
