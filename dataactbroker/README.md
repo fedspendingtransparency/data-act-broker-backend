@@ -845,6 +845,16 @@ Get total obligations and specific obligations. Calls to this route should inclu
 }
 ```
 
+#### GET "/v1/sign_submission_file/"
+This route sends a request to the backend with the submission ID and file name that is desired. The backend generates a signed S3 URL and redirects to that URL. Locally, it downloads the file specified from the location given for file storage in the config
+
+##### Request Params
+  * file - a string indicating the file to generate (file name without extension)
+  * submission - the integer submission ID
+  
+##### Response
+File download or redirect to signed URL
+
 ## File Generation Routes
 
 ## Generate Files

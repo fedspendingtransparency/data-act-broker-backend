@@ -1,17 +1,14 @@
 import sys
 import traceback
-from threading import Thread
-from flask import Flask, request, copy_current_request_context
+from flask import Flask, request
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
-from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
-from dataactcore.interfaces.function_bag import writeFileError
 
 
 def createApp():
