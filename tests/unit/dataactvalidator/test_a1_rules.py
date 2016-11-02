@@ -51,10 +51,9 @@ def test_success_populated(database, sql_file, factory):
         reporting_end_date=tas.internal_start_date
     )
 
-    errors = number_of_errors(
+    assert number_of_errors(
         sql_file, database, submission, models=[tas, model]
-    )
-    assert errors == 0
+    ) == 0
 
 
 @pytest.mark.parametrize('sql_file,factory', _factories.items())
@@ -80,10 +79,9 @@ def test_success_null(database, sql_file, factory):
         reporting_end_date=tas.internal_start_date
     )
 
-    errors = number_of_errors(
+    assert number_of_errors(
         sql_file, database, submission, models=[tas, model]
-    )
-    assert errors == 0
+    ) == 0
 
 
 @pytest.mark.parametrize('sql_file,factory', _factories.items())
@@ -106,11 +104,9 @@ def test_failure_populated(database, sql_file, factory):
         reporting_end_date=tas.internal_start_date
     )
 
-    # Non-overlapping ranges of agency IDs should generate two errors
-    errors = number_of_errors(
+    assert number_of_errors(
         sql_file, database, submission, models=[tas, model]
-    )
-    assert errors == 1
+    ) == 1
 
 
 @pytest.mark.parametrize('sql_file,factory', _factories.items())
@@ -138,11 +134,9 @@ def test_failure_null(database, sql_file, factory):
         reporting_end_date=tas.internal_start_date
     )
 
-    # Non-overlapping ranges of agency IDs should generate two errors
-    errors = number_of_errors(
+    assert number_of_errors(
         sql_file, database, submission, models=[tas, model]
-    )
-    assert errors == 1
+    ) == 1
 
 
 @pytest.mark.parametrize('sql_file,factory', _factories.items())
@@ -164,8 +158,9 @@ def test_tas_closed(database, sql_file, factory):
         reporting_end_date=date(2016, 3, 31)
     )
 
-    assert 1 == number_of_errors(
-        sql_file, database, submission, models=[tas, model])
+    assert number_of_errors(
+        sql_file, database, submission, models=[tas, model]
+    ) == 1
 
 
 @pytest.mark.parametrize('sql_file,factory', _factories.items())
@@ -187,8 +182,9 @@ def test_tas_in_future(database, sql_file, factory):
         reporting_end_date=date(2014, 3, 31)
     )
 
-    assert 1 == number_of_errors(
-        sql_file, database, submission, models=[tas, model])
+    assert number_of_errors(
+        sql_file, database, submission, models=[tas, model]
+    ) == 1
 
 
 @pytest.mark.parametrize('sql_file,factory', _factories.items())
@@ -217,5 +213,6 @@ def test_tas_in_span(database, sql_file, factory, begin, end):
         reporting_end_date=end
     )
 
-    assert 0 == number_of_errors(
-        sql_file, database, submission, models=[tas, model])
+    assert number_of_errors(
+        sql_file, database, submission, models=[tas, model]
+    ) == 0
