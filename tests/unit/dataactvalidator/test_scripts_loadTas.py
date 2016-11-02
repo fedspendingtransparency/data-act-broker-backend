@@ -62,56 +62,67 @@ def test_updateTASLookups(database, monkeypatch):
     """Verify that TAS with the same account_num can be modified, that we
     "close" any non-present TASes, and that we add new entries"""
     sess = database.session
-    monkeypatch.setattr(
-        loadTas, 'cleanTas', Mock(return_value=pd.DataFrame({
-            'availability_type_code': ['0', '1', '2'],
-            'account_num': [111, 222, 333],
-            'agency_identifier': ['new', '1', 'new'],
-            'allocation_transfer_agency': ['0', '1', '2'],
-            'beginning_period_of_availability': ['0', '1', '2'],
-            'ending_period_of_availability': ['0', '1', '2'],
-            'main_account_code': ['0', '1', '2'],
-            'sub_account_code': ['0', '1', '2'],
-        }))
-    )
-
-    sess.add_all([
+    existing_tas_entries = [
         # TAS present in both csv and db
-        TASFactory(account_num=222,
-                   **{field: '1' for field in loadTas._MATCH_FIELDS}),
+        TASFactory(
+            account_num=222,
+            **{field: 'still-active' for field in loadTas._MATCH_FIELDS}),
         # Example of TAS being modified
-        TASFactory(account_num=333, agency_identifier='old'),
-        # Example of TAS which is unrelated to anything of these entries
-        TASFactory(account_num=444, agency_identifier='old')
-    ])
+        TASFactory(account_num=333, agency_identifier='to-close-1'),
+        # Example unrelated to anything of these entries
+        TASFactory(account_num=444, agency_identifier='to-close-2'),
+        # Example of an existing, closed TAS
+        TASFactory(account_num=555, agency_identifier='already-closed',
+                   internal_end_date=date(2015, 2, 2))
+    ]
+    sess.add_all(existing_tas_entries)
     sess.commit()
 
-    assert sess.query(TASLookup).count() == 3
-    sess.invalidate()
+    incoming_tas_data = pd.DataFrame(
+        columns=('account_num',) + loadTas._MATCH_FIELDS,
+        data=[
+            [111] + ['new-entry-1'] * len(loadTas._MATCH_FIELDS),
+            [222] + ['still-active'] * len(loadTas._MATCH_FIELDS),
+            [333] + ['new-entry-2'] * len(loadTas._MATCH_FIELDS)
+        ]
+    )
+    monkeypatch.setattr(loadTas, 'cleanTas',
+                        Mock(return_value=incoming_tas_data))
+
+    # Initial state
+    assert sess.query(TASLookup).count() == 4
 
     loadTas.updateTASLookups('file-name-ignored-due-to-mock')
 
-    sess.invalidate()
+    # Post-"import" state
     results = sess.query(TASLookup).\
         order_by(TASLookup.account_num, TASLookup.agency_identifier).all()
-    assert len(results) == 5
-    t111, t222, t333_new, t333_old, t444 = results
+    assert len(results) == 6
+    t111, t222, t333_new, t333_old, t444, t555 = results
 
     assert t111.account_num == 111
-    assert t111.internal_end_date == None               # still active
-    assert t111.agency_identifier == 'new'
+    assert t111.internal_end_date == None               # active, new entry
+    assert t111.agency_identifier == 'new-entry-1'
+
     assert t222.account_num == 222
-    assert t222.internal_end_date is None               # still active
-    assert t222.agency_identifier == '1'
+    assert t222.internal_end_date is None               # active, continuing
+    assert t222.agency_identifier == 'still-active'
+
     assert t333_old.account_num == 333
-    assert t333_old.internal_end_date == date.today()   # closed
-    assert t333_old.agency_identifier == 'old'
+    assert t333_old.internal_end_date == date.today()   # closed today
+    assert t333_old.agency_identifier == 'to-close-1'
+
     assert t333_new.account_num == 333
-    assert t333_new.internal_end_date is None           # still active
-    assert t333_new.agency_identifier == 'new'
+    assert t333_new.internal_end_date is None           # active, new entry
+    assert t333_new.agency_identifier == 'new-entry-2'
+
     assert t444.account_num == 444
-    assert t444.internal_end_date == date.today()       # closed
-    assert t444.agency_identifier == 'old'
+    assert t444.internal_end_date == date.today()       # closed today
+    assert t444.agency_identifier == 'to-close-2'
+
+    assert t555.account_num == 555
+    assert t555.internal_end_date == date(2015, 2, 2)   # closed previously
+    assert t555.agency_identifier == 'already-closed'
 
 
 def test_add_start_date_blank(database):
