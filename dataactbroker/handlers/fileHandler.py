@@ -133,7 +133,7 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-    def getSignedURLForSubmissionFile(self):
+    def get_signed_url_for_submission_file(self):
         """ Gets the signed URL for the specified file """
         try:
             self.s3manager = s3UrlHandler()

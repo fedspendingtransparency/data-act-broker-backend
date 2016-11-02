@@ -4,7 +4,7 @@ from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from unittest.mock import Mock
 from flask import Flask
 
-def test_getSignedURLForSubmissionFile_local(database, monkeypatch):
+def test_get_signed_url_for_submission_file_local(database, monkeypatch):
     submission = SubmissionFactory()
     database.session.add(submission)
     database.session.commit()
@@ -16,9 +16,9 @@ def test_getSignedURLForSubmissionFile_local(database, monkeypatch):
         monkeypatch.setattr(
             fileHandler, 'send_from_directory', Mock(return_value='send from directory reached')
         )
-        assert file_handler.getSignedURLForSubmissionFile() == 'send from directory reached'
+        assert file_handler.get_signed_url_for_submission_file() == 'send from directory reached'
 
-def test_getSignedURLForSubmissionFile_s3(database, monkeypatch):
+def test_get_signed_url_for_submission_file_s3(database, monkeypatch):
     submission = SubmissionFactory()
     database.session.add(submission)
     database.session.commit()
@@ -29,4 +29,4 @@ def test_getSignedURLForSubmissionFile_s3(database, monkeypatch):
         file_handler.checkSubmissionPermission = Mock()
         monkeypatch.setattr(fileHandler, 's3UrlHandler', Mock())
 
-        assert file_handler.getSignedURLForSubmissionFile().status_code == 302
+        assert file_handler.get_signed_url_for_submission_file().status_code == 302

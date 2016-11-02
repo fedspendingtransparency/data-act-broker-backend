@@ -104,4 +104,4 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     @permissions_check
     def sign_submission_file():
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return RouteUtils.run_instance_function(fileManager, fileManager.getSignedURLForSubmissionFile)
+        return RouteUtils.run_instance_function(fileManager, fileManager.get_signed_url_for_submission_file)
