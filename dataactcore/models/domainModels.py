@@ -1,5 +1,6 @@
 from dataactcore.models.stagingModels import concatTas
-from sqlalchemy import Column, Date, Index, Integer, Numeric, Text
+from sqlalchemy import (
+    Column, Date, Index, Integer, Numeric, Text, UniqueConstraint)
 from dataactcore.models.baseModel import Base
 
 
@@ -16,6 +17,20 @@ class TASLookup(Base) :
     sub_account_code = Column(Text, nullable=True, index=True)
     internal_start_date = Column(Date, nullable=False)
     internal_end_date = Column(Date)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'account_num',
+            'allocation_transfer_agency',
+            'agency_identifier',
+            'beginning_period_of_availability',
+            'ending_period_of_availability',
+            'availability_type_code',
+            'main_account_code',
+            'sub_account_code',
+            name='tas_lookup_sanity_check'
+        ),
+    )
 
 Index("ix_tas",
       TASLookup.allocation_transfer_agency,
