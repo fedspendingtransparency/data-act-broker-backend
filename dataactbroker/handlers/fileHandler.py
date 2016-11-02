@@ -141,6 +141,7 @@ class FileHandler:
             submission_id = request.args.get('submission')
             submission = self.jobManager.getSubmissionById(submission_id)
             # Check that user has access to submission
+            # If they don't, throw an exception
             self.checkSubmissionPermission(submission)
 
             if self.isLocal:
@@ -151,7 +152,6 @@ class FileHandler:
         except ResponseException as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except Exception as e:
-            print(e)
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
