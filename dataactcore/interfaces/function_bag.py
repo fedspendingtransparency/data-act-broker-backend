@@ -8,7 +8,8 @@ from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency, FileType
 from dataactcore.models.userModel import User, UserStatus, PermissionType
 from dataactcore.models.validationModels import RuleSeverity
-from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT, FILE_TYPE_DICT_ID
+from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
+                                        JOB_STATUS_DICT, FILE_TYPE_DICT_ID)
 from dataactcore.interfaces.db import GlobalDB
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
@@ -352,21 +353,4 @@ def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
         result_list.append(record_dict)
     return result_list
 
-def get_cross_file_combos():
-    """Return a list of source and target file types used in cross-file validations."""
-    sess = GlobalDB.db().session
 
-    # note: we query the file_type table here instead of
-    # using FILE_TYPE_DICT in lookups.py because cross-file
-    # validations don't apply to all file types (file types
-    # with a NULL file_order--like E and F--are excluded
-    # from the results of the query below)
-    target_files = sess.query(FileType).subquery()
-    cross_file_combos = sess.query(
-        FileType.name.label('first_file_name'),
-        FileType.file_type_id.label('first_file_type_id'),
-        target_files.c.name.label('second_file_name'),
-        target_files.c.file_type_id.label('second_file_type_id')
-    ).filter(FileType.file_order < target_files.c.file_order)
-
-    return cross_file_combos

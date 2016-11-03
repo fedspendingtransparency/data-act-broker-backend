@@ -18,18 +18,19 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
 from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
-from dataactcore.models.lookups import FILE_STATUS_DICT, FILE_TYPE_DICT
+from dataactcore.models.lookups import FILE_STATUS_DICT
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import getReportPath, getCrossReportName, getCrossWarningReportName
+from dataactcore.utils.report import (getReportPath, getCrossReportName,
+                                      getCrossWarningReportName, get_cross_file_pairs)
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType,
-    createFileIfNeeded, getErrorMetricsByJobId, get_cross_file_combos)
+    createFileIfNeeded, getErrorMetricsByJobId)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -107,20 +108,21 @@ class FileHandler:
                         response_dict[key] = path
 
             # For each pair of files, get url for the report
-            cross_file_pairs = get_cross_file_combos()
-            for c in cross_file_pairs:
+            for c in get_cross_file_pairs():
+                first_file = c[0]
+                second_file = c[1]
                 if is_warning:
                     report_name = getCrossWarningReportName(
-                        submission_id, c.first_file_name, c.second_file_name)
+                        submission_id, first_file.name, second_file.name)
                 else:
                     report_name = getCrossReportName(
-                        submission_id, c.first_file_name, c.second_file_name)
+                        submission_id, first_file.name, second_file.name)
                 if self.isLocal:
                     report_path = os.path.join(self.serverPath, report_name)
                 else:
                     report_path = self.s3manager.getSignedUrl("errors", report_name, method="GET")
                 # Assign to key based on source and target
-                response_dict[self.getCrossReportKey(c.first_file_name, c.second_file_name, is_warning)] = report_path
+                response_dict[self.getCrossReportKey(first_file.name, second_file.name, is_warning)] = report_path
 
             return JsonResponse.create(StatusCode.OK, response_dict)
 
