@@ -22,8 +22,8 @@ from dataactcore.models.lookups import FILE_STATUS_DICT
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import (getReportPath, getCrossReportName,
-                                      getCrossWarningReportName, get_cross_file_pairs)
+from dataactcore.utils.report import (get_report_path, get_cross_report_name,
+                                      get_cross_warning_report_name, get_cross_file_pairs)
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -96,10 +96,10 @@ class FileHandler:
                 job = sess.query(Job).filter(Job.job_id == job_id).one()
                 if job.job_type.name == 'csv_record_validation':
                     if is_warning:
-                        report_name = getReportPath(job, 'warning')
+                        report_name = get_report_path(job, 'warning')
                         key = 'job_{}_warning_url'.format(job_id)
                     else:
-                        report_name = getReportPath(job, 'error')
+                        report_name = get_report_path(job, 'error')
                         key = 'job_{}_error_url'.format(job_id)
                     if not self.isLocal:
                         response_dict[key] = self.s3manager.getSignedUrl("errors", report_name, method="GET")
@@ -112,10 +112,10 @@ class FileHandler:
                 first_file = c[0]
                 second_file = c[1]
                 if is_warning:
-                    report_name = getCrossWarningReportName(
+                    report_name = get_cross_warning_report_name(
                         submission_id, first_file.name, second_file.name)
                 else:
-                    report_name = getCrossReportName(
+                    report_name = get_cross_report_name(
                         submission_id, first_file.name, second_file.name)
                 if self.isLocal:
                     report_path = os.path.join(self.serverPath, report_name)

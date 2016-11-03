@@ -17,7 +17,7 @@ from dataactcore.models.jobModels import Job
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import (
-    getReportPath, getCrossWarningReportName, getCrossReportName, get_cross_file_pairs)
+    get_report_path, get_cross_warning_report_name, get_cross_report_name, get_cross_file_pairs)
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -283,8 +283,8 @@ class ValidationManager:
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
 
-        errorFileName = self.getFileName(getReportPath(job, 'error'))
-        warningFileName = self.getFileName(getReportPath(job, 'warning'))
+        errorFileName = self.getFileName(get_report_path(job, 'error'))
+        warningFileName = self.getFileName(get_report_path(job, 'warning'))
 
         # Create File Status object
         createFileIfNeeded(job_id,fileName)
@@ -479,8 +479,8 @@ class ValidationManager:
             # send comboRules to validator.crossValidate sql
             failures = Validator.crossValidateSql(comboRules.all(), submission_id)
             # get error file name
-            reportFilename = self.getFileName(getCrossReportName(submission_id, first_file.name, second_file.name))
-            warningReportFilename = self.getFileName(getCrossWarningReportName(submission_id, first_file.name, second_file.name))
+            reportFilename = self.getFileName(get_cross_report_name(submission_id, first_file.name, second_file.name))
+            warningReportFilename = self.getFileName(get_cross_warning_report_name(submission_id, first_file.name, second_file.name))
 
             # loop through failures to create the error report
             with self.getWriter(regionName, bucketName, reportFilename, self.crossFileReportHeaders) as writer, \
