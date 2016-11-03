@@ -98,7 +98,7 @@ FROM (
 		af.tas,
 		af.object_class
 	FROM award_financial AS af
-	WHERE af.submission_id = 1005
+	WHERE af.submission_id = {0}
 	GROUP BY af.tas,
 		af.object_class,
 		af.submission_id
@@ -140,7 +140,7 @@ FULL OUTER JOIN
 		op.tas,
 		op.object_class
     FROM object_class_program_activity AS op
-    WHERE op.submission_id = 1005
+    WHERE op.submission_id = {0}
     GROUP BY op.tas,
         op.object_class,
         op.submission_id
