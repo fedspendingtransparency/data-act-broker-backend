@@ -361,7 +361,7 @@ class AccountHandler:
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
 
-    def createEmailConfirmation(self,system_email):
+    def create_email_confirmation(self,system_email):
         """
 
         Creates user record and email

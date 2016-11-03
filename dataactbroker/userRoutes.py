@@ -41,7 +41,7 @@ def add_user_routes(app,system_email,bcrypt):
     def confirm():
         """ Expects request to have email  """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.createEmailConfirmation, RouteUtils.SYSTEM_EMAIL)
+        return RouteUtils.run_instance_function(accountManager, accountManager.create_email_confirmation, RouteUtils.SYSTEM_EMAIL)
 
     @app.route("/v1/confirm_email_token/", methods = ["POST"])
     def checkEmailToken():
