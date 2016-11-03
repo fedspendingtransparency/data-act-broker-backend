@@ -138,5 +138,5 @@ def test_failure(database):
         submission_id=af_dict['submission_id']
     )
 
-    errors = number_of_errors(_FILE, database, models=[af1T, op])
+    errors = number_of_errors(_FILE, database, models=[af1, op])
     assert errors == 1
