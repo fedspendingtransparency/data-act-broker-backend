@@ -114,7 +114,7 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/register/",
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
         self.check_response(
-            response, StatusCode.CLIENT_ERROR, "No users with that email")
+            response, StatusCode.INTERNAL_ERROR)
 
     def test_status_change(self):
         """Test user status change."""

@@ -15,9 +15,9 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.interfaces.db import GlobalDB
-from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import func
-from dataactcore.models.userModel import User
+from dataactcore.models.userModel import User, PermissionType
 from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
@@ -81,18 +81,19 @@ class AccountHandler:
 
         """
         try:
-            safeDictionary = RequestDictionary(self.request)
+            sess = GlobalDB.db().session
+            safe_dictionary = RequestDictionary(self.request)
 
-            username = safeDictionary.getValue('username')
+            username = safe_dictionary.getValue('username')
 
-            password = safeDictionary.getValue('password')
+            password = safe_dictionary.getValue('password')
 
             try:
-                user = self.interfaces.userDb.getUserByEmail(username)
-            except Exception as e:
+                user = sess.query(User).filter(func.lower(User.email) == func.lower(username)).one()
+            except Exception:
                 raise ValueError("Invalid username and/or password")
 
-            if(not self.interfaces.userDb.checkStatus(user,"approved")):
+            if not self.interfaces.userDb.checkStatus(user,"approved"):
                 raise ValueError("Invalid username and/or password")
 
             # Only check if user is active after they've logged in for the first time
@@ -104,7 +105,7 @@ class AccountHandler:
                 raise ValueError("Your account has been locked. Please contact an administrator.")
 
             try:
-                if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
+                if self.interfaces.userDb.checkPassword(user,password,self.bcrypt):
                     # We have a valid login
 
                     # Reset incorrect password attempt count to 0
@@ -135,7 +136,6 @@ class AccountHandler:
         except Exception as e:
             # Return 500
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
-        return self.response
 
 
     def max_login(self,session):
@@ -246,10 +246,10 @@ class AccountHandler:
         LoginSession.login(session, user.user_id)
 
         sess = GlobalDB.db().session
-        permissionList = []
-        for permission in self.interfaces.userDb.getPermissionList():
-            if (self.interfaces.userDb.hasPermission(user, permission.name)):
-                permissionList.append(permission.permission_type_id)
+        permission_list = []
+        for permission in sess.query(PermissionType).all():
+            if self.interfaces.userDb.hasPermission(user, permission.name):
+                permission_list.append(permission.permission_type_id)
         self.interfaces.userDb.updateLastLogin(user)
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\
@@ -257,7 +257,7 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "Login successful", "user_id": int(user.user_id),
                                                    "name": user.name, "title": user.title,
                                                    "agency_name": agency_name,
-                                                   "cgac_code": user.cgac_code, "permissions": permissionList})
+                                                   "cgac_code": user.cgac_code, "permissions": permission_list})
 
     def logout(self,session):
         """
@@ -290,69 +290,68 @@ class AccountHandler:
         Returns message that registration is successful or error message that fields are not valid
 
         """
-        def ThreadedFunction (from_email="", username="", title="", cgac_code="", userEmail="" , link="") :
+        def ThreadedFunction (username="", title="", cgac_code="", user_email="" , link="") :
             """
             This inner function sends emails in a new thread as there could be lots of admins
 
-            from_email -- (string) the from email address
             username -- (string) the name of the  user
             title  --   (string) the title of the  user
             cgac_code -- (string) the agency of the  user
-            userEmail -- (string) the email of the user
+            user_email -- (string) the email of the user
             link  -- (string) the broker email link
             """
-            sess = GlobalDB.db().session
-            threadedDatabase =  UserHandler()
+            threaded_database =  UserHandler()
             try:
                 agency_name = sess.query(CGAC.agency_name).\
                     filter(CGAC.cgac_code == cgac_code).\
                     one_or_none()
                 agency_name = "Unknown" if agency_name is None else agency_name
-                for user in threadedDatabase.getUsersByType("website_admin"):
-                    emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
-                                     '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : userEmail,'[URL]':link}
-                    newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=threadedDatabase)
-                    newEmail.send()
-                for user in threadedDatabase.getUsersByType("agency_admin"):
+                for user in threaded_database.getUsersByType("website_admin"):
+                    email_template = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
+                                     '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : user_email,'[URL]':link}
+                    new_email = sesEmail(user.email, system_email,templateType="account_creation",parameters=email_template,database=threaded_database)
+                    new_email.send()
+                for user in threaded_database.getUsersByType("agency_admin"):
                     if user.cgac_code == cgac_code:
-                        emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY_NAME]': agency_name,
-                             '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]': userEmail, '[URL]': link}
-                        newEmail = sesEmail(user.email, system_email, templateType="account_creation", parameters=emailTemplate,
-                                database=threadedDatabase)
-                        newEmail.send()
+                        email_template = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY_NAME]': agency_name,
+                             '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]': user_email, '[URL]': link}
+                        new_email = sesEmail(user.email, system_email, templateType="account_creation", parameters=email_template,
+                                database=threaded_database)
+                        new_email.send()
 
             finally:
-                threadedDatabase.close()
+                threaded_database.close()
 
-        requestFields = RequestDictionary(self.request)
-        if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("cgac_code") and requestFields.exists("title") and requestFields.exists("password"))):
+        sess = GlobalDB.db().session
+        request_fields = RequestDictionary(self.request)
+        if not (request_fields.exists("email") and request_fields.exists("name") and request_fields.exists("cgac_code") and request_fields.exists("title") and request_fields.exists("password")):
             # Missing a required field, return 400
             exc = ResponseException("Request body must include email, name, cgac_code, title, and password", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
 
-        if(not self.checkPassword(requestFields.getValue("password"))):
+        if not self.checkPassword(request_fields.getValue("password")):
             exc = ResponseException("Invalid Password", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         # Find user that matches specified email
-        user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
+        user = sess.query(User).filter(func.lower(User.email) == func.lower(request_fields.getValue("email"))).one()
         # Check that user's status is before submission of registration
         if not (self.interfaces.userDb.checkStatus(user,"awaiting_confirmation") or self.interfaces.userDb.checkStatus(user,"email_confirmed")):
             # Do not allow duplicate registrations
             exc = ResponseException("User already registered",StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         # Add user info to database
-        self.interfaces.userDb.addUserInfo(user,requestFields.getValue("name"),requestFields.getValue("cgac_code"),requestFields.getValue("title"))
-        self.interfaces.userDb.setPassword(user,requestFields.getValue("password"),self.bcrypt)
+        self.interfaces.userDb.addUserInfo(user,request_fields.getValue("name"),request_fields.getValue("cgac_code"),request_fields.getValue("title"))
+        self.interfaces.userDb.setPassword(user,request_fields.getValue("password"),self.bcrypt)
 
-        userLink= "".join([AccountHandler.FRONT_END, '#/login?redirect=/admin'])
+        user_link= "".join([AccountHandler.FRONT_END, '#/login?redirect=/admin'])
         # Send email to approver list
-        emailThread = Thread(target=ThreadedFunction, kwargs=dict(from_email=system_email,username=user.name,title=user.title,cgac_code=user.cgac_code,userEmail=user.email,link=userLink))
-        emailThread.start()
+        email_thread = Thread(target=ThreadedFunction, kwargs=dict(username=user.name,title=user.title,cgac_code=user.cgac_code,user_email=user.email,link=user_link))
+        email_thread.start()
 
         #email user
-        emailTemplate = {'[EMAIL]' : system_email}
-        newEmail = sesEmail(user.email, system_email,templateType="account_creation_user",parameters=emailTemplate,database=self.interfaces.userDb)
-        newEmail.send()
+        email_template = {'[EMAIL]' : system_email}
+        new_email = sesEmail(user.email, system_email,templateType="account_creation_user",parameters=email_template,database=self.interfaces.userDb)
+        new_email.send()
 
         # Logout and delete token
         LoginSession.logout(session)
@@ -371,6 +370,7 @@ class AccountHandler:
         system_email  -- (string) email used to send messages
 
         """
+        sess = GlobalDB.db().session
         request_fields = RequestDictionary(self.request)
         if not request_fields.exists("email"):
             exc = ResponseException("Request body must include email", StatusCode.CLIENT_ERROR)
@@ -379,8 +379,8 @@ class AccountHandler:
         if not re.match("[^@]+@[^@]+\.[^@]+",email):
             return JsonResponse.error(ValueError("Invalid Email Format"),StatusCode.CLIENT_ERROR)
         try :
-            user = self.interfaces.userDb.getUserByEmail(request_fields.getValue("email"))
-        except ResponseException:
+            user = sess.query(User).filter(func.lower(User.email) == func.lower(request_fields.getValue("email"))).one()
+        except NoResultFound:
             self.interfaces.userDb.addUnconfirmedEmail(email)
         else:
             if not (user.user_status_id == USER_STATUS_DICT["awaiting_confirmation"] or user.user_status_id == USER_STATUS_DICT["email_confirmed"]):
@@ -393,7 +393,7 @@ class AccountHandler:
         new_email.send()
         return JsonResponse.create(StatusCode.OK,{"message":"Email Sent"})
 
-    def checkEmailConfirmationToken(self,session):
+    def check_email_confirmation_token(self,session):
         """
 
         Creates user record and email
@@ -402,17 +402,18 @@ class AccountHandler:
 
         session -- (Session) object from flask
 
-        return the reponse object with a error code and a message
+        return the response object with a error code and a message
 
         """
-        requestFields = RequestDictionary(self.request)
-        if(not requestFields.exists("token")):
+        sess = GlobalDB.db().session
+        request_fields = RequestDictionary(self.request)
+        if not request_fields.exists("token"):
             exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
-        token = requestFields.getValue("token")
+        token = request_fields.getValue("token")
         session["token"] = token
         success,message,errorCode = sesEmail.checkToken(token,self.interfaces.userDb,"validate_email")
-        if(success):
+        if success:
             #mark session that email can be filled out
             LoginSession.register(session)
 
@@ -422,7 +423,7 @@ class AccountHandler:
             #self.interfaces.userDb.deleteToken(token)
 
             #set the status only if current status is awaiting confirmation
-            user = self.interfaces.userDb.getUserByEmail(message)
+            user = sess.query(User).filter(func.lower(User.email) == func.lower(message)).one()
             if self.interfaces.userDb.checkStatus(user,"awaiting_confirmation"):
                 self.interfaces.userDb.changeStatus(user,"email_confirmed")
             return JsonResponse.create(StatusCode.OK,{"email":message,"errorCode":errorCode,"message":"success"})
@@ -452,7 +453,7 @@ class AccountHandler:
         success,message,errorCode = sesEmail.checkToken(token,self.interfaces.userDb,"password_reset")
         if(success):
             #mark session that password can be filled out
-            LoginSession.resetPassword(session)
+            LoginSession.reset_password(session)
 
             return JsonResponse.create(StatusCode.OK,{"email":message,"errorCode":errorCode,"message":"success"})
         else:
@@ -710,28 +711,29 @@ class AccountHandler:
                                                                                                     "name": user.name}})
         return JsonResponse.create(StatusCode.OK, {"submissions": submission_details})
 
-    def setNewPassword(self, session):
+    def set_new_password(self, session):
         """ Set a new password for a user, request should have keys "user_email" and "password" """
-        requestDict = RequestDictionary(self.request)
-        if(not (requestDict.exists("user_email") and requestDict.exists("password"))):
+        sess = GlobalDB.db().session
+        request_dict = RequestDictionary(self.request)
+        if not (request_dict.exists("user_email") and request_dict.exists("password")):
             # Don't have the keys we need in request
             exc = ResponseException("Set password route requires keys user_email and password",StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
 
-        if(not self.checkPassword(requestDict.getValue("password"))):
+        if not self.checkPassword(request_dict.getValue("password")):
             exc = ResponseException("Invalid Password", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         # Get user from email
-        user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("user_email"))
+        user = sess.query(User).filter(func.lower(User.email) == func.lower(request_dict.getValue("user_email"))).one()
         # Set new password
-        self.interfaces.userDb.setPassword(user,requestDict.getValue("password"),self.bcrypt)
+        self.interfaces.userDb.setPassword(user,request_dict.getValue("password"),self.bcrypt)
         # Invalidate token
         self.interfaces.userDb.deleteToken(session["token"])
         session["reset"] = None
         # Return success message
         return JsonResponse.create(StatusCode.OK,{"message":"Password successfully changed"})
 
-    def resetPassword(self,system_email,session):
+    def reset_password(self,system_email,session):
         """
 
         Remove old password and email user a token to set a new password.  Request should have key "email"
@@ -742,14 +744,15 @@ class AccountHandler:
         session  -- (Session) object from flask
 
         """
+        sess = GlobalDB.db().session
         requestDict = RequestDictionary(self.request)
-        if(not (requestDict.exists("email"))):
+        if not (requestDict.exists("email")):
             # Don't have the keys we need in request
             exc = ResponseException("Reset password route requires key 'email'",StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         # Get user object
         try:
-            user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("email"))
+            user = sess.query(User).filter(func.lower(User.email) == func.lower(requestDict.getValue("email"))).one()
         except Exception as e:
             exc = ResponseException("Unknown Error",StatusCode.CLIENT_ERROR,ValueError)
             return JsonResponse.error(exc,exc.status)
@@ -801,7 +804,7 @@ class AccountHandler:
         uid =  session["name"]
         user = sess.query(User).filter(User.user_id == uid).one()
         permission_list = []
-        for permission in self.interfaces.userDb.getPermissionList():
+        for permission in sess.query(PermissionType).all():
             if self.interfaces.userDb.hasPermission(user, permission.name):
                 permission_list.append(permission.permission_type_id)
         agency_name = sess.query(CGAC.agency_name).\

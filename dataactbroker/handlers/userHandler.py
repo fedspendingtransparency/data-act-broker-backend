@@ -1,8 +1,6 @@
 import uuid
 import time
 
-from sqlalchemy import func
-
 from dataactcore.interfaces.function_bag import checkPermissionByBitNumber
 from dataactcore.models.userModel import User, PermissionType
 from dataactcore.models.userInterface import UserInterface
@@ -11,6 +9,8 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.models.userModel import EmailToken, EmailTemplateType, EmailTemplate
 
 from dataactcore.models.lookups import USER_STATUS_DICT
+
+from dataactcore.interfaces.db import GlobalDB
 
 class UserHandler(UserInterface):
     """ Responsible for all interaction with the user database
@@ -55,20 +55,6 @@ class UserHandler(UserInterface):
         # Delete user
         self.session.query(User).filter(User.email == email).delete()
         self.session.commit()
-
-    def getUserByEmail(self,email):
-        """ Return a User object that matches specified email
-
-        Arguments:
-            email - email to search for
-        Returns:
-            User object with that email, raises exception if none found
-        """
-        query = self.session.query(User).filter(func.lower(User.email) == func.lower(email))
-        # Raise exception if we did not find exactly one user
-        result = self.runUniqueQuery(query,"No users with that email", "Multiple users with that email")
-        return result
-
 
     def addUserInfo(self,user,name,cgac_code,title):
         """ Called after registration, add all info to user.
@@ -125,7 +111,7 @@ class UserHandler(UserInterface):
         """
         user = User(email = email)
         self.changeStatus(user,"awaiting_confirmation")
-        self.setPermission(user,0) # Users start with no permissions
+        user.permissions = 0
         self.session.add(user)
         self.session.commit()
 
@@ -158,16 +144,17 @@ class UserHandler(UserInterface):
             query = query.filter(User.cgac_code == cgac_code)
         return query.all()
 
-    def getUsersByType(self,permissionName):
+    def getUsersByType(self,permission_name):
         """deprecated: moved to function_bag.py"""
-        userList = []
-        bitNumber = self.getPermissionId(permissionName)
+        sess = GlobalDB.db().session
+        user_list = []
+        bit_number = sess.query(PermissionType).filter(PermissionType.name == permission_name).one().permission_type_id
         users = self.session.query(User).all()
         for user in users:
-            if checkPermissionByBitNumber(user, bitNumber):
+            if checkPermissionByBitNumber(user, bit_number):
                 # This user has this permission, include them in list
-                userList.append(user)
-        return userList
+                user_list.append(user)
+        return user_list
 
     def getUserPermissions(self, user):
         """ Get name for specified permissions for this user
@@ -177,82 +164,64 @@ class UserHandler(UserInterface):
         Returns:
             array of permission names
         """
-        all_permissions = self.getPermissionList()
+        sess = GlobalDB.db().session
+        all_permissions = sess.query(PermissionType).all()
         user_permissions = []
         for permission in all_permissions:
             if self.hasPermission(user, permission.name):
                 user_permissions.append(str(permission.name))
         return sorted(user_permissions, key=str.lower)
 
-    def hasPermission(self, user, permissionName):
+    def hasPermission(self, user, permission_name):
         """ Checks if user has specified permission
 
         Arguments:
             user - User object
-            permissionName - permission to check
+            permission_name - permission to check
         Returns:
             True if user has the specified permission, False otherwise
         """
+        sess = GlobalDB.db().session
         # Get the bit number corresponding to this permission from the permission_types table
-        bitNumber = self.getPermissionId(permissionName)
+        bit_number = sess.query(PermissionType).filter(PermissionType.name == permission_name).one().permission_type_id
         # Use that bit number to check whether user has the specified permission
-        if checkPermissionByBitNumber(user, bitNumber):
+        if checkPermissionByBitNumber(user, bit_number):
             return True
         return False
 
-    def setPermission(self,user,permission):
-        """ Define a user's permission to set value (overwrites all current permissions)
-
-        Arguments:
-            user - User object
-            permission - new value for user's permissions
-        """
-        user.permissions = permission
-        self.session.commit()
-
-    def grantPermission(self,user,permissionName):
+    def grantPermission(self,user,permission_name):
         """ Grant a user a permission specified by name, does not affect other permissions
 
         Arguments:
             user - User object
-            permissionName - permission to grant
+            permission_name - permission to grant
         """
-        if(user.permissions == None):
+        sess = GlobalDB.db().session
+        if user.permissions is None:
             # Start users with zero permissions
             user.permissions = 0
-        bitNumber = self.getPermissionId(permissionName)
-        if not checkPermissionByBitNumber(user, bitNumber):
+        bit_number = sess.query(PermissionType).filter(PermissionType.name == permission_name).one().permission_type_id
+        if not checkPermissionByBitNumber(user, bit_number):
             # User does not have permission, grant it
-            user.permissions = user.permissions + (2 ** bitNumber)
+            user.permissions += (2 ** bit_number)
             self.session.commit()
 
-    def removePermission(self,user,permissionName):
+    def removePermission(self,user,permission_name):
         """ Remove a permission specified by name from user
 
         Arguments:
             user - User object
             permissionName - permission to remove
         """
-        if(user.permissions == None):
+        sess = GlobalDB.db().session
+        if user.permissions is None:
             # Start users with zero permissions
             user.permissions = 0
-        bitNumber = self.getPermissionId(permissionName)
-        if checkPermissionByBitNumber(user, bitNumber):
+        bit_number = sess.query(PermissionType).filter(PermissionType.name == permission_name).one().permission_type_id
+        if checkPermissionByBitNumber(user, bit_number):
             # User has permission, remove it
-            user.permissions = user.permissions - (2 ** bitNumber)
+            user.permissions -= (2 ** bit_number)
             self.session.commit()
-
-    def getPermissionId(self,permissionName):
-        """ Get ID for specified permission name
-
-        Arguments:
-            permissionName - permission to get ID for
-        Returns:
-            ID of this permission
-        """
-        query = self.session.query(PermissionType).filter(PermissionType.name == permissionName)
-        result = self.runUniqueQuery(query,"Not a valid user type","Multiple permission entries for that type")
-        return result.permission_type_id
 
     def checkPassword(self,user,password,bcrypt):
         """ Given a user object and a password, verify that the password is correct.
@@ -264,7 +233,7 @@ class UserHandler(UserInterface):
         Returns:
              True if valid password, False otherwise.
         """
-        if(password == None or password.strip()==""):
+        if password is None or password.strip()=="":
             # If no password or empty password, reject
             return False
 
@@ -299,15 +268,6 @@ class UserHandler(UserInterface):
         user.salt = None
         user.password_hash = None
         self.session.commit()
-
-    def getPermissionList(self):
-        """ Gets the permission list
-
-        Returns:
-            list of PermissionType objects
-        """
-        queryResult = self.session.query(PermissionType).all()
-        return queryResult
 
     def updateLastLogin(self, user, unlock_user=False):
         """ This updates the last login date to today's datetime for the user to the current date upon successful login.
