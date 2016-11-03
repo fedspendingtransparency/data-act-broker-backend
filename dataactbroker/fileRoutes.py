@@ -60,9 +60,10 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     @permissions_check
     def list_submissions():
         """ List submission IDs associated with the current user """
-        page = int(request.args.get('page')) if request.args.get('page') is not None else 1
-        limit = int(request.args.get('limit')) if request.args.get('limit') is not None else 5
-        certified = request.args.get('certified') # If none, get all submissions without filtering
+
+        page = request.args.get('page')
+        limit = request.args.get('limit')
+        certified = request.args.get('certified')
 
         accountManager = AccountHandler(request,bcrypt = bcrypt)
 
