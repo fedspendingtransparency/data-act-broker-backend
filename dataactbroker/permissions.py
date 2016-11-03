@@ -10,50 +10,52 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.userModel import User
 
 
-def permissions_check(f=None,permissionList=[]):
+def permissions_check(f=None,permission_list=[]):
     def actual_decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             try:
-                errorMessage  = "Login Required"
-                if "check_email_token" in permissionList:
-                    if(LoginSession.isRegistering(session)) :
+                sess = GlobalDB.db().session
+                error_message  = "Login Required"
+                if "check_email_token" in permission_list:
+                    if LoginSession.isRegistering(session):
                         return f(*args, **kwargs)
                     else :
-                        errorMessage  = "unauthorized"
-                elif "check_password_token" in permissionList  :
-                    if(LoginSession.isResetingPassword(session)) :
+                        error_message  = "unauthorized"
+                elif "check_password_token" in permission_list  :
+                    if LoginSession.isResetingPassword(session):
                         return f(*args, **kwargs)
                     else :
-                        errorMessage  = "unauthorized"
+                        error_message  = "unauthorized"
                 elif LoginSession.isLogin(session):
-                    userDb = UserHandler()
+                    user_db = UserHandler()
                     try:
-                        user = userDb.getUserByUID(session["name"])
-                        validUser = True
-                        for permission in permissionList :
-                            if(not userDb.hasPermission(user, permission)) :
-                                validUser = False
+                        user = sess.query(User).filter(User.user_id == session["name"]).one()
+                        valid_user = True
+                        for permission in permission_list :
+                            if not user_db.hasPermission(user, permission):
+                                valid_user = False
                             else:
-                                validUser = True
+                                valid_user = True
                                 break
 
                     finally:
-                        userDb.close()
-                    if(validUser) :
+                        user_db.close()
+                    if valid_user:
                         return f(*args, **kwargs)
-                    errorMessage  = "Wrong User Type"
+                    error_message  = "Wrong User Type"
 
                 # No user logged in
-                returnResponse = flask.Response()
-                returnResponse.headers["Content-Type"] = "application/json"
-                returnResponse.status_code = 401 # Error code
-                responseDict = {}
-                responseDict["message"] = errorMessage
-                returnResponse.set_data(json.dumps(responseDict))
-                return returnResponse
+                return_response = flask.Response()
+                return_response.headers["Content-Type"] = "application/json"
+                return_response.status_code = 401 # Error code
+                response_dict = {}
+                response_dict["message"] = error_message
+                return_response.set_data(json.dumps(response_dict))
+                return return_response
 
             except ResponseException as e:
                 return JsonResponse.error(e,e.status)
