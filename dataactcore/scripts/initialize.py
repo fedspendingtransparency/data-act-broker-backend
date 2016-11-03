@@ -10,9 +10,8 @@ from dataactbroker.scripts.setupEmails import setupEmails
 from dataactcore.models.userModel import User
 from dataactcore.interfaces.function_bag import createUserWithPassword
 from dataactcore.scripts.setupAllDB import setupAllDB
-from dataactbroker.handlers.aws.session import SessionTable
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.config import CONFIG_BROKER, CONFIG_DB
+from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.scripts.loadTas import loadTas
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
@@ -29,8 +28,6 @@ def setup_db():
     logger.info('Setting up db')
     setupAllDB()
     setupEmails()
-    setup_session_table()
-
 
 def create_admin():
     """Create initial admin user."""
@@ -47,13 +44,6 @@ def create_admin():
             user = createUserWithPassword(
                 admin_email, admin_pass, Bcrypt(), permission=2)
     return user
-
-
-def setup_session_table():
-    """Create Dynamo session table."""
-    logger.info('Setting up DynamoDB session table')
-    SessionTable.createTable(CONFIG_BROKER['local'], CONFIG_DB['dynamo_port'])
-
 
 def load_tas_lookup():
     """Load/update the TAS table to reflect the latest list."""

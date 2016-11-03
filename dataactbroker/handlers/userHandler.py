@@ -1,11 +1,10 @@
 import uuid
 import time
-from sqlalchemy.orm.exc import MultipleResultsFound
-from sqlalchemy.orm import joinedload
+
 from sqlalchemy import func
+
 from dataactcore.interfaces.function_bag import checkPermissionByBitNumber
 from dataactcore.models.userModel import User, PermissionType
-from dataactcore.models.jobModels import Submission
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -77,32 +76,6 @@ class UserHandler(UserInterface):
         # Delete user
         self.session.query(User).filter(User.email == email).delete()
         self.session.commit()
-
-    def createUser(self, username):
-        """ Creates a new entry for new usernames, if a user is found with this email that has not yet registered, just returns that user's ID.  Raises an exception if multiple results found, or if user has already registered.
-
-        Arguments:
-        username - username to find or create an id for
-        Returns:
-        user object
-        """
-        # Check if user exists
-        queryResult = self.session.query(User).options(joinedload("user_status")).filter(User.username == username).all()
-        if(len(queryResult) == 1):
-            # If so, check their status
-            user = queryResult[0]
-            if(user.user_status.name == "awaiting_confirmation" or user.user_status.name == "email_confirmed"):
-                # User has not yet registered, may restart process
-                return user
-        elif(len(queryResult) == 0):
-            # If not, add new user
-            newUser = User(username = username)
-            self.session.add(newUser)
-            self.session.commit()
-            return newUser
-        else:
-            # Multiple entries for this user, server error
-            raise MultipleResultsFound("Multiple entries for single username")
 
     def getUserByEmail(self,email):
         """ Return a User object that matches specified email
@@ -206,26 +179,6 @@ class UserHandler(UserInterface):
         if cgac_code is not None:
             query = query.filter(User.cgac_code == cgac_code)
         return query.all()
-
-    def getStatusOfUser(self,user):
-        """ Given a user object return their status as a string
-
-        Arguments:
-            user - User object
-        Returns:
-            status name (string)
-        """
-        return user.status.name
-
-    def getStatusIdOfUser(self,user):
-        """ Given a user object return status ID
-
-        Arguments:
-            user - User object
-        Returns:
-            status ID (int)
-        """
-        return user.status_id
 
     def getUsersByType(self,permissionName):
         """deprecated: moved to function_bag.py"""

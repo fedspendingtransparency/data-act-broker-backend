@@ -54,21 +54,6 @@ The DATA Act broker supports the creation of Security Token Service (STS) tokens
 
 In addition to the permission JSON, create a Trust Relationship for the IAM role, allowing the broker to assume the S3 uploading role during token creation.
 
-If not using a local Dynamo, the broker should also be granted read/write permissions to DynamoDB. The following JSON can be added to the role to grant this access:
-
-    {
-      "Version": "2012-10-17",
-      "Statement": [
-        {
-          "Action": [
-            "dynamodb:*"
-          ],
-          "Effect": "Allow",
-          "Resource": "arn:aws:dynamodb:REGION:ACCOUNT_ID:table/BrokerSession"
-        }
-      ]
-    }
-
 The `REGION` should be replaced with region of the AWS account and the `ACCOUNT_ID` should be replaced with the AWS account ID.
 
 ### AWS Command Line Interface (CLI) Tools

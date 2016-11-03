@@ -1,5 +1,4 @@
 import os, os.path
-import multiprocessing
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask import Flask
@@ -7,14 +6,12 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactbroker.handlers.accountHandler import AccountHandler
-from dataactbroker.handlers.aws.session import DynamoInterface, SessionTable
+from dataactbroker.handlers.aws.session import UserSessionInterface
 from dataactbroker.fileRoutes import add_file_routes
 from dataactbroker.loginRoutes import add_login_routes
 from dataactbroker.userRoutes import add_user_routes
 from dataactbroker.domainRoutes import add_domain_routes
-from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES, CONFIG_DB
-from dataactcore.utils.timeout import timeout
-
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 
 def createApp():
     """Set up the application."""
@@ -40,8 +37,6 @@ def createApp():
     if local and not os.path.exists(broker_file_path):
         os.makedirs(broker_file_path)
 
-    # When runlocal is true, assume Dynamo is on the same server
-    # (should be false for prod)
     JsonResponse.debugMode = app.config['REST_TRACE']
 
     if CONFIG_SERVICES['cross_origin_url'] ==  "*":
@@ -49,8 +44,8 @@ def createApp():
     else:
         cors = CORS(app, supports_credentials=False, origins=CONFIG_SERVICES['cross_origin_url'],
                     allow_headers = "*", expose_headers = "X-Session-Id")
-    # Enable AWS Sessions
-    app.session_interface = DynamoInterface()
+    # Enable DB session table handling
+    app.session_interface = UserSessionInterface()
     # Set up bcrypt
     bcrypt = Bcrypt(app)
 
@@ -74,23 +69,7 @@ def createApp():
         local, broker_file_path, bcrypt)
     add_user_routes(app, app.config['SYSTEM_EMAIL'], bcrypt)
     add_domain_routes(app, local, bcrypt)
-
-    SessionTable.LOCAL_PORT = CONFIG_DB['dynamo_port']
-
-    SessionTable.setup(app, local)
-
-    if local:
-        checkDynamo()
-    else:
-        SessionTable.DYNAMO_REGION = CONFIG_BROKER['aws_region']
-
     return app
-
-
-@timeout(1, 'DynamoDB is not running')
-def checkDynamo():
-    """ Get information about the session table in Dynamo """
-    SessionTable.getTable().describe()
 
 def runApp():
     """runs the application"""
@@ -103,13 +82,6 @@ def runApp():
 
 if __name__ == '__main__':
     runApp()
-    proc = multiprocessing.Process(target=checkDynamo)
-    proc.start()
-    proc.join(5)
-
-    if proc.is_alive():
-        proc.terminate()
-        proc.join()
 
 elif __name__[0:5]=="uwsgi":
     app = createApp()

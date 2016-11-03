@@ -2,7 +2,7 @@ from dataactbroker.handlers.userHandler import UserHandler
 from tests.unit.dataactcore.factories.user import UserFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from dataactcore.models.userModel import User
-from dataactcore.models.jobModels import Submission
+
 
 def test_delete_user(database):
     user_handler = UserHandler()

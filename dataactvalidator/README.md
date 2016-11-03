@@ -24,11 +24,6 @@ Called to apply validation rules to a specified job ID.  Expects a JSON with key
 Example input: `{"job_id":3664}`
 Example output: None (status 200 if successful)
 
-##### POST `/validate_threaded/`
-Same as validate route, but launches validation in a separate thread and immediately returns 200.  Success or failure of the validation should then be determined from the job tracker database.
-
-Example input: `{"job_id":3664}`
-Example output: None
 
 ## Process Overview
 The validation process begins with a call to one of the above routes from either the job manager or the broker API, specifying the job ID for the validation job.  First, the validator checks the job tracker to ensure that the job is of the correct type, and that all prerequisites are completed.
@@ -78,7 +73,7 @@ The complex rule validations (including both individual file and cross-file rule
 
 ### Interfaces
 
-* `ErrorInterface`, `JobTrackerInterface`, `ValidationInterface` - These classes control communication with the database. They are designed to separate database interactions by logical function.
+* `JobTrackerInterface`, `ValidationInterface` - These classes control communication with the database. They are designed to separate database interactions by logical function.
 * `InterfaceHolder` - Container that holds one interface for each database as a static variable to ensure that redundant connections are not created
 
 ### Scripts
