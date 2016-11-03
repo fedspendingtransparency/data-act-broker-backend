@@ -48,19 +48,6 @@ class UserHandler(UserInterface):
             query = query.filter(User.is_active == True)
         return query.all()
 
-    def getUserByUID(self,uid):
-        """ Return a User object that matches specified uid
-
-        Arguments:
-            uid - User ID to get User object for
-        Returns:
-            User ORM object for this ID
-        """
-        query = self.session.query(User).filter(User.user_id == uid)
-        # Raise exception if we did not find exactly one user
-        result = self.runUniqueQuery(query,"No users with that uid", "Multiple users with that uid")
-        return result
-
     def deleteUser(self, email):
         """ Delete user with specified email.  Submissions from that user are not deleted, instead they have
         user id set to null  """

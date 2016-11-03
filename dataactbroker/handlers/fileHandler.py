@@ -19,6 +19,7 @@ from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
 from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
 from dataactcore.models.lookups import FILE_STATUS_DICT, FILE_TYPE_DICT
+from dataactcore.models.userModel import User
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -142,7 +143,7 @@ class FileHandler:
             submission = self.jobManager.getSubmissionById(submission_id)
             # Check that user has access to submission
             # If they don't, throw an exception
-            self.checkSubmissionPermission(submission)
+            self.check_submission_permission(submission)
 
             if self.isLocal:
                 return send_from_directory(self.serverPath, file_name)
@@ -187,7 +188,7 @@ class FileHandler:
             if safeDictionary.exists("existing_submission_id"):
                 existingSubmission = True
                 # Check if user has permission to specified submission
-                self.checkSubmissionPermission(self.jobManager.getSubmissionById(submissionId))
+                self.check_submission_permission(self.jobManager.getSubmissionById(submissionId))
 
             # Build fileNameMap to be used in creating jobs
             for fileType in FileHandler.FILE_TYPES :
@@ -249,7 +250,7 @@ class FileHandler:
         except:
             return JsonResponse.error(Exception("Failed to catch exception"),StatusCode.INTERNAL_ERROR)
 
-    def finalize(self, jobId=None):
+    def finalize(self, job_id=None):
         """ Set upload job in job tracker database to finished, allowing dependent jobs to be started
 
         Flask request should include key "upload_id", which holds the job_id for the file_upload job
@@ -257,26 +258,27 @@ class FileHandler:
         Returns:
         A flask response object, if successful just contains key "success" with value True, otherwise value is False
         """
-        responseDict = {}
+        sess = GlobalDB.db().session
+        response_dict = {}
         try:
-            if jobId is None:
-                inputDictionary = RequestDictionary(self.request)
-                jobId = inputDictionary.getValue("upload_id")
+            if job_id is None:
+                input_dictionary = RequestDictionary(self.request)
+                job_id = input_dictionary.getValue("upload_id")
 
             # Compare user ID with user who submitted job, if no match return 400
-            job = self.jobManager.getJobById(jobId)
+            job = self.jobManager.getJobById(job_id)
             submission = self.jobManager.getSubmissionForJob(job)
             # Check that user's agency matches submission cgac_code or "SYS", or user id matches submission's user
-            userId = LoginSession.getName(session)
-            userCgac = self.interfaces.userDb.getUserByUID(userId).cgac_code
-            if(submission.user_id != userId and submission.cgac_code != userCgac and userCgac != "SYS"):
+            user_id = LoginSession.getName(session)
+            user_cgac = sess.query(User).filter(User.user_id == user_id).one().cgac_code
+            if submission.user_id != user_id and submission.cgac_code != user_cgac and user_cgac != "SYS":
                 # This user cannot finalize this job
                 raise ResponseException("Cannot finalize a job for a different agency", StatusCode.CLIENT_ERROR)
             # Change job status to finished
-            if(self.jobManager.checkUploadType(jobId)):
-                self.jobManager.changeToFinished(jobId)
-                responseDict["success"] = True
-                return JsonResponse.create(StatusCode.OK,responseDict)
+            if self.jobManager.checkUploadType(job_id):
+                self.jobManager.changeToFinished(job_id)
+                response_dict["success"] = True
+                return JsonResponse.create(StatusCode.OK,response_dict)
             else:
                 raise ResponseException("Wrong job type for finalize route",StatusCode.CLIENT_ERROR)
 
@@ -313,7 +315,7 @@ class FileHandler:
             else:
                 raise exc
         try:
-            self.checkSubmissionPermission(submission)
+            self.check_submission_permission(submission)
         except ResponseException as exc:
             message = "User does not have permission to view that submission"
             error_occurred = True
@@ -328,20 +330,20 @@ class FileHandler:
             return False, JsonResponse.error(error_exc, error_exc.status, **responseDict)
         return True, None
 
-    def checkSubmissionPermission(self,submission):
+    def check_submission_permission(self,submission):
         """ Check if current user has permisson to access submission and return user object.
 
         Args:
             submission - Submission model object
         """
-        userId = LoginSession.getName(session)
-        user = self.interfaces.userDb.getUserByUID(userId)
+        sess = GlobalDB.db().session
+        user = sess.query(User).filter(User.user_id == LoginSession.getName(session)).one()
         # Check that user has permission to see this submission, user must be within the agency of the submission, or be
         # the original user, or be in the 'SYS' agency
-        submissionCgac = StringCleaner.cleanString(submission.cgac_code)
-        userCgac = StringCleaner.cleanString(user.cgac_code)
-        if(submissionCgac != userCgac and submission.user_id != user.user_id
-           and userCgac != "sys"):
+        submission_cgac = StringCleaner.cleanString(submission.cgac_code)
+        user_cgac = StringCleaner.cleanString(user.cgac_code)
+        if(submission_cgac != user_cgac and submission.user_id != user.user_id
+           and user_cgac != "sys"):
             raise ResponseException("User does not have permission to view that submission",
                 StatusCode.PERMISSION_DENIED)
         return user
@@ -361,7 +363,7 @@ class FileHandler:
             submission = self.jobManager.getSubmissionById(submission_id)
 
             # Check that user has access to submission
-            self.checkSubmissionPermission(submission)
+            self.check_submission_permission(submission)
 
             # Get jobs in this submission
             jobs = self.jobManager.getJobsBySubmission(submission_id)
@@ -448,7 +450,7 @@ class FileHandler:
             submission_id =  safe_dictionary.getValue("submission_id")
 
             # Check if user has permission to specified submission
-            self.checkSubmissionPermission(self.jobManager.getSubmissionById(submission_id))
+            self.check_submission_permission(self.jobManager.getSubmissionById(submission_id))
 
             job_ids = self.jobManager.getJobsBySubmission(submission_id)
             for current_id in job_ids :
@@ -885,7 +887,7 @@ class FileHandler:
         submission = self.jobManager.getSubmissionById(submission_id)
 
         # Check that user has access to submission
-        self.checkSubmissionPermission(submission)
+        self.check_submission_permission(submission)
 
         obligations_info = obligationStatsForSubmission(submission_id)
 
