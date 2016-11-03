@@ -1,36 +1,36 @@
 SELECT ussgl480100_undelivered_or_fyb_sum_c,
-	ussgl480100_undelivered_or_cpe_sum_c,
-	ussgl483100_undelivered_or_cpe_sum_c,
-	ussgl488100_upward_adjustm_cpe_sum_c,
-	obligations_undelivered_or_fyb_sum_c,
-	obligations_undelivered_or_cpe_sum_c,
-	ussgl490100_delivered_orde_fyb_sum_c,
-	ussgl490100_delivered_orde_cpe_sum_c,
-	ussgl493100_delivered_orde_cpe_sum_c,
-	ussgl498100_upward_adjustm_cpe_sum_c,
-	obligations_delivered_orde_fyb_sum_c,
-	obligations_delivered_orde_cpe_sum_c,
-	ussgl480200_undelivered_or_fyb_sum_c,
-	ussgl480200_undelivered_or_cpe_sum_c,
-	ussgl483200_undelivered_or_cpe_sum_c,
-	ussgl488200_upward_adjustm_cpe_sum_c,
-	gross_outlays_undelivered_fyb_sum_c,
-	gross_outlays_undelivered_cpe_sum_c,
-	ussgl490200_delivered_orde_cpe_sum_c,
-	ussgl490800_authority_outl_fyb_sum_c,
-	ussgl490800_authority_outl_cpe_sum_c,
-	ussgl498200_upward_adjustm_cpe_sum_c,
-	gross_outlays_delivered_or_fyb_sum_c,
-	gross_outlays_delivered_or_cpe_sum_c,
-	gross_outlay_amount_by_awa_fyb_sum_c,
-	gross_outlay_amount_by_awa_cpe_sum_c,
-	obligations_incurred_byawa_cpe_sum_c,
-	ussgl487100_downward_adjus_cpe_sum_c,
-	ussgl497100_downward_adjus_cpe_sum_c,
-	ussgl487200_downward_adjus_cpe_sum_c,
-	ussgl497200_downward_adjus_cpe_sum_c,
-	deobligations_recov_by_awa_cpe_sum_c,
-	ussgl480100_undelivered_or_fyb_sum_b,
+    ussgl480100_undelivered_or_cpe_sum_c,
+    ussgl483100_undelivered_or_cpe_sum_c,
+    ussgl488100_upward_adjustm_cpe_sum_c,
+    obligations_undelivered_or_fyb_sum_c,
+    obligations_undelivered_or_cpe_sum_c,
+    ussgl490100_delivered_orde_fyb_sum_c,
+    ussgl490100_delivered_orde_cpe_sum_c,
+    ussgl493100_delivered_orde_cpe_sum_c,
+    ussgl498100_upward_adjustm_cpe_sum_c,
+    obligations_delivered_orde_fyb_sum_c,
+    obligations_delivered_orde_cpe_sum_c,
+    ussgl480200_undelivered_or_fyb_sum_c,
+    ussgl480200_undelivered_or_cpe_sum_c,
+    ussgl483200_undelivered_or_cpe_sum_c,
+    ussgl488200_upward_adjustm_cpe_sum_c,
+    gross_outlays_undelivered_fyb_sum_c,
+    gross_outlays_undelivered_cpe_sum_c,
+    ussgl490200_delivered_orde_cpe_sum_c,
+    ussgl490800_authority_outl_fyb_sum_c,
+    ussgl490800_authority_outl_cpe_sum_c,
+    ussgl498200_upward_adjustm_cpe_sum_c,
+    gross_outlays_delivered_or_fyb_sum_c,
+    gross_outlays_delivered_or_cpe_sum_c,
+    gross_outlay_amount_by_awa_fyb_sum_c,
+    gross_outlay_amount_by_awa_cpe_sum_c,
+    obligations_incurred_byawa_cpe_sum_c,
+    ussgl487100_downward_adjus_cpe_sum_c,
+    ussgl497100_downward_adjus_cpe_sum_c,
+    ussgl487200_downward_adjus_cpe_sum_c,
+    ussgl497200_downward_adjus_cpe_sum_c,
+    deobligations_recov_by_awa_cpe_sum_c,
+    ussgl480100_undelivered_or_fyb_sum_b,
     ussgl480100_undelivered_or_cpe_sum_b,
     ussgl483100_undelivered_or_cpe_sum_b,
     ussgl488100_upward_adjustm_cpe_sum_b,
@@ -63,7 +63,7 @@ SELECT ussgl480100_undelivered_or_fyb_sum_c,
     ussgl497200_downward_adjus_cpe_sum_b,
     deobligations_recov_by_pro_cpe_sum_b
 FROM (
-	SELECT SUM(af.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_c,
+    SELECT SUM(af.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_c,
         SUM(af.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum_c,
         SUM(af.ussgl483100_undelivered_or_cpe) AS ussgl483100_undelivered_or_cpe_sum_c,
         SUM(af.ussgl488100_upward_adjustm_cpe) AS ussgl488100_upward_adjustm_cpe_sum_c,
@@ -95,17 +95,17 @@ FROM (
         SUM(af.ussgl487200_downward_adjus_cpe) AS ussgl487200_downward_adjus_cpe_sum_c,
         SUM(af.ussgl497200_downward_adjus_cpe) AS ussgl497200_downward_adjus_cpe_sum_c,
         SUM(af.deobligations_recov_by_awa_cpe) AS deobligations_recov_by_awa_cpe_sum_c,
-		af.tas,
-		af.object_class
-	FROM award_financial AS af
-	WHERE af.submission_id = {0}
-	GROUP BY af.tas,
-		af.object_class,
-		af.submission_id
+        af.tas,
+        af.object_class
+    FROM award_financial AS af
+    WHERE af.submission_id = {0}
+    GROUP BY af.tas,
+        af.object_class,
+        af.submission_id
 ) AS award_financial_records
 FULL OUTER JOIN
 (
-	SELECT SUM(op.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_b,
+    SELECT SUM(op.ussgl480100_undelivered_or_fyb) AS ussgl480100_undelivered_or_fyb_sum_b,
         SUM(op.ussgl480100_undelivered_or_cpe) AS ussgl480100_undelivered_or_cpe_sum_b,
         SUM(op.ussgl483100_undelivered_or_cpe) AS ussgl483100_undelivered_or_cpe_sum_b,
         SUM(op.ussgl488100_upward_adjustm_cpe) AS ussgl488100_upward_adjustm_cpe_sum_b,
@@ -137,16 +137,16 @@ FULL OUTER JOIN
         SUM(op.ussgl487200_downward_adjus_cpe) AS ussgl487200_downward_adjus_cpe_sum_b,
         SUM(op.ussgl497200_downward_adjus_cpe) AS ussgl497200_downward_adjus_cpe_sum_b,
         SUM(op.deobligations_recov_by_pro_cpe) AS deobligations_recov_by_pro_cpe_sum_b,
-		op.tas,
-		op.object_class
+        op.tas,
+        op.object_class
     FROM object_class_program_activity AS op
     WHERE op.submission_id = {0}
     GROUP BY op.tas,
         op.object_class,
         op.submission_id
 ) AS object_class_records
-	ON object_class_records.tas IS NOT DISTINCT FROM award_financial_records.tas
-		AND object_class_records.object_class IS NOT DISTINCT FROM award_financial_records.object_class
+    ON object_class_records.tas IS NOT DISTINCT FROM award_financial_records.tas
+        AND object_class_records.object_class IS NOT DISTINCT FROM award_financial_records.object_class
 WHERE (
     ABS(ussgl480100_undelivered_or_fyb_sum_c) > ABS(ussgl480100_undelivered_or_fyb_sum_b)
         OR ABS(ussgl480100_undelivered_or_cpe_sum_c) > ABS(ussgl480100_undelivered_or_cpe_sum_b)
