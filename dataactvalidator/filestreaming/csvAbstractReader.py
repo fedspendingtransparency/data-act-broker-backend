@@ -17,7 +17,7 @@ class CsvAbstractReader(object):
     BUFFER_SIZE = 8192
     headerReportHeaders = ["Error type", "Header name"]
 
-    def openFile(self,region,bucket,filename,csvSchema,bucketName,errorFilename):
+    def openFile(self, region, bucket, filename, csvSchema, bucketName, errorFilename, long_to_short_dict):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
             region: AWS region where the bucket is located (not used if instantiated as CsvLocalReader)
@@ -26,6 +26,7 @@ class CsvAbstractReader(object):
             csvSchema: list of FileColumn objects for this file type
             bucketName: bucket to send errors to
             errorFilename: filename for error report
+            long_to_short_dict: mapping of long schema column names to short names
         """
 
         self.filename = filename
@@ -63,8 +64,6 @@ class CsvAbstractReader(object):
 
         self.delimiter = "|" if line.count("|") != 0 else ","
 
-        validation_db = ValidationInterface()
-        longNameDict = validation_db.getLongToShortColname()
         # Set the list of possibleFields, using  the shorter,
         # machine-readable column names
         possibleFields = {}
@@ -75,7 +74,7 @@ class CsvAbstractReader(object):
             # check to see if header contains long or short column names
             colMatches = 0
             for value in row:
-                if FieldCleaner.cleanString(value) in longNameDict:
+                if FieldCleaner.cleanString(value) in long_to_short_dict:
                     colMatches += 1
             # if most of column headers are in the long format,
             # we'll treat the file as having long headers
@@ -86,8 +85,8 @@ class CsvAbstractReader(object):
 
             for cell in row:
                 submittedHeaderValue = FieldCleaner.cleanString(cell)
-                if longHeaders and submittedHeaderValue in longNameDict:
-                    headerValue = FieldCleaner.cleanString(longNameDict[submittedHeaderValue])
+                if longHeaders and submittedHeaderValue in long_to_short_dict:
+                    headerValue = FieldCleaner.cleanString(long_to_short_dict[submittedHeaderValue])
                 elif longHeaders:
                     headerValue = None
                 else:

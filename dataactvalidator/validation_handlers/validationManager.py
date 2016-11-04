@@ -46,6 +46,12 @@ class ValidationManager:
         self.isLocal = isLocal
         self.directory = directory
 
+        # create long-to-short (and vice-versa) column name mappings
+        sess = GlobalDB.db().session
+        colnames = sess.query(FileColumn.name, FileColumn.name_short).all()
+        self.long_to_short_dict = {row.name: row.name_short for row in colnames}
+        self.short_to_long_dict = {row.name_short: row.name for row in colnames}
+
     @staticmethod
     def markJob(job_id,jobTracker,status,filename=None, fileError = ValidationError.unknownError, extraInfo = None):
         """ Update status of a job in job tracker database
@@ -153,7 +159,7 @@ class ValidationManager:
         row_error_found = False
         try:
 
-            record = FieldCleaner.cleanRow(reader.getNextRecord(), file_type, interfaces.validationDb, self.longToShortDict, fields)
+            record = FieldCleaner.cleanRow(reader.getNextRecord(), file_type, interfaces.validationDb, self.long_to_short_dict, fields)
             record["row_number"] = row_number
             if reader.isFinished and len(record) < 2:
                 # This is the last line and is empty, don't record an error
@@ -277,9 +283,6 @@ class ValidationManager:
         sess.query(model).filter(model.submission_id == submissionId).delete()
         sess.commit()
 
-        # Get short to long colname dictionary
-        shortColnames = interfaces.validationDb.getShortToLongColname()
-
         # If local, make the error report directory
         if self.isLocal and not os.path.exists(self.directory):
             os.makedirs(self.directory)
@@ -314,9 +317,8 @@ class ValidationManager:
         try:
             # Pull file and return info on whether it's using short or long col headers
             reader.openFile(regionName, bucketName, fileName, fields,
-                            bucketName, errorFileName)
+                            bucketName, errorFileName, self.long_to_short_dict)
 
-            self.longToShortDict = interfaces.validationDb.getLongToShortColname()
             # list to keep track of rows that fail validations
             errorRows = []
 
@@ -366,7 +368,7 @@ class ValidationManager:
                             continue
 
                     if not passedValidations:
-                        if self.writeErrors(failures, interfaces, job_id, shortColnames, writer, warningWriter, rowNumber, error_list):
+                        if self.writeErrors(failures, interfaces, job_id, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list):
                             errorRows.append(rowNumber)
 
                 CloudLogger.logError("VALIDATOR_INFO: ", "Loading complete on jobID: " + str(job_id) + ". Total rows added to staging: " + str(rowNumber), "")
@@ -376,7 +378,7 @@ class ValidationManager:
                 # in the schema guidance. these validations are sql-based.
                 #
                 sqlErrorRows = self.runSqlValidations(
-                    interfaces, job_id, fileType, shortColnames, writer, warningWriter, rowNumber, error_list)
+                    interfaces, job_id, fileType, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list)
                 errorRows.extend(sqlErrorRows)
 
                 # Write unfinished batch
@@ -421,7 +423,8 @@ class ValidationManager:
             a list of the row numbers that failed one of the sql-based validations
         """
         error_rows = []
-        sql_failures = Validator.validateFileBySql(interfaces.jobDb.getSubmissionId(job_id),file_type,interfaces)
+        sql_failures = Validator.validateFileBySql(
+            interfaces.jobDb.getSubmissionId(job_id), file_type, interfaces, self.short_to_long_dict)
         for failure in sql_failures:
             # convert shorter, machine friendly column names used in the
             # SQL validation queries back to their long names
@@ -483,7 +486,7 @@ class ValidationManager:
                 RuleSql.file_id==second_file.id,
                 RuleSql.target_file_id==first_file.id)))
             # send comboRules to validator.crossValidate sql
-            failures = Validator.crossValidateSql(comboRules.all(), submission_id)
+            failures = Validator.crossValidateSql(comboRules.all(), submission_id, self.short_to_long_dict)
             # get error file name
             reportFilename = self.getFileName(get_cross_report_name(submission_id, first_file.name, second_file.name))
             warningReportFilename = self.getFileName(get_cross_warning_report_name(submission_id, first_file.name, second_file.name))

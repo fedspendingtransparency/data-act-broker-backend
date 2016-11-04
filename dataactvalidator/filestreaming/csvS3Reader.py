@@ -21,7 +21,7 @@ class CsvS3Reader(CsvAbstractReader):
         return s3File
 
 
-    def openFile(self, region, bucket, filename, csvSchema, bucketName, errorFilename):
+    def openFile(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
             bucket : the S3 Bucket
@@ -32,7 +32,7 @@ class CsvS3Reader(CsvAbstractReader):
         self.isLocal = False
 
         super(CsvS3Reader, self).openFile(
-            region, bucket, filename, csvSchema, bucketName, errorFilename)
+            region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict)
 
     def close(self):
         """ Don't need to close file when streaming from S3 """

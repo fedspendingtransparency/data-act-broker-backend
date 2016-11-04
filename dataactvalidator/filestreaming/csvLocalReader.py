@@ -5,16 +5,16 @@ from dataactvalidator.filestreaming.csvAbstractReader import CsvAbstractReader
 class CsvLocalReader(CsvAbstractReader):
 
 
-    def openFile(self,region,bucket,filename,csvSchema,bucketName,errorFilename):
+    def openFile(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
         """ Opens file and prepares to read each record, mapping entries to specified column names
 
         Args:
             region: Not used, included here to match signature of CsvAbstractReader.openFile
             bucket: Not used, included here to match signature CsvAbstractReader.openFile
             filename: The file path for the CSV file in S3
-            csvSchema: list of FileColumn objects for this file type
-            bucketName: bucket to send errors to
-            errorFilename: filename for error report
+            csv_schema: list of FileColumn objects for this file type
+            bucket_name: bucket to send errors to
+            error_filename: filename for error report
         """
         self.filename = filename
         self.isLocal = True
@@ -22,7 +22,8 @@ class CsvLocalReader(CsvAbstractReader):
             self.file = open(filename,"r")
         except :
             raise ValueError("".join(["Filename provided not found : ",str(self.filename)]))
-        super(CsvLocalReader,self).openFile(region,bucket,filename,csvSchema,bucketName,errorFilename)
+        super(CsvLocalReader,self).openFile(
+            region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict)
 
     def close(self):
         """Closes file if it exists """
