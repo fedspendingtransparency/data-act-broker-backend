@@ -15,7 +15,7 @@ from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.scripts.setupValidationDB import setupValidationDB
-from dataactcore.utils.report import getReportPath
+from dataactcore.utils.report import get_report_path
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.jobModels import Job, Submission
 from dataactcore.models.errorModels import File
@@ -134,7 +134,7 @@ class BaseTestValidator(unittest.TestCase):
                 self.assertEqual(checkNumberOfErrorsByJobId(jobId, 'warning'), numWarnings)
 
             if fileSize is not False:
-                reportPath = getReportPath(job, 'error')
+                reportPath = get_report_path(job, 'error')
                 if self.local:
                     self.assertFileSizeAppxy(fileSize, reportPath)
                 else:
@@ -144,7 +144,7 @@ class BaseTestValidator(unittest.TestCase):
                         'errors/{}'.format(reportPath)), fileSize + 5)
 
             if warningFileSize is not None and warningFileSize is not False:
-                reportPath = getReportPath(job, 'warning')
+                reportPath = get_report_path(job, 'warning')
                 if self.local:
                     self.assertFileSizeAppxy(warningFileSize, reportPath)
                 else:

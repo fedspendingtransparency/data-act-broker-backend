@@ -1,16 +1,20 @@
-"""merging_optional_user_with_flag_removal
+"""Merge 9dded 5c594
 
-Revision ID: c9e8302571cd
-Revises: 159caff749a3, ea8fbaa044d7
-Create Date: 2016-10-19 14:40:05.237033
+Revision ID: c3a3389bda57
+Revises: 9dded6e6bf79, 5c594d23709b
+Create Date: 2016-11-04 15:10:00.221900
 
 """
 
 # revision identifiers, used by Alembic.
-revision = 'c9e8302571cd'
-down_revision = ('159caff749a3', 'ea8fbaa044d7')
+revision = 'c3a3389bda57'
+down_revision = ('9dded6e6bf79', '5c594d23709b')
 branch_labels = None
 depends_on = None
+
+from alembic import op
+import sqlalchemy as sa
+
 
 def upgrade(engine_name):
     globals()["upgrade_%s" % engine_name]()

@@ -33,7 +33,13 @@ def insertCodes(sess):
 
     # insert file types
     for ft in lookups.FILE_TYPE:
-        fileType = FileType(file_type_id=ft.id, name=ft.name, description=ft.desc, letter_name=ft.letter)
+        fileType = FileType(
+            file_type_id=ft.id,
+            name=ft.name,
+            description=ft.desc,
+            letter_name=ft.letter,
+            file_order=ft.order
+        )
         sess.merge(fileType)
 
 

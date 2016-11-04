@@ -1,4 +1,3 @@
-from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
@@ -6,13 +5,12 @@ from dataactcore.interfaces.db import GlobalDB
 
 from dataactcore.models.lookups import ERROR_TYPE_DICT
 
-class ErrorInterface(BaseInterface):
+class ErrorInterface:
     """Manages communication with error database."""
 
     def __init__(self):
         """ Create empty row error dict """
         self.rowErrors = {}
-        super(ErrorInterface, self).__init__()
 
     def recordRowError(self, job_id, filename, field_name, error_type, row, original_label=None, file_type_id=None,
                        target_file_id=None, severity_id=None):
@@ -28,8 +26,6 @@ class ErrorInterface(BaseInterface):
             file_type_id: Id of source file type
             target_file_id: Id of target file type
             severity_id: Id of error severity
-        Returns:
-            True if successful
         """
         key = "".join([str(job_id), field_name, str(error_type)])
         if key in self.rowErrors:
@@ -46,9 +42,6 @@ class ErrorInterface(BaseInterface):
 
         Args:
             job_id: ID to write errors for
-
-        Returns:
-            True if successful
         """
         sess = GlobalDB.db().session
         for key in self.rowErrors.keys():
