@@ -1,6 +1,6 @@
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.validationModels import (
-    FileColumn, FileTypeValidation, RuleSeverity)
+    FileColumn, RuleSeverity)
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardFinancial, Appropriation, ObjectClassProgramActivity, AwardProcurement
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -13,12 +13,6 @@ class ValidationInterface(BaseInterface):
 
     def __init__(self):
         super(ValidationInterface, self).__init__()
-
-    def getFileTypeList(self):
-        """ Return list of file types """
-        fileTypes = self.session.query(FileTypeValidation.name).all()
-        # Convert result into list
-        return [fileType.name for fileType in fileTypes]
 
     def getRuleSeverityId(self, name):
         """ Return rule severity ID for this name """
