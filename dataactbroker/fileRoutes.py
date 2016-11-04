@@ -65,9 +65,28 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         limit = request.args.get('limit')
         certified = request.args.get('certified')
 
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
+        # convert params and type check
+        try:
+            page = int(page) if page is not None else 1
+        except:
+            raise ValueError("Incorrect type specified for 'page'. Please enter a positive number.")
 
-        return RouteUtils.run_instance_function(accountManager, accountManager.list_submissions, page, limit, certified)
+        try:
+            limit = int(limit) if limit is not None else 5
+        except:
+            raise ValueError("Incorrect type specified for 'limit'. Please enter a positive number.")
+
+        if certified is not None:
+            certified = certified.lower()
+        else:
+            raise ValueError("Missing required parameter 'certified'")
+        # If certified is none, get all submissions without filtering
+        if certified is not None and certified not in ['mixed', 'true', 'false']:
+            raise ValueError("Incorrect value specified for the 'certified' parameter")
+
+        file_manager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+
+        return RouteUtils.run_instance_function(file_manager, file_manager.list_submissions, page, limit, certified)
 
     @app.route("/v1/get_protected_files/", methods=["GET"])
     @permissions_check

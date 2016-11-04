@@ -19,7 +19,6 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy import func
 from dataactcore.models.userModel import User
 from dataactcore.models.domainModels import CGAC
-from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT
@@ -659,55 +658,6 @@ class AccountHandler:
                         "email":user.email, "id":user.user_id }
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
-
-    def list_submissions(self, page, limit, certified):
-        """ List submission based on current page and amount to display. If provided, filter based on
-        certification status """
-
-        # convert params and type check
-        try:
-            page = int(page) if page is not None else 1
-        except:
-            raise ValueError("Incorrect type specified for 'page'. Please enter a positive number.")
-
-        try:
-            limit = int(limit) if limit is not None else 5
-        except:
-            raise ValueError("Incorrect type specified for 'limit'. Please enter a positive number.")
-
-        if certified is not None:
-            certified = certified.lower()
-        # If certified is none, get all submissions without filtering
-        if certified is not None and certified not in ['true', 'false']:
-            raise ValueError("Incorrect value specified for the 'certified' parameter")
-
-        user_id = LoginSession.getName(flaskSession)
-        submissions = self.interfaces.jobDb.getSubmissionsByUserId(user_id, limit=limit, offset=(limit*(page-1)), certified=certified)
-        submission_details = []
-
-        for submission in submissions:
-            job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
-            total_size = 0
-            for job_id in job_ids:
-                file_size = self.interfaces.jobDb.getFileSize(job_id)
-                total_size += (file_size if file_size is not None else 0)
-
-            status = self.interfaces.jobDb.getSubmissionStatus(submission)
-            if submission.user_id is None:
-                submission_user_name = "No user"
-            else:
-                submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
-            submission_details.append({"submission_id": submission.submission_id,
-                                       "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
-                                       "size": total_size, "status": status, "errors": submission.number_of_errors,
-                                       "reporting_start_date": str(submission.reporting_start_date),
-                                       "reporting_end_date": str(submission.reporting_end_date),
-                                       "user": {"user_id": submission.user_id,
-                                                "name": submission_user_name}})
-
-        total_submissions = GlobalDB.db().session.query(Submission).filter(Submission.user_id == user_id).count()
-
-        return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})
 
     def setNewPassword(self, session):
         """ Set a new password for a user, request should have keys "user_email" and "password" """

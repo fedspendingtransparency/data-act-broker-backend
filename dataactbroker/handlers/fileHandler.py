@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import uuid4
 
 import requests
+from flask import session as flaskSession
 from flask import session, request, redirect, send_from_directory
 from requests.exceptions import Timeout
 from sqlalchemy.orm import joinedload
@@ -16,7 +17,8 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
-from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
+from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job, Submission
+from dataactcore.models.userModel import User
 from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
 from dataactcore.models.lookups import FILE_STATUS_DICT, FILE_TYPE_DICT
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -890,3 +892,43 @@ class FileHandler:
         obligations_info = obligationStatsForSubmission(submission_id)
 
         return JsonResponse.create(StatusCode.OK,obligations_info)
+
+    def list_submissions(self, page, limit, certified):
+        """ List submission based on current page and amount to display. If provided, filter based on
+        certification status """
+
+        user_id = LoginSession.getName(flaskSession)
+        sess = GlobalDB.db().session
+        user = sess.query(User).filter(User.user_id == user_id).one()
+
+        offset = limit*(page-1)
+
+        query = sess.query(Submission).filter(Submission.cgac_code == user.cgac_code)
+        if certified != 'mixed':
+            query = query.filter_by(publishable=certified)
+        submissions = query.order_by(Submission.updated_at.desc()).limit(limit).offset(offset).all()
+        submission_details = []
+
+        for submission in submissions:
+            job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
+            total_size = 0
+            for job_id in job_ids:
+                file_size = self.interfaces.jobDb.getFileSize(job_id)
+                total_size += file_size or 0
+
+            status = self.interfaces.jobDb.getSubmissionStatus(submission)
+            if submission.user_id is None:
+                submission_user_name = "No user"
+            else:
+                submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
+            submission_details.append({"submission_id": submission.submission_id,
+                                       "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
+                                       "size": total_size, "status": status, "errors": submission.number_of_errors,
+                                       "reporting_start_date": str(submission.reporting_start_date),
+                                       "reporting_end_date": str(submission.reporting_end_date),
+                                       "user": {"user_id": submission.user_id,
+                                                "name": submission_user_name}})
+
+        total_submissions = query.from_self().count()
+
+        return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})
