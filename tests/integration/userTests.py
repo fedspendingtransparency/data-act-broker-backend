@@ -196,14 +196,14 @@ class UserTests(BaseTestAPI):
         self.assertNotIn('user@agency.gov', emails)
 
     def test_list_submissions(self):
-        """Test listing user's submissions. The default limit is 5 for list_submissions route so all expected values
-        are 5 as a result when checking the length of the array of submissions in the response. """
+        """Test listing user's submissions. The expected values here correspond to the number of submissions within
+         the agency of the user that is logged in """
         self.logout()
         self.login_approved_user()
         response = self.app.get("/v1/list_submissions/?certified=mixed", headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         self.assertIn("submissions", response.json)
-        self.assertEqual(len(response.json["submissions"]), 5)
+        self.assertEqual(len(response.json["submissions"]), 1)
         self.logout()
 
         self.login_agency_user()
