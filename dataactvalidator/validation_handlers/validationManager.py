@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.lookups import FILE_TYPE_DICT
+from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileTypeValidation, FileColumn
 from dataactcore.interfaces.function_bag import createFileIfNeeded, writeFileError, markFileComplete
 from dataactcore.models.errorModels import ErrorMetadata
@@ -163,7 +163,8 @@ class ValidationManager:
                 reduce_row = True
             else:
                 writer.write(["Formatting Error", ValidationError.readErrorMsg, str(row_number), ""])
-                error_list.recordRowError(job_id,self.filename,"Formatting Error",ValidationError.readError,row_number,severity_id=interfaces.validationDb.getRuleSeverityId("fatal"))
+                error_list.recordRowError(job_id, self.filename, "Formatting Error", ValidationError.readError,
+                                          row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
                 row_error_found = True
             return {}, reduce_row, True, False, row_error_found
         return record, reduce_row, False, False, row_error_found
@@ -195,7 +196,7 @@ class ValidationManager:
             # Write failed, move to next record
             writer.write(["Formatting Error", ValidationError.writeErrorMsg, row_number,""])
             error_list.recordRowError(job_id, self.filename,
-                "Formatting Error",ValidationError.writeError, row_number,severity_id=interfaces.validationDb.getRuleSeverityId("fatal"))
+                "Formatting Error", ValidationError.writeError, row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
             return True
         return False
 
@@ -226,7 +227,7 @@ class ValidationManager:
             failed_value = failure[2]
             original_rule_label = failure[3]
 
-            severityId = interfaces.validationDb.getRuleSeverityId(failure[4])
+            severityId = RULE_SEVERITY_DICT[failure[4]]
             try:
                 # If error is an int, it's one of our prestored messages
                 error_type = int(error)
@@ -428,7 +429,7 @@ class ValidationManager:
             file_type_id = failure[5]
             target_file_id = failure[6]
             severity_id = failure[7]
-            if severity_id == interfaces.validationDb.getRuleSeverityId("fatal"):
+            if severity_id == RULE_SEVERITY_DICT['fatal']:
                 error_rows.append(row)
             try:
                 # If error is an int, it's one of our prestored messages
@@ -437,9 +438,9 @@ class ValidationManager:
             except ValueError:
                 # If not, treat it literally
                 error_msg = error
-            if severity_id == interfaces.validationDb.getRuleSeverityId("fatal"):
+            if severity_id == RULE_SEVERITY_DICT['fatal']:
                 writer.write([field_name,error_msg,str(row),failed_value,original_label])
-            elif severity_id == interfaces.validationDb.getRuleSeverityId("warning"):
+            elif severity_id == RULE_SEVERITY_DICT['warning']:
                 # write to warnings file
                 warning_writer.write([field_name,error_msg,str(row),failed_value,original_label])
             error_list.recordRowError(job_id,self.filename,field_name,
@@ -492,9 +493,9 @@ class ValidationManager:
             with self.getWriter(regionName, bucketName, reportFilename, self.crossFileReportHeaders) as writer, \
                  self.getWriter(regionName, bucketName, warningReportFilename, self.crossFileReportHeaders) as warningWriter:
                 for failure in failures:
-                    if failure[9] == interfaces.validationDb.getRuleSeverityId("fatal"):
+                    if failure[9] == RULE_SEVERITY_DICT['fatal']:
                         writer.write(failure[0:7])
-                    if failure[9] == interfaces.validationDb.getRuleSeverityId("warning"):
+                    if failure[9] == RULE_SEVERITY_DICT['warning']:
                         warningWriter.write(failure[0:7])
                     error_list.recordRowError(job_id, "cross_file",
                         failure[0], failure[3], failure[5], failure[6], failure[7], failure[8], severity_id=failure[9])

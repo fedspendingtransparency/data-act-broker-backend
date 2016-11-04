@@ -20,10 +20,6 @@ class ValidationInterface(BaseInterface):
         # Convert result into list
         return [fileType.name for fileType in fileTypes]
 
-    def getRuleSeverityId(self, name):
-        """ Return rule severity ID for this name """
-        return self.getNameFromDict(RuleSeverity, "SEVERITY_DICT", "rule_severity_id", name, "name")
-
     def insertSubmissionRecordByFileType(self, record, fileType):
         """Insert a submitted file row into its corresponding staging table
 
