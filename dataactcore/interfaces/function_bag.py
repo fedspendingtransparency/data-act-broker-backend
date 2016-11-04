@@ -52,19 +52,19 @@ def getPasswordHash(password, bcrypt):
     return salt, password_hash
 
 
-def getUsersByType(permissionName):
+def getUsersByType(permission_name):
     """Get list of users with specified permission."""
     sess = GlobalDB.db().session
     # This could likely be simplified, but since we're moving towards using MAX for authentication,
     # it's not worth spending too much time reworking.
-    userList = []
-    bitNumber = sess.query(PermissionType).filter(PermissionType.name == permissionName).one().permission_type_id
+    user_list = []
+    bit_number = sess.query(PermissionType).filter(PermissionType.name == permission_name).one().permission_type_id
     users = sess.query(User).all()
     for user in users:
-        if checkPermissionByBitNumber(user, bitNumber):
+        if checkPermissionByBitNumber(user, bit_number):
             # This user has this permission, include them in list
-            userList.append(user)
-    return userList
+            user_list.append(user)
+    return user_list
 
 
 def checkPermissionByBitNumber(user, bitNumber):
@@ -73,11 +73,11 @@ def checkPermissionByBitNumber(user, bitNumber):
     # This could likely be simplified, but since we're moving towards using MAX for authentication,
     # it's not worth spending too much time reworking.
 
-    if user.permissions == None:
+    if user.permissions is None:
         # This user has no permissions
         return False
     # First get the value corresponding to the specified bit (i.e. 2^bitNumber)
-    bitValue = 2 ** (bitNumber)
+    bitValue = 2 ** bitNumber
     # Remove all bits above the target bit by modding with the value of the next higher bit
     # This leaves the target bit and all lower bits as the remaining value, all higher bits are set to 0
     lowEnd = user.permissions % (bitValue * 2)

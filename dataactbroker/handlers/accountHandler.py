@@ -20,7 +20,7 @@ from sqlalchemy import func
 from dataactcore.models.userModel import User, PermissionType
 from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
+from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList, getUsersByType
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT
 
@@ -306,12 +306,12 @@ class AccountHandler:
                     filter(CGAC.cgac_code == cgac_code).\
                     one_or_none()
                 agency_name = "Unknown" if agency_name is None else agency_name
-                for user in threaded_database.getUsersByType("website_admin"):
+                for user in getUsersByType("website_admin"):
                     email_template = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
                                      '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : user_email,'[URL]':link}
                     new_email = sesEmail(user.email, system_email,templateType="account_creation",parameters=email_template,database=threaded_database)
                     new_email.send()
-                for user in threaded_database.getUsersByType("agency_admin"):
+                for user in getUsersByType("agency_admin"):
                     if user.cgac_code == cgac_code:
                         email_template = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY_NAME]': agency_name,
                              '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]': user_email, '[URL]': link}
@@ -547,48 +547,6 @@ class AccountHandler:
 
         return JsonResponse.create(StatusCode.OK, {"message": "User successfully updated"})
 
-    def changeStatus(self,system_email):
-        """
-
-        Changes status for specified user.  Associated request body should have keys 'uid' and 'new_status'
-
-        arguments:
-
-        system_email  -- (string) the email to send emails from
-
-        return the response object with a success message
-
-        """
-        sess = GlobalDB.db().session
-        request_dict = RequestDictionary(self.request)
-        if not (request_dict.exists("uid") and request_dict.exists("new_status")):
-            # Missing a required field, return 400
-            exc = ResponseException("Request body must include uid and new_status", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status)
-
-        # Find user that matches specified uid
-        user = sess.query(User).filter(User.user_id == int(request_dict.getValue("uid"))).one()
-
-        if user.email is None:
-            return JsonResponse.error(ResponseException("User does not have a defined email",StatusCode.INTERNAL_ERROR),StatusCode.INTERNAL_ERROR)
-
-        #check if the user is waiting
-        if self.interfaces.userDb.checkStatus(user,"awaiting_approval"):
-            if request_dict.getValue("new_status") == "approved":
-                # Grant agency_user permission to newly approved users
-                self.interfaces.userDb.grantPermission(user,"agency_user")
-                link=  AccountHandler.FRONT_END
-                email_template = { '[URL]':link,'[EMAIL]':system_email}
-                new_email = sesEmail(user.email, system_email,templateType="account_approved",parameters=email_template,database=self.interfaces.userDb)
-                new_email.send()
-            elif request_dict.getValue("new_status") == "denied":
-                email_template = {}
-                new_email = sesEmail(user.email, system_email,templateType="account_rejected",parameters=email_template,database=self.interfaces.userDb)
-                new_email.send()
-        # Change user's status
-        self.interfaces.userDb.changeStatus(user,request_dict.getValue("new_status"))
-        return JsonResponse.create(StatusCode.OK,{"message":"Status change successful"})
-
     def list_users(self):
         """ List all users ordered by status. Associated request body must have key 'filter_by' """
         request_dict = RequestDictionary(self.request, optionalRequest=True)
@@ -646,9 +604,9 @@ class AccountHandler:
 
         try:
             if self.interfaces.userDb.hasPermission(current_user, "agency_admin"):
-                users = self.interfaces.userDb.getUsersByStatus(request_dict.getValue("status"), current_user.cgac_code)
+                users = sess.query(User).filter(User.user_status_id == USER_STATUS_DICT[request_dict.getValue("status")], User.cgac_code == current_user.cgac_code).all()
             else:
-                users = self.interfaces.userDb.getUsersByStatus(request_dict.getValue("status"))
+                users = sess.query(User).filter(User.user_status_id == USER_STATUS_DICT[request_dict.getValue("status")]).all()
         except ValueError as e:
             # Client provided a bad status
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)

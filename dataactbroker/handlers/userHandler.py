@@ -131,31 +131,6 @@ class UserHandler(UserInterface):
                                               "Multiple email templates with that template type")
         return template_result
 
-    def getUsersByStatus(self,status,cgac_code=None):
-        """ Return list of all users with specified status
-
-        Arguments:
-            status - Status to check against
-        Returns:
-            list of User objects
-        """
-        query = self.session.query(User).filter(User.user_status_id == USER_STATUS_DICT[status])
-        if cgac_code is not None:
-            query = query.filter(User.cgac_code == cgac_code)
-        return query.all()
-
-    def getUsersByType(self,permission_name):
-        """deprecated: moved to function_bag.py"""
-        sess = GlobalDB.db().session
-        user_list = []
-        bit_number = sess.query(PermissionType).filter(PermissionType.name == permission_name).one().permission_type_id
-        users = self.session.query(User).all()
-        for user in users:
-            if checkPermissionByBitNumber(user, bit_number):
-                # This user has this permission, include them in list
-                user_list.append(user)
-        return user_list
-
     def getUserPermissions(self, user):
         """ Get name for specified permissions for this user
 
