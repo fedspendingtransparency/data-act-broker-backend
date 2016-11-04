@@ -70,6 +70,7 @@ class BaseTestValidator(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """Tear down class-level resources."""
+        GlobalDB.close()
         dropDatabase(CONFIG_DB['db_name'])
 
     def tearDown(self):
