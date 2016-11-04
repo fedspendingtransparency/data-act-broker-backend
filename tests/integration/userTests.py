@@ -209,9 +209,9 @@ class UserTests(BaseTestAPI):
         response = self.app.get("/v1/list_submissions/", headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         self.assertIn("submissions", response.json)
-        self.assertEqual(len(response.json["submissions"]), 6)
+        self.assertEqual(len(response.json["submissions"]), 5)
 
-        response = self.app.get("/v1/list_submissions/?filter_by=agency", headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/list_submissions/", headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         self.assertIn("submissions", response.json)
         self.assertEqual(len(response.json["submissions"]), 5)

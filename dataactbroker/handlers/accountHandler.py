@@ -671,7 +671,7 @@ class AccountHandler:
             raise ValueError("Incorrect type specified for 'page'. Please enter a positive number.")
 
         try:
-            limit = int(limit) if limit is not None else 50
+            limit = int(limit) if limit is not None else 5
         except:
             raise ValueError("Incorrect type specified for 'limit'. Please enter a positive number.")
 
@@ -690,8 +690,6 @@ class AccountHandler:
             total_size = 0
             for job_id in job_ids:
                 file_size = self.interfaces.jobDb.getFileSize(job_id)
-                if file_size is None:
-                    print(job_id)
                 total_size += (file_size if file_size is not None else 0)
 
             status = self.interfaces.jobDb.getSubmissionStatus(submission)

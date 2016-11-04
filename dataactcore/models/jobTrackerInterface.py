@@ -291,7 +291,7 @@ class JobTrackerInterface(BaseInterface):
             status = "ready"
         elif statuses["finished"] == len(job_ids)-skip_count: # need to account for the jobs that were skipped above
             status = "validation_successful"
-            if submission.number_of_warnings > 0:
+            if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
                 status = "validation_successful_warnings"
             if submission.publishable:
                 status = "submitted"
