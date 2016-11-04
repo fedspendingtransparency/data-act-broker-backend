@@ -5,10 +5,11 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
 from dataactcore.models.errorModels import ErrorMetadata, File
-from dataactcore.models.jobModels import Job, Submission, JobDependency
+from dataactcore.models.jobModels import Job, Submission, JobDependency, FileType
 from dataactcore.models.userModel import User, UserStatus, PermissionType
 from dataactcore.models.validationModels import RuleSeverity
-from dataactcore.models.lookups import FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT, FILE_TYPE_DICT_ID
+from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
+                                        JOB_STATUS_DICT, FILE_TYPE_DICT_ID)
 from dataactcore.interfaces.db import GlobalDB
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
@@ -351,3 +352,5 @@ def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
             record_dict['target_file'] = FILE_TYPE_DICT_ID.get(result.target_file_type_id, '')
         result_list.append(record_dict)
     return result_list
+
+
