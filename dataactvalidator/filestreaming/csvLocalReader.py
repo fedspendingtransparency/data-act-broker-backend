@@ -5,7 +5,7 @@ from dataactvalidator.filestreaming.csvAbstractReader import CsvAbstractReader
 class CsvLocalReader(CsvAbstractReader):
 
 
-    def openFile(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
+    def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
         """ Opens file and prepares to read each record, mapping entries to specified column names
 
         Args:
@@ -23,7 +23,7 @@ class CsvLocalReader(CsvAbstractReader):
             self.file = open(filename,"r")
         except :
             raise ValueError("".join(["Filename provided not found : ", str(self.filename)]))
-        super(CsvLocalReader,self).openFile(
+        super(CsvLocalReader,self).open_file(
             region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict)
 
     def close(self):
@@ -34,13 +34,13 @@ class CsvLocalReader(CsvAbstractReader):
             # File does not exist, and so does not need to be closed
             pass
 
-    def _getFileSize(self):
+    def _get_file_size(self):
         """
         Gets the size of the file
         """
         return os.path.getsize(self.filename)
 
-    def _getNextPacket(self):
+    def _get_next_packet(self):
         """
         Gets the next packet from the file returns true if successful
         """

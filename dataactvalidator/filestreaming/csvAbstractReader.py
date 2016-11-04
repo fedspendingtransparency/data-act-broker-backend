@@ -16,7 +16,7 @@ class CsvAbstractReader(object):
     BUFFER_SIZE = 8192
     header_report_headers = ["Error type", "Header name"]
 
-    def openFile(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
+    def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
             region: AWS region where the bucket is located (not used if instantiated as CsvLocalReader)
@@ -37,12 +37,12 @@ class CsvAbstractReader(object):
         current = 0
         self.is_finished= False
         self.column_count = 0
-        line = self._getLine()
+        line = self._get_line()
         # make sure we have not finished reading the file
 
         if self.is_finished:
             # Write header error for no header row
-            with self.getWriter(bucket_name, error_filename, ["Error Type"], self.is_local) as writer:
+            with self.get_writer(bucket_name, error_filename, ["Error Type"], self.is_local) as writer:
                 writer.write(["No header row"])
                 writer.finishBatch()
             raise ResponseException("CSV file must have a header",StatusCode.CLIENT_ERROR,ValueError,ValidationError.singleRow)
@@ -56,7 +56,7 @@ class CsvAbstractReader(object):
 
         if pipe_count != 0 and comma_count != 0:
             # Write header error for mixed delimiter use
-            with self.getWriter(bucket_name, error_filename, ["Error Type"], self.is_local) as writer:
+            with self.get_writer(bucket_name, error_filename, ["Error Type"], self.is_local) as writer:
                 writer.write(["Cannot use both ',' and '|' as delimiters. Please choose one."])
                 writer.finishBatch()
             raise ResponseException("Error in header row: CSV file must use only '|' or ',' as the delimiter", StatusCode.CLIENT_ERROR, ValueError, ValidationError.headerError)
@@ -114,7 +114,7 @@ class CsvAbstractReader(object):
         if len(missing_headers) > 0 or len(duplicated_headers) > 0:
             # Write header errors if any occurred and raise a header_error exception
             error_string = ""
-            with self.getWriter(bucket_name, error_filename, self.header_report_headers, self.is_local) as writer:
+            with self.get_writer(bucket_name, error_filename, self.header_report_headers, self.is_local) as writer:
                 extra_info = {}
                 if len(duplicated_headers) > 0:
                     error_string = "".join([error_string, "Duplicated: ",", ".join(duplicated_headers)])
@@ -135,7 +135,7 @@ class CsvAbstractReader(object):
         return long_headers
 
     @staticmethod
-    def getWriter(bucket_name, filename, header, is_local, region = None):
+    def get_writer(bucket_name, filename, header, is_local, region = None):
         """
         Gets the write type based on if its a local install or not.
         """
@@ -145,14 +145,14 @@ class CsvAbstractReader(object):
             region = CONFIG_BROKER["aws_region"]
         return CsvS3Writer(region, bucket_name, filename, header)
 
-    def getNextRecord(self):
+    def get_next_record(self):
         """
         Read the next record into a dict and return it
         Returns:
             dictionary representing this record
         """
         return_dict = {}
-        line = self._getLine()
+        line = self._get_line()
 
         for row in csv.reader([line], dialect='excel', delimiter=self.delimiter):
             if len(row) != self.column_count:
@@ -177,19 +177,19 @@ class CsvAbstractReader(object):
         """
         raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
 
-    def _getFileSize(self):
+    def _get_file_size(self):
         """
         Gets the size of the file
         """
         raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
 
-    def _getNextPacket(self):
+    def _get_next_packet(self):
         """
         Gets the next packet from the file returns true if successful
         """
         raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
 
-    def _getLine(self):
+    def _get_line(self):
         """
         This method reads 8192 bytes from S3 Bucket at a time and stores
         it in a line buffer. The line buffer is used until its empty then
@@ -200,16 +200,16 @@ class CsvAbstractReader(object):
             return self.lines.pop(0)
         #packets are 8192 bytes in size
         #for packet in self.s3File :
-        while self.packet_counter *  CsvAbstractReader.BUFFER_SIZE <=  self._getFileSize():
+        while self.packet_counter *  CsvAbstractReader.BUFFER_SIZE <=  self._get_file_size():
 
-            success,packet =  self._getNextPacket()
+            success,packet =  self._get_next_packet()
             if not success:
                 break
             self.packet_counter +=1
 
             #Get the current lines
-            currentBytes = self.unprocessed + packet
-            self.lines = self._splitLines(currentBytes)
+            current_bytes = self.unprocessed + packet
+            self.lines = self._split_lines(current_bytes)
 
             #edge case if the packet was filled with newlines only try again
             if len(self.lines) ==0:
@@ -228,7 +228,7 @@ class CsvAbstractReader(object):
         return self.unprocessed
 
 
-    def _splitLines(self, packet) :
+    def _split_lines(self, packet) :
         """
         arguments :
         packet unprocessed string of CSV data

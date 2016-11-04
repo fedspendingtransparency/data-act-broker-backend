@@ -7,7 +7,7 @@ class CsvS3Reader(CsvAbstractReader):
     Reads data from S3 CSV file
     """
 
-    def initializeFile(self, region, bucket, filename):
+    def initialize_file(self, region, bucket, filename):
         """Returns an S3 filename."""
         s3connection = boto.s3.connect_to_region(region)
         s3_bucket = s3connection.lookup(bucket)
@@ -21,30 +21,30 @@ class CsvS3Reader(CsvAbstractReader):
         return s3_file
 
 
-    def openFile(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
+    def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
             bucket : the S3 Bucket
             filename: The file path for the CSV file in S3
         Returns:
         """
-        self.s3_file = self.initializeFile(region, bucket, filename)
+        self.s3_file = self.initialize_file(region, bucket, filename)
         self.is_local = False
 
-        super(CsvS3Reader, self).openFile(
+        super(CsvS3Reader, self).open_file(
             region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict)
 
     def close(self):
         """ Don't need to close file when streaming from S3 """
         pass
 
-    def _getFileSize(self):
+    def _get_file_size(self):
         """
         Gets the size of the file
         """
         return self.s3_file.size
 
-    def _getNextPacket(self):
+    def _get_next_packet(self):
         """
         Gets the next packet from the file returns true if successful
         """

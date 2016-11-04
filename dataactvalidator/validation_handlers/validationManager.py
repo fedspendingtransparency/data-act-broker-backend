@@ -159,7 +159,7 @@ class ValidationManager:
         row_error_found = False
         try:
 
-            record = FieldCleaner.cleanRow(reader.getNextRecord(), file_type, interfaces.validationDb, self.long_to_short_dict, fields)
+            record = FieldCleaner.cleanRow(reader.get_next_record(), file_type, interfaces.validationDb, self.long_to_short_dict, fields)
             record["row_number"] = row_number
             if reader.is_finished and len(record) < 2:
                 # This is the last line and is empty, don't record an error
@@ -316,8 +316,8 @@ class ValidationManager:
 
         try:
             # Pull file and return info on whether it's using short or long col headers
-            reader.openFile(regionName, bucketName, fileName, fields,
-                            bucketName, errorFileName, self.long_to_short_dict)
+            reader.open_file(regionName, bucketName, fileName, fields,
+                             bucketName, errorFileName, self.long_to_short_dict)
 
             # list to keep track of rows that fail validations
             errorRows = []
