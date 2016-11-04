@@ -9,13 +9,15 @@ from sqlalchemy.orm import joinedload
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import FILE_TYPE_DICT
-from dataactcore.models.validationModels import FileTypeValidation, FileColumn
-from dataactcore.interfaces.function_bag import createFileIfNeeded, writeFileError, markFileComplete
+from dataactcore.models.validationModels import FileColumn
+from dataactcore.interfaces.function_bag import (
+    createFileIfNeeded, writeFileError, markFileComplete)
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import getReportPath, getCrossWarningReportName, getCrossReportName
+from dataactcore.utils.report import (
+    get_report_path, get_cross_warning_report_name, get_cross_report_name, get_cross_file_pairs)
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -281,8 +283,8 @@ class ValidationManager:
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
 
-        errorFileName = self.getFileName(getReportPath(job, 'error'))
-        warningFileName = self.getFileName(getReportPath(job, 'warning'))
+        errorFileName = self.getFileName(get_report_path(job, 'error'))
+        warningFileName = self.getFileName(get_report_path(job, 'warning'))
 
         # Create File Status object
         createFileIfNeeded(job_id,fileName)
@@ -453,7 +455,6 @@ class ValidationManager:
         createFileIfNeeded(job_id)
         error_list = ErrorInterface()
         
-        validationDb = interfaces.validationDb
         submission_id = interfaces.jobDb.getSubmissionId(job_id)
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
@@ -463,30 +464,23 @@ class ValidationManager:
         sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == job_id).delete()
         sess.commit()
 
-        # use db to get a list of the cross-file combinations
-        targetFiles = validationDb.session.query(FileTypeValidation).subquery()
-        crossFileCombos = validationDb.session.query(
-            FileTypeValidation.name.label('first_file_name'),
-            FileTypeValidation.file_id.label('first_file_id'),
-            targetFiles.c.name.label('second_file_name'),
-            targetFiles.c.file_id.label('second_file_id')
-        ).filter(FileTypeValidation.file_order < targetFiles.c.file_order)
-
         # get all cross file rules from db
-        crossFileRules = validationDb.session.query(RuleSql).filter(RuleSql.rule_cross_file_flag==True)
+        crossFileRules = sess.query(RuleSql).filter(RuleSql.rule_cross_file_flag==True)
 
         # for each cross-file combo, run associated rules and create error report
-        for row in crossFileCombos:
+        for c in get_cross_file_pairs():
+            first_file = c[0]
+            second_file = c[1]
             comboRules = crossFileRules.filter(or_(and_(
-                RuleSql.file_id==row.first_file_id,
-                RuleSql.target_file_id==row.second_file_id), and_(
-                RuleSql.file_id==row.second_file_id,
-                RuleSql.target_file_id==row.first_file_id)))
+                RuleSql.file_id==first_file.id,
+                RuleSql.target_file_id==second_file.id), and_(
+                RuleSql.file_id==second_file.id,
+                RuleSql.target_file_id==first_file.id)))
             # send comboRules to validator.crossValidate sql
-            failures = Validator.crossValidateSql(comboRules.all(),submission_id)
+            failures = Validator.crossValidateSql(comboRules.all(), submission_id)
             # get error file name
-            reportFilename = self.getFileName(getCrossReportName(submission_id, row.first_file_name, row.second_file_name))
-            warningReportFilename = self.getFileName(getCrossWarningReportName(submission_id, row.first_file_name, row.second_file_name))
+            reportFilename = self.getFileName(get_cross_report_name(submission_id, first_file.name, second_file.name))
+            warningReportFilename = self.getFileName(get_cross_warning_report_name(submission_id, first_file.name, second_file.name))
 
             # loop through failures to create the error report
             with self.getWriter(regionName, bucketName, reportFilename, self.crossFileReportHeaders) as writer, \

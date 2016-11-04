@@ -18,17 +18,20 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
 from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
-from dataactcore.models.lookups import FILE_STATUS_DICT, FILE_TYPE_DICT
+from dataactcore.models.lookups import FILE_STATUS_DICT
 from dataactcore.models.userModel import User
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import getReportPath, getCrossReportName, getCrossWarningReportName
+from dataactcore.utils.report import (get_report_path, get_cross_report_name,
+                                      get_cross_warning_report_name, get_cross_file_pairs)
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType, createFileIfNeeded, getErrorMetricsByJobId
+from dataactcore.interfaces.function_bag import (
+    checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType,
+    createFileIfNeeded, getErrorMetricsByJobId)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -78,56 +81,52 @@ class FileHandler:
         self.jobManager = interfaces.jobDb
         self.fileTypeMap = self.interfaces.jobDb.createFileTypeMap()
 
-    def getErrorReportURLsForSubmission(self, isWarning = False):
+    def getErrorReportURLsForSubmission(self, is_warning = False):
         """
         Gets the Signed URLs for download based on the submissionId
         """
         try :
             self.s3manager = s3UrlHandler()
-            safeDictionary = RequestDictionary(self.request)
-            submissionId = safeDictionary.getValue("submission_id")
-            responseDict ={}
+            safe_dictionary = RequestDictionary(self.request)
+            submission_id = safe_dictionary.getValue("submission_id")
+            response_dict ={}
             sess = GlobalDB.db().session
-            for jobId in self.jobManager.getJobsBySubmission(submissionId):
+            for job_id in self.jobManager.getJobsBySubmission(submission_id):
                 # get the job object here so we can call the refactored getReportPath
                 # todo: replace other db access functions with job object attributes
-                job = sess.query(Job).filter(Job.job_id == jobId).one()
+                job = sess.query(Job).filter(Job.job_id == job_id).one()
                 if job.job_type.name == 'csv_record_validation':
-                    if isWarning:
-                        reportName = getReportPath(job, 'warning')
-                        key = "job_"+str(jobId)+"_warning_url"
+                    if is_warning:
+                        report_name = get_report_path(job, 'warning')
+                        key = 'job_{}_warning_url'.format(job_id)
                     else:
-                        reportName = getReportPath(job, 'error')
-                        key = "job_"+str(jobId)+"_error_url"
-                    if(not self.isLocal):
-                        responseDict[key] = self.s3manager.getSignedUrl("errors",reportName,method="GET")
+                        report_name = get_report_path(job, 'error')
+                        key = 'job_{}_error_url'.format(job_id)
+                    if not self.isLocal:
+                        response_dict[key] = self.s3manager.getSignedUrl("errors", report_name, method="GET")
                     else:
-                        path = os.path.join(self.serverPath, reportName)
-                        responseDict[key] = path
+                        path = os.path.join(self.serverPath, report_name)
+                        response_dict[key] = path
 
             # For each pair of files, get url for the report
-            fileTypes = self.interfaces.validationDb.getFileTypeList()
-            for source in fileTypes:
-                sourceId = FILE_TYPE_DICT[source]
-                for target in fileTypes:
-                    targetId = FILE_TYPE_DICT[target]
-                    if targetId <= sourceId:
-                        # Skip redundant reports
-                        continue
-                    # Retrieve filename
-                    if isWarning:
-                        reportName = getCrossWarningReportName(submissionId, source, target)
-                    else:
-                        reportName = getCrossReportName(submissionId, source, target)
-                    # If not local, get a signed URL
-                    if self.isLocal:
-                        reportPath = os.path.join(self.serverPath,reportName)
-                    else:
-                        reportPath = self.s3manager.getSignedUrl("errors",reportName,method="GET")
-                    # Assign to key based on source and target
-                    responseDict[self.getCrossReportKey(source,target,isWarning)] = reportPath
+            for c in get_cross_file_pairs():
+                first_file = c[0]
+                second_file = c[1]
+                if is_warning:
+                    report_name = get_cross_warning_report_name(
+                        submission_id, first_file.name, second_file.name)
+                else:
+                    report_name = get_cross_report_name(
+                        submission_id, first_file.name, second_file.name)
+                if self.isLocal:
+                    report_path = os.path.join(self.serverPath, report_name)
+                else:
+                    report_path = self.s3manager.getSignedUrl("errors", report_name, method="GET")
+                # Assign to key based on source and target
+                response_dict[self.getCrossReportKey(first_file.name, second_file.name, is_warning)] = report_path
 
-            return JsonResponse.create(StatusCode.OK,responseDict)
+            return JsonResponse.create(StatusCode.OK, response_dict)
+
         except ResponseException as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except Exception as e:

@@ -1,7 +1,9 @@
 import csv
 import os
+
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.validationModels import RuleSql, RuleSeverity, FileTypeValidation
+from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
+from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.config import CONFIG_BROKER
@@ -33,12 +35,6 @@ class SQLLoader():
             # Delete all records currently in table
             sess.query(RuleSql).delete()
 
-            # Create rule severity and file type lookups
-            severity = sess.query(RuleSeverity)
-            severityDict = {s.name: s.rule_severity_id for s in severity.all()}
-            ft = sess.query(FileTypeValidation)
-            fileTypeDict = {f.name: f.file_id for f in ft.all()}
-
             filename = os.path.join(cls.sql_rules_path, filename)
 
             # open csv
@@ -69,7 +65,7 @@ class SQLLoader():
 
                     # look up file type id
                     try:
-                        fileId = fileTypeDict[row["file_type"]]
+                        fileId = FILE_TYPE_DICT[row["file_type"]]
                     except Exception as e:
                         raise Exception("{}: file type={}, rule label={}. Rule not loaded.".format(
                             e, row["file_type"], row["rule_label"]))
@@ -78,7 +74,7 @@ class SQLLoader():
                             # No target file provided
                             targetFileId = None
                         else:
-                            targetFileId = fileTypeDict[row["target_file"]]
+                            targetFileId = FILE_TYPE_DICT[row["target_file"]]
                     except Exception as e:
                         raise Exception("{}: file type={}, rule label={}. Rule not loaded.".format(
                             e, row["target_file"], row["rule_label"]))
@@ -90,7 +86,7 @@ class SQLLoader():
                     else:
                         cross_file_flag = False
 
-                    rule_sql.rule_severity_id = severityDict[row['severity_name']]
+                    rule_sql.rule_severity_id = RULE_SEVERITY_DICT[row['severity_name']]
                     rule_sql.file_id = fileId
                     rule_sql.target_file_id = targetFileId
                     rule_sql.rule_cross_file_flag = cross_file_flag
