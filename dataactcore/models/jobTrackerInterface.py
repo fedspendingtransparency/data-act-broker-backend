@@ -298,7 +298,7 @@ class JobTrackerInterface(BaseInterface):
 
 
         # Check if submission has errors
-        if submission.number_of_errors > 0:
+        if submission.number_of_errors is not None and submission.number_of_errors > 0:
             status = "validation_errors"
 
         return status

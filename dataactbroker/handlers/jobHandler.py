@@ -36,10 +36,10 @@ class JobHandler(JobTrackerInterface):
         """ Returns all submissions associated with the specified user ID """
         if certified is None:
             return self.session.query(Submission).filter(Submission.user_id == userId).order_by(
-                Submission.updated_at).limit(limit).offset(offset).all()
+                Submission.updated_at.desc()).limit(limit).offset(offset).all()
         else:
             return self.session.query(Submission).filter(and_(Submission.user_id == userId, Submission.publishable == certified)).order_by(
-                Submission.updated_at).limit(limit).offset(offset).all()
+                Submission.updated_at.desc()).limit(limit).offset(offset).all()
 
     @classmethod
     def loadSubmitParams(cls,requestDict):

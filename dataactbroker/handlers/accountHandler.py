@@ -681,31 +681,31 @@ class AccountHandler:
         if certified is not None and certified not in ['true', 'false']:
             raise ValueError("Incorrect value specified for the 'certified' parameter")
 
-
         user_id = LoginSession.getName(flaskSession)
         submissions = self.interfaces.jobDb.getSubmissionsByUserId(user_id, limit=limit, offset=(limit*(page-1)), certified=certified)
         submission_details = []
 
         for submission in submissions:
-            if submission.submission_id == 287:
-                job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
-                total_size = 0
-                for job_id in job_ids:
-                    file_size = self.interfaces.jobDb.getFileSize(job_id)
-                    total_size += (file_size if file_size is not None else 0)
+            job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
+            total_size = 0
+            for job_id in job_ids:
+                file_size = self.interfaces.jobDb.getFileSize(job_id)
+                if file_size is None:
+                    print(job_id)
+                total_size += (file_size if file_size is not None else 0)
 
-                status = self.interfaces.jobDb.getSubmissionStatus(submission)
-                if submission.user_id is None:
-                    submission_user_name = "No user"
-                else:
-                    submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
-                submission_details.append({"submission_id": submission.submission_id,
-                                           "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
-                                           "size": total_size, "status": status, "errors": submission.number_of_errors,
-                                           "reporting_start_date": str(submission.reporting_start_date),
-                                           "reporting_end_date": str(submission.reporting_end_date),
-                                           "user": {"user_id": submission.user_id,
-                                                    "name": submission_user_name}})
+            status = self.interfaces.jobDb.getSubmissionStatus(submission)
+            if submission.user_id is None:
+                submission_user_name = "No user"
+            else:
+                submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
+            submission_details.append({"submission_id": submission.submission_id,
+                                       "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
+                                       "size": total_size, "status": status, "errors": submission.number_of_errors,
+                                       "reporting_start_date": str(submission.reporting_start_date),
+                                       "reporting_end_date": str(submission.reporting_end_date),
+                                       "user": {"user_id": submission.user_id,
+                                                "name": submission_user_name}})
 
         return JsonResponse.create(StatusCode.OK, {"submissions": submission_details})
 
