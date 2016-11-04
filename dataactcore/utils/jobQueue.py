@@ -11,11 +11,11 @@ from dataactcore.logging import configure_logging
 from dataactcore.models.stagingModels import (
     AwardFinancialAssistance, AwardProcurement)
 from dataactcore.utils import fileE, fileF
-from dataactcore.utils.cloudLogger import CloudLogger
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
 logger = logging.getLogger(__name__)
+_info_logger = logging.getLogger('deprecated.info')
 
 
 def brokerUrl(host):
@@ -37,7 +37,7 @@ celery_app.config_from_object('celeryconfig')
 @celery_app.task(name='jobQueue.enqueue')
 def enqueue(jobID):
     """POST a job to the validator"""
-    CloudLogger.log("Adding job {} to the queue".format(str(jobID)))
+    _info_logger.info('Adding job %s to the queue', jobID)
     validatorUrl = '{validator_host}:{validator_port}'.format(
         **CONFIG_SERVICES)
     if 'http://' not in validatorUrl:
@@ -47,8 +47,8 @@ def enqueue(jobID):
         'job_id': jobID
     }
     response = requests.post(validatorUrl, params)
-    CloudLogger.log("Job {} has completed validation".format(str(jobID)))
-    CloudLogger.log("Validator response: {}".format(str(response.json())))
+    _info_logger.info('Job %s has completed validation', jobID)
+    _info_logger.info('Validator response: %s', response.json())
     return response.json()
 
 

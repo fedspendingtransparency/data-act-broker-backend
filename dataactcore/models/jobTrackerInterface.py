@@ -1,17 +1,17 @@
+import logging
 import traceback
+
+from sqlalchemy.orm import joinedload
 
 from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import (
     Job, JobDependency, JobStatus, JobType, Submission, FileType,
     PublishStatus)
-from dataactcore.models.lookups import JOB_STATUS_DICT
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import enqueue
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactvalidator.validation_handlers.validationError import ValidationError
-from sqlalchemy.orm import joinedload
 
 
 class JobTrackerInterface(BaseInterface):
@@ -209,7 +209,8 @@ class JobTrackerInterface(BaseInterface):
                 # mark job as ready
                 self.markJobStatus(depJobId, 'ready')
                 # add to the job queue
-                CloudLogger.log("Sending job {} to the job manager".format(str(depJobId)))
+                logging.getLogger('deprecated.info').info(
+                    'Sending job %s to job manager', depJobId)
                 enqueue.delay(depJobId)
 
 
