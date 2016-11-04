@@ -10,15 +10,15 @@ class CsvS3Reader(CsvAbstractReader):
     def initializeFile(self, region, bucket, filename):
         """Returns an S3 filename."""
         s3connection = boto.s3.connect_to_region(region)
-        s3Bucket = s3connection.lookup(bucket)
-        if not s3Bucket:
+        s3_bucket = s3connection.lookup(bucket)
+        if not s3_bucket:
             raise ValueError("Bucket {} not found in region {}".format(
                 bucket, region))
-        s3File = s3Bucket.get_key(filename)
-        if not s3File:
+        s3_file = s3_bucket.get_key(filename)
+        if not s3_file:
             raise ValueError("Filename {} not found in bucket {}".format(
                 filename, bucket))
-        return s3File
+        return s3_file
 
 
     def openFile(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
@@ -28,8 +28,8 @@ class CsvS3Reader(CsvAbstractReader):
             filename: The file path for the CSV file in S3
         Returns:
         """
-        self.s3File = self.initializeFile(region, bucket, filename)
-        self.isLocal = False
+        self.s3_file = self.initializeFile(region, bucket, filename)
+        self.is_local = False
 
         super(CsvS3Reader, self).openFile(
             region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict)
@@ -42,17 +42,17 @@ class CsvS3Reader(CsvAbstractReader):
         """
         Gets the size of the file
         """
-        return self.s3File.size
+        return self.s3_file.size
 
     def _getNextPacket(self):
         """
         Gets the next packet from the file returns true if successful
         """
-        offsetCheck = self.packetCounter * CsvAbstractReader.BUFFER_SIZE
+        offset_check = self.packetCounter * CsvAbstractReader.BUFFER_SIZE
         header = {'Range': 'bytes={}-{}'.format(
-            offsetCheck, offsetCheck + CsvAbstractReader.BUFFER_SIZE - 1)}
+            offset_check, offset_check + CsvAbstractReader.BUFFER_SIZE - 1)}
         try:
-            packet = self.s3File.get_contents_as_string(headers=header, encoding='utf-8')
+            packet = self.s3_file.get_contents_as_string(headers=header, encoding='utf-8')
             return True, packet
         except:
             return False, ""

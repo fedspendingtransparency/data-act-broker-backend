@@ -15,13 +15,14 @@ class CsvLocalReader(CsvAbstractReader):
             csv_schema: list of FileColumn objects for this file type
             bucket_name: bucket to send errors to
             error_filename: filename for error report
+            long_to_short_dict: mapping of long to short schema column names
         """
         self.filename = filename
-        self.isLocal = True
+        self.is_local = True
         try:
             self.file = open(filename,"r")
         except :
-            raise ValueError("".join(["Filename provided not found : ",str(self.filename)]))
+            raise ValueError("".join(["Filename provided not found : ", str(self.filename)]))
         super(CsvLocalReader,self).openFile(
             region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict)
 
@@ -45,6 +46,6 @@ class CsvLocalReader(CsvAbstractReader):
         """
         packet  = self.file.read(CsvAbstractReader.BUFFER_SIZE)
         success = True
-        if(packet == ""):
+        if packet == "":
             success = False
-        return success,packet
+        return success, packet

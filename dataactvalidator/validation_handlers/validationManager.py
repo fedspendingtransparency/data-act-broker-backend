@@ -161,12 +161,12 @@ class ValidationManager:
 
             record = FieldCleaner.cleanRow(reader.getNextRecord(), file_type, interfaces.validationDb, self.long_to_short_dict, fields)
             record["row_number"] = row_number
-            if reader.isFinished and len(record) < 2:
+            if reader.is_finished and len(record) < 2:
                 # This is the last line and is empty, don't record an error
                 return {}, True, True, True, False  # Don't count this row
         except ResponseException:
-            if reader.isFinished and reader.extraLine:
-                #Last line may be blank don't record an error, reader.extraLine indicates a case where the last valid line has extra line breaks
+            if reader.is_finished and reader.extra_line:
+                #Last line may be blank don't record an error, reader.extra_line indicates a case where the last valid line has extra line breaks
                 # Don't count last row if empty
                 reduce_row = True
             else:
@@ -327,7 +327,7 @@ class ValidationManager:
 
             with self.getWriter(regionName, bucketName, errorFileName, self.reportHeaders) as writer, \
                  self.getWriter(regionName, bucketName, warningFileName, self.reportHeaders) as warningWriter:
-                while not reader.isFinished:
+                while not reader.is_finished:
                     rowNumber += 1
 
                     if (rowNumber % 100) == 0:
