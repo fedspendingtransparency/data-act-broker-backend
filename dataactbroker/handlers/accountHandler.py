@@ -19,8 +19,8 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy import func
 from dataactcore.models.userModel import User
 from dataactcore.models.domainModels import CGAC
+from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT
 
@@ -660,7 +660,7 @@ class AccountHandler:
             userInfo.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":userInfo})
 
-    def listSubmissions(self, page, limit, certified):
+    def list_submissions(self, page, limit, certified):
         """ List submission based on current page and amount to display. If provided, filter based on
         certification status """
 
@@ -707,7 +707,9 @@ class AccountHandler:
                                        "user": {"user_id": submission.user_id,
                                                 "name": submission_user_name}})
 
-        return JsonResponse.create(StatusCode.OK, {"submissions": submission_details})
+        total_submissions = GlobalDB.db().session.query(Submission).filter(Submission.user_id == user_id).count()
+
+        return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})
 
     def setNewPassword(self, session):
         """ Set a new password for a user, request should have keys "user_email" and "password" """

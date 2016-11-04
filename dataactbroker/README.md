@@ -857,6 +857,51 @@ File download or redirect to signed URL
 
 ## File Generation Routes
 
+#### GET "/v1/list_submissions/"
+List submissions for all agencies for which the current user is a member of. Optional query parameters are `?page=[page #]&limit=[limit #]&certified=[true|false]` which correspond to the current page number and how many submissions to return per page (limit). If the query parameters are not present, the default is `page=1`, `limit=5` and if `certified` is not provided, all submissions will be returned containing a mix of the two.
+
+##### Example input:
+
+`/v1/list_submissions?page=1&limit=2
+
+##### Example output:
+
+"total" is the total number of submissions available for that user.
+
+```json
+{
+  "submissions": [
+    {
+      "reporting_end_date": "2016-09-01",
+      "submission_id": 1,
+      "reporting_start_date": "2016-07-01",
+      "user": {
+        "name": "User Name",
+        "user_id": 1
+      },
+      "status": "validation_successful" (will be undergoing changes),
+      "size": 0,
+      "errors": 0,
+      "last_modified": "08/31/2016"
+    },
+    {
+      "reporting_end_date": "2015-09-01",
+      "submission_id": 2,
+      "reporting_start_date": "2015-07-01",
+      "user": {
+        "name": "User2 Name2",
+        "user_id": 2
+      },
+      "status": "file_errors" (will be undergoing changes),
+      "size": 34482,
+      "errors": 582,
+      "last_modified": "08/31/2016"
+    }
+  ],
+  "total": 2
+}
+```
+
 ## Generate Files
 **Route:** `/v1/generate_file`
 

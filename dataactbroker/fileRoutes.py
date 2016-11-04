@@ -67,7 +67,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
 
         accountManager = AccountHandler(request,bcrypt = bcrypt)
 
-        return RouteUtils.run_instance_function(accountManager, accountManager.listSubmissions, page, limit, certified)
+        return RouteUtils.run_instance_function(accountManager, accountManager.list_submissions, page, limit, certified)
 
     @app.route("/v1/get_protected_files/", methods=["GET"])
     @permissions_check
