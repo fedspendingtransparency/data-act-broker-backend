@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
+from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileTypeValidation, FileColumn
 from dataactcore.interfaces.function_bag import createFileIfNeeded, writeFileError, markFileComplete
 from dataactcore.models.errorModels import ErrorMetadata
@@ -169,7 +169,7 @@ class ValidationManager:
             return {}, reduce_row, True, False, row_error_found
         return record, reduce_row, False, False, row_error_found
 
-    def writeToStaging(self, record, job_id, submission_id, passed_validations, interfaces, writer, row_number, file_type, error_list):
+    def writeToStaging(self, record, job_id, submission_id, passed_validations, writer, row_number, model, error_list):
         """ Write this record to the staging tables
 
         Args:
@@ -177,21 +177,22 @@ class ValidationManager:
             job_id: ID of current job
             submission_id: ID of current submission
             passed_validations: True if record has not failed first validations
-            interfaces: InterfaceHolder object
             writer: CsvWriter object
             row_number: Current row number
-            file_type: Type of file for current job
+            model: orm model for the current file
             error_list: instance of ErrorInterface to keep track of errors
 
         Returns:
             Boolean indicating whether to skip current row
         """
-        stagingInterface = interfaces.stagingDb
+        sess = GlobalDB.db().session
         try:
             record["job_id"] = job_id
             record["submission_id"] = submission_id
             record["valid_record"] = passed_validations
-            stagingInterface.insertSubmissionRecordByFileType(record, file_type)
+            sess.add(model(**record))
+            sess.commit()
+
         except ResponseException:
             # Write failed, move to next record
             writer.write(["Formatting Error", ValidationError.writeErrorMsg, row_number,""])
@@ -267,8 +268,12 @@ class ValidationManager:
 
         rowNumber = 1
         fileType = jobTracker.getFileType(job_id)
+        # Get orm model for this file
+        model = [ft.model for ft in FILE_TYPE if ft.name == fileType][0]
+
         # Clear existing records for this submission
-        interfaces.stagingDb.clearFileBySubmission(submissionId,fileType)
+        sess.query(model).filter(model.submission_id == submissionId).delete()
+        sess.commit()
 
         # Get short to long colname dictionary
         shortColnames = interfaces.validationDb.getShortToLongColname()
@@ -353,7 +358,7 @@ class ValidationManager:
                     else:
                         passedValidations, failures, valid = Validator.validate(record, csvSchema)
                     if valid:
-                        skipRow = self.writeToStaging(record, job_id, submissionId, passedValidations, interfaces, writer, rowNumber, fileType, error_list)
+                        skipRow = self.writeToStaging(record, job_id, submissionId, passedValidations, writer, rowNumber, model, error_list)
                         if skipRow:
                             errorRows.append(rowNumber)
                             continue

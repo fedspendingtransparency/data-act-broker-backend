@@ -7,8 +7,11 @@
 
 from collections import namedtuple
 
+from dataactcore.models.stagingModels import (
+    AwardFinancialAssistance, AwardFinancial, Appropriation, ObjectClassProgramActivity, AwardProcurement)
+
 LookupType = namedtuple('LookupType', ['id', 'name', 'desc'])
-LookupFileType = namedtuple('LookupFileType', ['id', 'name', 'desc', 'letter', 'order'])
+LookupFileType = namedtuple('LookupFileType', ['id', 'name', 'desc', 'letter', 'order', 'model'])
 
 FILE_STATUS = [
     LookupType(1, 'complete', 'File has been processed'),
@@ -58,13 +61,13 @@ PUBLISH_STATUS = [
 PUBLISH_STATUS_DICT = {item.name: item.id for item in PUBLISH_STATUS}
 
 FILE_TYPE = [
-    LookupFileType(1, 'appropriations', '', 'A', 1),
-    LookupFileType(2, 'program_activity', '', 'B', 2),
-    LookupFileType(3, 'award_financial', '', 'C', 3),
-    LookupFileType(4, 'award', '', 'D2', 4),
-    LookupFileType(5, 'award_procurement', '', 'D1', 5),
-    LookupFileType(6, 'awardee_attributes', '', 'E', None),
-    LookupFileType(7, 'sub_award', '', 'F', None)
+    LookupFileType(1, 'appropriations', '', 'A', 1, Appropriation),
+    LookupFileType(2, 'program_activity', '', 'B', 2, ObjectClassProgramActivity),
+    LookupFileType(3, 'award_financial', '', 'C', 3, AwardFinancial),
+    LookupFileType(4, 'award', '', 'D2', 4, AwardFinancialAssistance),
+    LookupFileType(5, 'award_procurement', '', 'D1', 5, AwardProcurement),
+    LookupFileType(6, 'awardee_attributes', '', 'E', None, None),
+    LookupFileType(7, 'sub_award', '', 'F', None, None)
 ]
 FILE_TYPE_DICT = {item.name: item.id for item in FILE_TYPE}
 FILE_TYPE_DICT_ID = {item.id: item.name for item in FILE_TYPE}
