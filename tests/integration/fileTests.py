@@ -354,7 +354,7 @@ class FileTests(BaseTestAPI):
         
     def test_list_submissions(self):
         """ Check list submissions route on status check submission """
-        response = self.app.get("/v1/list_submissions/", headers={"x-session-id":self.session_id})
+        response = self.app.get("/v1/list_submissions/?certified=mixed", headers={"x-session-id":self.session_id})
 
         self.assertEqual(response.status_code, 200, msg=str(response.json))
         self.assertEqual(
