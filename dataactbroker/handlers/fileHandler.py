@@ -4,7 +4,7 @@ from datetime import datetime
 from uuid import uuid4
 
 import requests
-from flask import session, request
+from flask import session, request, redirect, send_from_directory
 from requests.exceptions import Timeout
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
@@ -18,16 +18,19 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
 from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
-from dataactcore.models.lookups import FILE_STATUS_DICT, FILE_TYPE_DICT
+from dataactcore.models.lookups import FILE_STATUS_DICT
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import getReportPath, getCrossReportName, getCrossWarningReportName
+from dataactcore.utils.report import (get_report_path, get_cross_report_name,
+                                      get_cross_warning_report_name, get_cross_file_pairs)
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
-from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType, createFileIfNeeded
+from dataactcore.interfaces.function_bag import (
+    checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType,
+    createFileIfNeeded, getErrorMetricsByJobId)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -77,56 +80,74 @@ class FileHandler:
         self.jobManager = interfaces.jobDb
         self.fileTypeMap = self.interfaces.jobDb.createFileTypeMap()
 
-    def getErrorReportURLsForSubmission(self, isWarning = False):
+    def getErrorReportURLsForSubmission(self, is_warning = False):
         """
         Gets the Signed URLs for download based on the submissionId
         """
         try :
             self.s3manager = s3UrlHandler()
-            safeDictionary = RequestDictionary(self.request)
-            submissionId = safeDictionary.getValue("submission_id")
-            responseDict ={}
+            safe_dictionary = RequestDictionary(self.request)
+            submission_id = safe_dictionary.getValue("submission_id")
+            response_dict ={}
             sess = GlobalDB.db().session
-            for jobId in self.jobManager.getJobsBySubmission(submissionId):
+            for job_id in self.jobManager.getJobsBySubmission(submission_id):
                 # get the job object here so we can call the refactored getReportPath
                 # todo: replace other db access functions with job object attributes
-                job = sess.query(Job).filter(Job.job_id == jobId).one()
+                job = sess.query(Job).filter(Job.job_id == job_id).one()
                 if job.job_type.name == 'csv_record_validation':
-                    if isWarning:
-                        reportName = getReportPath(job, 'warning')
-                        key = "job_"+str(jobId)+"_warning_url"
+                    if is_warning:
+                        report_name = get_report_path(job, 'warning')
+                        key = 'job_{}_warning_url'.format(job_id)
                     else:
-                        reportName = getReportPath(job, 'error')
-                        key = "job_"+str(jobId)+"_error_url"
-                    if(not self.isLocal):
-                        responseDict[key] = self.s3manager.getSignedUrl("errors",reportName,method="GET")
+                        report_name = get_report_path(job, 'error')
+                        key = 'job_{}_error_url'.format(job_id)
+                    if not self.isLocal:
+                        response_dict[key] = self.s3manager.getSignedUrl("errors", report_name, method="GET")
                     else:
-                        path = os.path.join(self.serverPath, reportName)
-                        responseDict[key] = path
+                        path = os.path.join(self.serverPath, report_name)
+                        response_dict[key] = path
 
             # For each pair of files, get url for the report
-            fileTypes = self.interfaces.validationDb.getFileTypeList()
-            for source in fileTypes:
-                sourceId = FILE_TYPE_DICT[source]
-                for target in fileTypes:
-                    targetId = FILE_TYPE_DICT[target]
-                    if targetId <= sourceId:
-                        # Skip redundant reports
-                        continue
-                    # Retrieve filename
-                    if isWarning:
-                        reportName = getCrossWarningReportName(submissionId, source, target)
-                    else:
-                        reportName = getCrossReportName(submissionId, source, target)
-                    # If not local, get a signed URL
-                    if self.isLocal:
-                        reportPath = os.path.join(self.serverPath,reportName)
-                    else:
-                        reportPath = self.s3manager.getSignedUrl("errors",reportName,method="GET")
-                    # Assign to key based on source and target
-                    responseDict[self.getCrossReportKey(source,target,isWarning)] = reportPath
+            for c in get_cross_file_pairs():
+                first_file = c[0]
+                second_file = c[1]
+                if is_warning:
+                    report_name = get_cross_warning_report_name(
+                        submission_id, first_file.name, second_file.name)
+                else:
+                    report_name = get_cross_report_name(
+                        submission_id, first_file.name, second_file.name)
+                if self.isLocal:
+                    report_path = os.path.join(self.serverPath, report_name)
+                else:
+                    report_path = self.s3manager.getSignedUrl("errors", report_name, method="GET")
+                # Assign to key based on source and target
+                response_dict[self.getCrossReportKey(first_file.name, second_file.name, is_warning)] = report_path
 
-            return JsonResponse.create(StatusCode.OK,responseDict)
+            return JsonResponse.create(StatusCode.OK, response_dict)
+
+        except ResponseException as e:
+            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+        except Exception as e:
+            # Unexpected exception, this is a 500 server error
+            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+
+    def get_signed_url_for_submission_file(self):
+        """ Gets the signed URL for the specified file """
+        try:
+            self.s3manager = s3UrlHandler()
+            file_name = request.args.get('file') + ".csv"
+            submission_id = request.args.get('submission')
+            submission = self.jobManager.getSubmissionById(submission_id)
+            # Check that user has access to submission
+            # If they don't, throw an exception
+            self.checkSubmissionPermission(submission)
+
+            if self.isLocal:
+                return send_from_directory(self.serverPath, file_name)
+            else:
+                report_path = self.s3manager.getSignedUrl("errors", file_name, method="GET")
+                return redirect(report_path)
         except ResponseException as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except Exception as e:
@@ -358,14 +379,14 @@ class FileHandler:
 
             for job_id in jobs:
                 jobInfo = {}
-                jobType = self.jobManager.getJobType(job_id)
+                job_type = self.jobManager.getJobType(job_id)
 
-                if jobType != "csv_record_validation" and jobType != "validation":
+                if job_type != "csv_record_validation" and job_type != "validation":
                     continue
 
                 jobInfo["job_id"] = job_id
                 jobInfo["job_status"] = self.jobManager.getJobStatusName(job_id)
-                jobInfo["job_type"] = jobType
+                jobInfo["job_type"] = job_type
                 jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job_id)
                 try:
                     file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job_id).one()
@@ -395,8 +416,8 @@ class FileHandler:
                     else:
                         jobInfo["duplicated_headers"] = []
                     jobInfo["error_type"] = getErrorType(job_id)
-                    jobInfo["error_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(job_id,jobType=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("fatal"))
-                    jobInfo["warning_data"] = self.interfaces.errorDb.getErrorMetricsByJobId(job_id,jobType=='validation',self.interfaces, severityId=self.interfaces.validationDb.getRuleSeverityId("warning"))
+                    jobInfo["error_data"] = getErrorMetricsByJobId(job_id,job_type=='validation',severity_id=self.interfaces.validationDb.getRuleSeverityId("fatal"))
+                    jobInfo["warning_data"] = getErrorMetricsByJobId(job_id,job_type=='validation',severity_id=self.interfaces.validationDb.getRuleSeverityId("warning"))
                 # File size and number of rows not dependent on error DB
                 # Get file size
                 jobInfo["file_size"] = self.jobManager.getFileSizeById(job_id)
@@ -420,22 +441,21 @@ class FileHandler:
 
     def getErrorMetrics(self) :
         """ Returns an Http response object containing error information for every validation job in specified submission """
-        responseDict = {}
-        returnDict = {}
+        return_dict = {}
         try:
-            safeDictionary = RequestDictionary(self.request)
-            submission_id =  safeDictionary.getValue("submission_id")
+            safe_dictionary = RequestDictionary(self.request)
+            submission_id =  safe_dictionary.getValue("submission_id")
 
             # Check if user has permission to specified submission
             self.checkSubmissionPermission(self.jobManager.getSubmissionById(submission_id))
 
-            jobIds = self.jobManager.getJobsBySubmission(submission_id)
-            for currentId in jobIds :
-                if(self.jobManager.getJobType(currentId) == "csv_record_validation"):
-                    fileName = self.jobManager.getFileType(currentId)
-                    dataList = self.interfaces.errorDb.getErrorMetricsByJobId(currentId)
-                    returnDict[fileName]  = dataList
-            return JsonResponse.create(StatusCode.OK,returnDict)
+            job_ids = self.jobManager.getJobsBySubmission(submission_id)
+            for current_id in job_ids :
+                if self.jobManager.getJobType(current_id) == "csv_record_validation":
+                    file_name = self.jobManager.getFileType(current_id)
+                    data_list = getErrorMetricsByJobId(current_id)
+                    return_dict[file_name]  = data_list
+            return JsonResponse.create(StatusCode.OK,return_dict)
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:
@@ -864,7 +884,7 @@ class FileHandler:
         submission = self.jobManager.getSubmissionById(submission_id)
 
         # Check that user has access to submission
-        user = self.checkSubmissionPermission(submission)
+        self.checkSubmissionPermission(submission)
 
         obligations_info = obligationStatsForSubmission(submission_id)
 

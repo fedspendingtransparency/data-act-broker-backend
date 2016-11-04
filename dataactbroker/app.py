@@ -1,5 +1,4 @@
 import os, os.path
-import multiprocessing
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask import Flask

@@ -3,7 +3,7 @@
 from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
-from dataactcore.models.userModel import User
+
 
 def generateFiscalYear(context):
     """ Generate fiscal year based on the date provided """
@@ -103,6 +103,7 @@ class FileType(Base):
     name = Column(Text)
     description = Column(Text)
     letter_name = Column(Text)
+    file_order = Column(Integer)
 
 class FileGenerationTask(Base):
     __tablename__ = "file_generation_task"
