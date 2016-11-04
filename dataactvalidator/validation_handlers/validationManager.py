@@ -424,7 +424,7 @@ class ValidationManager:
         """
         error_rows = []
         sql_failures = Validator.validateFileBySql(
-            interfaces.jobDb.getSubmissionId(job_id), file_type, interfaces, self.short_to_long_dict)
+            interfaces.jobDb.getSubmissionId(job_id), file_type, self.short_to_long_dict)
         for failure in sql_failures:
             # convert shorter, machine friendly column names used in the
             # SQL validation queries back to their long names

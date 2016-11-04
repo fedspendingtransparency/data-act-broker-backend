@@ -12,7 +12,6 @@ class DomainHandler:
     def __init__(self, interfaces=None):
         if interfaces is not None:
             self.interfaces = interfaces
-            self.validationManager = interfaces.validationDb
             self.userManager = interfaces.userDb
 
     def addInterfaces(self, interfaces):
@@ -22,7 +21,6 @@ class DomainHandler:
             interfaces: InterfaceHolder object to DBs
         """
         self.interfaces = interfaces
-        self.validationManager = interfaces.validationDb
         self.userManager = interfaces.userDb
 
     def listAgencies(self):

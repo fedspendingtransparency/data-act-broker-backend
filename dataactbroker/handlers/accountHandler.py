@@ -47,7 +47,6 @@ class AccountHandler:
         if(interfaces != None):
             self.interfaces = interfaces
             self.userManager = interfaces.userDb
-            self.validationManager = interfaces.validationDb
             self.jobManager = interfaces.jobDb
 
     def addInterfaces(self,interfaces):
@@ -58,7 +57,6 @@ class AccountHandler:
         """
         self.interfaces = interfaces
         self.userManager = interfaces.userDb
-        self.validationManager = interfaces.validationDb
         self.jobManager = interfaces.jobDb
 
     def checkPassword(self,password):

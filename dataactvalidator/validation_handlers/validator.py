@@ -3,7 +3,7 @@ from decimal import *
 from dataactcore.models.validationModels import RuleSql
 from dataactcore.models.lookups import FILE_TYPE_DICT_ID, FILE_TYPE_DICT
 from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactcore.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.utils.cloudLogger import CloudLogger
 
 class Validator(object):
@@ -26,10 +26,10 @@ class Validator(object):
         failures = []
         # Put each rule through evaluate, appending all failures into list
         # Put each rule through evaluate, appending all failures into list
-        interfaces = InterfaceHolder()
+        conn = GlobalDB.db().connection
 
         for rule in rules:
-            failedRows = interfaces.validationDb.connection.execute(
+            failedRows = conn.execute(
                 rule.rule_sql.format(submissionId))
             if failedRows.rowcount:
                 # get list of fields involved in this validation
@@ -156,13 +156,13 @@ class Validator(object):
         raise ValueError("".join(["Data Type Error, Type: ",datatype,", Value: ",data]))
 
     @classmethod
-    def validateFileBySql(cls, submissionId, fileType, interfaces, short_to_long_dict):
+    def validateFileBySql(cls, submissionId, fileType, short_to_long_dict):
         """ Check all SQL rules
 
         Args:
             submissionId: submission to be checked
             fileType: file type being checked
-            interfaces: database interface objects
+            short_to_long_dict: mapping of short to long schema column names
 
         Returns:
             List of errors found, each element has:
@@ -177,17 +177,19 @@ class Validator(object):
         """
 
         CloudLogger.logError("VALIDATOR_INFO: ", "Beginning SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
+        conn = GlobalDB.db().connection
+        sess = GlobalDB.db().session
 
         # Pull all SQL rules for this file type
         fileId = FILE_TYPE_DICT[fileType]
-        rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
+        rules = sess.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
             RuleSql.rule_cross_file_flag == False).all()
         errors = []
 
         # For each rule, execute sql for rule
         for rule in rules:
             CloudLogger.logError("VALIDATOR_INFO: ", "Running query: "+str(RuleSql.query_name)+" on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
-            failures = interfaces.stagingDb.connection.execute(rule.rule_sql.format(submissionId))
+            failures = conn.execute(rule.rule_sql.format(submissionId))
             if failures.rowcount:
                 # Create column list (exclude row_number)
                 cols = failures.keys()
