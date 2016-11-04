@@ -11,7 +11,7 @@ from dataactcore.models import (    # noqa
 from dataactcore.scripts import setupJobTrackerDB, setupUserDB
 from dataactcore.scripts.databaseSetup import (
     createDatabase, dropDatabase, runMigrations)
-from dataactcore.interfaces.db import dbConnection
+from dataactcore.interfaces.db import GlobalDB
 
 
 @pytest.fixture(scope='session')
@@ -26,13 +26,13 @@ def full_database_setup():
     dataactcore.config.CONFIG_DB = config
 
     createDatabase(config['db_name'])
-    db = dbConnection()
+    db = GlobalDB.db()
     runMigrations()
 
     creation_order = baseModel.Base.metadata.sorted_tables
     yield (db, list(reversed(creation_order)))  # drop order
 
-    db.close()
+    GlobalDB.close()
     dropDatabase(config['db_name'])
 
 

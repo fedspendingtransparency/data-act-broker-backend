@@ -3,7 +3,8 @@ import os
 import logging
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.validationModels import FileColumn, FileTypeValidation, FieldType
+from dataactcore.models.jobModels import FileType
+from dataactcore.models.validationModels import FileColumn, FieldType
 from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
@@ -28,7 +29,7 @@ class SchemaLoader(object):
             sess = GlobalDB.db().session
 
             # get file type object for specified fileTypeName
-            fileType = sess.query(FileTypeValidation).filter(FileTypeValidation.name == fileTypeName).one()
+            fileType = sess.query(FileType).filter(FileType.name == fileTypeName).one()
 
             # delete existing schema from database
             SchemaLoader.removeColumnsByFileType(sess, fileType)
@@ -79,7 +80,7 @@ class SchemaLoader(object):
         Adds a new column to the schema
 
         Args:
-        fileType -- FileTypeValidation object this column belongs to
+        fileType -- FileType object this column belongs to
         fieldName -- The name of the schema column
         types -- List of field types
         fieldNameShort -- The machine-friendly, short column name
