@@ -1,31 +1,16 @@
 import traceback
-from sqlalchemy import func, or_
-from sqlalchemy.orm import joinedload
 
-from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import (
     Job, JobDependency, JobStatus, JobType, Submission, FileType,
     PublishStatus)
-from dataactcore.models.stagingModels import AwardFinancial
-from dataactcore.utils.statusCode import StatusCode
-from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import enqueue
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.validationError import ValidationError
-
-def obligationStatsForSubmission(submission_id):
-    sess = GlobalDB.db().session
-    base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
-        filter(AwardFinancial.submission_id == submission_id)
-    procurement = base_query.filter(AwardFinancial.piid != None)
-    fin_assist = base_query.filter(or_(AwardFinancial.fain != None, AwardFinancial.uri != None))
-    return {
-        "total_obligations": float(base_query.scalar() or 0),
-        "total_procurement_obligations": float(procurement.scalar() or 0),
-        "total_assistance_obligations": float(fin_assist.scalar() or 0)
-    }
+from sqlalchemy.orm import joinedload
 
 
 class JobTrackerInterface(BaseInterface):

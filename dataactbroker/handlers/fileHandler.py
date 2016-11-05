@@ -17,7 +17,6 @@ from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
-from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
 from dataactcore.models.lookups import FILE_STATUS_DICT
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
@@ -30,7 +29,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType,
-    createFileIfNeeded, getErrorMetricsByJobId)
+    createFileIfNeeded, getErrorMetricsByJobId, get_submission_stats)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -886,6 +885,6 @@ class FileHandler:
         # Check that user has access to submission
         self.checkSubmissionPermission(submission)
 
-        obligations_info = obligationStatsForSubmission(submission_id)
+        obligations_info = get_submission_stats(submission_id)
 
         return JsonResponse.create(StatusCode.OK,obligations_info)
