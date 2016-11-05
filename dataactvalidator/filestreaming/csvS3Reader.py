@@ -48,7 +48,7 @@ class CsvS3Reader(CsvAbstractReader):
         """
         Gets the next packet from the file returns true if successful
         """
-        offset_check = self.packetCounter * CsvAbstractReader.BUFFER_SIZE
+        offset_check = self.packet_counter * CsvAbstractReader.BUFFER_SIZE
         header = {'Range': 'bytes={}-{}'.format(
             offset_check, offset_check + CsvAbstractReader.BUFFER_SIZE - 1)}
         try:
