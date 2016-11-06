@@ -503,6 +503,7 @@ class ValidationManager:
         Returns:
         Http response object
         """
+        sess = GlobalDB.db().session
         # Create connection to job tracker database
         self.filename = None
         job_id = None
@@ -518,11 +519,20 @@ class ValidationManager:
                 raise ResponseException("No job ID specified in request",
                                         StatusCode.CLIENT_ERROR)
 
-            # Check that job exists and is ready
+            # Get the job
+            job = sess.query(Job).filter_by(job_id=job_id).one()
+
+            # Make sure job's prerequisites are complete
             if not run_job_checks(job_id):
                 raise ResponseException("Checks failed on Job ID",
                                         StatusCode.CLIENT_ERROR)
-            jobType = interfaces.jobDb.checkJobType(job_id)
+
+            # Make sure this is a validation job
+            if job.job_type.name in ('csv_record_validation', 'validation'):
+                job_type_name = job.job_type.name
+            else:
+                raise ResponseException("Wrong type of job for this service", StatusCode.CLIENT_ERROR, None,
+                                    ValidationError.jobError)
 
         except ResponseException as e:
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
@@ -539,9 +549,9 @@ class ValidationManager:
 
         try:
             jobTracker.markJobStatus(job_id, "running")
-            if jobType == interfaces.jobDb.getJobTypeId("csv_record_validation"):
+            if job_type_name == 'csv_record_validation':
                 self.runValidation(job_id, interfaces)
-            elif jobType == interfaces.jobDb.getJobTypeId("validation"):
+            elif job_type_name == 'validation':
                 self.runCrossValidation(job_id, interfaces)
             else:
                 raise ResponseException("Bad job type for validator",

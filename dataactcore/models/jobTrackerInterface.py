@@ -324,22 +324,3 @@ class JobTrackerInterface(BaseInterface):
         """ Return ID for specified publish status """
         return self.getIdFromDict(PublishStatus,  "PUBLISH_STATUS_DICT", "name", statusName, "publish_status_id")
 
-    def checkJobType(self, jobId):
-        """ Job should be of type csv_record_validation, or this is the wrong service
-
-        Args:
-        jobId -- job ID to check
-
-        Returns:
-        True if correct type, False or exception otherwise
-        """
-        query = self.session.query(Job.job_type_id).filter(Job.job_id == jobId)
-        result = self.checkJobUnique(query)
-        if result.job_type_id == self.getJobTypeId("csv_record_validation") or result.job_type_id == self.getJobTypeId(
-                "validation"):
-            # Correct type
-            return result.job_type_id
-        else:
-            # Wrong type
-            raise ResponseException("Wrong type of job for this service", StatusCode.CLIENT_ERROR, None,
-                                    ValidationError.jobError)
