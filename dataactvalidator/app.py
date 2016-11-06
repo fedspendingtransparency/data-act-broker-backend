@@ -43,7 +43,7 @@ def createApp():
             """Start the validation process on the same threads."""
             interfaces = InterfaceHolder() # Create sessions for this route
             try:
-                return validationManager.validateJob(request,interfaces)
+                return validationManager.validate_job(request, interfaces)
             except Exception as e:
                 # Something went wrong getting the flask request
                 open("errorLog","a").write(str(e) + "\n")

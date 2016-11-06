@@ -367,3 +367,24 @@ def get_submission_stats(submission_id):
         "total_procurement_obligations": float(procurement.scalar() or 0),
         "total_assistance_obligations": float(fin_assist.scalar() or 0)
     }
+
+
+def run_job_checks(job_id):
+    """ Checks that specified job has no unsatisfied prerequisites
+    Args:
+        job_id -- job_id of job to be run
+
+    Returns:
+        True if prerequisites are satisfied, False if not
+    """
+    sess = GlobalDB.db().session
+
+    # Get count of job's prerequisites that are not yet finished
+    incomplete_dependencies = sess.query(JobDependency). \
+        join("prerequisite_job"). \
+        filter(JobDependency.job_id == job_id, Job.job_status_id != JOB_STATUS_DICT['finished']). \
+        count()
+    if incomplete_dependencies:
+        return False
+    else:
+        return True

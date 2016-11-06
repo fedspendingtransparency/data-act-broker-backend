@@ -11,7 +11,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.interfaces.function_bag import (
-    createFileIfNeeded, writeFileError, markFileComplete)
+    createFileIfNeeded, writeFileError, markFileComplete, run_job_checks)
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
 from dataactcore.utils.responseException import ResponseException
@@ -84,21 +84,6 @@ class ValidationManager:
         else:
             # Request does not have a job ID, can't validate
             raise ResponseException("No job ID specified in request", StatusCode.CLIENT_ERROR)
-
-    @staticmethod
-    def testJobID(jobId, interfaces):
-        """
-        args:
-            jobId: job to be tested
-            interfaces: InterfaceHolder to the databases
-
-        returns:
-            True if the job is ready, if the job is not ready an exception will be raised
-        """
-        if not interfaces.jobDb.runChecks(jobId):
-            raise ResponseException("Checks failed on Job ID", StatusCode.CLIENT_ERROR)
-
-        return True
 
     def getReader(self):
         """
@@ -510,7 +495,7 @@ class ValidationManager:
         # Mark validation complete
         markFileComplete(job_id)
 
-    def validateJob(self, request,interfaces):
+    def validate_job(self, request, interfaces):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
         Args:
         request -- HTTP request containing the jobId
@@ -534,7 +519,7 @@ class ValidationManager:
                                         StatusCode.CLIENT_ERROR)
 
             # Check that job exists and is ready
-            if not jobTracker.runChecks(job_id):
+            if not run_job_checks(job_id):
                 raise ResponseException("Checks failed on Job ID",
                                         StatusCode.CLIENT_ERROR)
             jobType = interfaces.jobDb.checkJobType(job_id)

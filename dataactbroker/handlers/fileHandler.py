@@ -28,7 +28,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType,
+    checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType, run_job_checks,
     createFileIfNeeded, getErrorMetricsByJobId, get_submission_stats)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
@@ -729,7 +729,7 @@ class FileHandler:
 
         job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "file_upload")
         # Check prerequisites on upload job
-        if not self.interfaces.jobDb.runChecks(job.job_id):
+        if not run_job_checks(job.job_id):
             exc = ResponseException("Must wait for completion of prerequisite validation job", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
 
