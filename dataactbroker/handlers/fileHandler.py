@@ -920,7 +920,7 @@ class FileHandler:
             if submission.user_id is None:
                 submission_user_name = "No user"
             else:
-                submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
+                submission_user_name = sess.query(User).filter_by(user_id=submission.user_id).one().name
             submission_details.append({"submission_id": submission.submission_id,
                                        "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
                                        "size": total_size, "status": status, "errors": submission.number_of_errors,
