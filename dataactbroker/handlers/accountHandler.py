@@ -248,7 +248,8 @@ class AccountHandler:
         for permission_name, permission_id in PERMISSION_TYPE_DICT.items():
             if has_permission(user, permission_name):
                 permission_list.append(permission_id)
-        self.interfaces.userDb.updateLastLogin(user)
+        user.last_login_date = time.strftime("%c")
+        sess.commit()
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\
             one_or_none()
@@ -342,7 +343,10 @@ class AccountHandler:
             exc = ResponseException("User already registered",StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         # Add user info to database
-        self.interfaces.userDb.addUserInfo(user,request_fields.getValue("name"),request_fields.getValue("cgac_code"),request_fields.getValue("title"))
+        user.name = request_fields.getValue("name")
+        user.cgac_code = request_fields.getValue("cgac_code")
+        user.title = request_fields.getValue("title")
+        sess.commit()
         self.interfaces.userDb.setPassword(user,request_fields.getValue("password"),self.bcrypt)
 
         user_link= "".join([AccountHandler.FRONT_END, '#/login?redirect=/admin'])
@@ -385,7 +389,12 @@ class AccountHandler:
         try :
             user = sess.query(User).filter(func.lower(User.email) == func.lower(request_fields.getValue("email"))).one()
         except NoResultFound:
-            self.interfaces.userDb.addUnconfirmedEmail(email)
+            # Create user with specified email if none is found
+            user = User(email=email)
+            user.user_status_id = USER_STATUS_DICT["awaiting_confirmation"]
+            user.permissions = 0
+            sess.add(user)
+            sess.commit()
         else:
             if not (user.user_status_id == USER_STATUS_DICT["awaiting_confirmation"] or user.user_status_id == USER_STATUS_DICT["email_confirmed"]):
                 exc = ResponseException("User already registered", StatusCode.CLIENT_ERROR)
@@ -424,9 +433,9 @@ class AccountHandler:
             #remove token so it cant be used again
             # The following lines are commented out for issues with registration email links bouncing users back
             # to the original email input page instead of the registration page
-            # oldToken = self.session.query(EmailToken).filter(EmailToken.token == token).one()
-            # self.session.delete(oldToken)
-            # self.session.commit()
+            # oldToken = sess.query(EmailToken).filter(EmailToken.token == token).one()
+            # sess.delete(oldToken)
+            # sess.commit()
 
             #set the status only if current status is awaiting confirmation
             user = sess.query(User).filter(func.lower(User.email) == func.lower(message)).one()
@@ -559,9 +568,10 @@ class AccountHandler:
                 # Reset password count to 0
                 self.resetPasswordCount(user)
                 # Reset last login date so the account isn't expired
-                self.interfaces.userDb.updateLastLogin(user, unlock_user=True)
-                self.sendResetPasswordEmail(user, system_email, unlock_user=True)
-            self.interfaces.userDb.setUserActive(user, is_active)
+                user.last_login_date = None
+                self.send_reset_password_email(user, system_email, unlock_user=True)
+            user.is_active = is_active
+            sess.commit()
 
         return JsonResponse.create(StatusCode.OK, {"message": "User successfully updated"})
 
@@ -737,12 +747,13 @@ class AccountHandler:
 
         email = requestDict.getValue("email")
         LoginSession.logout(session)
-        self.sendResetPasswordEmail(user, system_email, email)
+        self.send_reset_password_email(user, system_email, email)
 
         # Return success message
         return JsonResponse.create(StatusCode.OK,{"message":"Password reset"})
 
-    def sendResetPasswordEmail(self, user, system_email, email=None, unlock_user=False):
+    def send_reset_password_email(self, user, system_email, email=None, unlock_user=False):
+        sess = GlobalDB.db().session
         if email is None:
             email = user.email
 
@@ -754,7 +765,9 @@ class AccountHandler:
 
         # If unlocking a user, wipe out current password
         if unlock_user:
-            UserHandler().clearPassword(user)
+            user.salt = None
+            user.password_hash = None
+            sess.commit()
 
         self.interfaces.userDb.session.commit()
         # Send email with token

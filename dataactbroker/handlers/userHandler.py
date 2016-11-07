@@ -37,33 +37,6 @@ class UserHandler(UserInterface):
             query = query.filter(User.is_active == True)
         return query.all()
 
-    def addUserInfo(self,user,name,cgac_code,title):
-        """ Called after registration, add all info to user.
-
-        Arguments:
-            user - User object
-            name - Name of user
-            cgac_code - CGAC Code of the agency of user
-            title - Title of user
-        """
-        # Add info to user ORM
-        user.name = name
-        user.cgac_code = cgac_code
-        user.title = title
-        self.session.commit()
-
-    def addUnconfirmedEmail(self,email):
-        """ Create user with specified email
-
-        Arguments:
-            email - Add user with specified email
-        """
-        user = User(email = email)
-        user.user_status_id = USER_STATUS_DICT["awaiting_confirmation"]
-        user.permissions = 0
-        self.session.add(user)
-        self.session.commit()
-
     def getUserPermissions(self, user):
         """ Get name for specified permissions for this user
 
@@ -161,25 +134,3 @@ class UserHandler(UserInterface):
         user.password_hash = hash.decode("utf-8")
         self.session.commit()
         return True
-
-    def clearPassword(self,user):
-        """ Clear a user's password as part of reset process
-
-        Arguments:
-            user - User object
-
-        """
-        user.salt = None
-        user.password_hash = None
-        self.session.commit()
-
-    def updateLastLogin(self, user, unlock_user=False):
-        """ This updates the last login date to today's datetime for the user to the current date upon successful login.
-        """
-        user.last_login_date = time.strftime("%c") if not unlock_user else None
-        self.session.commit()
-
-    def setUserActive(self, user, is_active):
-        """ Sets the is_active field for the specified user """
-        user.is_active = is_active
-        self.session.commit()
