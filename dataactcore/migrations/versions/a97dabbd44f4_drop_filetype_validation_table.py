@@ -21,14 +21,6 @@ from dataactcore.models.lookups import FILE_TYPE
 
 Session = sessionmaker()
 
-class FileTypeValidation(Base):
-    __tablename__ = 'file_type_validation'
-
-    file_id = sa.Column(sa.Integer, primary_key=True)
-    name = sa.Column(sa.Text)
-    description = sa.Column(sa.Text)
-    file_order = sa.Column(sa.Integer, nullable=False, server_default="0")
-
 def upgrade(engine_name):
     globals()["upgrade_%s" % engine_name]()
 
@@ -42,6 +34,15 @@ def upgrade_data_broker():
 
 def downgrade_data_broker():
     # recreate and repopulate the file_type_validation table
+
+    class FileTypeValidation(Base):
+        __tablename__ = 'file_type_validation'
+
+        file_id = sa.Column(sa.Integer, primary_key=True)
+        name = sa.Column(sa.Text)
+        description = sa.Column(sa.Text)
+        file_order = sa.Column(sa.Integer, nullable=False, server_default="0")
+
     bind = op.get_bind()
     session = Session(bind=bind)
 
