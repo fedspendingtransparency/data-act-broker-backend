@@ -17,10 +17,10 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.interfaces.db import GlobalDB
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import func
-from dataactcore.models.userModel import User
+from dataactcore.models.userModel import User, EmailToken
 from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList, getUsersByType, has_permission, get_email_template
+from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList, getUsersByType, get_email_template, has_permission
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
@@ -91,7 +91,7 @@ class AccountHandler:
             except Exception:
                 raise ValueError("Invalid username and/or password")
 
-            if not self.interfaces.userDb.checkStatus(user,"approved"):
+            if user.user_status_id != USER_STATUS_DICT["approved"]:
                 raise ValueError("Invalid username and/or password")
 
             # Only check if user is active after they've logged in for the first time
@@ -336,7 +336,8 @@ class AccountHandler:
             exc = ResponseException("No users with that email", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
         # Check that user's status is before submission of registration
-        if not (self.interfaces.userDb.checkStatus(user,"awaiting_confirmation") or self.interfaces.userDb.checkStatus(user,"email_confirmed")):
+        bad_statuses = (USER_STATUS_DICT["awaiting_confirmation"], USER_STATUS_DICT["email_confirmed"])
+        if user.user_status_id not in bad_statuses:
             # Do not allow duplicate registrations
             exc = ResponseException("User already registered",StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
@@ -356,9 +357,11 @@ class AccountHandler:
 
         # Logout and delete token
         LoginSession.logout(session)
-        self.interfaces.userDb.deleteToken(session["token"])
+        oldToken = sess.query(EmailToken).filter(EmailToken.token == session["token"]).one()
+        sess.delete(oldToken)
         # Mark user as awaiting approval
-        self.interfaces.userDb.changeStatus(user,"awaiting_approval")
+        user.user_status_id = USER_STATUS_DICT["awaiting_approval"]
+        sess.commit()
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
 
     def create_email_confirmation(self,system_email):
@@ -419,14 +422,17 @@ class AccountHandler:
             LoginSession.register(session)
 
             #remove token so it cant be used again
-            # The following line is commented out for issues with registration email links bouncing users back
+            # The following lines are commented out for issues with registration email links bouncing users back
             # to the original email input page instead of the registration page
-            #self.interfaces.userDb.deleteToken(token)
+            # oldToken = self.session.query(EmailToken).filter(EmailToken.token == token).one()
+            # self.session.delete(oldToken)
+            # self.session.commit()
 
             #set the status only if current status is awaiting confirmation
             user = sess.query(User).filter(func.lower(User.email) == func.lower(message)).one()
-            if self.interfaces.userDb.checkStatus(user,"awaiting_confirmation"):
-                self.interfaces.userDb.changeStatus(user,"email_confirmed")
+            if user.user_status_id == USER_STATUS_DICT["awaiting_confirmation"]:
+                user.user_status_id = USER_STATUS_DICT["email_confirmed"]
+                sess.commit()
             return JsonResponse.create(StatusCode.OK,{"email":message,"errorCode":errorCode,"message":"success"})
         else:
             #failure but alert UI of issue
@@ -514,7 +520,7 @@ class AccountHandler:
 
         if request_dict.exists("status"):
             #check if the user is waiting
-            if self.interfaces.userDb.checkStatus(user,"awaiting_approval"):
+            if user.user_status_id == USER_STATUS_DICT["awaiting_approval"]:
                 if request_dict.getValue("status") == "approved":
                     # Grant agency_user permission to newly approved users
                     self.interfaces.userDb.grantPermission(user,"agency_user")
@@ -527,7 +533,12 @@ class AccountHandler:
                     new_email = sesEmail(user.email, system_email,templateType="account_rejected",parameters=email_template)
                     new_email.send()
             # Change user's status
-            self.interfaces.userDb.changeStatus(user,request_dict.getValue("status"))
+            try:
+                user.user_status_id = USER_STATUS_DICT[request_dict.getValue("status")]
+            except ValueError as e:
+                # In this case having a bad status name is a client error
+                raise ResponseException(str(e), StatusCode.CLIENT_ERROR, ValueError)
+            sess.commit()
 
         if request_dict.exists("permissions"):
             permissions_list = request_dict.getValue("permissions").split(',')
@@ -693,7 +704,9 @@ class AccountHandler:
         # Set new password
         self.interfaces.userDb.setPassword(user,request_dict.getValue("password"),self.bcrypt)
         # Invalidate token
-        self.interfaces.userDb.deleteToken(session["token"])
+        oldToken = sess.query(EmailToken).filter(EmailToken.token == session["token"]).one()
+        sess.delete(oldToken)
+        sess.commit()
         session["reset"] = None
         # Return success message
         return JsonResponse.create(StatusCode.OK,{"message":"Password successfully changed"})

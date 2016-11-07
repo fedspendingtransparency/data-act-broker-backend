@@ -6,7 +6,6 @@ from dataactcore.models.userModel import User, PermissionType
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.models.userModel import EmailToken, EmailTemplateType, EmailTemplate
 
 from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
@@ -25,16 +24,6 @@ class UserHandler(UserInterface):
     session - sqlalchemy session for ORM calls to user database
     """
     HASH_ROUNDS = 12 # How many rounds to use for hashing passwords
-
-    def deleteToken(self,token):
-        """ deletes old token
-
-        Arguments:
-            token - Token to be deleted
-        """
-        oldToken = self.session.query(EmailToken).filter(EmailToken.token == token).one()
-        self.session.delete(oldToken)
-        self.session.commit()
 
     def getUsers(self, cgac_code=None, status="all", only_active=False):
         """ Return all users in the database """
@@ -63,38 +52,6 @@ class UserHandler(UserInterface):
         user.title = title
         self.session.commit()
 
-    def changeStatus(self,user,status_name):
-        """ Change status for specified user
-
-        Arguments:
-            user - User object
-            statusName - Status to change to
-        """
-        try:
-            user.user_status_id = USER_STATUS_DICT[status_name]
-        except ValueError as e:
-            # In this case having a bad status name is a client error
-            raise ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
-        self.session.commit()
-
-    def checkStatus(self,user,status_name):
-        """ Check if a user has a specific status
-
-        Arguments:
-            user - User object
-            statusName - Status to check against
-        Returns:
-            True if user has that status, False otherwise, raises an exception if status name is not valid
-        """
-        try:
-            if user.user_status_id == USER_STATUS_DICT[status_name]:
-                return True
-            else :
-                return False
-        except ValueError as e:
-            # In this case having a bad status name is a client error
-            raise ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
-
     def addUnconfirmedEmail(self,email):
         """ Create user with specified email
 
@@ -102,7 +59,7 @@ class UserHandler(UserInterface):
             email - Add user with specified email
         """
         user = User(email = email)
-        self.changeStatus(user,"awaiting_confirmation")
+        user.user_status_id = USER_STATUS_DICT["awaiting_confirmation"]
         user.permissions = 0
         self.session.add(user)
         self.session.commit()
