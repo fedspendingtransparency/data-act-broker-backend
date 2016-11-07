@@ -42,7 +42,7 @@ def createApp():
             interfaces = InterfaceHolder() # Create sessions for this route
             try:
                 validationManager = ValidationManager(local, error_report_path)
-                return validationManager.validateJob(request,interfaces)
+                return validationManager.validate_job(request, interfaces)
             except Exception as e:
                 # Something went wrong getting the flask request
                 open("errorLog","a").write(str(e) + "\n")

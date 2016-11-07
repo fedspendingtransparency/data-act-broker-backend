@@ -11,7 +11,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.interfaces.function_bag import (
-    createFileIfNeeded, writeFileError, markFileComplete)
+    createFileIfNeeded, writeFileError, markFileComplete, run_job_checks)
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
 from dataactcore.utils.responseException import ResponseException
@@ -90,21 +90,6 @@ class ValidationManager:
         else:
             # Request does not have a job ID, can't validate
             raise ResponseException("No job ID specified in request", StatusCode.CLIENT_ERROR)
-
-    @staticmethod
-    def testJobID(jobId, interfaces):
-        """
-        args:
-            jobId: job to be tested
-            interfaces: InterfaceHolder to the databases
-
-        returns:
-            True if the job is ready, if the job is not ready an exception will be raised
-        """
-        if not interfaces.jobDb.runChecks(jobId):
-            raise ResponseException("Checks failed on Job ID", StatusCode.CLIENT_ERROR)
-
-        return True
 
     def getReader(self):
         """
@@ -519,7 +504,7 @@ class ValidationManager:
         # Mark validation complete
         markFileComplete(job_id)
 
-    def validateJob(self, request,interfaces):
+    def validate_job(self, request, interfaces):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
         Args:
         request -- HTTP request containing the jobId
@@ -527,6 +512,7 @@ class ValidationManager:
         Returns:
         Http response object
         """
+        sess = GlobalDB.db().session
         # Create connection to job tracker database
         self.filename = None
         job_id = None
@@ -542,11 +528,20 @@ class ValidationManager:
                 raise ResponseException("No job ID specified in request",
                                         StatusCode.CLIENT_ERROR)
 
-            # Check that job exists and is ready
-            if not jobTracker.runChecks(job_id):
+            # Get the job
+            job = sess.query(Job).filter_by(job_id=job_id).one()
+
+            # Make sure job's prerequisites are complete
+            if not run_job_checks(job_id):
                 raise ResponseException("Checks failed on Job ID",
                                         StatusCode.CLIENT_ERROR)
-            jobType = interfaces.jobDb.checkJobType(job_id)
+
+            # Make sure this is a validation job
+            if job.job_type.name in ('csv_record_validation', 'validation'):
+                job_type_name = job.job_type.name
+            else:
+                raise ResponseException("Wrong type of job for this service", StatusCode.CLIENT_ERROR, None,
+                                    ValidationError.jobError)
 
         except ResponseException as e:
             CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
@@ -563,9 +558,9 @@ class ValidationManager:
 
         try:
             jobTracker.markJobStatus(job_id, "running")
-            if jobType == interfaces.jobDb.getJobTypeId("csv_record_validation"):
+            if job_type_name == 'csv_record_validation':
                 self.runValidation(job_id, interfaces)
-            elif jobType == interfaces.jobDb.getJobTypeId("validation"):
+            elif job_type_name == 'validation':
                 self.runCrossValidation(job_id, interfaces)
             else:
                 raise ResponseException("Bad job type for validator",

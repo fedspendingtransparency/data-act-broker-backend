@@ -17,7 +17,6 @@ from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
-from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import FILE_STATUS_DICT, RULE_SEVERITY_DICT
 from dataactcore.utils.cloudLogger import CloudLogger
@@ -30,8 +29,8 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType,
-    createFileIfNeeded, getErrorMetricsByJobId)
+    checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType, run_job_checks,
+    createFileIfNeeded, getErrorMetricsByJobId, get_submission_stats)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -734,7 +733,7 @@ class FileHandler:
 
         job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "file_upload")
         # Check prerequisites on upload job
-        if not self.interfaces.jobDb.runChecks(job.job_id):
+        if not run_job_checks(job.job_id):
             exc = ResponseException("Must wait for completion of prerequisite validation job", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
 
@@ -890,6 +889,6 @@ class FileHandler:
         # Check that user has access to submission
         self.check_submission_permission(submission)
 
-        obligations_info = obligationStatsForSubmission(submission_id)
+        obligations_info = get_submission_stats(submission_id)
 
         return JsonResponse.create(StatusCode.OK,obligations_info)
