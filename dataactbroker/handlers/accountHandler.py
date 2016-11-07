@@ -17,10 +17,10 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.interfaces.db import GlobalDB
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import func
-from dataactcore.models.userModel import User, PermissionType
+from dataactcore.models.userModel import User
 from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList, getUsersByType
+from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList, getUsersByType, has_permission
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
@@ -246,7 +246,7 @@ class AccountHandler:
         sess = GlobalDB.db().session
         permission_list = []
         for permission_name, permission_id in PERMISSION_TYPE_DICT.items():
-            if self.interfaces.userDb.hasPermission(user, permission_name):
+            if has_permission(user, permission_name):
                 permission_list.append(permission_id)
         self.interfaces.userDb.updateLastLogin(user)
         agency_name = sess.query(CGAC.agency_name).\
@@ -464,6 +464,7 @@ class AccountHandler:
 
     def deleteUser(self):
         """ Deletes user specified by 'email' in request """
+        sess = GlobalDB.db().session
         requestDict = RequestDictionary(self.request)
         if not requestDict.exists("email"):
             # missing required fields, return 400
@@ -471,7 +472,8 @@ class AccountHandler:
                                     StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
         email = requestDict.getValue("email")
-        self.interfaces.userDb.deleteUser(email)
+        sess.query(User).filter(User.email == email).delete()
+        sess.commit()
         return JsonResponse.create(StatusCode.OK,{"message":"success"})
 
     def update_user(self, system_email):
@@ -560,7 +562,7 @@ class AccountHandler:
         sess = GlobalDB.db().session
 
         user = sess.query(User).filter(User.user_id == LoginSession.getName(flaskSession)).one()
-        is_agency_admin = self.userManager.hasPermission(user, "agency_admin") and not self.userManager.hasPermission(user, "website_admin")
+        is_agency_admin = has_permission(user, "agency_admin") and not has_permission(user, "website_admin")
         try:
             if is_agency_admin:
                 users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code, status=user_status)
@@ -609,7 +611,7 @@ class AccountHandler:
         current_user = sess.query(User).filter(User.user_id == flaskSession["name"]).one()
 
         try:
-            if self.interfaces.userDb.hasPermission(current_user, "agency_admin"):
+            if has_permission(current_user, "agency_admin"):
                 users = sess.query(User).filter(User.user_status_id == USER_STATUS_DICT[request_dict.getValue("status")], User.cgac_code == current_user.cgac_code).all()
             else:
                 users = sess.query(User).filter(User.user_status_id == USER_STATUS_DICT[request_dict.getValue("status")]).all()
@@ -769,7 +771,7 @@ class AccountHandler:
         user = sess.query(User).filter(User.user_id == uid).one()
         permission_list = []
         for permission_name, permission_id in PERMISSION_TYPE_DICT.items():
-            if self.interfaces.userDb.hasPermission(user, permission_name):
+            if has_permission(user, permission_name):
                 permission_list.append(permission_id)
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\

@@ -10,6 +10,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import has_permission
 from dataactcore.models.userModel import User
 
 
@@ -36,7 +37,7 @@ def permissions_check(f=None,permission_list=[]):
                         user = sess.query(User).filter(User.user_id == session["name"]).one()
                         valid_user = True
                         for permission in permission_list :
-                            if not user_db.hasPermission(user, permission):
+                            if not has_permission(user, permission):
                                 valid_user = False
                             else:
                                 valid_user = True

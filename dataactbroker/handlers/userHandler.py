@@ -1,7 +1,7 @@
 import uuid
 import time
 
-from dataactcore.interfaces.function_bag import checkPermissionByBitNumber
+from dataactcore.interfaces.function_bag import check_permission_by_bit_number, has_permission
 from dataactcore.models.userModel import User, PermissionType
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
@@ -47,14 +47,6 @@ class UserHandler(UserInterface):
         if only_active:
             query = query.filter(User.is_active == True)
         return query.all()
-
-    def deleteUser(self, email):
-        """ Delete user with specified email.  Submissions from that user are not deleted, instead they have
-        user id set to null  """
-
-        # Delete user
-        self.session.query(User).filter(User.email == email).delete()
-        self.session.commit()
 
     def addUserInfo(self,user,name,cgac_code,title):
         """ Called after registration, add all info to user.
@@ -143,7 +135,7 @@ class UserHandler(UserInterface):
         all_permissions = sess.query(PermissionType).all()
         user_permissions = []
         for permission in all_permissions:
-            if self.hasPermission(user, permission.name):
+            if has_permission(user, permission.name):
                 user_permissions.append(str(permission.name))
         return sorted(user_permissions, key=str.lower)
 
@@ -158,7 +150,7 @@ class UserHandler(UserInterface):
         """
         # Get the bit number corresponding to this permission from the PERMISSION_TYPE_DICT and use it to check whether
         # user has the specified permission
-        if checkPermissionByBitNumber(user, PERMISSION_TYPE_DICT[permission_name]):
+        if check_permission_by_bit_number(user, PERMISSION_TYPE_DICT[permission_name]):
             return True
         return False
 
@@ -173,7 +165,7 @@ class UserHandler(UserInterface):
             # Start users with zero permissions
             user.permissions = 0
         bit_number = PERMISSION_TYPE_DICT[permission_name]
-        if not checkPermissionByBitNumber(user, bit_number):
+        if not check_permission_by_bit_number(user, bit_number):
             # User does not have permission, grant it
             user.permissions += (2 ** bit_number)
             self.session.commit()
@@ -189,7 +181,7 @@ class UserHandler(UserInterface):
             # Start users with zero permissions
             user.permissions = 0
         bit_number = PERMISSION_TYPE_DICT[permission_name]
-        if checkPermissionByBitNumber(user, bit_number):
+        if check_permission_by_bit_number(user, bit_number):
             # User has permission, remove it
             user.permissions -= (2 ** bit_number)
             self.session.commit()

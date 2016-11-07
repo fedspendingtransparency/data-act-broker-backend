@@ -5,8 +5,8 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
 from dataactcore.models.errorModels import ErrorMetadata, File
-from dataactcore.models.jobModels import Job, Submission, JobDependency, FileType
-from dataactcore.models.userModel import User, UserStatus, PermissionType
+from dataactcore.models.jobModels import Job, Submission, JobDependency
+from dataactcore.models.userModel import User, UserStatus
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
                                         JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PERMISSION_TYPE_DICT)
@@ -62,15 +62,15 @@ def getUsersByType(permission_name):
     bit_number = PERMISSION_TYPE_DICT[permission_name]
     users = sess.query(User).all()
     for user in users:
-        if checkPermissionByBitNumber(user, bit_number):
+        if check_permission_by_bit_number(user, bit_number):
             # This user has this permission, include them in list
             user_list.append(user)
     return user_list
 
 
-def checkPermissionByBitNumber(user, bitNumber):
+def check_permission_by_bit_number(user, bit_number):
     """Check whether user has the specified permission, determined by whether a binary representation of user's
-    permissions has the specified bit set to 1.  Use hasPermission to check by permission name."""
+    permissions has the specified bit set to 1.  Use has_permission to check by permission name."""
     # This could likely be simplified, but since we're moving towards using MAX for authentication,
     # it's not worth spending too much time reworking.
 
@@ -78,13 +78,13 @@ def checkPermissionByBitNumber(user, bitNumber):
         # This user has no permissions
         return False
     # First get the value corresponding to the specified bit (i.e. 2^bitNumber)
-    bitValue = 2 ** bitNumber
+    bit_value = 2 ** bit_number
     # Remove all bits above the target bit by modding with the value of the next higher bit
     # This leaves the target bit and all lower bits as the remaining value, all higher bits are set to 0
-    lowEnd = user.permissions % (bitValue * 2)
+    low_end = user.permissions % (bit_value * 2)
     # Now compare the remaining value to the value for the target bit to determine if that bit is 0 or 1
     # If the remaining value is still at least the value of the target bit, that bit is 1, so we have that permission
-    return lowEnd >= bitValue
+    return low_end >= bit_value
 
 
 def populateSubmissionErrorInfo(submissionId):
@@ -353,4 +353,18 @@ def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
         result_list.append(record_dict)
     return result_list
 
+""" USER DB FUNCTIONS """
+def has_permission(user, permission_name):
+    """ Checks if user has specified permission
 
+    Arguments:
+        user - User object
+        permission_name - permission to check
+    Returns:
+        True if user has the specified permission, False otherwise
+    """
+    # Get the bit number corresponding to this permission from the PERMISSION_TYPE_DICT and use it to check whether
+    # user has the specified permission
+    if check_permission_by_bit_number(user, PERMISSION_TYPE_DICT[permission_name]):
+        return True
+    return False
