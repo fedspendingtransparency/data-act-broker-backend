@@ -82,7 +82,8 @@ class sesEmail(object):
         """Gets token's salt and decodes it"""
         saltValue = None
         try:
-            saltValue = database.getTokenSalt(token)
+            sess = GlobalDB.db().session
+            saltValue = sess.query(EmailToken.salt).filter(EmailToken.token == token).one()
         except MultipleResultsFound as e:
             #duplicate tokens
             return False ,"Invalid Link", sesEmail.INVALID_LINK
