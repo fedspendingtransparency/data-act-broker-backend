@@ -179,6 +179,7 @@ class BaseTestAPI(unittest.TestCase):
         """Set up broker unit tests."""
         app = createBrokerApp()
         app.config['TESTING'] = True
+        app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
         self.app = TestApp(app)
 
     @classmethod
