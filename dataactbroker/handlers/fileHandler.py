@@ -19,7 +19,6 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job, Submission
 from dataactcore.models.userModel import User
-from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
 from dataactcore.models.lookups import FILE_STATUS_DICT, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
