@@ -3,7 +3,7 @@ from decimal import *
 from dataactcore.models.validationModels import RuleSql
 from dataactcore.models.lookups import FILE_TYPE_DICT_ID, FILE_TYPE_DICT
 from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactcore.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.utils.cloudLogger import CloudLogger
 
 class Validator(object):
@@ -16,7 +16,7 @@ class Validator(object):
     META_FIELDS = ["row_number"]
 
     @classmethod
-    def crossValidateSql(cls, rules, submissionId):
+    def crossValidateSql(cls, rules, submissionId, short_to_long_dict):
         """ Evaluate all sql-based rules for cross file validation
 
         Args:
@@ -25,12 +25,11 @@ class Validator(object):
         """
         failures = []
         # Put each rule through evaluate, appending all failures into list
-        interfaces = InterfaceHolder()
-        # Get short to long colname dictionary
-        shortColnames = interfaces.validationDb.getShortToLongColname()
+        # Put each rule through evaluate, appending all failures into list
+        conn = GlobalDB.db().connection
 
         for rule in rules:
-            failedRows = interfaces.validationDb.connection.execute(
+            failedRows = conn.execute(
                 rule.rule_sql.format(submissionId))
             if failedRows.rowcount:
                 # get list of fields involved in this validation
@@ -38,10 +37,10 @@ class Validator(object):
                 # validated, so exclude it
                 cols = failedRows.keys()
                 cols.remove('row_number')
-                columnString = ", ".join(shortColnames[c] if c in shortColnames else c for c in cols)
+                columnString = ", ".join(short_to_long_dict[c] if c in short_to_long_dict else c for c in cols)
                 for row in failedRows:
                     # get list of values for each column
-                    values = ["{}: {}".format(shortColnames[c], str(row[c])) if c in shortColnames else "{}: {}".format(c, str(row[c])) for c in cols]
+                    values = ["{}: {}".format(short_to_long_dict[c], str(row[c])) if c in short_to_long_dict else "{}: {}".format(c, str(row[c])) for c in cols]
                     values = ", ".join(values)
                     targetFileType = FILE_TYPE_DICT_ID[rule.target_file_id]
                     failures.append([rule.file.name, targetFileType, columnString,
@@ -157,13 +156,13 @@ class Validator(object):
         raise ValueError("".join(["Data Type Error, Type: ",datatype,", Value: ",data]))
 
     @classmethod
-    def validateFileBySql(cls, submissionId, fileType, interfaces):
+    def validateFileBySql(cls, submissionId, fileType, short_to_long_dict):
         """ Check all SQL rules
 
         Args:
             submissionId: submission to be checked
             fileType: file type being checked
-            interfaces: database interface objects
+            short_to_long_dict: mapping of short to long schema column names
 
         Returns:
             List of errors found, each element has:
@@ -178,20 +177,19 @@ class Validator(object):
         """
 
         CloudLogger.logError("VALIDATOR_INFO: ", "Beginning SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
+        conn = GlobalDB.db().connection
+        sess = GlobalDB.db().session
 
         # Pull all SQL rules for this file type
         fileId = FILE_TYPE_DICT[fileType]
-        rules = interfaces.validationDb.session.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
+        rules = sess.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
             RuleSql.rule_cross_file_flag == False).all()
         errors = []
-
-        # Get short to long colname dictionary
-        shortColnames = interfaces.validationDb.getShortToLongColname()
 
         # For each rule, execute sql for rule
         for rule in rules:
             CloudLogger.logError("VALIDATOR_INFO: ", "Running query: "+str(RuleSql.query_name)+" on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
-            failures = interfaces.stagingDb.connection.execute(rule.rule_sql.format(submissionId))
+            failures = conn.execute(rule.rule_sql.format(submissionId))
             if failures.rowcount:
                 # Create column list (exclude row_number)
                 cols = failures.keys()
@@ -201,9 +199,9 @@ class Validator(object):
                     errorMsg = rule.rule_error_message
                     row = failure["row_number"]
                     # Create strings for fields and values
-                    valueList = ["{}: {}".format(shortColnames[field], str(failure[field])) if field in shortColnames else "{}: {}".format(field, str(failure[field])) for field in cols]
+                    valueList = ["{}: {}".format(short_to_long_dict[field], str(failure[field])) if field in short_to_long_dict else "{}: {}".format(field, str(failure[field])) for field in cols]
                     valueString = ", ".join(valueList)
-                    fieldList = [shortColnames[field] if field in shortColnames else field for field in cols]
+                    fieldList = [short_to_long_dict[field] if field in short_to_long_dict else field for field in cols]
                     fieldString = ", ".join(fieldList)
                     errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId, rule.target_file_id, rule.rule_severity_id])
 
