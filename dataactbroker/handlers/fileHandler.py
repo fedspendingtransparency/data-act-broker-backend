@@ -17,7 +17,7 @@ from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
-from dataactcore.models.lookups import FILE_STATUS_DICT
+from dataactcore.models.lookups import FILE_STATUS_DICT, RULE_SEVERITY_DICT
 from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -415,8 +415,10 @@ class FileHandler:
                     else:
                         jobInfo["duplicated_headers"] = []
                     jobInfo["error_type"] = getErrorType(job_id)
-                    jobInfo["error_data"] = getErrorMetricsByJobId(job_id,job_type=='validation',severity_id=self.interfaces.validationDb.getRuleSeverityId("fatal"))
-                    jobInfo["warning_data"] = getErrorMetricsByJobId(job_id,job_type=='validation',severity_id=self.interfaces.validationDb.getRuleSeverityId("warning"))
+                    jobInfo["error_data"] = getErrorMetricsByJobId(
+                        job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['fatal'])
+                    jobInfo["warning_data"] = getErrorMetricsByJobId(
+                        job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['warning'])
                 # File size and number of rows not dependent on error DB
                 # Get file size
                 jobInfo["file_size"] = self.jobManager.getFileSizeById(job_id)
