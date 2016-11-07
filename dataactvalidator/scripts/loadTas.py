@@ -1,3 +1,5 @@
+from collections import defaultdict
+from datetime import date
 import os
 import logging
 
@@ -21,7 +23,7 @@ def cleanTas(csvPath):
         data,
         TASLookup,
         {"a": "availability_type_code",
-         "acct_num": "tas_id",
+         "acct_num": "account_num",
          "aid": "agency_identifier",
          "ata": "allocation_transfer_agency",
          "bpoa": "beginning_period_of_availability",
@@ -41,7 +43,7 @@ def cleanTas(csvPath):
          "sub_account_code": {"pad_to_length": 3},
          }
     )
-    data["tas_id"] = pd.to_numeric(data["tas_id"])
+    data["account_num"] = pd.to_numeric(data['account_num'])
     return data.where(pd.notnull(data), None)
 
 
@@ -51,21 +53,30 @@ def updateTASLookups(csvPath):
     sess = GlobalDB.db().session
 
     data = cleanTas(csvPath)
-    # Delete all existing TAS records -- we don't want to accept submissions
-    # after the entries fall off the CARS file
-    sess.query(TASLookup).delete(synchronize_session=False)
+    add_start_date(data)
+    add_existing_id(data)
+
+    # Mark all TAS we don't see as "ended"
+    existing_ids = [int(i) for i in data['existing_id'] if pd.notnull(i)]
+    sess.query(TASLookup).\
+        filter(TASLookup.internal_end_date == None).\
+        filter(~TASLookup.tas_id.in_(existing_ids)).\
+        update({'internal_end_date': date.today()}, synchronize_session=False)
+
+    new_data = data[data['existing_id'].isnull()]
+    del new_data['existing_id']
 
     # instead of using the pandas to_sql dataframe method like some of the
     # other domain load processes, iterate through the dataframe rows so we
     # can load using the orm model (note: toyed with the SQLAlchemy bulk load
     # options but ultimately decided not to go outside the unit of work for
     # the sake of a performance gain)
-    for _, row in data.iterrows():
+    for _, row in new_data.iterrows():
         sess.add(TASLookup(**row))
 
     sess.commit()
-    logger.info('%s records inserted to %s', len(data.index),
-                TASLookup.__tablename__)
+    logger.info('%s records in CSV, %s existing',
+                len(data.index), sum(data['existing_id'].notnull()))
 
 
 def loadTas(tasFile=None):
@@ -81,6 +92,48 @@ def loadTas(tasFile=None):
 
     with createApp().app_context():
         updateTASLookups(tasFile)
+
+
+def add_start_date(data):
+    """We generally want to set the start date to the current quarter.
+    However, if this is a fresh install, we'll give more breathing room for
+    submissions, starting the epoch at 2015-01-01."""
+    if GlobalDB.db().session.query(TASLookup).count() == 0:  # i.e. fresh db
+        data['internal_start_date'] = date(2015, 1, 1)
+    else:
+        today = date.today()
+        fiscal_quarter_offset = (today.month - 1) % 3
+        fiscal_quarter_month = today.month - fiscal_quarter_offset
+        beginning_of_quarter = date(today.year, fiscal_quarter_month, 1)
+        data['internal_start_date'] = beginning_of_quarter
+
+
+def add_existing_id(data):
+    """Look up the ids of existing TASes. Use account_num as a non-unique
+    identifier to help filter results"""
+    existing = defaultdict(list)
+    query = GlobalDB.db().session.query(TASLookup).\
+        filter(TASLookup.account_num.in_(int(i) for i in data['account_num']))
+    for tas in query:
+        existing[tas.account_num].append(tas)
+
+    data['existing_id'] = data.apply(existing_id, axis=1, existing=existing)
+
+
+_MATCH_FIELDS = (
+    'allocation_transfer_agency', 'agency_identifier',
+    'beginning_period_of_availability', 'ending_period_of_availability',
+    'availability_type_code', 'main_account_code', 'sub_account_code'
+)
+
+
+def existing_id(row, existing):
+    """Check for a TASLookup which matches this `row` in the `existing` data.
+    :param existing: Dict[account_num, List[TASLookup]]"""
+    for potential_match in existing[row['account_num']]:
+        if all(row[f] == getattr(potential_match, f) for f in _MATCH_FIELDS):
+            return potential_match.tas_id
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

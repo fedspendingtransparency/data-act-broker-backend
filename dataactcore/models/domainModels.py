@@ -1,11 +1,13 @@
 from dataactcore.models.stagingModels import concatTas
-from sqlalchemy import Column, Integer, Text, Index, Numeric
+from sqlalchemy import (
+    Column, Date, Index, Integer, Numeric, Text, UniqueConstraint)
 from dataactcore.models.baseModel import Base
 
 
 class TASLookup(Base) :
     __tablename__ = "tas_lookup"
     tas_id = Column(Integer, primary_key=True)
+    account_num = Column(Integer, index=True, nullable=False)
     allocation_transfer_agency = Column(Text, nullable=True, index=True)
     agency_identifier = Column(Text, nullable=True, index=True)
     beginning_period_of_availability = Column(Text, nullable=True, index=True)
@@ -13,6 +15,22 @@ class TASLookup(Base) :
     availability_type_code = Column(Text, nullable=True, index=True)
     main_account_code = Column(Text, nullable=True, index=True)
     sub_account_code = Column(Text, nullable=True, index=True)
+    internal_start_date = Column(Date, nullable=False)
+    internal_end_date = Column(Date)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'account_num',
+            'allocation_transfer_agency',
+            'agency_identifier',
+            'beginning_period_of_availability',
+            'ending_period_of_availability',
+            'availability_type_code',
+            'main_account_code',
+            'sub_account_code',
+            name='tas_lookup_sanity_check'
+        ),
+    )
 
 Index("ix_tas",
       TASLookup.allocation_transfer_agency,
@@ -21,8 +39,7 @@ Index("ix_tas",
       TASLookup.ending_period_of_availability,
       TASLookup.availability_type_code,
       TASLookup.main_account_code,
-      TASLookup.sub_account_code,
-      unique=True)
+      TASLookup.sub_account_code)
 
 class CGAC(Base):
     __tablename__ = "cgac"

@@ -135,7 +135,7 @@ class JobTests(BaseTestValidator):
         # handling is refactored.
         jobId = -1
         with self.assertRaises(NoResultFound):
-            self.run_test(jobId, 400, False, False, False, False, 0)
+            self.run_test(jobId, 500, False, False, False, False, 0)
 
     def test_bad_prereq_job(self):
         """Test job with unfinished prerequisites."""
