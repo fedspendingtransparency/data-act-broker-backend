@@ -1,6 +1,6 @@
 import sys
 import traceback
-
+from dataactcore.utils.jsonResponse import JsonResponse
 
 class InvalidUsage(Exception):
     status_code = 400
@@ -15,8 +15,8 @@ class InvalidUsage(Exception):
     def to_dict(self):
         rv = dict(self.payload or ())
         rv['message'] = self.message
-        exception_type, _, trace = sys.exc_info()
-        trace = traceback.extract_tb(trace, 10)
-        rv['exception_type'], rv['trace'] = str(exception_type), str(trace)
-
+        if (JsonResponse.debugMode):
+            exception_type, _, trace = sys.exc_info()
+            trace = traceback.extract_tb(trace, 10)
+            rv['exception_type'], rv['trace'] = str(exception_type), str(trace)
         return rv
