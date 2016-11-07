@@ -1,5 +1,4 @@
 import logging
-import traceback
 
 from sqlalchemy.orm import joinedload
 
@@ -8,10 +7,10 @@ from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import (
     Job, JobDependency, JobStatus, JobType, Submission, FileType,
     PublishStatus)
-from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import enqueue
-from dataactcore.utils.responseException import ResponseException
-from dataactcore.utils.statusCode import StatusCode
+
+
+_exception_logger = logging.getLogger('deprecated.exception')
 
 
 class JobTrackerInterface(BaseInterface):
@@ -193,9 +192,9 @@ class JobTrackerInterface(BaseInterface):
         for depJobId in self.getDependentJobs(jobId):
             isReady = True
             if not (self.getJobStatus(depJobId) == self.getJobStatusId('waiting')):
-                CloudLogger.logError("Job dependency is not in a 'waiting' state",
-                                     ResponseException("Job dependency is not in a 'waiting' state",StatusCode.CLIENT_ERROR, ValueError),
-                                     traceback.extract_stack())
+                _exception_logger.error(
+                    "%s (dependency of %s) is not in a 'waiting' state",
+                    depJobId, jobId)
                 continue
             # if dependent jobs are finished, then check the jobs of which the current job is a dependent
             for preReqJobId in self.getPrerequisiteJobs(depJobId):

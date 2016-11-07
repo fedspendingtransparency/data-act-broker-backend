@@ -842,8 +842,6 @@ class FileHandler:
         if generationId is None:
             return JsonResponse.error(ResponseException("Must include a generation ID",StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
 
-        self.smx_log_file_name = "smx_request.log"
-
         # Pull url from request
         safeDictionary = RequestDictionary(self.request)
         _smx_logger.debug('Request content => %s', safeDictionary.to_string())

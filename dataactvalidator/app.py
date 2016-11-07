@@ -1,5 +1,4 @@
-import sys
-import traceback
+import logging
 
 from flask import Flask, request
 
@@ -7,11 +6,13 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.logging import configure_logging
-from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
+
+
+_exception_logger = logging.getLogger('deprecated.exception')
 
 
 def createApp():
@@ -57,10 +58,8 @@ def createApp():
         JsonResponse.debugMode = CONFIG_SERVICES['rest_trace']
 
         return app
-
-    except Exception as e:
-        trace = traceback.extract_tb(sys.exc_info()[2], 10)
-        CloudLogger.logError('Validator App Level Error: ', e, trace)
+    except:
+        _exception_logger.exception('Validator App Level Error: ')
         raise
 
 def runApp():
