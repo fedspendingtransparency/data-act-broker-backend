@@ -627,7 +627,7 @@ class AccountHandler:
             user_info.append(this_info)
         return JsonResponse.create(StatusCode.OK,{"users":user_info})
 
-    def setNewPassword(self, session):
+    def set_new_password(self, session):
         """ Set a new password for a user, request should have keys "user_email" and "password" """
         sess = GlobalDB.db().session
         request_dict = RequestDictionary(self.request)
