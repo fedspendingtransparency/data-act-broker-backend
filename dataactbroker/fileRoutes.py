@@ -58,7 +58,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return RouteUtils.run_instance_function(fileManager, fileManager.uploadFile)
 
     @app.route("/v1/list_submissions/", methods = ["GET"])
-    # @permissions_check
+    @permissions_check
     def list_submissions():
         """ List submission IDs associated with the current user """
 
