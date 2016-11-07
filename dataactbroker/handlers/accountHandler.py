@@ -20,7 +20,7 @@ from sqlalchemy import func
 from dataactcore.models.userModel import User
 from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList, getUsersByType, has_permission
+from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList, getUsersByType, has_permission, get_email_template
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
@@ -307,14 +307,13 @@ class AccountHandler:
                 for user in getUsersByType("website_admin"):
                     email_template = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
                                      '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : user_email,'[URL]':link}
-                    new_email = sesEmail(user.email, system_email,templateType="account_creation",parameters=email_template,database=threaded_database)
+                    new_email = sesEmail(user.email, system_email,templateType="account_creation",parameters=email_template)
                     new_email.send()
                 for user in getUsersByType("agency_admin"):
                     if user.cgac_code == cgac_code:
                         email_template = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY_NAME]': agency_name,
                              '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]': user_email, '[URL]': link}
-                        new_email = sesEmail(user.email, system_email, templateType="account_creation", parameters=email_template,
-                                database=threaded_database)
+                        new_email = sesEmail(user.email, system_email, templateType="account_creation", parameters=email_template)
                         new_email.send()
 
             finally:
@@ -352,7 +351,7 @@ class AccountHandler:
 
         #email user
         email_template = {'[EMAIL]' : system_email}
-        new_email = sesEmail(user.email, system_email,templateType="account_creation_user",parameters=email_template,database=self.interfaces.userDb)
+        new_email = sesEmail(user.email, system_email,templateType="account_creation_user",parameters=email_template)
         new_email.send()
 
         # Logout and delete token
@@ -391,7 +390,7 @@ class AccountHandler:
         email_token = sesEmail.createToken(email, "validate_email")
         link= "".join([AccountHandler.FRONT_END,'#/registration/',email_token])
         email_template = {'[USER]': email, '[URL]':link}
-        new_email = sesEmail(email, system_email,templateType="validate_email",parameters=email_template,database=self.interfaces.userDb)
+        new_email = sesEmail(email, system_email,templateType="validate_email",parameters=email_template)
         new_email.send()
         return JsonResponse.create(StatusCode.OK,{"message":"Email Sent"})
 
@@ -521,11 +520,11 @@ class AccountHandler:
                     self.interfaces.userDb.grantPermission(user,"agency_user")
                     link=  AccountHandler.FRONT_END
                     email_template = { '[URL]':link,'[EMAIL]':system_email}
-                    new_email = sesEmail(user.email, system_email,templateType="account_approved",parameters=email_template,database=self.interfaces.userDb)
+                    new_email = sesEmail(user.email, system_email,templateType="account_approved",parameters=email_template)
                     new_email.send()
                 elif request_dict.getValue("status") == "denied":
                     email_template = {}
-                    new_email = sesEmail(user.email, system_email,templateType="account_rejected",parameters=email_template,database=self.interfaces.userDb)
+                    new_email = sesEmail(user.email, system_email,templateType="account_rejected",parameters=email_template)
                     new_email.send()
             # Change user's status
             self.interfaces.userDb.changeStatus(user,request_dict.getValue("status"))
@@ -750,8 +749,7 @@ class AccountHandler:
         link = "".join([AccountHandler.FRONT_END, '#/forgotpassword/', email_token])
         email_template = {'[URL]': link}
         template_type = "unlock_account" if unlock_user else "reset_password"
-        new_email = sesEmail(user.email, system_email, templateType=template_type,
-                            parameters=email_template, database=self.interfaces.userDb)
+        new_email = sesEmail(user.email, system_email, templateType=template_type, parameters=email_template)
         new_email.send()
 
     def get_current_user(self,session):
@@ -872,7 +870,7 @@ class AccountHandler:
 
         template_type = request_dict.getValue("email_template")
         # Check if email template type is valid
-        self.userManager.getEmailTemplate(template_type)
+        get_email_template(template_type)
 
         users = []
 
@@ -884,8 +882,7 @@ class AccountHandler:
             users.append(sess.query(User).filter(User.user_id == user_id).one())
 
         for user in users:
-            new_email = sesEmail(user.email, system_email, templateType=template_type, parameters=email_template,
-                            database=UserHandler())
+            new_email = sesEmail(user.email, system_email, templateType=template_type, parameters=email_template)
             new_email.send()
 
         return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})

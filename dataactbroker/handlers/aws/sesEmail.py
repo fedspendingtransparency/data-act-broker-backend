@@ -7,6 +7,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.exc import MultipleResultsFound
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import get_email_template
 from dataactcore.models.userModel import EmailToken
 
 
@@ -21,7 +22,7 @@ class sesEmail(object):
     isLocal = False
     emailLog = "Email.log"
 
-    def __init__(self,toAddress,fromAddress,content="",subject="",templateType=None,parameters=None, database=None):
+    def __init__(self,toAddress,fromAddress,content="",subject="",templateType=None,parameters=None):
         """ Creates an email object to be sent
         Args:
             toAddress: Email is sent to this address
@@ -30,15 +31,14 @@ class sesEmail(object):
             subject: Subject line of email
             templateType: What type of template to use to fill in the email
             parameters: Dict of replacement values to populate the template
-            database: Interface object to User DB
         """
         self.toAddress = toAddress
         self.fromAddress = fromAddress
-        if(templateType is None):
+        if templateType is None:
             self.content = content
             self.subject = subject
         else:
-            template = database.getEmailTemplate(templateType)
+            template = get_email_template(templateType)
             self.subject = template.subject
             self.content = template.content
 

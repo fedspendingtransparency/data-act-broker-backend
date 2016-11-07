@@ -107,22 +107,6 @@ class UserHandler(UserInterface):
         self.session.add(user)
         self.session.commit()
 
-    def getEmailTemplate(self,emailType):
-        """ Get template for specified email type
-
-        Arguments:
-            emailType - Name of template to get
-        Returns:
-            EmailTemplate object
-        """
-        type_query = self.session.query(EmailTemplateType.email_template_type_id).filter(EmailTemplateType.name == emailType)
-        type_result = self.runUniqueQuery(type_query, "No email template type with that name", "Multiple email templates type with that name")
-
-        template_query = self.session.query(EmailTemplate).filter(EmailTemplate.template_type_id == type_result.email_template_type_id)
-        template_result = self.runUniqueQuery(template_query, "No email template with that template type",
-                                              "Multiple email templates with that template type")
-        return template_result
-
     def getUserPermissions(self, user):
         """ Get name for specified permissions for this user
 

@@ -6,7 +6,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency
-from dataactcore.models.userModel import User, UserStatus
+from dataactcore.models.userModel import User, UserStatus, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
                                         JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PERMISSION_TYPE_DICT)
@@ -354,6 +354,18 @@ def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
     return result_list
 
 """ USER DB FUNCTIONS """
+def get_email_template(email_type):
+    """ Get template for specified email type
+    Arguments:
+        email_type - Name of template to get
+    Returns:
+        EmailTemplate object
+    """
+    sess = GlobalDB.db().session
+    type_result = sess.query(EmailTemplateType.email_template_type_id).filter(EmailTemplateType.name == email_type).one()
+    template_result = sess.query(EmailTemplate).filter(EmailTemplate.template_type_id == type_result.email_template_type_id).one()
+    return template_result
+
 def has_permission(user, permission_name):
     """ Checks if user has specified permission
 
