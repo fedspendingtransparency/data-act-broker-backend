@@ -303,33 +303,46 @@ class FileHandler:
             Tuple of boolean indicating whether submission has passed checks, and http response if not
 
         """
-        error_occurred = False
+        error = None
 
         try:
             submission = self.interfaces.jobDb.getSubmissionById(submission_id)
         except ResponseException as exc:
             if isinstance(exc.wrappedException, NoResultFound):
-                # Submission does not exist, change to 400 in this case since route call specified a bad ID
+                # Submission does not exist, change to 400 in this case since
+                # route call specified a bad ID
                 exc.status = StatusCode.CLIENT_ERROR
-                message = "Submission does not exist"
-                error_occurred = True
-                error_exc = exc
+                response_dict = {
+                    "message": "Submission does not exist",
+                    "file_type": file_type,
+                    "url": "#",
+                    "status": "failed"
+                }
+                if file_type in ('D1', 'D2'):
+                    # Add empty start and end dates
+                    response_dict["start"] = ""
+                    response_dict["end"] = ""
+                error = JsonResponse.error(exc, exc.status, **response_dict)
             else:
                 raise exc
         try:
             self.check_submission_permission(submission)
         except ResponseException as exc:
-            message = "User does not have permission to view that submission"
-            error_occurred = True
-            error_exc = exc
-
-        if error_occurred:
-            responseDict = {"message": message, "file_type": file_type, "url": "#", "status": "failed"}
-            if file_type in ["D1", "D2"]:
+            response_dict = {
+                "message": ("User does not have permission to view that "
+                            "submission"),
+                "file_type": file_type,
+                "url": "#",
+                "status": "failed"
+            }
+            if file_type in ('D1', 'D2'):
                 # Add empty start and end dates
-                responseDict["start"] = ""
-                responseDict["end"] = ""
-            return False, JsonResponse.error(error_exc, error_exc.status, **responseDict)
+                response_dict["start"] = ""
+                response_dict["end"] = ""
+            error = JsonResponse.error(exc, exc.status, **response_dict)
+
+        if error:
+            return False, error
         return True, None
 
     def check_submission_permission(self,submission):
@@ -484,11 +497,11 @@ class FileHandler:
                     returnDict = {"path":path}
                     return JsonResponse.create(StatusCode.OK,returnDict)
                 else:
-                    exc = ResponseException("Failure to read file", StatusCode.CLIENT_ERROR)
-                    return JsonResponse.error(exc,exc.status)
+                    raise ResponseException("Failure to read file",
+                                            StatusCode.CLIENT_ERROR)
             else :
-                exc = ResponseException("Route Only Valid For Local Installs", StatusCode.CLIENT_ERROR)
-                return JsonResponse.error(exc,exc.status)
+                raise ResponseException("Route Only Valid For Local Installs",
+                                        StatusCode.CLIENT_ERROR)
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:
@@ -511,18 +524,28 @@ class FileHandler:
         jobDb = self.interfaces.jobDb
         file_type_name = self.fileTypeMap[file_type]
 
-        if file_type in ["D1", "D2"]:
-            # Populate start and end dates, these should be provided in MM/DD/YYYY format, using calendar year (not fiscal year)
-            requestDict = RequestDictionary(self.request)
-            start_date = requestDict.getValue("start")
-            end_date = requestDict.getValue("end")
+        try:
+            if file_type in ["D1", "D2"]:
+                # Populate start and end dates, these should be provided in
+                # MM/DD/YYYY format, using calendar year (not fiscal year)
+                requestDict = RequestDictionary(self.request)
+                start_date = requestDict.getValue("start")
+                end_date = requestDict.getValue("end")
 
-            if not (StringCleaner.isDate(start_date) and StringCleaner.isDate(end_date)):
-                exc = ResponseException("Start or end date cannot be parsed into a date", StatusCode.CLIENT_ERROR)
-                return False, JsonResponse.error(exc, exc.status, start = "", end = "", file_type = file_type, status = "failed")
-        elif file_type not in ["E","F"]:
-            exc = ResponseException("File type must be either D1, D2, E or F", StatusCode.CLIENT_ERROR)
-            return False, JsonResponse.error(exc, exc.status, file_type = file_type, status = "failed")
+                if not (StringCleaner.isDate(start_date)
+                            and StringCleaner.isDate(end_date)):
+                    raise ResponseException(
+                        "Start or end date cannot be parsed into a date",
+                        StatusCode.CLIENT_ERROR
+                    )
+            elif file_type not in ["E","F"]:
+                raise ResponseException(
+                    "File type must be either D1, D2, E or F",
+                    StatusCode.CLIENT_ERROR
+                )
+        except ResponseException as e:
+            return False, JsonResponse.error(
+                e, e.status, file_type=file_type, status='failed')
 
         cgac_code = self.jobManager.getSubmissionById(submission_id).cgac_code
 
@@ -726,9 +749,14 @@ class FileHandler:
             return error_response
 
         job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "file_upload")
-        # Check prerequisites on upload job
-        if not run_job_checks(job.job_id):
-            exc = ResponseException("Must wait for completion of prerequisite validation job", StatusCode.CLIENT_ERROR)
+        try:
+            # Check prerequisites on upload job
+            if not run_job_checks(job.job_id):
+                raise ResponseException(
+                    "Must wait for completion of prerequisite validation job",
+                    StatusCode.CLIENT_ERROR
+                )
+        except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
         success, error_response = self.startGenerationJob(submission_id,file_type)
@@ -839,21 +867,24 @@ class FileHandler:
             this file is for.
 
         """
-        if generationId is None:
-            return JsonResponse.error(ResponseException("Must include a generation ID",StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
-
-        # Pull url from request
-        safeDictionary = RequestDictionary(self.request)
-        _smx_logger.debug('Request content => %s', safeDictionary.to_string())
-
-
-        if not safeDictionary.exists("href"):
-            return JsonResponse.error(ResponseException("Request must include href key with URL of D file", StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
-        url =  safeDictionary.getValue("href")
-        _smx_logger.debug('Download URL => %s', url)
-
-        #Pull information based on task key
         try:
+            if generationId is None:
+                raise ResponseException(
+                    "Must include a generation ID", StatusCode.CLIENT_ERROR)
+
+            # Pull url from request
+            request_dict = RequestDictionary.derive(self.request)
+            _smx_logger.debug('Request content => %s', request_dict)
+
+            if 'href' not in request_dict:
+                raise ResponseException(
+                    "Request must include href key with URL of D file",
+                    StatusCode.CLIENT_ERROR
+                )
+            url = request_dict['href']
+            _smx_logger.debug('Download URL => %s', url)
+
+            #Pull information based on task key
             _smx_logger.debug('Pulling information based on task key...')
             task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
             job = self.interfaces.jobDb.getJobById(task.job_id)
