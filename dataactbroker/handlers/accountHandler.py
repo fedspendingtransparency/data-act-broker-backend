@@ -768,9 +768,9 @@ class AccountHandler:
         uid =  session["name"]
         user = sess.query(User).filter(User.user_id == uid).one()
         permission_list = []
-        for permission in sess.query(PermissionType).all():
-            if self.interfaces.userDb.hasPermission(user, permission.name):
-                permission_list.append(permission.permission_type_id)
+        for permission_name, permission_id in PERMISSION_TYPE_DICT.items():
+            if self.interfaces.userDb.hasPermission(user, permission_name):
+                permission_list.append(permission_id)
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\
             one_or_none()
