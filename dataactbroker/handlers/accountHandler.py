@@ -433,7 +433,7 @@ class AccountHandler:
             #remove token so it cant be used again
             # The following lines are commented out for issues with registration email links bouncing users back
             # to the original email input page instead of the registration page
-            # oldToken = sess.query(EmailToken).filter(EmailToken.token == token).one()
+            # oldToken = sess.query(EmailToken).filter(EmailToken.token == session["token"]).one()
             # sess.delete(oldToken)
             # sess.commit()
 
@@ -584,10 +584,13 @@ class AccountHandler:
         user = sess.query(User).filter(User.user_id == LoginSession.getName(flaskSession)).one()
         is_agency_admin = has_permission(user, "agency_admin") and not has_permission(user, "website_admin")
         try:
+            user_query = sess.query(User)
+            if user_status != "all":
+                user_query = user_query.filter(User.user_status_id == USER_STATUS_DICT[user_status])
             if is_agency_admin:
-                users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code, status=user_status)
+                users = user_query.filter(User.cgac_code == user.cgac_code).all()
             else:
-                users = self.interfaces.userDb.getUsers(status=user_status)
+                users = user_query.all()
         except ValueError as e:
             # Client provided a bad status
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
@@ -608,7 +611,7 @@ class AccountHandler:
         sess = GlobalDB.db().session
         user = sess.query(User).filter(User.user_id == LoginSession.getName(flaskSession)).one()
         try:
-            users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code, status="approved", only_active=True)
+            users = sess.query(User).filter(User.cgac_code == user.cgac_code, User.user_status_id == USER_STATUS_DICT["approved"], User.is_active == True).all()
         except ValueError as e:
             # Client provided a bad status
             exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, ValueError)

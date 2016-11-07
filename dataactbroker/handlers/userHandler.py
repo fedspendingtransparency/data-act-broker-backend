@@ -1,13 +1,10 @@
 import uuid
-import time
 
 from dataactcore.interfaces.function_bag import check_permission_by_bit_number, has_permission
-from dataactcore.models.userModel import User, PermissionType
+from dataactcore.models.userModel import PermissionType
 from dataactcore.models.userInterface import UserInterface
-from dataactcore.utils.responseException import ResponseException
-from dataactcore.utils.statusCode import StatusCode
 
-from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
+from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 
 from dataactcore.interfaces.db import GlobalDB
 
@@ -25,18 +22,6 @@ class UserHandler(UserInterface):
     """
     HASH_ROUNDS = 12 # How many rounds to use for hashing passwords
 
-    def getUsers(self, cgac_code=None, status="all", only_active=False):
-        """ Return all users in the database """
-        query = self.session.query(User)
-        if cgac_code is not None:
-            query = query.filter(User.cgac_code == cgac_code)
-        if status != "all":
-            status_id = USER_STATUS_DICT[status]
-            query = query.filter(User.user_status_id == status_id)
-        if only_active:
-            query = query.filter(User.is_active == True)
-        return query.all()
-
     def getUserPermissions(self, user):
         """ Get name for specified permissions for this user
 
@@ -52,21 +37,6 @@ class UserHandler(UserInterface):
             if has_permission(user, permission.name):
                 user_permissions.append(str(permission.name))
         return sorted(user_permissions, key=str.lower)
-
-    def hasPermission(self, user, permission_name):
-        """ Checks if user has specified permission
-
-        Arguments:
-            user - User object
-            permission_name - permission to check
-        Returns:
-            True if user has the specified permission, False otherwise
-        """
-        # Get the bit number corresponding to this permission from the PERMISSION_TYPE_DICT and use it to check whether
-        # user has the specified permission
-        if check_permission_by_bit_number(user, PERMISSION_TYPE_DICT[permission_name]):
-            return True
-        return False
 
     def grantPermission(self,user,permission_name):
         """ Grant a user a permission specified by name, does not affect other permissions
