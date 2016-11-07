@@ -14,6 +14,7 @@ from dataactcore.interfaces.function_bag import (
     createFileIfNeeded, writeFileError, markFileComplete)
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
+from dataactcore.models.stagingModels import FlexField
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import (
@@ -152,9 +153,15 @@ class ValidationManager:
         reduce_row = False
         row_error_found = False
         try:
-
-            record = FieldCleaner.cleanRow(reader.getNextRecord(), file_type, interfaces.validationDb, self.longToShortDict, fields)
+            next_record = reader.getNextRecord()
+            record = FieldCleaner.cleanRow(next_record["record"], file_type, interfaces.validationDb, self.longToShortDict, fields)
             record["row_number"] = row_number
+            flex_cols = next_record["flex"]
+            if not flex_cols:
+                flex_cols = None
+            else:
+                flex_cols["row_number"] = row_number
+
             if reader.isFinished and len(record) < 2:
                 # This is the last line and is empty, don't record an error
                 return {}, True, True, True, False  # Don't count this row
@@ -167,8 +174,9 @@ class ValidationManager:
                 writer.write(["Formatting Error", ValidationError.readErrorMsg, str(row_number), ""])
                 error_list.recordRowError(job_id,self.filename,"Formatting Error",ValidationError.readError,row_number,severity_id=interfaces.validationDb.getRuleSeverityId("fatal"))
                 row_error_found = True
-            return {}, reduce_row, True, False, row_error_found
-        return record, reduce_row, False, False, row_error_found
+
+            return {}, reduce_row, True, False, row_error_found, None
+        return record, reduce_row, False, False, row_error_found, flex_cols
 
     def writeToStaging(self, record, job_id, submission_id, passed_validations, interfaces, writer, row_number, file_type, error_list):
         """ Write this record to the staging tables
@@ -244,6 +252,32 @@ class ValidationManager:
                 warning_writer.write([field_name,error_msg,str(row_number),failed_value,original_rule_label])
             error_list.recordRowError(job_id,self.filename,field_name,error,row_number,original_rule_label,severity_id=severityId)
         return fatal_error_found
+
+    def writeToFlex(self, flex_cols, job_id, submission_id, interfaces, file_type):
+        """ Write this record to the staging tables
+
+        Args:
+            flex_cols: Record to be written
+            job_id: ID of current job
+            submission_id: ID of current submission
+            interfaces: InterfaceHolder object
+            file_type: Type of file for current job
+
+        Returns:
+            Boolean indicating whether to skip current row
+        """
+        flex_interface = interfaces.stagingDb
+        try:
+            flex_cols["job_id"] = job_id
+            flex_cols["submission_id"] = submission_id
+
+            rec = FlexField(**flex_cols)
+            flex_interface.session.add(rec)
+            flex_interface.session.commit()
+        except ResponseException as e:
+            # Write failed, move to next record
+            return True
+        return False
 
     def runValidation(self, job_id, interfaces):
         """ Run validations for specified job
@@ -329,7 +363,7 @@ class ValidationManager:
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
                     #
-                    (record, reduceRow, skipRow, doneReading, rowErrorHere) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,job_id,fields,error_list)
+                    (record, reduceRow, skipRow, doneReading, rowErrorHere, flex_cols) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,job_id,fields,error_list)
                     if reduceRow:
                         rowNumber -= 1
                     if rowErrorHere:
@@ -355,6 +389,8 @@ class ValidationManager:
                         passedValidations, failures, valid = Validator.validate(record, csvSchema)
                     if valid:
                         skipRow = self.writeToStaging(record, job_id, submissionId, passedValidations, interfaces, writer, rowNumber, fileType, error_list)
+                        if flex_cols is not None:
+                            self.writeToFlex(flex_cols, job_id, submissionId, interfaces, fileType)
                         if skipRow:
                             errorRows.append(rowNumber)
                             continue

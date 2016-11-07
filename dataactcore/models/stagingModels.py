@@ -21,6 +21,22 @@ def concatTas(context):
     tas = '{}{}{}{}{}{}{}'.format(tas1, tas2, tas3, tas4, tas5, tas6, tas7)
     return tas
 
+class FlexField(Base):
+    """Model for the flex field table."""
+    __tablename__ = "flex_field"
+
+    flex_field_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, nullable=False, index=True)
+    job_id = Column(Integer, nullable=False, index=True)
+    row_number = Column(Integer, nullable=False)
+    header = Column(Text)
+    cell = Column(Text)
+    
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(FlexField, self).__init__(**cleanKwargs)
 
 class Appropriation(Base):
     """Model for the appropriation table."""

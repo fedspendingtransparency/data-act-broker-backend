@@ -32,7 +32,8 @@ class CsvAbstractReader(object):
         self.unprocessed = ''
         self.extraLine = False
         self.lines = []
-        self.headerDictionary = {}
+        self.flex_dictionary = {}
+        self.header_dictionary = {}
         self.packetCounter = 0
         current = 0
         self.isFinished = False
@@ -88,19 +89,24 @@ class CsvAbstractReader(object):
                 submittedHeaderValue = FieldCleaner.cleanString(cell)
                 if longHeaders and submittedHeaderValue in longNameDict:
                     headerValue = FieldCleaner.cleanString(longNameDict[submittedHeaderValue])
-                elif longHeaders:
+                elif longHeaders and not submittedHeaderValue.startswith("flex_"):
                     headerValue = None
                 else:
                     headerValue = submittedHeaderValue
                 if not headerValue in possibleFields:
+                    # Add flex headers to flex list
+                    if str(headerValue).startswith("flex_"):
+                        self.flex_dictionary[current] = headerValue
+                    else:
+                        self.flex_dictionary[current] = None
                     # Allow unexpected headers, just mark the header as None so we skip it when reading
-                    self.headerDictionary[current] = None
+                    self.header_dictionary[current] = None
                     current += 1
                 elif(possibleFields[headerValue] == 1):
                     # Add header value (as submitted) to duplicated header list
                     duplicatedHeaders.append(submittedHeaderValue)
                 else:
-                    self.headerDictionary[current] = headerValue
+                    self.header_dictionary[current] = headerValue
                     possibleFields[headerValue] = 1
                     current += 1
         self.columnCount = current
@@ -150,7 +156,8 @@ class CsvAbstractReader(object):
         Returns:
             dictionary representing this record
         """
-        returnDict = {}
+        return_dict = {}
+        flex_dict = {}
         line = self._getLine()
 
         for row in csv.reader([line],dialect='excel', delimiter=self.delimiter):
@@ -162,13 +169,16 @@ class CsvAbstractReader(object):
                 if(cell == ""):
                     # Use None instead of empty strings for sqlalchemy
                     cell = None
-                # self.headerDictionary uses the short, machine-readable column names
-                if self.headerDictionary[current] is None:
-                    # Skip this column as it is unknown
-                    continue
+                # self.header_dictionary uses the short, machine-readable column names
+                if self.header_dictionary[current] is None:
+                    if self.flex_dictionary[current] is not None:
+                        flex_dict["header"] = self.flex_dictionary[current]
+                        flex_dict["cell"] = cell
+                    # Skip this column as it is unknown or flex
+                    # continue
                 else:
-                    returnDict[self.headerDictionary[current]] = cell
-        return returnDict
+                    return_dict[self.header_dictionary[current]] = cell
+        return {"record": return_dict, "flex": flex_dict}
 
     def close(self):
         """
