@@ -114,7 +114,7 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/register/",
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
         self.check_response(
-            response, StatusCode.INTERNAL_ERROR)
+            response, StatusCode.CLIENT_ERROR, "No users with that email")
 
     def test_status_change(self):
         """Test user status change."""
@@ -144,7 +144,7 @@ class UserTests(BaseTestAPI):
         badUserId = {"uid": -100, "status": "denied"}
         response = self.app.post_json("/v1/update_user/",
             badUserId, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.INTERNAL_ERROR)
+        self.check_response(response, StatusCode.CLIENT_ERROR, "No users with that uid")
 
     def test_status_change_bad_status(self):
         """Test user status change with invalid status."""

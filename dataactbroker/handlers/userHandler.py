@@ -8,7 +8,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.models.userModel import EmailToken, EmailTemplateType, EmailTemplate
 
-from dataactcore.models.lookups import USER_STATUS_DICT
+from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
 from dataactcore.interfaces.db import GlobalDB
 
@@ -156,11 +156,9 @@ class UserHandler(UserInterface):
         Returns:
             True if user has the specified permission, False otherwise
         """
-        sess = GlobalDB.db().session
-        # Get the bit number corresponding to this permission from the permission_types table
-        bit_number = sess.query(PermissionType).filter(PermissionType.name == permission_name).one().permission_type_id
-        # Use that bit number to check whether user has the specified permission
-        if checkPermissionByBitNumber(user, bit_number):
+        # Get the bit number corresponding to this permission from the PERMISSION_TYPE_DICT and use it to check whether
+        # user has the specified permission
+        if checkPermissionByBitNumber(user, PERMISSION_TYPE_DICT[permission_name]):
             return True
         return False
 
@@ -171,11 +169,10 @@ class UserHandler(UserInterface):
             user - User object
             permission_name - permission to grant
         """
-        sess = GlobalDB.db().session
         if user.permissions is None:
             # Start users with zero permissions
             user.permissions = 0
-        bit_number = sess.query(PermissionType).filter(PermissionType.name == permission_name).one().permission_type_id
+        bit_number = PERMISSION_TYPE_DICT[permission_name]
         if not checkPermissionByBitNumber(user, bit_number):
             # User does not have permission, grant it
             user.permissions += (2 ** bit_number)
@@ -188,11 +185,10 @@ class UserHandler(UserInterface):
             user - User object
             permissionName - permission to remove
         """
-        sess = GlobalDB.db().session
         if user.permissions is None:
             # Start users with zero permissions
             user.permissions = 0
-        bit_number = sess.query(PermissionType).filter(PermissionType.name == permission_name).one().permission_type_id
+        bit_number = PERMISSION_TYPE_DICT[permission_name]
         if checkPermissionByBitNumber(user, bit_number):
             # User has permission, remove it
             user.permissions -= (2 ** bit_number)

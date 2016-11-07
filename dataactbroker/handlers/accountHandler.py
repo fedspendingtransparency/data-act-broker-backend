@@ -22,7 +22,7 @@ from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList, getUsersByType
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.lookups import USER_STATUS_DICT
+from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
 class AccountHandler:
     """
@@ -245,9 +245,9 @@ class AccountHandler:
 
         sess = GlobalDB.db().session
         permission_list = []
-        for permission in sess.query(PermissionType).all():
-            if self.interfaces.userDb.hasPermission(user, permission.name):
-                permission_list.append(permission.permission_type_id)
+        for permission_name, permission_id in PERMISSION_TYPE_DICT.items():
+            if self.interfaces.userDb.hasPermission(user, permission_name):
+                permission_list.append(permission_id)
         self.interfaces.userDb.updateLastLogin(user)
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\
@@ -330,8 +330,12 @@ class AccountHandler:
         if not self.checkPassword(request_fields.getValue("password")):
             exc = ResponseException("Invalid Password", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
-        # Find user that matches specified email
-        user = sess.query(User).filter(func.lower(User.email) == func.lower(request_fields.getValue("email"))).one()
+        try:
+            # Find user that matches specified email
+            user = sess.query(User).filter(func.lower(User.email) == func.lower(request_fields.getValue("email"))).one()
+        except NoResultFound:
+            exc = ResponseException("No users with that email", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
         # Check that user's status is before submission of registration
         if not (self.interfaces.userDb.checkStatus(user,"awaiting_confirmation") or self.interfaces.userDb.checkStatus(user,"email_confirmed")):
             # Do not allow duplicate registrations
@@ -500,8 +504,12 @@ class AccountHandler:
                                     StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
 
-        # Find user that matches specified uid
-        user = sess.query(User).filter(User.user_id == int(request_dict.getValue("uid"))).one()
+        try:
+            # Find user that matches specified uid
+            user = sess.query(User).filter(User.user_id == int(request_dict.getValue("uid"))).one()
+        except NoResultFound:
+            exc = ResponseException("No users with that uid", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
 
         if request_dict.exists("status"):
             #check if the user is waiting

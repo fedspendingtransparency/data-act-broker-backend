@@ -9,7 +9,7 @@ from dataactcore.models.jobModels import Job, Submission, JobDependency, FileTyp
 from dataactcore.models.userModel import User, UserStatus, PermissionType
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
-                                        JOB_STATUS_DICT, FILE_TYPE_DICT_ID)
+                                        JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PERMISSION_TYPE_DICT)
 from dataactcore.interfaces.db import GlobalDB
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
@@ -59,7 +59,7 @@ def getUsersByType(permission_name):
     # This could likely be simplified, but since we're moving towards using MAX for authentication,
     # it's not worth spending too much time reworking.
     user_list = []
-    bit_number = sess.query(PermissionType).filter(PermissionType.name == permission_name).one().permission_type_id
+    bit_number = PERMISSION_TYPE_DICT[permission_name]
     users = sess.query(User).all()
     for user in users:
         if checkPermissionByBitNumber(user, bit_number):
