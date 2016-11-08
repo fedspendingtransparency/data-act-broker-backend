@@ -46,14 +46,16 @@ class JsonResponse :
 
         trace = traceback.extract_tb(exception.__traceback__, 10)
         _exception_logger.exception('Route Error')
+        # TODO: that this is eerily similar to CloudLogger / 
+        # DeprecatedJSONFormatter. We may want to remove this method
         if JsonResponse.debugMode:
             responseDict["message"] = str(exception)
             responseDict["errorType"] = str(type(exception))
-            if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):
+            if (isinstance(exception, ResponseException) and
+                    exception.wrappedException):
                 responseDict["wrappedType"] = str(type(exception.wrappedException))
                 responseDict["wrappedMessage"] = str(exception.wrappedException)
-            trace = list(map(lambda entry: str(entry), trace))
-            responseDict["trace"] = trace
+            responseDict["trace"] = [str(entry) for entry in trace]
             return JsonResponse.create(errorCode, responseDict)
         else:
             responseDict["message"] = "An error has occurred"
