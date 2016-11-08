@@ -1,6 +1,5 @@
 import json
 import logging
-import sys
 import traceback
 
 import flask
@@ -47,8 +46,7 @@ class JsonResponse :
             responseDict[key] = kwargs[key]
 
 
-        _, _, exc_tb = sys.exc_info()
-        trace = traceback.extract_tb(exc_tb, 10)
+        trace = traceback.extract_tb(exception.__traceback__, 10)
         _exception_logger.exception('Route Error')
         if JsonResponse.debugMode:
             responseDict["message"] = str(exception)
@@ -66,9 +64,7 @@ class JsonResponse :
                 open("responseErrorLog","a").write(str(type(exception)) + ": ")
                 open("responseErrorLog","a").write(str(exception) + "\n")
                 open("responseErrorLog","a").write(str(trace) + "\n")
-            del exc_tb
             return JsonResponse.create(errorCode, responseDict)
         else:
             responseDict["message"] = "An error has occurred"
-            del exc_tb
             return JsonResponse.create(errorCode, responseDict)
