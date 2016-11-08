@@ -13,8 +13,6 @@ _exception_logger = logging.getLogger('deprecated.exception')
 class JsonResponse :
     """ Used to create an http response object containing JSON """
     debugMode = True
-    printDebug = False # Can cause errors when printing trace on ec2 if set to True
-    logDebug = False
 
     @staticmethod
     def create(code,dictionaryData):
@@ -56,14 +54,6 @@ class JsonResponse :
                 responseDict["wrappedMessage"] = str(exception.wrappedException)
             trace = list(map(lambda entry: str(entry), trace))
             responseDict["trace"] = trace
-            if(JsonResponse.printDebug):
-                print(str(type(exception)))
-                print(str(exception))
-                print(str(trace))
-            if(JsonResponse.logDebug):
-                open("responseErrorLog","a").write(str(type(exception)) + ": ")
-                open("responseErrorLog","a").write(str(exception) + "\n")
-                open("responseErrorLog","a").write(str(trace) + "\n")
             return JsonResponse.create(errorCode, responseDict)
         else:
             responseDict["message"] = "An error has occurred"
