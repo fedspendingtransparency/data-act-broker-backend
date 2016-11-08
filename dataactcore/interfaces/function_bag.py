@@ -1,11 +1,12 @@
 import uuid
 
-from sqlalchemy.sql import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency
+from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.models.userModel import User, UserStatus, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
@@ -417,3 +418,38 @@ def set_user_password(user, password, bcrypt):
     user.password_hash = password_hash.decode("utf-8")
     sess.commit()
     return True
+
+
+def get_submission_stats(submission_id):
+    """Get summarized dollar amounts by submission."""
+    sess = GlobalDB.db().session
+    base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
+        filter(AwardFinancial.submission_id == submission_id)
+    procurement = base_query.filter(AwardFinancial.piid != None)
+    fin_assist = base_query.filter(or_(AwardFinancial.fain != None, AwardFinancial.uri != None))
+    return {
+        "total_obligations": float(base_query.scalar() or 0),
+        "total_procurement_obligations": float(procurement.scalar() or 0),
+        "total_assistance_obligations": float(fin_assist.scalar() or 0)
+    }
+
+
+def run_job_checks(job_id):
+    """ Checks that specified job has no unsatisfied prerequisites
+    Args:
+        job_id -- job_id of job to be run
+
+    Returns:
+        True if prerequisites are satisfied, False if not
+    """
+    sess = GlobalDB.db().session
+
+    # Get count of job's prerequisites that are not yet finished
+    incomplete_dependencies = sess.query(JobDependency). \
+        join("prerequisite_job"). \
+        filter(JobDependency.job_id == job_id, Job.job_status_id != JOB_STATUS_DICT['finished']). \
+        count()
+    if incomplete_dependencies:
+        return False
+    else:
+        return True

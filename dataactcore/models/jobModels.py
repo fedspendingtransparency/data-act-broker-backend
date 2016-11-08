@@ -92,8 +92,8 @@ class JobDependency(Base):
     dependency_id = Column(Integer, primary_key=True)
     job_id = Column(Integer, ForeignKey("job.job_id", name="fk_dep_job_id"))
     prerequisite_id = Column(Integer, ForeignKey("job.job_id", name="fk_prereq_job_id"))
-    dependent_job = relationship("Job", foreign_keys=[job_id])
-    prerequisite_job = relationship("Job", foreign_keys=[prerequisite_id])
+    dependent_job = relationship("Job", foreign_keys=[job_id], lazy='joined')
+    prerequisite_job = relationship("Job", foreign_keys=[prerequisite_id], lazy='joined')
 
 class FileType(Base):
     __tablename__ = "file_type"
