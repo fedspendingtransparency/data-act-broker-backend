@@ -627,54 +627,6 @@ class AccountHandler:
             user_info.append(this_info)
         return JsonResponse.create(StatusCode.OK,{"users":user_info})
 
-    def list_submissions_by_current_user_agency(self):
-        """ List all submission IDs associated with the current user's agency """
-        sess = GlobalDB.db().session
-        user = sess.query(User).filter(User.user_id == LoginSession.getName(flaskSession)).one()
-        submissions = self.interfaces.jobDb.getSubmissionsByUserAgency(user)
-        submission_details = []
-        for submission in submissions:
-            job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
-            total_size = 0
-            for job_id in job_ids:
-                file_size = self.interfaces.jobDb.getFileSize(job_id)
-                total_size += file_size if file_size is not None else 0
-
-            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
-            error_count = sumNumberOfErrorsForJobList(submission.submission_id)
-            if submission.user_id is None:
-                submission_user_name = "No user"
-            else:
-                submission_user_name = sess.query(User).filter(User.user_id == submission.user_id).one().name
-            submission_details.append({"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
-                                      "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
-                                      "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": submission.user_id,
-                                                                                                    "name": submission_user_name}})
-        return JsonResponse.create(StatusCode.OK, {"submissions": submission_details})
-
-    def list_submissions_by_current_user(self):
-        """ List all submission IDs associated with the current user ID """
-        sess = GlobalDB.db().session
-        user_id = LoginSession.getName(flaskSession)
-        user = sess.query(User).filter(User.user_id == user_id).one()
-        submissions = self.interfaces.jobDb.getSubmissionsByUserId(user_id)
-        submission_details = []
-        for submission in submissions:
-            job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
-            total_size = 0
-            for job_id in job_ids:
-                file_size = self.interfaces.jobDb.getFileSize(job_id)
-                total_size += file_size if file_size is not None else 0
-
-            status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
-            error_count = sumNumberOfErrorsForJobList(submission.submission_id)
-            submission_details.append(
-                {"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
-                 "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
-                                      "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": str(user_id),
-                                                                                                    "name": user.name}})
-        return JsonResponse.create(StatusCode.OK, {"submissions": submission_details})
-
     def set_new_password(self, session):
         """ Set a new password for a user, request should have keys "user_email" and "password" """
         sess = GlobalDB.db().session

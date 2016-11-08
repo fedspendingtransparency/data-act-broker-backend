@@ -234,37 +234,45 @@ class JobTrackerInterface(BaseInterface):
             {"number_of_rows_valid": numValidRows, "number_of_rows": numRows})
         self.session.commit()
 
-    def getSubmissionStatus(self,submission_id):
-        job_ids = self.getJobsBySubmission(submission_id)
+    def getSubmissionStatus(self,submission):
+        job_ids = self.getJobsBySubmission(submission.submission_id)
         status_names = self.getJobStatusNames()
         statuses = dict(zip(status_names,[0]*len(status_names)))
         skip_count = 0
 
         for job_id in job_ids:
             job = self.getJobById(job_id)
-            if job.job_type.name != "external_validation":
+            if job.job_type.name not in ["external_validation", None]:
                 job_status = job.job_status.name
                 statuses[job_status] += 1
             else:
                 skip_count += 1
 
+        status = "unknown"
+
         if statuses["failed"] != 0:
-            return "failed"
-        if statuses["invalid"] != 0:
-            return "file_errors"
-        if statuses["running"] != 0:
-            return "running"
-        if statuses["waiting"] != 0:
-            return "waiting"
-        if statuses["ready"] != 0:
-            return "ready"
-        if statuses["finished"] == len(job_ids)-skip_count: # need to account for the jobs that were skipped above
-            # Check if submission has errors
-            if sumNumberOfErrorsForJobList(submission_id) > 0:
-                return "validation_errors"
-            else:
-                return "validation_successful"
-        return "unknown"
+            status = "failed"
+        elif statuses["invalid"] != 0:
+            status = "file_errors"
+        elif statuses["running"] != 0:
+            status = "running"
+        elif statuses["waiting"] != 0:
+            status = "waiting"
+        elif statuses["ready"] != 0:
+            status = "ready"
+        elif statuses["finished"] == len(job_ids)-skip_count: # need to account for the jobs that were skipped above
+            status = "validation_successful"
+            if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
+                status = "validation_successful_warnings"
+            if submission.publishable:
+                status = "submitted"
+
+
+        # Check if submission has errors
+        if submission.number_of_errors is not None and submission.number_of_errors > 0:
+            status = "validation_errors"
+
+        return status
 
     def getSubmissionById(self, submissionId):
         """ Return submission object that matches ID"""

@@ -11,6 +11,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.userModel import User
+from dataactbroker.exceptions.invalid_usage import InvalidUsage
 
 
 def permissions_check(f=None,permission_list=[]):
@@ -59,6 +60,8 @@ def permissions_check(f=None,permission_list=[]):
 
             except ResponseException as e:
                 return JsonResponse.error(e,e.status)
+            except InvalidUsage:
+                raise
             except Exception as e:
                 exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
                 return JsonResponse.error(exc,exc.status)
