@@ -563,10 +563,9 @@ class ValidationManager:
             writeFileError(job_id, self.filename, e.errorType, e.extraInfo)
             return JsonResponse.error(e, e.status)
         except Exception as e:
-            exc = ResponseException(str(e), StatusCode.INTERNAL_ERROR,type(e))
             _exception_logger.exception(str(e))
             self.markJob(job_id, jobTracker, "failed", self.filename, ValidationError.unknownError)
-            return JsonResponse.error(exc, exc.status)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
         try:
             jobTracker.markJobStatus(job_id, "running")
