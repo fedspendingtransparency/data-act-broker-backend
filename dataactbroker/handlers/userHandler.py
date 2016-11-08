@@ -20,7 +20,6 @@ class UserHandler(UserInterface):
     connection -- sqlalchemy connection to user database
     session - sqlalchemy session for ORM calls to user database
     """
-    HASH_ROUNDS = 12 # How many rounds to use for hashing passwords
 
     def getUserPermissions(self, user):
         """ Get name for specified permissions for this user
@@ -69,38 +68,3 @@ class UserHandler(UserInterface):
             # User has permission, remove it
             user.permissions -= (2 ** bit_number)
             self.session.commit()
-
-    def checkPassword(self,user,password,bcrypt):
-        """ Given a user object and a password, verify that the password is correct.
-
-        Arguments:
-            user - User object
-            password - Password to check
-            bcrypt - bcrypt to use for password hashing
-        Returns:
-             True if valid password, False otherwise.
-        """
-        if password is None or password.strip()=="":
-            # If no password or empty password, reject
-            return False
-
-        # Check the password with bcrypt
-        return bcrypt.check_password_hash(user.password_hash,password+user.salt)
-
-    def setPassword(self,user,password,bcrypt):
-        """ Given a user and a new password, changes the hashed value in the database to match new password.
-
-        Arguments:
-            user - User object
-            password - password to be set
-            bcrypt - bcrypt to use for password hashing
-        Returns:
-             True if successful
-        """
-        # Generate hash with bcrypt and store it
-        newSalt =  uuid.uuid4().hex
-        user.salt = newSalt
-        hash = bcrypt.generate_password_hash(password+newSalt,UserHandler.HASH_ROUNDS)
-        user.password_hash = hash.decode("utf-8")
-        self.session.commit()
-        return True

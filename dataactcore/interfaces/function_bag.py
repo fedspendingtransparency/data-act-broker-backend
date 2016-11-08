@@ -26,7 +26,7 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 # these transitional functions.
 
 
-# todo: move these value to config when re-factoring user management
+# todo: move these value to config if it is decided to keep local user login long term
 HASH_ROUNDS = 12
 
 
@@ -380,3 +380,40 @@ def has_permission(user, permission_name):
     if check_permission_by_bit_number(user, PERMISSION_TYPE_DICT[permission_name]):
         return True
     return False
+
+def check_correct_password(user, password, bcrypt):
+    """ Given a user object and a password, verify that the password is correct.
+
+    Arguments:
+        user - User object
+        password - Password to check
+        bcrypt - bcrypt to use for password hashing
+    Returns:
+         True if valid password, False otherwise.
+    """
+    if password is None or password.strip() == "":
+        # If no password or empty password, reject
+        return False
+
+    # Check the password with bcrypt
+    return bcrypt.check_password_hash(user.password_hash, password + user.salt)
+
+
+def set_user_password(user, password, bcrypt):
+    """ Given a user and a new password, changes the hashed value in the database to match new password.
+
+    Arguments:
+        user - User object
+        password - password to be set
+        bcrypt - bcrypt to use for password hashing
+    Returns:
+         True if successful
+    """
+    sess = GlobalDB.db().session
+    # Generate hash with bcrypt and store it
+    new_salt = uuid.uuid4().hex
+    user.salt = new_salt
+    password_hash = bcrypt.generate_password_hash(password + new_salt, HASH_ROUNDS)
+    user.password_hash = password_hash.decode("utf-8")
+    sess.commit()
+    return True

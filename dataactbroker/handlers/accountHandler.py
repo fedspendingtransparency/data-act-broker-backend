@@ -20,7 +20,8 @@ from sqlalchemy import func
 from dataactcore.models.userModel import User, EmailToken
 from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList, getUsersByType, get_email_template, has_permission
+from dataactcore.interfaces.function_bag import (sumNumberOfErrorsForJobList, getUsersByType, get_email_template,
+                                                 has_permission, check_correct_password, set_user_password)
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
@@ -103,7 +104,7 @@ class AccountHandler:
                 raise ValueError("Your account has been locked. Please contact an administrator.")
 
             try:
-                if self.interfaces.userDb.checkPassword(user,password,self.bcrypt):
+                if check_correct_password(user,password,self.bcrypt):
                     # We have a valid login
 
                     # Reset incorrect password attempt count to 0
@@ -347,7 +348,7 @@ class AccountHandler:
         user.cgac_code = request_fields.getValue("cgac_code")
         user.title = request_fields.getValue("title")
         sess.commit()
-        self.interfaces.userDb.setPassword(user,request_fields.getValue("password"),self.bcrypt)
+        set_user_password(user,request_fields.getValue("password"),self.bcrypt)
 
         user_link= "".join([AccountHandler.FRONT_END, '#/login?redirect=/admin'])
         # Send email to approver list
@@ -715,7 +716,7 @@ class AccountHandler:
         # Get user from email
         user = sess.query(User).filter(func.lower(User.email) == func.lower(request_dict.getValue("user_email"))).one()
         # Set new password
-        self.interfaces.userDb.setPassword(user,request_dict.getValue("password"),self.bcrypt)
+        set_user_password(user,request_dict.getValue("password"),self.bcrypt)
         # Invalidate token
         oldToken = sess.query(EmailToken).filter(EmailToken.token == session["token"]).one()
         sess.delete(oldToken)
