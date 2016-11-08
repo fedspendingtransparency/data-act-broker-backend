@@ -73,7 +73,7 @@ The complex rule validations (including both individual file and cross-file rule
 
 ### Interfaces
 
-* `JobTrackerInterface`, `ValidationInterface` - These classes control communication with the database. They are designed to separate database interactions by logical function.
+* `JobTrackerInterface` - This class controls communication with the database.
 * `InterfaceHolder` - Container that holds one interface for each database as a static variable to ensure that redundant connections are not created
 
 ### Scripts

@@ -15,14 +15,14 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.interfaces.db import GlobalDB
-from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import func
-from dataactcore.models.userModel import User
+from dataactcore.models.userModel import User, PermissionType
 from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
+from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList, getUsersByType
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.lookups import USER_STATUS_DICT
+from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
 class AccountHandler:
     """
@@ -47,7 +47,6 @@ class AccountHandler:
         if(interfaces != None):
             self.interfaces = interfaces
             self.userManager = interfaces.userDb
-            self.validationManager = interfaces.validationDb
             self.jobManager = interfaces.jobDb
 
     def addInterfaces(self,interfaces):
@@ -58,7 +57,6 @@ class AccountHandler:
         """
         self.interfaces = interfaces
         self.userManager = interfaces.userDb
-        self.validationManager = interfaces.validationDb
         self.jobManager = interfaces.jobDb
 
     def checkPassword(self,password):
@@ -81,18 +79,19 @@ class AccountHandler:
 
         """
         try:
-            safeDictionary = RequestDictionary(self.request)
+            sess = GlobalDB.db().session
+            safe_dictionary = RequestDictionary(self.request)
 
-            username = safeDictionary.getValue('username')
+            username = safe_dictionary.getValue('username')
 
-            password = safeDictionary.getValue('password')
+            password = safe_dictionary.getValue('password')
 
             try:
-                user = self.interfaces.userDb.getUserByEmail(username)
-            except Exception as e:
+                user = sess.query(User).filter(func.lower(User.email) == func.lower(username)).one()
+            except Exception:
                 raise ValueError("Invalid username and/or password")
 
-            if(not self.interfaces.userDb.checkStatus(user,"approved")):
+            if not self.interfaces.userDb.checkStatus(user,"approved"):
                 raise ValueError("Invalid username and/or password")
 
             # Only check if user is active after they've logged in for the first time
@@ -100,11 +99,11 @@ class AccountHandler:
                 raise ValueError("Your account has expired. Please contact an administrator.")
 
             # for whatever reason, your account is not active, therefore it's locked
-            if not self.isUserActive(user):
+            if not user.is_active:
                 raise ValueError("Your account has been locked. Please contact an administrator.")
 
             try:
-                if(self.interfaces.userDb.checkPassword(user,password,self.bcrypt)):
+                if self.interfaces.userDb.checkPassword(user,password,self.bcrypt):
                     # We have a valid login
 
                     # Reset incorrect password attempt count to 0
@@ -135,7 +134,6 @@ class AccountHandler:
         except Exception as e:
             # Return 500
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
-        return self.response
 
 
     def max_login(self,session):
@@ -246,10 +244,10 @@ class AccountHandler:
         LoginSession.login(session, user.user_id)
 
         sess = GlobalDB.db().session
-        permissionList = []
-        for permission in self.interfaces.userDb.getPermissionList():
-            if (self.interfaces.userDb.hasPermission(user, permission.name)):
-                permissionList.append(permission.permission_type_id)
+        permission_list = []
+        for permission_name, permission_id in PERMISSION_TYPE_DICT.items():
+            if self.interfaces.userDb.hasPermission(user, permission_name):
+                permission_list.append(permission_id)
         self.interfaces.userDb.updateLastLogin(user)
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\
@@ -257,7 +255,7 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "Login successful", "user_id": int(user.user_id),
                                                    "name": user.name, "title": user.title,
                                                    "agency_name": agency_name,
-                                                   "cgac_code": user.cgac_code, "permissions": permissionList})
+                                                   "cgac_code": user.cgac_code, "permissions": permission_list})
 
     def logout(self,session):
         """
@@ -290,70 +288,72 @@ class AccountHandler:
         Returns message that registration is successful or error message that fields are not valid
 
         """
-        def ThreadedFunction (from_email="", username="", title="", cgac_code="", userEmail="" , link="") :
+        def ThreadedFunction (username="", title="", cgac_code="", user_email="" , link="") :
             """
             This inner function sends emails in a new thread as there could be lots of admins
 
-            from_email -- (string) the from email address
             username -- (string) the name of the  user
             title  --   (string) the title of the  user
             cgac_code -- (string) the agency of the  user
-            userEmail -- (string) the email of the user
+            user_email -- (string) the email of the user
             link  -- (string) the broker email link
             """
-            sess = GlobalDB.db().session
-            threadedDatabase =  UserHandler()
+            threaded_database =  UserHandler()
             try:
                 agency_name = sess.query(CGAC.agency_name).\
                     filter(CGAC.cgac_code == cgac_code).\
                     one_or_none()
                 agency_name = "Unknown" if agency_name is None else agency_name
-                for user in threadedDatabase.getUsersByType("website_admin"):
-                    emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
-                                     '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : userEmail,'[URL]':link}
-                    newEmail = sesEmail(user.email, system_email,templateType="account_creation",parameters=emailTemplate,database=threadedDatabase)
-                    newEmail.send()
-                for user in threadedDatabase.getUsersByType("agency_admin"):
+                for user in getUsersByType("website_admin"):
+                    email_template = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
+                                     '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : user_email,'[URL]':link}
+                    new_email = sesEmail(user.email, system_email,templateType="account_creation",parameters=email_template,database=threaded_database)
+                    new_email.send()
+                for user in getUsersByType("agency_admin"):
                     if user.cgac_code == cgac_code:
-                        emailTemplate = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY_NAME]': agency_name,
-                             '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]': userEmail, '[URL]': link}
-                        newEmail = sesEmail(user.email, system_email, templateType="account_creation", parameters=emailTemplate,
-                                database=threadedDatabase)
-                        newEmail.send()
+                        email_template = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY_NAME]': agency_name,
+                             '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]': user_email, '[URL]': link}
+                        new_email = sesEmail(user.email, system_email, templateType="account_creation", parameters=email_template,
+                                database=threaded_database)
+                        new_email.send()
 
             finally:
-                threadedDatabase.close()
+                threaded_database.close()
 
-        requestFields = RequestDictionary(self.request)
-        if(not (requestFields.exists("email") and requestFields.exists("name") and requestFields.exists("cgac_code") and requestFields.exists("title") and requestFields.exists("password"))):
+        sess = GlobalDB.db().session
+        request_fields = RequestDictionary(self.request)
+        if not (request_fields.exists("email") and request_fields.exists("name") and request_fields.exists("cgac_code") and request_fields.exists("title") and request_fields.exists("password")):
             # Missing a required field, return 400
             exc = ResponseException("Request body must include email, name, cgac_code, title, and password", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
 
-        if(not self.checkPassword(requestFields.getValue("password"))):
+        if not self.checkPassword(request_fields.getValue("password")):
             exc = ResponseException("Invalid Password", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
-        # Find user that matches specified email
-        user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
+        try:
+            # Find user that matches specified email
+            user = sess.query(User).filter(func.lower(User.email) == func.lower(request_fields.getValue("email"))).one()
+        except NoResultFound:
+            exc = ResponseException("No users with that email", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
         # Check that user's status is before submission of registration
         if not (self.interfaces.userDb.checkStatus(user,"awaiting_confirmation") or self.interfaces.userDb.checkStatus(user,"email_confirmed")):
             # Do not allow duplicate registrations
             exc = ResponseException("User already registered",StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         # Add user info to database
-        self.interfaces.userDb.addUserInfo(user,requestFields.getValue("name"),requestFields.getValue("cgac_code"),requestFields.getValue("title"))
-        self.interfaces.userDb.setPassword(user,requestFields.getValue("password"),self.bcrypt)
+        self.interfaces.userDb.addUserInfo(user,request_fields.getValue("name"),request_fields.getValue("cgac_code"),request_fields.getValue("title"))
+        self.interfaces.userDb.setPassword(user,request_fields.getValue("password"),self.bcrypt)
 
-        userLink= "".join([AccountHandler.FRONT_END, '#/login?redirect=/admin'])
+        user_link= "".join([AccountHandler.FRONT_END, '#/login?redirect=/admin'])
         # Send email to approver list
-        emailThread = Thread(target=ThreadedFunction, kwargs=dict(from_email=system_email,username=user.name,title=user.title,cgac_code=user.cgac_code,userEmail=user.email,link=userLink))
-        emailThread.start()
+        email_thread = Thread(target=ThreadedFunction, kwargs=dict(username=user.name,title=user.title,cgac_code=user.cgac_code,user_email=user.email,link=user_link))
+        email_thread.start()
 
         #email user
-        link= AccountHandler.FRONT_END
-        emailTemplate = {'[EMAIL]' : system_email}
-        newEmail = sesEmail(user.email, system_email,templateType="account_creation_user",parameters=emailTemplate,database=self.interfaces.userDb)
-        newEmail.send()
+        email_template = {'[EMAIL]' : system_email}
+        new_email = sesEmail(user.email, system_email,templateType="account_creation_user",parameters=email_template,database=self.interfaces.userDb)
+        new_email.send()
 
         # Logout and delete token
         LoginSession.logout(session)
@@ -362,7 +362,7 @@ class AccountHandler:
         self.interfaces.userDb.changeStatus(user,"awaiting_approval")
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
 
-    def createEmailConfirmation(self,system_email,session):
+    def create_email_confirmation(self,system_email):
         """
 
         Creates user record and email
@@ -370,32 +370,32 @@ class AccountHandler:
         arguments:
 
         system_email  -- (string) email used to send messages
-        session  -- (Session) object from flask
 
         """
-        requestFields = RequestDictionary(self.request)
-        if(not requestFields.exists("email")):
+        sess = GlobalDB.db().session
+        request_fields = RequestDictionary(self.request)
+        if not request_fields.exists("email"):
             exc = ResponseException("Request body must include email", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
-        email = requestFields.getValue("email")
-        if( not re.match("[^@]+@[^@]+\.[^@]+",email)) :
+        email = request_fields.getValue("email")
+        if not re.match("[^@]+@[^@]+\.[^@]+",email):
             return JsonResponse.error(ValueError("Invalid Email Format"),StatusCode.CLIENT_ERROR)
         try :
-            user = self.interfaces.userDb.getUserByEmail(requestFields.getValue("email"))
-        except ResponseException as e:
+            user = sess.query(User).filter(func.lower(User.email) == func.lower(request_fields.getValue("email"))).one()
+        except NoResultFound:
             self.interfaces.userDb.addUnconfirmedEmail(email)
         else:
-            if(not (user.user_status_id == self.interfaces.userDb.getUserStatusId("awaiting_confirmation") or user.user_status_id == self.interfaces.userDb.getUserStatusId("email_confirmed"))):
+            if not (user.user_status_id == USER_STATUS_DICT["awaiting_confirmation"] or user.user_status_id == USER_STATUS_DICT["email_confirmed"]):
                 exc = ResponseException("User already registered", StatusCode.CLIENT_ERROR)
                 return JsonResponse.error(exc,exc.status)
-        emailToken = sesEmail.createToken(email, "validate_email")
-        link= "".join([AccountHandler.FRONT_END,'#/registration/',emailToken])
-        emailTemplate = {'[USER]': email, '[URL]':link}
-        newEmail = sesEmail(email, system_email,templateType="validate_email",parameters=emailTemplate,database=self.interfaces.userDb)
-        newEmail.send()
+        email_token = sesEmail.createToken(email, "validate_email")
+        link= "".join([AccountHandler.FRONT_END,'#/registration/',email_token])
+        email_template = {'[USER]': email, '[URL]':link}
+        new_email = sesEmail(email, system_email,templateType="validate_email",parameters=email_template,database=self.interfaces.userDb)
+        new_email.send()
         return JsonResponse.create(StatusCode.OK,{"message":"Email Sent"})
 
-    def checkEmailConfirmationToken(self,session):
+    def check_email_confirmation_token(self,session):
         """
 
         Creates user record and email
@@ -404,17 +404,18 @@ class AccountHandler:
 
         session -- (Session) object from flask
 
-        return the reponse object with a error code and a message
+        return the response object with a error code and a message
 
         """
-        requestFields = RequestDictionary(self.request)
-        if(not requestFields.exists("token")):
+        sess = GlobalDB.db().session
+        request_fields = RequestDictionary(self.request)
+        if not request_fields.exists("token"):
             exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
-        token = requestFields.getValue("token")
+        token = request_fields.getValue("token")
         session["token"] = token
         success,message,errorCode = sesEmail.checkToken(token,self.interfaces.userDb,"validate_email")
-        if(success):
+        if success:
             #mark session that email can be filled out
             LoginSession.register(session)
 
@@ -424,7 +425,7 @@ class AccountHandler:
             #self.interfaces.userDb.deleteToken(token)
 
             #set the status only if current status is awaiting confirmation
-            user = self.interfaces.userDb.getUserByEmail(message)
+            user = sess.query(User).filter(func.lower(User.email) == func.lower(message)).one()
             if self.interfaces.userDb.checkStatus(user,"awaiting_confirmation"):
                 self.interfaces.userDb.changeStatus(user,"email_confirmed")
             return JsonResponse.create(StatusCode.OK,{"email":message,"errorCode":errorCode,"message":"success"})
@@ -454,7 +455,7 @@ class AccountHandler:
         success,message,errorCode = sesEmail.checkToken(token,self.interfaces.userDb,"password_reset")
         if(success):
             #mark session that password can be filled out
-            LoginSession.resetPassword(session)
+            LoginSession.reset_password(session)
 
             return JsonResponse.create(StatusCode.OK,{"email":message,"errorCode":errorCode,"message":"success"})
         else:
@@ -473,7 +474,7 @@ class AccountHandler:
         self.interfaces.userDb.deleteUser(email)
         return JsonResponse.create(StatusCode.OK,{"message":"success"})
 
-    def updateUser(self, system_email):
+    def update_user(self, system_email):
         """
         Update editable fields for specified user. Editable fields for a user:
         * is_active
@@ -481,47 +482,54 @@ class AccountHandler:
         * permissions
 
         Args:
-            None: Request body should contain the following keys:
-                * uid (integer)
-                * status (string)
-                * permissions (comma separated string)
-                * is_active (boolean)
+            system_email: address the email is sent from
+
+        Request body should contain the following keys:
+            * uid (integer)
+            * status (string)
+            * permissions (comma separated string)
+            * is_active (boolean)
 
         Returns: JSON response object with either an exception or success message
 
         """
-        requestDict = RequestDictionary(self.request)
+        sess = GlobalDB.db().session
+        request_dict = RequestDictionary(self.request)
 
         # throw an exception if nothing is provided in the request
-        if not requestDict.exists("uid") or not (requestDict.exists("status") or requestDict.exists("permissions") or
-                    requestDict.exists("is_active")):
+        if not request_dict.exists("uid") or not (request_dict.exists("status") or request_dict.exists("permissions") or
+                    request_dict.exists("is_active")):
             # missing required fields, return 400
             exc = ResponseException("Request body must include uid and at least one of the following: status, permissions, is_active",
                                     StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
 
-        # Find user that matches specified uid
-        user = self.interfaces.userDb.getUserByUID(int(requestDict.getValue("uid")))
+        try:
+            # Find user that matches specified uid
+            user = sess.query(User).filter(User.user_id == int(request_dict.getValue("uid"))).one()
+        except NoResultFound:
+            exc = ResponseException("No users with that uid", StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(exc, exc.status)
 
-        if requestDict.exists("status"):
+        if request_dict.exists("status"):
             #check if the user is waiting
-            if(self.interfaces.userDb.checkStatus(user,"awaiting_approval")):
-                if(requestDict.getValue("status") == "approved"):
+            if self.interfaces.userDb.checkStatus(user,"awaiting_approval"):
+                if request_dict.getValue("status") == "approved":
                     # Grant agency_user permission to newly approved users
                     self.interfaces.userDb.grantPermission(user,"agency_user")
                     link=  AccountHandler.FRONT_END
-                    emailTemplate = { '[URL]':link,'[EMAIL]':system_email}
-                    newEmail = sesEmail(user.email, system_email,templateType="account_approved",parameters=emailTemplate,database=self.interfaces.userDb)
-                    newEmail.send()
-                elif (requestDict.getValue("status") == "denied"):
-                    emailTemplate = {}
-                    newEmail = sesEmail(user.email, system_email,templateType="account_rejected",parameters=emailTemplate,database=self.interfaces.userDb)
-                    newEmail.send()
+                    email_template = { '[URL]':link,'[EMAIL]':system_email}
+                    new_email = sesEmail(user.email, system_email,templateType="account_approved",parameters=email_template,database=self.interfaces.userDb)
+                    new_email.send()
+                elif request_dict.getValue("status") == "denied":
+                    email_template = {}
+                    new_email = sesEmail(user.email, system_email,templateType="account_rejected",parameters=email_template,database=self.interfaces.userDb)
+                    new_email.send()
             # Change user's status
-            self.interfaces.userDb.changeStatus(user,requestDict.getValue("status"))
+            self.interfaces.userDb.changeStatus(user,request_dict.getValue("status"))
 
-        if requestDict.exists("permissions"):
-            permissions_list = requestDict.getValue("permissions").split(',')
+        if request_dict.exists("permissions"):
+            permissions_list = request_dict.getValue("permissions").split(',')
 
             # Remove all existing permissions for user
             user_permissions = self.interfaces.userDb.getUserPermissions(user)
@@ -533,9 +541,9 @@ class AccountHandler:
                 self.interfaces.userDb.grantPermission(user, permission)
 
         # Activate/deactivate user
-        if requestDict.exists("is_active"):
-            is_active = bool(requestDict.getValue("is_active"))
-            if not self.isUserActive(user) and is_active:
+        if request_dict.exists("is_active"):
+            is_active = bool(request_dict.getValue("is_active"))
+            if not user.is_active and is_active:
                 # Reset password count to 0
                 self.resetPasswordCount(user)
                 # Reset last login date so the account isn't expired
@@ -545,57 +553,16 @@ class AccountHandler:
 
         return JsonResponse.create(StatusCode.OK, {"message": "User successfully updated"})
 
-    def changeStatus(self,system_email):
-        """
-
-        Changes status for specified user.  Associated request body should have keys 'uid' and 'new_status'
-
-        arguments:
-
-        system_email  -- (string) the emaily to send emails from
-
-        return the reponse object with a success message
-
-        """
-        requestDict = RequestDictionary(self.request)
-        if(not (requestDict.exists("uid") and requestDict.exists("new_status"))):
-            # Missing a required field, return 400
-            exc = ResponseException("Request body must include uid and new_status", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status)
-
-        # Find user that matches specified uid
-        user = self.interfaces.userDb.getUserByUID(int(requestDict.getValue("uid")))
-
-        if(user.email == None):
-            return JsonResponse.error(ResponseException("User does not have a defined email",StatusCode.INTERNAL_ERROR),StatusCode.INTERNAL_ERROR)
-
-        #check if the user is waiting
-        if(self.interfaces.userDb.checkStatus(user,"awaiting_approval")):
-            if(requestDict.getValue("new_status") == "approved"):
-                # Grant agency_user permission to newly approved users
-                self.interfaces.userDb.grantPermission(user,"agency_user")
-                link=  AccountHandler.FRONT_END
-                emailTemplate = { '[URL]':link,'[EMAIL]':system_email}
-                newEmail = sesEmail(user.email, system_email,templateType="account_approved",parameters=emailTemplate,database=self.interfaces.userDb)
-                newEmail.send()
-            elif (requestDict.getValue("new_status") == "denied"):
-                emailTemplate = {}
-                newEmail = sesEmail(user.email, system_email,templateType="account_rejected",parameters=emailTemplate,database=self.interfaces.userDb)
-                newEmail.send()
-        # Change user's status
-        self.interfaces.userDb.changeStatus(user,requestDict.getValue("new_status"))
-        return JsonResponse.create(StatusCode.OK,{"message":"Status change successful"})
-
-    def listUsers(self):
+    def list_users(self):
         """ List all users ordered by status. Associated request body must have key 'filter_by' """
-        requestDict = RequestDictionary(self.request, optionalRequest=True)
-        user_status = requestDict.getValue("status") if requestDict.exists("status") else "all"
+        request_dict = RequestDictionary(self.request, optionalRequest=True)
+        user_status = request_dict.getValue("status") if request_dict.exists("status") else "all"
         sess = GlobalDB.db().session
 
-        user = self.interfaces.userDb.getUserByUID(LoginSession.getName(flaskSession))
-        isAgencyAdmin = self.userManager.hasPermission(user, "agency_admin") and not self.userManager.hasPermission(user, "website_admin")
+        user = sess.query(User).filter(User.user_id == LoginSession.getName(flaskSession)).one()
+        is_agency_admin = self.userManager.hasPermission(user, "agency_admin") and not self.userManager.hasPermission(user, "website_admin")
         try:
-            if isAgencyAdmin:
+            if is_agency_admin:
                 users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code, status=user_status)
             else:
                 users = self.interfaces.userDb.getUsers(status=user_status)
@@ -603,7 +570,7 @@ class AccountHandler:
             # Client provided a bad status
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
             return JsonResponse.error(exc,exc.status)
-        userInfo = []
+        user_info = []
         for user in users:
             agency_name = sess.query(CGAC.agency_name).\
                 filter(CGAC.cgac_code == user.cgac_code).\
@@ -611,61 +578,61 @@ class AccountHandler:
             thisInfo = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
                         "email":user.email, "id":user.user_id, "is_active":user.is_active,
                         "permissions": ",".join(self.interfaces.userDb.getUserPermissions(user)), "status": user.user_status.name}
-            userInfo.append(thisInfo)
-        return JsonResponse.create(StatusCode.OK,{"users":userInfo})
+            user_info.append(thisInfo)
+        return JsonResponse.create(StatusCode.OK,{"users":user_info})
 
-    def listUserEmails(self):
+    def list_user_emails(self):
         """ List user names and emails """
-
-        user = self.interfaces.userDb.getUserByUID(LoginSession.getName(flaskSession))
+        sess = GlobalDB.db().session
+        user = sess.query(User).filter(User.user_id == LoginSession.getName(flaskSession)).one()
         try:
             users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code, status="approved", only_active=True)
         except ValueError as e:
             # Client provided a bad status
             exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, ValueError)
             return JsonResponse.error(exc, exc.status)
-        userInfo = []
+        user_info = []
         for user in users:
-            thisInfo = {"id":user.user_id, "name": user.name, "email": user.email}
-            userInfo.append(thisInfo)
-        return JsonResponse.create(StatusCode.OK, {"users": userInfo})
+            this_info = {"id":user.user_id, "name": user.name, "email": user.email}
+            user_info.append(this_info)
+        return JsonResponse.create(StatusCode.OK, {"users": user_info})
 
-    def listUsersWithStatus(self):
+    def list_users_with_status(self):
         """ List all users with the specified status.  Associated request body must have key 'status' """
-        requestDict = RequestDictionary(self.request)
-        if(not (requestDict.exists("status"))):
+        request_dict = RequestDictionary(self.request)
+        if not (request_dict.exists("status")):
             # Missing a required field, return 400
             exc = ResponseException("Request body must include status", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
 
         sess = GlobalDB.db().session
-        current_user = self.interfaces.userDb.getUserByUID(flaskSession["name"])
+        current_user = sess.query(User).filter(User.user_id == flaskSession["name"]).one()
 
         try:
             if self.interfaces.userDb.hasPermission(current_user, "agency_admin"):
-                users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"), current_user.cgac_code)
+                users = sess.query(User).filter(User.user_status_id == USER_STATUS_DICT[request_dict.getValue("status")], User.cgac_code == current_user.cgac_code).all()
             else:
-                users = self.interfaces.userDb.getUsersByStatus(requestDict.getValue("status"))
+                users = sess.query(User).filter(User.user_status_id == USER_STATUS_DICT[request_dict.getValue("status")]).all()
         except ValueError as e:
             # Client provided a bad status
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
             return JsonResponse.error(exc,exc.status)
-        userInfo = []
+        user_info = []
         for user in users:
             agency_name = sess.query(CGAC.agency_name).\
                 filter(CGAC.cgac_code == user.cgac_code).\
                 one_or_none()
-            thisInfo = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
+            this_info = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
                         "email":user.email, "id":user.user_id }
-            userInfo.append(thisInfo)
-        return JsonResponse.create(StatusCode.OK,{"users":userInfo})
+            user_info.append(this_info)
+        return JsonResponse.create(StatusCode.OK,{"users":user_info})
 
-    def listSubmissionsByCurrentUserAgency(self):
+    def list_submissions_by_current_user_agency(self):
         """ List all submission IDs associated with the current user's agency """
-        user_id = LoginSession.getName(flaskSession)
-        user = self.interfaces.userDb.getUserByUID(user_id)
+        sess = GlobalDB.db().session
+        user = sess.query(User).filter(User.user_id == LoginSession.getName(flaskSession)).one()
         submissions = self.interfaces.jobDb.getSubmissionsByUserAgency(user)
-        submissionDetails = []
+        submission_details = []
         for submission in submissions:
             job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
             total_size = 0
@@ -678,19 +645,20 @@ class AccountHandler:
             if submission.user_id is None:
                 submission_user_name = "No user"
             else:
-                submission_user_name = self.interfaces.userDb.getUserByUID(submission.user_id).name
-            submissionDetails.append({"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
+                submission_user_name = sess.query(User).filter(User.user_id == submission.user_id).one().name
+            submission_details.append({"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
                                       "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
                                       "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": submission.user_id,
                                                                                                     "name": submission_user_name}})
-        return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
+        return JsonResponse.create(StatusCode.OK, {"submissions": submission_details})
 
-    def listSubmissionsByCurrentUser(self):
+    def list_submissions_by_current_user(self):
         """ List all submission IDs associated with the current user ID """
+        sess = GlobalDB.db().session
         user_id = LoginSession.getName(flaskSession)
-        user = self.interfaces.userDb.getUserByUID(user_id)
+        user = sess.query(User).filter(User.user_id == user_id).one()
         submissions = self.interfaces.jobDb.getSubmissionsByUserId(user_id)
-        submissionDetails = []
+        submission_details = []
         for submission in submissions:
             job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
             total_size = 0
@@ -700,35 +668,36 @@ class AccountHandler:
 
             status = self.interfaces.jobDb.getSubmissionStatus(submission.submission_id)
             error_count = sumNumberOfErrorsForJobList(submission.submission_id)
-            submissionDetails.append(
+            submission_details.append(
                 {"submission_id": submission.submission_id, "last_modified": submission.updated_at.strftime('%m/%d/%Y'),
                  "size": total_size, "status": status, "errors": error_count, "reporting_start_date": str(submission.reporting_start_date),
                                       "reporting_end_date": str(submission.reporting_end_date), "user": {"user_id": str(user_id),
                                                                                                     "name": user.name}})
-        return JsonResponse.create(StatusCode.OK, {"submissions": submissionDetails})
+        return JsonResponse.create(StatusCode.OK, {"submissions": submission_details})
 
-    def setNewPassword(self, session):
+    def set_new_password(self, session):
         """ Set a new password for a user, request should have keys "user_email" and "password" """
-        requestDict = RequestDictionary(self.request)
-        if(not (requestDict.exists("user_email") and requestDict.exists("password"))):
+        sess = GlobalDB.db().session
+        request_dict = RequestDictionary(self.request)
+        if not (request_dict.exists("user_email") and request_dict.exists("password")):
             # Don't have the keys we need in request
             exc = ResponseException("Set password route requires keys user_email and password",StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
 
-        if(not self.checkPassword(requestDict.getValue("password"))):
+        if not self.checkPassword(request_dict.getValue("password")):
             exc = ResponseException("Invalid Password", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         # Get user from email
-        user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("user_email"))
+        user = sess.query(User).filter(func.lower(User.email) == func.lower(request_dict.getValue("user_email"))).one()
         # Set new password
-        self.interfaces.userDb.setPassword(user,requestDict.getValue("password"),self.bcrypt)
+        self.interfaces.userDb.setPassword(user,request_dict.getValue("password"),self.bcrypt)
         # Invalidate token
         self.interfaces.userDb.deleteToken(session["token"])
         session["reset"] = None
         # Return success message
         return JsonResponse.create(StatusCode.OK,{"message":"Password successfully changed"})
 
-    def resetPassword(self,system_email,session):
+    def reset_password(self,system_email,session):
         """
 
         Remove old password and email user a token to set a new password.  Request should have key "email"
@@ -739,14 +708,15 @@ class AccountHandler:
         session  -- (Session) object from flask
 
         """
+        sess = GlobalDB.db().session
         requestDict = RequestDictionary(self.request)
-        if(not (requestDict.exists("email"))):
+        if not (requestDict.exists("email")):
             # Don't have the keys we need in request
             exc = ResponseException("Reset password route requires key 'email'",StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc,exc.status)
         # Get user object
         try:
-            user = self.interfaces.userDb.getUserByEmail(requestDict.getValue("email"))
+            user = sess.query(User).filter(func.lower(User.email) == func.lower(requestDict.getValue("email"))).one()
         except Exception as e:
             exc = ResponseException("Unknown Error",StatusCode.CLIENT_ERROR,ValueError)
             return JsonResponse.error(exc,exc.status)
@@ -763,7 +733,7 @@ class AccountHandler:
             email = user.email
 
         # User must be approved and active to reset password
-        if user.user_status_id != self.interfaces.userDb.getUserStatusId("approved"):
+        if user.user_status_id != USER_STATUS_DICT["approved"]:
             raise ResponseException("User must be approved before resetting password", StatusCode.CLIENT_ERROR)
         elif not unlock_user and not user.is_active:
             raise ResponseException("User is locked, cannot reset password", StatusCode.CLIENT_ERROR)
@@ -774,15 +744,15 @@ class AccountHandler:
 
         self.interfaces.userDb.session.commit()
         # Send email with token
-        emailToken = sesEmail.createToken(email, "password_reset")
-        link = "".join([AccountHandler.FRONT_END, '#/forgotpassword/', emailToken])
-        emailTemplate = {'[URL]': link}
-        templateType = "unlock_account" if unlock_user else "reset_password"
-        newEmail = sesEmail(user.email, system_email, templateType=templateType,
-                            parameters=emailTemplate, database=self.interfaces.userDb)
-        newEmail.send()
+        email_token = sesEmail.createToken(email, "password_reset")
+        link = "".join([AccountHandler.FRONT_END, '#/forgotpassword/', email_token])
+        email_template = {'[URL]': link}
+        template_type = "unlock_account" if unlock_user else "reset_password"
+        new_email = sesEmail(user.email, system_email, templateType=template_type,
+                            parameters=email_template, database=self.interfaces.userDb)
+        new_email.send()
 
-    def getCurrentUser(self,session):
+    def get_current_user(self,session):
         """
 
         Gets the current user information
@@ -791,30 +761,22 @@ class AccountHandler:
 
         session  -- (Session) object from flask
 
-        return the reponse object with the current user information
+        return the response object with the current user information
 
         """
-        uid =  session["name"]
         sess = GlobalDB.db().session
-        user =  self.interfaces.userDb.getUserByUID(uid)
-        permissionList = []
-        for permission in self.interfaces.userDb.getPermissionList():
-            if(self.interfaces.userDb.hasPermission(user, permission.name)):
-                permissionList.append(permission.permission_type_id)
+        uid =  session["name"]
+        user = sess.query(User).filter(User.user_id == uid).one()
+        permission_list = []
+        for permission_name, permission_id in PERMISSION_TYPE_DICT.items():
+            if self.interfaces.userDb.hasPermission(user, permission_name):
+                permission_list.append(permission_id)
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\
             one_or_none()
         return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency_name": agency_name,
                                                   "cgac_code":user.cgac_code,"title":user.title,
-                                                  "permissions": permissionList, "skip_guide":user.skip_guide})
-
-    def isUserActive(self, user):
-        """ Checks if user's account is still active
-
-        Args:
-            user: User object to check
-        """
-        return user.is_active
+                                                  "permissions": permission_list, "skip_guide":user.skip_guide})
 
     def isAccountExpired(self, user):
         """ Checks user's last login date against inactivity threshold, marks account as inactive if expired
@@ -864,24 +826,23 @@ class AccountHandler:
         user.is_active = False
         self.interfaces.userDb.session.commit()
 
-    def setSkipGuide(self, session):
+    def set_skip_guide(self, session):
         """ Set current user's skip guide parameter """
-        uid =  session["name"]
-        userDb = self.interfaces.userDb
-        user =  userDb.getUserByUID(uid)
-        requestDict = RequestDictionary(self.request)
-        if not requestDict.exists("skip_guide"):
+        sess = GlobalDB.db().session
+        user = sess.query(User).filter(User.user_id == session["name"]).one()
+        request_dict = RequestDictionary(self.request)
+        if not request_dict.exists("skip_guide"):
             exc = ResponseException("Must include skip_guide parameter", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
-        skipGuide = requestDict.getValue("skip_guide")
-        if type(skipGuide) == type(True):
+        skip_guide = request_dict.getValue("skip_guide")
+        if type(skip_guide) == type(True):
             # param is a bool
-            user.skip_guide = skipGuide
-        elif type(skipGuide) == type("string"):
+            user.skip_guide = skip_guide
+        elif type(skip_guide) == type("string"):
             # param is a string, allow "true" or "false"
-            if skipGuide.lower() == "true":
+            if skip_guide.lower() == "true":
                 user.skip_guide = True
-            elif skipGuide.lower() == "false":
+            elif skip_guide.lower() == "false":
                 user.skip_guide = False
             else:
                 exc = ResponseException("skip_guide must be true or false", StatusCode.CLIENT_ERROR)
@@ -889,40 +850,40 @@ class AccountHandler:
         else:
             exc = ResponseException("skip_guide must be a boolean", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
-        userDb.session.commit()
-        return JsonResponse.create(StatusCode.OK,{"message":"skip_guide set successfully","skip_guide":skipGuide})
+        sess.commit()
+        return JsonResponse.create(StatusCode.OK,{"message":"skip_guide set successfully","skip_guide":skip_guide})
 
-    def emailUsers(self, system_email, session):
+    def email_users(self, system_email, session):
         """ Send email notification to list of users """
-        requestDict = RequestDictionary(self.request)
-        if not (requestDict.exists("users") and requestDict.exists("submission_id") and requestDict.exists("email_template")):
+        sess = GlobalDB.db().session
+        request_dict = RequestDictionary(self.request)
+        if not (request_dict.exists("users") and request_dict.exists("submission_id") and request_dict.exists("email_template")):
             exc = ResponseException("Email users route requires users, email_template, and submission_id", StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
 
-        uid = session["name"]
-        current_user = self.interfaces.userDb.getUserByUID(uid)
+        current_user = sess.query(User).filter(User.user_id == session["name"]).one()
 
-        user_ids = requestDict.getValue("users")
-        submission_id = requestDict.getValue("submission_id")
+        user_ids = request_dict.getValue("users")
+        submission_id = request_dict.getValue("submission_id")
         # Check if submission id is valid
         self.jobManager.getSubmissionById(submission_id)
 
-        template_type = requestDict.getValue("email_template")
+        template_type = request_dict.getValue("email_template")
         # Check if email template type is valid
         self.userManager.getEmailTemplate(template_type)
 
         users = []
 
         link = "".join([AccountHandler.FRONT_END, '#/reviewData/', str(submission_id)])
-        emailTemplate = {'[REV_USER_NAME]': current_user.name, '[REV_URL]': link}
+        email_template = {'[REV_USER_NAME]': current_user.name, '[REV_URL]': link}
 
         for user_id in user_ids:
             # Check if user id is valid, if so add User object to array
-            users.append(self.userManager.getUserByUID(user_id))
+            users.append(sess.query(User).filter(User.user_id == user_id).one())
 
         for user in users:
-            newEmail = sesEmail(user.email, system_email, templateType=template_type, parameters=emailTemplate,
+            new_email = sesEmail(user.email, system_email, templateType=template_type, parameters=email_template,
                             database=UserHandler())
-            newEmail.send()
+            new_email.send()
 
         return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})

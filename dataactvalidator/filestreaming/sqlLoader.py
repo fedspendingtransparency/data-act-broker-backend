@@ -18,14 +18,9 @@ class SQLLoader():
     @classmethod
     def readSqlStr(cls, filename):
         """Read and clean lines from a .sql file"""
-        lines = []
         full_path = os.path.join(cls.sql_rules_path, filename + ".sql")
         with open(full_path, 'rU') as f:
-            for line in f:
-                line = line.replace('\n', '')
-                line = line.strip()
-                lines.append(line)
-        return ' '.join(lines)
+            return f.read()
 
     @classmethod
     def loadSql(cls, filename):

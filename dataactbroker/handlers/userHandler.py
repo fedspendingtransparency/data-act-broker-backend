@@ -1,14 +1,16 @@
 import uuid
 import time
 
-from sqlalchemy import func
-
 from dataactcore.interfaces.function_bag import checkPermissionByBitNumber
 from dataactcore.models.userModel import User, PermissionType
 from dataactcore.models.userInterface import UserInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.models.userModel import EmailToken, EmailTemplateType, EmailTemplate
+
+from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
+
+from dataactcore.interfaces.db import GlobalDB
 
 class UserHandler(UserInterface):
     """ Responsible for all interaction with the user database
@@ -23,16 +25,6 @@ class UserHandler(UserInterface):
     session - sqlalchemy session for ORM calls to user database
     """
     HASH_ROUNDS = 12 # How many rounds to use for hashing passwords
-
-    def getTokenSalt(self,token):
-        """ gets the salt from a given token so it can be decoded
-
-        Arguments:
-            token - Token to extract salt from
-        Returns:
-            salt for this token
-        """
-        return  self.session.query(EmailToken.salt).filter(EmailToken.token == token).one()
 
     def deleteToken(self,token):
         """ deletes old token
@@ -50,24 +42,11 @@ class UserHandler(UserInterface):
         if cgac_code is not None:
             query = query.filter(User.cgac_code == cgac_code)
         if status != "all":
-            status_id = self.getUserStatusId(status)
+            status_id = USER_STATUS_DICT[status]
             query = query.filter(User.user_status_id == status_id)
         if only_active:
             query = query.filter(User.is_active == True)
         return query.all()
-
-    def getUserByUID(self,uid):
-        """ Return a User object that matches specified uid
-
-        Arguments:
-            uid - User ID to get User object for
-        Returns:
-            User ORM object for this ID
-        """
-        query = self.session.query(User).filter(User.user_id == uid)
-        # Raise exception if we did not find exactly one user
-        result = self.runUniqueQuery(query,"No users with that uid", "Multiple users with that uid")
-        return result
 
     def deleteUser(self, email):
         """ Delete user with specified email.  Submissions from that user are not deleted, instead they have
@@ -76,20 +55,6 @@ class UserHandler(UserInterface):
         # Delete user
         self.session.query(User).filter(User.email == email).delete()
         self.session.commit()
-
-    def getUserByEmail(self,email):
-        """ Return a User object that matches specified email
-
-        Arguments:
-            email - email to search for
-        Returns:
-            User object with that email, raises exception if none found
-        """
-        query = self.session.query(User).filter(func.lower(User.email) == func.lower(email))
-        # Raise exception if we did not find exactly one user
-        result = self.runUniqueQuery(query,"No users with that email", "Multiple users with that email")
-        return result
-
 
     def addUserInfo(self,user,name,cgac_code,title):
         """ Called after registration, add all info to user.
@@ -106,7 +71,7 @@ class UserHandler(UserInterface):
         user.title = title
         self.session.commit()
 
-    def changeStatus(self,user,statusName):
+    def changeStatus(self,user,status_name):
         """ Change status for specified user
 
         Arguments:
@@ -114,13 +79,13 @@ class UserHandler(UserInterface):
             statusName - Status to change to
         """
         try:
-            user.user_status_id = self.getUserStatusId(statusName)
+            user.user_status_id = USER_STATUS_DICT[status_name]
         except ValueError as e:
             # In this case having a bad status name is a client error
             raise ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
         self.session.commit()
 
-    def checkStatus(self,user,statusName):
+    def checkStatus(self,user,status_name):
         """ Check if a user has a specific status
 
         Arguments:
@@ -130,7 +95,7 @@ class UserHandler(UserInterface):
             True if user has that status, False otherwise, raises an exception if status name is not valid
         """
         try:
-            if(user.user_status_id == self.getUserStatusId(statusName) ):
+            if user.user_status_id == USER_STATUS_DICT[status_name]:
                 return True
             else :
                 return False
@@ -146,7 +111,7 @@ class UserHandler(UserInterface):
         """
         user = User(email = email)
         self.changeStatus(user,"awaiting_confirmation")
-        self.setPermission(user,0) # Users start with no permissions
+        user.permissions = 0
         self.session.add(user)
         self.session.commit()
 
@@ -166,31 +131,6 @@ class UserHandler(UserInterface):
                                               "Multiple email templates with that template type")
         return template_result
 
-    def getUsersByStatus(self,status,cgac_code=None):
-        """ Return list of all users with specified status
-
-        Arguments:
-            status - Status to check against
-        Returns:
-            list of User objects
-        """
-        statusId = self.getUserStatusId(status)
-        query = self.session.query(User).filter(User.user_status_id == statusId)
-        if cgac_code is not None:
-            query = query.filter(User.cgac_code == cgac_code)
-        return query.all()
-
-    def getUsersByType(self,permissionName):
-        """deprecated: moved to function_bag.py"""
-        userList = []
-        bitNumber = self.getPermissionId(permissionName)
-        users = self.session.query(User).all()
-        for user in users:
-            if checkPermissionByBitNumber(user, bitNumber):
-                # This user has this permission, include them in list
-                userList.append(user)
-        return userList
-
     def getUserPermissions(self, user):
         """ Get name for specified permissions for this user
 
@@ -199,82 +139,60 @@ class UserHandler(UserInterface):
         Returns:
             array of permission names
         """
-        all_permissions = self.getPermissionList()
+        sess = GlobalDB.db().session
+        all_permissions = sess.query(PermissionType).all()
         user_permissions = []
         for permission in all_permissions:
             if self.hasPermission(user, permission.name):
                 user_permissions.append(str(permission.name))
         return sorted(user_permissions, key=str.lower)
 
-    def hasPermission(self, user, permissionName):
+    def hasPermission(self, user, permission_name):
         """ Checks if user has specified permission
 
         Arguments:
             user - User object
-            permissionName - permission to check
+            permission_name - permission to check
         Returns:
             True if user has the specified permission, False otherwise
         """
-        # Get the bit number corresponding to this permission from the permission_types table
-        bitNumber = self.getPermissionId(permissionName)
-        # Use that bit number to check whether user has the specified permission
-        if checkPermissionByBitNumber(user, bitNumber):
+        # Get the bit number corresponding to this permission from the PERMISSION_TYPE_DICT and use it to check whether
+        # user has the specified permission
+        if checkPermissionByBitNumber(user, PERMISSION_TYPE_DICT[permission_name]):
             return True
         return False
 
-    def setPermission(self,user,permission):
-        """ Define a user's permission to set value (overwrites all current permissions)
-
-        Arguments:
-            user - User object
-            permission - new value for user's permissions
-        """
-        user.permissions = permission
-        self.session.commit()
-
-    def grantPermission(self,user,permissionName):
+    def grantPermission(self,user,permission_name):
         """ Grant a user a permission specified by name, does not affect other permissions
 
         Arguments:
             user - User object
-            permissionName - permission to grant
+            permission_name - permission to grant
         """
-        if(user.permissions == None):
+        if user.permissions is None:
             # Start users with zero permissions
             user.permissions = 0
-        bitNumber = self.getPermissionId(permissionName)
-        if not checkPermissionByBitNumber(user, bitNumber):
+        bit_number = PERMISSION_TYPE_DICT[permission_name]
+        if not checkPermissionByBitNumber(user, bit_number):
             # User does not have permission, grant it
-            user.permissions = user.permissions + (2 ** bitNumber)
+            user.permissions += (2 ** bit_number)
             self.session.commit()
 
-    def removePermission(self,user,permissionName):
+    def removePermission(self,user,permission_name):
         """ Remove a permission specified by name from user
 
         Arguments:
             user - User object
             permissionName - permission to remove
         """
-        if(user.permissions == None):
+        if user.permissions is None:
             # Start users with zero permissions
             user.permissions = 0
-        bitNumber = self.getPermissionId(permissionName)
-        if checkPermissionByBitNumber(user, bitNumber):
+        bit_number = PERMISSION_TYPE_DICT[permission_name]
+        if checkPermissionByBitNumber(user, bit_number):
             # User has permission, remove it
-            user.permissions = user.permissions - (2 ** bitNumber)
+            user.permissions -= (2 ** bit_number)
             self.session.commit()
-
-    def getPermissionId(self,permissionName):
-        """ Get ID for specified permission name
-
-        Arguments:
-            permissionName - permission to get ID for
-        Returns:
-            ID of this permission
-        """
-        query = self.session.query(PermissionType).filter(PermissionType.name == permissionName)
-        result = self.runUniqueQuery(query,"Not a valid user type","Multiple permission entries for that type")
-        return result.permission_type_id
 
     def checkPassword(self,user,password,bcrypt):
         """ Given a user object and a password, verify that the password is correct.
@@ -286,7 +204,7 @@ class UserHandler(UserInterface):
         Returns:
              True if valid password, False otherwise.
         """
-        if(password == None or password.strip()==""):
+        if password is None or password.strip()=="":
             # If no password or empty password, reject
             return False
 
@@ -321,15 +239,6 @@ class UserHandler(UserInterface):
         user.salt = None
         user.password_hash = None
         self.session.commit()
-
-    def getPermissionList(self):
-        """ Gets the permission list
-
-        Returns:
-            list of PermissionType objects
-        """
-        queryResult = self.session.query(PermissionType).all()
-        return queryResult
 
     def updateLastLogin(self, user, unlock_user=False):
         """ This updates the last login date to today's datetime for the user to the current date upon successful login.

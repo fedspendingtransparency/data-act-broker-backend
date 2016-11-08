@@ -1,6 +1,6 @@
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.userModel import UserStatus
 
+from dataactcore.models.lookups import USER_STATUS_DICT
 
 class UserInterface(BaseInterface):
     """Manages all interaction with the user database."""
@@ -8,7 +8,6 @@ class UserInterface(BaseInterface):
     def __init__(self):
         super(UserInterface, self).__init__()
 
-    def getUserStatusId(self, statusName):
+    def getUserStatusId(self, status_name):
         """ Get ID for specified User Status """
-        return self.getIdFromDict(
-            UserStatus, "STATUS_DICT", "name", statusName, "user_status_id")
+        return USER_STATUS_DICT[status_name]

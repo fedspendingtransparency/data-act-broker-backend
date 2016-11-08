@@ -151,7 +151,7 @@ class UserTests(BaseTestAPI):
         badInput = {"uid": self.status_change_user_id, "status": "badInput"}
         response = self.app.post_json("/v1/update_user/",
             badInput, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.CLIENT_ERROR)
+        self.check_response(response, StatusCode.INTERNAL_ERROR)
 
     def test_list_users(self):
         """Test getting user list by status."""
@@ -180,7 +180,7 @@ class UserTests(BaseTestAPI):
         postJson = {"status": "lost"}
         response = self.app.post_json("/v1/list_users/",
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.CLIENT_ERROR)
+        self.check_response(response, StatusCode.INTERNAL_ERROR)
 
     def test_get_users_by_type(self):
         """Test getting user list by type."""
@@ -394,7 +394,7 @@ class UserTests(BaseTestAPI):
                  "email_template": "review_submission"}
         response = self.app.post_json("/v1/email_users/", badInput, expect_errors=True,
                                       headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.CLIENT_ERROR)
+        self.check_response(response, StatusCode.INTERNAL_ERROR)
 
         # invalid email template
         badInput = {"users": [self.agency_user_id], "submission_id": self.submission_id,
