@@ -20,8 +20,7 @@ def createApp():
     local = CONFIG_BROKER['local']
     app.config.from_object(__name__)
     app.config['LOCAL'] = local
-    app.debug = CONFIG_SERVICES['server_debug']
-    app.config['REST_TRACE'] = CONFIG_SERVICES['rest_trace']
+    app.debug = CONFIG_SERVICES['debug']
     app.config['SYSTEM_EMAIL'] = CONFIG_BROKER['reply_to_email']
 
     # Future: Override config w/ environment variable, if set
@@ -38,7 +37,7 @@ def createApp():
     if local and not os.path.exists(broker_file_path):
         os.makedirs(broker_file_path)
 
-    JsonResponse.debugMode = app.config['REST_TRACE']
+    JsonResponse.debugMode = app.debug
 
     if CONFIG_SERVICES['cross_origin_url'] ==  "*":
         cors = CORS(app, supports_credentials=False, allow_headers = "*", expose_headers = "X-Session-Id")
