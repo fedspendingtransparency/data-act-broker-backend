@@ -5,24 +5,26 @@ from dataactvalidator.filestreaming.csvAbstractReader import CsvAbstractReader
 class CsvLocalReader(CsvAbstractReader):
 
 
-    def openFile(self,region,bucket,filename,csvSchema,bucketName,errorFilename):
+    def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
         """ Opens file and prepares to read each record, mapping entries to specified column names
 
         Args:
             region: Not used, included here to match signature of CsvAbstractReader.openFile
             bucket: Not used, included here to match signature CsvAbstractReader.openFile
             filename: The file path for the CSV file in S3
-            csvSchema: list of FileColumn objects for this file type
-            bucketName: bucket to send errors to
-            errorFilename: filename for error report
+            csv_schema: list of FileColumn objects for this file type
+            bucket_name: bucket to send errors to
+            error_filename: filename for error report
+            long_to_short_dict: mapping of long to short schema column names
         """
         self.filename = filename
-        self.isLocal = True
+        self.is_local = True
         try:
             self.file = open(filename,"r")
         except :
-            raise ValueError("".join(["Filename provided not found : ",str(self.filename)]))
-        super(CsvLocalReader,self).openFile(region,bucket,filename,csvSchema,bucketName,errorFilename)
+            raise ValueError("".join(["Filename provided not found : ", str(self.filename)]))
+        super(CsvLocalReader,self).open_file(
+            region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict)
 
     def close(self):
         """Closes file if it exists """
@@ -32,18 +34,18 @@ class CsvLocalReader(CsvAbstractReader):
             # File does not exist, and so does not need to be closed
             pass
 
-    def _getFileSize(self):
+    def _get_file_size(self):
         """
         Gets the size of the file
         """
         return os.path.getsize(self.filename)
 
-    def _getNextPacket(self):
+    def _get_next_packet(self):
         """
         Gets the next packet from the file returns true if successful
         """
         packet  = self.file.read(CsvAbstractReader.BUFFER_SIZE)
         success = True
-        if(packet == ""):
+        if packet == "":
             success = False
-        return success,packet
+        return success, packet

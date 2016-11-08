@@ -26,8 +26,6 @@ def createApp():
         # Future: Override config w/ environment variable, if set
         app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
-        validationManager = ValidationManager(local, error_report_path)
-
         @app.teardown_appcontext
         def teardown_appcontext(exception):
             GlobalDB.close()
@@ -46,7 +44,8 @@ def createApp():
             """Start the validation process on the same threads."""
             interfaces = InterfaceHolder() # Create sessions for this route
             try:
-                return validationManager.validateJob(request,interfaces)
+                validationManager = ValidationManager(local, error_report_path)
+                return validationManager.validate_job(request, interfaces)
             except Exception as e:
                 # Something went wrong getting the flask request
                 open("errorLog","a").write(str(e) + "\n")

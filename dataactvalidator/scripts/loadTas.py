@@ -58,9 +58,10 @@ def updateTASLookups(csvPath):
     add_existing_id(data)
 
     # Mark all TAS we don't see as "ended"
+    existing_ids = [int(i) for i in data['existing_id'] if pd.notnull(i)]
     sess.query(TASLookup).\
         filter(TASLookup.internal_end_date == None).\
-        filter(~TASLookup.tas_id.in_(data['existing_id'])).\
+        filter(~TASLookup.tas_id.in_(existing_ids)).\
         update({'internal_end_date': date.today()}, synchronize_session=False)
 
     new_data = data[data['existing_id'].isnull()]

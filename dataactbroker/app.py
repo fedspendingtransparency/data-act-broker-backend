@@ -5,6 +5,7 @@ from flask_bcrypt import Bcrypt
 from flask import Flask
 
 from dataactbroker.domainRoutes import add_domain_routes
+from dataactbroker.exception_handler import add_exception_handlers
 from dataactbroker.fileRoutes import add_file_routes
 from dataactbroker.handlers.accountHandler import AccountHandler
 from dataactbroker.handlers.aws.sesEmail import sesEmail
@@ -73,6 +74,7 @@ def createApp():
         local, broker_file_path, bcrypt)
     add_user_routes(app, app.config['SYSTEM_EMAIL'], bcrypt)
     add_domain_routes(app, local, bcrypt)
+    add_exception_handlers(app)
     return app
 
 def runApp():
