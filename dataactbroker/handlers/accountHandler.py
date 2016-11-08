@@ -20,7 +20,7 @@ from sqlalchemy import func
 from dataactcore.models.userModel import User
 from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList, getUsersByType
+from dataactcore.interfaces.function_bag import getUsersByType
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
@@ -628,7 +628,7 @@ class AccountHandler:
             users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code, status="approved", only_active=True)
         except ValueError as exc:
             # Client provided a bad status
-            return JsonResponse.error(exc, exc.status)
+            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
         user_info = []
         for user in users:
             this_info = {"id":user.user_id, "name": user.name, "email": user.email}
@@ -661,7 +661,7 @@ class AccountHandler:
                 ).all()
         except ValueError as exc:
             # Client provided a bad status
-            return JsonResponse.error(exc, exc.status)
+            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
         user_info = []
         for user in users:
             agency_name = sess.query(CGAC.agency_name).\
