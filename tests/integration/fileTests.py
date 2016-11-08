@@ -1,4 +1,3 @@
-import unittest
 import os
 from datetime import datetime
 from shutil import copy
@@ -821,6 +820,3 @@ class FileTests(BaseTestAPI):
         )
         FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['complete']) # Validation level Errors
         cls.insertRowLevelError(sess, job.job_id)
-
-if __name__ == '__main__':
-    unittest.main()

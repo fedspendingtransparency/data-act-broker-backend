@@ -1,6 +1,3 @@
-from __future__ import print_function
-import unittest
-
 from sqlalchemy.orm.exc import NoResultFound
 
 from dataactcore.interfaces.db import GlobalDB
@@ -148,7 +145,3 @@ class JobTests(BaseTestValidator):
         jobId = self.jobDict["wrong_type"]
         response = self.run_test(
             jobId, 400, "ready", False, False, "job_error", 0)
-
-
-if __name__ == '__main__':
-    unittest.main()

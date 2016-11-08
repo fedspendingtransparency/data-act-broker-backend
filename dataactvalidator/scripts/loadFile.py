@@ -3,14 +3,14 @@ import logging
 
 import pandas as pd
 
+from dataactcore.config import CONFIG_BROKER
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
+from dataactcore.models.domainModels import CGAC, ObjectClass, ProgramActivity
 from dataactvalidator.app import createApp
 from dataactvalidator.scripts.loaderUtils import LoaderUtils
-from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC, ObjectClass, ProgramActivity
-from dataactcore.config import CONFIG_BROKER
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
 def loadCgac(filename):
@@ -129,6 +129,7 @@ def loadDomainValues(basePath, localProgramActivity = None):
 
 
 if __name__ == '__main__':
+    configure_logging()
     loadDomainValues(
         os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
     )

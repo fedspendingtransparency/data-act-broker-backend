@@ -7,6 +7,7 @@ import pandas as pd
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import TASLookup
 from dataactvalidator.app import createApp
 from dataactvalidator.scripts.loaderUtils import LoaderUtils
@@ -136,5 +137,5 @@ def existing_id(row, existing):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    configure_logging()
     loadTas()

@@ -7,6 +7,7 @@ from flask import Flask
 import requests
 
 from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE
+from dataactcore.logging import configure_logging
 from dataactcore.models.stagingModels import (
     AwardFinancialAssistance, AwardProcurement)
 from dataactcore.utils import fileE, fileF
@@ -120,4 +121,5 @@ def generate_e_file(task, submission_id, job_id, interface_holder_class,
 
 
 if __name__ in ['__main__', 'jobQueue']:
+    configure_logging()
     celery_app.conf.update(BROKER_URL=brokerUrl('localhost'))

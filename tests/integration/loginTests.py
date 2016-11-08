@@ -1,4 +1,3 @@
-import unittest
 from tests.integration.baseTestAPI import BaseTestAPI
 
 
@@ -84,6 +83,3 @@ class LoginTests(BaseTestAPI):
         except AttributeError:
             self.fail("Response is missing JSON component")
         self.assertEquals(response.json["status"].lower(), "false")
-
-if __name__ == '__main__':
-    unittest.main()

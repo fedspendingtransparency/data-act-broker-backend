@@ -3,13 +3,13 @@ import os
 import logging
 
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import FileType
 from dataactcore.models.validationModels import FileColumn, FieldType
 from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
 class SchemaLoader(object):
@@ -141,4 +141,5 @@ class SchemaLoader(object):
             cls.loadFields(key,filepath)
 
 if __name__ == '__main__':
+    configure_logging()
     SchemaLoader.loadAllFromPath("../config/")

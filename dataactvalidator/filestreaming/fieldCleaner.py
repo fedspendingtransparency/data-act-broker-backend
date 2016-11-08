@@ -1,5 +1,8 @@
 import csv
+
+from dataactcore.logging import configure_logging
 from dataactcore.utils.stringCleaner import StringCleaner
+
 
 class FieldCleaner(StringCleaner):
     """ This class takes a field definition file and cleans it, producing a field definition file that can be read by schemaLoader """
@@ -158,6 +161,7 @@ class FieldCleaner(StringCleaner):
             return value
 
 if __name__ == '__main__':
+    configure_logging()
     FieldCleaner.cleanFile("../config/awardProcurementFieldsRaw.csv","../config/awardProcurementFields.csv")
     FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")
     FieldCleaner.cleanFile("../config/awardFinancialFieldsRaw.csv","../config/awardFinancialFields.csv")
