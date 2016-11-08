@@ -1,6 +1,6 @@
 from dataactcore.models.baseInterface import BaseInterface
 from dataactbroker.handlers.jobHandler import JobHandler
-from dataactbroker.handlers.userHandler import UserHandler
+from dataactcore.models.userInterface import UserInterface
 
 
 class InterfaceHolder:
@@ -9,7 +9,7 @@ class InterfaceHolder:
         """ Create the interfaces """
         if BaseInterface.interfaces is None:
             self.jobDb = JobHandler()
-            self.userDb = UserHandler()
+            self.userDb = UserInterface()
             BaseInterface.interfaces = self
         else:
             self.jobDb = BaseInterface.interfaces.jobDb

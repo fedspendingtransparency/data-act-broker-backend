@@ -10,7 +10,6 @@ from flask import session as flaskSession
 
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactbroker.handlers.aws.session import LoginSession
-from dataactbroker.handlers.userHandler import UserHandler
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
@@ -301,26 +300,21 @@ class AccountHandler:
             user_email -- (string) the email of the user
             link  -- (string) the broker email link
             """
-            threaded_database =  UserHandler()
-            try:
-                agency_name = sess.query(CGAC.agency_name).\
-                    filter(CGAC.cgac_code == cgac_code).\
-                    one_or_none()
-                agency_name = "Unknown" if agency_name is None else agency_name
-                for user in getUsersByType("website_admin"):
-                    email_template = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
-                                     '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : user_email,'[URL]':link}
-                    new_email = sesEmail(user.email, system_email,templateType="account_creation",parameters=email_template)
+            agency_name = sess.query(CGAC.agency_name).\
+                filter(CGAC.cgac_code == cgac_code).\
+                one_or_none()
+            agency_name = "Unknown" if agency_name is None else agency_name
+            for user in getUsersByType("website_admin"):
+                email_template = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
+                                 '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : user_email,'[URL]':link}
+                new_email = sesEmail(user.email, system_email,templateType="account_creation",parameters=email_template)
+                new_email.send()
+            for user in getUsersByType("agency_admin"):
+                if user.cgac_code == cgac_code:
+                    email_template = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY_NAME]': agency_name,
+                         '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]': user_email, '[URL]': link}
+                    new_email = sesEmail(user.email, system_email, templateType="account_creation", parameters=email_template)
                     new_email.send()
-                for user in getUsersByType("agency_admin"):
-                    if user.cgac_code == cgac_code:
-                        email_template = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY_NAME]': agency_name,
-                             '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]': user_email, '[URL]': link}
-                        new_email = sesEmail(user.email, system_email, templateType="account_creation", parameters=email_template)
-                        new_email.send()
-
-            finally:
-                threaded_database.close()
 
         sess = GlobalDB.db().session
         request_fields = RequestDictionary(self.request)

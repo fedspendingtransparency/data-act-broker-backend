@@ -5,7 +5,6 @@ import flask
 from flask import session
 
 from dataactbroker.handlers.aws.session import LoginSession
-from dataactbroker.handlers.userHandler import UserHandler
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -33,19 +32,14 @@ def permissions_check(f=None,permission_list=[]):
                     else :
                         error_message  = "unauthorized"
                 elif LoginSession.isLogin(session):
-                    user_db = UserHandler()
-                    try:
-                        user = sess.query(User).filter(User.user_id == session["name"]).one()
-                        valid_user = True
-                        for permission in permission_list :
-                            if not has_permission(user, permission):
-                                valid_user = False
-                            else:
-                                valid_user = True
-                                break
-
-                    finally:
-                        user_db.close()
+                    user = sess.query(User).filter(User.user_id == session["name"]).one()
+                    valid_user = True
+                    for permission in permission_list :
+                        if not has_permission(user, permission):
+                            valid_user = False
+                        else:
+                            valid_user = True
+                            break
                     if valid_user:
                         return f(*args, **kwargs)
                     error_message  = "Wrong User Type"
