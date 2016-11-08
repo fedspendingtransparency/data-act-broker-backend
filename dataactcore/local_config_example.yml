@@ -30,7 +30,6 @@ db:
 
 logging:
 
-    use_logstash: false
     log_files: /full/path/to/local/logfiles
 
 job-queue:
