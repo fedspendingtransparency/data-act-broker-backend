@@ -20,8 +20,9 @@ from sqlalchemy import func
 from dataactcore.models.userModel import User, EmailToken
 from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import (sumNumberOfErrorsForJobList, getUsersByType, get_email_template,
-                                                 has_permission, check_correct_password, set_user_password)
+from dataactcore.interfaces.function_bag import (getUsersByType, get_email_template, has_permission,
+                                                 check_correct_password, set_user_password, get_user_permission,
+                                                 grant_permission, remove_permission)
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
@@ -210,11 +211,11 @@ class AccountHandler:
                     if [g for g in cgac_group if g.endswith("SYS")]:
                         user.cgac_code = "SYS"
                         # website admin permissions
-                        UserHandler().grantPermission(user, 'website_admin')
+                        grant_permission(user, 'website_admin')
                     else:
                         user.cgac_code = cgac_group[0][-3:]
                         # regular user permissions
-                        UserHandler().grantPermission(user, 'agency_user')
+                        grant_permission(user, 'agency_user')
 
                     sess.add(user)
                     sess.commit()
@@ -533,7 +534,7 @@ class AccountHandler:
             if user.user_status_id == USER_STATUS_DICT["awaiting_approval"]:
                 if request_dict.getValue("status") == "approved":
                     # Grant agency_user permission to newly approved users
-                    self.interfaces.userDb.grantPermission(user,"agency_user")
+                    grant_permission(user,"agency_user")
                     link=  AccountHandler.FRONT_END
                     email_template = { '[URL]':link,'[EMAIL]':system_email}
                     new_email = sesEmail(user.email, system_email,templateType="account_approved",parameters=email_template)
@@ -554,13 +555,13 @@ class AccountHandler:
             permissions_list = request_dict.getValue("permissions").split(',')
 
             # Remove all existing permissions for user
-            user_permissions = self.interfaces.userDb.getUserPermissions(user)
+            user_permissions = get_user_permission(user)
             for permission in user_permissions:
-                self.interfaces.userDb.removePermission(user, permission)
+                remove_permission(user, permission)
 
             # Grant specified permissions
             for permission in permissions_list:
-                self.interfaces.userDb.grantPermission(user, permission)
+                grant_permission(user, permission)
 
         # Activate/deactivate user
         if request_dict.exists("is_active"):
@@ -603,7 +604,7 @@ class AccountHandler:
                 one_or_none()
             thisInfo = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
                         "email":user.email, "id":user.user_id, "is_active":user.is_active,
-                        "permissions": ",".join(self.interfaces.userDb.getUserPermissions(user)), "status": user.user_status.name}
+                        "permissions": ",".join(get_user_permission(user)), "status": user.user_status.name}
             user_info.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":user_info})
 
