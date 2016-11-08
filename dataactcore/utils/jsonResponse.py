@@ -1,9 +1,14 @@
 import json
-import flask
+import logging
 import sys
 import traceback
+
+import flask
+
 from dataactcore.utils.responseException import ResponseException
-from dataactcore.utils.cloudLogger import CloudLogger
+
+
+_exception_logger = logging.getLogger('deprecated.exception')
 
 
 class JsonResponse :
@@ -26,7 +31,8 @@ class JsonResponse :
 
     @staticmethod
     def error(exception, errorCode, **kwargs):
-        """ Create an http response object for specified error
+        """ Create an http response object for specified error. We assume
+        we're in an exception context
 
         Args:
             exception: Exception to be represented by response object
@@ -41,10 +47,10 @@ class JsonResponse :
             responseDict[key] = kwargs[key]
 
 
-        exc_type, exc_obj, exc_tb = sys.exc_info()
+        _, _, exc_tb = sys.exc_info()
         trace = traceback.extract_tb(exc_tb, 10)
-        CloudLogger.logError('Route Error : ',exception,trace)
-        if(JsonResponse.debugMode):
+        _exception_logger.exception('Route Error')
+        if JsonResponse.debugMode:
             responseDict["message"] = str(exception)
             responseDict["errorType"] = str(type(exception))
             if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):

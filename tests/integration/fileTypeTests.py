@@ -1,6 +1,4 @@
-from __future__ import print_function
 import os
-import unittest
 
 from sqlalchemy import not_
 
@@ -160,7 +158,3 @@ class FileTypeTests(BaseTestValidator):
         jobId = self.jobDict["awardProcValid"]
         self.passed = self.run_test(
             jobId, 200, "finished", 63, 10, "complete", 0, False)
-
-
-if __name__ == '__main__':
-    unittest.main()

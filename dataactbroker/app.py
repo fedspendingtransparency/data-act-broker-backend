@@ -1,18 +1,22 @@
 import os, os.path
+
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask import Flask
-from dataactcore.interfaces.db import GlobalDB
-from dataactcore.utils.jsonResponse import JsonResponse
-from dataactbroker.handlers.aws.sesEmail import sesEmail
-from dataactbroker.handlers.accountHandler import AccountHandler
-from dataactbroker.handlers.aws.session import UserSessionInterface
+
+from dataactbroker.domainRoutes import add_domain_routes
+from dataactbroker.exception_handler import add_exception_handlers
 from dataactbroker.fileRoutes import add_file_routes
+from dataactbroker.handlers.accountHandler import AccountHandler
+from dataactbroker.handlers.aws.sesEmail import sesEmail
+from dataactbroker.handlers.aws.session import UserSessionInterface
 from dataactbroker.loginRoutes import add_login_routes
 from dataactbroker.userRoutes import add_user_routes
-from dataactbroker.domainRoutes import add_domain_routes
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
-from dataactbroker.exception_handler import add_exception_handlers
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
+from dataactcore.utils.jsonResponse import JsonResponse
+
 
 def createApp():
     """Set up the application."""
@@ -83,7 +87,9 @@ def runApp():
     )
 
 if __name__ == '__main__':
+    configure_logging()
     runApp()
 
 elif __name__[0:5]=="uwsgi":
+    configure_logging()
     app = createApp()

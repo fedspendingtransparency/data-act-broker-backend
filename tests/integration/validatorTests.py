@@ -1,5 +1,3 @@
-import unittest
-
 from dataactcore.models.validationModels import FieldType, FileColumn
 from dataactvalidator.validation_handlers.validator import Validator
 from tests.integration.baseTestValidator import BaseTestValidator
@@ -137,7 +135,3 @@ class ValidatorTests(BaseTestValidator):
         record["test5"] = ""
         record["test3"] = ""
         self.assertTrue(Validator.validate(record, schema))
-
-
-if __name__ == '__main__':
-    unittest.main()

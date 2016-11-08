@@ -317,33 +317,39 @@ class AccountHandler:
                     new_email.send()
 
         sess = GlobalDB.db().session
-        request_fields = RequestDictionary(self.request)
-        if not (request_fields.exists("email") and request_fields.exists("name") and request_fields.exists("cgac_code") and request_fields.exists("title") and request_fields.exists("password")):
-            # Missing a required field, return 400
-            exc = ResponseException("Request body must include email, name, cgac_code, title, and password", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status)
-
-        if not self.checkPassword(request_fields.getValue("password")):
-            exc = ResponseException("Invalid Password", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status)
+        request_fields = RequestDictionary.derive(self.request)
         try:
+            required = ('email', 'name', 'cgac_code', 'title', 'password')
+            if any(field not in request_fields for field in required):
+                # Missing a required field, return 400
+                raise ResponseException(
+                    "Request body must include email, name, cgac_code, "
+                    "title, and password", StatusCode.CLIENT_ERROR
+                )
+            if not self.checkPassword(request_fields["password"]):
+                raise ResponseException(
+                    "Invalid Password", StatusCode.CLIENT_ERROR)
             # Find user that matches specified email
-            user = sess.query(User).filter(func.lower(User.email) == func.lower(request_fields.getValue("email"))).one()
-        except NoResultFound:
-            exc = ResponseException("No users with that email", StatusCode.CLIENT_ERROR)
+            user = sess.query(User).filter(
+                func.lower(User.email) == func.lower(request_fields['email'])
+            ).one_or_none()
+            if user is None:
+                raise ResponseException(
+                    "No users with that email", StatusCode.CLIENT_ERROR)
+            # Check that user's status is before submission of registration
+            bad_statuses = (USER_STATUS_DICT["awaiting_confirmation"], USER_STATUS_DICT["email_confirmed"])
+            if user.user_status_id not in bad_statuses:
+                # Do not allow duplicate registrations
+                raise ResponseException(
+                    "User already registered", StatusCode.CLIENT_ERROR)
+            # Add user info to database
+            user.name = request_fields['name']
+            user.cgac_code = request_fields['cgac_code']
+            user.title = request_fields['title']
+            sess.commit()
+            set_user_password(user, request_fields['password'], self.bcrypt)
+        except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
-        # Check that user's status is before submission of registration
-        bad_statuses = (USER_STATUS_DICT["awaiting_confirmation"], USER_STATUS_DICT["email_confirmed"])
-        if user.user_status_id not in bad_statuses:
-            # Do not allow duplicate registrations
-            exc = ResponseException("User already registered",StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status)
-        # Add user info to database
-        user.name = request_fields.getValue("name")
-        user.cgac_code = request_fields.getValue("cgac_code")
-        user.title = request_fields.getValue("title")
-        sess.commit()
-        set_user_password(user,request_fields.getValue("password"),self.bcrypt)
 
         user_link= "".join([AccountHandler.FRONT_END, '#/login?redirect=/admin'])
         # Send email to approver list
@@ -375,15 +381,21 @@ class AccountHandler:
 
         """
         sess = GlobalDB.db().session
-        request_fields = RequestDictionary(self.request)
-        if not request_fields.exists("email"):
-            exc = ResponseException("Request body must include email", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status)
-        email = request_fields.getValue("email")
-        if not re.match("[^@]+@[^@]+\.[^@]+",email):
-            return JsonResponse.error(ValueError("Invalid Email Format"),StatusCode.CLIENT_ERROR)
+        request_fields = RequestDictionary.derive(self.request)
+        try:
+            if 'email' not in request_fields:
+                raise ResponseException(
+                    "Request body must include email", StatusCode.CLIENT_ERROR)
+            email = request_fields['email']
+            if not re.match("[^@]+@[^@]+\.[^@]+",email):
+                raise ValueError("Invalid Email Format")
+        except (ResponseException, ValueError) as exc:
+            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
+
         try :
-            user = sess.query(User).filter(func.lower(User.email) == func.lower(request_fields.getValue("email"))).one()
+            user = sess.query(User).filter(
+                func.lower(User.email) == func.lower(request_fields['email'])
+            ).one()
         except NoResultFound:
             # Create user with specified email if none is found
             user = User(email=email)
@@ -392,9 +404,14 @@ class AccountHandler:
             sess.add(user)
             sess.commit()
         else:
-            if not (user.user_status_id == USER_STATUS_DICT["awaiting_confirmation"] or user.user_status_id == USER_STATUS_DICT["email_confirmed"]):
-                exc = ResponseException("User already registered", StatusCode.CLIENT_ERROR)
-                return JsonResponse.error(exc,exc.status)
+            try:
+                good_statuses = (USER_STATUS_DICT["awaiting_confirmation"],
+                                 USER_STATUS_DICT["email_confirmed"])
+                if user.user_status_id not in good_statuses:
+                    raise ResponseException(
+                        "User already registered", StatusCode.CLIENT_ERROR)
+            except ResponseException as exc:
+                return JsonResponse.error(exc, exc.status)
         email_token = sesEmail.createToken(email, "validate_email")
         link= "".join([AccountHandler.FRONT_END,'#/registration/',email_token])
         email_template = {'[USER]': email, '[URL]':link}
@@ -415,13 +432,20 @@ class AccountHandler:
 
         """
         sess = GlobalDB.db().session
-        request_fields = RequestDictionary(self.request)
-        if not request_fields.exists("token"):
-            exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status)
-        token = request_fields.getValue("token")
+        request_fields = RequestDictionary.derive(self.request)
+        try:
+            if 'token' not in request_fields:
+                raise ResponseException(
+                    "Request body must include token",
+                    StatusCode.CLIENT_ERROR
+                )
+        except ResponseException as exc:
+            return JsonResponse.error(exc, exc.status)
+
+        token = request_fields['token']
         session["token"] = token
-        success,message,errorCode = sesEmail.checkToken(token,self.interfaces.userDb,"validate_email")
+        success, message, errorCode = sesEmail.checkToken(
+            token, self.interfaces.userDb, "validate_email")
         if success:
             #mark session that email can be filled out
             LoginSession.register(session)
@@ -455,15 +479,19 @@ class AccountHandler:
         return the reponse object with a error code and a message
 
         """
-        requestFields = RequestDictionary(self.request)
-        if(not requestFields.exists("token")):
-            exc = ResponseException("Request body must include token", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status)
-        token = requestFields.getValue("token")
+        request_fields = RequestDictionary.derive(self.request)
+        try:
+            if 'token' not in request_fields:
+                raise ResponseException(
+                    "Request body must include token", StatusCode.CLIENT_ERROR)
+        except ResponseException as exc:
+            return JsonResponse.error(exc, exc.status)
+        token = request_fields['token']
         # Save token to be deleted after reset
         session["token"] = token
-        success,message,errorCode = sesEmail.checkToken(token,self.interfaces.userDb,"password_reset")
-        if(success):
+        success, message, errorCode = sesEmail.checkToken(
+            token, self.interfaces.userDb, "password_reset")
+        if success:
             #mark session that password can be filled out
             LoginSession.reset_password(session)
 
@@ -475,13 +503,18 @@ class AccountHandler:
     def deleteUser(self):
         """ Deletes user specified by 'email' in request """
         sess = GlobalDB.db().session
-        requestDict = RequestDictionary(self.request)
-        if not requestDict.exists("email"):
-            # missing required fields, return 400
-            exc = ResponseException("Request body must include email of user to be deleted",
-                                    StatusCode.CLIENT_ERROR)
+        request_dict = RequestDictionary.derive(self.request)
+        try:
+            if 'email' not in request_dict:
+                # missing required fields, return 400
+                raise ResponseException(
+                    "Request body must include email of user to be deleted",
+                    StatusCode.CLIENT_ERROR
+                )
+        except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
-        email = requestDict.getValue("email")
+        email = request_dict['email']
+        # self.interfaces.userDb.deleteUser(email)
         sess.query(User).filter(User.email == email).delete()
         sess.commit()
         return JsonResponse.create(StatusCode.OK,{"message":"success"})
@@ -506,47 +539,51 @@ class AccountHandler:
 
         """
         sess = GlobalDB.db().session
-        request_dict = RequestDictionary(self.request)
-
-        # throw an exception if nothing is provided in the request
-        if not request_dict.exists("uid") or not (request_dict.exists("status") or request_dict.exists("permissions") or
-                    request_dict.exists("is_active")):
-            # missing required fields, return 400
-            exc = ResponseException("Request body must include uid and at least one of the following: status, permissions, is_active",
-                                    StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc, exc.status)
+        request_dict = RequestDictionary.derive(self.request)
 
         try:
+            editable_fields = ('status', 'permissions', 'is_active')
+            has_editable = any(key in request_dict for key in editable_fields)
+            if 'uid' not in request_dict or not has_editable:
+                # missing required fields, return 400
+                raise ResponseException(
+                    "Request body must include uid and at least one of the "
+                    "following: status, permissions, is_active",
+                    StatusCode.CLIENT_ERROR
+                )
             # Find user that matches specified uid
-            user = sess.query(User).filter(User.user_id == int(request_dict.getValue("uid"))).one()
-        except NoResultFound:
-            exc = ResponseException("No users with that uid", StatusCode.CLIENT_ERROR)
+            user = sess.query(User).filter_by(
+                user_id=int(request_dict['uid'])).one_or_none()
+            if user is None:
+                raise ResponseException(
+                    "No users with that uid", StatusCode.CLIENT_ERROR)
+        except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
-        if request_dict.exists("status"):
+        if 'status' in request_dict:
             #check if the user is waiting
             if user.user_status_id == USER_STATUS_DICT["awaiting_approval"]:
-                if request_dict.getValue("status") == "approved":
+                if request_dict['status'] == 'approved':
                     # Grant agency_user permission to newly approved users
-                    grant_permission(user,"agency_user")
-                    link=  AccountHandler.FRONT_END
-                    email_template = { '[URL]':link,'[EMAIL]':system_email}
+                    grant_permission(user, "agency_user")
+                    link = AccountHandler.FRONT_END
+                    email_template = {'[URL]':link, '[EMAIL]': system_email}
                     new_email = sesEmail(user.email, system_email,templateType="account_approved",parameters=email_template)
                     new_email.send()
-                elif request_dict.getValue("status") == "denied":
+                elif request_dict['status'] == 'denied':
                     email_template = {}
                     new_email = sesEmail(user.email, system_email,templateType="account_rejected",parameters=email_template)
                     new_email.send()
             # Change user's status
             try:
-                user.user_status_id = USER_STATUS_DICT[request_dict.getValue("status")]
+                user.user_status_id = USER_STATUS_DICT[request_dict['status']]
             except ValueError as e:
                 # In this case having a bad status name is a client error
                 raise ResponseException(str(e), StatusCode.CLIENT_ERROR, ValueError)
             sess.commit()
 
-        if request_dict.exists("permissions"):
-            permissions_list = request_dict.getValue("permissions").split(',')
+        if 'permissions' in request_dict:
+            permissions_list = request_dict['permissions'].split(',')
 
             # Remove all existing permissions for user
             user_permissions = get_user_permission(user)
@@ -558,8 +595,8 @@ class AccountHandler:
                 grant_permission(user, permission)
 
         # Activate/deactivate user
-        if request_dict.exists("is_active"):
-            is_active = bool(request_dict.getValue("is_active"))
+        if 'is_active' in request_dict:
+            is_active = bool(request_dict['is_active'])
             if not user.is_active and is_active:
                 # Reset password count to 0
                 self.resetPasswordCount(user)
@@ -573,8 +610,9 @@ class AccountHandler:
 
     def list_users(self):
         """ List all users ordered by status. Associated request body must have key 'filter_by' """
-        request_dict = RequestDictionary(self.request, optionalRequest=True)
-        user_status = request_dict.getValue("status") if request_dict.exists("status") else "all"
+        request_dict = RequestDictionary.derive(
+            self.request, optional_request=True)
+        user_status = request_dict.get('status', 'all')
         sess = GlobalDB.db().session
 
         user = sess.query(User).filter(User.user_id == LoginSession.getName(flaskSession)).one()
@@ -587,10 +625,9 @@ class AccountHandler:
                 users = user_query.filter(User.cgac_code == user.cgac_code).all()
             else:
                 users = user_query.all()
-        except ValueError as e:
+        except ValueError as exc:
             # Client provided a bad status
-            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
-            return JsonResponse.error(exc,exc.status)
+            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
         user_info = []
         for user in users:
             agency_name = sess.query(CGAC.agency_name).\
@@ -608,10 +645,9 @@ class AccountHandler:
         user = sess.query(User).filter(User.user_id == LoginSession.getName(flaskSession)).one()
         try:
             users = sess.query(User).filter(User.cgac_code == user.cgac_code, User.user_status_id == USER_STATUS_DICT["approved"], User.is_active == True).all()
-        except ValueError as e:
+        except ValueError as exc:
             # Client provided a bad status
-            exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, ValueError)
-            return JsonResponse.error(exc, exc.status)
+            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
         user_info = []
         for user in users:
             this_info = {"id":user.user_id, "name": user.name, "email": user.email}
@@ -620,24 +656,31 @@ class AccountHandler:
 
     def list_users_with_status(self):
         """ List all users with the specified status.  Associated request body must have key 'status' """
-        request_dict = RequestDictionary(self.request)
-        if not (request_dict.exists("status")):
-            # Missing a required field, return 400
-            exc = ResponseException("Request body must include status", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status)
+        request_dict = RequestDictionary.derive(self.request)
+        try:
+            if 'status' not in request_dict:
+                # Missing a required field, return 400
+                raise ResponseException(
+                    "Request body must include status", StatusCode.CLIENT_ERROR)
+        except ResponseException as exc:
+            return JsonResponse.error(exc, exc.status)
 
         sess = GlobalDB.db().session
         current_user = sess.query(User).filter(User.user_id == flaskSession["name"]).one()
 
         try:
             if has_permission(current_user, "agency_admin"):
-                users = sess.query(User).filter(User.user_status_id == USER_STATUS_DICT[request_dict.getValue("status")], User.cgac_code == current_user.cgac_code).all()
+                users = sess.query(User).filter_by(
+                    user_status_id=USER_STATUS_DICT[request_dict['status']],
+                    cgac_code= current_user.cgac_code
+                ).all()
             else:
-                users = sess.query(User).filter(User.user_status_id == USER_STATUS_DICT[request_dict.getValue("status")]).all()
-        except ValueError as e:
+                users = sess.query(User).filter_by(
+                    user_status_id=USER_STATUS_DICT[request_dict['status']]
+                ).all()
+        except ValueError as exc:
             # Client provided a bad status
-            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
-            return JsonResponse.error(exc,exc.status)
+            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
         user_info = []
         for user in users:
             agency_name = sess.query(CGAC.agency_name).\
@@ -651,19 +694,27 @@ class AccountHandler:
     def set_new_password(self, session):
         """ Set a new password for a user, request should have keys "user_email" and "password" """
         sess = GlobalDB.db().session
-        request_dict = RequestDictionary(self.request)
-        if not (request_dict.exists("user_email") and request_dict.exists("password")):
-            # Don't have the keys we need in request
-            exc = ResponseException("Set password route requires keys user_email and password",StatusCode.CLIENT_ERROR)
+        request_dict = RequestDictionary.derive(self.request)
+        required = ('user_email', 'password')
+        try:
+            if any(field not in request_dict for field in required):
+                # Don't have the keys we need in request
+                raise ResponseException(
+                    "Set password route requires keys user_email and password",
+                    StatusCode.CLIENT_ERROR
+                )
+            if not self.checkPassword(request_dict['password']):
+                raise ResponseException(
+                    "Invalid Password", StatusCode.CLIENT_ERROR)
+        except ResponseException as exc:
             return JsonResponse.error(exc,exc.status)
 
-        if not self.checkPassword(request_dict.getValue("password")):
-            exc = ResponseException("Invalid Password", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status)
         # Get user from email
-        user = sess.query(User).filter(func.lower(User.email) == func.lower(request_dict.getValue("user_email"))).one()
+        user = sess.query(User).filter(
+            func.lower(User.email) == func.lower(request_dict["user_email"])
+        ).one()
         # Set new password
-        set_user_password(user,request_dict.getValue("password"),self.bcrypt)
+        set_user_password(user,request_dict["password"],self.bcrypt)
         # Invalidate token
         oldToken = sess.query(EmailToken).filter(EmailToken.token == session["token"]).one()
         sess.delete(oldToken)
@@ -684,19 +735,21 @@ class AccountHandler:
 
         """
         sess = GlobalDB.db().session
-        requestDict = RequestDictionary(self.request)
-        if not (requestDict.exists("email")):
-            # Don't have the keys we need in request
-            exc = ResponseException("Reset password route requires key 'email'",StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc,exc.status)
-        # Get user object
+        request_dict = RequestDictionary.derive(self.request)
         try:
-            user = sess.query(User).filter(func.lower(User.email) == func.lower(requestDict.getValue("email"))).one()
-        except Exception as e:
-            exc = ResponseException("Unknown Error",StatusCode.CLIENT_ERROR,ValueError)
-            return JsonResponse.error(exc,exc.status)
+            if 'email' not in request_dict:
+                # Don't have the keys we need in request
+                raise ResponseException(
+                    "Reset password route requires key 'email'",
+                    StatusCode.CLIENT_ERROR
+                )
+            user = sess.query(User).filter(
+                func.lower(User.email) == func.lower(request_dict['email'])
+            ).one()
+        except Exception as exc:
+            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
 
-        email = requestDict.getValue("email")
+        email = request_dict['email']
         LoginSession.logout(session)
         self.send_reset_password_email(user, system_email, email)
 
@@ -807,45 +860,61 @@ class AccountHandler:
         """ Set current user's skip guide parameter """
         sess = GlobalDB.db().session
         user = sess.query(User).filter(User.user_id == session["name"]).one()
-        request_dict = RequestDictionary(self.request)
-        if not request_dict.exists("skip_guide"):
-            exc = ResponseException("Must include skip_guide parameter", StatusCode.CLIENT_ERROR)
-            return JsonResponse.error(exc, exc.status)
-        skip_guide = request_dict.getValue("skip_guide")
-        if type(skip_guide) == type(True):
-            # param is a bool
-            user.skip_guide = skip_guide
-        elif type(skip_guide) == type("string"):
-            # param is a string, allow "true" or "false"
-            if skip_guide.lower() == "true":
-                user.skip_guide = True
-            elif skip_guide.lower() == "false":
-                user.skip_guide = False
+        request_dict = RequestDictionary.derive(self.request)
+        try:
+            if 'skip_guide' not in request_dict:
+                raise ResponseException(
+                    "Must include skip_guide parameter",
+                    StatusCode.CLIENT_ERROR
+                )
+            skip_guide = request_dict['skip_guide']
+            if isinstance(skip_guide, bool):    # e.g. from JSON
+                user.skip_guide = skip_guide
+            elif isinstance(skip_guide, str):
+                # param is a string, allow "true" or "false"
+                if skip_guide.lower() == "true":
+                    user.skip_guide = True
+                elif skip_guide.lower() == "false":
+                    user.skip_guide = False
+                else:
+                    raise ResponseException(
+                        "skip_guide must be true or false",
+                        StatusCode.CLIENT_ERROR
+                    )
             else:
-                exc = ResponseException("skip_guide must be true or false", StatusCode.CLIENT_ERROR)
-                return JsonResponse.error(exc, exc.status)
-        else:
-            exc = ResponseException("skip_guide must be a boolean", StatusCode.CLIENT_ERROR)
+                raise ResponseException(
+                    "skip_guide must be a boolean", StatusCode.CLIENT_ERROR)
+        except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
         sess.commit()
-        return JsonResponse.create(StatusCode.OK,{"message":"skip_guide set successfully","skip_guide":skip_guide})
+        return JsonResponse.create(
+            StatusCode.OK,
+            {"message": "skip_guide set successfully",
+             "skip_guide":skip_guide}
+        )
 
     def email_users(self, system_email, session):
         """ Send email notification to list of users """
         sess = GlobalDB.db().session
-        request_dict = RequestDictionary(self.request)
-        if not (request_dict.exists("users") and request_dict.exists("submission_id") and request_dict.exists("email_template")):
-            exc = ResponseException("Email users route requires users, email_template, and submission_id", StatusCode.CLIENT_ERROR)
+        request_dict = RequestDictionary.derive(self.request)
+        required = ('users', 'submission_id', 'email_template')
+        try:
+            if any(field not in request_dict for field in required):
+                raise ResponseException(
+                    "Email users route requires users, email_template, and "
+                    "submission_id", StatusCode.CLIENT_ERROR
+                )
+        except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
         current_user = sess.query(User).filter(User.user_id == session["name"]).one()
 
-        user_ids = request_dict.getValue("users")
-        submission_id = request_dict.getValue("submission_id")
+        user_ids = request_dict['users']
+        submission_id = request_dict['submission_id']
         # Check if submission id is valid
         self.jobManager.getSubmissionById(submission_id)
 
-        template_type = request_dict.getValue("email_template")
+        template_type = request_dict['email_template']
         # Check if email template type is valid
         get_email_template(template_type)
 

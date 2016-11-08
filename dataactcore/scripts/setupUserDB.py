@@ -1,7 +1,8 @@
-from dataactvalidator.app import createApp
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
 from dataactcore.models import lookups
 from dataactcore.models.userModel import PermissionType, UserStatus
+from dataactvalidator.app import createApp
 
 
 def setupUserDB():
@@ -26,4 +27,5 @@ def insertCodes(sess):
 
 
 if __name__ == '__main__':
+    configure_logging()
     setupUserDB()
