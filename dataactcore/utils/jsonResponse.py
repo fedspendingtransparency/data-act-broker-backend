@@ -1,6 +1,5 @@
 import json
 import logging
-import sys
 import traceback
 
 import flask
@@ -14,8 +13,6 @@ _exception_logger = logging.getLogger('deprecated.exception')
 class JsonResponse :
     """ Used to create an http response object containing JSON """
     debugMode = True
-    printDebug = False # Can cause errors when printing trace on ec2 if set to True
-    logDebug = False
 
     @staticmethod
     def create(code,dictionaryData):
@@ -47,28 +44,19 @@ class JsonResponse :
             responseDict[key] = kwargs[key]
 
 
-        _, _, exc_tb = sys.exc_info()
-        trace = traceback.extract_tb(exc_tb, 10)
+        trace = traceback.extract_tb(exception.__traceback__, 10)
         _exception_logger.exception('Route Error')
+        # TODO: that this is eerily similar to CloudLogger / 
+        # DeprecatedJSONFormatter. We may want to remove this method
         if JsonResponse.debugMode:
             responseDict["message"] = str(exception)
             responseDict["errorType"] = str(type(exception))
-            if(type(exception)==type(ResponseException("")) and exception.wrappedException != None):
+            if (isinstance(exception, ResponseException) and
+                    exception.wrappedException):
                 responseDict["wrappedType"] = str(type(exception.wrappedException))
                 responseDict["wrappedMessage"] = str(exception.wrappedException)
-            trace = list(map(lambda entry: str(entry), trace))
-            responseDict["trace"] = trace
-            if(JsonResponse.printDebug):
-                print(str(type(exception)))
-                print(str(exception))
-                print(str(trace))
-            if(JsonResponse.logDebug):
-                open("responseErrorLog","a").write(str(type(exception)) + ": ")
-                open("responseErrorLog","a").write(str(exception) + "\n")
-                open("responseErrorLog","a").write(str(trace) + "\n")
-            del exc_tb
+            responseDict["trace"] = [str(entry) for entry in trace]
             return JsonResponse.create(errorCode, responseDict)
         else:
             responseDict["message"] = "An error has occurred"
-            del exc_tb
             return JsonResponse.create(errorCode, responseDict)

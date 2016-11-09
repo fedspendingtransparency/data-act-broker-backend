@@ -112,7 +112,7 @@ class DeprecatedJSONFormatter(logging.Formatter):
             'error_log_message': str(exception),
             'error_log_wrapped_message': '',
             'error_log_wrapped_type': '',
-            'error_log_trace': trace,
+            'error_log_trace': [str(line) for line in trace],
             'error_timestamp': str(datetime.utcnow()),
         }
         if (isinstance(exception, ResponseException) and
