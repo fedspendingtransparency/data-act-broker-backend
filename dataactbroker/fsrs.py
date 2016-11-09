@@ -58,6 +58,20 @@ class ControlFilter(MessagePlugin):
         context.reply = without_controls.encode('UTF-8')
 
 
+class ZeroDateFilter(MessagePlugin):
+    """Suds will automatically convert date/datetime fields into their
+    corresponding Python type (yay). This places an implicit constraint,
+    though, in that the dates need to pass Python requirements (such as being
+    having a year between 1 and 9999, month between 1 and 12, etc.). Account
+    for 0000-00-00 by swapping it for the similarly nonsensical (but
+    parseable) 0001-01-01"""
+    def received(self, context):
+        """Overrides this method in MessagePlugin"""
+        original = context.reply.decode('UTF-8')
+        modified = original.replace('0000-00-00', '0001-01-01')
+        context.reply = modified.encode('UTF-8')
+
+
 def newClient(serviceType):
     """Make a `suds` client, accounting for ?wsdl suffixes, failing to import
     appropriate schemas, and http auth"""
@@ -75,7 +89,7 @@ def newClient(serviceType):
         '{}://{}/'.format(parsedWsdl.scheme, parsedWsdl.netloc))
 
     options['doctor'] = doctor.ImportDoctor(importFix)
-    options['plugins'] = [ControlFilter()]
+    options['plugins'] = [ControlFilter(), ZeroDateFilter()]
 
     if config.get('username') and config.get('password'):
         options['transport'] = HttpAuthenticated(
