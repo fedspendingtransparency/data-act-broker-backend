@@ -66,16 +66,19 @@ def test_newClient_auth(monkeypatch):
     assert call_args['transport'].options.password == 'p2'
 
 
-def test_newClient_controlFilter(monkeypatch):
-    """newClient should add the ControlFilter plugin. It should work."""
+def test_newClient_filters(monkeypatch):
+    """newClient should add the ControlFilter and ZeroDateFilter plugins.
+    Those plugins should work."""
     call_args = newClient_call_args(monkeypatch)
     assert 'plugins' in call_args
-    assert len(call_args['plugins']) == 1
+    assert len(call_args['plugins']) == 2
 
-    mock_context = Mock(reply=b'Some \x01thing\x16here')
-    control_filter = call_args['plugins'][0]
-    control_filter.received(mock_context)   # mutates in place
-    assert mock_context.reply == b'Some  thing here'
+    input_value = b'Some \x01thing\x16here. Date: 0000-00-00 stuff'
+    for plugin in call_args['plugins']:
+        mock_context = Mock(reply=input_value)
+        plugin.received(mock_context)   # mutates in place
+        input_value = mock_context.reply
+    assert input_value == b'Some  thing here. Date: 0001-01-01 stuff'
 
 
 def test_soap2Dict():
