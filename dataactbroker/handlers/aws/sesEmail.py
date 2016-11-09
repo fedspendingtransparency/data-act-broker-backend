@@ -78,23 +78,22 @@ class sesEmail(object):
 
 
     @staticmethod
-    def checkToken(token,database,token_type):
+    def check_token(token, token_type):
         """Gets token's salt and decodes it"""
-        saltValue = None
         try:
             sess = GlobalDB.db().session
-            saltValue = sess.query(EmailToken.salt).filter(EmailToken.token == token).one()
-        except MultipleResultsFound as e:
+            salt_value = sess.query(EmailToken.salt).filter(EmailToken.token == token).one()
+        except MultipleResultsFound:
             #duplicate tokens
             return False ,"Invalid Link", sesEmail.INVALID_LINK
-        except NoResultFound as e:
+        except NoResultFound:
             #Token already used or never existed in the first place
             return False,"Link already used",sesEmail.LINK_ALREADY_USED
         ts = URLSafeTimedSerializer(sesEmail.SIGNING_KEY)
         try:
-            emailAddress = ts.loads(token, salt=saltValue[0]+token_type, max_age=86400)
+            emailAddress = ts.loads(token, salt=salt_value[0]+token_type, max_age=86400)
             return True,emailAddress,sesEmail.LINK_VALID
-        except BadSignature as e:
+        except BadSignature:
             #Token is malformed
             return False,"Invalid Link",sesEmail.INVALID_LINK
         except SignatureExpired:

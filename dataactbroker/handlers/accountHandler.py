@@ -444,8 +444,7 @@ class AccountHandler:
 
         token = request_fields['token']
         session["token"] = token
-        success, message, errorCode = sesEmail.checkToken(
-            token, self.interfaces.userDb, "validate_email")
+        success, message, errorCode = sesEmail.check_token(token, "validate_email")
         if success:
             #mark session that email can be filled out
             LoginSession.register(session)
@@ -489,8 +488,7 @@ class AccountHandler:
         token = request_fields['token']
         # Save token to be deleted after reset
         session["token"] = token
-        success, message, errorCode = sesEmail.checkToken(
-            token, self.interfaces.userDb, "password_reset")
+        success, message, errorCode = sesEmail.check_token(token, "password_reset")
         if success:
             #mark session that password can be filled out
             LoginSession.reset_password(session)
