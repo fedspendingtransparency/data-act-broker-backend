@@ -1,11 +1,11 @@
-from dataactbroker.handlers.userHandler import UserHandler
 from tests.unit.dataactcore.factories.user import UserFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.userModel import User
 
 
 def test_delete_user(database):
-    user_handler = UserHandler()
+    sess = GlobalDB.db().session
     # Create user with email
     user_to_be_deleted = UserFactory()
     email = user_to_be_deleted.email
@@ -19,7 +19,8 @@ def test_delete_user(database):
     database.session.add_all([sub_one, sub_two, other_sub])
     database.session.commit()
     # Delete a user
-    user_handler.deleteUser(email)
+    sess.query(User).filter(User.email == email).delete()
+    sess.commit()
     # Confirm user has been deleted and that user's submissions have no user_id
     assert database.session.query(User).filter_by(email = email).count() == 0
     assert sub_one.user_id is None
