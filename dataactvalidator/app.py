@@ -19,7 +19,7 @@ def createApp():
     """Create the Flask app."""
     try:
         app = Flask(__name__.split('.')[0])
-        app.debug = CONFIG_SERVICES['server_debug']
+        app.debug = CONFIG_SERVICES['debug']
         local = CONFIG_BROKER['local']
         error_report_path = CONFIG_SERVICES['error_report_path']
         app.config.from_object(__name__)
@@ -55,7 +55,7 @@ def createApp():
             finally:
                 interfaces.close()
 
-        JsonResponse.debugMode = CONFIG_SERVICES['rest_trace']
+        JsonResponse.debugMode = app.debug
 
         return app
     except:

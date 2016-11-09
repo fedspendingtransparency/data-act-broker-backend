@@ -62,10 +62,11 @@ broker:
 
 services:
     # Set to true to turn on tracing rest errors.
-    rest_trace: true
+    rest_trace: false #deprecated
 
     # Set to true to turn on server debugging.
-    server_debug: true
+    server_debug: false #deprecated
+    debug: false
 
     # URL/IP address that hosts the broker API
     broker_api_host: http://dataactbroker-api.domain.com
