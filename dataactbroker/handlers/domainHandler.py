@@ -7,14 +7,15 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactbroker.handlers.aws.session import LoginSession
 
+# todo: determine if we even need this DomainHandler if we don't have interfaces. It will only contain one static function
 
 class DomainHandler:
 
     def __init__(self, interfaces=None):
         if interfaces is not None:
             self.interfaces = interfaces
-            self.userManager = interfaces.userDb
 
+    # todo: remove this after we stop using "addInterfaces" in RouteUtils.run_instance_function
     def addInterfaces(self, interfaces):
         """ Add connections to databases
 
@@ -22,7 +23,6 @@ class DomainHandler:
             interfaces: InterfaceHolder object to DBs
         """
         self.interfaces = interfaces
-        self.userManager = interfaces.userDb
 
     def list_agencies(self):
         """ Retrieves a list of all agency names and their cgac codes. If there is

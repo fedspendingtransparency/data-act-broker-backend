@@ -45,9 +45,8 @@ class AccountHandler:
         """
         self.request = request
         self.bcrypt = bcrypt
-        if(interfaces != None):
+        if interfaces is not None:
             self.interfaces = interfaces
-            self.userManager = interfaces.userDb
             self.jobManager = interfaces.jobDb
 
     def addInterfaces(self,interfaces):
@@ -57,7 +56,6 @@ class AccountHandler:
             interfaces - InterfaceHolder object for databases
         """
         self.interfaces = interfaces
-        self.userManager = interfaces.userDb
         self.jobManager = interfaces.jobDb
 
     def checkPassword(self,password):
@@ -108,7 +106,7 @@ class AccountHandler:
                     # We have a valid login
 
                     # Reset incorrect password attempt count to 0
-                    self.resetPasswordCount(user)
+                    self.reset_password_count(user)
 
                     return self.create_session_and_response(session, user)
                 else :
@@ -512,7 +510,6 @@ class AccountHandler:
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
         email = request_dict['email']
-        # self.interfaces.userDb.deleteUser(email)
         sess.query(User).filter(User.email == email).delete()
         sess.commit()
         return JsonResponse.create(StatusCode.OK,{"message":"success"})
@@ -597,7 +594,7 @@ class AccountHandler:
             is_active = bool(request_dict['is_active'])
             if not user.is_active and is_active:
                 # Reset password count to 0
-                self.resetPasswordCount(user)
+                self.reset_password_count(user)
                 # Reset last login date so the account isn't expired
                 user.last_login_date = None
                 self.send_reset_password_email(user, system_email, unlock_user=True)
@@ -769,9 +766,8 @@ class AccountHandler:
         if unlock_user:
             user.salt = None
             user.password_hash = None
-            sess.commit()
 
-        self.interfaces.userDb.session.commit()
+        sess.commit()
         # Send email with token
         email_token = sesEmail.createToken(email, "password_reset")
         link = "".join([AccountHandler.FRONT_END, '#/forgotpassword/', email_token])
@@ -820,15 +816,16 @@ class AccountHandler:
             return True
         return False
 
-    def resetPasswordCount(self, user):
+    def reset_password_count(self, user):
         """ Resets the number of failed attempts when a user successfully logs in
 
         Args:
             user: User object to be changed
         """
         if user.incorrect_password_attempts != 0:
+            sess = GlobalDB.db().session
             user.incorrect_password_attempts = 0
-            self.interfaces.userDb.session.commit()
+            sess.commit()
 
     def incrementPasswordCount(self, user):
         """ Records a failed attempt to log in.  If number of failed attempts is higher than threshold, locks account.
@@ -840,10 +837,11 @@ class AccountHandler:
 
         """
         if user.incorrect_password_attempts < self.ALLOWED_PASSWORD_ATTEMPTS:
+            sess = GlobalDB.db().session
             user.incorrect_password_attempts += 1
             if user.incorrect_password_attempts == self.ALLOWED_PASSWORD_ATTEMPTS:
                 self.lockAccount(user)
-            self.interfaces.userDb.session.commit()
+            sess.commit()
 
     def lockAccount(self, user):
         """ Lock this user's account by marking it as inactive
@@ -851,8 +849,9 @@ class AccountHandler:
         Args:
             user: User object to be locked
         """
+        sess = GlobalDB.db().session
         user.is_active = False
-        self.interfaces.userDb.session.commit()
+        sess.commit()
 
     def set_skip_guide(self, session):
         """ Set current user's skip guide parameter """
