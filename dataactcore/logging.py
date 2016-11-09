@@ -130,7 +130,6 @@ class DeprecatedJSONFormatter(logging.Formatter):
             record.asctime = self.formatTime(record, self.datefmt)
         s = self.formatMessage(record)
         if record.exc_info:
-            print(record.exc_info)
             # Cache the traceback text to avoid converting it multiple times
             # (it's constant anyway)
             if not record.exc_text:

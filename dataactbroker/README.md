@@ -28,7 +28,7 @@ The `dataactbroker/handlers` folder contains the logic to handle requests that a
 
 `fileHandler.py` contains functions for managing user file interaction. It creates all of the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
 
-In addition to these helper objects, the following sub classes also exist within the directory: `JobHandler`, and 'InterfaceHolder'. These classes extend the database connection objects that are located in the DATA Act Core. Extra query methods exist in these classes that are used exclusively by the Broker API.
+In addition to these helper objects, the following sub classes also exist within the directory: `JobHandler` and 'InterfaceHolder'. These classes extend the database connection objects that are located in the DATA Act Core. Extra query methods exist in these classes that are used exclusively by the Broker API.
 
 ## DATA Act Broker Route Documentation
 
