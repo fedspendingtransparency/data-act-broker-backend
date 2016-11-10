@@ -136,6 +136,10 @@ RabbitMQ is used to pass jobs to the validator, and requires Erlang to be instal
 1.  Install Erlang based on the [download instructions](https://www.erlang.org/downloads)
 2.  Choose an installation guide based on your OS for [RabbitMQ](https://www.rabbitmq.com/download.html).  Be sure to install Erlang before installing RabbitMQ.  The default user and password is "guest"/"guest", if you change these you'll need to keep that information to be placed in the config files later in the process.
 
+Alternatively, a [Docker](https://www.docker.com/products/overview#/install_the_platform) setup is pretty straight forward:
+
+        $ docker run -d -p 5672:5672 rabbitmq:3
+
 ### Clone Broker Backend Code Repository
 
 Now we're ready to install the DATA Act broker itself. Before starting:
@@ -296,3 +300,30 @@ In order to revert to a specific revision run the following, where [revision] co
 ```bash
 $ alembic downgrade [revision]
 ```
+
+## Debugging
+
+### Logging Configuration
+
+The default logging level for our loggers (and libraries we use) aren't always
+verbose enough. Luckily, we can change the settings for any logger in our
+local `dataactcore/config.yml`. For example, let's add print out all of the
+sqlalchemy SQL calls:
+
+```yaml
+logging:
+    python_config:
+        loggers:
+            sqlalchemy.engine:
+                handlers: ['default']
+                level: INFO
+```
+
+This modifies the `sqlalchemy.engine` logger (as well as
+`sqlalchemy.engine.*`), changing the logging level.
+
+See the
+[docs](https://docs.python.org/3.4/library/logging.config.html#logging-config-dictschema)
+for more configuration details. Everything within `python_config` is imported
+via `dictConfig` (in addition to some standard settings defined in
+`dataactcore.logging`.
