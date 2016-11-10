@@ -31,19 +31,23 @@ def upgrade_data_broker():
     op.execute('UPDATE job SET number_of_errors = 0 WHERE number_of_errors IS NULL')
     op.alter_column('job', 'number_of_errors',
                existing_type=sa.INTEGER(),
-               nullable=False)
+               nullable=False,
+               server_default='0')
     op.execute('UPDATE job SET number_of_warnings = 0 WHERE number_of_warnings IS NULL')
     op.alter_column('job', 'number_of_warnings',
                existing_type=sa.INTEGER(),
-               nullable=False)
+               nullable=False,
+               server_default='0')
     op.execute('UPDATE submission SET number_of_errors = 0 WHERE number_of_errors IS NULL')
     op.alter_column('submission', 'number_of_errors',
                existing_type=sa.INTEGER(),
-               nullable=False)
+               nullable=False,
+               server_default='0')
     op.execute('UPDATE submission SET number_of_warnings = 0 WHERE number_of_warnings IS NULL')
     op.alter_column('submission', 'number_of_warnings',
                existing_type=sa.INTEGER(),
-               nullable=False)
+               nullable=False,
+               server_default='0')
 
 
 def downgrade_data_broker():
