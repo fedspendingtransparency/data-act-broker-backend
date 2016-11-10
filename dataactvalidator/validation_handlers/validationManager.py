@@ -439,14 +439,15 @@ class ValidationManager:
                                           error,row_number,original_label, file_type_id=file_type_id, target_file_id = target_file_id, severity_id=severity_id)
         return error_rows
 
-    def runCrossValidation(self, job_id, interfaces):
+    def runCrossValidation(self, job, interfaces):
         """ Cross file validation job, test all rules with matching rule_timing """
         sess = GlobalDB.db().session
+        job_id = job.job_id
         # Create File Status object
         createFileIfNeeded(job_id)
         error_list = ErrorInterface()
         
-        submission_id = interfaces.jobDb.getSubmissionId(job_id)
+        submission_id = job.submission_id
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
         _exception_logger.info(
@@ -562,7 +563,7 @@ class ValidationManager:
             if job_type_name == 'csv_record_validation':
                 self.runValidation(job, interfaces)
             elif job_type_name == 'validation':
-                self.runCrossValidation(job_id, interfaces)
+                self.runCrossValidation(job, interfaces)
             else:
                 raise ResponseException("Bad job type for validator",
                     StatusCode.INTERNAL_ERROR)
