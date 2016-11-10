@@ -224,19 +224,17 @@ class ValidationManager:
             error_list.recordRowError(job_id,self.filename,field_name,error,row_number,original_rule_label,severity_id=severityId)
         return fatal_error_found
 
-    def runValidation(self, job_id, interfaces):
+    def runValidation(self, job, interfaces):
         """ Run validations for specified job
         Args:
-            job_id: Job to be validated
+            job: Job to be validated
             interfaces: All interfaces
         Returns:
             True if successful
         """
 
         sess = GlobalDB.db().session
-        # get the job object here so we can call the refactored getReportPath
-        # todo: replace other db access functions with job object attributes
-        job = sess.query(Job).filter(Job.job_id == job_id).one()
+        job_id = job.job_id
 
         error_list = ErrorInterface()
 
@@ -247,7 +245,7 @@ class ValidationManager:
         submission_id = job.submission_id
 
         rowNumber = 1
-        fileType = jobTracker.getFileType(job_id)
+        fileType = job.file_type.name
         # Get orm model for this file
         model = [ft.model for ft in FILE_TYPE if ft.name == fileType][0]
 
@@ -259,7 +257,7 @@ class ValidationManager:
         if self.isLocal and not os.path.exists(self.directory):
             os.makedirs(self.directory)
         # Get bucket name and file name
-        fileName = jobTracker.getFileName(job_id)
+        fileName = job.filename
         self.filename = fileName
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
@@ -268,7 +266,7 @@ class ValidationManager:
         warningFileName = self.getFileName(get_report_path(job, 'warning'))
 
         # Create File Status object
-        createFileIfNeeded(job_id,fileName)
+        createFileIfNeeded(job_id, fileName)
 
         reader = self.getReader()
 
@@ -276,8 +274,9 @@ class ValidationManager:
         if CONFIG_BROKER["use_aws"]:
             fileSize = s3UrlHandler.getFileSize(errorFileName)
         else:
-            fileSize = os.path.getsize(jobTracker.getFileName(job_id))
-        jobTracker.setFileSizeById(job_id, fileSize)
+            fileSize = os.path.getsize(fileName)
+        job.file_size = fileSize
+        sess.commit()
 
         # Get fields for this file
         fields = sess.query(FileColumn). \
@@ -311,7 +310,7 @@ class ValidationManager:
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
                     #
-                    (record, reduceRow, skipRow, doneReading, rowErrorHere) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,job_id,fields,error_list)
+                    (record, reduceRow, skipRow, doneReading, rowErrorHere) = self.readRecord(reader, writer, fileType, interfaces, rowNumber, job_id, fields, error_list)
                     if reduceRow:
                         rowNumber -= 1
                     if rowErrorHere:
@@ -379,7 +378,7 @@ class ValidationManager:
             # Update error info for submission
             jobTracker.populateSubmissionErrorInfo(submission_id)
             # Mark validation as finished in job tracker
-            jobTracker.markJobStatus(job_id,"finished")
+            jobTracker.markJobStatus(job_id, "finished")
             markFileComplete(job_id, self.filename)
         finally:
             # Ensure the file always closes
@@ -561,7 +560,7 @@ class ValidationManager:
         try:
             jobTracker.markJobStatus(job_id, "running")
             if job_type_name == 'csv_record_validation':
-                self.runValidation(job_id, interfaces)
+                self.runValidation(job, interfaces)
             elif job_type_name == 'validation':
                 self.runCrossValidation(job_id, interfaces)
             else:
