@@ -13,7 +13,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 
 
-_exception_logger = logging.getLogger('deprecated.exception')
+logger = logging.getLogger(__name__)
 
 
 def createApp():
@@ -38,7 +38,7 @@ def createApp():
     @app.errorhandler(ResponseException)
     def handle_response_exception(error):
         """Handle exceptions explicitly raised during validation."""
-        _exception_logger.exception(str(error))
+        logger.error(str(error))
         return JsonResponse.error(error, error.status)
 
     @app.errorhandler(Exception)
@@ -54,7 +54,7 @@ def createApp():
             sess.commit()
 
         # log failure and return a response
-        _exception_logger.exception(str(error))
+        logger.error(str(error))
         return JsonResponse.error(error, 500)
 
     @app.route("/", methods=["GET"])
