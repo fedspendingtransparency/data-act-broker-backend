@@ -544,7 +544,7 @@ class ValidationManager:
         if job is None:
             validation_error_type = ValidationError.jobError
             writeFileError(job_id, self.filename, validation_error_type)
-            raise ResponseException('Checks failed on Job ID',
+            raise ResponseException('Job ID {} not found in database'.format(job_id),
                                     StatusCode.CLIENT_ERROR, None,
                                     validation_error_type)
 
@@ -552,7 +552,7 @@ class ValidationManager:
         if not run_job_checks(job_id):
             validation_error_type = ValidationError.jobError
             writeFileError(job_id, self.filename, validation_error_type)
-            raise ResponseException('Checks failed on Job ID',
+            raise ResponseException('Prerequisites for Job ID {} are not complete'.format(job_id),
                                     StatusCode.CLIENT_ERROR, None,
                                     validation_error_type)
 
@@ -562,9 +562,10 @@ class ValidationManager:
         else:
             validation_error_type = ValidationError.jobError
             writeFileError(job_id, self.filename, validation_error_type)
-            raise ResponseException('Wrong type of job for this service',
-                                    StatusCode.CLIENT_ERROR, None,
-                                    validation_error_type)
+            raise ResponseException(
+                'Job ID {} is not a validation job (job type is {})'.format(job_id, job.job_type.name),
+                StatusCode.CLIENT_ERROR, None,
+                validation_error_type)
 
         # todo: remove the following try/catch once 1st batch of changes are merged
         try:
