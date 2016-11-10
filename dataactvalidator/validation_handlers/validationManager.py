@@ -77,22 +77,6 @@ class ValidationManager:
             # Log error
             JsonResponse.error(e, e.status)
 
-    @staticmethod
-    def getJobID(request):
-        """ Pull job ID out of request
-        Args:
-            request: HTTP request containing the job ID
-        Returns:
-            job ID, or raises exception if job ID not found in request
-        """
-        requestDict = RequestDictionary(request)
-        if requestDict.exists("job_id"):
-            jobId = requestDict.getValue("job_id")
-            return jobId
-        else:
-            # Request does not have a job ID, can't validate
-            raise ResponseException("No job ID specified in request", StatusCode.CLIENT_ERROR)
-
     def getReader(self):
         """
         Gets the reader type based on if its local install or not.
