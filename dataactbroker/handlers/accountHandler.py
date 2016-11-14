@@ -166,11 +166,6 @@ class AccountHandler:
             group_list_all = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['maxAttribute:GroupList'].split(',')
             group_list = [g for g in group_list_all if g.startswith(parent_group)]
 
-            # Deny access if not in the parent group aka they're not allowed to access the website all together
-            if not parent_group in group_list:
-                raise ValueError("You have logged in with MAX but do not have permission to access the broker. Please "
-                                 "contact DATABroker@fiscal.treasury.gov to obtain access.")
-
             cgac_group = [g for g in group_list if g.startswith(parent_group+"-CGAC_")]
 
             # Deny access if they are not aligned with an agency
@@ -233,6 +228,12 @@ class AccountHandler:
             user.permission_type_id = PERMISSION_TYPE_DICT['website_admin']
         else:
             permission_group = [g for g in group_list if g.startswith(parent_group + "-PERM_")]
+
+            # Check if a user has been placed in a specific group. If not, deny access
+            if not permission_group:
+                raise ValueError("You have logged in with MAX but do not have permission to access the broker. Please "
+                                 "contact DATABroker@fiscal.treasury.gov to obtain access.")
+
             perms = [perm[-1].lower() for perm in permission_group]
             ordered_perms = sorted(self.PERMISSION_MAP, key=lambda k: self.PERMISSION_MAP[k]['order'])
 
