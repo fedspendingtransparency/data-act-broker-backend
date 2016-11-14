@@ -470,7 +470,7 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertIn(json["status"], ["waiting","finished"])
         self.assertEqual(json["file_type"], "D1")
-        self.assertEqual("#", json["url"])
+        self.assertIs("url" in json, True)
         self.assertEqual(json["start"],"01/02/2016")
         self.assertEqual(json["end"],"02/03/2016")
         self.assertEqual(json["message"],"")
