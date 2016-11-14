@@ -123,16 +123,9 @@ class JobTests(BaseTestValidator):
 
     def test_bad_id_job(self):
         """Test job ID not found in job table."""
-        # This test is in an in-between place as we refactor database access.
-        # Because run_test now retrieves a job directly from the db instead of
-        # using getJobById from the job interface, sending a bad job id now
-        # results in a SQLAlchemy exception rather than a 400. So for now, the
-        # test is testing the test code. Arguably, we could remove this entirely
-        # and replace it with a unit test as the logging and umbrella exeception
-        # handling is refactored.
         jobId = -1
         with self.assertRaises(NoResultFound):
-            self.run_test(jobId, 500, False, False, False, False, 0)
+            self.run_test(jobId, 400, False, False, False, False, 0)
 
     def test_bad_prereq_job(self):
         """Test job with unfinished prerequisites."""
