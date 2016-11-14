@@ -27,3 +27,4 @@ freezegun==0.3.7
 -e git+https://github.com/andersinno/suds-jurko.git@44e27560b328ec6482459ea2d75516849dc209ff#egg=suds
 flake8==3.0.4
 xmltodict==0.10.2
+python-json-logger==0.1.5   # check production configs before removing
