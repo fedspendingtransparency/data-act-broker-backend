@@ -4,7 +4,7 @@ from dataactbroker.permissions import permissions_check
 from dataactbroker.routeUtils import RouteUtils
 
 
-def add_user_routes(app,system_email,bcrypt):
+def add_user_routes(app,system_email,bcrypt,is_local):
     """ Create routes related to user management
 
         Args:
@@ -12,7 +12,7 @@ def add_user_routes(app,system_email,bcrypt):
             system_email - Sender address to use for emails
             bcrypt - Password hashing Bcrypt associated with app
     """
-
+    IS_LOCAL = is_local
     RouteUtils.SYSTEM_EMAIL = system_email # Set the system email to be used
 
     @app.route("/v1/register/", methods = ["POST"])
@@ -28,7 +28,7 @@ def add_user_routes(app,system_email,bcrypt):
     def update_user():
         """ Updates editable fields for the specified user """
         accountManager = AccountHandler(request, bcrypt=bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.update_user, RouteUtils.SYSTEM_EMAIL)
+        return RouteUtils.run_instance_function(accountManager, accountManager.update_user, RouteUtils.SYSTEM_EMAIL, IS_LOCAL)
 
     @app.route("/v1/delete_user/", methods=["POST"])
     @permissions_check(permission_list=["website_admin"])

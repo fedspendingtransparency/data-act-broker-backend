@@ -35,7 +35,7 @@ class AccountHandler:
     PERMISSION_MAP = {'r': {'name': 'reader', 'order': 3}, 'w': {'name': 'writer', 'order': 2},
                       's': {'name': 'submitter', 'order': 1}}
 
-    def __init__(self,request, interfaces = None, bcrypt = None):
+    def __init__(self,request, interfaces = None, bcrypt = None, isLocal=False):
         """ Creates the Login Handler
 
         Args:
@@ -43,6 +43,7 @@ class AccountHandler:
             interfaces - InterfaceHolder object for databases
             bcrypt - Bcrypt object associated with app
         """
+        self.isLocal = isLocal
         self.request = request
         self.bcrypt = bcrypt
         if interfaces is not None:
@@ -514,7 +515,7 @@ class AccountHandler:
         sess.commit()
         return JsonResponse.create(StatusCode.OK,{"message":"success"})
 
-    def update_user(self, system_email):
+    def update_user(self, system_email, is_local):
         """
         Update editable fields for specified user. Editable fields for a user:
         * is_active
@@ -582,11 +583,11 @@ class AccountHandler:
         if 'is_active' in request_dict:
             is_active = bool(request_dict['is_active'])
             if not user.is_active and is_active:
-                # Reset password count to 0
-                self.reset_password_count(user)
+                if is_local:
+                    # Reset password count to 0
+                    self.reset_password_count(user)
                 # Reset last login date so the account isn't expired
                 user.last_login_date = None
-                self.send_reset_password_email(user, system_email, unlock_user=True)
             user.is_active = is_active
             sess.commit()
 
@@ -778,8 +779,8 @@ class AccountHandler:
             filter(CGAC.cgac_code == user.cgac_code).\
             one_or_none()
         return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency_name": agency_name,
-                                                  "cgac_code":user.cgac_code,"title":user.title,
-                                                  "permission": user.permission_type_id, "skip_guide":user.skip_guide})
+                                                  "cgac_code": user.cgac_code,"title":user.title,
+                                                  "permission": user.permission_type_id, "skip_guide": user.skip_guide})
 
     def isAccountExpired(self, user):
         """ Checks user's last login date against inactivity threshold, marks account as inactive if expired
