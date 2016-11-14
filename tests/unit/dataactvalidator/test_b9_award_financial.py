@@ -58,6 +58,7 @@ def test_failure_program_activity_name(database):
 
 
 def test_failure_program_activity_code(database):
+    """Failure where the program _activity_code does not match"""
     af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
                                allocation_transfer_agency='test', main_account_code='test',
                                program_activity_name='test', program_activity_code='test_wrong')
