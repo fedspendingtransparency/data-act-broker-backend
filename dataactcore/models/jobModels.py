@@ -60,8 +60,8 @@ class Submission(Base):
     publishable = Column(Boolean, nullable = False, default = "False", server_default = "False")
     publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL", name ="fk_publish_status_id"))
     publish_status = relationship("PublishStatus", uselist = False)
-    number_of_errors = Column(Integer)
-    number_of_warnings = Column(Integer)
+    number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
+    number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
 
 class Job(Base):
     __tablename__ = "job"
@@ -80,8 +80,8 @@ class Job(Base):
     file_size = Column(Integer)
     number_of_rows = Column(Integer)
     number_of_rows_valid = Column(Integer)
-    number_of_errors = Column(Integer)
-    number_of_warnings = Column(Integer)
+    number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
+    number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
     error_message = Column(Text)
     start_date = Column(Date)
     end_date = Column(Date)

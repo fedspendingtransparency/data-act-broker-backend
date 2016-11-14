@@ -1,7 +1,8 @@
-from dataactvalidator.app import createApp
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
 from dataactcore.models import lookups
 from dataactcore.models.validationModels import FieldType, RuleSeverity
+from dataactvalidator.app import createApp
 
 
 def setupValidationDB():
@@ -27,4 +28,5 @@ def insertCodes(sess):
 
 
 if __name__ == '__main__':
+    configure_logging()
     setupValidationDB()

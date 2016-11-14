@@ -1,12 +1,13 @@
 import csv
 import os
 
+from dataactcore.config import CONFIG_BROKER
+from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
-from dataactcore.config import CONFIG_BROKER
 
 class SQLLoader():
 
@@ -90,4 +91,5 @@ class SQLLoader():
             sess.commit()
 
 if __name__ == '__main__':
+    configure_logging()
     SQLLoader.loadSql("sqlRules.csv")

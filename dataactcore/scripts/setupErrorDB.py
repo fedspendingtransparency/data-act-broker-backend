@@ -1,7 +1,8 @@
-from dataactvalidator.app import createApp
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models import lookups
+from dataactcore.logging import configure_logging
 from dataactcore.models.errorModels import FileStatus, ErrorType
+from dataactcore.models import lookups
+from dataactvalidator.app import createApp
 
 
 def setupErrorDB():
@@ -28,4 +29,5 @@ def insertCodes(sess):
 
 
 if __name__ == '__main__':
+    configure_logging()
     setupErrorDB()

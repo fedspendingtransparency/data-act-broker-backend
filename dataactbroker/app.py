@@ -1,18 +1,22 @@
 import os, os.path
+
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask import Flask
-from dataactcore.interfaces.db import GlobalDB
-from dataactcore.utils.jsonResponse import JsonResponse
-from dataactbroker.handlers.aws.sesEmail import sesEmail
-from dataactbroker.handlers.accountHandler import AccountHandler
-from dataactbroker.handlers.aws.session import UserSessionInterface
+
+from dataactbroker.domainRoutes import add_domain_routes
+from dataactbroker.exception_handler import add_exception_handlers
 from dataactbroker.fileRoutes import add_file_routes
+from dataactbroker.handlers.accountHandler import AccountHandler
+from dataactbroker.handlers.aws.sesEmail import sesEmail
+from dataactbroker.handlers.aws.session import UserSessionInterface
 from dataactbroker.loginRoutes import add_login_routes
 from dataactbroker.userRoutes import add_user_routes
-from dataactbroker.domainRoutes import add_domain_routes
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
-from dataactbroker.exception_handler import add_exception_handlers
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
+from dataactcore.utils.jsonResponse import JsonResponse
+
 
 def createApp():
     """Set up the application."""
@@ -20,8 +24,7 @@ def createApp():
     local = CONFIG_BROKER['local']
     app.config.from_object(__name__)
     app.config['LOCAL'] = local
-    app.debug = CONFIG_SERVICES['server_debug']
-    app.config['REST_TRACE'] = CONFIG_SERVICES['rest_trace']
+    app.debug = CONFIG_SERVICES['debug']
     app.config['SYSTEM_EMAIL'] = CONFIG_BROKER['reply_to_email']
 
     # Future: Override config w/ environment variable, if set
@@ -38,7 +41,7 @@ def createApp():
     if local and not os.path.exists(broker_file_path):
         os.makedirs(broker_file_path)
 
-    JsonResponse.debugMode = app.config['REST_TRACE']
+    JsonResponse.debugMode = app.debug
 
     if CONFIG_SERVICES['cross_origin_url'] ==  "*":
         cors = CORS(app, supports_credentials=False, allow_headers = "*", expose_headers = "X-Session-Id")
@@ -83,7 +86,9 @@ def runApp():
     )
 
 if __name__ == '__main__':
+    configure_logging()
     runApp()
 
 elif __name__[0:5]=="uwsgi":
+    configure_logging()
     app = createApp()

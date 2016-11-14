@@ -48,7 +48,7 @@ af_dict = dict(
 
 
 def test_column_headers(database):
-    expected_subset = {'tas', 'object_class', 'ussgl480100_undelivered_or_fyb_sum_c',
+    expected_subset = {'row_number', 'tas', 'object_class', 'ussgl480100_undelivered_or_fyb_sum_c',
                        'ussgl480100_undelivered_or_cpe_sum_c', 'ussgl483100_undelivered_or_cpe_sum_c',
                        'ussgl488100_upward_adjustm_cpe_sum_c', 'obligations_undelivered_or_fyb_sum_c',
                        'obligations_undelivered_or_cpe_sum_c', 'ussgl490100_delivered_orde_fyb_sum_c',

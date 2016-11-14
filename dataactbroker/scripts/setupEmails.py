@@ -1,6 +1,7 @@
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import EmailTemplateType, EmailTemplate
 from dataactvalidator.app import createApp
-from dataactcore.interfaces.db import GlobalDB
 
 
 def setupEmails():
@@ -103,4 +104,5 @@ def loadEmailTemplate(sess, subject, contents, emailType):
     sess.commit()
 
 if __name__ == '__main__':
+    configure_logging()
     setupEmails()

@@ -1,7 +1,6 @@
-import os
-import traceback
-import sys
 from csv import Error
+import os
+import logging
 
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import joinedload
@@ -20,7 +19,6 @@ from dataactcore.utils.report import (
     get_report_path, get_cross_warning_report_name, get_cross_report_name, get_cross_file_pairs)
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
-from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
 from dataactvalidator.filestreaming.csvLocalReader import CsvLocalReader
@@ -31,6 +29,9 @@ from dataactvalidator.validation_handlers.validator import Validator
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.models.validationModels import RuleSql
+
+
+_exception_logger = logging.getLogger('deprecated.exception')
 
 
 class ValidationManager:
@@ -254,7 +255,8 @@ class ValidationManager:
 
         error_list = ErrorInterface()
 
-        CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runValidation on jobID: "+str(job_id), "")
+        _exception_logger.info(
+            'VALIDATOR_INFO: Beginning runValidation on job_id: %s', job_id)
 
         jobTracker = interfaces.jobDb
         submissionId = jobTracker.getSubmissionId(job_id)
@@ -316,7 +318,9 @@ class ValidationManager:
                     rowNumber += 1
 
                     if (rowNumber % 100) == 0:
-                        CloudLogger.logError("VALIDATOR_INFO: ","JobId: "+str(job_id)+" loading row " + str(rowNumber),"")
+                        _exception_logger.info(
+                            'VALIDATOR_INFO: JobId: %s loading row %s',
+                            job_id, rowNumber)
 
                     #
                     # first phase of validations: read record and record a
@@ -356,7 +360,9 @@ class ValidationManager:
                         if self.writeErrors(failures, interfaces, job_id, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list):
                             errorRows.append(rowNumber)
 
-                CloudLogger.logError("VALIDATOR_INFO: ", "Loading complete on jobID: " + str(job_id) + ". Total rows added to staging: " + str(rowNumber), "")
+                _exception_logger.info(
+                    'VALIDATOR_INFO: Loading complete on job_id: %s. '
+                    'Total rows added to staging: %s', job_id, rowNumber)
 
                 #
                 # third phase of validations: run validation rules as specified
@@ -388,7 +394,9 @@ class ValidationManager:
         finally:
             # Ensure the file always closes
             reader.close()
-            CloudLogger.logError("VALIDATOR_INFO: ", "Completed L1 and SQL rule validations on jobID: " + str(job_id), "")
+            _exception_logger.info(
+                'VALIDATOR_INFO: Completed L1 and SQL rule validations on '
+                'job_id: %s', job_id)
         return True
 
     def runSqlValidations(self, interfaces, job_id, file_type, short_colnames, writer, warning_writer, row_number, error_list):
@@ -452,7 +460,9 @@ class ValidationManager:
         submission_id = interfaces.jobDb.getSubmissionId(job_id)
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
-        CloudLogger.logError("VALIDATOR_INFO: ", "Beginning runCrossValidation on submissionID: "+str(submission_id), "")
+        _exception_logger.info(
+            'VALIDATOR_INFO: Beginning runCrossValidation on submission_id: '
+            '%s', submission_id)
 
         # Delete existing cross file errors for this submission
         sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == job_id).delete()
@@ -491,7 +501,9 @@ class ValidationManager:
 
         error_list.writeAllRowErrors(job_id)
         interfaces.jobDb.markJobStatus(job_id, "finished")
-        CloudLogger.logError("VALIDATOR_INFO: ", "Completed runCrossValidation on submissionID: "+str(submission_id), "")
+        _exception_logger.info(
+            'VALIDATOR_INFO: Completed runCrossValidation on submission_id: '
+            '%s', submission_id)
         # Update error info for submission
         interfaces.jobDb.populateSubmissionErrorInfo(submission_id)
         # TODO: Remove temporary step below
@@ -544,17 +556,16 @@ class ValidationManager:
                                     ValidationError.jobError)
 
         except ResponseException as e:
-            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
+            _exception_logger.exception(str(e))
             if e.errorType == None:
                 # Error occurred while trying to get and check job ID
                 e.errorType = ValidationError.jobError
             writeFileError(job_id, self.filename, e.errorType, e.extraInfo)
             return JsonResponse.error(e, e.status)
         except Exception as e:
-            exc = ResponseException(str(e), StatusCode.INTERNAL_ERROR,type(e))
-            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
+            _exception_logger.exception(str(e))
             self.markJob(job_id, jobTracker, "failed", self.filename, ValidationError.unknownError)
-            return JsonResponse.error(exc, exc.status)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
         try:
             jobTracker.markJobStatus(job_id, "running")
@@ -568,23 +579,23 @@ class ValidationManager:
 
             return JsonResponse.create(StatusCode.OK, {"message":"Validation complete"})
         except ResponseException as e:
-            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
+            _exception_logger.exception(str(e))
             self.markJob(job_id, jobTracker, "invalid", self.filename,e.errorType, e.extraInfo)
             return JsonResponse.error(e, e.status)
         except ValueError as e:
-            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
+            _exception_logger.exception(str(e))
             # Problem with CSV headers
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e), ValidationError.unknownError) #"Internal value error"
             self.markJob(job_id,jobTracker, "invalid", self.filename, ValidationError.unknownError)
             return JsonResponse.error(exc, exc.status)
         except Error as e:
-            CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
+            _exception_logger.exception(str(e))
             # CSV file not properly formatted (usually too much in one field)
             exc = ResponseException("Internal error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
             self.markJob(job_id,jobTracker,"invalid",self.filename,ValidationError.unknownError)
             return JsonResponse.error(exc, exc.status)
         except Exception as e:
-            CloudLogger.logError(str(e), e, traceback.extract_tb(sys.exc_info()[2]))
+            _exception_logger.exception(str(e))
             exc = ResponseException(str(e), StatusCode.INTERNAL_ERROR, type(e),
                 ValidationError.unknownError)
             self.markJob(job_id, jobTracker, "failed", self.filename, ValidationError.unknownError)

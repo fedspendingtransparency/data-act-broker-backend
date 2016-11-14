@@ -389,7 +389,7 @@ class UserTests(BaseTestAPI):
                  "email_template": "not_a_real_template"}
         response = self.app.post_json("/v1/email_users/", badInput, expect_errors=True,
                                       headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.CLIENT_ERROR)
+        self.check_response(response, StatusCode.INTERNAL_ERROR)
 
     def test_delete_user(self):
         # Need to be an admin to delete

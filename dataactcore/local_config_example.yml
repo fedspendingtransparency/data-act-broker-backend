@@ -13,6 +13,7 @@ broker:
 
 services:
 
+    debug: true
     broker_api_host: 127.0.0.1
     broker_api_port: 3333
     validator_host: 127.0.0.1
@@ -30,7 +31,6 @@ db:
 
 logging:
 
-    use_logstash: false
     log_files: /full/path/to/local/logfiles
 
 job-queue:
