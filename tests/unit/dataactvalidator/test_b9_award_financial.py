@@ -30,7 +30,9 @@ def test_success(database):
 
     assert number_of_errors(_FILE, database, models=[af_1, af_2, pa]) == 0
 
-    # program activity name/code as null
+
+def test_success_null(database):
+    """Program activity name/code as null"""
     af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
                                allocation_transfer_agency='test', main_account_code='test',
                                program_activity_name=None, program_activity_code=None)
@@ -41,7 +43,7 @@ def test_success(database):
     assert number_of_errors(_FILE, database, models=[af, pa]) == 0
 
 
-def test_failure(database):
+def test_failure_program_activity_name(database):
     """ Testing invalid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
     A-11. """
 
@@ -54,6 +56,8 @@ def test_failure(database):
 
     assert number_of_errors(_FILE, database, models=[af, pa]) == 1
 
+
+def test_failure_program_activity_code(database):
     af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
                                allocation_transfer_agency='test', main_account_code='test',
                                program_activity_name='test', program_activity_code='test_wrong')
@@ -64,7 +68,8 @@ def test_failure(database):
     assert number_of_errors(_FILE, database, models=[af, pa]) == 1
 
 
-    # program activity name/code as null
+def test_failure_program_activity_null(database):
+    """program activity name/code as null"""
     af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test_wrong',
                                allocation_transfer_agency='test', main_account_code='test',
                                program_activity_name=None, program_activity_code=None)
