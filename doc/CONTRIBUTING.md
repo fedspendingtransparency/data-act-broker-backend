@@ -327,3 +327,31 @@ See the
 for more configuration details. Everything within `python_config` is imported
 via `dictConfig` (in addition to some standard settings defined in
 `dataactcore.logging`.
+
+### Adding log messages
+
+Of course, if nothing is being logged, you won't be able to see application
+state. To add log messages, you may need to create a logger at the top of the
+module (i.e. *.py file). We should use `__name__` to name the loggers after
+the modules they are used in.
+
+```python
+import logging
+
+
+logger = logging.getLogger(__name__)
+```
+
+Then, use the logger by calling methods on it:
+
+```python
+logger.info('My message without parameters')
+logger.warning('A bad thing happened to user %s', user_id)
+try:
+    raise ValueError()
+except ValueError:
+    logger.exception("Carries traceback info")
+```
+
+See the Python [docs](https://docs.python.org/3.4/library/logging.html) for
+more info.
