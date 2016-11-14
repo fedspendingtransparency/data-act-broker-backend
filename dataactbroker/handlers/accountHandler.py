@@ -205,8 +205,10 @@ class AccountHandler:
                         user.cgac_code = "SYS"
                     else:
                         user.cgac_code = cgac_group[0][-3:]
+                    sess.add(user)
+                    sess.commit()
 
-                self.grant_highest_permission(sess, user, group_list, parent_group)
+                self.grant_highest_permission(sess, user, group_list, cgac_group[0])
 
             except MultipleResultsFound:
                 raise ValueError("An error occurred during login.")
@@ -224,12 +226,11 @@ class AccountHandler:
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
         return self.response
 
-    def grant_highest_permission(self, session, user, group_list, parent_group):
+    def grant_highest_permission(self, session, user, group_list, cgac_group):
         if user.cgac_code == 'SYS':
             user.permission_type_id = PERMISSION_TYPE_DICT['website_admin']
         else:
-            permission_group = [g for g in group_list if g.startswith(parent_group + "-PERM_")]
-
+            permission_group = [g for g in group_list if g.startswith(cgac_group + "-PERM_")]
             # Check if a user has been placed in a specific group. If not, deny access
             if not permission_group:
                 raise ValueError("You have logged in with MAX but do not have permission to access the broker. Please "
