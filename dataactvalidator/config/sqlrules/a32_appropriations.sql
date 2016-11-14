@@ -9,10 +9,9 @@ SELECT approp.row_number,
 FROM appropriation AS approp
 WHERE approp.submission_id = {0}
 	AND EXISTS (
-		SELECT other.row_number,
-			other.tas
+		SELECT 1
 		FROM appropriation AS other
 		WHERE other.row_number <> approp.row_number
-			AND other.tas IS NOT DISTINCT FROM approp.tas
+			AND other.tas_id IS NOT DISTINCT FROM approp.tas_id
 			AND other.submission_id = {0}
 	);
