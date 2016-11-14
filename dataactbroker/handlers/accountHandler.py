@@ -17,10 +17,9 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.interfaces.db import GlobalDB
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import func
-from dataactcore.models.userModel import User, PermissionType
+from dataactcore.models.userModel import User
 from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList, getUsersByType
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
@@ -33,6 +32,8 @@ class AccountHandler:
     INACTIVITY_THRESHOLD = 120 # Days a user's account can be unused before being marked as inactive
     ALLOWED_PASSWORD_ATTEMPTS = 3 # Number of allowed login attempts before account is locked
     # Instance fields include request, response, logFlag, and logFile
+    PERMISSION_MAP = {'r': {'name': 'reader', 'order': 3}, 'w': {'name': 'writer', 'order': 2},
+                      's': {'name': 'submitter', 'order': 1}}
 
     def __init__(self,request, interfaces = None, bcrypt = None):
         """ Creates the Login Handler
@@ -172,7 +173,7 @@ class AccountHandler:
                 raise ValueError("You have logged in with MAX but do not have permission to access the broker. Please "
                                  "contact DATABroker@fiscal.treasury.gov to obtain access.")
 
-            cgac_group = [g for g in group_list if len(g) == len(parent_group + "-CGAC_")+3]
+            cgac_group = [g for g in group_list if g.startswith(parent_group+"-CGAC_")]
 
             # Deny access if they are not aligned with an agency
             if not cgac_group:
@@ -208,15 +209,10 @@ class AccountHandler:
                     # If part of the SYS agency, use that as the cgac otherwise use the first agency provided
                     if [g for g in cgac_group if g.endswith("SYS")]:
                         user.cgac_code = "SYS"
-                        # website admin permissions
-                        UserHandler().grantPermission(user, 'website_admin')
                     else:
                         user.cgac_code = cgac_group[0][-3:]
-                        # regular user permissions
-                        UserHandler().grantPermission(user, 'agency_user')
 
-                    sess.add(user)
-                    sess.commit()
+                self.grant_highest_permission(sess, user, group_list, parent_group)
 
             except MultipleResultsFound:
                 raise ValueError("An error occurred during login.")
@@ -234,6 +230,21 @@ class AccountHandler:
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
         return self.response
 
+    def grant_highest_permission(self, session, user, group_list, parent_group):
+        if user.cgac_code == 'SYS':
+            user.permission_type_id = PERMISSION_TYPE_DICT['website_admin']
+        else:
+            permission_group = [g for g in group_list if g.startswith(parent_group + "-PERM_")]
+            perms = [perm[-1].lower() for perm in permission_group]
+            ordered_perms = sorted(self.PERMISSION_MAP, key=lambda k: self.PERMISSION_MAP[k]['order'])
+
+            for perm in ordered_perms:
+                if perm in perms:
+                    user.permission_type_id = PERMISSION_TYPE_DICT[self.PERMISSION_MAP[perm]['name']]
+                    break
+        session.merge(user)
+        session.commit()
+
     def get_max_dict(self, ticket, service):
         url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
         max_xml = requests.get(url).content
@@ -244,10 +255,6 @@ class AccountHandler:
         LoginSession.login(session, user.user_id)
 
         sess = GlobalDB.db().session
-        permission_list = []
-        for permission_name, permission_id in PERMISSION_TYPE_DICT.items():
-            if self.interfaces.userDb.hasPermission(user, permission_name):
-                permission_list.append(permission_id)
         self.interfaces.userDb.updateLastLogin(user)
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\
@@ -255,7 +262,7 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "Login successful", "user_id": int(user.user_id),
                                                    "name": user.name, "title": user.title,
                                                    "agency_name": agency_name,
-                                                   "cgac_code": user.cgac_code, "permissions": permission_list})
+                                                   "cgac_code": user.cgac_code, "permission": user.permission_type_id})
 
     def logout(self,session):
         """
@@ -304,19 +311,11 @@ class AccountHandler:
                     filter(CGAC.cgac_code == cgac_code).\
                     one_or_none()
                 agency_name = "Unknown" if agency_name is None else agency_name
-                for user in getUsersByType("website_admin"):
+                for user in sess.query(User).filter_by(permission_type_id=PERMISSION_TYPE_DICT['website_admin']).all():
                     email_template = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
                                      '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : user_email,'[URL]':link}
                     new_email = sesEmail(user.email, system_email,templateType="account_creation",parameters=email_template,database=threaded_database)
                     new_email.send()
-                for user in getUsersByType("agency_admin"):
-                    if user.cgac_code == cgac_code:
-                        email_template = {'[REG_NAME]': username, '[REG_TITLE]': title, '[REG_AGENCY_NAME]': agency_name,
-                             '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]': user_email, '[URL]': link}
-                        new_email = sesEmail(user.email, system_email, templateType="account_creation", parameters=email_template,
-                                database=threaded_database)
-                        new_email.send()
-
             finally:
                 threaded_database.close()
 
@@ -479,7 +478,6 @@ class AccountHandler:
         Update editable fields for specified user. Editable fields for a user:
         * is_active
         * user_status_id
-        * permissions
 
         Args:
             system_email: address the email is sent from
@@ -487,7 +485,6 @@ class AccountHandler:
         Request body should contain the following keys:
             * uid (integer)
             * status (string)
-            * permissions (comma separated string)
             * is_active (boolean)
 
         Returns: JSON response object with either an exception or success message
@@ -497,10 +494,9 @@ class AccountHandler:
         request_dict = RequestDictionary(self.request)
 
         # throw an exception if nothing is provided in the request
-        if not request_dict.exists("uid") or not (request_dict.exists("status") or request_dict.exists("permissions") or
-                    request_dict.exists("is_active")):
+        if not request_dict.exists("uid") or not (request_dict.exists("status") or request_dict.exists("is_active")):
             # missing required fields, return 400
-            exc = ResponseException("Request body must include uid and at least one of the following: status, permissions, is_active",
+            exc = ResponseException("Request body must include uid and at least one of the following: status, is_active",
                                     StatusCode.CLIENT_ERROR)
             return JsonResponse.error(exc, exc.status)
 
@@ -516,9 +512,12 @@ class AccountHandler:
             if self.interfaces.userDb.checkStatus(user,"awaiting_approval"):
                 if request_dict.getValue("status") == "approved":
                     # Grant agency_user permission to newly approved users
-                    self.interfaces.userDb.grantPermission(user,"agency_user")
-                    link=  AccountHandler.FRONT_END
-                    email_template = { '[URL]':link,'[EMAIL]':system_email}
+                    user.permission_type_id = PERMISSION_TYPE_DICT['reader']
+                    sess.merge(user)
+                    sess.commit()
+
+                    link = AccountHandler.FRONT_END
+                    email_template = {'[URL]':link,'[EMAIL]':system_email}
                     new_email = sesEmail(user.email, system_email,templateType="account_approved",parameters=email_template,database=self.interfaces.userDb)
                     new_email.send()
                 elif request_dict.getValue("status") == "denied":
@@ -527,18 +526,6 @@ class AccountHandler:
                     new_email.send()
             # Change user's status
             self.interfaces.userDb.changeStatus(user,request_dict.getValue("status"))
-
-        if request_dict.exists("permissions"):
-            permissions_list = request_dict.getValue("permissions").split(',')
-
-            # Remove all existing permissions for user
-            user_permissions = self.interfaces.userDb.getUserPermissions(user)
-            for permission in user_permissions:
-                self.interfaces.userDb.removePermission(user, permission)
-
-            # Grant specified permissions
-            for permission in permissions_list:
-                self.interfaces.userDb.grantPermission(user, permission)
 
         # Activate/deactivate user
         if request_dict.exists("is_active"):
@@ -559,13 +546,8 @@ class AccountHandler:
         user_status = request_dict.getValue("status") if request_dict.exists("status") else "all"
         sess = GlobalDB.db().session
 
-        user = sess.query(User).filter(User.user_id == LoginSession.getName(flaskSession)).one()
-        is_agency_admin = self.userManager.hasPermission(user, "agency_admin") and not self.userManager.hasPermission(user, "website_admin")
         try:
-            if is_agency_admin:
-                users = self.interfaces.userDb.getUsers(cgac_code=user.cgac_code, status=user_status)
-            else:
-                users = self.interfaces.userDb.getUsers(status=user_status)
+            users = self.interfaces.userDb.getUsers(status=user_status)
         except ValueError as e:
             # Client provided a bad status
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
@@ -575,11 +557,18 @@ class AccountHandler:
             agency_name = sess.query(CGAC.agency_name).\
                 filter(CGAC.cgac_code == user.cgac_code).\
                 one_or_none()
+
             thisInfo = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
                         "email":user.email, "id":user.user_id, "is_active":user.is_active,
-                        "permissions": ",".join(self.interfaces.userDb.getUserPermissions(user)), "status": user.user_status.name}
+                        "permission": self.get_permission_name(user.permission_type_id), "status": user.user_status.name}
             user_info.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":user_info})
+
+    def get_permission_name(self, perm_id):
+        for permission_name, permission_id in PERMISSION_TYPE_DICT.items():
+            if permission_id == perm_id:
+                return permission_name
+        return None
 
     def list_user_emails(self):
         """ List user names and emails """
@@ -606,13 +595,9 @@ class AccountHandler:
             return JsonResponse.error(exc,exc.status)
 
         sess = GlobalDB.db().session
-        current_user = sess.query(User).filter(User.user_id == flaskSession["name"]).one()
 
         try:
-            if self.interfaces.userDb.hasPermission(current_user, "agency_admin"):
-                users = sess.query(User).filter(User.user_status_id == USER_STATUS_DICT[request_dict.getValue("status")], User.cgac_code == current_user.cgac_code).all()
-            else:
-                users = sess.query(User).filter(User.user_status_id == USER_STATUS_DICT[request_dict.getValue("status")]).all()
+            users = sess.query(User).filter(User.user_status_id == USER_STATUS_DICT[request_dict.getValue("status")]).all()
         except ValueError as e:
             # Client provided a bad status
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
@@ -717,18 +702,14 @@ class AccountHandler:
 
         """
         sess = GlobalDB.db().session
-        uid =  session["name"]
+        uid = session["name"]
         user = sess.query(User).filter(User.user_id == uid).one()
-        permission_list = []
-        for permission_name, permission_id in PERMISSION_TYPE_DICT.items():
-            if self.interfaces.userDb.hasPermission(user, permission_name):
-                permission_list.append(permission_id)
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\
             one_or_none()
         return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency_name": agency_name,
                                                   "cgac_code":user.cgac_code,"title":user.title,
-                                                  "permissions": permission_list, "skip_guide":user.skip_guide})
+                                                  "permission": user.permission_type_id, "skip_guide":user.skip_guide})
 
     def isAccountExpired(self, user):
         """ Checks user's last login date against inactivity threshold, marks account as inactive if expired

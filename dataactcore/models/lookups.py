@@ -83,9 +83,10 @@ USER_STATUS = [
 USER_STATUS_DICT = {item.name: item.id for item in USER_STATUS}
 
 PERMISSION_TYPE = [
-    LookupType(0, 'agency_user', 'This user is allowed to upload data to be validated'),
-    LookupType(1, 'website_admin', 'This user is allowed to manage user accounts'),
-    LookupType(2, 'agency_admin', 'This user is allowed to manage user accounts within their agency')
+    LookupType(1, 'reader', 'This user is allowed to view any submission for their agency'),
+    LookupType(2, 'writer', 'This user is allowed to create and edit any submission for their agency'),
+    LookupType(3, 'submitter', 'This user is allowed to certify and submit any submission for their agency'),
+    LookupType(4, 'website_admin', 'This user is a super user and has full admin control')
 ]
 PERMISSION_TYPE_DICT = {item.name: item.id for item in PERMISSION_TYPE}
 

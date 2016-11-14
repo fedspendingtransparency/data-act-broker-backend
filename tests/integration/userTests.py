@@ -3,7 +3,7 @@ from tests.unit.dataactcore.factories.job import SubmissionFactory
 from dataactbroker.app import createApp
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import getUsersByType, createUserWithPassword
+from dataactcore.interfaces.function_bag import createUserWithPassword
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
@@ -181,19 +181,6 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/list_users/",
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.INTERNAL_ERROR)
-
-    def test_get_users_by_type(self):
-        """Test getting user list by type."""
-        agencyUsers = getUsersByType("agency_user")
-        emails = []
-        for admin in agencyUsers:
-            emails.append(admin.email)
-        self.assertEqual(len(agencyUsers), 14)
-        for email in ["realEmail@agency.gov", "waiting@agency.gov",
-            "impatient@agency.gov", "watchingPaintDry@agency.gov",
-            "approved@agency.gov", "nefarious@agency.gov",]:
-            self.assertIn(email, emails)
-        self.assertNotIn('user@agency.gov', emails)
 
     def test_list_submissions(self):
         """Test listing user's submissions. The expected values here correspond to the number of submissions within

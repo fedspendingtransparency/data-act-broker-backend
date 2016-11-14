@@ -12,7 +12,7 @@ from dataactbroker.app import createApp as createBrokerApp
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
 from dataactcore.models import lookups
-from dataactcore.models.userModel import AccountType, User, UserStatus
+from dataactcore.models.userModel import User, UserStatus
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
@@ -23,7 +23,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import dataactcore.config
 from dataactbroker.scripts.setupEmails import setupEmails
 from dataactvalidator.app import createApp as createValidatorApp
-
+from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 
 class BaseTestAPI(unittest.TestCase):
     """ Test login, logout, and session handling """
@@ -76,16 +76,15 @@ class BaseTestAPI(unittest.TestCase):
             admin_password = '@pprovedPassw0rdy'
 
             # set up users for status tests
-            StatusTestUser = namedtuple('StatusTestUser', ['email', 'user_status', 'permissions', 'user_type'])
-            StatusTestUser.__new__.__defaults__ = (None, None, AccountType.AGENCY_USER, None)
+            StatusTestUser = namedtuple('StatusTestUser', ['email', 'user_status', 'permission_type_id', 'user_type'])
+            StatusTestUser.__new__.__defaults__ = (None, None, PERMISSION_TYPE_DICT['writer'], None)
             status_test_users = []
             status_test_users.append(StatusTestUser('user@agency.gov', 'awaiting_confirmation', 0))
             status_test_users.append(StatusTestUser('realEmail@agency.gov', 'email_confirmed'))
             status_test_users.append(StatusTestUser('waiting@agency.gov', 'awaiting_approval'))
             status_test_users.append(StatusTestUser('impatient@agency.gov', 'awaiting_approval'))
             status_test_users.append(StatusTestUser('watchingPaintDry@agency.gov', 'awaiting_approval'))
-            status_test_users.append(StatusTestUser(test_users['admin_email'], 'approved',
-                                              AccountType.WEBSITE_ADMIN + AccountType.AGENCY_USER))
+            status_test_users.append(StatusTestUser(test_users['admin_email'], 'approved', PERMISSION_TYPE_DICT['website_admin']))
             status_test_users.append(StatusTestUser(test_users['approved_email'], 'approved'))
             status_test_users.append(StatusTestUser('nefarious@agency.gov', 'denied'))
 
@@ -103,7 +102,7 @@ class BaseTestAPI(unittest.TestCase):
             createUserWithPassword(
                 test_users['expired_lock_email'], user_password, Bcrypt())
             createUserWithPassword(
-                test_users['agency_admin_email'], admin_password, Bcrypt(), permission=4)
+                test_users['agency_admin_email'], admin_password, Bcrypt(), permission=PERMISSION_TYPE_DICT['writer'])
             createUserWithPassword(
                 test_users['agency_user'], user_password, Bcrypt())
 
@@ -124,10 +123,12 @@ class BaseTestAPI(unittest.TestCase):
             for u in status_test_users:
                 user = User(
                     email=u.email,
-                    permissions=u.permissions,
+                    permission_type_id=u.permission_type_id,
                     user_status=sess.query(UserStatus).filter(UserStatus.name == u.user_status).one()
                 )
                 sess.add(user)
+
+            print("added users")
 
             # set up approved user
             user = sess.query(User).filter(User.email == test_users['approved_email']).one()

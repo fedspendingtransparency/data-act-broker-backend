@@ -35,7 +35,7 @@ def createUserWithPassword(email, password, bcrypt, permission=1, cgac_code="SYS
     """Convenience function to set up fully-baked user (used for setup/testing only)."""
     sess = GlobalDB.db().session
     status = sess.query(UserStatus).filter(UserStatus.name == 'approved').one()
-    user = User(email=email, user_status=status, permissions=permission,
+    user = User(email=email, user_status=status, permission_type_id=permission,
                 cgac_code=cgac_code, name='Administrator', title='System Admin')
     user.salt, user.password_hash = getPasswordHash(password, bcrypt)
     sess.add(user)
@@ -52,40 +52,6 @@ def getPasswordHash(password, bcrypt):
     hash = bcrypt.generate_password_hash(password + salt, HASH_ROUNDS)
     password_hash = hash.decode("utf-8")
     return salt, password_hash
-
-
-def getUsersByType(permission_name):
-    """Get list of users with specified permission."""
-    sess = GlobalDB.db().session
-    # This could likely be simplified, but since we're moving towards using MAX for authentication,
-    # it's not worth spending too much time reworking.
-    user_list = []
-    bit_number = PERMISSION_TYPE_DICT[permission_name]
-    users = sess.query(User).all()
-    for user in users:
-        if checkPermissionByBitNumber(user, bit_number):
-            # This user has this permission, include them in list
-            user_list.append(user)
-    return user_list
-
-
-def checkPermissionByBitNumber(user, bitNumber):
-    """Check whether user has the specified permission, determined by whether a binary representation of user's
-    permissions has the specified bit set to 1.  Use hasPermission to check by permission name."""
-    # This could likely be simplified, but since we're moving towards using MAX for authentication,
-    # it's not worth spending too much time reworking.
-
-    if user.permissions is None:
-        # This user has no permissions
-        return False
-    # First get the value corresponding to the specified bit (i.e. 2^bitNumber)
-    bitValue = 2 ** bitNumber
-    # Remove all bits above the target bit by modding with the value of the next higher bit
-    # This leaves the target bit and all lower bits as the remaining value, all higher bits are set to 0
-    lowEnd = user.permissions % (bitValue * 2)
-    # Now compare the remaining value to the value for the target bit to determine if that bit is 0 or 1
-    # If the remaining value is still at least the value of the target bit, that bit is 1, so we have that permission
-    return lowEnd >= bitValue
 
 
 def populateSubmissionErrorInfo(submissionId):

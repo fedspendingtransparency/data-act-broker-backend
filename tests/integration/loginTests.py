@@ -21,7 +21,7 @@ class LoginTests(BaseTestAPI):
         self.assertIn("title", json)
         self.assertIn("name", json)
         self.assertIn("cgac_code", json)
-        self.assertIn("permissions", json)
+        self.assertIn("permission", json)
 
     def test_inactive_login(self):
         """Test broker inactive user login"""
