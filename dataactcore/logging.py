@@ -69,22 +69,22 @@ DEFAULT_CONFIG = {
             'propagate': True
         },
         'deprecated.debug': {
-            'handlers': ['deprecated.debug'],
+            'handlers': ['deprecated.debug', 'console'],
             'level': 'DEBUG',
             'propagate': False
         },
         'deprecated.exception': {
-            'handlers': ['deprecated.exception'],
+            'handlers': ['deprecated.exception', 'console'],
             'level': 'ERROR',
             'propagate': False
         },
         'deprecated.info': {
-            'handlers': ['deprecated.info'],
+            'handlers': ['deprecated.info', 'console'],
             'level': 'DEBUG',
             'propagate': False
         },
         'deprecated.smx': {
-            'handlers': ['deprecated.smx'],
+            'handlers': ['deprecated.smx', 'console'],
             'level': 'DEBUG',
             'propagate': False
         },
