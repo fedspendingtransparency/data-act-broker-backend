@@ -315,7 +315,7 @@ logging:
     python_config:
         loggers:
             sqlalchemy.engine:
-                handlers: ['default']
+                handlers: ['console']
                 level: INFO
 ```
 

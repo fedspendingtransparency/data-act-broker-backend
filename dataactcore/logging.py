@@ -36,7 +36,7 @@ DEFAULT_CONFIG = {
         },
     },
     'handlers': {
-        'default': {
+        'console': {
             'formatter': 'default',
             'class': 'logging.StreamHandler'
         },
@@ -64,7 +64,7 @@ DEFAULT_CONFIG = {
     'loggers': {
         # i.e. "all modules"
         '': {
-            'handlers': ['default'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True
         },
