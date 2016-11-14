@@ -19,7 +19,7 @@ from sqlalchemy import func
 from dataactcore.models.userModel import User, EmailToken
 from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import (get_email_template, check_correct_password, set_user_password)
+from dataactcore.interfaces.function_bag import (get_email_template, check_correct_password, set_user_password, updateLastLogin)
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
@@ -253,7 +253,7 @@ class AccountHandler:
         LoginSession.login(session, user.user_id)
 
         sess = GlobalDB.db().session
-        self.interfaces.userDb.updateLastLogin(user)
+        updateLastLogin(user)
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\
             one_or_none()
@@ -563,7 +563,7 @@ class AccountHandler:
 
                     link = AccountHandler.FRONT_END
                     email_template = {'[URL]':link,'[EMAIL]':system_email}
-                    new_email = sesEmail(user.email, system_email,templateType="account_approved",parameters=email_template,database=self.interfaces.userDb)
+                    new_email = sesEmail(user.email, system_email,templateType="account_approved",parameters=email_template)
                     new_email.send()
                 elif request_dict['status'] == 'denied':
                     email_template = {}
@@ -597,13 +597,11 @@ class AccountHandler:
             self.request, optional_request=True)
         user_status = request_dict.get('status', 'all')
         sess = GlobalDB.db().session
-
         try:
             user_query = sess.query(User)
             if user_status != "all":
                 user_query = user_query.filter(User.user_status_id == USER_STATUS_DICT[user_status])
-            else:
-                users = user_query.all()
+            users = user_query.all()
         except ValueError as exc:
             # Client provided a bad status
             return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)

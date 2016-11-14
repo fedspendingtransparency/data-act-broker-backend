@@ -9,7 +9,6 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import has_permission
 from dataactcore.models.userModel import User
 from dataactbroker.exceptions.invalid_usage import InvalidUsage
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT

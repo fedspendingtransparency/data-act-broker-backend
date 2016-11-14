@@ -34,7 +34,6 @@ class BaseTestAPI(unittest.TestCase):
         cls.session_id = ""
 
         with createValidatorApp().app_context():
-
             # update application's db config options so unittests
             # run against test databases
             suite = cls.__name__.lower()
@@ -79,7 +78,7 @@ class BaseTestAPI(unittest.TestCase):
             StatusTestUser = namedtuple('StatusTestUser', ['email', 'user_status', 'permission_type_id', 'user_type'])
             StatusTestUser.__new__.__defaults__ = (None, None, PERMISSION_TYPE_DICT['writer'], None)
             status_test_users = []
-            status_test_users.append(StatusTestUser('user@agency.gov', 'awaiting_confirmation', 0))
+            status_test_users.append(StatusTestUser('user@agency.gov', 'awaiting_confirmation'))
             status_test_users.append(StatusTestUser('realEmail@agency.gov', 'email_confirmed'))
             status_test_users.append(StatusTestUser('waiting@agency.gov', 'awaiting_approval'))
             status_test_users.append(StatusTestUser('impatient@agency.gov', 'awaiting_approval'))
@@ -107,7 +106,6 @@ class BaseTestAPI(unittest.TestCase):
                 test_users['agency_user'], user_password, Bcrypt())
 
             # get user info and save as class variables for use by tests
-
             sess = GlobalDB.db().session
 
             agencyUser = sess.query(User).filter(User.email == test_users['agency_user']).one()
@@ -127,8 +125,6 @@ class BaseTestAPI(unittest.TestCase):
                     user_status=sess.query(UserStatus).filter(UserStatus.name == u.user_status).one()
                 )
                 sess.add(user)
-
-            print("added users")
 
             # set up approved user
             user = sess.query(User).filter(User.email == test_users['approved_email']).one()
