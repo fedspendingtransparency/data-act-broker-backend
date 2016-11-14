@@ -7,7 +7,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency
 from dataactcore.models.stagingModels import AwardFinancial
-from dataactcore.models.userModel import User, UserStatus, EmailTemplateType, EmailTemplate, PermissionType
+from dataactcore.models.userModel import User, UserStatus, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
                                         JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PERMISSION_TYPE_DICT)
