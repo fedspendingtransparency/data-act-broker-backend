@@ -9,8 +9,7 @@ from dataactcore.utils.responseException import ResponseException
 
 
 def deep_merge(left, right):
-    """Deep merge dictionaries, appending iterables, replacing values from
-    right"""
+    """Deep merge dictionaries, replacing values from right"""
     if isinstance(left, dict) and isinstance(right, dict):
         result = left.copy()
         for key in right:
@@ -19,8 +18,6 @@ def deep_merge(left, right):
             else:
                 result[key] = right[key]
         return result
-    elif isinstance(left, (tuple, list)) and isinstance(right, (tuple, list)):
-        return tuple(left) + tuple(right)
     else:
         return right
 
