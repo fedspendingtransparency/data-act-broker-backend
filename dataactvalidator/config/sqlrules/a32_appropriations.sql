@@ -12,6 +12,6 @@ WHERE approp.submission_id = {0}
 		SELECT 1
 		FROM appropriation AS other
 		WHERE other.row_number <> approp.row_number
-			AND other.tas_id IS NOT DISTINCT FROM approp.tas_id
+			AND other.tas_id = approp.tas_id
 			AND other.submission_id = {0}
 	);
