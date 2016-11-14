@@ -9,8 +9,7 @@ from dataactcore.utils.responseException import ResponseException
 
 
 def deep_merge(left, right):
-    """Deep merge dictionaries, appending iterables, replacing values from
-    right"""
+    """Deep merge dictionaries, replacing values from right"""
     if isinstance(left, dict) and isinstance(right, dict):
         result = left.copy()
         for key in right:
@@ -19,8 +18,6 @@ def deep_merge(left, right):
             else:
                 result[key] = right[key]
         return result
-    elif isinstance(left, (tuple, list)) and isinstance(right, (tuple, list)):
-        return tuple(left) + tuple(right)
     else:
         return right
 
@@ -39,7 +36,7 @@ DEFAULT_CONFIG = {
         },
     },
     'handlers': {
-        'default': {
+        'console': {
             'formatter': 'default',
             'class': 'logging.StreamHandler'
         },
@@ -67,27 +64,27 @@ DEFAULT_CONFIG = {
     'loggers': {
         # i.e. "all modules"
         '': {
-            'handlers': ['default'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True
         },
         'deprecated.debug': {
-            'handlers': ['deprecated.debug'],
+            'handlers': ['deprecated.debug', 'console'],
             'level': 'DEBUG',
             'propagate': False
         },
         'deprecated.exception': {
-            'handlers': ['deprecated.exception'],
+            'handlers': ['deprecated.exception', 'console'],
             'level': 'ERROR',
             'propagate': False
         },
         'deprecated.info': {
-            'handlers': ['deprecated.info'],
+            'handlers': ['deprecated.info', 'console'],
             'level': 'DEBUG',
             'propagate': False
         },
         'deprecated.smx': {
-            'handlers': ['deprecated.smx'],
+            'handlers': ['deprecated.smx', 'console'],
             'level': 'DEBUG',
             'propagate': False
         },
