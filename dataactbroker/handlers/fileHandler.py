@@ -3,6 +3,7 @@ from csv import reader
 from datetime import datetime
 import logging
 from uuid import uuid4
+from shutil import copyfile
 
 import requests
 from flask import session as flaskSession
@@ -611,18 +612,22 @@ class FileHandler:
             # Date was not in expected format
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
             return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
-        # Create file D API URL with dates and callback URL
-        callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
-        _debug_logger.debug('Callback URL for %s: %s', file_type, callback)
-        get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
 
-        _debug_logger.debug('Calling D file API => %s', get_url)
-        try:
-            if not self.call_d_file_api(get_url):
-                self.handleEmptyResponse(job, valJob)
-        except Timeout as e:
-            exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
-            return False, JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
+        if not self.isLocal:
+            # Create file D API URL with dates and callback URL
+            callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
+            _debug_logger.debug('Callback URL for %s: %s', file_type, callback)
+            get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+
+            _debug_logger.debug('Calling D file API => %s', get_url)
+            try:
+                if not self.call_d_file_api(get_url):
+                    self.handleEmptyResponse(job, valJob)
+            except Timeout as e:
+                exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
+                return False, JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
+        else:
+            self.completeGeneration(task.generation_task_key, file_type)
 
         return True, None
 
@@ -666,15 +671,22 @@ class FileHandler:
 
     def download_file(self, local_file_path, file_url):
         """ Download a file locally from the specified URL, returns True if successful """
-        with open(local_file_path, "w") as file:
-            # get request
-            response = requests.get(file_url)
-            if response.status_code != 200:
-                # Could not download the file, return False
-                return False
-            # write to file
-            response.encoding = "utf-8"
-            file.write(response.text)
+        if not self.isLocal:
+            with open(local_file_path, "w") as file:
+                # get request
+                response = requests.get(file_url)
+                if response.status_code != 200:
+                    # Could not download the file, return False
+                    return False
+                # write to file
+                response.encoding = "utf-8"
+                file.write(response.text)
+                return True
+        else:
+            try:
+                copyfile(file_url, local_file_path)
+            except FileNotFoundError:
+                raise ResponseException('Source file ' + file_url + ' does not exist.', StatusCode.INTERNAL_ERROR)
             return True
 
     def get_lines_from_csv(self, file_path):
@@ -859,13 +871,14 @@ class FileHandler:
         response["urls"] = self.s3manager.getFileUrls(bucket_name=CONFIG_BROKER["static_files_bucket"], path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
 
-    def completeGeneration(self, generationId):
+    def completeGeneration(self, generationId, file_type=None):
         """ For files D1 and D2, the API uses this route as a callback to load the generated file.
         Requires an 'href' key in the request that specifies the URL of the file to be downloaded
 
         Args:
             generationId - Unique key stored in file_generation_task table, used in callback to identify which submission
             this file is for.
+            file_type - the type of file to be generated, D1 or D2. Only used when calling completeGeneration for local development
 
         """
         try:
@@ -873,17 +886,24 @@ class FileHandler:
                 raise ResponseException(
                     "Must include a generation ID", StatusCode.CLIENT_ERROR)
 
-            # Pull url from request
-            request_dict = RequestDictionary.derive(self.request)
-            _smx_logger.debug('Request content => %s', request_dict)
+            if not self.isLocal:
+                # Pull url from request
+                request_dict = RequestDictionary.derive(self.request)
+                _smx_logger.debug('Request content => %s', request_dict)
 
-            if 'href' not in request_dict:
-                raise ResponseException(
-                    "Request must include href key with URL of D file",
-                    StatusCode.CLIENT_ERROR
-                )
-            url = request_dict['href']
-            _smx_logger.debug('Download URL => %s', url)
+                if 'href' not in request_dict:
+                    raise ResponseException(
+                        "Request must include href key with URL of D file",
+                        StatusCode.CLIENT_ERROR
+                    )
+
+                url = request_dict['href']
+                _smx_logger.debug('Download URL => %s', url)
+            else:
+                if file_type == "D1":
+                    url = CONFIG_SERVICES["d1_file_path"]
+                else:
+                    url = CONFIG_SERVICES["d2_file_path"]
 
             #Pull information based on task key
             _smx_logger.debug('Pulling information based on task key...')
