@@ -11,7 +11,7 @@ SELECT
 	SUM(op.obligations_incurred_by_pr_cpe) * -1 as obligations_incurred_by_pr_cpe_sum
 FROM appropriation AS approp
 	JOIN object_class_program_activity op
-		ON approp.tas = op.tas
+		ON approp.tas_id = op.tas_id
 			AND approp.submission_id = op.submission_id
 WHERE approp.submission_id = {}
 GROUP BY approp.row_number,
