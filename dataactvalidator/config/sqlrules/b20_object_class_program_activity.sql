@@ -13,7 +13,7 @@ WHERE af.submission_id = {}
 	AND NOT EXISTS (
 		SELECT 1
 		FROM object_class_program_activity AS op
-		WHERE af.tas IS NOT DISTINCT FROM op.tas
+		WHERE af.tas_id IS NOT DISTINCT FROM op.tas_id
 			AND (af.program_activity_code IS NOT DISTINCT FROM op.program_activity_code
 				OR COALESCE(af.program_activity_code, '') = ''
 				OR af.program_activity_code = '0000')
