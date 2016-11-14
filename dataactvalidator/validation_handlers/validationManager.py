@@ -524,49 +524,50 @@ class ValidationManager:
         Returns:
         Http response object
         """
-        sess = GlobalDB.db().session
         # Create connection to job tracker database
         self.filename = None
-        job_id = None
-        jobTracker = None
+        sess = GlobalDB.db().session
 
-        try:
-            jobTracker = interfaces.jobDb
-            requestDict = RequestDictionary(request)
-            if requestDict.exists("job_id"):
-                job_id = requestDict.getValue("job_id")
-            else:
-                # Request does not have a job ID, can't validate
-                raise ResponseException("No job ID specified in request",
-                                        StatusCode.CLIENT_ERROR)
+        jobTracker = interfaces.jobDb
+        requestDict = RequestDictionary(request)
+        if requestDict.exists('job_id'):
+            job_id = requestDict.getValue('job_id')
+        else:
+            # Request does not have a job ID, can't validate
+            validation_error_type = ValidationError.jobError
+            raise ResponseException('No job ID specified in request',
+                                    StatusCode.CLIENT_ERROR, None,
+                                    validation_error_type)
 
-            # Get the job
-            job = sess.query(Job).filter_by(job_id=job_id).one()
+        # Get the job
+        job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
+        if job is None:
+            validation_error_type = ValidationError.jobError
+            writeFileError(job_id, self.filename, validation_error_type)
+            raise ResponseException('Job ID {} not found in database'.format(job_id),
+                                    StatusCode.CLIENT_ERROR, None,
+                                    validation_error_type)
 
-            # Make sure job's prerequisites are complete
-            if not run_job_checks(job_id):
-                raise ResponseException("Checks failed on Job ID",
-                                        StatusCode.CLIENT_ERROR)
+        # Make sure job's prerequisites are complete
+        if not run_job_checks(job_id):
+            validation_error_type = ValidationError.jobError
+            writeFileError(job_id, self.filename, validation_error_type)
+            raise ResponseException('Prerequisites for Job ID {} are not complete'.format(job_id),
+                                    StatusCode.CLIENT_ERROR, None,
+                                    validation_error_type)
 
-            # Make sure this is a validation job
-            if job.job_type.name in ('csv_record_validation', 'validation'):
-                job_type_name = job.job_type.name
-            else:
-                raise ResponseException("Wrong type of job for this service", StatusCode.CLIENT_ERROR, None,
-                                    ValidationError.jobError)
+        # Make sure this is a validation job
+        if job.job_type.name in ('csv_record_validation', 'validation'):
+            job_type_name = job.job_type.name
+        else:
+            validation_error_type = ValidationError.jobError
+            writeFileError(job_id, self.filename, validation_error_type)
+            raise ResponseException(
+                'Job ID {} is not a validation job (job type is {})'.format(job_id, job.job_type.name),
+                StatusCode.CLIENT_ERROR, None,
+                validation_error_type)
 
-        except ResponseException as e:
-            _exception_logger.exception(str(e))
-            if e.errorType == None:
-                # Error occurred while trying to get and check job ID
-                e.errorType = ValidationError.jobError
-            writeFileError(job_id, self.filename, e.errorType, e.extraInfo)
-            return JsonResponse.error(e, e.status)
-        except Exception as e:
-            _exception_logger.exception(str(e))
-            self.markJob(job_id, jobTracker, "failed", self.filename, ValidationError.unknownError)
-            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
-
+        # todo: remove the following try/catch once 1st batch of changes are merged
         try:
             jobTracker.markJobStatus(job_id, "running")
             if job_type_name == 'csv_record_validation':
