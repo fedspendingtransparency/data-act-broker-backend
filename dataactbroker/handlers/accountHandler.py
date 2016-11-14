@@ -16,12 +16,10 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.interfaces.db import GlobalDB
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import func
-from dataactcore.models.userModel import User, EmailToken, PermissionType
+from dataactcore.models.userModel import User, EmailToken
 from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import (getUsersByType, get_email_template, has_permission,
-                                                 check_correct_password, set_user_password, get_user_permission,
-                                                 grant_permission, remove_permission)
+from dataactcore.interfaces.function_bag import (get_email_template, check_correct_password, set_user_password)
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
 
