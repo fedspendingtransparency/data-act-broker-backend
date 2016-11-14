@@ -85,7 +85,7 @@ class LoginSession():
 
 
     @staticmethod
-    def resetPassword(session):
+    def reset_password(session):
         """
         arguments:
 
