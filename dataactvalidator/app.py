@@ -1,6 +1,6 @@
 import logging
 
-from flask import Flask, request
+from flask import Flask, request, g
 
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
@@ -44,7 +44,7 @@ def createApp():
     @app.errorhandler(Exception)
     def handle_validation_exception(error):
         """Handle uncaught exceptions in validation process."""
-        job_id = request.json.get('job_id')
+        job_id = g.get('job_id', None)
 
         # if request had a job id, set job to failed status
         if job_id:
@@ -66,6 +66,8 @@ def createApp():
     def validate():
         """Start the validation process."""
         interfaces = InterfaceHolder() # Create sessions for this route
+        if request.json:
+            g.job_id = request.json.get('job_id')
         validation_manager = ValidationManager(local, error_report_path)
         return validation_manager.validate_job(request,interfaces)
 
