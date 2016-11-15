@@ -46,7 +46,7 @@ def enqueue(jobID):
     params = {
         'job_id': jobID
     }
-    response = requests.post(validatorUrl, params)
+    response = requests.post(validatorUrl, json=params)
     _info_logger.info('Job %s has completed validation', jobID)
     _info_logger.info('Validator response: %s', response.json())
     return response.json()

@@ -82,7 +82,7 @@ def createApp():
     def validate():
         """Start the validation process."""
         interfaces = InterfaceHolder() # Create sessions for this route
-        if request.json:
+        if request.is_json:
             g.job_id = request.json.get('job_id')
         validation_manager = ValidationManager(local, error_report_path)
         return validation_manager.validate_job(request,interfaces)
