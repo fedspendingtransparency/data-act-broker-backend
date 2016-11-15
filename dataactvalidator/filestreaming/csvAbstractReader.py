@@ -93,8 +93,8 @@ class CsvAbstractReader(object):
                     header_value = submitted_header_value
                 if not header_value in possible_fields:
                     # Add flex headers to flex list
-                    if str(header_value).startswith("flex_"):
-                        self.flex_dictionary[current] = header_value
+                    if str(submitted_header_value).startswith("flex_"):
+                        self.flex_dictionary[current] = submitted_header_value
                     else:
                         self.flex_dictionary[current] = None
                     # Allow unexpected headers, just mark the header as None so we skip it when reading

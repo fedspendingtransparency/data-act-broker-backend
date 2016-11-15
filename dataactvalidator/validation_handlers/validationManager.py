@@ -274,17 +274,16 @@ class ValidationManager:
         Returns:
             Boolean indicating whether to skip current row
         """
-        # flex_interface = interfaces.stagingDb
-        # try:
-        #     flex_cols["job_id"] = job_id
-        #     flex_cols["submission_id"] = submission_id
+        sess = GlobalDB.db().session
+        try:
+            flex_cols["job_id"] = job_id
+            flex_cols["submission_id"] = submission_id
 
-        #     rec = FlexField(**flex_cols)
-        #     flex_interface.session.add(rec)
-        #     flex_interface.session.commit()
-        # except ResponseException as e:
-        #     # Write failed, move to next record
-        #     return True
+            sess.add(FlexField(**flex_cols))
+            sess.commit()
+        except ResponseException as e:
+            # Write failed, move to next record
+            return True
         return False
 
     def runValidation(self, job_id, interfaces):
@@ -397,8 +396,8 @@ class ValidationManager:
                         passedValidations, failures, valid = Validator.validate(record, csvSchema)
                     if valid:
                         skipRow = self.writeToStaging(record, job_id, submissionId, passedValidations, writer, rowNumber, model, error_list)
-                        # if flex_cols is not None:
-                        #     self.writeToFlex(flex_cols, job_id, submissionId, interfaces, fileType)
+                        if flex_cols is not None:
+                            self.writeToFlex(flex_cols, job_id, submissionId, interfaces, fileType)
                         if skipRow:
                             errorRows.append(rowNumber)
                             continue
