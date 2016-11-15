@@ -1,31 +1,16 @@
-import traceback
-from sqlalchemy import func, or_
+import logging
+
 from sqlalchemy.orm import joinedload
 
-from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import (
     Job, JobDependency, JobStatus, JobType, Submission, FileType,
     PublishStatus)
-from dataactcore.models.stagingModels import AwardFinancial
-from dataactcore.utils.statusCode import StatusCode
-from dataactcore.utils.responseException import ResponseException
-from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import enqueue
-from dataactvalidator.validation_handlers.validationError import ValidationError
 
-def obligationStatsForSubmission(submission_id):
-    sess = GlobalDB.db().session
-    base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
-        filter(AwardFinancial.submission_id == submission_id)
-    procurement = base_query.filter(AwardFinancial.piid != None)
-    fin_assist = base_query.filter(or_(AwardFinancial.fain != None, AwardFinancial.uri != None))
-    return {
-        "total_obligations": float(base_query.scalar() or 0),
-        "total_procurement_obligations": float(procurement.scalar() or 0),
-        "total_assistance_obligations": float(fin_assist.scalar() or 0)
-    }
+
+_exception_logger = logging.getLogger('deprecated.exception')
 
 
 class JobTrackerInterface(BaseInterface):
@@ -207,9 +192,9 @@ class JobTrackerInterface(BaseInterface):
         for depJobId in self.getDependentJobs(jobId):
             isReady = True
             if not (self.getJobStatus(depJobId) == self.getJobStatusId('waiting')):
-                CloudLogger.logError("Job dependency is not in a 'waiting' state",
-                                     ResponseException("Job dependency is not in a 'waiting' state",StatusCode.CLIENT_ERROR, ValueError),
-                                     traceback.extract_stack())
+                _exception_logger.error(
+                    "%s (dependency of %s) is not in a 'waiting' state",
+                    depJobId, jobId)
                 continue
             # if dependent jobs are finished, then check the jobs of which the current job is a dependent
             for preReqJobId in self.getPrerequisiteJobs(depJobId):
@@ -223,25 +208,11 @@ class JobTrackerInterface(BaseInterface):
                 # mark job as ready
                 self.markJobStatus(depJobId, 'ready')
                 # add to the job queue
-                CloudLogger.log("Sending job {} to the job manager".format(str(depJobId)))
+                logging.getLogger('deprecated.info').info(
+                    'Sending job %s to job manager', depJobId)
                 enqueue.delay(depJobId)
 
-    def runChecks(self,jobId):
-        """ Checks that specified job has no unsatisfied prerequisites
-        Args:
-        jobId -- job_id of job to be run
 
-        Returns:
-        True if prerequisites are satisfied, raises ResponseException otherwise
-        """
-        # Get list of prerequisites
-        queryResult = self.session.query(JobDependency).options(joinedload(JobDependency.prerequisite_job)).filter(JobDependency.job_id == jobId).all()
-        for dependency in queryResult:
-            if dependency.prerequisite_job.job_status_id != self.getJobStatusId("finished"):
-                # Prerequisite not complete
-                raise ResponseException("Prerequisites incomplete, job cannot be started",StatusCode.CLIENT_ERROR,None,ValidationError.jobError)
-
-        return True
 
     def getFileSizeById(self,jobId):
         """ Get file size for job matching ID """
@@ -263,37 +234,45 @@ class JobTrackerInterface(BaseInterface):
             {"number_of_rows_valid": numValidRows, "number_of_rows": numRows})
         self.session.commit()
 
-    def getSubmissionStatus(self,submission_id):
-        job_ids = self.getJobsBySubmission(submission_id)
+    def getSubmissionStatus(self,submission):
+        job_ids = self.getJobsBySubmission(submission.submission_id)
         status_names = self.getJobStatusNames()
         statuses = dict(zip(status_names,[0]*len(status_names)))
         skip_count = 0
 
         for job_id in job_ids:
             job = self.getJobById(job_id)
-            if job.job_type.name != "external_validation":
+            if job.job_type.name not in ["external_validation", None]:
                 job_status = job.job_status.name
                 statuses[job_status] += 1
             else:
                 skip_count += 1
 
+        status = "unknown"
+
         if statuses["failed"] != 0:
-            return "failed"
-        if statuses["invalid"] != 0:
-            return "file_errors"
-        if statuses["running"] != 0:
-            return "running"
-        if statuses["waiting"] != 0:
-            return "waiting"
-        if statuses["ready"] != 0:
-            return "ready"
-        if statuses["finished"] == len(job_ids)-skip_count: # need to account for the jobs that were skipped above
-            # Check if submission has errors
-            if sumNumberOfErrorsForJobList(submission_id) > 0:
-                return "validation_errors"
-            else:
-                return "validation_successful"
-        return "unknown"
+            status = "failed"
+        elif statuses["invalid"] != 0:
+            status = "file_errors"
+        elif statuses["running"] != 0:
+            status = "running"
+        elif statuses["waiting"] != 0:
+            status = "waiting"
+        elif statuses["ready"] != 0:
+            status = "ready"
+        elif statuses["finished"] == len(job_ids)-skip_count: # need to account for the jobs that were skipped above
+            status = "validation_successful"
+            if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
+                status = "validation_successful_warnings"
+            if submission.publishable:
+                status = "submitted"
+
+
+        # Check if submission has errors
+        if submission.number_of_errors is not None and submission.number_of_errors > 0:
+            status = "validation_errors"
+
+        return status
 
     def getSubmissionById(self, submissionId):
         """ Return submission object that matches ID"""
@@ -353,22 +332,3 @@ class JobTrackerInterface(BaseInterface):
         """ Return ID for specified publish status """
         return self.getIdFromDict(PublishStatus,  "PUBLISH_STATUS_DICT", "name", statusName, "publish_status_id")
 
-    def checkJobType(self, jobId):
-        """ Job should be of type csv_record_validation, or this is the wrong service
-
-        Args:
-        jobId -- job ID to check
-
-        Returns:
-        True if correct type, False or exception otherwise
-        """
-        query = self.session.query(Job.job_type_id).filter(Job.job_id == jobId)
-        result = self.checkJobUnique(query)
-        if result.job_type_id == self.getJobTypeId("csv_record_validation") or result.job_type_id == self.getJobTypeId(
-                "validation"):
-            # Correct type
-            return result.job_type_id
-        else:
-            # Wrong type
-            raise ResponseException("Wrong type of job for this service", StatusCode.CLIENT_ERROR, None,
-                                    ValidationError.jobError)

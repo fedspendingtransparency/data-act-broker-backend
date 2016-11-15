@@ -1,6 +1,7 @@
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactcore.factories.staging import AwardFinancialFactory
-from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
+from dataactcore.interfaces.function_bag import get_submission_stats
+
 
 def test_obligationStatsForSubmission_nonzero(database):
     submission = SubmissionFactory()
@@ -20,7 +21,7 @@ def test_obligationStatsForSubmission_nonzero(database):
     ]
     database.session.add_all(financials)
     database.session.commit()
-    assert obligationStatsForSubmission(submission.submission_id) == {
+    assert get_submission_stats(submission.submission_id) == {
         "total_obligations": 5000,
         "total_procurement_obligations": 2000,
         "total_assistance_obligations": 3000
@@ -31,7 +32,7 @@ def test_obligationStatsForSubmission_zero(database):
     # no financials in db
     database.session.add(submission)
     database.session.commit()
-    assert obligationStatsForSubmission(submission.submission_id) == {
+    assert get_submission_stats(submission.submission_id) == {
         "total_obligations": 0,
         "total_procurement_obligations": 0,
         "total_assistance_obligations": 0

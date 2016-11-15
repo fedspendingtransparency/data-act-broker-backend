@@ -1,17 +1,19 @@
 import uuid
 
-from sqlalchemy.sql import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
 from dataactcore.models.errorModels import ErrorMetadata, File
-from dataactcore.models.jobModels import Job, Submission, JobDependency, FileType
-from dataactcore.models.userModel import User, UserStatus, PermissionType
+from dataactcore.models.jobModels import Job, Submission, JobDependency
+from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.models.userModel import User, UserStatus, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
-                                        JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PERMISSION_TYPE_DICT)
+                                        JOB_STATUS_DICT, FILE_TYPE_DICT_ID)
 from dataactcore.interfaces.db import GlobalDB
 from dataactvalidator.validation_handlers.validationError import ValidationError
+import time
 
 
 # First step to deprecating BaseInterface, its children, and corresponding
@@ -26,7 +28,7 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 # these transitional functions.
 
 
-# todo: move these value to config when re-factoring user management
+# todo: move these value to config if it is decided to keep local user login long term
 HASH_ROUNDS = 12
 
 
@@ -34,7 +36,7 @@ def createUserWithPassword(email, password, bcrypt, permission=1, cgac_code="SYS
     """Convenience function to set up fully-baked user (used for setup/testing only)."""
     sess = GlobalDB.db().session
     status = sess.query(UserStatus).filter(UserStatus.name == 'approved').one()
-    user = User(email=email, user_status=status, permissions=permission,
+    user = User(email=email, user_status=status, permission_type_id=permission,
                 cgac_code=cgac_code, name='Administrator', title='System Admin')
     user.salt, user.password_hash = getPasswordHash(password, bcrypt)
     sess.add(user)
@@ -51,40 +53,6 @@ def getPasswordHash(password, bcrypt):
     hash = bcrypt.generate_password_hash(password + salt, HASH_ROUNDS)
     password_hash = hash.decode("utf-8")
     return salt, password_hash
-
-
-def getUsersByType(permission_name):
-    """Get list of users with specified permission."""
-    sess = GlobalDB.db().session
-    # This could likely be simplified, but since we're moving towards using MAX for authentication,
-    # it's not worth spending too much time reworking.
-    user_list = []
-    bit_number = PERMISSION_TYPE_DICT[permission_name]
-    users = sess.query(User).all()
-    for user in users:
-        if checkPermissionByBitNumber(user, bit_number):
-            # This user has this permission, include them in list
-            user_list.append(user)
-    return user_list
-
-
-def checkPermissionByBitNumber(user, bitNumber):
-    """Check whether user has the specified permission, determined by whether a binary representation of user's
-    permissions has the specified bit set to 1.  Use hasPermission to check by permission name."""
-    # This could likely be simplified, but since we're moving towards using MAX for authentication,
-    # it's not worth spending too much time reworking.
-
-    if user.permissions is None:
-        # This user has no permissions
-        return False
-    # First get the value corresponding to the specified bit (i.e. 2^bitNumber)
-    bitValue = 2 ** bitNumber
-    # Remove all bits above the target bit by modding with the value of the next higher bit
-    # This leaves the target bit and all lower bits as the remaining value, all higher bits are set to 0
-    lowEnd = user.permissions % (bitValue * 2)
-    # Now compare the remaining value to the value for the target bit to determine if that bit is 0 or 1
-    # If the remaining value is still at least the value of the target bit, that bit is 1, so we have that permission
-    return lowEnd >= bitValue
 
 
 def populateSubmissionErrorInfo(submissionId):
@@ -353,4 +321,116 @@ def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
         result_list.append(record_dict)
     return result_list
 
+""" USER DB FUNCTIONS """
 
+def clearPassword(user):
+    """ Clear a user's password as part of reset process
+
+    Arguments:
+        user - User object
+
+    """
+    sess = GlobalDB.db().session
+    user.salt = None
+    user.password_hash = None
+    sess.commit()
+
+
+def updateLastLogin(user, unlock_user=False):
+    """ This updates the last login date to today's datetime for the user to the current date upon successful login.
+    """
+    sess = GlobalDB.db().session
+    user.last_login_date = time.strftime("%c") if not unlock_user else None
+    sess.commit()
+
+
+def setUserActive(user, is_active):
+    """ Sets the is_active field for the specified user """
+    sess = GlobalDB.db().session
+    user.is_active = is_active
+    sess.commit()
+
+def get_email_template(email_type):
+    """ Get template for specified email type
+    Arguments:
+        email_type - Name of template to get
+    Returns:
+        EmailTemplate object
+    """
+    sess = GlobalDB.db().session
+    type_result = sess.query(EmailTemplateType.email_template_type_id).filter(EmailTemplateType.name == email_type).one()
+    template_result = sess.query(EmailTemplate).filter(EmailTemplate.template_type_id == type_result.email_template_type_id).one()
+    return template_result
+
+
+def check_correct_password(user, password, bcrypt):
+    """ Given a user object and a password, verify that the password is correct.
+
+    Arguments:
+        user - User object
+        password - Password to check
+        bcrypt - bcrypt to use for password hashing
+    Returns:
+         True if valid password, False otherwise.
+    """
+    if password is None or password.strip() == "":
+        # If no password or empty password, reject
+        return False
+
+    # Check the password with bcrypt
+    return bcrypt.check_password_hash(user.password_hash, password + user.salt)
+
+
+def set_user_password(user, password, bcrypt):
+    """ Given a user and a new password, changes the hashed value in the database to match new password.
+
+    Arguments:
+        user - User object
+        password - password to be set
+        bcrypt - bcrypt to use for password hashing
+    Returns:
+         True if successful
+    """
+    sess = GlobalDB.db().session
+    # Generate hash with bcrypt and store it
+    new_salt = uuid.uuid4().hex
+    user.salt = new_salt
+    password_hash = bcrypt.generate_password_hash(password + new_salt, HASH_ROUNDS)
+    user.password_hash = password_hash.decode("utf-8")
+    sess.commit()
+    return True
+
+
+def get_submission_stats(submission_id):
+    """Get summarized dollar amounts by submission."""
+    sess = GlobalDB.db().session
+    base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
+        filter(AwardFinancial.submission_id == submission_id)
+    procurement = base_query.filter(AwardFinancial.piid != None)
+    fin_assist = base_query.filter(or_(AwardFinancial.fain != None, AwardFinancial.uri != None))
+    return {
+        "total_obligations": float(base_query.scalar() or 0),
+        "total_procurement_obligations": float(procurement.scalar() or 0),
+        "total_assistance_obligations": float(fin_assist.scalar() or 0)
+    }
+
+
+def run_job_checks(job_id):
+    """ Checks that specified job has no unsatisfied prerequisites
+    Args:
+        job_id -- job_id of job to be run
+
+    Returns:
+        True if prerequisites are satisfied, False if not
+    """
+    sess = GlobalDB.db().session
+
+    # Get count of job's prerequisites that are not yet finished
+    incomplete_dependencies = sess.query(JobDependency). \
+        join("prerequisite_job"). \
+        filter(JobDependency.job_id == job_id, Job.job_status_id != JOB_STATUS_DICT['finished']). \
+        count()
+    if incomplete_dependencies:
+        return False
+    else:
+        return True

@@ -7,14 +7,14 @@ from collections import namedtuple
 
 import pandas as pd
 
+from dataactcore.config import CONFIG_BROKER
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
+from dataactcore.models.domainModels import SF133
 from dataactvalidator.app import createApp
 from dataactvalidator.scripts.loaderUtils import LoaderUtils
-from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import SF133
-from dataactcore.config import CONFIG_BROKER
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
 def load_all_sf133(sf133_path=None):
@@ -187,6 +187,7 @@ def get_sf133_list(sf133_path):
     return sf133_list
 
 if __name__ == '__main__':
+    configure_logging()
     load_all_sf133(
         os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
     )

@@ -3,7 +3,7 @@ from tests.unit.dataactcore.factories.job import SubmissionFactory
 from dataactbroker.app import createApp
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import getUsersByType, createUserWithPassword
+from dataactcore.interfaces.function_bag import createUserWithPassword
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
@@ -182,36 +182,24 @@ class UserTests(BaseTestAPI):
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.INTERNAL_ERROR)
 
-    def test_get_users_by_type(self):
-        """Test getting user list by type."""
-        agencyUsers = getUsersByType("agency_user")
-        emails = []
-        for admin in agencyUsers:
-            emails.append(admin.email)
-        self.assertEqual(len(agencyUsers), 14)
-        for email in ["realEmail@agency.gov", "waiting@agency.gov",
-            "impatient@agency.gov", "watchingPaintDry@agency.gov",
-            "approved@agency.gov", "nefarious@agency.gov",]:
-            self.assertIn(email, emails)
-        self.assertNotIn('user@agency.gov', emails)
-
     def test_list_submissions(self):
-        """Test listing user's submissions."""
+        """Test listing user's submissions. The expected values here correspond to the number of submissions within
+         the agency of the user that is logged in """
         self.logout()
         self.login_approved_user()
-        response = self.app.get("/v1/list_submissions/", headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/list_submissions/?certified=mixed", headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         self.assertIn("submissions", response.json)
-        self.assertEqual(len(response.json["submissions"]), 5)
+        self.assertEqual(len(response.json["submissions"]), 1)
         self.logout()
 
         self.login_agency_user()
-        response = self.app.get("/v1/list_submissions/", headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/list_submissions/?certified=mixed", headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         self.assertIn("submissions", response.json)
-        self.assertEqual(len(response.json["submissions"]), 6)
+        self.assertEqual(len(response.json["submissions"]), 5)
 
-        response = self.app.get("/v1/list_submissions/?filter_by=agency", headers={"x-session-id": self.session_id})
+        response = self.app.get("/v1/list_submissions/?certified=mixed", headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         self.assertIn("submissions", response.json)
         self.assertEqual(len(response.json["submissions"]), 5)
@@ -223,7 +211,7 @@ class UserTests(BaseTestAPI):
         postJson = {"status": "awaiting_approval"}
         response = self.app.post_json("/v1/list_users_with_status/",
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.LOGIN_REQUIRED, "Wrong User Type")
+        self.check_response(response, StatusCode.LOGIN_REQUIRED, "Insufficient permissions to perform requested task.")
         self.logout()
 
     def test_finalize_wrong_user(self):
@@ -401,7 +389,7 @@ class UserTests(BaseTestAPI):
                  "email_template": "not_a_real_template"}
         response = self.app.post_json("/v1/email_users/", badInput, expect_errors=True,
                                       headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.CLIENT_ERROR)
+        self.check_response(response, StatusCode.INTERNAL_ERROR)
 
     def test_delete_user(self):
         # Need to be an admin to delete

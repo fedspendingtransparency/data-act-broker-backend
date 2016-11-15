@@ -60,8 +60,8 @@ class Submission(Base):
     publishable = Column(Boolean, nullable = False, default = "False", server_default = "False")
     publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL", name ="fk_publish_status_id"))
     publish_status = relationship("PublishStatus", uselist = False)
-    number_of_errors = Column(Integer)
-    number_of_warnings = Column(Integer)
+    number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
+    number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
 
 class Job(Base):
     __tablename__ = "job"
@@ -80,8 +80,8 @@ class Job(Base):
     file_size = Column(Integer)
     number_of_rows = Column(Integer)
     number_of_rows_valid = Column(Integer)
-    number_of_errors = Column(Integer)
-    number_of_warnings = Column(Integer)
+    number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
+    number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
     error_message = Column(Text)
     start_date = Column(Date)
     end_date = Column(Date)
@@ -92,8 +92,8 @@ class JobDependency(Base):
     dependency_id = Column(Integer, primary_key=True)
     job_id = Column(Integer, ForeignKey("job.job_id", name="fk_dep_job_id"))
     prerequisite_id = Column(Integer, ForeignKey("job.job_id", name="fk_prereq_job_id"))
-    dependent_job = relationship("Job", foreign_keys=[job_id])
-    prerequisite_job = relationship("Job", foreign_keys=[prerequisite_id])
+    dependent_job = relationship("Job", foreign_keys=[job_id], lazy='joined')
+    prerequisite_job = relationship("Job", foreign_keys=[prerequisite_id], lazy='joined')
 
 class FileType(Base):
     __tablename__ = "file_type"

@@ -1,4 +1,3 @@
-import unittest
 from tests.integration.baseTestAPI import BaseTestAPI
 
 
@@ -21,7 +20,7 @@ class LoginTests(BaseTestAPI):
         self.assertIn("title", json)
         self.assertIn("name", json)
         self.assertIn("cgac_code", json)
-        self.assertIn("permissions", json)
+        self.assertIn("permission", json)
 
     def test_inactive_login(self):
         """Test broker inactive user login"""
@@ -84,6 +83,3 @@ class LoginTests(BaseTestAPI):
         except AttributeError:
             self.fail("Response is missing JSON component")
         self.assertEquals(response.json["status"].lower(), "false")
-
-if __name__ == '__main__':
-    unittest.main()

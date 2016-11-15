@@ -175,8 +175,9 @@ class CsvAbstractReader(object):
                     if self.flex_dictionary[current] is not None:
                         flex_dict["header"] = self.flex_dictionary[current]
                         flex_dict["cell"] = cell
-                    # Skip this column as it is unknown or flex
-                    # continue
+                    else:
+                        # Skip this column as it is unknown or flex
+                        continue
                 else:
                     return_dict[self.header_dictionary[current]] = cell
         return return_dict, flex_dict

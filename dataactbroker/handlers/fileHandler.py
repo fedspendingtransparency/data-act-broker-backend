@@ -1,9 +1,11 @@
 import os
 from csv import reader
 from datetime import datetime
+import logging
 from uuid import uuid4
 
 import requests
+from flask import session as flaskSession
 from flask import session, request, redirect, send_from_directory
 from requests.exceptions import Timeout
 from sqlalchemy.orm import joinedload
@@ -16,11 +18,9 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
-from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job
-from dataactcore.models.jobTrackerInterface import obligationStatsForSubmission
+from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job, Submission
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import FILE_STATUS_DICT, RULE_SEVERITY_DICT
-from dataactcore.utils.cloudLogger import CloudLogger
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import (get_report_path, get_cross_report_name,
@@ -30,9 +30,13 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    checkNumberOfErrorsByJobId, sumNumberOfErrorsForJobList, getErrorType,
-    createFileIfNeeded, getErrorMetricsByJobId)
+    checkNumberOfErrorsByJobId, getErrorType, run_job_checks,
+    createFileIfNeeded, getErrorMetricsByJobId, get_submission_stats)
 from dataactvalidator.filestreaming.csv_selection import write_csv
+
+
+_debug_logger = logging.getLogger('deprecated.debug')
+_smx_logger = logging.getLogger('deprecated.smx')
 
 
 class FileHandler:
@@ -300,33 +304,46 @@ class FileHandler:
             Tuple of boolean indicating whether submission has passed checks, and http response if not
 
         """
-        error_occurred = False
+        error = None
 
         try:
             submission = self.interfaces.jobDb.getSubmissionById(submission_id)
         except ResponseException as exc:
             if isinstance(exc.wrappedException, NoResultFound):
-                # Submission does not exist, change to 400 in this case since route call specified a bad ID
+                # Submission does not exist, change to 400 in this case since
+                # route call specified a bad ID
                 exc.status = StatusCode.CLIENT_ERROR
-                message = "Submission does not exist"
-                error_occurred = True
-                error_exc = exc
+                response_dict = {
+                    "message": "Submission does not exist",
+                    "file_type": file_type,
+                    "url": "#",
+                    "status": "failed"
+                }
+                if file_type in ('D1', 'D2'):
+                    # Add empty start and end dates
+                    response_dict["start"] = ""
+                    response_dict["end"] = ""
+                error = JsonResponse.error(exc, exc.status, **response_dict)
             else:
                 raise exc
         try:
             self.check_submission_permission(submission)
         except ResponseException as exc:
-            message = "User does not have permission to view that submission"
-            error_occurred = True
-            error_exc = exc
-
-        if error_occurred:
-            responseDict = {"message": message, "file_type": file_type, "url": "#", "status": "failed"}
-            if file_type in ["D1", "D2"]:
+            response_dict = {
+                "message": ("User does not have permission to view that "
+                            "submission"),
+                "file_type": file_type,
+                "url": "#",
+                "status": "failed"
+            }
+            if file_type in ('D1', 'D2'):
                 # Add empty start and end dates
-                responseDict["start"] = ""
-                responseDict["end"] = ""
-            return False, JsonResponse.error(error_exc, error_exc.status, **responseDict)
+                response_dict["start"] = ""
+                response_dict["end"] = ""
+            error = JsonResponse.error(exc, exc.status, **response_dict)
+
+        if error:
+            return False, error
         return True, None
 
     def check_submission_permission(self,submission):
@@ -375,7 +392,7 @@ class FileHandler:
             submissionInfo["reporting_period_end_date"] = self.interfaces.jobDb.getEndDate(submission)
             submissionInfo["created_on"] = self.interfaces.jobDb.getFormattedDatetimeBySubmissionId(submission_id)
             # Include number of errors in submission
-            submissionInfo["number_of_errors"] = sumNumberOfErrorsForJobList(submission_id)
+            submissionInfo["number_of_errors"] = submission.number_of_errors
             submissionInfo["number_of_rows"] = self.interfaces.jobDb.sumNumberOfRowsForJobList(jobs)
             submissionInfo["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
 
@@ -481,11 +498,11 @@ class FileHandler:
                     returnDict = {"path":path}
                     return JsonResponse.create(StatusCode.OK,returnDict)
                 else:
-                    exc = ResponseException("Failure to read file", StatusCode.CLIENT_ERROR)
-                    return JsonResponse.error(exc,exc.status)
+                    raise ResponseException("Failure to read file",
+                                            StatusCode.CLIENT_ERROR)
             else :
-                exc = ResponseException("Route Only Valid For Local Installs", StatusCode.CLIENT_ERROR)
-                return JsonResponse.error(exc,exc.status)
+                raise ResponseException("Route Only Valid For Local Installs",
+                                        StatusCode.CLIENT_ERROR)
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:
@@ -508,18 +525,28 @@ class FileHandler:
         jobDb = self.interfaces.jobDb
         file_type_name = self.fileTypeMap[file_type]
 
-        if file_type in ["D1", "D2"]:
-            # Populate start and end dates, these should be provided in MM/DD/YYYY format, using calendar year (not fiscal year)
-            requestDict = RequestDictionary(self.request)
-            start_date = requestDict.getValue("start")
-            end_date = requestDict.getValue("end")
+        try:
+            if file_type in ["D1", "D2"]:
+                # Populate start and end dates, these should be provided in
+                # MM/DD/YYYY format, using calendar year (not fiscal year)
+                requestDict = RequestDictionary(self.request)
+                start_date = requestDict.getValue("start")
+                end_date = requestDict.getValue("end")
 
-            if not (StringCleaner.isDate(start_date) and StringCleaner.isDate(end_date)):
-                exc = ResponseException("Start or end date cannot be parsed into a date", StatusCode.CLIENT_ERROR)
-                return False, JsonResponse.error(exc, exc.status, start = "", end = "", file_type = file_type, status = "failed")
-        elif file_type not in ["E","F"]:
-            exc = ResponseException("File type must be either D1, D2, E or F", StatusCode.CLIENT_ERROR)
-            return False, JsonResponse.error(exc, exc.status, file_type = file_type, status = "failed")
+                if not (StringCleaner.isDate(start_date)
+                            and StringCleaner.isDate(end_date)):
+                    raise ResponseException(
+                        "Start or end date cannot be parsed into a date",
+                        StatusCode.CLIENT_ERROR
+                    )
+            elif file_type not in ["E","F"]:
+                raise ResponseException(
+                    "File type must be either D1, D2, E or F",
+                    StatusCode.CLIENT_ERROR
+                )
+        except ResponseException as e:
+            return False, JsonResponse.error(
+                e, e.status, file_type=file_type, status='failed')
 
         cgac_code = self.jobManager.getSubmissionById(submission_id).cgac_code
 
@@ -537,9 +564,7 @@ class FileHandler:
         job.job_status_id = jobDb.getJobStatusId("running")
         jobDb.session.commit()
         if file_type in ["D1", "D2"]:
-            CloudLogger.log("DEBUG: Adding job info for job id of " + str(job.job_id),
-                            log_type="debug",
-                            file_name=self.debug_file_name)
+            _debug_logger.debug('Adding job info for job id of %s', job.job_id)
             return self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
         elif file_type == 'E':
             generate_e_file.delay(
@@ -588,14 +613,10 @@ class FileHandler:
             return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
         # Create file D API URL with dates and callback URL
         callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
-        CloudLogger.log(
-            'DEBUG: Callback URL for {}: {}'.format(file_type, callback),
-            log_type='debug', file_name=self.debug_file_name)
+        _debug_logger.debug('Callback URL for %s: %s', file_type, callback)
         get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
 
-        CloudLogger.log("DEBUG: Calling D file API => " + str(get_url),
-                        log_type="debug",
-                        file_name=self.debug_file_name)
+        _debug_logger.debug('Calling D file API => %s', get_url)
         try:
             if not self.call_d_file_api(get_url):
                 self.handleEmptyResponse(job, valJob)
@@ -635,9 +656,7 @@ class FileHandler:
 
     def get_xml_response_content(self, api_url):
         """ Retrieve XML Response from the provided API url """
-        CloudLogger.log("DEBUG: Getting XML response",
-                        log_type="debug",
-                        file_name=self.debug_file_name)
+        _debug_logger.debug('Getting XML response')
         return requests.get(api_url, verify=False, timeout=120).text
 
     def call_d_file_api(self, api_url):
@@ -672,7 +691,7 @@ class FileHandler:
         try:
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
-            CloudLogger.log("DEBUG: Downloading file...", log_type="debug", file_name=self.smx_log_file_name)
+            _smx_logger.debug('Downloading file...')
             if not self.download_file(full_file_path, url):
                 # Error occurred while downloading file, mark job as failed and record error message
                 job_manager.markJobStatus(job_id, "failed")
@@ -691,11 +710,11 @@ class FileHandler:
 
             write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])
 
-            CloudLogger.log("DEBUG: Marking job id of " + str(job_id) + " as finished", log_type="debug", file_name=self.smx_log_file_name)
+            _smx_logger.debug('Marking job id of %s', job_id)
             job_manager.markJobStatus(job_id, "finished")
             return {"message": "Success", "file_name": timestamped_name}
         except Exception as e:
-            CloudLogger.log("ERROR: Exception caught => " + str(e), log_type="debug", file_name=self.smx_log_file_name)
+            _smx_logger.exception('Exception caught => %s', e)
             # Log the error
             JsonResponse.error(e,500)
             job_manager.getJobById(job_id).error_message = str(e)
@@ -720,29 +739,30 @@ class FileHandler:
 
     def generateFile(self):
         """ Start a file generation job for the specified file type """
-        self.debug_file_name = "debug.log"
-        CloudLogger.log("DEBUG: Starting D file generation", log_type="debug",
-                        file_name=self.debug_file_name)
+        _debug_logger.debug('Starting D file generation')
         submission_id, file_type = self.getRequestParamsForGenerate()
 
-        CloudLogger.log("DEBUG: Submission ID = " + str(submission_id) + " / File type = " + str(file_type), log_type="debug",
-                        file_name=self.debug_file_name)
+        _debug_logger.debug('Submission ID = %s / File type = %s',
+                            submission_id, file_type)
         # Check permission to submission
         success, error_response = self.checkSubmissionById(submission_id, file_type)
         if not success:
             return error_response
 
         job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "file_upload")
-        # Check prerequisites on upload job
-        if not self.interfaces.jobDb.runChecks(job.job_id):
-            exc = ResponseException("Must wait for completion of prerequisite validation job", StatusCode.CLIENT_ERROR)
+        try:
+            # Check prerequisites on upload job
+            if not run_job_checks(job.job_id):
+                raise ResponseException(
+                    "Must wait for completion of prerequisite validation job",
+                    StatusCode.CLIENT_ERROR
+                )
+        except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
         success, error_response = self.startGenerationJob(submission_id,file_type)
 
-        CloudLogger.log("DEBUG: Finished startGenerationJob method",
-                        log_type="debug",
-                        file_name=self.debug_file_name)
+        _debug_logger.debug('Finished startGenerationJob method')
         if not success:
             # If not successful, set job status as "failed"
             self.interfaces.jobDb.markJobStatus(job.job_id, "failed")
@@ -848,31 +868,30 @@ class FileHandler:
             this file is for.
 
         """
-        if generationId is None:
-            return JsonResponse.error(ResponseException("Must include a generation ID",StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
-
-        self.smx_log_file_name = "smx_request.log"
-
-        # Pull url from request
-        safeDictionary = RequestDictionary(self.request)
-        CloudLogger.log("DEBUG: Request content => " + safeDictionary.to_string(), log_type="debug", file_name=self.smx_log_file_name)
-
-
-        if not safeDictionary.exists("href"):
-            return JsonResponse.error(ResponseException("Request must include href key with URL of D file", StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
-        url =  safeDictionary.getValue("href")
-        CloudLogger.log("DEBUG: Download URL => " + url, log_type="debug", file_name=self.smx_log_file_name)
-
-        #Pull information based on task key
         try:
-            CloudLogger.log("DEBUG: Pulling information based on task key...", log_type="debug",
-                            file_name=self.smx_log_file_name)
+            if generationId is None:
+                raise ResponseException(
+                    "Must include a generation ID", StatusCode.CLIENT_ERROR)
+
+            # Pull url from request
+            request_dict = RequestDictionary.derive(self.request)
+            _smx_logger.debug('Request content => %s', request_dict)
+
+            if 'href' not in request_dict:
+                raise ResponseException(
+                    "Request must include href key with URL of D file",
+                    StatusCode.CLIENT_ERROR
+                )
+            url = request_dict['href']
+            _smx_logger.debug('Download URL => %s', url)
+
+            #Pull information based on task key
+            _smx_logger.debug('Pulling information based on task key...')
             task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
             job = self.interfaces.jobDb.getJobById(task.job_id)
-            CloudLogger.log("DEBUG: Loading D file...", log_type="debug", file_name=self.smx_log_file_name)
+            _smx_logger.debug('Loading D file...')
             result = self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
-            CloudLogger.log("DEBUG: Load D file result => " + str(result), log_type="debug",
-                            file_name=self.smx_log_file_name)
+            _smx_logger.debug('Load D file result => %s', result)
             return JsonResponse.create(StatusCode.OK,{"message":"File loaded successfully"})
         except ResponseException as e:
             return JsonResponse.error(e, e.status)
@@ -890,6 +909,46 @@ class FileHandler:
         # Check that user has access to submission
         self.check_submission_permission(submission)
 
-        obligations_info = obligationStatsForSubmission(submission_id)
+        obligations_info = get_submission_stats(submission_id)
 
         return JsonResponse.create(StatusCode.OK,obligations_info)
+
+    def list_submissions(self, page, limit, certified):
+        """ List submission based on current page and amount to display. If provided, filter based on
+        certification status """
+
+        user_id = LoginSession.getName(flaskSession)
+        sess = GlobalDB.db().session
+        user = sess.query(User).filter(User.user_id == user_id).one()
+
+        offset = limit*(page-1)
+
+        query = sess.query(Submission).filter(Submission.cgac_code == user.cgac_code)
+        if certified != 'mixed':
+            query = query.filter_by(publishable=certified)
+        submissions = query.order_by(Submission.updated_at.desc()).limit(limit).offset(offset).all()
+        submission_details = []
+
+        for submission in submissions:
+            job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
+            total_size = 0
+            for job_id in job_ids:
+                file_size = self.interfaces.jobDb.getFileSize(job_id)
+                total_size += file_size or 0
+
+            status = self.interfaces.jobDb.getSubmissionStatus(submission)
+            if submission.user_id is None:
+                submission_user_name = "No user"
+            else:
+                submission_user_name = sess.query(User).filter_by(user_id=submission.user_id).one().name
+            submission_details.append({"submission_id": submission.submission_id,
+                                       "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
+                                       "size": total_size, "status": status, "errors": submission.number_of_errors,
+                                       "reporting_start_date": str(submission.reporting_start_date),
+                                       "reporting_end_date": str(submission.reporting_end_date),
+                                       "user": {"user_id": submission.user_id,
+                                                "name": submission_user_name}})
+
+        total_submissions = query.from_self().count()
+
+        return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})

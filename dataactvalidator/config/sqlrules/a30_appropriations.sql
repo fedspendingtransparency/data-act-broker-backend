@@ -11,6 +11,6 @@ WHERE approp.submission_id = {}
 	AND NOT EXISTS (
 		SELECT 1
 		FROM object_class_program_activity AS op
-		WHERE approp.tas IS NOT DISTINCT FROM op.tas
+		WHERE approp.tas_id IS NOT DISTINCT FROM op.tas_id
 			AND approp.submission_id = op.submission_id
 	);

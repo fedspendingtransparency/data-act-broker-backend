@@ -1,10 +1,12 @@
-from decimal import *
+from decimal import Decimal
+import logging
 
-from dataactcore.models.validationModels import RuleSql
 from dataactcore.models.lookups import FILE_TYPE_DICT_ID, FILE_TYPE_DICT
+from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.utils.cloudLogger import CloudLogger
+
+_exception_logger = logging.getLogger('deprecated.exception')
 
 class Validator(object):
     """
@@ -176,8 +178,9 @@ class Validator(object):
              severity id
         """
 
-        CloudLogger.logError("VALIDATOR_INFO: ", "Beginning SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
-        conn = GlobalDB.db().connection
+        _exception_logger.info(
+            'VALIDATOR_INFO: Beginning SQL validation rules on submissionID '
+            '%s, fileType: %s', submissionId, fileType)
         sess = GlobalDB.db().session
 
         # Pull all SQL rules for this file type
@@ -188,9 +191,10 @@ class Validator(object):
 
         # For each rule, execute sql for rule
         for rule in rules:
-            CloudLogger.logError("VALIDATOR_INFO: ", "Running query: "+str(RuleSql.query_name)+" on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
-            failures = conn.execute(rule.rule_sql.format(submissionId))
-            
+            _exception_logger.info(
+                'VALIDATOR_INFO: Running query: %s on submissionId %s, '
+                'fileType: %s', rule.query_name, submissionId, fileType)
+            failures = sess.execute(rule.rule_sql.format(submissionId))
             if failures.rowcount:
                 # Create column list (exclude row_number)
                 cols = failures.keys()
@@ -217,6 +221,8 @@ class Validator(object):
                     fieldString = ", ".join(fieldList)
                     errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId, rule.target_file_id, rule.rule_severity_id])
 
-            CloudLogger.logError("VALIDATOR_INFO: ", "Completed SQL validation rules on submissionID: " + str(submissionId) + " fileType: "+ fileType, "")
+            _exception_logger.info(
+                'VALIDATOR_INFO: Completed SQL validation rules on '
+                'submissionID: %s, fileType: %s', submissionId, fileType)
 
         return errors

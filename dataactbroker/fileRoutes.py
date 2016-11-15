@@ -1,9 +1,10 @@
 from flask import request, session
 from dataactbroker.handlers.fileHandler import FileHandler
-from dataactbroker.handlers.accountHandler import AccountHandler
 from dataactbroker.permissions import permissions_check
 from dataactbroker.routeUtils import RouteUtils
 from dataactbroker.handlers.aws.session import LoginSession
+from dataactbroker.exceptions.invalid_usage import InvalidUsage
+
 
 # Add the file submission route
 def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
@@ -15,13 +16,13 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     SERVER_PATH  = serverPath
     # Keys for the post route will correspond to the four types of files
     @app.route("/v1/submit_files/", methods = ["POST"])
-    @permissions_check
+    @permissions_check(permission="writer")
     def submit_files():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.submit, LoginSession.getName(session), RouteUtils.CREATE_CREDENTIALS)
 
     @app.route("/v1/finalize_job/", methods = ["POST"])
-    @permissions_check
+    @permissions_check(permission="writer")
     def finalize_submission():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.finalize)
@@ -60,13 +61,33 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     @permissions_check
     def list_submissions():
         """ List submission IDs associated with the current user """
-        filter_by = request.args.get('filter_by')
-        filter_by = filter_by.lower() if filter_by is not None else filter_by
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
 
-        if filter_by == 'agency':
-            return RouteUtils.run_instance_function(accountManager, accountManager.list_submissions_by_current_user_agency)
-        return RouteUtils.run_instance_function(accountManager, accountManager.list_submissions_by_current_user)
+        page = request.args.get('page')
+        limit = request.args.get('limit')
+        certified = request.args.get('certified')
+
+        # convert params and type check
+        try:
+            page = int(page) if page is not None else 1
+        except:
+            raise InvalidUsage("Incorrect type specified for 'page'. Please enter a positive number.")
+
+        try:
+            limit = int(limit) if limit is not None else 5
+        except:
+            raise InvalidUsage("Incorrect type specified for 'limit'. Please enter a positive number.")
+
+        if certified is not None:
+            certified = certified.lower()
+        else:
+            raise InvalidUsage("Missing required parameter 'certified'")
+        # If certified is none, get all submissions without filtering
+        if certified is not None and certified not in ['mixed', 'true', 'false']:
+            raise InvalidUsage("Incorrect value specified for the 'certified' parameter")
+
+        file_manager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+
+        return RouteUtils.run_instance_function(file_manager, file_manager.list_submissions, page, limit, certified)
 
     @app.route("/v1/get_protected_files/", methods=["GET"])
     @permissions_check
@@ -76,7 +97,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return RouteUtils.run_instance_function(fileManager, fileManager.getProtectedFiles)
 
     @app.route("/v1/generate_file/", methods=["POST"])
-    @permissions_check
+    @permissions_check(permission="writer")
     def generate_file():
         """ Generate file from external API """
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)

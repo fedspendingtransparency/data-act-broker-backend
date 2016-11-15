@@ -28,7 +28,7 @@ The `dataactbroker/handlers` folder contains the logic to handle requests that a
 
 `fileHandler.py` contains functions for managing user file interaction. It creates all of the jobs that are part of the user submission and has query methods to get the status of a submission. In addition, this class creates downloadable links to error reports created by the DATA Act Validator.
 
-In addition to these helper objects, the following sub classes also exist within the directory: `UserHandler`, `JobHandler`, `ErrorHandler`, and 'InterfaceHolder'. These classes extend the database connection objects that are located in the DATA Act Core. Extra query methods exist in these classes that are used exclusively by the Broker API.
+In addition to these helper objects, the following sub classes also exist within the directory: `JobHandler` and 'InterfaceHolder'. These classes extend the database connection objects that are located in the DATA Act Core. Extra query methods exist in these classes that are used exclusively by the Broker API.
 
 ## DATA Act Broker Route Documentation
 
@@ -83,7 +83,7 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
     "name": "John",
     "title":"Developer",
     "agency": "Department of Labor",
-    "permissions" : [0,1]
+    "permission" : 1
 }
 ```
 
@@ -108,7 +108,7 @@ Example output:
     "name": "John",
     "title":"Developer",
     "agency": "Department of Labor",
-    "permissions" : [0,1]
+    "permission" : 1
 }
 ```
 
@@ -157,7 +157,7 @@ Example output:
     "name": "John",
     "title":"Developer",
     "agency": "Department of Labor",
-    "permissions" : [0,1],
+    "permission" : 1,
     "skip_guide": False
 }
 ```
@@ -320,9 +320,8 @@ The following is a table with all of the messages and error code
 
 
 #### POST "/v1/list_users/"
-List all users. Requires an admin login. For a Website Admin, all users will be returned. For an Agency Admin, only users within that agency will be returned.
+List all users. Requires a website admin login.
 
-Example output (Agency Admin):
 ```json
 {
   "users":[
@@ -330,17 +329,17 @@ Example output (Agency Admin):
       "status": "approved",
       "name": "user1",
       "title": "User Title",
-      "permissions": "agency_admin",
+      "permission": "submitter",
       "agency": "Data Act Agency",
       "is_active": true,
       "email": "agency@admin.gov",
       "id": 1
     },
     {
-      "status": "awaiting_confirmation",
+      "status": "approved",
       "name": "user2",
       "title": "User Title",
-      "permissions": "agency_user",
+      "permission": "reader",
       "agency": "Data Act Agency",
       "is_active": true,
       "email": "agency@user.gov",
@@ -446,7 +445,6 @@ Example input:
 {
     "uid": 1,
     "status": "approved",
-    "permissions": "agency_user",
     "is_active": true
 }
 ```
@@ -856,6 +854,51 @@ This route sends a request to the backend with the submission ID and file name t
 File download or redirect to signed URL
 
 ## File Generation Routes
+
+#### GET "/v1/list_submissions/"
+List submissions for all agencies for which the current user is a member of. Optional query parameters are `?page=[page #]&limit=[limit #]&certified=[true|false]` which correspond to the current page number and how many submissions to return per page (limit). If the query parameters are not present, the default is `page=1`, `limit=5` and if `certified` is not provided, all submissions will be returned containing a mix of the two.
+
+##### Example input:
+
+`/v1/list_submissions?page=1&limit=2
+
+##### Example output:
+
+"total" is the total number of submissions available for that user.
+
+```json
+{
+  "submissions": [
+    {
+      "reporting_end_date": "2016-09-01",
+      "submission_id": 1,
+      "reporting_start_date": "2016-07-01",
+      "user": {
+        "name": "User Name",
+        "user_id": 1
+      },
+      "status": "validation_successful" (will be undergoing changes),
+      "size": 0,
+      "errors": 0,
+      "last_modified": "08/31/2016"
+    },
+    {
+      "reporting_end_date": "2015-09-01",
+      "submission_id": 2,
+      "reporting_start_date": "2015-07-01",
+      "user": {
+        "name": "User2 Name2",
+        "user_id": 2
+      },
+      "status": "file_errors" (will be undergoing changes),
+      "size": 34482,
+      "errors": 582,
+      "last_modified": "08/31/2016"
+    }
+  ],
+  "total": 2
+}
+```
 
 ## Generate Files
 **Route:** `/v1/generate_file`

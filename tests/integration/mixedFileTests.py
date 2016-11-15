@@ -1,6 +1,4 @@
-from __future__ import print_function
 from datetime import datetime
-import unittest
 
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.interfaces.db import GlobalDB
@@ -297,7 +295,7 @@ class MixedFileTests(BaseTestValidator):
             sizePathPairs = [
                 (89, get_cross_report_name(submissionId, "appropriations", "program_activity")),
                 (89, get_cross_report_name(submissionId, "award_financial", "award")),
-                (2348, get_cross_warning_report_name(submissionId, "appropriations", "program_activity")),
+                (2363, get_cross_warning_report_name(submissionId, "appropriations", "program_activity")),
                 (89, get_cross_warning_report_name(submissionId, "award_financial", "award")),
             ]
 
@@ -309,6 +307,3 @@ class MixedFileTests(BaseTestValidator):
                     s3UrlHandler.getFileSize("errors/" + path), size - 5)
                 self.assertLess(
                     s3UrlHandler.getFileSize("errors/" + path), size + 5)
-
-if __name__ == '__main__':
-    unittest.main()
