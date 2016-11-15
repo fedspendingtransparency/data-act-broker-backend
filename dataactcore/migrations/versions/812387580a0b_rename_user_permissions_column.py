@@ -14,6 +14,11 @@ depends_on = None
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.orm import sessionmaker
+
+from dataactcore.models.userModel import PermissionType
+
+Session = sessionmaker()
 
 
 def upgrade(engine_name):
@@ -32,6 +37,7 @@ def upgrade_data_broker():
     op.add_column('users', sa.Column('permission_type_id', sa.Integer(), nullable=True))
     op.create_foreign_key('user_permission_type_fk', 'users', 'permission_type', ['permission_type_id'], ['permission_type_id'])
     op.drop_column('users', 'permissions')
+    truncate_permission_type()
     ### end Alembic commands ###
 
 
@@ -40,5 +46,14 @@ def downgrade_data_broker():
     op.add_column('users', sa.Column('permissions', sa.INTEGER(), autoincrement=False, nullable=True))
     op.drop_constraint('user_permission_type_fk', 'users', type_='foreignkey')
     op.drop_column('users', 'permission_type_id')
+    truncate_permission_type()
     ### end Alembic commands ###
 
+
+def truncate_permission_type():
+    bind = op.get_bind()
+    session = Session(bind=bind)
+
+    for pt in session.query(PermissionType):
+        session.delete(pt)
+    session.commit()
