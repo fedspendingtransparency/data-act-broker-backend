@@ -4,12 +4,15 @@ from flask import Flask, request, g
 
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import writeFileError
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import Job
+from dataactbroker.handlers.jobHandler import JobHandler
 from dataactcore.models.lookups import JOB_STATUS_DICT
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
+from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 
 
@@ -39,6 +42,19 @@ def createApp():
     def handle_response_exception(error):
         """Handle exceptions explicitly raised during validation."""
         logger.error(str(error))
+        if error.errorType == ValidationError.jobError:
+            # job failed prerequisite checks and isn't eligible for validation
+            pass
+        else:
+            # job is valid, but an error happened during validation
+            job_id = g.get('job_id', None)
+            if job_id:
+                sess = GlobalDB.db().session
+                job = sess.query(Job).filter(Job.job_id == job_id).one()
+                writeFileError(job_id, job.filename, error.errorType, error.extraInfo)
+                # next 2 lines are very temporary, until the job interface refactor is done
+                jobDb = JobHandler()
+                jobDb.markJobStatus(job_id, 'invalid')
         return JsonResponse.error(error, error.status)
 
     @app.errorhandler(Exception)

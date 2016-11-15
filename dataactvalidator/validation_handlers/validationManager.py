@@ -558,41 +558,17 @@ class ValidationManager:
                 StatusCode.CLIENT_ERROR, None,
                 validation_error_type)
 
-        # todo: remove the following try/catch once 1st batch of changes are merged
-        try:
-            jobTracker.markJobStatus(job_id, "running")
-            if job_type_name == 'csv_record_validation':
-                self.runValidation(job, interfaces)
-            elif job_type_name == 'validation':
-                self.runCrossValidation(job, interfaces)
-            else:
-                raise ResponseException("Bad job type for validator",
-                    StatusCode.INTERNAL_ERROR)
+        # set job status to running and do validations
+        jobTracker.markJobStatus(job_id, "running")
+        if job_type_name == 'csv_record_validation':
+            self.runValidation(job, interfaces)
+        elif job_type_name == 'validation':
+            self.runCrossValidation(job, interfaces)
+        else:
+            raise ResponseException("Bad job type for validator",
+                StatusCode.INTERNAL_ERROR)
 
-            return JsonResponse.create(StatusCode.OK, {"message":"Validation complete"})
-        except ResponseException as e:
-            _exception_logger.exception(str(e))
-            self.markJob(job_id, jobTracker, "invalid", job.filename, e.errorType, e.extraInfo)
-            return JsonResponse.error(e, e.status)
-        except ValueError as e:
-            _exception_logger.exception(str(e))
-            # Problem with CSV headers
-            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e), ValidationError.unknownError) #"Internal value error"
-            self.markJob(job_id,jobTracker, "invalid", job.filename, ValidationError.unknownError)
-            return JsonResponse.error(exc, exc.status)
-        except Error as e:
-            _exception_logger.exception(str(e))
-            # CSV file not properly formatted (usually too much in one field)
-            exc = ResponseException("Internal error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
-            self.markJob(job_id,jobTracker,"invalid", job.filename, ValidationError.unknownError)
-            return JsonResponse.error(exc, exc.status)
-        except Exception as e:
-            _exception_logger.exception(str(e))
-            exc = ResponseException(str(e), StatusCode.INTERNAL_ERROR, type(e),
-                ValidationError.unknownError)
-            self.markJob(job_id, jobTracker, "failed", job.filename, ValidationError.unknownError)
-            return JsonResponse.error(exc, exc.status)
-
+        return JsonResponse.create(StatusCode.OK, {"message":"Validation complete"})
 
 def update_tas_ids(model, submission_id):
     sess = GlobalDB.db().session
