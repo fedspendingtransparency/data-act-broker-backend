@@ -89,6 +89,7 @@ PERMISSION_TYPE = [
     LookupType(4, 'website_admin', 'This user is a super user and has full admin control')
 ]
 PERMISSION_TYPE_DICT = {item.name: item.id for item in PERMISSION_TYPE}
+PERMISSION_TYPE_DICT_ID = {item.id: item.name for item in PERMISSION_TYPE}
 
 FIELD_TYPE = [
     LookupType(1, 'INT', 'integer type'),

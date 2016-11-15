@@ -21,7 +21,7 @@ from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import (get_email_template, check_correct_password, set_user_password, updateLastLogin)
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT
+from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT, PERMISSION_TYPE_DICT_ID
 
 class AccountHandler:
     """
@@ -310,7 +310,7 @@ class AccountHandler:
                 filter(CGAC.cgac_code == cgac_code).\
                 one_or_none()
             agency_name = "Unknown" if agency_name is None else agency_name
-            for user in sess.query(User).filter_by(permission_type_id=PERMISSION_TYPE_DICT['website_admin']).all():
+            for user in sess.query(User).filter_by(permission_type_id=PERMISSION_TYPE_DICT['website_admin']):
                 email_template = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
                                  '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : user_email,'[URL]':link}
                 new_email = sesEmail(user.email, system_email,templateType="account_creation",parameters=email_template)
@@ -583,12 +583,6 @@ class AccountHandler:
         # Activate/deactivate user
         if 'is_active' in request_dict:
             is_active = bool(request_dict['is_active'])
-            if not user.is_active and is_active:
-                if is_local:
-                    # Reset password count to 0
-                    self.reset_password_count(user)
-                # Reset last login date so the account isn't expired
-                user.last_login_date = None
             user.is_active = is_active
             sess.commit()
 
@@ -616,15 +610,9 @@ class AccountHandler:
 
             thisInfo = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
                         "email":user.email, "id":user.user_id, "is_active":user.is_active,
-                        "permission": self.get_permission_name(user.permission_type_id), "status": user.user_status.name}
+                        "permission": PERMISSION_TYPE_DICT_ID[user.permission_type_id], "status": user.user_status.name}
             user_info.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":user_info})
-
-    def get_permission_name(self, perm_id):
-        for permission_name, permission_id in PERMISSION_TYPE_DICT.items():
-            if permission_id == perm_id:
-                return permission_name
-        return None
 
     def list_user_emails(self):
         """ List user names and emails """

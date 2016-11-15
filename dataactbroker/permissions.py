@@ -14,19 +14,23 @@ from dataactbroker.exceptions.invalid_usage import InvalidUsage
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 
 
-def permissions_check(f=None,permission_list=[]):
+def permissions_check(f=None,permission=None):
+
+    if permission not in PERMISSION_TYPE_DICT:
+        raise ValueError("{} not a valid permission".format(permission))
+
     def actual_decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             try:
                 sess = GlobalDB.db().session
-                error_message  = "Login Required"
-                if "check_email_token" in permission_list:
+                error_message = "Login Required"
+                if permission == "check_email_token":
                     if LoginSession.isRegistering(session):
                         return f(*args, **kwargs)
                     else :
-                        error_message  = "unauthorized"
-                elif "check_password_token" in permission_list  :
+                        error_message = "unauthorized"
+                elif permission == "check_password_token":
                     if LoginSession.isResetingPassword(session):
                         return f(*args, **kwargs)
                     else :
@@ -34,21 +38,17 @@ def permissions_check(f=None,permission_list=[]):
                 elif LoginSession.isLogin(session):
                     user = sess.query(User).filter(User.user_id == session["name"]).one()
                     valid_user = True
-                    for permission in permission_list:
-                        if permission in PERMISSION_TYPE_DICT and \
-                                not user.permission_type_id == PERMISSION_TYPE_DICT[permission]:
-                            valid_user = False
-                        else:
-                            valid_user = True
-                            break
+                    if permission in PERMISSION_TYPE_DICT and \
+                            not user.permission_type_id == PERMISSION_TYPE_DICT[permission]:
+                        valid_user = False
                     if valid_user:
                         return f(*args, **kwargs)
-                    error_message  = "Wrong User Type"
+                    error_message = "Wrong User Type"
 
                 # No user logged in
                 return_response = flask.Response()
                 return_response.headers["Content-Type"] = "application/json"
-                return_response.status_code = 401 # Error code
+                return_response.status_code = 401  # Error code
                 response_dict = {}
                 response_dict["message"] = error_message
                 return_response.set_data(json.dumps(response_dict))
