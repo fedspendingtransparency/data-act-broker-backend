@@ -90,6 +90,8 @@ PERMISSION_TYPE = [
 ]
 PERMISSION_TYPE_DICT = {item.name: item.id for item in PERMISSION_TYPE}
 PERMISSION_TYPE_DICT_ID = {item.id: item.name for item in PERMISSION_TYPE}
+PERMISSION_MAP = {'r': {'name': 'reader', 'order': 3}, 'w': {'name': 'writer', 'order': 2},
+                  's': {'name': 'submitter', 'order': 1}}
 
 FIELD_TYPE = [
     LookupType(1, 'INT', 'integer type'),

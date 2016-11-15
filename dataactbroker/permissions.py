@@ -11,12 +11,16 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.userModel import User
 from dataactbroker.exceptions.invalid_usage import InvalidUsage
-from dataactcore.models.lookups import PERMISSION_TYPE_DICT
+from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PERMISSION_MAP, PERMISSION_TYPE_DICT_ID
+
+temp_perm_list = ["check_email_token", "check_password_token"]
 
 
 def permissions_check(f=None,permission=None):
 
-    if permission not in PERMISSION_TYPE_DICT:
+    # This will change to "if permission is not None and permission not in PERMISSION_TYPE_DICT" once the temp
+    # perms above are removed during the local login refactor
+    if permission is not None and permission not in list(PERMISSION_TYPE_DICT.keys()) + temp_perm_list:
         raise ValueError("{} not a valid permission".format(permission))
 
     def actual_decorator(f):
@@ -38,12 +42,20 @@ def permissions_check(f=None,permission=None):
                 elif LoginSession.isLogin(session):
                     user = sess.query(User).filter(User.user_id == session["name"]).one()
                     valid_user = True
-                    if permission in PERMISSION_TYPE_DICT and \
-                            not user.permission_type_id == PERMISSION_TYPE_DICT[permission]:
-                        valid_user = False
+
+                    if permission is not None and not user.permission_type_id == PERMISSION_TYPE_DICT['website_admin']:
+                        perm_hierarchy = {d['name']: d['order'] for d in PERMISSION_MAP.values()}
+                        # if the users permission is not higher than the one specified, check their permission
+                        # if user's perm order is < than what's passed in, it means they have higher permissions
+                        if perm_hierarchy[PERMISSION_TYPE_DICT_ID[user.permission_type_id]] > perm_hierarchy[permission]:
+                            print(perm_hierarchy[PERMISSION_TYPE_DICT_ID[user.permission_type_id]])
+                            print(perm_hierarchy[permission])
+                            if not user.permission_type_id == PERMISSION_TYPE_DICT[permission]:
+                                valid_user = False
+
                     if valid_user:
                         return f(*args, **kwargs)
-                    error_message = "Wrong User Type"
+                    error_message = "Insufficient permissions to perform requested task."
 
                 # No user logged in
                 return_response = flask.Response()

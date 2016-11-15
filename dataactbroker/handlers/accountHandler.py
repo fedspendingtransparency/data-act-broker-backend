@@ -21,7 +21,7 @@ from dataactcore.models.domainModels import CGAC
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import (get_email_template, check_correct_password, set_user_password, updateLastLogin)
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT, PERMISSION_TYPE_DICT_ID
+from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT, PERMISSION_TYPE_DICT_ID, PERMISSION_MAP
 
 class AccountHandler:
     """
@@ -32,8 +32,6 @@ class AccountHandler:
     INACTIVITY_THRESHOLD = 120 # Days a user's account can be unused before being marked as inactive
     ALLOWED_PASSWORD_ATTEMPTS = 3 # Number of allowed login attempts before account is locked
     # Instance fields include request, response, logFlag, and logFile
-    PERMISSION_MAP = {'r': {'name': 'reader', 'order': 3}, 'w': {'name': 'writer', 'order': 2},
-                      's': {'name': 'submitter', 'order': 1}}
 
     def __init__(self,request, interfaces = None, bcrypt = None, isLocal=False):
         """ Creates the Login Handler
@@ -237,11 +235,11 @@ class AccountHandler:
                                  "contact DATABroker@fiscal.treasury.gov to obtain access.")
 
             perms = [perm[-1].lower() for perm in permission_group]
-            ordered_perms = sorted(self.PERMISSION_MAP, key=lambda k: self.PERMISSION_MAP[k]['order'])
+            ordered_perms = sorted(PERMISSION_MAP, key=lambda k: PERMISSION_MAP[k]['order'])
 
             for perm in ordered_perms:
                 if perm in perms:
-                    user.permission_type_id = PERMISSION_TYPE_DICT[self.PERMISSION_MAP[perm]['name']]
+                    user.permission_type_id = PERMISSION_TYPE_DICT[PERMISSION_MAP[perm]['name']]
                     break
         session.merge(user)
         session.commit()
