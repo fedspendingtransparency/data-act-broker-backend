@@ -89,7 +89,7 @@ class BaseTestAPI(unittest.TestCase):
 
             # add new users
             createUserWithPassword(
-                test_users["submission_email"], user_password, Bcrypt())
+                test_users["submission_email"], user_password, Bcrypt(), permission=PERMISSION_TYPE_DICT['website_admin'])
             createUserWithPassword(
                 test_users["change_user_email"], user_password, Bcrypt())
             createUserWithPassword(

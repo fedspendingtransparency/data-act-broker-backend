@@ -13,6 +13,8 @@ from dataactcore.models.userModel import User
 from dataactbroker.exceptions.invalid_usage import InvalidUsage
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PERMISSION_MAP, PERMISSION_TYPE_DICT_ID
 
+# This is used in conjunction with PERMISSION_TYPE_DICT to check if the permission passed in is part of the valid
+# set of values we allow to be checked.
 temp_perm_list = ["check_email_token", "check_password_token"]
 
 
@@ -43,13 +45,11 @@ def permissions_check(f=None,permission=None):
                     user = sess.query(User).filter(User.user_id == session["name"]).one()
                     valid_user = True
 
-                    if permission is not None and not user.permission_type_id == PERMISSION_TYPE_DICT['website_admin']:
+                    if permission is not None:
                         perm_hierarchy = {d['name']: d['order'] for d in PERMISSION_MAP.values()}
                         # if the users permission is not higher than the one specified, check their permission
                         # if user's perm order is < than what's passed in, it means they have higher permissions
                         if perm_hierarchy[PERMISSION_TYPE_DICT_ID[user.permission_type_id]] > perm_hierarchy[permission]:
-                            print(perm_hierarchy[PERMISSION_TYPE_DICT_ID[user.permission_type_id]])
-                            print(perm_hierarchy[permission])
                             if not user.permission_type_id == PERMISSION_TYPE_DICT[permission]:
                                 valid_user = False
 

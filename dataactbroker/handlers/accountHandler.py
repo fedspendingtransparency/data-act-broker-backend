@@ -514,7 +514,7 @@ class AccountHandler:
         sess.commit()
         return JsonResponse.create(StatusCode.OK,{"message":"success"})
 
-    def update_user(self, system_email, is_local):
+    def update_user(self, system_email):
         """
         Update editable fields for specified user. Editable fields for a user:
         * is_active

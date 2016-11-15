@@ -211,7 +211,7 @@ class UserTests(BaseTestAPI):
         postJson = {"status": "awaiting_approval"}
         response = self.app.post_json("/v1/list_users_with_status/",
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.LOGIN_REQUIRED, "Wrong User Type")
+        self.check_response(response, StatusCode.LOGIN_REQUIRED, "Insufficient permissions to perform requested task.")
         self.logout()
 
     def test_finalize_wrong_user(self):
