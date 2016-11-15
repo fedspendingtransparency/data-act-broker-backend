@@ -22,6 +22,8 @@ def test_success(database):
 
     assert number_of_errors(_FILE, database, models=[sf, ap]) == 0
 
+
+def test_success_fyb_none(database):
     sf = SF133Factory(line=1000, tas=_TAS, period=1, fiscal_year=2016, amount=0)
     ap = AppropriationFactory(tas=_TAS, budget_authority_unobligat_fyb=None)
 

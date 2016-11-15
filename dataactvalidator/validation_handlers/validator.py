@@ -183,7 +183,6 @@ class Validator(object):
         _exception_logger.info(
             'VALIDATOR_INFO: Beginning SQL validation rules on submissionID '
             '%s, fileType: %s', submissionId, fileType)
-        conn = GlobalDB.db().connection
         sess = GlobalDB.db().session
 
         # Pull all SQL rules for this file type
@@ -197,7 +196,7 @@ class Validator(object):
             _exception_logger.info(
                 'VALIDATOR_INFO: Running query: %s on submissionId %s, '
                 'fileType: %s', rule.query_name, submissionId, fileType)
-            failures = conn.execute(rule.rule_sql.format(submissionId))
+            failures = sess.execute(rule.rule_sql.format(submissionId))
             if failures.rowcount:
                 # Create column list (exclude row_number)
                 cols = failures.keys()

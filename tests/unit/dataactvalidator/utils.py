@@ -34,11 +34,6 @@ def error_rows(rule_file, staging_db, submission=None, models=None, assert_num =
     if assert_num is not None:
         assert(len(result) == assert_num)
 
-    # clean up
-    for model in models:
-        staging_db.session.delete(model)
-    staging_db.session.commit()
-
     return result
 
 

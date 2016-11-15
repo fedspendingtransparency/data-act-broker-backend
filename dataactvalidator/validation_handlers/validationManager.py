@@ -2,12 +2,13 @@ from csv import Error
 import os
 import logging
 
-from sqlalchemy import or_, and_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import joinedload
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
+from dataactcore.models.jobModels import Submission
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.interfaces.function_bag import (
     createFileIfNeeded, writeFileError, markFileComplete, run_job_checks)
@@ -259,7 +260,7 @@ class ValidationManager:
             'VALIDATOR_INFO: Beginning runValidation on job_id: %s', job_id)
 
         jobTracker = interfaces.jobDb
-        submissionId = jobTracker.getSubmissionId(job_id)
+        submission_id = job.submission_id
 
         rowNumber = 1
         fileType = jobTracker.getFileType(job_id)
@@ -267,7 +268,7 @@ class ValidationManager:
         model = [ft.model for ft in FILE_TYPE if ft.name == fileType][0]
 
         # Clear existing records for this submission
-        sess.query(model).filter(model.submission_id == submissionId).delete()
+        sess.query(model).filter_by(submission_id=submission_id).delete()
         sess.commit()
 
         # If local, make the error report directory
@@ -351,7 +352,9 @@ class ValidationManager:
                     else:
                         passedValidations, failures, valid = Validator.validate(record, csvSchema)
                     if valid:
-                        skipRow = self.writeToStaging(record, job_id, submissionId, passedValidations, writer, rowNumber, model, error_list)
+                        skipRow = self.writeToStaging(
+                            record, job_id, submission_id, passedValidations,
+                            writer, rowNumber, model, error_list)
                         if skipRow:
                             errorRows.append(rowNumber)
                             continue
@@ -364,6 +367,9 @@ class ValidationManager:
                     'VALIDATOR_INFO: Loading complete on job_id: %s. '
                     'Total rows added to staging: %s', job_id, rowNumber)
 
+                if fileType in ('appropriations', 'program_activity',
+                                'award_financial'):
+                    update_tas_ids(model, submission_id)
                 #
                 # third phase of validations: run validation rules as specified
                 # in the schema guidance. these validations are sql-based.
@@ -387,7 +393,7 @@ class ValidationManager:
 
             error_list.writeAllRowErrors(job_id)
             # Update error info for submission
-            jobTracker.populateSubmissionErrorInfo(submissionId)
+            jobTracker.populateSubmissionErrorInfo(submission_id)
             # Mark validation as finished in job tracker
             jobTracker.markJobStatus(job_id,"finished")
             markFileComplete(job_id, self.filename)
@@ -524,49 +530,50 @@ class ValidationManager:
         Returns:
         Http response object
         """
-        sess = GlobalDB.db().session
         # Create connection to job tracker database
         self.filename = None
-        job_id = None
-        jobTracker = None
+        sess = GlobalDB.db().session
 
-        try:
-            jobTracker = interfaces.jobDb
-            requestDict = RequestDictionary(request)
-            if requestDict.exists("job_id"):
-                job_id = requestDict.getValue("job_id")
-            else:
-                # Request does not have a job ID, can't validate
-                raise ResponseException("No job ID specified in request",
-                                        StatusCode.CLIENT_ERROR)
+        jobTracker = interfaces.jobDb
+        requestDict = RequestDictionary(request)
+        if requestDict.exists('job_id'):
+            job_id = requestDict.getValue('job_id')
+        else:
+            # Request does not have a job ID, can't validate
+            validation_error_type = ValidationError.jobError
+            raise ResponseException('No job ID specified in request',
+                                    StatusCode.CLIENT_ERROR, None,
+                                    validation_error_type)
 
-            # Get the job
-            job = sess.query(Job).filter_by(job_id=job_id).one()
+        # Get the job
+        job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
+        if job is None:
+            validation_error_type = ValidationError.jobError
+            writeFileError(job_id, self.filename, validation_error_type)
+            raise ResponseException('Job ID {} not found in database'.format(job_id),
+                                    StatusCode.CLIENT_ERROR, None,
+                                    validation_error_type)
 
-            # Make sure job's prerequisites are complete
-            if not run_job_checks(job_id):
-                raise ResponseException("Checks failed on Job ID",
-                                        StatusCode.CLIENT_ERROR)
+        # Make sure job's prerequisites are complete
+        if not run_job_checks(job_id):
+            validation_error_type = ValidationError.jobError
+            writeFileError(job_id, self.filename, validation_error_type)
+            raise ResponseException('Prerequisites for Job ID {} are not complete'.format(job_id),
+                                    StatusCode.CLIENT_ERROR, None,
+                                    validation_error_type)
 
-            # Make sure this is a validation job
-            if job.job_type.name in ('csv_record_validation', 'validation'):
-                job_type_name = job.job_type.name
-            else:
-                raise ResponseException("Wrong type of job for this service", StatusCode.CLIENT_ERROR, None,
-                                    ValidationError.jobError)
+        # Make sure this is a validation job
+        if job.job_type.name in ('csv_record_validation', 'validation'):
+            job_type_name = job.job_type.name
+        else:
+            validation_error_type = ValidationError.jobError
+            writeFileError(job_id, self.filename, validation_error_type)
+            raise ResponseException(
+                'Job ID {} is not a validation job (job type is {})'.format(job_id, job.job_type.name),
+                StatusCode.CLIENT_ERROR, None,
+                validation_error_type)
 
-        except ResponseException as e:
-            _exception_logger.exception(str(e))
-            if e.errorType == None:
-                # Error occurred while trying to get and check job ID
-                e.errorType = ValidationError.jobError
-            writeFileError(job_id, self.filename, e.errorType, e.extraInfo)
-            return JsonResponse.error(e, e.status)
-        except Exception as e:
-            _exception_logger.exception(str(e))
-            self.markJob(job_id, jobTracker, "failed", self.filename, ValidationError.unknownError)
-            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
-
+        # todo: remove the following try/catch once 1st batch of changes are merged
         try:
             jobTracker.markJobStatus(job_id, "running")
             if job_type_name == 'csv_record_validation':
@@ -600,3 +607,55 @@ class ValidationManager:
                 ValidationError.unknownError)
             self.markJob(job_id, jobTracker, "failed", self.filename, ValidationError.unknownError)
             return JsonResponse.error(exc, exc.status)
+
+
+def update_tas_ids(model, submission_id):
+    sess = GlobalDB.db().session
+    submission = sess.query(Submission).\
+        filter_by(submission_id=submission_id).one()
+
+    # Due to the OVERLAPS, tuples, and IS NOT DISTINCT FROM, this query is
+    # more gnarly in sqlalchemy than straight SQL, so using SQL instead
+    #
+    # Why min()?
+    # Our data schema doesn't restrict two TAS entries (with the same ATA, AI,
+    # etc.) to be disjoint in time, though we do require that there only be a
+    # single combination of ATA, AI, etc. and CARS' internal accounting
+    # number. In that scenario, we select the minimum of the potential
+    # tas_ids. We don't expect this situation to arise in practice, however.
+    sql = """
+        UPDATE {table_name}
+        SET tas_id = (
+            SELECT min(tas.tas_id)
+            FROM tas_lookup AS tas
+            WHERE
+            {table_name}.allocation_transfer_agency
+                IS NOT DISTINCT FROM tas.allocation_transfer_agency
+            AND {table_name}.agency_identifier
+                IS NOT DISTINCT FROM tas.agency_identifier
+            AND {table_name}.beginning_period_of_availa
+                IS NOT DISTINCT FROM tas.beginning_period_of_availability
+            AND {table_name}.ending_period_of_availabil
+                IS NOT DISTINCT FROM tas.ending_period_of_availability
+            AND {table_name}.availability_type_code
+                IS NOT DISTINCT FROM tas.availability_type_code
+            AND {table_name}.main_account_code
+                IS NOT DISTINCT FROM tas.main_account_code
+            AND {table_name}.sub_account_code
+                IS NOT DISTINCT FROM tas.sub_account_code
+            AND (:start_date, :end_date) OVERLAPS
+                -- A null end date indicates "still open". To make OVERLAPS
+                -- work, we'll use the day after the end date of the
+                -- submission to achieve the same result
+                (tas.internal_start_date,
+                 COALESCE(tas.internal_end_date, :end_date + interval '1 day')
+                )
+            )
+        WHERE submission_id = :submission_id
+    """.format(table_name=model.__table__)
+    sess.execute(
+        sql, {'start_date': submission.reporting_start_date,
+              'end_date': submission.reporting_end_date,
+              'submission_id': submission_id}
+    )
+    sess.commit()

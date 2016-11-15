@@ -295,7 +295,7 @@ class MixedFileTests(BaseTestValidator):
             sizePathPairs = [
                 (89, get_cross_report_name(submissionId, "appropriations", "program_activity")),
                 (89, get_cross_report_name(submissionId, "award_financial", "award")),
-                (2348, get_cross_warning_report_name(submissionId, "appropriations", "program_activity")),
+                (2363, get_cross_warning_report_name(submissionId, "appropriations", "program_activity")),
                 (89, get_cross_warning_report_name(submissionId, "award_financial", "award")),
             ]
 
