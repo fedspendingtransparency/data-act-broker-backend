@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import requests
 from flask import session as flaskSession
-from flask import session, request, redirect, send_from_directory
+from flask import session, request
 from requests.exceptions import Timeout
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
@@ -141,18 +141,20 @@ class FileHandler:
         """ Gets the signed URL for the specified file """
         try:
             self.s3manager = s3UrlHandler()
-            file_name = request.args.get('file') + ".csv"
-            submission_id = request.args.get('submission')
+            safe_dictionary = RequestDictionary(self.request)
+            file_name = safe_dictionary.getValue("file") + ".csv"
+            submission_id = safe_dictionary.getValue("submission")
             submission = self.jobManager.getSubmissionById(submission_id)
             # Check that user has access to submission
             # If they don't, throw an exception
             self.check_submission_permission(submission)
 
+            response_dict = {}
             if self.isLocal:
-                return send_from_directory(self.serverPath, file_name)
+                response_dict["url"] = os.path.join(self.serverPath, file_name)
             else:
-                report_path = self.s3manager.getSignedUrl("errors", file_name, method="GET")
-                return redirect(report_path)
+                response_dict["url"] = self.s3manager.getSignedUrl("errors", file_name, method="GET")
+            return JsonResponse.create(StatusCode.OK, response_dict)
         except ResponseException as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except Exception as e:

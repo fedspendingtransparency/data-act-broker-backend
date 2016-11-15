@@ -121,7 +121,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.getObligations)
 
-    @app.route("/v1/sign_submission_file", methods = ["GET"])
+    @app.route("/v1/sign_submission_file", methods = ["POST"])
     @permissions_check
     def sign_submission_file():
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
