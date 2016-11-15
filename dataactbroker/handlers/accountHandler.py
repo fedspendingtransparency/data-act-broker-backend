@@ -608,7 +608,7 @@ class AccountHandler:
 
             thisInfo = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
                         "email":user.email, "id":user.user_id, "is_active":user.is_active,
-                        "permission": PERMISSION_TYPE_DICT_ID[user.permission_type_id], "status": user.user_status.name}
+                        "permission": PERMISSION_TYPE_DICT_ID.get(user.permission_type_id), "status": user.user_status.name}
             user_info.append(thisInfo)
         return JsonResponse.create(StatusCode.OK,{"users":user_info})
 
