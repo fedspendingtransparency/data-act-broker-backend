@@ -1,6 +1,6 @@
 from datetime import datetime, date
 
-from dataactcore.interfaces.function_bag import addJobsForFileType
+from dataactcore.interfaces.function_bag import addJobsForFileType, mark_job_status
 from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
@@ -250,15 +250,6 @@ class JobHandler(JobTrackerInterface):
             return True
         # Did not confirm correct type
         return False
-
-    def changeToFinished(self, jobId):
-        """  Mark an upload job as finished
-
-        Arguments:
-        jobId -- job_id to mark as finished
-
-        """
-        self.markJobStatus(jobId, 'finished')
 
     def getSubmissionForJob(self,job):
         """ Takes a job object and returns the associated submission object """

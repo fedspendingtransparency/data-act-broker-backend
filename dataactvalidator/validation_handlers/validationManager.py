@@ -10,7 +10,8 @@ from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.interfaces.function_bag import (
-    createFileIfNeeded, writeFileError, markFileComplete, run_job_checks)
+    createFileIfNeeded, writeFileError, markFileComplete, run_job_checks,
+    mark_job_status)
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
 from dataactcore.utils.responseException import ResponseException
@@ -355,7 +356,7 @@ class ValidationManager:
             # Update error info for submission
             jobTracker.populateSubmissionErrorInfo(submission_id)
             # Mark validation as finished in job tracker
-            jobTracker.markJobStatus(job_id, "finished")
+            mark_job_status(job_id, "finished")
             markFileComplete(job_id, fileName)
         finally:
             # Ensure the file always closes
@@ -468,7 +469,7 @@ class ValidationManager:
                 warningWriter.finishBatch()
 
         error_list.writeAllRowErrors(job_id)
-        interfaces.jobDb.markJobStatus(job_id, "finished")
+        mark_job_status(job_id, "finished")
         _exception_logger.info(
             'VALIDATOR_INFO: Completed runCrossValidation on submission_id: '
             '%s', submission_id)
@@ -535,7 +536,7 @@ class ValidationManager:
                 validation_error_type)
 
         # set job status to running and do validations
-        jobTracker.markJobStatus(job_id, "running")
+        mark_job_status(job_id, "running")
         if job_type_name == 'csv_record_validation':
             self.runValidation(job, interfaces)
         elif job_type_name == 'validation':

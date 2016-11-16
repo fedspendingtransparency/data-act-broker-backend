@@ -31,7 +31,8 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     checkNumberOfErrorsByJobId, getErrorType, run_job_checks,
-    createFileIfNeeded, getErrorMetricsByJobId, get_submission_stats)
+    createFileIfNeeded, getErrorMetricsByJobId, get_submission_stats,
+    mark_job_status)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -279,7 +280,7 @@ class FileHandler:
                 raise ResponseException("Cannot finalize a job for a different agency", StatusCode.CLIENT_ERROR)
             # Change job status to finished
             if self.jobManager.checkUploadType(job_id):
-                self.jobManager.changeToFinished(job_id)
+                mark_job_status(job_id, 'finished')
                 response_dict["success"] = True
                 return JsonResponse.create(StatusCode.OK,response_dict)
             else:
@@ -376,7 +377,7 @@ class FileHandler:
 
             # Get submission
             submission_id = inputDictionary.getValue("submission_id")
-            submission = self.jobManager.getSubmissionById(submission_id)
+            submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
 
             # Check that user has access to submission
             self.check_submission_permission(submission)
@@ -397,14 +398,15 @@ class FileHandler:
             submissionInfo["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
 
             for job_id in jobs:
+                job = sess.query(Job).filter_by(job_id = job_id).one()
                 jobInfo = {}
-                job_type = self.jobManager.getJobType(job_id)
+                job_type = job.job_type.name
 
                 if job_type != "csv_record_validation" and job_type != "validation":
                     continue
 
                 jobInfo["job_id"] = job_id
-                jobInfo["job_status"] = self.jobManager.getJobStatusName(job_id)
+                jobInfo["job_status"] = job.job_status.name
                 jobInfo["job_type"] = job_type
                 jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job_id)
                 try:
@@ -638,10 +640,10 @@ class FileHandler:
         # No results found, skip validation and mark as finished
         jobDb.session.query(JobDependency).filter(JobDependency.prerequisite_id == job.job_id).delete()
         jobDb.session.commit()
-        jobDb.markJobStatus(job.job_id,"finished")
+        mark_job_status(job.job_id,"finished")
         job.filename = None
         if valJob is not None:
-            jobDb.markJobStatus(valJob.job_id, "finished")
+            mark_job_status(valJob.job_id, "finished")
             # Create File object for this validation job
             valFile = createFileIfNeeded(valJob.job_id, filename = valJob.filename)
             valFile.file_status_id = FILE_STATUS_DICT['complete']
@@ -694,7 +696,7 @@ class FileHandler:
             _smx_logger.debug('Downloading file...')
             if not self.download_file(full_file_path, url):
                 # Error occurred while downloading file, mark job as failed and record error message
-                job_manager.markJobStatus(job_id, "failed")
+                mark_job_status(job_id, "failed")
                 job = job_manager.getJobById(job_id)
                 file_type = job_manager.getFileType(job_id)
                 if file_type == "award":
@@ -711,14 +713,14 @@ class FileHandler:
             write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])
 
             _smx_logger.debug('Marking job id of %s', job_id)
-            job_manager.markJobStatus(job_id, "finished")
+            mark_job_status(job_id, "finished")
             return {"message": "Success", "file_name": timestamped_name}
         except Exception as e:
             _smx_logger.exception('Exception caught => %s', e)
             # Log the error
             JsonResponse.error(e,500)
             job_manager.getJobById(job_id).error_message = str(e)
-            job_manager.markJobStatus(job_id, "failed")
+            mark_job_status(job_id, "failed")
             job_manager.session.commit()
             raise e
 
@@ -765,7 +767,7 @@ class FileHandler:
         _debug_logger.debug('Finished startGenerationJob method')
         if not success:
             # If not successful, set job status as "failed"
-            self.interfaces.jobDb.markJobStatus(job.job_id, "failed")
+            self.interfaces.mark_job_status(job.job_id, "failed")
             return error_response
 
         # Return same response as check generation route

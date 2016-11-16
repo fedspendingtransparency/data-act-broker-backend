@@ -4,7 +4,7 @@ from flask import Flask, request, g
 
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import writeFileError
+from dataactcore.interfaces.function_bag import writeFileError, mark_job_status
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import Job
@@ -54,8 +54,7 @@ def createApp():
                     # job pass prerequisites for validation, but an error
                     # happened somewhere. mark job as 'invalid'
                     # next 2 lines are very temporary, until the job interface refactor is done
-                    jobDb = JobHandler()
-                    jobDb.markJobStatus(job_id, 'invalid')
+                    mark_job_status(job_id, 'invalid')
         return JsonResponse.error(error, error.status)
 
     @app.errorhandler(Exception)
@@ -74,7 +73,7 @@ def createApp():
                     writeFileError(job_id, job.filename, ValidationError.unknownError)
                 # next 2 lines are very temporary, until the job interface refactor is done
                 jobDb = JobHandler()
-                jobDb.markJobStatus(job_id, 'failed')
+                mark_job_status(job_id, 'failed')
 
         return JsonResponse.error(error, 500)
 

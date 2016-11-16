@@ -7,6 +7,7 @@ from flask import Flask
 import requests
 
 from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE
+from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.logging import configure_logging
 from dataactcore.models.stagingModels import (
     AwardFinancialAssistance, AwardProcurement)
@@ -62,7 +63,7 @@ def job_context(task, interface_holder_class, job_id):
 
         try:
             yield job_manager
-            job_manager.markJobStatus(job_id, "finished")
+            mark_job_status(job_id, "finished")
         except Exception as e:
             # logger.exception() automatically adds traceback info
             logger.exception('Job %s failed, retrying', job_id)
@@ -72,7 +73,7 @@ def job_context(task, interface_holder_class, job_id):
                 logger.warning('Job %s completely failed', job_id)
                 # Log the error
                 job_manager.getJobById(job_id).error_message = str(e)
-                job_manager.markJobStatus(job_id, "failed")
+                mark_job_status(job_id, "failed")
 
         job_manager.close()
 
