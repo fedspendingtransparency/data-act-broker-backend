@@ -42,35 +42,40 @@ def createApp():
     def handle_response_exception(error):
         """Handle exceptions explicitly raised during validation."""
         logger.error(str(error))
-        if error.errorType == ValidationError.jobError:
-            # job failed prerequisite checks and isn't eligible for validation
-            pass
-        else:
-            # job is valid, but an error happened during validation
-            job_id = g.get('job_id', None)
-            if job_id:
-                sess = GlobalDB.db().session
-                job = sess.query(Job).filter(Job.job_id == job_id).one()
-                writeFileError(job_id, job.filename, error.errorType, error.extraInfo)
-                # next 2 lines are very temporary, until the job interface refactor is done
-                jobDb = JobHandler()
-                jobDb.markJobStatus(job_id, 'invalid')
+        job_id = g.get('job_id', None)
+        if job_id:
+            sess = GlobalDB.db().session
+            job = sess.query(Job).filter(Job.job_id == job_id).one_or_none()
+            if job:
+                if job.filename is not None:
+                    # insert file-level error info to the database
+                    writeFileError(job_id, job.filename, error.errorType, error.extraInfo)
+                if error.errorType != ValidationError.jobError:
+                    # job pass prerequisites for validation, but an error
+                    # happened somewhere. mark job as 'invalid'
+                    # next 2 lines are very temporary, until the job interface refactor is done
+                    jobDb = JobHandler()
+                    jobDb.markJobStatus(job_id, 'invalid')
         return JsonResponse.error(error, error.status)
 
     @app.errorhandler(Exception)
     def handle_validation_exception(error):
         """Handle uncaught exceptions in validation process."""
+        logger.error(str(error))
         job_id = g.get('job_id', None)
 
-        # if request had a job id, set job to failed status
+        # set job to failed status; if job has an associated file
+        # name, insert file-level error info to the database
         if job_id:
             sess = GlobalDB.db().session
-            job = sess.query(Job).filter(Job.job_id == job_id).one()
-            job.status_id = JOB_STATUS_DICT['failed']
-            sess.commit()
+            job = sess.query(Job).filter(Job.job_id == job_id).one_or_none()
+            if job:
+                if job.filename is not None:
+                    writeFileError(job_id, job.filename, ValidationError.unknownError)
+                # next 2 lines are very temporary, until the job interface refactor is done
+                jobDb = JobHandler()
+                jobDb.markJobStatus(job_id, 'failed')
 
-        # log failure and return a response
-        logger.error(str(error))
         return JsonResponse.error(error, 500)
 
     @app.route("/", methods=["GET"])
