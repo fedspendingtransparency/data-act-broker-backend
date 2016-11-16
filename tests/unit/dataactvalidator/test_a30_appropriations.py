@@ -1,10 +1,10 @@
-from dataactcore.models.stagingModels import Appropriation
-from dataactcore.models.stagingModels import ObjectClassProgramActivity
+from tests.unit.dataactcore.factories.domain import TASFactory
+from tests.unit.dataactcore.factories.staging import (
+    AppropriationFactory, ObjectClassProgramActivityFactory)
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
 _FILE = 'a30_appropriations'
-_TAS = 'a30_appropriations_tas'
 
 
 def test_column_headers(database):
@@ -17,21 +17,23 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Tests that TAS values in File A should exist in File B for the same reporting period """
-    tas = "".join([_TAS, "_success"])
+    tas = TASFactory()
+    database.session.add(tas)
+    database.session.flush()
 
-    ap = Appropriation(job_id=1, row_number=1, tas=tas)
-
-    op = ObjectClassProgramActivity(job_id=1, row_number=1, tas=tas)
+    ap = AppropriationFactory(tas_id=tas.tas_id)
+    op = ObjectClassProgramActivityFactory(tas_id=tas.tas_id)
 
     assert number_of_errors(_FILE, database, models=[ap, op]) == 0
 
 
 def test_failure(database):
     """ Tests that TAS values in File A do not exist in File B for the same reporting period """
-    tas = "".join([_TAS, "_success"])
+    tas1 = TASFactory()
+    tas2 = TASFactory()
+    database.session.add_all([tas1, tas2])
+    database.session.flush()
 
-    ap = Appropriation(job_id=1, row_number=1, tas=tas)
-
-    op = ObjectClassProgramActivity(job_id=1, row_number=1, tas='1')
-
+    ap = AppropriationFactory(tas_id=tas1.tas_id)
+    op = ObjectClassProgramActivityFactory(tas_id=tas2.tas_id)
     assert number_of_errors(_FILE, database, models=[ap, op]) == 1
