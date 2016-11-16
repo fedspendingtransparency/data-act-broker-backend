@@ -1,11 +1,32 @@
-from dataactcore.models.stagingModels import concatTas
-from sqlalchemy import Column, Integer, Text, Index, Numeric
+from sqlalchemy import (
+    Column, Date, Index, Integer, Numeric, Text, UniqueConstraint)
 from dataactcore.models.baseModel import Base
+
+
+def concatTas(context):
+    """Create a concatenated TAS string for insert into database."""
+    tas1 = context.current_parameters['allocation_transfer_agency']
+    tas1 = tas1 if tas1 else '000'
+    tas2 = context.current_parameters['agency_identifier']
+    tas2 = tas2 if tas2 else '000'
+    tas3 = context.current_parameters['beginning_period_of_availa']
+    tas3 = tas3 if tas3 else '0000'
+    tas4 = context.current_parameters['ending_period_of_availabil']
+    tas4 = tas4 if tas4 else '0000'
+    tas5 = context.current_parameters['availability_type_code']
+    tas5 = tas5 if tas5 else ' '
+    tas6 = context.current_parameters['main_account_code']
+    tas6 = tas6 if tas6 else '0000'
+    tas7 = context.current_parameters['sub_account_code']
+    tas7 = tas7 if tas7 else '000'
+    tas = '{}{}{}{}{}{}{}'.format(tas1, tas2, tas3, tas4, tas5, tas6, tas7)
+    return tas
 
 
 class TASLookup(Base) :
     __tablename__ = "tas_lookup"
     tas_id = Column(Integer, primary_key=True)
+    account_num = Column(Integer, index=True, nullable=False)
     allocation_transfer_agency = Column(Text, nullable=True, index=True)
     agency_identifier = Column(Text, nullable=True, index=True)
     beginning_period_of_availability = Column(Text, nullable=True, index=True)
@@ -13,6 +34,22 @@ class TASLookup(Base) :
     availability_type_code = Column(Text, nullable=True, index=True)
     main_account_code = Column(Text, nullable=True, index=True)
     sub_account_code = Column(Text, nullable=True, index=True)
+    internal_start_date = Column(Date, nullable=False)
+    internal_end_date = Column(Date)
+
+    __table_args__ = (
+        UniqueConstraint(
+            'account_num',
+            'allocation_transfer_agency',
+            'agency_identifier',
+            'beginning_period_of_availability',
+            'ending_period_of_availability',
+            'availability_type_code',
+            'main_account_code',
+            'sub_account_code',
+            name='tas_lookup_sanity_check'
+        ),
+    )
 
 Index("ix_tas",
       TASLookup.allocation_transfer_agency,
@@ -22,7 +59,8 @@ Index("ix_tas",
       TASLookup.availability_type_code,
       TASLookup.main_account_code,
       TASLookup.sub_account_code,
-      unique=True)
+      TASLookup.internal_start_date,
+      TASLookup.internal_end_date)
 
 class CGAC(Base):
     __tablename__ = "cgac"

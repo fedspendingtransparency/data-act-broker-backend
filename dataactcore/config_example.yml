@@ -62,10 +62,11 @@ broker:
 
 services:
     # Set to true to turn on tracing rest errors.
-    rest_trace: true
+    rest_trace: false #deprecated
 
     # Set to true to turn on server debugging.
-    server_debug: true
+    server_debug: false #deprecated
+    debug: false
 
     # URL/IP address that hosts the broker API
     broker_api_host: http://dataactbroker-api.domain.com
@@ -117,31 +118,10 @@ db:
     db_name: data_broker
     job_queue_db_name: da_job_queue # Job queue db
 
-    # The broker uses DynamoDb for session management. If
-    # use_aws is true above, the broker will use a
-    # Dynamo instance on your AWS account. Otherwise,
-    # provide a dynamo host and port below.
-    dynamo_host: 127.0.0.1
-    dynamo_port: 8000
-
 logging:
 
     # The path where broker still store log files.
-    # Ignored if use_logstash is true.
     log_files: /full/path/to/logfiles
-
-    # Set following to true and fill in all logstash_ settings
-    # to use logstash for logging
-    use_logstash: false
-
-    # Logstash host. Ignored if use_logstash is false.
-    # NOTE: the dummy value below MUST be changed to the correct
-    # value if use_logstash is true.
-    logstash_host: logstash-host.compute-1.amazonaws.com
-
-    # Logstash port. 514 is the port typically used with logstash,
-    # so you can mostly likely keep this as is.
-    logstash_port: 514
 
     values_to_log:
         broker:
@@ -180,15 +160,10 @@ logging:
             - rest_trace
             - server_debug
         db:
-            - dynamo_host
-            - dynamo_port
             - base_db_name
             - scheme
         logging:
             - log_files
-            - use_logstash
-            - logstash_host
-            - logstash_port
         job-queue:
             - url
             - port

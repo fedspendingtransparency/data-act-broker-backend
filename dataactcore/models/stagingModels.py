@@ -1,25 +1,8 @@
-from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean
+from sqlalchemy import Column, ForeignKey, Integer, Text, Numeric, Index
+from sqlalchemy.orm import relationship
+
 from dataactcore.models.baseModel import Base
-
-
-def concatTas(context):
-    """Create a concatenated TAS string for insert into database."""
-    tas1 = context.current_parameters['allocation_transfer_agency']
-    tas1 = tas1 if tas1 else '000'
-    tas2 = context.current_parameters['agency_identifier']
-    tas2 = tas2 if tas2 else '000'
-    tas3 = context.current_parameters['beginning_period_of_availa']
-    tas3 = tas3 if tas3 else '0000'
-    tas4 = context.current_parameters['ending_period_of_availabil']
-    tas4 = tas4 if tas4 else '0000'
-    tas5 = context.current_parameters['availability_type_code']
-    tas5 = tas5 if tas5 else ' '
-    tas6 = context.current_parameters['main_account_code']
-    tas6 = tas6 if tas6 else '0000'
-    tas7 = context.current_parameters['sub_account_code']
-    tas7 = tas7 if tas7 else '000'
-    tas = '{}{}{}{}{}{}{}'.format(tas1, tas2, tas3, tas4, tas5, tas6, tas7)
-    return tas
+from dataactcore.models.domainModels import concatTas, TASLookup
 
 
 class Appropriation(Base):
@@ -51,6 +34,9 @@ class Appropriation(Base):
     sub_account_code = Column(Text)
     unobligated_balance_cpe = Column(Numeric)
     tas = Column(Text, index=True, nullable=False, default=concatTas, onupdate=concatTas)
+    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'),
+                    nullable=True)
+    tas_obj = relationship(TASLookup)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -110,6 +96,9 @@ class ObjectClassProgramActivity(Base):
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
+    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'),
+                    nullable=True)
+    tas_obj = relationship(TASLookup)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -180,6 +169,9 @@ class AwardFinancial(Base):
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
+    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'),
+                    nullable=True)
+    tas_obj = relationship(TASLookup)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

@@ -32,13 +32,14 @@ class JobHandler(JobTrackerInterface):
         """ Returns all submissions associated with the specified user's agency """
         return self.session.query(Submission).filter(Submission.cgac_code == user.cgac_code).order_by(Submission.updated_at.desc()).limit(limit).all()
 
-    def getSubmissionsByUserId(self,userId):
+    def getSubmissionsByUserId(self,userId, limit, offset, certified):
         """ Returns all submissions associated with the specified user ID """
-        return self.session.query(Submission).filter(Submission.user_id == userId).all()
-
-    def getSubmissionsByUser(self,user):
-        """ Returns all submissions associated with the provided user object """
-        return self.getSubmissionsByUserId(user.user_id)
+        if certified is None:
+            return self.session.query(Submission).filter(Submission.user_id == userId).order_by(
+                Submission.updated_at.desc()).limit(limit).offset(offset).all()
+        else:
+            return self.session.query(Submission).filter(and_(Submission.user_id == userId, Submission.publishable == certified)).order_by(
+                Submission.updated_at.desc()).limit(limit).offset(offset).all()
 
     @classmethod
     def loadSubmitParams(cls,requestDict):
@@ -109,46 +110,6 @@ class JobHandler(JobTrackerInterface):
         quartersFromStart = monthsIntoFiscalYear / 3
         quarter = quartersFromStart + 1
         return "".join(["Q",str(int(quarter))])
-
-    @staticmethod
-    def quarterToMonth(quarter, isStart):
-        """ Translate quarter as 'Q#' to a 2 digit month
-
-        Args:
-            quarter: Q followed by 1,2,3, or 4
-            isStart: True if we want first month of quarter
-
-        Returns:
-            Two character string representing month
-        """
-        # If does not start with Q, this is an error
-        if quarter[0] != "Q":
-            raise ResponseException("Cannot translate quarter that does not begin with Q",StatusCode.CLIENT_ERROR,ValueError)
-
-        # Specified by quarter, translate to months
-        if quarter[1] == "1":
-            if isStart:
-                month = "10"
-            else:
-                month = "12"
-        elif quarter[1] == "2":
-            if isStart:
-                month = "01"
-            else:
-                month = "03"
-        elif quarter[1] == "3":
-            if isStart:
-                month = "04"
-            else:
-                month = "06"
-        elif quarter[1] == "4":
-            if isStart:
-                month = "07"
-            else:
-                month = "09"
-        else:
-            raise ResponseException("Invalid quarter, must be 1-4",StatusCode.CLIENT_ERROR,ValueError)
-        return month
 
     @staticmethod
     def createDate(dateString):
@@ -297,11 +258,7 @@ class JobHandler(JobTrackerInterface):
         jobId -- job_id to mark as finished
 
         """
-        JobTrackerInterface.markJobStatus(self, jobId, 'finished')
-
-    def getUserForSubmission(self,submission):
-        """ Takes a submission object and returns the user ID """
-        return submission.user_id
+        self.markJobStatus(jobId, 'finished')
 
     def getSubmissionForJob(self,job):
         """ Takes a job object and returns the associated submission object """

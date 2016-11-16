@@ -1,129 +1,77 @@
-import sys
-import traceback
-from threading import Thread
-from flask import Flask, request, copy_current_request_context
-from dataactcore.interfaces.db import GlobalDB
-from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.statusCode import StatusCode
-from dataactcore.utils.responseException import ResponseException
-from dataactcore.utils.cloudLogger import CloudLogger
+import logging
+
+from flask import Flask, request
+
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
-from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactvalidator.validation_handlers.validationManager import ValidationManager
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
+from dataactcore.logging import configure_logging
+from dataactcore.models.jobModels import Job
+from dataactcore.models.lookups import JOB_STATUS_DICT
+from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.responseException import ResponseException
+from dataactvalidator.validation_handlers.validationManager import ValidationManager
+
+
+logger = logging.getLogger(__name__)
 
 
 def createApp():
     """Create the Flask app."""
-    try:
-        app = Flask(__name__.split('.')[0])
-        app.debug = CONFIG_SERVICES['server_debug']
-        local = CONFIG_BROKER['local']
-        error_report_path = CONFIG_SERVICES['error_report_path']
-        app.config.from_object(__name__)
+    app = Flask(__name__.split('.')[0])
+    app.debug = CONFIG_SERVICES['debug']
+    local = CONFIG_BROKER['local']
+    error_report_path = CONFIG_SERVICES['error_report_path']
+    app.config.from_object(__name__)
 
-        # Future: Override config w/ environment variable, if set
-        app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
+    # Future: Override config w/ environment variable, if set
+    app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
-        validationManager = ValidationManager(local, error_report_path)
+    @app.teardown_appcontext
+    def teardown_appcontext(exception):
+        GlobalDB.close()
 
-        @app.teardown_appcontext
-        def teardown_appcontext(exception):
-            GlobalDB.close()
+    @app.before_request
+    def before_request():
+        GlobalDB.db()
 
-        @app.before_request
-        def before_request():
-            GlobalDB.db()
+    @app.errorhandler(ResponseException)
+    def handle_response_exception(error):
+        """Handle exceptions explicitly raised during validation."""
+        logger.error(str(error))
+        return JsonResponse.error(error, error.status)
 
-        @app.route("/", methods=["GET"])
-        def testApp():
-            """Confirm server running."""
-            return "Validator is running"
+    @app.errorhandler(Exception)
+    def handle_validation_exception(error):
+        """Handle uncaught exceptions in validation process."""
+        job_id = request.json.get('job_id')
 
-        @app.route("/validate_threaded/", methods=["POST"])
-        def validate_threaded():
-            """Start the validation process on a new thread."""
-            @copy_current_request_context
-            def ThreadedFunction(arg):
-                """The new thread."""
-                threadedManager = ValidationManager(local, error_report_path)
-                threadedManager.threadedValidateJob(arg)
+        # if request had a job id, set job to failed status
+        if job_id:
+            sess = GlobalDB.db().session
+            job = sess.query(Job).filter(Job.job_id == job_id).one()
+            job.status_id = JOB_STATUS_DICT['failed']
+            sess.commit()
 
-            try:
-                interfaces = InterfaceHolder()
-                jobTracker = interfaces.jobDb
-            except ResponseException as e:
-                open("errorLog","a").write(str(e) + "\n")
-                return JsonResponse.error(e,e.status)
-            except Exception as e:
-                open("errorLog","a").write(str(e) + "\n")
-                exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-                return JsonResponse.error(exc,exc.status)
+        # log failure and return a response
+        logger.error(str(error))
+        return JsonResponse.error(error, 500)
 
-            jobId = None
-            manager = ValidationManager(local, error_report_path)
+    @app.route("/", methods=["GET"])
+    def testApp():
+        """Confirm server running."""
+        return "Validator is running"
 
-            try:
-                jobId = manager.getJobID(request)
-            except ResponseException as e:
-                manager.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,manager.filename)
-                CloudLogger.logError(str(e),e,traceback.extract_tb(sys.exc_info()[2]))
-                return JsonResponse.error(e,e.status)
-            except Exception as e:
-                exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
-                manager.markJob(jobId,jobTracker,"invalid",interfaces.errorDb,manager.filename)
-                CloudLogger.logError(str(e),exc,traceback.extract_tb(sys.exc_info()[2]))
-                return JsonResponse.error(exc,exc.status)
+    @app.route("/validate/",methods=["POST"])
+    def validate():
+        """Start the validation process."""
+        interfaces = InterfaceHolder() # Create sessions for this route
+        validation_manager = ValidationManager(local, error_report_path)
+        return validation_manager.validate_job(request,interfaces)
 
-            try:
-                manager.testJobID(jobId,interfaces)
-            except ResponseException as e:
-                open("errorLog","a").write(str(e) + "\n")
-                # Job is not ready to run according to job tracker, do not change status of job in job tracker
-                interfaces.errorDb.writeFileError(jobId,manager.filename,ValidationError.jobError)
-                return JsonResponse.error(e,e.status)
-            except Exception as e:
-                open("errorLog","a").write(str(e) + "\n")
-                exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e))
-                interfaces.errorDb.writeFileError(jobId,manager.filename,ValidationError.jobError)
-                return JsonResponse.error(exc,exc.status)
+    JsonResponse.debugMode = app.debug
 
-            thread = Thread(target=ThreadedFunction, args= (jobId,))
-
-            try :
-                jobTracker.markJobStatus(jobId,"running")
-            except Exception as e:
-                open("errorLog","a").write(str(e) + "\n")
-                exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-                return JsonResponse.error(exc,exc.status)
-
-            interfaces.close()
-            thread.start()
-
-            return JsonResponse.create(StatusCode.OK, {"message":"Validation complete"})
-
-        @app.route("/validate/",methods=["POST"])
-        def validate():
-            """Start the validation process on the same threads."""
-            interfaces = InterfaceHolder() # Create sessions for this route
-            try:
-                return validationManager.validateJob(request,interfaces)
-            except Exception as e:
-                # Something went wrong getting the flask request
-                open("errorLog","a").write(str(e) + "\n")
-                exc = ResponseException(str(e),StatusCode.INTERNAL_ERROR,type(e))
-                return JsonResponse.error(exc,exc.status)
-            finally:
-                interfaces.close()
-
-        JsonResponse.debugMode = CONFIG_SERVICES['rest_trace']
-
-        return app
-
-    except Exception as e:
-        trace = traceback.extract_tb(sys.exc_info()[2], 10)
-        CloudLogger.logError('Validator App Level Error: ', e, trace)
-        raise
+    return app
 
 def runApp():
     """Run the application."""
@@ -135,6 +83,8 @@ def runApp():
     )
 
 if __name__ == "__main__":
+    configure_logging()
     runApp()
 elif __name__[0:5] == "uwsgi":
+    configure_logging()
     app = createApp()

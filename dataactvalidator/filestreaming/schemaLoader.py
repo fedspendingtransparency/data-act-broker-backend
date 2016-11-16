@@ -1,13 +1,15 @@
 import csv
 import os
 import logging
+
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.validationModels import FileColumn, FileTypeValidation, FieldType
+from dataactcore.logging import configure_logging
+from dataactcore.models.jobModels import FileType
+from dataactcore.models.validationModels import FileColumn, FieldType
 from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
 class SchemaLoader(object):
@@ -27,7 +29,7 @@ class SchemaLoader(object):
             sess = GlobalDB.db().session
 
             # get file type object for specified fileTypeName
-            fileType = sess.query(FileTypeValidation).filter(FileTypeValidation.name == fileTypeName).one()
+            fileType = sess.query(FileType).filter(FileType.name == fileTypeName).one()
 
             # delete existing schema from database
             SchemaLoader.removeColumnsByFileType(sess, fileType)
@@ -39,6 +41,7 @@ class SchemaLoader(object):
             # add schema to database
             with open(schemaFileName, 'rU') as csvfile:
                 reader = csv.DictReader(csvfile)
+                file_column_count = 0
                 for record in reader:
                     record = FieldCleaner.cleanRecord(record)
 
@@ -54,10 +57,13 @@ class SchemaLoader(object):
                             record["data_type"],
                             record["padded_flag"],
                             record["field_length"])
+                        file_column_count += 1
                     else:
                             raise ValueError('CSV File does not follow schema')
 
                 sess.commit()
+                logger.info('{} {} schema records added to {}'.format(
+                    file_column_count, fileTypeName, FileColumn.__tablename__))
 
     @staticmethod
     def removeColumnsByFileType(sess, fileType):
@@ -74,7 +80,7 @@ class SchemaLoader(object):
         Adds a new column to the schema
 
         Args:
-        fileType -- FileTypeValidation object this column belongs to
+        fileType -- FileType object this column belongs to
         fieldName -- The name of the schema column
         types -- List of field types
         fieldNameShort -- The machine-friendly, short column name
@@ -87,8 +93,8 @@ class SchemaLoader(object):
         newColumn = FileColumn()
         newColumn.file = fileType
         newColumn.required = False
-        newColumn.name = fieldName
-        newColumn.name_short = fieldNameShort
+        newColumn.name = fieldName.lower().strip().replace(' ', '_')
+        newColumn.name_short = fieldNameShort.lower().strip().replace(' ', '_')
         field_type = field_type.upper()
 
         # Allow for other names
@@ -135,4 +141,5 @@ class SchemaLoader(object):
             cls.loadFields(key,filepath)
 
 if __name__ == '__main__':
+    configure_logging()
     SchemaLoader.loadAllFromPath("../config/")

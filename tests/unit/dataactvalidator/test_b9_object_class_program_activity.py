@@ -31,7 +31,7 @@ def test_success(database):
     assert number_of_errors(_FILE, database, models=[op_1, op_2, pa]) == 0
 
 
-def test_failure(database):
+def test_failure_program_activity_name(database):
     """ Testing invalid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
     A-11. """
 
@@ -44,6 +44,8 @@ def test_failure(database):
 
     assert number_of_errors(_FILE, database, models=[op, pa]) == 1
 
+
+def test_failure_program_activity_code(database):
     op = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
                                allocation_transfer_agency='test', main_account_code='test',
                                program_activity_name='test', program_activity_code='test_wrong')

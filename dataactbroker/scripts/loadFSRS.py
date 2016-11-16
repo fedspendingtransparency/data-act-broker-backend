@@ -2,6 +2,7 @@ import logging
 import sys
 
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
 from dataactbroker.fsrs import (
     configValid, fetchAndReplaceBatch, GRANT, PROCUREMENT)
 from dataactvalidator.app import createApp
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    configure_logging()
     with createApp().app_context():
         sess = GlobalDB.db().session
         if not configValid():

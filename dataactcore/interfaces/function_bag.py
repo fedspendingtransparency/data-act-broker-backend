@@ -1,13 +1,19 @@
 import uuid
 
-from sqlalchemy.sql import func
+from sqlalchemy import func, or_
+from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.exc import NoResultFound
 
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency
-from dataactcore.models.userModel import User, UserStatus, PermissionType
+from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.models.userModel import User, UserStatus, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
-from dataactcore.models.lookups import FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT
+from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
+                                        JOB_STATUS_DICT, FILE_TYPE_DICT_ID)
 from dataactcore.interfaces.db import GlobalDB
+from dataactvalidator.validation_handlers.validationError import ValidationError
+import time
 
 
 # First step to deprecating BaseInterface, its children, and corresponding
@@ -22,7 +28,7 @@ from dataactcore.interfaces.db import GlobalDB
 # these transitional functions.
 
 
-# todo: move these value to config when re-factoring user management
+# todo: move these value to config if it is decided to keep local user login long term
 HASH_ROUNDS = 12
 
 
@@ -30,7 +36,7 @@ def createUserWithPassword(email, password, bcrypt, permission=1, cgac_code="SYS
     """Convenience function to set up fully-baked user (used for setup/testing only)."""
     sess = GlobalDB.db().session
     status = sess.query(UserStatus).filter(UserStatus.name == 'approved').one()
-    user = User(email=email, user_status=status, permissions=permission,
+    user = User(email=email, user_status=status, permission_type_id=permission,
                 cgac_code=cgac_code, name='Administrator', title='System Admin')
     user.salt, user.password_hash = getPasswordHash(password, bcrypt)
     sess.add(user)
@@ -47,40 +53,6 @@ def getPasswordHash(password, bcrypt):
     hash = bcrypt.generate_password_hash(password + salt, HASH_ROUNDS)
     password_hash = hash.decode("utf-8")
     return salt, password_hash
-
-
-def getUsersByType(permissionName):
-    """Get list of users with specified permission."""
-    sess = GlobalDB.db().session
-    # This could likely be simplified, but since we're moving towards using MAX for authentication,
-    # it's not worth spending too much time reworking.
-    userList = []
-    bitNumber = sess.query(PermissionType).filter(PermissionType.name == permissionName).one().permission_type_id
-    users = sess.query(User).all()
-    for user in users:
-        if checkPermissionByBitNumber(user, bitNumber):
-            # This user has this permission, include them in list
-            userList.append(user)
-    return userList
-
-
-def checkPermissionByBitNumber(user, bitNumber):
-    """Check whether user has the specified permission, determined by whether a binary representation of user's
-    permissions has the specified bit set to 1.  Use hasPermission to check by permission name."""
-    # This could likely be simplified, but since we're moving towards using MAX for authentication,
-    # it's not worth spending too much time reworking.
-
-    if user.permissions == None:
-        # This user has no permissions
-        return False
-    # First get the value corresponding to the specified bit (i.e. 2^bitNumber)
-    bitValue = 2 ** (bitNumber)
-    # Remove all bits above the target bit by modding with the value of the next higher bit
-    # This leaves the target bit and all lower bits as the remaining value, all higher bits are set to 0
-    lowEnd = user.permissions % (bitValue * 2)
-    # Now compare the remaining value to the value for the target bit to determine if that bit is 0 or 1
-    # If the remaining value is still at least the value of the target bit, that bit is 1, so we have that permission
-    return lowEnd >= bitValue
 
 
 def populateSubmissionErrorInfo(submissionId):
@@ -243,3 +215,222 @@ def addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmi
 
     uploadDict[fileType] = uploadJob.job_id
     return jobsRequired, uploadDict
+
+""" ERROR DB FUNCTIONS """
+def getErrorType(job_id):
+    """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
+    sess = GlobalDB.db().session
+    if sess.query(File).options(joinedload("file_status")).filter(
+                    File.job_id == job_id).one().file_status.name == "header_error":
+        # Header errors occurred, return that
+        return "header_errors"
+    elif sess.query(Job).filter(Job.job_id == job_id).one().number_of_errors > 0:
+        # Row errors occurred
+        return "row_errors"
+    else:
+        # No errors occurred during validation
+        return "none"
+
+def createFileIfNeeded(job_id, filename = None):
+    """ Return the existing file object if it exists, or create a new one """
+    sess = GlobalDB.db().session
+    try:
+        fileRec = sess.query(File).filter(File.job_id == job_id).one()
+        # Set new filename for changes to an existing submission
+        fileRec.filename = filename
+    except NoResultFound:
+        fileRec = createFile(job_id, filename)
+    return fileRec
+
+def createFile(job_id, filename):
+    """ Create a new file object for specified job and filename """
+    sess = GlobalDB.db().session
+    try:
+        int(job_id)
+    except:
+        raise ValueError("".join(["Bad job_id: ", str(job_id)]))
+
+    fileRec = File(job_id=job_id,
+                   filename=filename,
+                   file_status_id=FILE_STATUS_DICT['incomplete'])
+    sess.add(fileRec)
+    sess.commit()
+    return fileRec
+
+def writeFileError(job_id, filename, error_type, extra_info=None):
+    """ Write a file-level error to the file table
+
+    Args:
+        job_id: ID of job in job tracker
+        filename: name of error report in S3
+        error_type: type of error, value will be mapped to ValidationError class
+        extra_info: list of extra information to be included in file
+    """
+    sess = GlobalDB.db().session
+    try:
+        int(job_id)
+    except:
+        raise ValueError("".join(["Bad jobId: ", str(job_id)]))
+
+    # Get File object for this job ID or create it if it doesn't exist
+    fileRec = createFileIfNeeded(job_id, filename)
+
+    # Mark error type and add header info if present
+    fileRec.file_status_id = FILE_STATUS_DICT[ValidationError.getErrorTypeString(error_type)]
+    if extra_info is not None:
+        if "missing_headers" in extra_info:
+            fileRec.headers_missing = extra_info["missing_headers"]
+        if "duplicated_headers" in extra_info:
+            fileRec.headers_duplicated = extra_info["duplicated_headers"]
+
+    sess.add(fileRec)
+    sess.commit()
+
+def markFileComplete(job_id, filename=None):
+    """ Marks file's status as complete
+
+    Args:
+        job_id: ID of job in job tracker
+        filename: name of error report in S3
+    """
+    sess = GlobalDB.db().session
+    fileComplete = createFileIfNeeded(job_id, filename)
+    fileComplete.file_status_id = FILE_STATUS_DICT['complete']
+    sess.commit()
+
+def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
+    """ Get error metrics for specified job, including number of errors for each field name and error type """
+    sess = GlobalDB.db().session
+    result_list = []
+
+    query_result = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job_id).one()
+
+    if not query_result.file_status.file_status_id == FILE_STATUS_DICT['complete']:
+        return [{"field_name": "File Level Error", "error_name": query_result.file_status.name,
+                 "error_description": query_result.file_status.description, "occurrences": 1, "rule_failed": ""}]
+
+    query_result = sess.query(ErrorMetadata).options(joinedload("error_type")).filter(
+        ErrorMetadata.job_id == job_id, ErrorMetadata.severity_id == severity_id).all()
+    for result in query_result:
+        record_dict = {"field_name": result.field_name, "error_name": result.error_type.name,
+                      "error_description": result.error_type.description, "occurrences": str(result.occurrences),
+                      "rule_failed": result.rule_failed, "original_label": result.original_rule_label}
+        if include_file_types:
+            record_dict['source_file'] = FILE_TYPE_DICT_ID.get(result.file_type_id, '')
+            record_dict['target_file'] = FILE_TYPE_DICT_ID.get(result.target_file_type_id, '')
+        result_list.append(record_dict)
+    return result_list
+
+""" USER DB FUNCTIONS """
+
+def clearPassword(user):
+    """ Clear a user's password as part of reset process
+
+    Arguments:
+        user - User object
+
+    """
+    sess = GlobalDB.db().session
+    user.salt = None
+    user.password_hash = None
+    sess.commit()
+
+
+def updateLastLogin(user, unlock_user=False):
+    """ This updates the last login date to today's datetime for the user to the current date upon successful login.
+    """
+    sess = GlobalDB.db().session
+    user.last_login_date = time.strftime("%c") if not unlock_user else None
+    sess.commit()
+
+
+def setUserActive(user, is_active):
+    """ Sets the is_active field for the specified user """
+    sess = GlobalDB.db().session
+    user.is_active = is_active
+    sess.commit()
+
+def get_email_template(email_type):
+    """ Get template for specified email type
+    Arguments:
+        email_type - Name of template to get
+    Returns:
+        EmailTemplate object
+    """
+    sess = GlobalDB.db().session
+    type_result = sess.query(EmailTemplateType.email_template_type_id).filter(EmailTemplateType.name == email_type).one()
+    template_result = sess.query(EmailTemplate).filter(EmailTemplate.template_type_id == type_result.email_template_type_id).one()
+    return template_result
+
+
+def check_correct_password(user, password, bcrypt):
+    """ Given a user object and a password, verify that the password is correct.
+
+    Arguments:
+        user - User object
+        password - Password to check
+        bcrypt - bcrypt to use for password hashing
+    Returns:
+         True if valid password, False otherwise.
+    """
+    if password is None or password.strip() == "":
+        # If no password or empty password, reject
+        return False
+
+    # Check the password with bcrypt
+    return bcrypt.check_password_hash(user.password_hash, password + user.salt)
+
+
+def set_user_password(user, password, bcrypt):
+    """ Given a user and a new password, changes the hashed value in the database to match new password.
+
+    Arguments:
+        user - User object
+        password - password to be set
+        bcrypt - bcrypt to use for password hashing
+    Returns:
+         True if successful
+    """
+    sess = GlobalDB.db().session
+    # Generate hash with bcrypt and store it
+    new_salt = uuid.uuid4().hex
+    user.salt = new_salt
+    password_hash = bcrypt.generate_password_hash(password + new_salt, HASH_ROUNDS)
+    user.password_hash = password_hash.decode("utf-8")
+    sess.commit()
+    return True
+
+
+def get_submission_stats(submission_id):
+    """Get summarized dollar amounts by submission."""
+    sess = GlobalDB.db().session
+    base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
+        filter(AwardFinancial.submission_id == submission_id)
+    procurement = base_query.filter(AwardFinancial.piid != None)
+    fin_assist = base_query.filter(or_(AwardFinancial.fain != None, AwardFinancial.uri != None))
+    return {
+        "total_obligations": float(base_query.scalar() or 0),
+        "total_procurement_obligations": float(procurement.scalar() or 0),
+        "total_assistance_obligations": float(fin_assist.scalar() or 0)
+    }
+
+
+def run_job_checks(job_id):
+    """ Checks that specified job has no unsatisfied prerequisites
+    Args:
+        job_id -- job_id of job to be run
+
+    Returns:
+        True if prerequisites are satisfied, False if not
+    """
+    sess = GlobalDB.db().session
+
+    # Get count of job's prerequisites that are not yet finished
+    incomplete_dependencies = sess.query(JobDependency). \
+        join("prerequisite_job"). \
+        filter(JobDependency.job_id == job_id, Job.job_status_id != JOB_STATUS_DICT['finished']). \
+        count()
+    if incomplete_dependencies:
+        return False
+    else:
+        return True
