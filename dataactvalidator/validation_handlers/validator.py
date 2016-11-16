@@ -27,7 +27,6 @@ class Validator(object):
         """
         failures = []
         # Put each rule through evaluate, appending all failures into list
-        # Put each rule through evaluate, appending all failures into list
         conn = GlobalDB.db().connection
 
         for rule in rules:
@@ -201,9 +200,8 @@ class Validator(object):
 
                 # Create flex column list
                 flex_dict = {}
-                flex_results = conn.execute("SELECT * FROM flex_field WHERE submission_id="+str(submissionId))#.fetchall()
+                flex_results = sess.execute("SELECT * FROM flex_field WHERE submission_id="+str(submissionId))
                 for flex_row in flex_results:
-                    # flex_dict[flex_row[5]] = "{}: {}".format(flex_row[6], flex_row[7])
                     flex_dict[flex_row[5]] = flex_row
 
                 cols.remove("row_number")
@@ -214,10 +212,12 @@ class Validator(object):
                     row = failure["row_number"]
                     # Create strings for fields and values
                     valueList = ["{}: {}".format(short_to_long_dict[field], str(failure[field])) if field in short_to_long_dict else "{}: {}".format(field, str(failure[field])) for field in cols]
-                    valueList.append("{}: {}".format(flex_dict[row][6], flex_dict[row][7]))
+                    if flex_dict and flex_dict[row]:
+                        valueList.append("{}: {}".format(flex_dict[row][6], flex_dict[row][7]))
                     valueString = ", ".join(valueList)
                     fieldList = [short_to_long_dict[field] if field in short_to_long_dict else field for field in cols]
-                    fieldList.append(flex_dict[row][6])
+                    if flex_dict and flex_dict[row]:
+                        fieldList.append(flex_dict[row][6])
                     fieldString = ", ".join(fieldList)
                     errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId, rule.target_file_id, rule.rule_severity_id])
 
