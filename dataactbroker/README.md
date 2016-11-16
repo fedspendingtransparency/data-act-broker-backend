@@ -83,7 +83,7 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
     "name": "John",
     "title":"Developer",
     "agency": "Department of Labor",
-    "permissions" : [0,1]
+    "permission" : 1
 }
 ```
 
@@ -108,7 +108,7 @@ Example output:
     "name": "John",
     "title":"Developer",
     "agency": "Department of Labor",
-    "permissions" : [0,1]
+    "permission" : 1
 }
 ```
 
@@ -157,7 +157,7 @@ Example output:
     "name": "John",
     "title":"Developer",
     "agency": "Department of Labor",
-    "permissions" : [0,1],
+    "permission" : 1,
     "skip_guide": False
 }
 ```
@@ -320,9 +320,8 @@ The following is a table with all of the messages and error code
 
 
 #### POST "/v1/list_users/"
-List all users. Requires an admin login. For a Website Admin, all users will be returned. For an Agency Admin, only users within that agency will be returned.
+List all users. Requires a website admin login.
 
-Example output (Agency Admin):
 ```json
 {
   "users":[
@@ -330,17 +329,17 @@ Example output (Agency Admin):
       "status": "approved",
       "name": "user1",
       "title": "User Title",
-      "permissions": "agency_admin",
+      "permission": "submitter",
       "agency": "Data Act Agency",
       "is_active": true,
       "email": "agency@admin.gov",
       "id": 1
     },
     {
-      "status": "awaiting_confirmation",
+      "status": "approved",
       "name": "user2",
       "title": "User Title",
-      "permissions": "agency_user",
+      "permission": "reader",
       "agency": "Data Act Agency",
       "is_active": true,
       "email": "agency@user.gov",
@@ -446,7 +445,6 @@ Example input:
 {
     "uid": 1,
     "status": "approved",
-    "permissions": "agency_user",
     "is_active": true
 }
 ```

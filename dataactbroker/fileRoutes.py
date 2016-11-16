@@ -16,13 +16,13 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     SERVER_PATH  = serverPath
     # Keys for the post route will correspond to the four types of files
     @app.route("/v1/submit_files/", methods = ["POST"])
-    @permissions_check
+    @permissions_check(permission="writer")
     def submit_files():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.submit, LoginSession.getName(session), RouteUtils.CREATE_CREDENTIALS)
 
     @app.route("/v1/finalize_job/", methods = ["POST"])
-    @permissions_check
+    @permissions_check(permission="writer")
     def finalize_submission():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return RouteUtils.run_instance_function(fileManager, fileManager.finalize)
@@ -97,7 +97,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return RouteUtils.run_instance_function(fileManager, fileManager.getProtectedFiles)
 
     @app.route("/v1/generate_file/", methods=["POST"])
-    @permissions_check
+    @permissions_check(permission="writer")
     def generate_file():
         """ Generate file from external API """
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
