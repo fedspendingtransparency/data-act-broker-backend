@@ -1,4 +1,3 @@
-from csv import Error
 import os
 import logging
 
@@ -52,29 +51,6 @@ class ValidationManager:
         colnames = sess.query(FileColumn.name, FileColumn.name_short).all()
         self.long_to_short_dict = {row.name: row.name_short for row in colnames}
         self.short_to_long_dict = {row.name_short: row.name for row in colnames}
-
-    @staticmethod
-    def markJob(job_id,jobTracker,status,filename=None, fileError = ValidationError.unknownError, extraInfo = None):
-        """ Update status of a job in job tracker database
-        Args:
-            job_id: Job to be updated
-            jobTracker: Interface object for job tracker
-            status: New status for specified job
-            filename: Filename of file to be validated
-            fileError: Type of error that occurred if this is an invalid or failed status
-            extraInfo: Dict of extra fields to attach to exception
-        """
-        try:
-            if filename != None and (status == "invalid" or status == "failed"):
-                # Mark the file error that occurred
-                writeFileError(job_id, filename, fileError, extraInfo)
-            jobTracker.markJobStatus(job_id, status)
-        except ResponseException as e:
-            # Could not get a unique job ID in the database, either a bad job ID was passed in
-            # or the record of that job was lost.
-            # Either way, cannot mark status of a job that does not exist
-            # Log error
-            JsonResponse.error(e, e.status)
 
     def getReader(self):
         """
