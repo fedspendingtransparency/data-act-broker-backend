@@ -6,7 +6,6 @@ from uuid import uuid4
 from shutil import copyfile
 
 import requests
-from flask import session as flaskSession
 from flask import session, request
 from requests.exceptions import Timeout
 from sqlalchemy import func
@@ -938,7 +937,7 @@ class FileHandler:
     def list_submissions(self, page, limit, certified):
         """ List submission based on current page and amount to display. If provided, filter based on
         certification status """
-        user_id = LoginSession.getName(flaskSession)
+        user_id = LoginSession.getName(session)
         sess = GlobalDB.db().session
         user = sess.query(User).filter(User.user_id == user_id).one()
 
