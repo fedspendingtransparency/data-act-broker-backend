@@ -4,7 +4,7 @@ import json
 from tests.unit.dataactbroker.utils import add_models, delete_models
 from tests.unit.dataactcore.factories.job import SubmissionFactory, JobFactory
 from tests.unit.dataactcore.factories.user import UserFactory
-from dataactbroker.routeUtils import InterfaceHolder
+from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.models.jobModels import JobStatus, JobType, FileType
 
 PAGE = 1
