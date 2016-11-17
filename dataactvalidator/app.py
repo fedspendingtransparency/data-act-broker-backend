@@ -42,6 +42,10 @@ def createApp():
     def handle_response_exception(error):
         """Handle exceptions explicitly raised during validation."""
         logger.error(str(error))
+
+        # the job_id is added to flask.g at the beginning of the validate
+        # route. we expect it to be here now, since validate is
+        # currently the app's only functional route
         job_id = g.get('job_id', None)
         if job_id:
             sess = GlobalDB.db().session
@@ -61,6 +65,10 @@ def createApp():
     def handle_validation_exception(error):
         """Handle uncaught exceptions in validation process."""
         logger.error(str(error))
+
+        # the job_id is added to flask.g at the beginning of the validate
+        # route. we expect it to be here now, since validate is
+        # currently the app's only functional route
         job_id = g.get('job_id', None)
 
         # set job to failed status; if job has an associated file
