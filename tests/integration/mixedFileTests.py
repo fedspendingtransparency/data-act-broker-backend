@@ -204,19 +204,19 @@ class MixedFileTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobDict["mixed"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 8212, 4, "complete", 39, 8, 869)
+            jobId, 200, "finished", 6681, 5, "complete", 27, 7, 656)
 
     def test_program_mixed(self):
         """Test mixed job with some rows failing."""
         jobId = self.jobDict["programMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 11390, 4, "complete", 81, 29, 9572)
+        jobId, 200, "finished", 7145, 5, "complete", 42, 28, 8547)
 
     def test_program_mixed_shortcols(self):
         """Test object class/program activity job with some rows failing & short colnames."""
         jobId = self.jobDict["programMixedShortcols"]
         self.passed = self.run_test(
-            jobId, 200, "finished", 11390, 4, "complete", 81, 29, 9572)
+            jobId, 200, "finished", 7145, 5, "complete", 42, 28, 8547)
 
     def test_award_fin_mixed(self):
         """Test mixed award job with some rows failing."""
