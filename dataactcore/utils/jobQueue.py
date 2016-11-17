@@ -76,6 +76,7 @@ def job_context(task, job_id):
                 job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
                 if job:
                     job.error_message = str(e)
+                    sess.commit()
                     mark_job_status(job_id, "failed")
 
 
