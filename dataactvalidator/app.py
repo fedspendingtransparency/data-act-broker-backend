@@ -8,8 +8,6 @@ from dataactcore.interfaces.function_bag import writeFileError, mark_job_status
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import Job
-from dataactbroker.handlers.jobHandler import JobHandler
-from dataactcore.models.lookups import JOB_STATUS_DICT
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactvalidator.validation_handlers.validationError import ValidationError
@@ -79,8 +77,6 @@ def createApp():
             if job:
                 if job.filename is not None:
                     writeFileError(job_id, job.filename, ValidationError.unknownError)
-                # next 2 lines are very temporary, until the job interface refactor is done
-                jobDb = JobHandler()
                 mark_job_status(job_id, 'failed')
 
         return JsonResponse.error(error, 500)
