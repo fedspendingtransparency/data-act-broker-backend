@@ -268,8 +268,10 @@ class JobHandler(JobTrackerInterface):
         result = self.runUniqueQuery(query,"No job with that ID","Multiple jobs with conflicting ID")
         return result
 
-    def sumNumberOfRowsForJobList(self, jobList):
+    def sumNumberOfRowsForJobList(self, jobs):
         """ Given a list of job IDs, return the number of rows summed across jobs """
+        # temporary fix until jobHandler.py is refactored away
+        jobList = [j.job_id for j in jobs]
         rowSum = 0
         for jobId in jobList:
             jobRows = self.getNumberOfRowsById(jobId)

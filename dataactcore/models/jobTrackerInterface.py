@@ -2,6 +2,7 @@ import logging
 
 from sqlalchemy.orm import joinedload
 
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import (
@@ -39,28 +40,9 @@ class JobTrackerInterface(BaseInterface):
         query = self.session.query(Job).options(joinedload("file_type")).filter(Job.job_id == jobId)
         return self.checkJobUnique(query).file_type.name
 
-    def getFileSize(self,jobId):
-        """ Get size of the file associated with this job """
-        return self.getJobById(jobId).file_size
-
     def getSubmissionId(self,jobId):
         """ Find submission that this job is part of """
         return self.getJobById(jobId).submission_id
-
-    def getJobsBySubmission(self,submissionId):
-        """ Get list of jobs that are part of the specified submission
-
-        Args:
-            submissionId: submission to list jobs for
-
-        Returns:
-            List of job IDs
-        """
-        jobList = []
-        queryResult = self.session.query(Job.job_id).filter(Job.submission_id == submissionId).all()
-        for result in queryResult:
-            jobList.append(result.job_id)
-        return jobList
 
     def getJobType(self, jobId):
         """
@@ -139,13 +121,15 @@ class JobTrackerInterface(BaseInterface):
         self.session.commit()
 
     def getSubmissionStatus(self,submission):
-        job_ids = self.getJobsBySubmission(submission.submission_id)
+        # obviously this entire file is going away soon, but temporarily
+        # patch this so we can remove getJobsBySubmission function
+        sess = GlobalDB.db().session
+        jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
         status_names = self.getJobStatusNames()
         statuses = dict(zip(status_names,[0]*len(status_names)))
         skip_count = 0
 
-        for job_id in job_ids:
-            job = self.getJobById(job_id)
+        for job in jobs:
             if job.job_type.name not in ["external_validation", None]:
                 job_status = job.job_status.name
                 statuses[job_status] += 1
@@ -164,7 +148,7 @@ class JobTrackerInterface(BaseInterface):
             status = "waiting"
         elif statuses["ready"] != 0:
             status = "ready"
-        elif statuses["finished"] == len(job_ids)-skip_count: # need to account for the jobs that were skipped above
+        elif statuses["finished"] == jobs.count()-skip_count: # need to account for the jobs that were skipped above
             status = "validation_successful"
             if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
                 status = "validation_successful_warnings"

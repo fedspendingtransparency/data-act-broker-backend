@@ -8,6 +8,7 @@ import requests
 from flask import session as flaskSession
 from flask import session, request, redirect, send_from_directory
 from requests.exceptions import Timeout
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug import secure_filename
@@ -15,7 +16,6 @@ from werkzeug import secure_filename
 from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
-from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job, Submission
@@ -90,23 +90,21 @@ class FileHandler:
         """
         Gets the Signed URLs for download based on the submissionId
         """
-        try :
+        sess = GlobalDB.db().session
+        try:
             self.s3manager = s3UrlHandler()
             safe_dictionary = RequestDictionary(self.request)
             submission_id = safe_dictionary.getValue("submission_id")
             response_dict ={}
-            sess = GlobalDB.db().session
-            for job_id in self.jobManager.getJobsBySubmission(submission_id):
-                # get the job object here so we can call the refactored getReportPath
-                # todo: replace other db access functions with job object attributes
-                job = sess.query(Job).filter(Job.job_id == job_id).one()
+            jobs = sess.query(Job).filter_by(submission_id=submission_id)
+            for job in jobs:
                 if job.job_type.name == 'csv_record_validation':
                     if is_warning:
                         report_name = get_report_path(job, 'warning')
-                        key = 'job_{}_warning_url'.format(job_id)
+                        key = 'job_{}_warning_url'.format(job.job_id)
                     else:
                         report_name = get_report_path(job, 'error')
-                        key = 'job_{}_error_url'.format(job_id)
+                        key = 'job_{}_error_url'.format(job.job_id)
                     if not self.isLocal:
                         response_dict[key] = self.s3manager.getSignedUrl("errors", report_name, method="GET")
                     else:
@@ -133,10 +131,10 @@ class FileHandler:
             return JsonResponse.create(StatusCode.OK, response_dict)
 
         except ResponseException as e:
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except Exception as e:
             # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
     def get_signed_url_for_submission_file(self):
         """ Gets the signed URL for the specified file """
@@ -383,7 +381,7 @@ class FileHandler:
             self.check_submission_permission(submission)
 
             # Get jobs in this submission
-            jobs = self.jobManager.getJobsBySubmission(submission_id)
+            jobs = sess.query(Job).filter_by(submission_id=submission_id)
 
             # Build dictionary of submission info with info about each job
             submissionInfo = {}
@@ -397,20 +395,19 @@ class FileHandler:
             submissionInfo["number_of_rows"] = self.interfaces.jobDb.sumNumberOfRowsForJobList(jobs)
             submissionInfo["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
 
-            for job_id in jobs:
-                job = sess.query(Job).filter_by(job_id = job_id).one()
+            for job in jobs:
                 jobInfo = {}
                 job_type = job.job_type.name
 
                 if job_type != "csv_record_validation" and job_type != "validation":
                     continue
 
-                jobInfo["job_id"] = job_id
+                jobInfo["job_id"] = job.job_id
                 jobInfo["job_status"] = job.job_status.name
                 jobInfo["job_type"] = job_type
-                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job_id)
+                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job.job_id)
                 try:
-                    file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job_id).one()
+                    file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job.job_id).one()
                     jobInfo["file_status"] = file_results.file_status.name
                 except NoResultFound:
                     # Job ID not in error database, probably did not make it to validation, or has not yet been validated
@@ -436,19 +433,19 @@ class FileHandler:
                         jobInfo["duplicated_headers"] = [n.strip() for n in duplicatedHeaderString.split(",") if len(n) > 0]
                     else:
                         jobInfo["duplicated_headers"] = []
-                    jobInfo["error_type"] = getErrorType(job_id)
+                    jobInfo["error_type"] = getErrorType(job.job_id)
                     jobInfo["error_data"] = getErrorMetricsByJobId(
-                        job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['fatal'])
+                        job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['fatal'])
                     jobInfo["warning_data"] = getErrorMetricsByJobId(
-                        job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['warning'])
+                        job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['warning'])
                 # File size and number of rows not dependent on error DB
                 # Get file size
-                jobInfo["file_size"] = self.jobManager.getFileSizeById(job_id)
+                jobInfo["file_size"] = self.jobManager.getFileSizeById(job.job_id)
                 # Get number of rows in file
-                jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(job_id)
+                jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(job.job_id)
 
                 try :
-                    jobInfo["file_type"] = self.jobManager.getFileType(job_id)
+                    jobInfo["file_type"] = self.jobManager.getFileType(job.job_id)
                 except:
                     # todo: add specific type of exception when we figure out what it is?
                     jobInfo["file_type"]  = ''
@@ -464,6 +461,7 @@ class FileHandler:
 
     def getErrorMetrics(self) :
         """ Returns an Http response object containing error information for every validation job in specified submission """
+        sess = GlobalDB.db().session
         return_dict = {}
         try:
             safe_dictionary = RequestDictionary(self.request)
@@ -472,12 +470,12 @@ class FileHandler:
             # Check if user has permission to specified submission
             self.check_submission_permission(self.jobManager.getSubmissionById(submission_id))
 
-            job_ids = self.jobManager.getJobsBySubmission(submission_id)
-            for current_id in job_ids :
-                if self.jobManager.getJobType(current_id) == "csv_record_validation":
-                    file_name = self.jobManager.getFileType(current_id)
-                    data_list = getErrorMetricsByJobId(current_id)
-                    return_dict[file_name]  = data_list
+            jobs = sess.query(Job).filter_by(submission_id=submission_id)
+            for job in jobs :
+                if job.job_type.name == 'csv_record_validation':
+                    file_type = job.file_type.name
+                    data_list = getErrorMetricsByJobId(job.job_id)
+                    return_dict[file_type]  = data_list
             return JsonResponse.create(StatusCode.OK,return_dict)
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
@@ -918,7 +916,6 @@ class FileHandler:
     def list_submissions(self, page, limit, certified):
         """ List submission based on current page and amount to display. If provided, filter based on
         certification status """
-
         user_id = LoginSession.getName(flaskSession)
         sess = GlobalDB.db().session
         user = sess.query(User).filter(User.user_id == user_id).one()
@@ -932,11 +929,9 @@ class FileHandler:
         submission_details = []
 
         for submission in submissions:
-            job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
-            total_size = 0
-            for job_id in job_ids:
-                file_size = self.interfaces.jobDb.getFileSize(job_id)
-                total_size += file_size or 0
+            total_size = sess.query(func.sum(Job.file_size)).\
+                filter_by(submission_id=submission.submission_id).\
+                scalar()
 
             status = self.interfaces.jobDb.getSubmissionStatus(submission)
             if submission.user_id is None:
