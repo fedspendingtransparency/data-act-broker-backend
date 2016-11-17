@@ -7,8 +7,10 @@ from flask import Flask
 import requests
 
 from dataactcore.config import CONFIG_DB, CONFIG_SERVICES, CONFIG_JOB_QUEUE
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.logging import configure_logging
+from dataactcore.models.jobModels import Job
 from dataactcore.models.stagingModels import (
     AwardFinancialAssistance, AwardProcurement)
 from dataactcore.utils import fileE, fileF
@@ -54,15 +56,14 @@ def enqueue(jobID):
 
 
 @contextmanager
-def job_context(task, interface_holder_class, job_id):
+def job_context(task, job_id):
     """Common context for file E and F generation. Handles marking the job
     finished and/or failed"""
     # Flask context ensures we have access to global.g
     with Flask(__name__).app_context():
-        job_manager = interface_holder_class().jobDb
-
+        sess = GlobalDB.db().session
         try:
-            yield job_manager
+            yield sess
             mark_job_status(job_id, "finished")
         except Exception as e:
             # logger.exception() automatically adds traceback info
@@ -72,21 +73,18 @@ def job_context(task, interface_holder_class, job_id):
             except MaxRetriesExceededError:
                 logger.warning('Job %s completely failed', job_id)
                 # Log the error
-                job_manager.getJobById(job_id).error_message = str(e)
-                mark_job_status(job_id, "failed")
-
-        job_manager.close()
+                job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
+                if job:
+                    job.error_message = str(e)
+                    mark_job_status(job_id, "failed")
 
 
 @celery_app.task(name='jobQueue.generate_f_file', max_retries=0, bind=True)
-def generate_f_file(task, submission_id, job_id, interface_holder_class,
-                    timestamped_name, upload_file_name, is_local):
-    """Write rows from fileF.generateFRows to an appropriate CSV. Here the
-    third parameter, interface_holder_class, is a bit of a hack. Importing
-    InterfaceHolder directly causes cyclic dependency woes, so we're passing
-    in a class"""
-    with job_context(task, interface_holder_class, job_id) as job_manager:
-        rows_of_dicts = fileF.generateFRows(job_manager.session,
+def generate_f_file(task, submission_id, job_id, timestamped_name,
+                    upload_file_name, is_local):
+    """Write rows from fileF.generateFRows to an appropriate CSV."""
+    with job_context(task, job_id) as session:
+        rows_of_dicts = fileF.generateFRows(session,
                                             submission_id)
         header = [key for key in fileF.mappings]    # keep order
         body = []
@@ -98,16 +96,15 @@ def generate_f_file(task, submission_id, job_id, interface_holder_class,
 
 
 @celery_app.task(name='jobQueue.generate_e_file', max_retires=3, bind=True)
-def generate_e_file(task, submission_id, job_id, interface_holder_class,
-                    timestamped_name, upload_file_name, is_local):
-    """Write file E to an appropriate CSV. See generate_file_file for an
-    explanation of interface_holder_class"""
-    with job_context(task, interface_holder_class, job_id) as job_manager:
-        d1 = job_manager.session.\
+def generate_e_file(task, submission_id, job_id, timestamped_name,
+                    upload_file_name, is_local):
+    """Write file E to an appropriate CSV."""
+    with job_context(task, job_id) as session:
+        d1 = session.\
             query(AwardProcurement.awardee_or_recipient_uniqu).\
             filter(AwardProcurement.submission_id == submission_id).\
             distinct()
-        d2 = job_manager.session.\
+        d2 = session.\
             query(AwardFinancialAssistance.awardee_or_recipient_uniqu).\
             filter(AwardFinancialAssistance.submission_id == submission_id).\
             distinct()

@@ -570,11 +570,11 @@ class FileHandler:
             return self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
         elif file_type == 'E':
             generate_e_file.delay(
-                submission_id, job.job_id, InterfaceHolder, timestamped_name,
+                submission_id, job.job_id, timestamped_name,
                 upload_file_name, self.isLocal)
         elif file_type == 'F':
             generate_f_file.delay(
-                submission_id, job.job_id, InterfaceHolder, timestamped_name,
+                submission_id, job.job_id, timestamped_name,
                 upload_file_name, self.isLocal)
 
         return True, None
