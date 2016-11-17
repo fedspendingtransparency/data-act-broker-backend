@@ -11,7 +11,6 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     """ Create routes related to file submission for flask app
 
     """
-    RouteUtils.CREATE_CREDENTIALS = CreateCredentials
     IS_LOCAL =isLocal
     SERVER_PATH  = serverPath
     # Keys for the post route will correspond to the four types of files
@@ -19,7 +18,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     @permissions_check(permission="writer")
     def submit_files():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return RouteUtils.run_instance_function(fileManager, fileManager.submit, LoginSession.getName(session), RouteUtils.CREATE_CREDENTIALS)
+        return RouteUtils.run_instance_function(fileManager, fileManager.submit, LoginSession.getName(session), CreateCredentials)
 
     @app.route("/v1/finalize_job/", methods = ["POST"])
     @permissions_check(permission="writer")

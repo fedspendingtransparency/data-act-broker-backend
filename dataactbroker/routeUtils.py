@@ -6,9 +6,6 @@ from dataactcore.utils.statusCode import StatusCode
 
 class RouteUtils:
     """ Holds utility functions for routes """
-    SYSTEM_EMAIL = None
-    CREATE_CREDENTIALS = None
-
     @staticmethod
     def run_instance_function(accountManager, accountFunction, *functionArgs):
         """ Standard error handling around each route """

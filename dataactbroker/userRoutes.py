@@ -12,7 +12,6 @@ def add_user_routes(app,system_email,bcrypt):
             system_email - Sender address to use for emails
             bcrypt - Password hashing Bcrypt associated with app
     """
-    RouteUtils.SYSTEM_EMAIL = system_email # Set the system email to be used
 
     @app.route("/v1/register/", methods = ["POST"])
     #check the session to make sure register is set to prevent any one from using route
@@ -20,14 +19,14 @@ def add_user_routes(app,system_email,bcrypt):
     def register_user():
         """ Expects request to have keys 'email', 'name', 'cgac_code', and 'title' """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager,accountManager.register, RouteUtils.SYSTEM_EMAIL, session)
+        return RouteUtils.run_instance_function(accountManager,accountManager.register, system_email, session)
 
     @app.route("/v1/update_user/", methods=["POST"])
     @permissions_check(permission="website_admin")
     def update_user():
         """ Updates editable fields for the specified user """
         accountManager = AccountHandler(request, bcrypt=bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.update_user, RouteUtils.SYSTEM_EMAIL)
+        return RouteUtils.run_instance_function(accountManager, accountManager.update_user, system_email)
 
     @app.route("/v1/delete_user/", methods=["POST"])
     @permissions_check(permission="website_admin")
@@ -40,7 +39,7 @@ def add_user_routes(app,system_email,bcrypt):
     def confirm():
         """ Expects request to have email  """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.create_email_confirmation, RouteUtils.SYSTEM_EMAIL)
+        return RouteUtils.run_instance_function(accountManager, accountManager.create_email_confirmation, system_email)
 
     @app.route("/v1/confirm_email_token/", methods = ["POST"])
     def checkEmailToken():
@@ -86,7 +85,7 @@ def add_user_routes(app,system_email,bcrypt):
     def reset_password():
         """ Removes current password from DB and sends email with token for user to reset their password.  Expects 'email' key in request body. """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.reset_password, RouteUtils.SYSTEM_EMAIL, session)
+        return RouteUtils.run_instance_function(accountManager, accountManager.reset_password, system_email, session)
 
     @app.route("/v1/current_user/", methods=["GET"])
     @permissions_check
@@ -109,4 +108,4 @@ def add_user_routes(app,system_email,bcrypt):
         Sends email notifications to users that their submission is ready for review & publish viewing
         """
         accountManager = AccountHandler(request, bcrypt=bcrypt)
-        return RouteUtils.run_instance_function(accountManager, accountManager.email_users, RouteUtils.SYSTEM_EMAIL, session)
+        return RouteUtils.run_instance_function(accountManager, accountManager.email_users, system_email, session)
