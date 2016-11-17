@@ -34,7 +34,7 @@ def test_get_signed_url_for_submission_file_s3(database, monkeypatch):
     monkeypatch.setattr(fileHandler, 'RequestDictionary', mock_dict)
 
     mock_dict = Mock()
-    mock_dict.return_value.getSignedUrl.side_effect = ['/signed/url/path/file_name.csv']
+    mock_dict.return_value.getSignedUrl.return_value = '/signed/url/path/file_name.csv'
     monkeypatch.setattr(fileHandler, 's3UrlHandler', mock_dict)
     file_handler.s3manager.getSignedUrl = Mock()
 
