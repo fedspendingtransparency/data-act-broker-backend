@@ -931,7 +931,7 @@ class FileHandler:
         for submission in submissions:
             total_size = sess.query(func.sum(Job.file_size)).\
                 filter_by(submission_id=submission.submission_id).\
-                scalar()
+                scalar() or 0
 
             status = self.interfaces.jobDb.getSubmissionStatus(submission)
             if submission.user_id is None:
