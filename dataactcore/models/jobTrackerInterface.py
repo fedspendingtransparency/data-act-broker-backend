@@ -1,13 +1,11 @@
 import logging
 
-from sqlalchemy.orm import joinedload
-
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import (
-    Job, JobStatus, JobType, Submission, FileType,
-    PublishStatus)
+    Job, JobStatus, Submission, FileType, PublishStatus)
+from dataactcore.models.lookups import JOB_STATUS_DICT, PUBLISH_STATUS_DICT
 
 
 _exception_logger = logging.getLogger('deprecated.exception')
@@ -26,13 +24,6 @@ class JobTrackerInterface(BaseInterface):
         """
         return self.runUniqueQuery(query, "Job ID not found in job table","Conflicting jobs found for this ID")
 
-    def getJobStatusNames(self):
-        """ Get All Job Status names """
-
-        # This populates the DICT
-        self.getJobStatusId(None)
-        return JobStatus.JOB_STATUS_DICT.keys()
-
     def getJobStatus(self,jobId):
         """ Get status for specified job
 
@@ -48,22 +39,9 @@ class JobTrackerInterface(BaseInterface):
         self.session.commit()
         return status
 
-    def getJobStatusId(self,statusName):
-        """ Return the status ID that corresponds to the given name """
-        return self.getIdFromDict(
-            JobStatus, "JOB_STATUS_DICT", "name", statusName, "job_status_id")
-
     def getJobStatusNameById(self, status_id):
         """ Returns the status name that corresponds to the given id """
         return self.getNameFromDict(JobStatus,"JOB_STATUS_DICT","name",status_id,"job_status_id")
-
-    def getJobTypeId(self,typeName):
-        """ Return the type ID that corresponds to the given name """
-        return self.getIdFromDict(JobType,"JOB_TYPE_DICT","name",typeName,"job_type_id")
-
-    def getFileTypeId(self, typeName):
-        """ Returns the file type id that corresponds to the given name """
-        return self.getIdFromDict(FileType, "FILE_TYPE_DICT", "name", typeName, "file_type_id")
 
     def getOriginalFilenameById(self,job_id):
         """ Get original filename for job matching ID """
@@ -91,7 +69,7 @@ class JobTrackerInterface(BaseInterface):
         # patch this so we can remove getJobsBySubmission function
         sess = GlobalDB.db().session
         jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
-        status_names = self.getJobStatusNames()
+        status_names = JOB_STATUS_DICT.keys()
         statuses = dict(zip(status_names,[0]*len(status_names)))
         skip_count = 0
 
@@ -155,7 +133,7 @@ class JobTrackerInterface(BaseInterface):
 
     def setPublishStatus(self, statusName, submissionOrId):
         """ Set publish status to specified name"""
-        statusId = self.getPublishStatusId(statusName)
+        statusId = PUBLISH_STATUS_DICT[statusName]
         submission = self.extract_submission(submissionOrId)
         submission.publish_status_id = statusId
         self.session.commit()
@@ -163,15 +141,11 @@ class JobTrackerInterface(BaseInterface):
     def updatePublishStatus(self, submissionOrId):
         """ If submission was already published, mark as updated.  Also set publishable back to false. """
         submission = self.extract_submission(submissionOrId)
-        publishedStatus = self.getPublishStatusId("published")
+        publishedStatus = PUBLISH_STATUS_DICT["published"]
         if submission.publish_status_id == publishedStatus:
             # Submission already published, mark as updated
             self.setPublishStatus("updated", submission)
         # Changes have been made, so don't publish until user marks as publishable again
         submission.publishable = False
         self.session.commit()
-
-    def getPublishStatusId(self, statusName):
-        """ Return ID for specified publish status """
-        return self.getIdFromDict(PublishStatus,  "PUBLISH_STATUS_DICT", "name", statusName, "publish_status_id")
 

@@ -1,12 +1,14 @@
 from datetime import datetime, date
 
-from dataactcore.interfaces.function_bag import addJobsForFileType, mark_job_status
+from dataactcore.interfaces.function_bag import addJobsForFileType
 from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from sqlalchemy import and_
 import time
+
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 
 class JobHandler(JobTrackerInterface):
     """ Responsible for all interaction with the job tracker database
@@ -154,12 +156,12 @@ class JobHandler(JobTrackerInterface):
 
         if existing_submission:
             # Find cross-file and external validation jobs and mark them as waiting
-            val_query = self.session.query(Job).filter(Job.submission_id == submission_id).filter(Job.job_type_id == self.getJobTypeId("validation"))
+            val_query = self.session.query(Job).filter(Job.submission_id == submission_id).filter(Job.job_type_id == JOB_TYPE_DICT["validation"])
             val_job = self.runUniqueQuery(val_query,"No cross-file validation job found","Conflicting jobs found")
-            val_job.job_status_id = self.getJobStatusId("waiting")
-            ext_query = self.session.query(Job).filter(Job.submission_id == submission_id).filter(Job.job_type_id == self.getJobTypeId("external_validation"))
+            val_job.job_status_id = JOB_STATUS_DICT["waiting"]
+            ext_query = self.session.query(Job).filter(Job.submission_id == submission_id).filter(Job.job_type_id == JOB_TYPE_DICT["external_validation"])
             ext_job = self.runUniqueQuery(ext_query,"No external validation job found","Conflicting jobs found")
-            ext_job.job_status_id = self.getJobStatusId("waiting")
+            ext_job.job_status_id = JOB_STATUS_DICT["waiting"]
 
             # Update submission updated_at
             submission = self.session.query(Submission).filter_by(submission_id = submission_id).one()
@@ -167,10 +169,10 @@ class JobHandler(JobTrackerInterface):
             self.session.commit()
         else:
             # Create validation job
-            validation_job = Job(job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("validation"), submission_id=submission_id)
+            validation_job = Job(job_status_id=JOB_STATUS_DICT["waiting"], job_type_id=JOB_TYPE_DICT["validation"], submission_id=submission_id)
             self.session.add(validation_job)
             # Create external validation job
-            external_job = Job(job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("external_validation"), submission_id=submission_id)
+            external_job = Job(job_status_id=JOB_STATUS_DICT["waiting"], job_type_id=JOB_TYPE_DICT["external_validation"], submission_id=submission_id)
             self.session.add(external_job)
             self.session.flush()
             # Create dependencies for validation jobs
@@ -226,7 +228,7 @@ class JobHandler(JobTrackerInterface):
         query = self.session.query(Job.job_type_id).filter(Job.job_id == jobId)
         result = self.checkJobUnique(query)
         # Got single job, check type
-        if(result.job_type_id == self.getJobTypeId("file_upload")):
+        if result.job_type_id == JOB_TYPE_DICT["file_upload"]:
             # Correct type
             return True
         # Did not confirm correct type
@@ -266,8 +268,8 @@ class JobHandler(JobTrackerInterface):
         return datetime.strftime("%m/%d/%Y")
 
     def getJobBySubmissionFileTypeAndJobType(self, submission_id, file_type_name, job_type_name):
-        file_id = self.getFileTypeId(file_type_name)
-        type_id = self.getJobTypeId(job_type_name)
+        file_id = FILE_TYPE_DICT[file_type_name]
+        type_id = JOB_TYPE_DICT[job_type_name]
         query = self.session.query(Job).filter(and_(Job.submission_id == submission_id, Job.file_type_id == file_id, Job.job_type_id == type_id))
         result = self.runUniqueQuery(query, "No job with that submission ID, file type and job type", "Multiple jobs with conflicting submission ID, file type and job type")
         return result

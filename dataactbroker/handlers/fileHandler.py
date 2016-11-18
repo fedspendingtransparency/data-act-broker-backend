@@ -21,7 +21,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job, Submission
 from dataactcore.models.userModel import User
-from dataactcore.models.lookups import FILE_STATUS_DICT, RULE_SEVERITY_DICT
+from dataactcore.models.lookups import FILE_STATUS_DICT, RULE_SEVERITY_DICT, JOB_STATUS_DICT, FILE_TYPE_DICT
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import (get_report_path, get_cross_report_name,
@@ -570,11 +570,11 @@ class FileHandler:
         job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, file_type_name, "file_upload")
         job.filename = upload_file_name
         job.original_filename = timestamped_name
-        job.job_status_id = jobDb.getJobStatusId("running")
+        job.job_status_id = JOB_STATUS_DICT["running"]
         jobDb.session.commit()
         if file_type in ["D1", "D2"]:
             _debug_logger.debug('Adding job info for job id of %s', job.job_id)
-            return self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
+            return self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
         elif file_type == 'E':
             generate_e_file.delay(
                 submission_id, job.job_id, timestamped_name,
@@ -586,7 +586,7 @@ class FileHandler:
 
         return True, None
 
-    def addJobInfoForDFile(self, upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job):
+    def add_job_info_for_d_file(self, upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job):
         """ Populates upload and validation job objects with start and end dates, filenames, and status
 
         Args:
@@ -602,17 +602,17 @@ class FileHandler:
         """
         jobDb = self.interfaces.jobDb
         try:
-            valJob = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, file_type_name, "csv_record_validation")
-            valJob.filename = upload_file_name
-            valJob.original_filename = timestamped_name
-            valJob.job_status_id = jobDb.getJobStatusId("waiting")
+            val_job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, file_type_name, "csv_record_validation")
+            val_job.filename = upload_file_name
+            val_job.original_filename = timestamped_name
+            val_job.job_status_id = JOB_STATUS_DICT["waiting"]
             job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
             job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
-            valJob.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
-            valJob.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
+            val_job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
+            val_job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
             # Generate random uuid and store generation task
             task_key = uuid4()
-            task = FileGenerationTask(generation_task_key = task_key, submission_id = submission_id, file_type_id = jobDb.getFileTypeId(file_type_name), job_id = job.job_id)
+            task = FileGenerationTask(generation_task_key = task_key, submission_id = submission_id, file_type_id = FILE_TYPE_DICT[file_type_name], job_id = job.job_id)
             jobDb.session.add(task)
 
             jobDb.session.commit()
@@ -630,7 +630,7 @@ class FileHandler:
             _debug_logger.debug('Calling D file API => %s', get_url)
             try:
                 if not self.call_d_file_api(get_url):
-                    self.handleEmptyResponse(job, valJob)
+                    self.handleEmptyResponse(job, val_job)
             except Timeout as e:
                 exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
                 return False, JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
