@@ -1,6 +1,7 @@
 import os
 from csv import reader
 from datetime import datetime
+from functools import wraps
 import logging
 from uuid import uuid4
 from shutil import copyfile
@@ -975,19 +976,30 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})
 
 
-def narratives_for_submission(submission_id):
+def requires_submission_perms(fn):
+    """Decorator that checks the current user's permissions and validates that
+    the submission exists."""
+    @wraps(fn)
+    def wrapped(submission_id, *args, **kwargs):
+        sess = GlobalDB.db().session
+        submission = sess.query(Submission).\
+            filter_by(submission_id=submission_id).one_or_none()
+        if submission is None:
+            # @todo - why don't we use 404s?
+            raise ResponseException('No such submission', StatusCode.CLIENT_ERROR)
+        user_agency_must_match(submission, *args, **kwargs)
+
+        return fn(submission)
+    return wrapped
+
+
+@requires_submission_perms
+def narratives_for_submission(submission):
     """Fetch narratives for this submission, indexed by file letter"""
     sess = GlobalDB.db().session
-    submission = sess.query(Submission).\
-        filter_by(submission_id=submission_id).one_or_none()
-    if submission is None:
-        # @todo - why don't we use 404s?
-        raise ResponseException('No such submission', StatusCode.CLIENT_ERROR)
-    user_agency_must_match(submission)
-
     result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values()}
     narratives = sess.query(SubmissionNarrative).\
-        filter_by(submission_id=submission_id)
+        filter_by(submission_id=submission.submission_id)
     for narrative in narratives:
         letter = FILE_TYPE_DICT_LETTER[narrative.file_type_id]
         result[letter] = narrative.narrative
