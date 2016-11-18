@@ -987,9 +987,9 @@ def requires_submission_perms(fn):
         if submission is None:
             # @todo - why don't we use 404s?
             raise ResponseException('No such submission', StatusCode.CLIENT_ERROR)
-        user_agency_must_match(submission, *args, **kwargs)
+        user_agency_must_match(submission)
 
-        return fn(submission)
+        return fn(submission, *args, **kwargs)
     return wrapped
 
 
@@ -1004,3 +1004,26 @@ def narratives_for_submission(submission):
         letter = FILE_TYPE_DICT_LETTER[narrative.file_type_id]
         result[letter] = narrative.narrative
     return JsonResponse.create(StatusCode.OK, result)
+
+
+@requires_submission_perms
+def update_narratives(submission, narratives_json):
+    """Clear existing narratives and replace them with the provided set. We
+    assume narratives_json contains non-empty strings (i.e. that it's been
+    cleaned)"""
+    sess = GlobalDB.db().session
+    sess.query(SubmissionNarrative).\
+        filter_by(submission_id=submission.submission_id).\
+        delete(synchronize_session='fetch')     # fetch just in case
+    narratives = []
+    for file_type_id, letter in FILE_TYPE_DICT_LETTER.items():
+        if letter in narratives_json:
+            narratives.append(SubmissionNarrative(
+                submission_id=submission.submission_id,
+                file_type_id=file_type_id,
+                narrative=narratives_json[letter]
+            ))
+    sess.add_all(narratives)
+    sess.commit()
+
+    return JsonResponse.create(StatusCode.OK, {})
