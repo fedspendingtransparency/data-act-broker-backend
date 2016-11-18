@@ -162,14 +162,10 @@ class JobTrackerInterface(BaseInterface):
 
         return status
 
-    def getSubmissionById(self, submissionId):
-        """ Return submission object that matches ID"""
-        query = self.session.query(Submission).filter(Submission.submission_id == submissionId)
-        return self.runUniqueQuery(query, "No submission with that ID", "Multiple submissions with that ID")
-
     def populateSubmissionErrorInfo(self, submission_id):
         """Deprecated: moved to function_bag.py."""
-        submission = self.getSubmissionById(submission_id)
+        sess = GlobalDB.db().session
+        submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
         # TODO find where interfaces is set as an instance variable which overrides the static variable, fix that and then remove this line
         self.interfaces = BaseInterface.interfaces
         submission.number_of_errors = sumNumberOfErrorsForJobList(submission_id)
@@ -185,29 +181,31 @@ class JobTrackerInterface(BaseInterface):
             job.number_of_warnings = numberOfErrors
         self.session.commit()
 
-    def setPublishableFlag(self, submissionId, publishable):
+    def setPublishableFlag(self, submission_id, publishable):
         """ Set publishable flag to specified value """
-        submission = self.getSubmissionById(submissionId)
+        sess = GlobalDB.db().session
+        submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
         submission.publishable = publishable
         self.session.commit()
 
-    def extractSubmission(self, submissionOrId):
+    def extract_submission(self, submission_or_id):
         """ If given an integer, get the specified submission, otherwise return the input """
-        if isinstance(submissionOrId, int):
-            return self.getSubmissionById(submissionOrId)
+        if isinstance(submission_or_id, int):
+            sess = GlobalDB.db().session
+            return sess.query(Submission).filter_by(submission_id = submission_or_id).one()
         else:
-            return submissionOrId
+            return submission_or_id
 
     def setPublishStatus(self, statusName, submissionOrId):
         """ Set publish status to specified name"""
         statusId = self.getPublishStatusId(statusName)
-        submission = self.extractSubmission(submissionOrId)
+        submission = self.extract_submission(submissionOrId)
         submission.publish_status_id = statusId
         self.session.commit()
 
     def updatePublishStatus(self, submissionOrId):
         """ If submission was already published, mark as updated.  Also set publishable back to false. """
-        submission = self.extractSubmission(submissionOrId)
+        submission = self.extract_submission(submissionOrId)
         publishedStatus = self.getPublishStatusId("published")
         if submission.publish_status_id == publishedStatus:
             # Submission already published, mark as updated

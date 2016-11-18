@@ -22,12 +22,6 @@ class JobHandler(JobTrackerInterface):
     fiscalStartMonth = 10
     metaDataFieldMap = {"cgac_code":"cgac_code","reporting_period_start_date":"reporting_start_date","reporting_period_end_date":"reporting_end_date","is_quarter":"is_quarter_format"}
 
-    def getSubmissionById(self,submissionId):
-        """ Return submission object that matches ID """
-        query = self.session.query(Submission).filter_by(submission_id = submissionId)
-        result = self.runUniqueQuery(query,"No submission with that ID","Multiple submissions with that ID")
-        return result
-
     @classmethod
     def loadSubmitParams(cls,requestDict):
         """ Load params from request, return dictionary of values provided mapped to submission fields """
@@ -143,53 +137,53 @@ class JobHandler(JobTrackerInterface):
         # Calling submission_id to force query to load this
         return submission.submission_id
 
-    def createJobs(self, filenames, submissionId, existingSubmission = False):
+    def createJobs(self, filenames, submission_id, existing_submission = False):
         """  Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
 
         Arguments:
         filenames -- List of tuples containing (file type, upload path, original filenames)
-        submissionId -- Submission ID to be linked to jobs
-        existingSubmission -- True if we should update jobs in an existing submission rather than creating new jobs
+        submission_id -- Submission ID to be linked to jobs
+        existing_submission -- True if we should update jobs in an existing submission rather than creating new jobs
 
         Returns:
         Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
         """
 
 
-        jobsRequired, uploadDict = self.addUploadJobs(filenames,submissionId,existingSubmission)
+        jobs_required, upload_dict = self.addUploadJobs(filenames,submission_id,existing_submission)
 
-        if(existingSubmission):
+        if existing_submission:
             # Find cross-file and external validation jobs and mark them as waiting
-            valQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.job_type_id == self.getJobTypeId("validation"))
-            valJob = self.runUniqueQuery(valQuery,"No cross-file validation job found","Conflicting jobs found")
-            valJob.job_status_id = self.getJobStatusId("waiting")
-            extQuery = self.session.query(Job).filter(Job.submission_id == submissionId).filter(Job.job_type_id == self.getJobTypeId("external_validation"))
-            extJob = self.runUniqueQuery(extQuery,"No external validation job found","Conflicting jobs found")
-            extJob.job_status_id = self.getJobStatusId("waiting")
+            val_query = self.session.query(Job).filter(Job.submission_id == submission_id).filter(Job.job_type_id == self.getJobTypeId("validation"))
+            val_job = self.runUniqueQuery(val_query,"No cross-file validation job found","Conflicting jobs found")
+            val_job.job_status_id = self.getJobStatusId("waiting")
+            ext_query = self.session.query(Job).filter(Job.submission_id == submission_id).filter(Job.job_type_id == self.getJobTypeId("external_validation"))
+            ext_job = self.runUniqueQuery(ext_query,"No external validation job found","Conflicting jobs found")
+            ext_job.job_status_id = self.getJobStatusId("waiting")
 
             # Update submission updated_at
-            submission = self.getSubmissionById(submissionId)
+            submission = self.session.query(Submission).filter_by(submission_id = submission_id).one()
             submission.updated_at = time.strftime("%c")
             self.session.commit()
         else:
             # Create validation job
-            validationJob = Job(job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("validation"), submission_id=submissionId)
-            self.session.add(validationJob)
+            validation_job = Job(job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("validation"), submission_id=submission_id)
+            self.session.add(validation_job)
             # Create external validation job
-            externalJob = Job(job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("external_validation"), submission_id=submissionId)
-            self.session.add(externalJob)
+            external_job = Job(job_status_id=self.getJobStatusId("waiting"), job_type_id=self.getJobTypeId("external_validation"), submission_id=submission_id)
+            self.session.add(external_job)
             self.session.flush()
             # Create dependencies for validation jobs
-            for job_id in jobsRequired:
-                valDependency = JobDependency(job_id = validationJob.job_id, prerequisite_id = job_id)
-                self.session.add(valDependency)
-                extDependency = JobDependency(job_id = externalJob.job_id, prerequisite_id = job_id)
-                self.session.add(extDependency)
+            for job_id in jobs_required:
+                val_dependency = JobDependency(job_id = validation_job.job_id, prerequisite_id = job_id)
+                self.session.add(val_dependency)
+                ext_dependency = JobDependency(job_id = external_job.job_id, prerequisite_id = job_id)
+                self.session.add(ext_dependency)
 
         # Commit all changes
         self.session.commit()
-        uploadDict["submission_id"] = submissionId
-        return uploadDict
+        upload_dict["submission_id"] = submission_id
+        return upload_dict
 
     def addUploadJobs(self,filenames,submissionId,existingSubmission):
         """  Add upload jobs to job tracker database
@@ -272,9 +266,9 @@ class JobHandler(JobTrackerInterface):
                     raise
         return rowSum
 
-    def getFormattedDatetimeBySubmissionId(self, submissionId):
+    def getFormattedDatetimeBySubmissionId(self, submission_id):
         """ Given a submission ID, return MM/DD/YYYY for the datetime of that submission """
-        datetime = self.getSubmissionById(submissionId).datetime_utc
+        datetime = self.session.query(Submission).filter_by(submission_id=submission_id).one().datetime_utc
         return datetime.strftime("%m/%d/%Y")
 
     def getJobBySubmissionFileTypeAndJobType(self, submission_id, file_type_name, job_type_name):

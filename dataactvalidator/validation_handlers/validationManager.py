@@ -479,7 +479,7 @@ class ValidationManager:
         # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their submissions
         # as publishable
         # Publish only if no errors are present
-        if interfaces.jobDb.getSubmissionById(submission_id).number_of_errors == 0:
+        if sess.query(Submission).filter_by(submission_id = submission_id).one().number_of_errors == 0:
             interfaces.jobDb.setPublishableFlag(submission_id, True)
 
         # Mark validation complete
