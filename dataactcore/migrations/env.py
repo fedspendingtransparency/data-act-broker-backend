@@ -1,13 +1,18 @@
 from __future__ import with_statement
+import logging
+import os.path
+import re
+import sys
+
 from alembic import context
+from sqlalchemy import engine_from_config, pool
+
 # Load all DB tables into metadata object
 # @todo - load these dynamically
 from dataactcore.models import baseModel, domainModels, fsrs, errorModels, jobModels, stagingModels, userModel, validationModels # noqa
 from dataactcore.config import CONFIG_DB
 from dataactcore.interfaces.db import dbURI
-from sqlalchemy import engine_from_config, pool
-import logging
-import re
+from dataactcore.logging import configure_logging
 
 USE_TWOPHASE = False
 
@@ -15,11 +20,11 @@ USE_TWOPHASE = False
 # access to the values within the .ini file in use.
 config = context.config
 
-# Interpret the config file for Python logging.
-# Because the default logging settings stomp
-# on other app logging when alembic runs programmatically,
-# don't load up the fileConfig object form alembic.ini
-#fileConfig(config.config_file_name)
+# Alembic recommends setting up logging here by clobbering existing
+# configuration with its own. We generally have configured logging elsewhere,
+# but we also want to set it up if running the alembic script
+if 'alembic' in os.path.basename(sys.argv[0]):
+    configure_logging()
 logger = logging.getLogger('alembic.env')
 
 # Use the broker's config file to gather section names referring to different
