@@ -6,7 +6,7 @@ from uuid import uuid4
 from shutil import copyfile
 
 import requests
-from flask import session, request
+from flask import request, session
 from requests.exceptions import Timeout
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
@@ -18,9 +18,11 @@ from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
-from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job, Submission
+from dataactcore.models.jobModels import (
+    FileGenerationTask, Job, JobDependency, Submission, SubmissionNarrative)
 from dataactcore.models.userModel import User
-from dataactcore.models.lookups import FILE_STATUS_DICT, RULE_SEVERITY_DICT
+from dataactcore.models.lookups import (
+    FILE_STATUS_DICT, FILE_TYPE_DICT_LETTER, RULE_SEVERITY_DICT)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import (get_report_path, get_cross_report_name,
@@ -971,3 +973,22 @@ class FileHandler:
         total_submissions = query.from_self().count()
 
         return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})
+
+
+def narratives_for_submission(submission_id):
+    """Fetch narratives for this submission, indexed by file letter"""
+    sess = GlobalDB.db().session
+    submission = sess.query(Submission).\
+        filter_by(submission_id=submission_id).one_or_none()
+    if submission is None:
+        # @todo - why don't we use 404s?
+        raise ResponseException('No such submission', StatusCode.CLIENT_ERROR)
+    user_agency_must_match(submission)
+
+    result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values()}
+    narratives = sess.query(SubmissionNarrative).\
+        filter_by(submission_id=submission_id)
+    for narrative in narratives:
+        letter = FILE_TYPE_DICT_LETTER[narrative.file_type_id]
+        result[letter] = narrative.narrative
+    return JsonResponse.create(StatusCode.OK, result)
