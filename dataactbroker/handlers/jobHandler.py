@@ -24,22 +24,9 @@ class JobHandler(JobTrackerInterface):
 
     def getSubmissionById(self,submissionId):
         """ Return submission object that matches ID """
-        query = self.session.query(Submission).filter(Submission.submission_id == submissionId)
+        query = self.session.query(Submission).filter_by(submission_id = submissionId)
         result = self.runUniqueQuery(query,"No submission with that ID","Multiple submissions with that ID")
         return result
-
-    def getSubmissionsByUserAgency(self,user,limit=5):
-        """ Returns all submissions associated with the specified user's agency """
-        return self.session.query(Submission).filter(Submission.cgac_code == user.cgac_code).order_by(Submission.updated_at.desc()).limit(limit).all()
-
-    def getSubmissionsByUserId(self,userId, limit, offset, certified):
-        """ Returns all submissions associated with the specified user ID """
-        if certified is None:
-            return self.session.query(Submission).filter(Submission.user_id == userId).order_by(
-                Submission.updated_at.desc()).limit(limit).offset(offset).all()
-        else:
-            return self.session.query(Submission).filter(and_(Submission.user_id == userId, Submission.publishable == certified)).order_by(
-                Submission.updated_at.desc()).limit(limit).offset(offset).all()
 
     @classmethod
     def loadSubmitParams(cls,requestDict):
