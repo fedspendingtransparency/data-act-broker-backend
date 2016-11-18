@@ -63,7 +63,7 @@ class FileHandler:
         Arguments:
             request - HTTP request object for this route
             interfaces - InterfaceHolder object to databases
-            isLocal - True if this is a local installation that will not use AWS
+            isLocal - True if this is a local installation that will not use AWS or Smartronix
             serverPath - If isLocal is True, this is used as the path to local files
         """
         self.request = request
