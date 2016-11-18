@@ -274,7 +274,7 @@ class FileHandler:
                 job_id = input_dictionary.getValue("upload_id")
 
             # Compare user ID with user who submitted job, if no match return 400
-            job = self.jobManager.getJobById(job_id)
+            job = sess.query(Job).filter_by(job_id = job_id).one()
             submission = self.jobManager.getSubmissionForJob(job)
             # Check that user's agency matches submission cgac_code or "SYS", or user id matches submission's user
             user_id = LoginSession.getName(session)
@@ -708,6 +708,7 @@ class FileHandler:
     def load_d_file(self, url, upload_name, timestamped_name, job_id, isLocal):
         """ Pull D file from specified URL and write to S3 """
         job_manager = self.interfaces.jobDb
+        sess = GlobalDB.db().session
         try:
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
@@ -715,7 +716,7 @@ class FileHandler:
             if not self.download_file(full_file_path, url):
                 # Error occurred while downloading file, mark job as failed and record error message
                 mark_job_status(job_id, "failed")
-                job = job_manager.getJobById(job_id)
+                job = sess.query(Job).filter_by(job_id = job_id).one()
                 file_type = job_manager.getFileType(job_id)
                 if file_type == "award":
                     source= "ASP"
@@ -737,9 +738,9 @@ class FileHandler:
             _smx_logger.exception('Exception caught => %s', e)
             # Log the error
             JsonResponse.error(e,500)
-            job_manager.getJobById(job_id).error_message = str(e)
+            sess.query(Job).filter_by(job_id=job_id).one().error_message = str(e)
             mark_job_status(job_id, "failed")
-            job_manager.session.commit()
+            sess.commit()
             raise e
 
     def getRequestParamsForGenerate(self):
@@ -889,6 +890,7 @@ class FileHandler:
             file_type - the type of file to be generated, D1 or D2. Only used when calling completeGeneration for local development
 
         """
+        sess = GlobalDB.db().session
         try:
             if generationId is None:
                 raise ResponseException(
@@ -916,7 +918,7 @@ class FileHandler:
             #Pull information based on task key
             _smx_logger.debug('Pulling information based on task key...')
             task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
-            job = self.interfaces.jobDb.getJobById(task.job_id)
+            job = sess.query(Job).filter_by(job_id = task.job_id).one()
             _smx_logger.debug('Loading D file...')
             result = self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
             _smx_logger.debug('Load D file result => %s', result)

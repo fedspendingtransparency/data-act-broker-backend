@@ -243,12 +243,6 @@ class JobHandler(JobTrackerInterface):
             e.status = StatusCode.INTERNAL_ERROR
             raise e
 
-    def getJobById(self,jobId):
-        """ Given a job ID, return the corresponding job """
-        query = self.session.query(Job).filter(Job.job_id == jobId)
-        result = self.runUniqueQuery(query,"No job with that ID","Multiple jobs with conflicting ID")
-        return result
-
     def sumNumberOfRowsForJobList(self, jobs):
         """ Given a list of job IDs, return the number of rows summed across jobs """
         # temporary fix until jobHandler.py is refactored away

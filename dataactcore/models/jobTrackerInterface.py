@@ -26,23 +26,20 @@ class JobTrackerInterface(BaseInterface):
         """
         return self.runUniqueQuery(query, "Job ID not found in job table","Conflicting jobs found for this ID")
 
-    def getJobById(self,jobId):
-        """ Return job model object based on ID """
-        query = self.session.query(Job).filter(Job.job_id == jobId)
-        return self.checkJobUnique(query)
-
-    def getFileName(self,jobId):
+    def getFileName(self,job_id):
         """ Get filename listed in database for this job """
-        return self.getJobById(jobId).filename
+        sess = GlobalDB.db().session
+        return sess.query(Job).filter_by(job_id = job_id).one().filename
 
     def getFileType(self,jobId):
         """ Get type of file associated with this job """
         query = self.session.query(Job).options(joinedload("file_type")).filter(Job.job_id == jobId)
         return self.checkJobUnique(query).file_type.name
 
-    def getSubmissionId(self,jobId):
+    def getSubmissionId(self,job_id):
         """ Find submission that this job is part of """
-        return self.getJobById(jobId).submission_id
+        sess = GlobalDB.db().session
+        return sess.query(Job).filter_by(job_id = job_id).one().submission_id
 
     def getJobType(self, jobId):
         """
@@ -96,23 +93,20 @@ class JobTrackerInterface(BaseInterface):
         """ Returns the file type id that corresponds to the given name """
         return self.getIdFromDict(FileType, "FILE_TYPE_DICT", "name", typeName, "file_type_id")
 
-    def getOriginalFilenameById(self,jobId):
+    def getOriginalFilenameById(self,job_id):
         """ Get original filename for job matching ID """
-        return self.getJobById(jobId).original_filename
+        sess = GlobalDB.db().session
+        return sess.query(Job).filter_by(job_id = job_id).one().original_filename
 
-    def getFileSizeById(self,jobId):
+    def getFileSizeById(self,job_id):
         """ Get file size for job matching ID """
-        return self.getJobById(jobId).file_size
+        sess = GlobalDB.db().session
+        return sess.query(Job).filter_by(job_id = job_id).one().file_size
 
-    def getNumberOfRowsById(self,jobId):
+    def getNumberOfRowsById(self,job_id):
         """ Get number of rows in file for job matching ID """
-        return self.getJobById(jobId).number_of_rows
-
-    def setFileSizeById(self,jobId, fileSize):
-        """ Set file size for job matching ID """
-        job = self.getJobById(jobId)
-        job.file_size = int(fileSize)
-        self.session.commit()
+        sess = GlobalDB.db().session
+        return sess.query(Job).filter_by(job_id = job_id).one().number_of_rows
 
     def setJobRowcounts(self, jobId, numRows, numValidRows):
         """Set number of rows in job that passed validations."""
@@ -170,15 +164,6 @@ class JobTrackerInterface(BaseInterface):
         self.interfaces = BaseInterface.interfaces
         submission.number_of_errors = sumNumberOfErrorsForJobList(submission_id)
         submission.number_of_warnings = sumNumberOfErrorsForJobList(submission_id, errorType = "warning")
-        self.session.commit()
-
-    def setJobNumberOfErrors(self, jobId, numberOfErrors, errorType):
-        """Deprecated: moved to sumNumberOfErrorsForJobList in function_bag.py."""
-        job = self.getJobById(jobId)
-        if errorType == "fatal":
-            job.number_of_errors = numberOfErrors
-        elif errorType == "warning":
-            job.number_of_warnings = numberOfErrors
         self.session.commit()
 
     def setPublishableFlag(self, submission_id, publishable):
