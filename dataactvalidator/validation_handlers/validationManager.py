@@ -1,4 +1,3 @@
-from csv import Error
 import os
 import logging
 
@@ -11,7 +10,8 @@ from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.interfaces.function_bag import (
-    createFileIfNeeded, writeFileError, markFileComplete, run_job_checks)
+    createFileIfNeeded, writeFileError, markFileComplete, run_job_checks,
+    mark_job_status)
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
 from dataactcore.utils.responseException import ResponseException
@@ -44,7 +44,6 @@ class ValidationManager:
 
     def __init__(self,isLocal =True,directory=""):
         # Initialize instance variables
-        self.filename = ""
         self.isLocal = isLocal
         self.directory = directory
 
@@ -53,45 +52,6 @@ class ValidationManager:
         colnames = sess.query(FileColumn.name, FileColumn.name_short).all()
         self.long_to_short_dict = {row.name: row.name_short for row in colnames}
         self.short_to_long_dict = {row.name_short: row.name for row in colnames}
-
-    @staticmethod
-    def markJob(job_id,jobTracker,status,filename=None, fileError = ValidationError.unknownError, extraInfo = None):
-        """ Update status of a job in job tracker database
-        Args:
-            job_id: Job to be updated
-            jobTracker: Interface object for job tracker
-            status: New status for specified job
-            filename: Filename of file to be validated
-            fileError: Type of error that occurred if this is an invalid or failed status
-            extraInfo: Dict of extra fields to attach to exception
-        """
-        try:
-            if filename != None and (status == "invalid" or status == "failed"):
-                # Mark the file error that occurred
-                writeFileError(job_id, filename, fileError, extraInfo)
-            jobTracker.markJobStatus(job_id, status)
-        except ResponseException as e:
-            # Could not get a unique job ID in the database, either a bad job ID was passed in
-            # or the record of that job was lost.
-            # Either way, cannot mark status of a job that does not exist
-            # Log error
-            JsonResponse.error(e, e.status)
-
-    @staticmethod
-    def getJobID(request):
-        """ Pull job ID out of request
-        Args:
-            request: HTTP request containing the job ID
-        Returns:
-            job ID, or raises exception if job ID not found in request
-        """
-        requestDict = RequestDictionary(request)
-        if requestDict.exists("job_id"):
-            jobId = requestDict.getValue("job_id")
-            return jobId
-        else:
-            # Request does not have a job ID, can't validate
-            raise ResponseException("No job ID specified in request", StatusCode.CLIENT_ERROR)
 
     def getReader(self):
         """
@@ -121,7 +81,7 @@ class ValidationManager:
         # Forcing forward slash here instead of using os.path to write a valid path for S3
         return "".join(["errors/", path])
 
-    def readRecord(self,reader,writer,file_type,interfaces,row_number,job_id,fields,error_list):
+    def readRecord(self,reader,writer,file_type,interfaces,row_number,job,fields,error_list):
         """ Read and process the next record
 
         Args:
@@ -144,6 +104,7 @@ class ValidationManager:
         """
         reduce_row = False
         row_error_found = False
+        job_id = job.job_id
         try:
 
             record = FieldCleaner.cleanRow(reader.get_next_record(), self.long_to_short_dict, fields)
@@ -158,18 +119,18 @@ class ValidationManager:
                 reduce_row = True
             else:
                 writer.write(["Formatting Error", ValidationError.readErrorMsg, str(row_number), ""])
-                error_list.recordRowError(job_id, self.filename, "Formatting Error", ValidationError.readError,
+                error_list.recordRowError(job_id, job.filename, "Formatting Error", ValidationError.readError,
                                           row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
                 row_error_found = True
             return {}, reduce_row, True, False, row_error_found
         return record, reduce_row, False, False, row_error_found
 
-    def writeToStaging(self, record, job_id, submission_id, passed_validations, writer, row_number, model, error_list):
+    def writeToStaging(self, record, job, submission_id, passed_validations, writer, row_number, model, error_list):
         """ Write this record to the staging tables
 
         Args:
             record: Record to be written
-            job_id: ID of current job
+            job: Current job
             submission_id: ID of current submission
             passed_validations: True if record has not failed first validations
             writer: CsvWriter object
@@ -181,6 +142,7 @@ class ValidationManager:
             Boolean indicating whether to skip current row
         """
         sess = GlobalDB.db().session
+        job_id = job.job_id
         try:
             record["job_id"] = job_id
             record["submission_id"] = submission_id
@@ -191,18 +153,18 @@ class ValidationManager:
         except ResponseException:
             # Write failed, move to next record
             writer.write(["Formatting Error", ValidationError.writeErrorMsg, row_number,""])
-            error_list.recordRowError(job_id, self.filename,
+            error_list.recordRowError(job_id, job.filename,
                 "Formatting Error", ValidationError.writeError, row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
             return True
         return False
 
-    def writeErrors(self, failures, interfaces, job_id, short_colnames, writer, warning_writer, row_number, error_list):
+    def writeErrors(self, failures, interfaces, job, short_colnames, writer, warning_writer, row_number, error_list):
         """ Write errors to error database
 
         Args:
             failures: List of errors to be written
             interfaces: InterfaceHolder object
-            job_id: ID of current job
+            job: Current job
             short_colnames: Dict mapping short names to long names
             writer: CsvWriter object
             warning_writer: CsvWriter object
@@ -211,6 +173,7 @@ class ValidationManager:
         Returns:
             True if any fatal errors were found, False if only warnings are present
         """
+        job_id = job.job_id
         fatal_error_found = False
         # For each failure, record it in error report and metadata
         for failure in failures:
@@ -237,22 +200,20 @@ class ValidationManager:
             elif failure[4] == "warning":
                 # write to warnings file
                 warning_writer.write([field_name,error_msg,str(row_number),failed_value,original_rule_label])
-            error_list.recordRowError(job_id,self.filename,field_name,error,row_number,original_rule_label,severity_id=severityId)
+            error_list.recordRowError(job_id,job.filename,field_name,error,row_number,original_rule_label,severity_id=severityId)
         return fatal_error_found
 
-    def runValidation(self, job_id, interfaces):
+    def runValidation(self, job, interfaces):
         """ Run validations for specified job
         Args:
-            job_id: Job to be validated
+            job: Job to be validated
             interfaces: All interfaces
         Returns:
             True if successful
         """
 
         sess = GlobalDB.db().session
-        # get the job object here so we can call the refactored getReportPath
-        # todo: replace other db access functions with job object attributes
-        job = sess.query(Job).filter(Job.job_id == job_id).one()
+        job_id = job.job_id
 
         error_list = ErrorInterface()
 
@@ -263,7 +224,7 @@ class ValidationManager:
         submission_id = job.submission_id
 
         rowNumber = 1
-        fileType = jobTracker.getFileType(job_id)
+        fileType = job.file_type.name
         # Get orm model for this file
         model = [ft.model for ft in FILE_TYPE if ft.name == fileType][0]
 
@@ -275,8 +236,7 @@ class ValidationManager:
         if self.isLocal and not os.path.exists(self.directory):
             os.makedirs(self.directory)
         # Get bucket name and file name
-        fileName = jobTracker.getFileName(job_id)
-        self.filename = fileName
+        fileName = job.filename
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
 
@@ -284,7 +244,7 @@ class ValidationManager:
         warningFileName = self.getFileName(get_report_path(job, 'warning'))
 
         # Create File Status object
-        createFileIfNeeded(job_id,fileName)
+        createFileIfNeeded(job_id, fileName)
 
         reader = self.getReader()
 
@@ -292,8 +252,9 @@ class ValidationManager:
         if CONFIG_BROKER["use_aws"]:
             fileSize = s3UrlHandler.getFileSize(errorFileName)
         else:
-            fileSize = os.path.getsize(jobTracker.getFileName(job_id))
-        jobTracker.setFileSizeById(job_id, fileSize)
+            fileSize = os.path.getsize(fileName)
+        job.file_size = fileSize
+        sess.commit()
 
         # Get fields for this file
         fields = sess.query(FileColumn). \
@@ -327,7 +288,7 @@ class ValidationManager:
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
                     #
-                    (record, reduceRow, skipRow, doneReading, rowErrorHere) = self.readRecord(reader,writer,fileType,interfaces,rowNumber,job_id,fields,error_list)
+                    (record, reduceRow, skipRow, doneReading, rowErrorHere) = self.readRecord(reader, writer, fileType, interfaces, rowNumber, job, fields, error_list)
                     if reduceRow:
                         rowNumber -= 1
                     if rowErrorHere:
@@ -353,14 +314,14 @@ class ValidationManager:
                         passedValidations, failures, valid = Validator.validate(record, csvSchema)
                     if valid:
                         skipRow = self.writeToStaging(
-                            record, job_id, submission_id, passedValidations,
+                            record, job, submission_id, passedValidations,
                             writer, rowNumber, model, error_list)
                         if skipRow:
                             errorRows.append(rowNumber)
                             continue
 
                     if not passedValidations:
-                        if self.writeErrors(failures, interfaces, job_id, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list):
+                        if self.writeErrors(failures, interfaces, job, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list):
                             errorRows.append(rowNumber)
 
                 _exception_logger.info(
@@ -375,7 +336,7 @@ class ValidationManager:
                 # in the schema guidance. these validations are sql-based.
                 #
                 sqlErrorRows = self.runSqlValidations(
-                    interfaces, job_id, fileType, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list)
+                    interfaces, job, fileType, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list)
                 errorRows.extend(sqlErrorRows)
 
                 # Write unfinished batch
@@ -395,8 +356,8 @@ class ValidationManager:
             # Update error info for submission
             jobTracker.populateSubmissionErrorInfo(submission_id)
             # Mark validation as finished in job tracker
-            jobTracker.markJobStatus(job_id,"finished")
-            markFileComplete(job_id, self.filename)
+            mark_job_status(job_id, "finished")
+            markFileComplete(job_id, fileName)
         finally:
             # Ensure the file always closes
             reader.close()
@@ -405,12 +366,12 @@ class ValidationManager:
                 'job_id: %s', job_id)
         return True
 
-    def runSqlValidations(self, interfaces, job_id, file_type, short_colnames, writer, warning_writer, row_number, error_list):
+    def runSqlValidations(self, interfaces, job, file_type, short_colnames, writer, warning_writer, row_number, error_list):
         """ Run all SQL rules for this file type
 
         Args:
             interfaces: InterfaceHolder object
-            job_id: ID of current job
+            job: Current job
             file_type: Type of file for current job
             short_colnames: Dict mapping short field names to long
             writer: CsvWriter object
@@ -421,6 +382,7 @@ class ValidationManager:
         Returns:
             a list of the row numbers that failed one of the sql-based validations
         """
+        job_id = job.job_id
         error_rows = []
         sql_failures = Validator.validateFileBySql(
             interfaces.jobDb.getSubmissionId(job_id), file_type, self.short_to_long_dict)
@@ -452,18 +414,19 @@ class ValidationManager:
             elif severity_id == RULE_SEVERITY_DICT['warning']:
                 # write to warnings file
                 warning_writer.write([field_name,error_msg,str(row),failed_value,original_label])
-            error_list.recordRowError(job_id,self.filename,field_name,
+            error_list.recordRowError(job_id,job.filename,field_name,
                                           error,row_number,original_label, file_type_id=file_type_id, target_file_id = target_file_id, severity_id=severity_id)
         return error_rows
 
-    def runCrossValidation(self, job_id, interfaces):
+    def runCrossValidation(self, job, interfaces):
         """ Cross file validation job, test all rules with matching rule_timing """
         sess = GlobalDB.db().session
+        job_id = job.job_id
         # Create File Status object
         createFileIfNeeded(job_id)
         error_list = ErrorInterface()
         
-        submission_id = interfaces.jobDb.getSubmissionId(job_id)
+        submission_id = job.submission_id
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
         _exception_logger.info(
@@ -506,7 +469,7 @@ class ValidationManager:
                 warningWriter.finishBatch()
 
         error_list.writeAllRowErrors(job_id)
-        interfaces.jobDb.markJobStatus(job_id, "finished")
+        mark_job_status(job_id, "finished")
         _exception_logger.info(
             'VALIDATOR_INFO: Completed runCrossValidation on submission_id: '
             '%s', submission_id)
@@ -531,7 +494,6 @@ class ValidationManager:
         Http response object
         """
         # Create connection to job tracker database
-        self.filename = None
         sess = GlobalDB.db().session
 
         jobTracker = interfaces.jobDb
@@ -549,7 +511,7 @@ class ValidationManager:
         job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
         if job is None:
             validation_error_type = ValidationError.jobError
-            writeFileError(job_id, self.filename, validation_error_type)
+            writeFileError(job_id, None, validation_error_type)
             raise ResponseException('Job ID {} not found in database'.format(job_id),
                                     StatusCode.CLIENT_ERROR, None,
                                     validation_error_type)
@@ -557,7 +519,7 @@ class ValidationManager:
         # Make sure job's prerequisites are complete
         if not run_job_checks(job_id):
             validation_error_type = ValidationError.jobError
-            writeFileError(job_id, self.filename, validation_error_type)
+            writeFileError(job_id, None, validation_error_type)
             raise ResponseException('Prerequisites for Job ID {} are not complete'.format(job_id),
                                     StatusCode.CLIENT_ERROR, None,
                                     validation_error_type)
@@ -567,47 +529,23 @@ class ValidationManager:
             job_type_name = job.job_type.name
         else:
             validation_error_type = ValidationError.jobError
-            writeFileError(job_id, self.filename, validation_error_type)
+            writeFileError(job_id, None, validation_error_type)
             raise ResponseException(
                 'Job ID {} is not a validation job (job type is {})'.format(job_id, job.job_type.name),
                 StatusCode.CLIENT_ERROR, None,
                 validation_error_type)
 
-        # todo: remove the following try/catch once 1st batch of changes are merged
-        try:
-            jobTracker.markJobStatus(job_id, "running")
-            if job_type_name == 'csv_record_validation':
-                self.runValidation(job_id, interfaces)
-            elif job_type_name == 'validation':
-                self.runCrossValidation(job_id, interfaces)
-            else:
-                raise ResponseException("Bad job type for validator",
-                    StatusCode.INTERNAL_ERROR)
+        # set job status to running and do validations
+        mark_job_status(job_id, "running")
+        if job_type_name == 'csv_record_validation':
+            self.runValidation(job, interfaces)
+        elif job_type_name == 'validation':
+            self.runCrossValidation(job, interfaces)
+        else:
+            raise ResponseException("Bad job type for validator",
+                StatusCode.INTERNAL_ERROR)
 
-            return JsonResponse.create(StatusCode.OK, {"message":"Validation complete"})
-        except ResponseException as e:
-            _exception_logger.exception(str(e))
-            self.markJob(job_id, jobTracker, "invalid", self.filename,e.errorType, e.extraInfo)
-            return JsonResponse.error(e, e.status)
-        except ValueError as e:
-            _exception_logger.exception(str(e))
-            # Problem with CSV headers
-            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,type(e), ValidationError.unknownError) #"Internal value error"
-            self.markJob(job_id,jobTracker, "invalid", self.filename, ValidationError.unknownError)
-            return JsonResponse.error(exc, exc.status)
-        except Error as e:
-            _exception_logger.exception(str(e))
-            # CSV file not properly formatted (usually too much in one field)
-            exc = ResponseException("Internal error",StatusCode.CLIENT_ERROR,type(e),ValidationError.unknownError)
-            self.markJob(job_id,jobTracker,"invalid",self.filename,ValidationError.unknownError)
-            return JsonResponse.error(exc, exc.status)
-        except Exception as e:
-            _exception_logger.exception(str(e))
-            exc = ResponseException(str(e), StatusCode.INTERNAL_ERROR, type(e),
-                ValidationError.unknownError)
-            self.markJob(job_id, jobTracker, "failed", self.filename, ValidationError.unknownError)
-            return JsonResponse.error(exc, exc.status)
-
+        return JsonResponse.create(StatusCode.OK, {"message":"Validation complete"})
 
 def update_tas_ids(model, submission_id):
     sess = GlobalDB.db().session

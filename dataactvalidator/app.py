@@ -1,15 +1,17 @@
 import logging
 
-from flask import Flask, request
+import csv
+from flask import Flask, request, g
 
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.interfaces.function_bag import writeFileError, mark_job_status
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import Job
-from dataactcore.models.lookups import JOB_STATUS_DICT
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
+from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 
 
@@ -39,23 +41,34 @@ def createApp():
     def handle_response_exception(error):
         """Handle exceptions explicitly raised during validation."""
         logger.error(str(error))
+
+        job = get_current_job()
+        if job:
+            if job.filename is not None:
+                # insert file-level error info to the database
+                writeFileError(job.job_id, job.filename, error.errorType, error.extraInfo)
+            if error.errorType != ValidationError.jobError:
+                # job pass prerequisites for validation, but an error
+                # happened somewhere. mark job as 'invalid'
+                mark_job_status(job.job_id, 'invalid')
         return JsonResponse.error(error, error.status)
 
     @app.errorhandler(Exception)
     def handle_validation_exception(error):
         """Handle uncaught exceptions in validation process."""
-        job_id = request.json.get('job_id')
-
-        # if request had a job id, set job to failed status
-        if job_id:
-            sess = GlobalDB.db().session
-            job = sess.query(Job).filter(Job.job_id == job_id).one()
-            job.status_id = JOB_STATUS_DICT['failed']
-            sess.commit()
-
-        # log failure and return a response
         logger.error(str(error))
-        return JsonResponse.error(error, 500)
+
+        # csv-specific errors get a different job status and response code
+        if isinstance(error, ValueError) or isinstance(error, csv.Error):
+            job_status, response_code = 'invalid', 400
+        else:
+            job_status, response_code = 'failed', 500
+        job = get_current_job()
+        if job:
+            if job.filename is not None:
+                writeFileError(job.job_id, job.filename, ValidationError.unknownError)
+            mark_job_status(job.job_id, job_status)
+        return JsonResponse.error(error, response_code)
 
     @app.route("/", methods=["GET"])
     def testApp():
@@ -66,6 +79,8 @@ def createApp():
     def validate():
         """Start the validation process."""
         interfaces = InterfaceHolder() # Create sessions for this route
+        if request.is_json:
+            g.job_id = request.json.get('job_id')
         validation_manager = ValidationManager(local, error_report_path)
         return validation_manager.validate_job(request,interfaces)
 
@@ -81,6 +96,16 @@ def runApp():
         host=CONFIG_SERVICES['validator_host'],
         port=CONFIG_SERVICES['validator_port']
     )
+
+def get_current_job():
+    """Return the job currently stored in flask.g"""
+    # the job_id is added to flask.g at the beginning of the validate
+    # route. we expect it to be here now, since validate is
+    # currently the app's only functional route
+    job_id = g.get('job_id', None)
+    if job_id:
+        sess = GlobalDB.db().session
+        return sess.query(Job).filter(Job.job_id == job_id).one_or_none()
 
 if __name__ == "__main__":
     configure_logging()
