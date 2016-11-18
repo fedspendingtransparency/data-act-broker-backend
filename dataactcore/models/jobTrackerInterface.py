@@ -3,8 +3,7 @@ import logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import (
-    Job, JobStatus, Submission, FileType, PublishStatus)
+from dataactcore.models.jobModels import Job, JobStatus, Submission
 from dataactcore.models.lookups import JOB_STATUS_DICT, PUBLISH_STATUS_DICT
 
 
@@ -24,39 +23,9 @@ class JobTrackerInterface(BaseInterface):
         """
         return self.runUniqueQuery(query, "Job ID not found in job table","Conflicting jobs found for this ID")
 
-    def getJobStatus(self,jobId):
-        """ Get status for specified job
-
-        Args:
-        jobId -- job to get status for
-
-        Returns:
-        status ID
-        """
-        query = self.session.query(Job.job_status_id).filter(Job.job_id == jobId)
-        result = self.checkJobUnique(query)
-        status = result.job_status_id
-        self.session.commit()
-        return status
-
     def getJobStatusNameById(self, status_id):
         """ Returns the status name that corresponds to the given id """
         return self.getNameFromDict(JobStatus,"JOB_STATUS_DICT","name",status_id,"job_status_id")
-
-    def getOriginalFilenameById(self,job_id):
-        """ Get original filename for job matching ID """
-        sess = GlobalDB.db().session
-        return sess.query(Job).filter_by(job_id = job_id).one().original_filename
-
-    def getFileSizeById(self,job_id):
-        """ Get file size for job matching ID """
-        sess = GlobalDB.db().session
-        return sess.query(Job).filter_by(job_id = job_id).one().file_size
-
-    def getNumberOfRowsById(self,job_id):
-        """ Get number of rows in file for job matching ID """
-        sess = GlobalDB.db().session
-        return sess.query(Job).filter_by(job_id = job_id).one().number_of_rows
 
     def setJobRowcounts(self, jobId, numRows, numValidRows):
         """Set number of rows in job that passed validations."""

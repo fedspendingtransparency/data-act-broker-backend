@@ -8,6 +8,8 @@ from dataactcore.utils.statusCode import StatusCode
 from sqlalchemy import and_
 import time
 
+from dataactcore.interfaces.db import GlobalDB
+
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 
 class JobHandler(JobTrackerInterface):
@@ -247,11 +249,12 @@ class JobHandler(JobTrackerInterface):
 
     def sumNumberOfRowsForJobList(self, jobs):
         """ Given a list of job IDs, return the number of rows summed across jobs """
+        sess = GlobalDB.db().session
         # temporary fix until jobHandler.py is refactored away
         jobList = [j.job_id for j in jobs]
         rowSum = 0
         for jobId in jobList:
-            jobRows = self.getNumberOfRowsById(jobId)
+            jobRows = sess.query(Job).filter_by(job_id = jobId).one().number_of_rows
             try:
                 rowSum += int(jobRows)
             except TypeError:

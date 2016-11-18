@@ -412,7 +412,7 @@ class FileHandler:
                 job_info["job_id"] = job.job_id
                 job_info["job_status"] = job.job_status.name
                 job_info["job_type"] = job_type
-                job_info["filename"] = self.jobManager.getOriginalFilenameById(job.job_id)
+                job_info["filename"] = sess.query(Job).filter_by(job_id = job.job_id).one().original_filename
                 try:
                     file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job.job_id).one()
                     job_info["file_status"] = file_results.file_status.name
@@ -447,9 +447,9 @@ class FileHandler:
                         job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['warning'])
                 # File size and number of rows not dependent on error DB
                 # Get file size
-                job_info["file_size"] = self.jobManager.getFileSizeById(job.job_id)
+                job_info["file_size"] = sess.query(Job).filter_by(job_id = job.job_id).one().file_size
                 # Get number of rows in file
-                job_info["number_of_rows"] = self.jobManager.getNumberOfRowsById(job.job_id)
+                job_info["number_of_rows"] = sess.query(Job).filter_by(job_id = job.job_id).one().number_of_rows
 
                 try :
                     job_info["file_type"] = sess.query(Job).options(joinedload("file_type")).filter_by(job_id = job.job_id).one().file_type.name
