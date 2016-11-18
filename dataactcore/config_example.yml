@@ -60,6 +60,11 @@ broker:
     static_files_bucket: sample-static-files-bucket
     help_files_path: sample-help-files-folder
 
+    # MAX login
+    cas_service_url: https://cas.service.url/cas/serviceValidate?ticket={}&service={}
+    parent_group: sample
+    max_help_url: https://sample.gov
+
 services:
     # Set to true to turn on tracing rest errors.
     rest_trace: false #deprecated
