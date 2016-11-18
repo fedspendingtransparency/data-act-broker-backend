@@ -365,7 +365,7 @@ class ValidationManager:
                 # in the schema guidance. these validations are sql-based.
                 #
                 sqlErrorRows = self.runSqlValidations(
-                    interfaces, job, fileType, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list)
+                    job, fileType, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list)
                 errorRows.extend(sqlErrorRows)
 
                 # Write unfinished batch
@@ -395,11 +395,10 @@ class ValidationManager:
                 'job_id: %s', job_id)
         return True
 
-    def runSqlValidations(self, interfaces, job, file_type, short_colnames, writer, warning_writer, row_number, error_list):
+    def runSqlValidations(self, job, file_type, short_colnames, writer, warning_writer, row_number, error_list):
         """ Run all SQL rules for this file type
 
         Args:
-            interfaces: InterfaceHolder object
             job: Current job
             file_type: Type of file for current job
             short_colnames: Dict mapping short field names to long
@@ -411,10 +410,12 @@ class ValidationManager:
         Returns:
             a list of the row numbers that failed one of the sql-based validations
         """
+        sess = GlobalDB.db().session
         job_id = job.job_id
         error_rows = []
+        submission_id = sess.query(Job).filter_by(job_id = job_id).one().submission_id
         sql_failures = Validator.validateFileBySql(
-            interfaces.jobDb.getSubmissionId(job_id), file_type, self.short_to_long_dict)
+            submission_id, file_type, self.short_to_long_dict)
         for failure in sql_failures:
             # convert shorter, machine friendly column names used in the
             # SQL validation queries back to their long names

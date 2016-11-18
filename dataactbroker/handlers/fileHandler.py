@@ -370,7 +370,7 @@ class FileHandler:
                 StatusCode.PERMISSION_DENIED)
         return user
 
-    def getStatus(self):
+    def get_status(self):
         """ Get description and status of all jobs in the submission specified in request object
 
         Returns:
@@ -378,10 +378,10 @@ class FileHandler:
         """
         try:
             sess = GlobalDB.db().session
-            inputDictionary = RequestDictionary(self.request)
+            input_dictionary = RequestDictionary(self.request)
 
             # Get submission
-            submission_id = inputDictionary.getValue("submission_id")
+            submission_id = input_dictionary.getValue("submission_id")
             submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
 
             # Check that user has access to submission
@@ -391,75 +391,75 @@ class FileHandler:
             jobs = sess.query(Job).filter_by(submission_id=submission_id)
 
             # Build dictionary of submission info with info about each job
-            submissionInfo = {}
-            submissionInfo["jobs"] = []
-            submissionInfo["cgac_code"] = submission.cgac_code
-            submissionInfo["reporting_period_start_date"] = self.interfaces.jobDb.getStartDate(submission)
-            submissionInfo["reporting_period_end_date"] = self.interfaces.jobDb.getEndDate(submission)
-            submissionInfo["created_on"] = self.interfaces.jobDb.getFormattedDatetimeBySubmissionId(submission_id)
+            submission_info = {}
+            submission_info["jobs"] = []
+            submission_info["cgac_code"] = submission.cgac_code
+            submission_info["reporting_period_start_date"] = self.interfaces.jobDb.getStartDate(submission)
+            submission_info["reporting_period_end_date"] = self.interfaces.jobDb.getEndDate(submission)
+            submission_info["created_on"] = self.interfaces.jobDb.getFormattedDatetimeBySubmissionId(submission_id)
             # Include number of errors in submission
-            submissionInfo["number_of_errors"] = submission.number_of_errors
-            submissionInfo["number_of_rows"] = self.interfaces.jobDb.sumNumberOfRowsForJobList(jobs)
-            submissionInfo["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
+            submission_info["number_of_errors"] = submission.number_of_errors
+            submission_info["number_of_rows"] = self.interfaces.jobDb.sumNumberOfRowsForJobList(jobs)
+            submission_info["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
 
             for job in jobs:
-                jobInfo = {}
+                job_info = {}
                 job_type = job.job_type.name
 
                 if job_type != "csv_record_validation" and job_type != "validation":
                     continue
 
-                jobInfo["job_id"] = job.job_id
-                jobInfo["job_status"] = job.job_status.name
-                jobInfo["job_type"] = job_type
-                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job.job_id)
+                job_info["job_id"] = job.job_id
+                job_info["job_status"] = job.job_status.name
+                job_info["job_type"] = job_type
+                job_info["filename"] = self.jobManager.getOriginalFilenameById(job.job_id)
                 try:
                     file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job.job_id).one()
-                    jobInfo["file_status"] = file_results.file_status.name
+                    job_info["file_status"] = file_results.file_status.name
                 except NoResultFound:
                     # Job ID not in error database, probably did not make it to validation, or has not yet been validated
-                    jobInfo["file_status"] = ""
-                    jobInfo["missing_headers"] = []
-                    jobInfo["duplicated_headers"] = []
-                    jobInfo["error_type"] = ""
-                    jobInfo["error_data"] = []
-                    jobInfo["warning_data"] = []
+                    job_info["file_status"] = ""
+                    job_info["missing_headers"] = []
+                    job_info["duplicated_headers"] = []
+                    job_info["error_type"] = ""
+                    job_info["error_data"] = []
+                    job_info["warning_data"] = []
                 else:
                     # If job ID was found in file, we should be able to get header error lists and file data
                     # Get string of missing headers and parse as a list
-                    missingHeaderString = file_results.headers_missing
-                    if missingHeaderString is not None:
+                    missing_header_string = file_results.headers_missing
+                    if missing_header_string is not None:
                         # Split header string into list, excluding empty strings
-                        jobInfo["missing_headers"] = [n.strip() for n in missingHeaderString.split(",") if len(n) > 0]
+                        job_info["missing_headers"] = [n.strip() for n in missing_header_string.split(",") if len(n) > 0]
                     else:
-                        jobInfo["missing_headers"] = []
+                        job_info["missing_headers"] = []
                     # Get string of duplicated headers and parse as a list
-                    duplicatedHeaderString = file_results.headers_duplicated
-                    if duplicatedHeaderString is not None:
+                    duplicated_header_string = file_results.headers_duplicated
+                    if duplicated_header_string is not None:
                         # Split header string into list, excluding empty strings
-                        jobInfo["duplicated_headers"] = [n.strip() for n in duplicatedHeaderString.split(",") if len(n) > 0]
+                        job_info["duplicated_headers"] = [n.strip() for n in duplicated_header_string.split(",") if len(n) > 0]
                     else:
-                        jobInfo["duplicated_headers"] = []
-                    jobInfo["error_type"] = getErrorType(job.job_id)
-                    jobInfo["error_data"] = getErrorMetricsByJobId(
+                        job_info["duplicated_headers"] = []
+                    job_info["error_type"] = getErrorType(job.job_id)
+                    job_info["error_data"] = getErrorMetricsByJobId(
                         job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['fatal'])
-                    jobInfo["warning_data"] = getErrorMetricsByJobId(
+                    job_info["warning_data"] = getErrorMetricsByJobId(
                         job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['warning'])
                 # File size and number of rows not dependent on error DB
                 # Get file size
-                jobInfo["file_size"] = self.jobManager.getFileSizeById(job.job_id)
+                job_info["file_size"] = self.jobManager.getFileSizeById(job.job_id)
                 # Get number of rows in file
-                jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(job.job_id)
+                job_info["number_of_rows"] = self.jobManager.getNumberOfRowsById(job.job_id)
 
                 try :
-                    jobInfo["file_type"] = self.jobManager.getFileType(job.job_id)
+                    job_info["file_type"] = sess.query(Job).options(joinedload("file_type")).filter_by(job_id = job.job_id).one().file_type.name
                 except:
                     # todo: add specific type of exception when we figure out what it is?
-                    jobInfo["file_type"]  = ''
-                submissionInfo["jobs"].append(jobInfo)
+                    job_info["file_type"]  = ''
+                submission_info["jobs"].append(job_info)
 
             # Build response object holding dictionary
-            return JsonResponse.create(StatusCode.OK,submissionInfo)
+            return JsonResponse.create(StatusCode.OK,submission_info)
         except ResponseException as e:
             return JsonResponse.error(e,e.status)
         except Exception as e:
@@ -717,7 +717,7 @@ class FileHandler:
                 # Error occurred while downloading file, mark job as failed and record error message
                 mark_job_status(job_id, "failed")
                 job = sess.query(Job).filter_by(job_id = job_id).one()
-                file_type = job_manager.getFileType(job_id)
+                file_type = sess.query(Job).options(joinedload("file_type")).filter_by(job_id = job_id).one().file_type.name
                 if file_type == "award":
                     source= "ASP"
                 elif file_type == "award_procurement":

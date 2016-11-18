@@ -33,7 +33,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     def check_status():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         fileManager.addInterfaces(InterfaceHolder())    # soon to be removed
-        return fileManager.getStatus()
+        return fileManager.get_status()
 
     @app.route("/v1/submission_error_reports/", methods = ["POST"])
     @permissions_check

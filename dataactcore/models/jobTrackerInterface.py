@@ -26,34 +26,6 @@ class JobTrackerInterface(BaseInterface):
         """
         return self.runUniqueQuery(query, "Job ID not found in job table","Conflicting jobs found for this ID")
 
-    def getFileName(self,job_id):
-        """ Get filename listed in database for this job """
-        sess = GlobalDB.db().session
-        return sess.query(Job).filter_by(job_id = job_id).one().filename
-
-    def getFileType(self,jobId):
-        """ Get type of file associated with this job """
-        query = self.session.query(Job).options(joinedload("file_type")).filter(Job.job_id == jobId)
-        return self.checkJobUnique(query).file_type.name
-
-    def getSubmissionId(self,job_id):
-        """ Find submission that this job is part of """
-        sess = GlobalDB.db().session
-        return sess.query(Job).filter_by(job_id = job_id).one().submission_id
-
-    def getJobType(self, jobId):
-        """
-
-        Args:
-            jobId: Job to get description for
-
-        Returns:
-            description of specified job
-        """
-
-        query = self.session.query(Job).options(joinedload("job_type")).filter(Job.job_id == jobId)
-        return self.checkJobUnique(query).job_type.name
-
     def getJobStatusNames(self):
         """ Get All Job Status names """
 
