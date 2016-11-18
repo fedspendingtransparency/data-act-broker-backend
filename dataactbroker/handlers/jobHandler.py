@@ -1,6 +1,6 @@
 from datetime import datetime, date
 
-from dataactcore.interfaces.function_bag import addJobsForFileType
+from dataactcore.interfaces.function_bag import addJobsForFileType, mark_job_status
 from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
@@ -251,15 +251,6 @@ class JobHandler(JobTrackerInterface):
         # Did not confirm correct type
         return False
 
-    def changeToFinished(self, jobId):
-        """  Mark an upload job as finished
-
-        Arguments:
-        jobId -- job_id to mark as finished
-
-        """
-        self.markJobStatus(jobId, 'finished')
-
     def getSubmissionForJob(self,job):
         """ Takes a job object and returns the associated submission object """
         query = self.session.query(Submission).filter(Submission.submission_id == job.submission_id)
@@ -277,8 +268,10 @@ class JobHandler(JobTrackerInterface):
         result = self.runUniqueQuery(query,"No job with that ID","Multiple jobs with conflicting ID")
         return result
 
-    def sumNumberOfRowsForJobList(self, jobList):
+    def sumNumberOfRowsForJobList(self, jobs):
         """ Given a list of job IDs, return the number of rows summed across jobs """
+        # temporary fix until jobHandler.py is refactored away
+        jobList = [j.job_id for j in jobs]
         rowSum = 0
         for jobId in jobList:
             jobRows = self.getNumberOfRowsById(jobId)

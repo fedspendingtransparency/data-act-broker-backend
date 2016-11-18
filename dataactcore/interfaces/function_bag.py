@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from sqlalchemy import func, or_
@@ -26,6 +27,9 @@ import time
 # As a temporary measure, until the next part of the work that refactors
 # the db access within Flask requests, fire up an ad-hoc db session in
 # these transitional functions.
+
+
+logger = logging.getLogger(__name__)
 
 
 # todo: move these value to config if it is decided to keep local user login long term
@@ -434,3 +438,66 @@ def run_job_checks(job_id):
         return False
     else:
         return True
+
+def mark_job_status(job_id, status_name):
+    """
+    Mark job as having specified status.
+    Jobs being marked as finished will add dependent jobs to queue.
+
+    Args:
+        job_id: ID for job being marked
+        status_name: Status to change job to
+    """
+    sess = GlobalDB.db().session
+
+    job = sess.query(Job).filter(Job.job_id == job_id).one()
+    old_status = job.job_status.name
+    # update job status
+    job.job_status_id = JOB_STATUS_DICT[status_name]
+    sess.commit()
+
+    # if status is changed to finished for the first time, check dependencies
+    # and add to the job queue as necessary
+    if old_status != 'finished' and status_name == 'finished':
+        check_job_dependencies(job_id)
+
+
+def check_job_dependencies(job_id):
+    """
+    For specified job, check which of its dependencies are ready to be started
+    and add them to the queue
+    """
+    sess = GlobalDB.db().session
+
+    # raise exception if current job is not actually finished
+    job = sess.query(Job).filter(Job.job_id == job_id).one()
+    if job.job_status_id != JOB_STATUS_DICT['finished']:
+        raise ValueError('Current job not finished, unable to check dependencies')
+
+    # get the jobs that are dependent on job_id being finished
+    dependencies = sess.query(JobDependency).filter_by(prerequisite_id = job_id).all()
+    for dependency in dependencies:
+        dep_job_id = dependency.job_id
+        if dependency.dependent_job.job_status_id != JOB_STATUS_DICT['waiting']:
+            logger.error("%s (dependency of %s) is not in a 'waiting' state",
+                dep_job_id, job_id)
+        else:
+            # find the number of this job's prerequisites that do
+            # not have a status of 'finished'.
+            unfinished_prerequisites = sess.query(JobDependency).\
+                join(Job, JobDependency.prerequisite_job).\
+                filter(
+                    Job.job_status_id != JOB_STATUS_DICT['finished'],
+                    JobDependency.job_id == dep_job_id).\
+                count()
+            if unfinished_prerequisites == 0:
+                # this job has no unfinished prerequisite jobs,
+                # so it is eligible to be set to a 'ready'
+                # status and added to the queue
+                mark_job_status(dep_job_id, 'ready')
+                # add to the job queue
+                logging.getLogger('deprecated.info').info(
+                    'Sending job %s to job manager', dep_job_id)
+                # will move this later
+                from dataactcore.utils.jobQueue import enqueue
+                enqueue.delay(dep_job_id)

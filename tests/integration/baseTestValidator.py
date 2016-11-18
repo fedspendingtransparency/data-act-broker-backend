@@ -44,6 +44,7 @@ class BaseTestValidator(unittest.TestCase):
 
         app = createApp()
         app.config['TESTING'] = True
+        app.config['DEBUG'] = False
         cls.app = TestApp(app)
 
         # Allow us to augment default test failure msg w/ more detail

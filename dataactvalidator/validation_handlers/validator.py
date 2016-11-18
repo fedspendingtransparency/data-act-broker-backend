@@ -52,7 +52,7 @@ class Validator(object):
         return failures
 
     @classmethod
-    def validate(cls, record, csvSchema):
+    def validate(cls, record, csv_schema):
         """
         Run initial set of single file validation:
         - check if required fields are present
@@ -61,7 +61,7 @@ class Validator(object):
 
         Args:
         record -- dict representation of a single record of data
-        csvSchema -- dict of schema for the current file.
+        csv_schema -- dict of schema for the current file.
 
         Returns:
         Tuple of three values:
@@ -69,50 +69,58 @@ class Validator(object):
         List of failed rules, each with field, description of failure, value that failed, rule label, and severity
         True if type check passed, False if type failed
         """
-        recordFailed = False
-        recordTypeFailure = False
-        failedRules = []
+        record_failed = False
+        record_type_failure = False
+        failed_rules = []
 
-        for fieldName in csvSchema:
-            if (csvSchema[fieldName].required and not fieldName in record):
-                return False, [[fieldName, ValidationError.requiredError, "", "", "fatal"]], False
+        for field_name in csv_schema:
+            if csv_schema[field_name].required and not field_name in record:
+                return False, [[field_name, ValidationError.requiredError, "", "", "fatal"]], False
 
-        for fieldName in record :
-            if fieldName in cls.META_FIELDS:
+        total_fields = 0
+        blank_fields = 0
+        for field_name in record :
+            if field_name in cls.META_FIELDS:
                 # Skip fields that are not user submitted
                 continue
-            checkRequiredOnly = False
-            currentSchema = csvSchema[fieldName]
+            check_required_only = False
+            current_schema = csv_schema[field_name]
+            total_fields += 1
 
-            currentData = record[fieldName]
-            if(currentData != None):
-                currentData = currentData.strip()
+            current_data = record[field_name]
+            if current_data is not None:
+                current_data = current_data.strip()
 
-            if(currentData == None or len(currentData) == 0):
-                if(currentSchema.required ):
+            if current_data is None or len(current_data) == 0:
+                blank_fields += 1
+                if current_schema.required:
                     # If empty and required return field name and error
-                    recordFailed = True
-                    failedRules.append([fieldName, ValidationError.requiredError, "", "", "fatal"])
+                    record_failed = True
+                    failed_rules.append([field_name, ValidationError.requiredError, "", "", "fatal"])
                     continue
                 else:
                     # If field is empty and not required its valid
-                    checkRequiredOnly = True
+                    check_required_only = True
 
             # Always check the type in the schema
-            if(not checkRequiredOnly and not Validator.checkType(currentData,currentSchema.field_type.name) ) :
-                recordTypeFailure = True
-                recordFailed = True
-                failedRules.append([fieldName, ValidationError.typeError, currentData,"", "fatal"])
+            if not check_required_only and not Validator.checkType(current_data,current_schema.field_type.name):
+                record_type_failure = True
+                record_failed = True
+                failed_rules.append([field_name, ValidationError.typeError, current_data,"", "fatal"])
                 # Don't check value rules if type failed
                 continue
 
             # Check length based on schema
-            if currentSchema.length is not None and currentData is not None and len(currentData.strip()) > currentSchema.length:
+            if current_schema.length is not None and current_data is not None and len(current_data.strip()) > current_schema.length:
                 # Length failure, add to failedRules
-                recordFailed = True
-                failedRules.append([fieldName, ValidationError.lengthError, currentData,"", "warning"])
+                record_failed = True
+                failed_rules.append([field_name, ValidationError.lengthError, current_data,"", "warning"])
 
-        return (not recordFailed), failedRules, (not recordTypeFailure)
+        # if all columns are blank (empty row), set it so it doesn't add to the error messages or write the line, just ignore it
+        if total_fields == blank_fields:
+            record_failed = False
+            record_type_failure = True
+        return (not record_failed), failed_rules, (not record_type_failure)
 
     @staticmethod
     def checkType(data,datatype) :

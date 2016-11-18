@@ -6,7 +6,6 @@ from unittest.mock import Mock
 from celery.exceptions import MaxRetriesExceededError, Retry
 import pytest
 
-from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.models.jobModels import FileType, JobStatus, JobType
 from dataactcore.utils import fileE, jobQueue
 from tests.unit.dataactcore.factories.staging import (
@@ -34,7 +33,9 @@ def test_generate_f_file(monkeypatch, mock_broker_config_paths):
         [('key4', 'mapping4'), ('key11', 'mapping11')])
     file_path = str(mock_broker_config_paths['broker_files'].join('uniq1'))
     expected = [['key4', 'key11'], ['a', 'b'], ['c', 'd']]
-    jobQueue.generate_f_file(1, 1, Mock(), 'uniq1', 'uniq1', is_local=True)
+
+    monkeypatch.setattr(jobQueue, 'mark_job_status', Mock())
+    jobQueue.generate_f_file(1, 1, 'uniq1', 'uniq1', is_local=True)
     assert read_file_rows(file_path) == expected
 
     # re-order
@@ -42,7 +43,9 @@ def test_generate_f_file(monkeypatch, mock_broker_config_paths):
         [('key11', 'mapping11'), ('key4', 'mapping4')])
     file_path = str(mock_broker_config_paths['broker_files'].join('uniq2'))
     expected = [['key11', 'key4'], ['b', 'a'], ['d', 'c']]
-    jobQueue.generate_f_file(1, 1, Mock(), 'uniq2', 'uniq2', is_local=True)
+
+    monkeypatch.setattr(jobQueue, 'mark_job_status', Mock())
+    jobQueue.generate_f_file(1, 1, 'uniq2', 'uniq2', is_local=True)
     assert read_file_rows(file_path) == expected
 
 
@@ -63,15 +66,13 @@ def test_generate_e_file_query(monkeypatch, mock_broker_config_paths,
         awardee_or_recipient_uniqu=model.awardee_or_recipient_uniqu)
     unrelated = AwardProcurementFactory(submission_id=model.submission_id + 1)
     database.session.add_all(aps + afas + [model, same_duns, unrelated])
+    database.session.commit()
 
+    monkeypatch.setattr(jobQueue, 'mark_job_status', Mock())
     monkeypatch.setattr(jobQueue.fileE, 'retrieveRows', Mock(return_value=[]))
 
-    # Mock out the interface holder class; rather nasty, as we want to _keep_
-    # the database session handler
-    interface_class = Mock()
-    interface_class.return_value.jobDb.session = database.session
     jobQueue.generate_e_file(
-        model.submission_id, 1, interface_class, 'uniq', 'uniq',
+        model.submission_id, 1, 'uniq', 'uniq',
         is_local=True)
 
     # [0][0] gives us the first, non-keyword args
@@ -86,9 +87,10 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
     """Verify that an appropriate CSV is written, based on fileE.Row's
     structure"""
     # Create an award so that we have _a_ duns
+    sess = database.session
     ap = AwardProcurementFactory()
-    database.session.add(ap)
-    database.session.commit()
+    sess.add(ap)
+    sess.commit()
 
     monkeypatch.setattr(jobQueue.fileE, 'retrieveRows', Mock())
     jobQueue.fileE.retrieveRows.return_value = [
@@ -98,10 +100,9 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
                   '4A', '4B', '5A', '5B')
     ]
 
-    interface_class = Mock()
-    interface_class.return_value.jobDb.session = database.session
+    monkeypatch.setattr(jobQueue, 'mark_job_status', Mock())
     jobQueue.generate_e_file(
-        ap.submission_id, 1, interface_class, 'uniq', 'uniq', is_local=True)
+        ap.submission_id, 1, 'uniq', 'uniq', is_local=True)
 
     file_path = str(mock_broker_config_paths['broker_files'].join('uniq'))
     expected = [
@@ -132,7 +133,7 @@ def test_job_context_success(database, job_constants):
     sess.add(job)
     sess.commit()
 
-    with jobQueue.job_context(Mock(), InterfaceHolder, job.job_id):
+    with jobQueue.job_context(Mock(), job.job_id):
         pass    # i.e. be successful
 
     sess.refresh(job)
@@ -153,7 +154,7 @@ def test_job_context_fail(database, job_constants):
 
     task = Mock()
     task.retry.return_value = MaxRetriesExceededError()
-    with jobQueue.job_context(task, InterfaceHolder, job.job_id):
+    with jobQueue.job_context(task, job.job_id):
         raise Exception('This failed!')
 
     sess.refresh(job)
@@ -176,7 +177,7 @@ def test_job_context_retry(database, job_constants):
     task = Mock()
     task.retry.return_value = Retry()
     with pytest.raises(Retry):
-        with jobQueue.job_context(task, InterfaceHolder, job.job_id):
+        with jobQueue.job_context(task, job.job_id):
             raise Exception('This failed!')
 
     sess.refresh(job)
