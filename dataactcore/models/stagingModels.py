@@ -14,12 +14,6 @@ class FlexField(Base):
     row_number = Column(Integer, nullable=False)
     header = Column(Text)
     cell = Column(Text)
-    
-    def __init__(self, **kwargs):
-        # broker is set up to ignore extra columns in submitted data
-        # so get rid of any extraneous kwargs before instantiating
-        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(FlexField, self).__init__(**cleanKwargs)
 
 class Appropriation(Base):
     """Model for the appropriation table."""
