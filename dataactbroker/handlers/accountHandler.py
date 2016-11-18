@@ -153,10 +153,6 @@ class AccountHandler:
             ticket = safeDictionary.getValue("ticket")
             service = safeDictionary.getValue('service')
             parent_group = CONFIG_BROKER['parent_group']
-            max_help_url = CONFIG_BROKER['max_help_url']
-
-            self.max_login_error = "You have logged in with MAX but do not have permission to access the broker. " \
-                              "Please go <a href={}>here</a> to obtain access.".format(max_help_url)
 
             # Call MAX's serviceValidate endpoint and retrieve the response
             max_dict = self.get_max_dict(ticket, service)
@@ -173,7 +169,7 @@ class AccountHandler:
 
             # Deny access if they are not aligned with an agency
             if not cgac_group:
-                raise ValueError(self.max_login_error)
+                raise ValueError("You have logged in with MAX but do not have permission to access the broker.")
 
             try:
                 sess = GlobalDB.db().session
@@ -234,7 +230,7 @@ class AccountHandler:
             permission_group = [g for g in group_list if g.startswith(cgac_group + "-PERM_")]
             # Check if a user has been placed in a specific group. If not, deny access
             if not permission_group:
-                raise ValueError(self.max_login_error)
+                raise ValueError("You have logged in with MAX but do not have permission to access the broker.")
 
             perms = [perm[-1].lower() for perm in permission_group]
             ordered_perms = sorted(PERMISSION_MAP, key=lambda k: PERMISSION_MAP[k]['order'])
