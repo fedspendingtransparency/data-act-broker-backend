@@ -169,8 +169,7 @@ class AccountHandler:
 
             # Deny access if they are not aligned with an agency
             if not cgac_group:
-                raise ValueError("You have logged in with MAX but do not have permission to access the broker. Please "
-                                 "contact DATABroker@fiscal.treasury.gov to obtain access.")
+                raise ValueError("You have logged in with MAX but do not have permission to access the broker.")
 
             try:
                 sess = GlobalDB.db().session
@@ -231,8 +230,7 @@ class AccountHandler:
             permission_group = [g for g in group_list if g.startswith(cgac_group + "-PERM_")]
             # Check if a user has been placed in a specific group. If not, deny access
             if not permission_group:
-                raise ValueError("You have logged in with MAX but do not have permission to access the broker. Please "
-                                 "contact DATABroker@fiscal.treasury.gov to obtain access.")
+                raise ValueError("You have logged in with MAX but do not have permission to access the broker.")
 
             perms = [perm[-1].lower() for perm in permission_group]
             ordered_perms = sorted(PERMISSION_MAP, key=lambda k: PERMISSION_MAP[k]['order'])
