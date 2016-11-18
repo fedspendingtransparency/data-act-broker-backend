@@ -2,13 +2,12 @@ from decimal import Decimal
 import logging
 
 from dataactcore.models.lookups import FILE_TYPE_DICT_ID, FILE_TYPE_DICT
+from dataactcore.models.stagingModels import FlexField
 from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.interfaces.db import GlobalDB
 
-
 _exception_logger = logging.getLogger('deprecated.exception')
-
 
 class Validator(object):
     """
@@ -28,7 +27,6 @@ class Validator(object):
             submissionId -- ID of submission to run cross-file validation
         """
         failures = []
-        # Put each rule through evaluate, appending all failures into list
         # Put each rule through evaluate, appending all failures into list
         conn = GlobalDB.db().connection
 
@@ -168,11 +166,11 @@ class Validator(object):
         raise ValueError("".join(["Data Type Error, Type: ",datatype,", Value: ",data]))
 
     @classmethod
-    def validateFileBySql(cls, submissionId, fileType, short_to_long_dict):
+    def validateFileBySql(cls, submission_id, fileType, short_to_long_dict):
         """ Check all SQL rules
 
         Args:
-            submissionId: submission to be checked
+            submission_id: submission to be checked
             fileType: file type being checked
             short_to_long_dict: mapping of short to long schema column names
 
@@ -190,7 +188,7 @@ class Validator(object):
 
         _exception_logger.info(
             'VALIDATOR_INFO: Beginning SQL validation rules on submissionID '
-            '%s, fileType: %s', submissionId, fileType)
+            '%s, fileType: %s', submission_id, fileType)
         sess = GlobalDB.db().session
 
         # Pull all SQL rules for this file type
@@ -203,25 +201,38 @@ class Validator(object):
         for rule in rules:
             _exception_logger.info(
                 'VALIDATOR_INFO: Running query: %s on submissionId %s, '
-                'fileType: %s', rule.query_name, submissionId, fileType)
-            failures = sess.execute(rule.rule_sql.format(submissionId))
+                'fileType: %s', rule.query_name, submission_id, fileType)
+            failures = sess.execute(rule.rule_sql.format(submission_id))
             if failures.rowcount:
                 # Create column list (exclude row_number)
                 cols = failures.keys()
                 cols.remove("row_number")
+
+                # Create flex column list
+                flex_dict = {}
+                flex_results = sess.query(FlexField).filter_by(submission_id=submission_id)
+
+                for flex_row in flex_results:
+                    flex_dict[flex_row.row_number] = flex_row
+
+
                 # Build error list
                 for failure in failures:
                     errorMsg = rule.rule_error_message
                     row = failure["row_number"]
                     # Create strings for fields and values
                     valueList = ["{}: {}".format(short_to_long_dict[field], str(failure[field])) if field in short_to_long_dict else "{}: {}".format(field, str(failure[field])) for field in cols]
+                    if flex_dict and flex_dict[row]:
+                        valueList.append("{}: {}".format(flex_dict[row].header, flex_dict[row].cell))
                     valueString = ", ".join(valueList)
                     fieldList = [short_to_long_dict[field] if field in short_to_long_dict else field for field in cols]
+                    if flex_dict and flex_dict[row]:
+                        fieldList.append(flex_dict[row].header)
                     fieldString = ", ".join(fieldList)
                     errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId, rule.target_file_id, rule.rule_severity_id])
 
             _exception_logger.info(
                 'VALIDATOR_INFO: Completed SQL validation rules on '
-                'submissionID: %s, fileType: %s', submissionId, fileType)
+                'submissionID: %s, fileType: %s', submission_id, fileType)
 
         return errors
