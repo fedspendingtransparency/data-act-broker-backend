@@ -32,6 +32,7 @@ class CsvAbstractReader(object):
         self.unprocessed = ''
         self.extra_line = False
         self.lines = []
+        self.flex_dictionary = {}
         self.header_dictionary = {}
         self.packet_counter = 0
         current = 0
@@ -91,6 +92,11 @@ class CsvAbstractReader(object):
                 else:
                     header_value = submitted_header_value
                 if not header_value in possible_fields:
+                    # Add flex headers to flex list
+                    if str(submitted_header_value).startswith("flex_"):
+                        self.flex_dictionary[current] = submitted_header_value
+                    else:
+                        self.flex_dictionary[current] = None
                     # Allow unexpected headers, just mark the header as None so we skip it when reading
                     self.header_dictionary[current] = None
                     current += 1
@@ -152,6 +158,7 @@ class CsvAbstractReader(object):
             dictionary representing this record
         """
         return_dict = {}
+        flex_dict = {}
         line = self._get_line()
 
         for row in csv.reader([line], dialect='excel', delimiter=self.delimiter):
@@ -165,11 +172,15 @@ class CsvAbstractReader(object):
                     cell = None
                 # self.header_dictionary uses the short, machine-readable column names
                 if self.header_dictionary[current] is None:
-                    # Skip this column as it is unknown
-                    continue
+                    if self.flex_dictionary[current] is not None:
+                        flex_dict["header"] = self.flex_dictionary[current]
+                        flex_dict["cell"] = cell
+                    else:
+                        # Skip this column as it is unknown or flex
+                        continue
                 else:
                     return_dict[self.header_dictionary[current]] = cell
-        return return_dict
+        return return_dict, flex_dict
 
     def close(self):
         """

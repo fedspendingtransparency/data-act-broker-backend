@@ -4,6 +4,16 @@ from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 from dataactcore.models.domainModels import concatTas, TASLookup
 
+class FlexField(Base):
+    """Model for the flex field table."""
+    __tablename__ = "flex_field"
+
+    flex_field_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, nullable=False, index=True)
+    job_id = Column(Integer, nullable=False, index=True)
+    row_number = Column(Integer, nullable=False)
+    header = Column(Text)
+    cell = Column(Text)
 
 class Appropriation(Base):
     """Model for the appropriation table."""
