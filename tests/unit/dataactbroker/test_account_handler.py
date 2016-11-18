@@ -14,7 +14,7 @@ def test_max_login_success(database, user_constants, monkeypatch):
 
     max_dict= {'cas:serviceResponse': {}}
     monkeypatch.setattr(ah, 'get_max_dict', Mock(return_value=max_dict))
-    config = {'parent_group': 'parent-group'}
+    config = {'parent_group': 'parent-group', 'max_help_url': ''}
     monkeypatch.setattr(dataactbroker.handlers.accountHandler, 'CONFIG_BROKER', config)
     max_dict = {
         'cas:serviceResponse':
@@ -44,7 +44,7 @@ def test_max_login_success(database, user_constants, monkeypatch):
 
 def test_max_login_failure(monkeypatch):
     ah = dataactbroker.handlers.accountHandler.AccountHandler(Mock())
-    config = {'parent_group': 'parent-group'}
+    config = {'parent_group': 'parent-group', 'max_help_url': ''}
     monkeypatch.setattr(dataactbroker.handlers.accountHandler, 'CONFIG_BROKER', config)
 
     mock_dict = Mock()
@@ -74,11 +74,10 @@ def test_max_login_failure(monkeypatch):
                 }
     monkeypatch.setattr(ah, 'get_max_dict', Mock(return_value=max_dict))
     json_response = ah.max_login(Mock())
-    error_message = "You have logged in with MAX but do not have permission to access the broker. " \
-                    "Please contact DATABroker@fiscal.treasury.gov to obtain access."
+    error_message = "You have logged in with MAX but do not have permission to access the broker."
 
     # Not in parent group
-    assert error_message == json.loads(json_response.get_data().decode("utf-8"))['message']
+    assert error_message in json.loads(json_response.get_data().decode("utf-8"))['message']
 
     max_dict = {
         'cas:serviceResponse':
@@ -95,8 +94,7 @@ def test_max_login_failure(monkeypatch):
     }
     monkeypatch.setattr(ah, 'get_max_dict', Mock(return_value=max_dict))
     json_response = ah.max_login(Mock())
-    error_message = "You have logged in with MAX but do not have permission to access the broker. " \
-                    "Please contact DATABroker@fiscal.treasury.gov to obtain access."
+    error_message = "You have logged in with MAX but do not have permission to access the broker."
 
     # Not in cgac group
-    assert error_message == json.loads(json_response.get_data().decode("utf-8"))['message']
+    assert error_message in json.loads(json_response.get_data().decode("utf-8"))['message']
