@@ -40,6 +40,30 @@ _debug_logger = logging.getLogger('deprecated.debug')
 _smx_logger = logging.getLogger('deprecated.smx')
 
 
+def user_agency_matches(submission):
+    """Does the currently logged in user have an agency that matches this
+    submission?"""
+    sess = GlobalDB.db().session
+    user_id = LoginSession.getName(session)
+    user = sess.query(User).filter_by(user_id=user_id).one()
+    submission_cgac = StringCleaner.cleanString(submission.cgac_code)
+    user_cgac = StringCleaner.cleanString(user.cgac_code)
+    return (
+        submission_cgac == user_cgac
+        or submission.user_id == user_id
+        or user_cgac == 'sys'
+    )
+
+
+def user_agency_must_match(submission):
+    """Raise an exception if the logged in user doesn't have an agency match
+    with this submission"""
+    if not user_agency_matches(submission):
+        raise ResponseException(
+            "User does not have permission to view that submission",
+            StatusCode.PERMISSION_DENIED)
+
+
 class FileHandler:
     """ Responsible for all tasks relating to file upload
 
@@ -144,9 +168,8 @@ class FileHandler:
             file_name = safe_dictionary.getValue("file") + ".csv"
             submission_id = safe_dictionary.getValue("submission")
             submission = self.jobManager.getSubmissionById(submission_id)
-            # Check that user has access to submission
-            # If they don't, throw an exception
-            self.check_submission_permission(submission)
+
+            user_agency_must_match(submission)
 
             response_dict = {}
             if self.isLocal:
@@ -191,8 +214,8 @@ class FileHandler:
             existingSubmission = False
             if safeDictionary.exists("existing_submission_id"):
                 existingSubmission = True
-                # Check if user has permission to specified submission
-                self.check_submission_permission(self.jobManager.getSubmissionById(submissionId))
+                user_agency_must_match(
+                    self.jobManager.getSubmissionById(submissionId))
 
             # Build fileNameMap to be used in creating jobs
             for fileType in FileHandler.FILE_TYPES :
@@ -272,12 +295,12 @@ class FileHandler:
             # Compare user ID with user who submitted job, if no match return 400
             job = self.jobManager.getJobById(job_id)
             submission = self.jobManager.getSubmissionForJob(job)
-            # Check that user's agency matches submission cgac_code or "SYS", or user id matches submission's user
-            user_id = LoginSession.getName(session)
-            user_cgac = sess.query(User).filter(User.user_id == user_id).one().cgac_code
-            if submission.user_id != user_id and submission.cgac_code != user_cgac and user_cgac != "SYS":
+            if not user_agency_matches(submission):
                 # This user cannot finalize this job
-                raise ResponseException("Cannot finalize a job for a different agency", StatusCode.CLIENT_ERROR)
+                raise ResponseException(
+                    "Cannot finalize a job for a different agency",
+                    StatusCode.CLIENT_ERROR
+                )
             # Change job status to finished
             if self.jobManager.checkUploadType(job_id):
                 mark_job_status(job_id, 'finished')
@@ -327,9 +350,7 @@ class FileHandler:
                 error = JsonResponse.error(exc, exc.status, **response_dict)
             else:
                 raise exc
-        try:
-            self.check_submission_permission(submission)
-        except ResponseException as exc:
+        if not user_agency_matches(submission):
             response_dict = {
                 "message": ("User does not have permission to view that "
                             "submission"),
@@ -341,29 +362,11 @@ class FileHandler:
                 # Add empty start and end dates
                 response_dict["start"] = ""
                 response_dict["end"] = ""
-            error = JsonResponse.error(exc, exc.status, **response_dict)
-
+            error = JsonResponse.create(StatusCode.PERMISSION_DENIED,
+                                        response_dict)
         if error:
             return False, error
         return True, None
-
-    def check_submission_permission(self,submission):
-        """ Check if current user has permisson to access submission and return user object.
-
-        Args:
-            submission - Submission model object
-        """
-        sess = GlobalDB.db().session
-        user = sess.query(User).filter(User.user_id == LoginSession.getName(session)).one()
-        # Check that user has permission to see this submission, user must be within the agency of the submission, or be
-        # the original user, or be in the 'SYS' agency
-        submission_cgac = StringCleaner.cleanString(submission.cgac_code)
-        user_cgac = StringCleaner.cleanString(user.cgac_code)
-        if(submission_cgac != user_cgac and submission.user_id != user.user_id
-           and user_cgac != "sys"):
-            raise ResponseException("User does not have permission to view that submission",
-                StatusCode.PERMISSION_DENIED)
-        return user
 
     def getStatus(self):
         """ Get description and status of all jobs in the submission specified in request object
@@ -379,8 +382,7 @@ class FileHandler:
             submission_id = inputDictionary.getValue("submission_id")
             submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
 
-            # Check that user has access to submission
-            self.check_submission_permission(submission)
+            user_agency_must_match(submission)
 
             # Get jobs in this submission
             jobs = sess.query(Job).filter_by(submission_id=submission_id)
@@ -469,8 +471,8 @@ class FileHandler:
             safe_dictionary = RequestDictionary(self.request)
             submission_id =  safe_dictionary.getValue("submission_id")
 
-            # Check if user has permission to specified submission
-            self.check_submission_permission(self.jobManager.getSubmissionById(submission_id))
+            user_agency_must_match(
+                self.jobManager.getSubmissionById(submission_id))
 
             jobs = sess.query(Job).filter_by(submission_id=submission_id)
             for job in jobs :
@@ -927,8 +929,7 @@ class FileHandler:
         submission_id = input_dictionary.getValue("submission_id")
         submission = self.jobManager.getSubmissionById(submission_id)
 
-        # Check that user has access to submission
-        self.check_submission_permission(submission)
+        user_agency_must_match(submission)
 
         obligations_info = get_submission_stats(submission_id)
 
