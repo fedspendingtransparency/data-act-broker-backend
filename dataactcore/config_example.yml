@@ -89,6 +89,10 @@ services:
     # is ignored if use_aws is true.
     error_report_path: /full/path/to/error/reports
 
+    # The paths to the sample D1 and D2 files for local development
+    d1_file_path: /full/path/to/d1/file/sample/d1_sample.csv
+    d2_file_path: /full/path/to/d2/file/sample/d2_sample.csv
+
     # We import award/subaward records from FSRS
     fsrs:
         procurement_service:

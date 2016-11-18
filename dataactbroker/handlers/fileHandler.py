@@ -3,11 +3,13 @@ from csv import reader
 from datetime import datetime
 import logging
 from uuid import uuid4
+from shutil import copyfile
 
 import requests
 from flask import session as flaskSession
 from flask import session, request
 from requests.exceptions import Timeout
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug import secure_filename
@@ -15,7 +17,6 @@ from werkzeug import secure_filename
 from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
-from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job, Submission
@@ -31,7 +32,8 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     checkNumberOfErrorsByJobId, getErrorType, run_job_checks,
-    createFileIfNeeded, getErrorMetricsByJobId, get_submission_stats)
+    createFileIfNeeded, getErrorMetricsByJobId, get_submission_stats,
+    mark_job_status)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -62,7 +64,7 @@ class FileHandler:
         Arguments:
             request - HTTP request object for this route
             interfaces - InterfaceHolder object to databases
-            isLocal - True if this is a local installation that will not use AWS
+            isLocal - True if this is a local installation that will not use AWS or Smartronix
             serverPath - If isLocal is True, this is used as the path to local files
         """
         self.request = request
@@ -89,23 +91,21 @@ class FileHandler:
         """
         Gets the Signed URLs for download based on the submissionId
         """
-        try :
+        sess = GlobalDB.db().session
+        try:
             self.s3manager = s3UrlHandler()
             safe_dictionary = RequestDictionary(self.request)
             submission_id = safe_dictionary.getValue("submission_id")
             response_dict ={}
-            sess = GlobalDB.db().session
-            for job_id in self.jobManager.getJobsBySubmission(submission_id):
-                # get the job object here so we can call the refactored getReportPath
-                # todo: replace other db access functions with job object attributes
-                job = sess.query(Job).filter(Job.job_id == job_id).one()
+            jobs = sess.query(Job).filter_by(submission_id=submission_id)
+            for job in jobs:
                 if job.job_type.name == 'csv_record_validation':
                     if is_warning:
                         report_name = get_report_path(job, 'warning')
-                        key = 'job_{}_warning_url'.format(job_id)
+                        key = 'job_{}_warning_url'.format(job.job_id)
                     else:
                         report_name = get_report_path(job, 'error')
-                        key = 'job_{}_error_url'.format(job_id)
+                        key = 'job_{}_error_url'.format(job.job_id)
                     if not self.isLocal:
                         response_dict[key] = self.s3manager.getSignedUrl("errors", report_name, method="GET")
                     else:
@@ -132,10 +132,10 @@ class FileHandler:
             return JsonResponse.create(StatusCode.OK, response_dict)
 
         except ResponseException as e:
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except Exception as e:
             # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
     def get_signed_url_for_submission_file(self):
         """ Gets the signed URL for the specified file """
@@ -281,7 +281,7 @@ class FileHandler:
                 raise ResponseException("Cannot finalize a job for a different agency", StatusCode.CLIENT_ERROR)
             # Change job status to finished
             if self.jobManager.checkUploadType(job_id):
-                self.jobManager.changeToFinished(job_id)
+                mark_job_status(job_id, 'finished')
                 response_dict["success"] = True
                 return JsonResponse.create(StatusCode.OK,response_dict)
             else:
@@ -378,13 +378,13 @@ class FileHandler:
 
             # Get submission
             submission_id = inputDictionary.getValue("submission_id")
-            submission = self.jobManager.getSubmissionById(submission_id)
+            submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
 
             # Check that user has access to submission
             self.check_submission_permission(submission)
 
             # Get jobs in this submission
-            jobs = self.jobManager.getJobsBySubmission(submission_id)
+            jobs = sess.query(Job).filter_by(submission_id=submission_id)
 
             # Build dictionary of submission info with info about each job
             submissionInfo = {}
@@ -398,19 +398,19 @@ class FileHandler:
             submissionInfo["number_of_rows"] = self.interfaces.jobDb.sumNumberOfRowsForJobList(jobs)
             submissionInfo["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
 
-            for job_id in jobs:
+            for job in jobs:
                 jobInfo = {}
-                job_type = self.jobManager.getJobType(job_id)
+                job_type = job.job_type.name
 
                 if job_type != "csv_record_validation" and job_type != "validation":
                     continue
 
-                jobInfo["job_id"] = job_id
-                jobInfo["job_status"] = self.jobManager.getJobStatusName(job_id)
+                jobInfo["job_id"] = job.job_id
+                jobInfo["job_status"] = job.job_status.name
                 jobInfo["job_type"] = job_type
-                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job_id)
+                jobInfo["filename"] = self.jobManager.getOriginalFilenameById(job.job_id)
                 try:
-                    file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job_id).one()
+                    file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job.job_id).one()
                     jobInfo["file_status"] = file_results.file_status.name
                 except NoResultFound:
                     # Job ID not in error database, probably did not make it to validation, or has not yet been validated
@@ -436,19 +436,19 @@ class FileHandler:
                         jobInfo["duplicated_headers"] = [n.strip() for n in duplicatedHeaderString.split(",") if len(n) > 0]
                     else:
                         jobInfo["duplicated_headers"] = []
-                    jobInfo["error_type"] = getErrorType(job_id)
+                    jobInfo["error_type"] = getErrorType(job.job_id)
                     jobInfo["error_data"] = getErrorMetricsByJobId(
-                        job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['fatal'])
+                        job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['fatal'])
                     jobInfo["warning_data"] = getErrorMetricsByJobId(
-                        job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['warning'])
+                        job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['warning'])
                 # File size and number of rows not dependent on error DB
                 # Get file size
-                jobInfo["file_size"] = self.jobManager.getFileSizeById(job_id)
+                jobInfo["file_size"] = self.jobManager.getFileSizeById(job.job_id)
                 # Get number of rows in file
-                jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(job_id)
+                jobInfo["number_of_rows"] = self.jobManager.getNumberOfRowsById(job.job_id)
 
                 try :
-                    jobInfo["file_type"] = self.jobManager.getFileType(job_id)
+                    jobInfo["file_type"] = self.jobManager.getFileType(job.job_id)
                 except:
                     # todo: add specific type of exception when we figure out what it is?
                     jobInfo["file_type"]  = ''
@@ -464,6 +464,7 @@ class FileHandler:
 
     def getErrorMetrics(self) :
         """ Returns an Http response object containing error information for every validation job in specified submission """
+        sess = GlobalDB.db().session
         return_dict = {}
         try:
             safe_dictionary = RequestDictionary(self.request)
@@ -472,12 +473,12 @@ class FileHandler:
             # Check if user has permission to specified submission
             self.check_submission_permission(self.jobManager.getSubmissionById(submission_id))
 
-            job_ids = self.jobManager.getJobsBySubmission(submission_id)
-            for current_id in job_ids :
-                if self.jobManager.getJobType(current_id) == "csv_record_validation":
-                    file_name = self.jobManager.getFileType(current_id)
-                    data_list = getErrorMetricsByJobId(current_id)
-                    return_dict[file_name]  = data_list
+            jobs = sess.query(Job).filter_by(submission_id=submission_id)
+            for job in jobs :
+                if job.job_type.name == 'csv_record_validation':
+                    file_type = job.file_type.name
+                    data_list = getErrorMetricsByJobId(job.job_id)
+                    return_dict[file_type]  = data_list
             return JsonResponse.create(StatusCode.OK,return_dict)
         except ( ValueError , TypeError ) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
@@ -570,11 +571,11 @@ class FileHandler:
             return self.addJobInfoForDFile(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
         elif file_type == 'E':
             generate_e_file.delay(
-                submission_id, job.job_id, InterfaceHolder, timestamped_name,
+                submission_id, job.job_id, timestamped_name,
                 upload_file_name, self.isLocal)
         elif file_type == 'F':
             generate_f_file.delay(
-                submission_id, job.job_id, InterfaceHolder, timestamped_name,
+                submission_id, job.job_id, timestamped_name,
                 upload_file_name, self.isLocal)
 
         return True, None
@@ -613,18 +614,22 @@ class FileHandler:
             # Date was not in expected format
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
             return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
-        # Create file D API URL with dates and callback URL
-        callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
-        _debug_logger.debug('Callback URL for %s: %s', file_type, callback)
-        get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
 
-        _debug_logger.debug('Calling D file API => %s', get_url)
-        try:
-            if not self.call_d_file_api(get_url):
-                self.handleEmptyResponse(job, valJob)
-        except Timeout as e:
-            exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
-            return False, JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
+        if not self.isLocal:
+            # Create file D API URL with dates and callback URL
+            callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
+            _debug_logger.debug('Callback URL for %s: %s', file_type, callback)
+            get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+
+            _debug_logger.debug('Calling D file API => %s', get_url)
+            try:
+                if not self.call_d_file_api(get_url):
+                    self.handleEmptyResponse(job, valJob)
+            except Timeout as e:
+                exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
+                return False, JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
+        else:
+            self.completeGeneration(task.generation_task_key, file_type)
 
         return True, None
 
@@ -640,10 +645,10 @@ class FileHandler:
         # No results found, skip validation and mark as finished
         jobDb.session.query(JobDependency).filter(JobDependency.prerequisite_id == job.job_id).delete()
         jobDb.session.commit()
-        jobDb.markJobStatus(job.job_id,"finished")
+        mark_job_status(job.job_id,"finished")
         job.filename = None
         if valJob is not None:
-            jobDb.markJobStatus(valJob.job_id, "finished")
+            mark_job_status(valJob.job_id, "finished")
             # Create File object for this validation job
             valFile = createFileIfNeeded(valJob.job_id, filename = valJob.filename)
             valFile.file_status_id = FILE_STATUS_DICT['complete']
@@ -668,15 +673,22 @@ class FileHandler:
 
     def download_file(self, local_file_path, file_url):
         """ Download a file locally from the specified URL, returns True if successful """
-        with open(local_file_path, "w") as file:
-            # get request
-            response = requests.get(file_url)
-            if response.status_code != 200:
-                # Could not download the file, return False
-                return False
-            # write to file
-            response.encoding = "utf-8"
-            file.write(response.text)
+        if not self.isLocal:
+            with open(local_file_path, "w") as file:
+                # get request
+                response = requests.get(file_url)
+                if response.status_code != 200:
+                    # Could not download the file, return False
+                    return False
+                # write to file
+                response.encoding = "utf-8"
+                file.write(response.text)
+                return True
+        else:
+            try:
+                copyfile(file_url, local_file_path)
+            except FileNotFoundError:
+                raise ResponseException('Source file ' + file_url + ' does not exist.', StatusCode.INTERNAL_ERROR)
             return True
 
     def get_lines_from_csv(self, file_path):
@@ -696,7 +708,7 @@ class FileHandler:
             _smx_logger.debug('Downloading file...')
             if not self.download_file(full_file_path, url):
                 # Error occurred while downloading file, mark job as failed and record error message
-                job_manager.markJobStatus(job_id, "failed")
+                mark_job_status(job_id, "failed")
                 job = job_manager.getJobById(job_id)
                 file_type = job_manager.getFileType(job_id)
                 if file_type == "award":
@@ -713,14 +725,14 @@ class FileHandler:
             write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])
 
             _smx_logger.debug('Marking job id of %s', job_id)
-            job_manager.markJobStatus(job_id, "finished")
+            mark_job_status(job_id, "finished")
             return {"message": "Success", "file_name": timestamped_name}
         except Exception as e:
             _smx_logger.exception('Exception caught => %s', e)
             # Log the error
             JsonResponse.error(e,500)
             job_manager.getJobById(job_id).error_message = str(e)
-            job_manager.markJobStatus(job_id, "failed")
+            mark_job_status(job_id, "failed")
             job_manager.session.commit()
             raise e
 
@@ -767,7 +779,7 @@ class FileHandler:
         _debug_logger.debug('Finished startGenerationJob method')
         if not success:
             # If not successful, set job status as "failed"
-            self.interfaces.jobDb.markJobStatus(job.job_id, "failed")
+            self.interfaces.mark_job_status(job.job_id, "failed")
             return error_response
 
         # Return same response as check generation route
@@ -861,13 +873,14 @@ class FileHandler:
         response["urls"] = self.s3manager.getFileUrls(bucket_name=CONFIG_BROKER["static_files_bucket"], path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
 
-    def completeGeneration(self, generationId):
+    def completeGeneration(self, generationId, file_type=None):
         """ For files D1 and D2, the API uses this route as a callback to load the generated file.
         Requires an 'href' key in the request that specifies the URL of the file to be downloaded
 
         Args:
             generationId - Unique key stored in file_generation_task table, used in callback to identify which submission
             this file is for.
+            file_type - the type of file to be generated, D1 or D2. Only used when calling completeGeneration for local development
 
         """
         try:
@@ -875,17 +888,24 @@ class FileHandler:
                 raise ResponseException(
                     "Must include a generation ID", StatusCode.CLIENT_ERROR)
 
-            # Pull url from request
-            request_dict = RequestDictionary.derive(self.request)
-            _smx_logger.debug('Request content => %s', request_dict)
+            if not self.isLocal:
+                # Pull url from request
+                request_dict = RequestDictionary.derive(self.request)
+                _smx_logger.debug('Request content => %s', request_dict)
 
-            if 'href' not in request_dict:
-                raise ResponseException(
-                    "Request must include href key with URL of D file",
-                    StatusCode.CLIENT_ERROR
-                )
-            url = request_dict['href']
-            _smx_logger.debug('Download URL => %s', url)
+                if 'href' not in request_dict:
+                    raise ResponseException(
+                        "Request must include href key with URL of D file",
+                        StatusCode.CLIENT_ERROR
+                    )
+
+                url = request_dict['href']
+                _smx_logger.debug('Download URL => %s', url)
+            else:
+                if file_type == "D1":
+                    url = CONFIG_SERVICES["d1_file_path"]
+                else:
+                    url = CONFIG_SERVICES["d2_file_path"]
 
             #Pull information based on task key
             _smx_logger.debug('Pulling information based on task key...')
@@ -918,7 +938,6 @@ class FileHandler:
     def list_submissions(self, page, limit, certified):
         """ List submission based on current page and amount to display. If provided, filter based on
         certification status """
-
         user_id = LoginSession.getName(flaskSession)
         sess = GlobalDB.db().session
         user = sess.query(User).filter(User.user_id == user_id).one()
@@ -932,11 +951,9 @@ class FileHandler:
         submission_details = []
 
         for submission in submissions:
-            job_ids = self.interfaces.jobDb.getJobsBySubmission(submission.submission_id)
-            total_size = 0
-            for job_id in job_ids:
-                file_size = self.interfaces.jobDb.getFileSize(job_id)
-                total_size += file_size or 0
+            total_size = sess.query(func.sum(Job.file_size)).\
+                filter_by(submission_id=submission.submission_id).\
+                scalar() or 0
 
             status = self.interfaces.jobDb.getSubmissionStatus(submission)
             if submission.user_id is None:
