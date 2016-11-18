@@ -74,8 +74,7 @@ def test_max_login_failure(monkeypatch):
                 }
     monkeypatch.setattr(ah, 'get_max_dict', Mock(return_value=max_dict))
     json_response = ah.max_login(Mock())
-    error_message = "You have logged in with MAX but do not have permission to access the broker. " \
-                    "Please contact DATABroker@fiscal.treasury.gov to obtain access."
+    error_message = "You have logged in with MAX but do not have permission to access the broker."
 
     # Not in parent group
     assert error_message == json.loads(json_response.get_data().decode("utf-8"))['message']
@@ -95,8 +94,7 @@ def test_max_login_failure(monkeypatch):
     }
     monkeypatch.setattr(ah, 'get_max_dict', Mock(return_value=max_dict))
     json_response = ah.max_login(Mock())
-    error_message = "You have logged in with MAX but do not have permission to access the broker. " \
-                    "Please contact DATABroker@fiscal.treasury.gov to obtain access."
+    error_message = "You have logged in with MAX but do not have permission to access the broker."
 
     # Not in cgac group
     assert error_message == json.loads(json_response.get_data().decode("utf-8"))['message']
