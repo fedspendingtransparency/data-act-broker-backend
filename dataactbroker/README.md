@@ -888,13 +888,6 @@ permissions (write access for the agency of the submission or SYS).
 {}
 ```
 
-
-#### GET "/v1/submission/<int:submission_id>/narrative"
-Retrieve existing submission narratives (explanations/notes for particular
-files). Submission id should be the integer id associated with the submission
-in question. Users must have appropriate permissions to access these
-narratives (write access for the agency of the submission, or SYS).
-
 #### POST "/v1/sign_submission_file/"
 This route sends a request to the backend with the submission ID and file name that is desired. The backend generates a signed S3 URL or the path to the local location of the file and returns a JSON response containing that url.
 
