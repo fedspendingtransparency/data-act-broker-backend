@@ -141,7 +141,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return fileManager.get_signed_url_for_submission_file()
 
     @app.route("/v1/submission/<int:submission_id>/narrative", methods=['GET'])
-    @permissions_check(permission='writer')
+    @permissions_check(permission='reader')
     def get_submission_narratives(submission_id):
         return narratives_for_submission(int(submission_id))
 
