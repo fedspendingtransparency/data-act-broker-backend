@@ -1,16 +1,14 @@
-from datetime import datetime, date
+from datetime import date
 
-from dataactcore.interfaces.function_bag import add_jobs_for_file_type
-from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType
+from dataactcore.models.jobModels import Job, Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from sqlalchemy import and_
-import time
 
 from dataactcore.interfaces.db import GlobalDB
 
-from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
+from dataactcore.models.lookups import JOB_TYPE_DICT, FILE_TYPE_DICT
 
 class JobHandler(JobTrackerInterface):
     """ Responsible for all interaction with the job tracker database
