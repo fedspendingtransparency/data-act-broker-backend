@@ -162,8 +162,8 @@ def test_requires_submission_perm_check(database, monkeypatch):
 
 
 def test_narratives(database, job_constants, monkeypatch):
-    """Integration test that verifies we can add, retrieve, and update
-    submission narratives"""
+    """Verify that we can add, retrieve, and update submission narratives. Not
+    quite a unit test as it covers a few functions in sequence"""
     monkeypatch.setattr(fileHandler, 'user_agency_matches',
                         Mock(return_value=True))
     sub1, sub2 = SubmissionFactory(), SubmissionFactory()
