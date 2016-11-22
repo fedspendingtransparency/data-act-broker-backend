@@ -374,26 +374,22 @@ class FileHandler:
         error = None
         sess = GlobalDB.db().session
 
-        try:
-            submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
-        except ResponseException as exc:
-            if isinstance(exc.wrappedException, NoResultFound):
-                # Submission does not exist, change to 400 in this case since
-                # route call specified a bad ID
-                exc.status = StatusCode.CLIENT_ERROR
-                response_dict = {
-                    "message": "Submission does not exist",
-                    "file_type": file_type,
-                    "url": "#",
-                    "status": "failed"
-                }
-                if file_type in ('D1', 'D2'):
-                    # Add empty start and end dates
-                    response_dict["start"] = ""
-                    response_dict["end"] = ""
-                error = JsonResponse.error(exc, exc.status, **response_dict)
-            else:
-                raise exc
+        submission = sess.query(Submission).filter_by(submission_id = submission_id).one_or_none()
+        if submission is None:
+            # Submission does not exist, change to 400 in this case since
+            # route call specified a bad ID
+            response_dict = {
+                "message": "Submission does not exist",
+                "file_type": file_type,
+                "url": "#",
+                "status": "failed"
+            }
+            if file_type in ('D1', 'D2'):
+                # Add empty start and end dates
+                response_dict["start"] = ""
+                response_dict["end"] = ""
+            error = JsonResponse.error(NoResultFound, StatusCode.CLIENT_ERROR, **response_dict)
+
         if not user_agency_matches(submission):
             response_dict = {
                 "message": ("User does not have permission to view that "
