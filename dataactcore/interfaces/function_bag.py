@@ -436,7 +436,7 @@ def create_jobs(upload_files, submission, existing_submission=False):
     sorted_uploads = sorted(upload_files, key=attrgetter('file_letter'))
 
     for upload_file in sorted_uploads:
-        validation_job_id, upload_job_id = add_jobs_for_file_type(upload_file, submission_id, existing_submission)
+        validation_job_id, upload_job_id = add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission)
         if validation_job_id:
             jobs_required.append(validation_job_id)
         upload_dict[upload_file.file_type] = upload_job_id
@@ -485,7 +485,7 @@ def create_jobs(upload_files, submission, existing_submission=False):
     upload_dict["submission_id"] = submission_id
     return upload_dict
 
-def add_jobs_for_file_type(upload_file, submission_id, existing_submission):
+def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
     """ Add upload and validation jobs for a single filetype
 
     Arguments:
