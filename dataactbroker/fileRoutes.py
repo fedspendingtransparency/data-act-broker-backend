@@ -55,7 +55,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     def submission_error_metrics():
         fileManager = FileHandler(request,isLocal=IS_LOCAL ,serverPath=SERVER_PATH)
         fileManager.addInterfaces(InterfaceHolder())    # soon to be removed
-        return fileManager.getErrorMetrics()
+        return fileManager.get_error_metrics()
 
     @app.route("/v1/local_upload/", methods = ["POST"])
     @permissions_check

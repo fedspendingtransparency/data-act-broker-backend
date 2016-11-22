@@ -18,6 +18,7 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import func
 from dataactcore.models.userModel import User, EmailToken
 from dataactcore.models.domainModels import CGAC
+from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import (get_email_template, check_correct_password, set_user_password, updateLastLogin)
 from dataactcore.config import CONFIG_BROKER
@@ -874,7 +875,7 @@ class AccountHandler:
         user_ids = request_dict['users']
         submission_id = request_dict['submission_id']
         # Check if submission id is valid
-        self.jobManager.getSubmissionById(submission_id)
+        sess.query(Submission).filter_by(submission_id=submission_id).one()
 
         template_type = request_dict['email_template']
         # Check if email template type is valid

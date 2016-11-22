@@ -365,7 +365,7 @@ class ValidationManager:
                 # in the schema guidance. these validations are sql-based.
                 #
                 sqlErrorRows = self.runSqlValidations(
-                    interfaces, job, fileType, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list)
+                    job, fileType, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list)
                 errorRows.extend(sqlErrorRows)
 
                 # Write unfinished batch
@@ -395,11 +395,10 @@ class ValidationManager:
                 'job_id: %s', job_id)
         return True
 
-    def runSqlValidations(self, interfaces, job, file_type, short_colnames, writer, warning_writer, row_number, error_list):
+    def runSqlValidations(self, job, file_type, short_colnames, writer, warning_writer, row_number, error_list):
         """ Run all SQL rules for this file type
 
         Args:
-            interfaces: InterfaceHolder object
             job: Current job
             file_type: Type of file for current job
             short_colnames: Dict mapping short field names to long
@@ -411,10 +410,11 @@ class ValidationManager:
         Returns:
             a list of the row numbers that failed one of the sql-based validations
         """
+        sess = GlobalDB.db().session
         job_id = job.job_id
         error_rows = []
         sql_failures = Validator.validateFileBySql(
-            interfaces.jobDb.getSubmissionId(job_id), file_type, self.short_to_long_dict)
+            job.submission_id, file_type, self.short_to_long_dict)
         for failure in sql_failures:
             # convert shorter, machine friendly column names used in the
             # SQL validation queries back to their long names
@@ -508,7 +508,7 @@ class ValidationManager:
         # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their submissions
         # as publishable
         # Publish only if no errors are present
-        if interfaces.jobDb.getSubmissionById(submission_id).number_of_errors == 0:
+        if sess.query(Submission).filter_by(submission_id = submission_id).one().number_of_errors == 0:
             interfaces.jobDb.setPublishableFlag(submission_id, True)
 
         # Mark validation complete
