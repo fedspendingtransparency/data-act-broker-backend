@@ -11,7 +11,7 @@ def test_get_signed_url_for_submission_file_local(database, monkeypatch):
 
     interfaces = InterfaceHolder()
     file_handler = fileHandler.FileHandler(Mock(), interfaces=interfaces, isLocal=True, serverPath="/test/server/path/")
-    file_handler.check_submission_permission = Mock()
+    monkeypatch.setattr(fileHandler, 'user_agency_matches', Mock(return_value=True))
 
     mock_dict = Mock()
     mock_dict.return_value.getValue.side_effect = ['file_name', str(submission.submission_id)]
@@ -27,7 +27,7 @@ def test_get_signed_url_for_submission_file_s3(database, monkeypatch):
 
     interfaces = InterfaceHolder()
     file_handler = fileHandler.FileHandler(Mock(), interfaces=interfaces, isLocal=False)
-    file_handler.check_submission_permission = Mock()
+    monkeypatch.setattr(fileHandler, 'user_agency_matches', Mock(return_value=True))
 
     mock_dict = Mock()
     mock_dict.return_value.getValue.side_effect = ['file_name', str(submission.submission_id)]
