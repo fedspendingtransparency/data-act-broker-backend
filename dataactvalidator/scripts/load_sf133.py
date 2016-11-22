@@ -1,10 +1,11 @@
-import os
-import boto
+from collections import namedtuple
 import glob
 import logging
+import os
 import re
-from collections import namedtuple
+import sys
 
+import boto
 import pandas as pd
 
 from dataactcore.config import CONFIG_BROKER
@@ -17,7 +18,7 @@ from dataactvalidator.scripts.loaderUtils import LoaderUtils
 logger = logging.getLogger(__name__)
 
 
-def load_all_sf133(sf133_path=None):
+def load_all_sf133(sf133_path=None, force_load=False):
     """Load any SF-133 files that are not yet in the database."""
     # get a list of SF 133 files to load
     sf133_list = get_sf133_list(sf133_path)
@@ -32,7 +33,9 @@ def load_all_sf133(sf133_path=None):
             continue
         logger.info('{}Starting {}...'.format(os.linesep, sf133.full_file))
         load_sf133(
-            sf133.full_file, file_match.group('year'), file_match.group('period'))
+            sf133.full_file, file_match.group('year'), file_match.group('period'),
+            force_load=force_load
+        )
 
 
 def fill_blank_sf133_lines(data):
@@ -199,6 +202,8 @@ def get_sf133_list(sf133_path):
 
 if __name__ == '__main__':
     configure_logging()
+    force_load = '-f' in sys.argv or '--force' in sys.argv
     load_all_sf133(
-        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
+        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
+        force_load
     )
