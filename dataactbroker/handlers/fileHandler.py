@@ -2,13 +2,13 @@ import os
 from collections import namedtuple
 from csv import reader
 from datetime import datetime
+from functools import wraps
 import logging
 from uuid import uuid4
 from shutil import copyfile
 
 import requests
-from flask import session as flaskSession
-from flask import session, request
+from flask import request, session
 from requests.exceptions import Timeout
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
@@ -20,9 +20,11 @@ from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
-from dataactcore.models.jobModels import FileGenerationTask, JobDependency, Job, Submission
+from dataactcore.models.jobModels import (
+    FileGenerationTask, Job, JobDependency, Submission, SubmissionNarrative)
 from dataactcore.models.userModel import User
-from dataactcore.models.lookups import FILE_STATUS_DICT, RULE_SEVERITY_DICT, JOB_STATUS_DICT, FILE_TYPE_DICT
+from dataactcore.models.lookups import (
+    FILE_STATUS_DICT, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, JOB_STATUS_DICT, RULE_SEVERITY_DICT)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import (get_report_path, get_cross_report_name,
@@ -40,6 +42,30 @@ from dataactvalidator.filestreaming.csv_selection import write_csv
 
 _debug_logger = logging.getLogger('deprecated.debug')
 _smx_logger = logging.getLogger('deprecated.smx')
+
+
+def user_agency_matches(submission):
+    """Does the currently logged in user have an agency that matches this
+    submission?"""
+    sess = GlobalDB.db().session
+    user_id = LoginSession.getName(session)
+    user = sess.query(User).filter_by(user_id=user_id).one()
+    submission_cgac = StringCleaner.cleanString(submission.cgac_code)
+    user_cgac = StringCleaner.cleanString(user.cgac_code)
+    return (
+        submission_cgac == user_cgac
+        or submission.user_id == user_id
+        or user_cgac == 'sys'
+    )
+
+
+def user_agency_must_match(submission):
+    """Raise an exception if the logged in user doesn't have an agency match
+    with this submission"""
+    if not user_agency_matches(submission):
+        raise ResponseException(
+            "User does not have permission to view that submission",
+            StatusCode.PERMISSION_DENIED)
 
 
 class FileHandler:
@@ -151,7 +177,7 @@ class FileHandler:
             submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
             # Check that user has access to submission
             # If they don't, throw an exception
-            self.check_submission_permission(submission)
+            user_agency_must_match(submission)
 
             response_dict = {}
             if self.isLocal:
@@ -188,7 +214,6 @@ class FileHandler:
         """
         try:
             response_dict= {}
-
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
 
@@ -223,7 +248,7 @@ class FileHandler:
             submission = create_submission(user_id, submission_data, existing_submission_id)
             if existing_submission:
                 # check if user has permission to specified submission
-                self.check_submission_permission(submission)
+                user_agency_must_match(submission)
 
             # build fileNameMap to be used in creating jobs
             for file_type in FileHandler.FILE_TYPES :
@@ -313,12 +338,12 @@ class FileHandler:
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id = job_id).one()
             submission = self.jobManager.getSubmissionForJob(job)
-            # Check that user's agency matches submission cgac_code or "SYS", or user id matches submission's user
-            user_id = LoginSession.getName(session)
-            user_cgac = sess.query(User).filter(User.user_id == user_id).one().cgac_code
-            if submission.user_id != user_id and submission.cgac_code != user_cgac and user_cgac != "SYS":
+            if not user_agency_matches(submission):
                 # This user cannot finalize this job
-                raise ResponseException("Cannot finalize a job for a different agency", StatusCode.CLIENT_ERROR)
+                raise ResponseException(
+                    "Cannot finalize a job for a different agency",
+                    StatusCode.CLIENT_ERROR
+                )
             # Change job status to finished
             if self.jobManager.checkUploadType(job_id):
                 mark_job_status(job_id, 'finished')
@@ -369,9 +394,7 @@ class FileHandler:
                 error = JsonResponse.error(exc, exc.status, **response_dict)
             else:
                 raise exc
-        try:
-            self.check_submission_permission(submission)
-        except ResponseException as exc:
+        if not user_agency_matches(submission):
             response_dict = {
                 "message": ("User does not have permission to view that "
                             "submission"),
@@ -383,31 +406,13 @@ class FileHandler:
                 # Add empty start and end dates
                 response_dict["start"] = ""
                 response_dict["end"] = ""
-            error = JsonResponse.error(exc, exc.status, **response_dict)
-
+            error = JsonResponse.create(StatusCode.PERMISSION_DENIED,
+                                        response_dict)
         if error:
             return False, error
         return True, None
 
-    def check_submission_permission(self,submission):
-        """ Check if current user has permisson to access submission and return user object.
-
-        Args:
-            submission - Submission model object
-        """
-        sess = GlobalDB.db().session
-        user = sess.query(User).filter(User.user_id == LoginSession.getName(session)).one()
-        # Check that user has permission to see this submission, user must be within the agency of the submission, or be
-        # the original user, or be in the 'SYS' agency
-        submission_cgac = StringCleaner.cleanString(submission.cgac_code)
-        user_cgac = StringCleaner.cleanString(user.cgac_code)
-        if(submission_cgac != user_cgac and submission.user_id != user.user_id
-           and user_cgac != "sys"):
-            raise ResponseException("User does not have permission to view that submission",
-                StatusCode.PERMISSION_DENIED)
-        return user
-
-    def get_status(self):
+    def getStatus(self):
         """ Get description and status of all jobs in the submission specified in request object
 
         Returns:
@@ -421,8 +426,7 @@ class FileHandler:
             submission_id = input_dictionary.getValue("submission_id")
             submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
 
-            # Check that user has access to submission
-            self.check_submission_permission(submission)
+            user_agency_must_match(submission)
 
             # Get jobs in this submission
             jobs = sess.query(Job).filter_by(submission_id=submission_id)
@@ -513,7 +517,7 @@ class FileHandler:
 
             # Check if user has permission to specified submission
             submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
-            self.check_submission_permission(submission)
+            user_agency_must_match(submission)
 
             jobs = sess.query(Job).filter_by(submission_id=submission_id)
             for job in jobs :
@@ -974,8 +978,7 @@ class FileHandler:
         submission_id = input_dictionary.getValue("submission_id")
         submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
 
-        # Check that user has access to submission
-        self.check_submission_permission(submission)
+        user_agency_must_match(submission)
 
         obligations_info = get_submission_stats(submission_id)
 
@@ -984,7 +987,7 @@ class FileHandler:
     def list_submissions(self, page, limit, certified):
         """ List submission based on current page and amount to display. If provided, filter based on
         certification status """
-        user_id = LoginSession.getName(flaskSession)
+        user_id = LoginSession.getName(session)
         sess = GlobalDB.db().session
         user = sess.query(User).filter(User.user_id == user_id).one()
 
@@ -1017,3 +1020,56 @@ class FileHandler:
         total_submissions = query.from_self().count()
 
         return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})
+
+
+def requires_submission_perms(fn):
+    """Decorator that checks the current user's permissions and validates that
+    the submission exists."""
+    @wraps(fn)
+    def wrapped(submission_id, *args, **kwargs):
+        sess = GlobalDB.db().session
+        submission = sess.query(Submission).\
+            filter_by(submission_id=submission_id).one_or_none()
+        if submission is None:
+            # @todo - why don't we use 404s?
+            raise ResponseException('No such submission', StatusCode.CLIENT_ERROR)
+        user_agency_must_match(submission)
+
+        return fn(submission, *args, **kwargs)
+    return wrapped
+
+
+@requires_submission_perms
+def narratives_for_submission(submission):
+    """Fetch narratives for this submission, indexed by file letter"""
+    sess = GlobalDB.db().session
+    result = {letter: '' for letter in FILE_TYPE_DICT_LETTER.values()}
+    narratives = sess.query(SubmissionNarrative).\
+        filter_by(submission_id=submission.submission_id)
+    for narrative in narratives:
+        letter = FILE_TYPE_DICT_LETTER[narrative.file_type_id]
+        result[letter] = narrative.narrative
+    return JsonResponse.create(StatusCode.OK, result)
+
+
+@requires_submission_perms
+def update_narratives(submission, narratives_json):
+    """Clear existing narratives and replace them with the provided set. We
+    assume narratives_json contains non-empty strings (i.e. that it's been
+    cleaned)"""
+    sess = GlobalDB.db().session
+    sess.query(SubmissionNarrative).\
+        filter_by(submission_id=submission.submission_id).\
+        delete(synchronize_session='fetch')     # fetch just in case
+    narratives = []
+    for file_type_id, letter in FILE_TYPE_DICT_LETTER.items():
+        if letter in narratives_json:
+            narratives.append(SubmissionNarrative(
+                submission_id=submission.submission_id,
+                file_type_id=file_type_id,
+                narrative=narratives_json[letter]
+            ))
+    sess.add_all(narratives)
+    sess.commit()
+
+    return JsonResponse.create(StatusCode.OK, {})

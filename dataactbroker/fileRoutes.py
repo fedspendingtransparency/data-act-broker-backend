@@ -1,5 +1,6 @@
 from flask import request, session
-from dataactbroker.handlers.fileHandler import FileHandler
+from dataactbroker.handlers.fileHandler import (
+    FileHandler, narratives_for_submission, update_narratives)
 from dataactbroker.permissions import permissions_check
 from dataactbroker.handlers.aws.session import LoginSession
 from dataactbroker.exceptions.invalid_usage import InvalidUsage
@@ -33,7 +34,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     def check_status():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         fileManager.addInterfaces(InterfaceHolder())    # soon to be removed
-        return fileManager.get_status()
+        return fileManager.getStatus()
 
     @app.route("/v1/submission_error_reports/", methods = ["POST"])
     @permissions_check
@@ -138,3 +139,17 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         fileManager.addInterfaces(InterfaceHolder())    # soon to be removed
         return fileManager.get_signed_url_for_submission_file()
+
+    @app.route("/v1/submission/<int:submission_id>/narrative", methods=['GET'])
+    @permissions_check(permission='reader')
+    def get_submission_narratives(submission_id):
+        return narratives_for_submission(int(submission_id))
+
+    @app.route("/v1/submission/<int:submission_id>/narrative", methods=['POST'])
+    @permissions_check(permission='writer')
+    def post_submission_narratives(submission_id):
+        json = request.json or {}
+        # clean input
+        json = {key.upper():value.strip() for key, value in json.items()
+                if isinstance(value, str) and value.strip()}
+        return update_narratives(int(submission_id), json)

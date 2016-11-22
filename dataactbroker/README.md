@@ -843,6 +843,51 @@ Get total obligations and specific obligations. Calls to this route should inclu
 }
 ```
 
+
+#### GET "/v1/submission/<int:submission_id>/narrative"
+Retrieve existing submission narratives (explanations/notes for particular
+files). Submission id should be the integer id associated with the submission
+in question. Users must have appropriate permissions to access these
+narratives (write access for the agency of the submission or SYS).
+
+##### Response (JSON)
+
+```
+{
+  "A": "Text of A's narrative",
+  "B": "These will be empty if no notes are present",
+  "C": "",
+  "D1": "",
+  "D2": "",
+  "E": "",
+  "F": "",
+}
+```
+
+#### POST "/v1/submission/<int:submission_id>/narrative"
+Set the file narratives for a given submission. The input should mirror the
+above output, i.e. an object keyed by file types mapping to strings. Keys may
+be absent. Unexpected keys will be ignored. Users must have appropriate
+permissions (write access for the agency of the submission or SYS).
+
+##### Body (JSON)
+
+```
+{
+  "A": "Some new text"
+  "C": "We didn't include B",
+  "D1": "",
+  "D2": "",
+  "F": "Or E, for some reason",
+}
+```
+
+##### Response (JSON)
+
+```
+{}
+```
+
 #### POST "/v1/sign_submission_file/"
 This route sends a request to the backend with the submission ID and file name that is desired. The backend generates a signed S3 URL or the path to the local location of the file and returns a JSON response containing that url.
 

@@ -71,6 +71,7 @@ FILE_TYPE = [
 ]
 FILE_TYPE_DICT = {item.name: item.id for item in FILE_TYPE}
 FILE_TYPE_DICT_ID = {item.id: item.name for item in FILE_TYPE}
+FILE_TYPE_DICT_LETTER = {item.id: item.letter for item in FILE_TYPE}
 
 
 USER_STATUS = [
