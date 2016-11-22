@@ -98,8 +98,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
              "fiscal_year": "fiscal_year",
              "period": "period",
              "line_num": "line",
-             "amount_summed":
-            "amount"},
+             "amount_summed": "amount"},
             {"allocation_transfer_agency": {"pad_to_length": 3},
              "agency_identifier": {"pad_to_length": 3},
              "main_account_code": {"pad_to_length": 4},
@@ -128,6 +127,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
 
         # add concatenated TAS field for internal use (i.e., joining to staging tables)
         data['tas'] = data.apply(lambda row: format_internal_tas(row), axis=1)
+        data['amount'] = data['amount'].astype(float)
         
         data = fill_blank_sf133_lines(data)
 
