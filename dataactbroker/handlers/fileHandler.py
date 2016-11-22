@@ -85,7 +85,7 @@ class FileHandler:
     STATUS_MAP = {"waiting":"invalid", "ready":"invalid", "running":"waiting", "finished":"finished", "invalid":"failed", "failed":"failed"}
     VALIDATION_STATUS_MAP = {"waiting":"waiting", "ready":"waiting", "running":"waiting", "finished":"finished", "failed":"failed", "invalid":"failed"}
 
-    UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'upload_job_id'])
+    UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name'])
 
     def __init__(self, request, interfaces = None, isLocal= False, serverPath =""):
         """ Create the File Handler
@@ -230,20 +230,19 @@ class FileHandler:
             submission_data = {}
             existing_submission_id = request_params.get('existing_submission_id')
             existing_submission = True if existing_submission_id else None
-            for key, value in request_submission_mapping.items():
-                request_value = request_params.get(key)
-                if request_value and 'date' in key:
+            for request_field, submission_field in request_submission_mapping.items():
+                request_value = request_params.get(request_field)
+                if request_value and 'date' in request_field:
                     # convert incoming dates to Python date objects
                     try:
-                        submission_data[value] = datetime.strptime(request_value, date_format)
+                        submission_data[submission_field] = datetime.strptime(request_value, date_format)
                     except ValueError:
                         raise ResponseException("Date must be provided as MM/YYYY", StatusCode.CLIENT_ERROR,
                                                 ValueError)
                 elif request_value:
-                    submission_data[value] = request_value
-                else:
-                    if not existing_submission:
-                        raise ResponseException('{} is required'.format(key), StatusCode.CLIENT_ERROR, ValueError)
+                    submission_data[submission_field] = request_value
+                elif 'existing_submission_id' not in request_params:
+                    raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
 
             submission = create_submission(user_id, submission_data, existing_submission_id)
             if existing_submission:
@@ -270,7 +269,6 @@ class FileHandler:
                         file_type=file_type,
                         upload_name=upload_name,
                         file_name=filename,
-                        upload_job_id=None
                     ))
 
             if not upload_files and existing_submission:
@@ -290,7 +288,6 @@ class FileHandler:
                         file_type=ext_file_type,
                         upload_name=upload_name,
                         file_name=filename,
-                        upload_job_id=None
                     ))
 
             file_job_dict = create_jobs(upload_files, submission, existing_submission)
