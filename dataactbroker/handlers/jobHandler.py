@@ -24,37 +24,6 @@ class JobHandler(JobTrackerInterface):
     """
 
     fiscalStartMonth = 10
-    metaDataFieldMap = {"cgac_code":"cgac_code","reporting_period_start_date":"reporting_start_date","reporting_period_end_date":"reporting_end_date","is_quarter":"is_quarter_format"}
-
-    @classmethod
-    def loadSubmitParams(cls,requestDict):
-        """ Load params from request, return dictionary of values provided mapped to submission fields """
-        # Existing submission ID is optional
-        existingSubmission = False
-        existingSubmissionId = None
-        if requestDict.exists("existing_submission_id"):
-            # Agency name and reporting dates are required for new submissions
-            existingSubmission = True
-            existingSubmissionId = requestDict.getValue("existing_submission_id")
-
-        submissionData = {}
-        for key in cls.metaDataFieldMap:
-            if requestDict.exists(key):
-                if(key == "reporting_period_start_date" or key == "reporting_period_end_date"):
-                    reportDate = requestDict.getValue(key)
-
-                    # Create a date object from formatted string, assuming "MM/YYYY"
-                    try:
-                        submissionData[cls.metaDataFieldMap[key]] = JobHandler.createDate(reportDate)
-                    except ValueError as e:
-                        # Bad value, must be MM/YYYY
-                        raise ResponseException("Date must be provided as MM/YYYY",StatusCode.CLIENT_ERROR,ValueError)
-                else:
-                    submissionData[cls.metaDataFieldMap[key]] = requestDict.getValue(key)
-            else:
-                if not existingSubmission:
-                    raise ResponseException(key + " is required",StatusCode.CLIENT_ERROR,ValueError)
-        return submissionData, existingSubmissionId
 
     def getStartDate(self, submission):
         """ Return formatted start date """
@@ -108,34 +77,30 @@ class JobHandler(JobTrackerInterface):
         # Defaulting day to 1, this will not be used
         return date(year = int(dateParts[1]),month = int(dateParts[0]),day=1)
 
-    def createSubmission(self, userId, requestDict):
+    def createSubmission(self, user_id, submission_values, existing_submission_id):
         """ Create a new submission
 
         Arguments:
-            userId:  User to associate with this submission
-            requestDict:  Dictionary of keys provided in request, may contain "existing_submission_id", "agency_name", "reporting_period_start_date", "reporting_period_end_date"
+            user_id:  User to associate with this submission
+            submission_values: metadata about the submission
+            existing_submission_id: id of existing submission (blank for new submissions)
 
         Returns:
-            submission ID
+            submission_id
         """
-        # submissionValues is a dictionary with keys determined by JobHandler.metaDataFieldMap, and existingId is the existing submission ID if it exists
-        submissionValues,existingId = self.loadSubmitParams(requestDict)
         # Create submission entry
-        if existingId is None:
-            submission = Submission(datetime_utc = datetime.utcnow(), **submissionValues)
-            submission.user_id = userId
+        if existing_submission_id is None:
+            submission = Submission(datetime_utc = datetime.utcnow(), **submission_values)
+            submission.user_id = user_id
             self.setPublishStatus("unpublished", submission)
             self.session.add(submission)
         else:
-            submissionQuery = self.session.query(Submission).filter(Submission.submission_id == existingId)
-            submission = self.runUniqueQuery(submissionQuery,"No submission found with provided ID", "Multiple submissions found with provided ID")
+            submission_query = self.session.query(Submission).filter(Submission.submission_id == existing_submission_id)
+            submission = self.runUniqueQuery(submission_query,"No submission found with provided ID", "Multiple submissions found with provided ID")
             self.updatePublishStatus(submission)
-            #if "reporting_start_date" in submissionValues:
-            #    submission.reporting_start_date = submissionValues["reporting_start_date"]
-            for key in submissionValues:
+            for key in submission_values:
                 # Update existing submission with any values provided
-                #submission.__dict__[key] = submissionValues[key]
-                setattr(submission,key,submissionValues[key])
+                setattr(submission,key,submission_values[key])
             self.session.commit()
         self.session.commit()
         # Calling submission_id to force query to load this

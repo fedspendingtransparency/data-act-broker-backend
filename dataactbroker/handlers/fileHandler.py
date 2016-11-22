@@ -169,15 +169,14 @@ class FileHandler:
         else:
             return "cross_{}-{}".format(sourceType,targetType)
 
-    # Submit set of files
-    def submit(self,name,CreateCredentials):
+    def submit(self, user_id, create_credentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
 
         Flask request should include keys from FILE_TYPES class variable above
 
         Arguments:
             name -- User ID from the session handler
-            CreateCredentials - If True, will create temporary credentials for S3 uploads
+            create_credentials - If True, will create temporary credentials for S3 uploads
 
         Returns:
         Flask response returned will have key_url and key_id for each key in the request
@@ -189,11 +188,38 @@ class FileHandler:
             response_dict= {}
 
             file_name_map = []
-            safe_dictionary = RequestDictionary(self.request)
-            submission_id = self.jobManager.createSubmission(name, safe_dictionary)
-            existing_submission = False
-            if safe_dictionary.exists("existing_submission_id"):
-                existing_submission = True
+            request_params = RequestDictionary.derive(self.request)
+
+            # unfortunately, field names in the request don't match
+            # field names in the db/response. create a mapping here.
+            request_submission_mapping = {
+                "cgac_code": "cgac_code",
+                "reporting_period_start_date": "reporting_start_date",
+                "reporting_period_end_date": "reporting_end_date",
+                "is_quarter": "is_quarter_format"}
+            # incoming dates should be formatted as 'mm/yyyy'
+            date_format = '%m/%Y'
+
+            submission_data = {}
+            existing_submission_id = request_params.get('existing_submission_id')
+            existing_submission = True if existing_submission_id else None
+            for key, value in request_submission_mapping.items():
+                request_value = request_params.get(key)
+                if request_value and 'date' in key:
+                    # convert incoming dates to Python date objects
+                    try:
+                        submission_data[value] = datetime.strptime(request_value, date_format)
+                    except ValueError:
+                        raise ResponseException("Date must be provided as MM/YYYY", StatusCode.CLIENT_ERROR,
+                                                ValueError)
+                elif request_value:
+                    submission_data[value] = request_value
+                else:
+                    if not existing_submission:
+                        raise ResponseException('{} is required'.format(key), StatusCode.CLIENT_ERROR, ValueError)
+
+            submission_id = self.jobManager.createSubmission(user_id, submission_data, existing_submission_id)
+            if existing_submission:
                 # Check if user has permission to specified submission
                 submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
                 self.check_submission_permission(submission)
@@ -201,20 +227,20 @@ class FileHandler:
             # Build fileNameMap to be used in creating jobs
             for file_type in FileHandler.FILE_TYPES :
                 # If filetype not included in request, and this is an update to an existing submission, skip it
-                if not safe_dictionary.exists(file_type):
+                if not request_params.get(file_type):
                     if existing_submission:
                         continue
                     # This is a new submission, all files are required
                     raise ResponseException("Must include all files for new submission", StatusCode.CLIENT_ERROR)
 
-                filename = safe_dictionary.getValue(file_type)
-                if safe_dictionary.exists(file_type):
+                filename = request_params.get(file_type)
+                if filename:
                     if not self.isLocal:
-                        upload_name =  str(name)+"/"+s3UrlHandler.getTimestampedFilename(filename)
+                        upload_name = str(user_id) + "/" + s3UrlHandler.getTimestampedFilename(filename)
                     else:
                         upload_name = filename
                     response_dict[file_type+"_key"] = upload_name
-                    file_name_map.append((file_type,upload_name,filename))
+                    file_name_map.append((file_type, upload_name, filename))
 
             if not file_name_map and existing_submission:
                 raise ResponseException("Must include at least one file for an existing submission",
@@ -225,7 +251,7 @@ class FileHandler:
                     filename = CONFIG_BROKER["".join([ext_file_type,"_file_name"])]
 
                     if not self.isLocal:
-                        upload_name = str(name) + "/" + s3UrlHandler.getTimestampedFilename(filename)
+                        upload_name = str(user_id) + "/" + s3UrlHandler.getTimestampedFilename(filename)
                     else:
                         upload_name = filename
                     response_dict[ext_file_type + "_key"] = upload_name
@@ -235,9 +261,9 @@ class FileHandler:
             for file_type in file_job_dict.keys():
                 if not "submission_id" in file_type:
                     response_dict[file_type+"_id"] = file_job_dict[file_type]
-            if CreateCredentials and not self.isLocal:
+            if create_credentials and not self.isLocal:
                 self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
-                response_dict["credentials"] = self.s3manager.getTemporaryCredentials(name)
+                response_dict["credentials"] = self.s3manager.getTemporaryCredentials(user_id)
             else :
                 response_dict["credentials"] ={"AccessKeyId" : "local","SecretAccessKey" :"local","SessionToken":"local" ,"Expiration" :"local"}
 
