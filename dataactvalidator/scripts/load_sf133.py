@@ -1,4 +1,5 @@
 from collections import namedtuple
+from datetime import date
 import glob
 import logging
 import os
@@ -62,6 +63,66 @@ def fill_blank_sf133_lines(data):
     data = data.fillna(value=0.0)
     data = pd.melt(data, id_vars=pivot_idx, value_name='amount')
     return data
+
+
+def update_tas_id(fiscal_year, fiscal_period):
+    """Set the tas_id on newly SF133 entries. We use raw SQL as sqlalchemy
+    doesn't have operators like OVERLAPS and IS NOT DISTINCT FROM built in
+    (resulting in a harder to understand query)."""
+    sess = GlobalDB.db().session
+
+    # number of months since 0AD for this fiscal period
+    zero_based_period = fiscal_period - 1
+    absolute_fiscal_month = 12 * fiscal_year + zero_based_period - 3
+    absolute_following_month = absolute_fiscal_month + 1
+    start_date = date(absolute_fiscal_month // 12,
+                      (absolute_fiscal_month % 12) + 1,     # 1-based
+                      1)
+    end_date = date(absolute_following_month // 12,
+                    (absolute_following_month % 12) + 1,    # 1-based
+                    1)
+
+    # Why min()?
+    # Our data schema doesn't prevent two TAS history entries with the same
+    # TAS components (ATA, AI, etc.) from being valid at the same time. When
+    # that happens (unlikely), we select the minimum (i.e. older) of the
+    # potential TAS history entries.
+    sql = """
+        UPDATE sf_133
+        SET tas_id = (
+            SELECT min(tas.tas_id)
+            FROM tas_lookup AS tas
+            WHERE
+            sf_133.allocation_transfer_agency
+                IS NOT DISTINCT FROM tas.allocation_transfer_agency
+            AND sf_133.agency_identifier
+                IS NOT DISTINCT FROM tas.agency_identifier
+            AND sf_133.beginning_period_of_availa
+                IS NOT DISTINCT FROM tas.beginning_period_of_availability
+            AND sf_133.ending_period_of_availabil
+                IS NOT DISTINCT FROM tas.ending_period_of_availability
+            AND sf_133.availability_type_code
+                IS NOT DISTINCT FROM tas.availability_type_code
+            AND sf_133.main_account_code
+                IS NOT DISTINCT FROM tas.main_account_code
+            AND sf_133.sub_account_code
+                IS NOT DISTINCT FROM tas.sub_account_code
+            AND (:start_date, :end_date) OVERLAPS
+                -- A null end date indicates "still open". To make OVERLAPS
+                -- work, we'll use the day after the end date of the SF133
+                -- to achieve the same result
+                (tas.internal_start_date,
+                 COALESCE(tas.internal_end_date, :end_date + interval '1 day')
+                )
+            )
+        WHERE fiscal_year = :fiscal_year
+        AND period = :fiscal_period
+    """
+    sess.execute(
+        sql, {'start_date': start_date, 'end_date': end_date,
+              'fiscal_year': fiscal_year, 'fiscal_period': fiscal_period}
+    )
+    sess.commit()
 
 
 def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
@@ -157,6 +218,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
         # insert to db
         table_name = SF133.__table__.name
         num = LoaderUtils.insertDataframe(data, table_name, sess.connection())
+        update_tas_id(int(fiscal_year), int(fiscal_period))
         sess.commit()
 
     logger.info('{} records inserted to {}'.format(num, table_name))
