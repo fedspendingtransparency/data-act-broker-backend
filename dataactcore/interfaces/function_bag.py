@@ -1,4 +1,6 @@
+from datetime import datetime
 import logging
+import time
 import uuid
 
 from sqlalchemy import func, or_
@@ -11,10 +13,9 @@ from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.models.userModel import User, UserStatus, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
-                                        JOB_STATUS_DICT, FILE_TYPE_DICT_ID)
+                                        JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PUBLISH_STATUS_DICT)
 from dataactcore.interfaces.db import GlobalDB
 from dataactvalidator.validation_handlers.validationError import ValidationError
-import time
 
 
 # First step to deprecating BaseInterface, its children, and corresponding
@@ -501,3 +502,34 @@ def check_job_dependencies(job_id):
                 # will move this later
                 from dataactcore.utils.jobQueue import enqueue
                 enqueue.delay(dep_job_id)
+
+def create_submission(user_id, submission_values, existing_submission_id):
+    """ Create a new submission
+
+    Arguments:
+        user_id:  user to associate with this submission
+        submission_values: metadata about the submission
+        existing_submission_id: id of existing submission (blank for new submissions)
+
+    Returns:
+        submission object
+    """
+    sess = GlobalDB.db().session
+
+    if existing_submission_id is None:
+        submission = Submission(datetime_utc = datetime.utcnow(), **submission_values)
+        submission.user_id = user_id
+        submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
+    else:
+        submission = sess.query(Submission).filter_by(submission_id = existing_submission_id).one()
+        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+            submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
+        # submission is being updated, so turn off publishable flag
+        submission.publishable = False
+        for key in submission_values:
+            # update existing submission with any values provided
+            setattr(submission, key, submission_values[key])
+    sess.add(submission)
+    sess.commit()
+
+    return submission

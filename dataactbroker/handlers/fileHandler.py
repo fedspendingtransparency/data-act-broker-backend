@@ -33,7 +33,7 @@ from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     checkNumberOfErrorsByJobId, getErrorType, run_job_checks,
     createFileIfNeeded, getErrorMetricsByJobId, get_submission_stats,
-    mark_job_status)
+    mark_job_status, create_submission)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -184,7 +184,6 @@ class FileHandler:
         key_id is the job id to be passed to the finalize_submission route
         """
         try:
-            sess = GlobalDB.db().session
             response_dict= {}
 
             file_name_map = []
@@ -218,19 +217,18 @@ class FileHandler:
                     if not existing_submission:
                         raise ResponseException('{} is required'.format(key), StatusCode.CLIENT_ERROR, ValueError)
 
-            submission_id = self.jobManager.createSubmission(user_id, submission_data, existing_submission_id)
+            submission = create_submission(user_id, submission_data, existing_submission_id)
             if existing_submission:
-                # Check if user has permission to specified submission
-                submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
+                # check if user has permission to specified submission
                 self.check_submission_permission(submission)
 
-            # Build fileNameMap to be used in creating jobs
+            # build fileNameMap to be used in creating jobs
             for file_type in FileHandler.FILE_TYPES :
-                # If filetype not included in request, and this is an update to an existing submission, skip it
+                # if filetype not included in request, and this is an update to an existing submission, skip it
                 if not request_params.get(file_type):
                     if existing_submission:
                         continue
-                    # This is a new submission, all files are required
+                    # this is a new submission, all files are required
                     raise ResponseException("Must include all files for new submission", StatusCode.CLIENT_ERROR)
 
                 filename = request_params.get(file_type)
@@ -246,7 +244,7 @@ class FileHandler:
                 raise ResponseException("Must include at least one file for an existing submission",
                                         StatusCode.CLIENT_ERROR)
             if not existing_submission:
-                # Don't add external files to existing submission
+                # don't add external files to existing submission
                 for ext_file_type in FileHandler.EXTERNAL_FILE_TYPES:
                     filename = CONFIG_BROKER["".join([ext_file_type,"_file_name"])]
 
@@ -257,7 +255,7 @@ class FileHandler:
                     response_dict[ext_file_type + "_key"] = upload_name
                     file_name_map.append((ext_file_type, upload_name, filename))
 
-            file_job_dict = self.jobManager.createJobs(file_name_map,submission_id,existing_submission)
+            file_job_dict = self.jobManager.createJobs(file_name_map, submission.submission_id, existing_submission)
             for file_type in file_job_dict.keys():
                 if not "submission_id" in file_type:
                     response_dict[file_type+"_id"] = file_job_dict[file_type]
@@ -276,10 +274,10 @@ class FileHandler:
         except (ValueError , TypeError, NotImplementedError) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:
-            # Call error route directly, status code depends on exception
+            # call error route directly, status code depends on exception
             return JsonResponse.error(e,e.status)
         except Exception as e:
-            # Unexpected exception, this is a 500 server error
+            # unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
         except:
             return JsonResponse.error(Exception("Failed to catch exception"),StatusCode.INTERNAL_ERROR)

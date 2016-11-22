@@ -77,35 +77,6 @@ class JobHandler(JobTrackerInterface):
         # Defaulting day to 1, this will not be used
         return date(year = int(dateParts[1]),month = int(dateParts[0]),day=1)
 
-    def createSubmission(self, user_id, submission_values, existing_submission_id):
-        """ Create a new submission
-
-        Arguments:
-            user_id:  User to associate with this submission
-            submission_values: metadata about the submission
-            existing_submission_id: id of existing submission (blank for new submissions)
-
-        Returns:
-            submission_id
-        """
-        # Create submission entry
-        if existing_submission_id is None:
-            submission = Submission(datetime_utc = datetime.utcnow(), **submission_values)
-            submission.user_id = user_id
-            self.setPublishStatus("unpublished", submission)
-            self.session.add(submission)
-        else:
-            submission_query = self.session.query(Submission).filter(Submission.submission_id == existing_submission_id)
-            submission = self.runUniqueQuery(submission_query,"No submission found with provided ID", "Multiple submissions found with provided ID")
-            self.updatePublishStatus(submission)
-            for key in submission_values:
-                # Update existing submission with any values provided
-                setattr(submission,key,submission_values[key])
-            self.session.commit()
-        self.session.commit()
-        # Calling submission_id to force query to load this
-        return submission.submission_id
-
     def createJobs(self, filenames, submission_id, existing_submission = False):
         """  Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
 

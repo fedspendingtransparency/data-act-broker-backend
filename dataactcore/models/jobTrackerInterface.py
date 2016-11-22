@@ -4,7 +4,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
 from dataactcore.models.baseInterface import BaseInterface
 from dataactcore.models.jobModels import Job, JobStatus, Submission
-from dataactcore.models.lookups import JOB_STATUS_DICT, PUBLISH_STATUS_DICT
+from dataactcore.models.lookups import JOB_STATUS_DICT
 
 
 _exception_logger = logging.getLogger('deprecated.exception')
@@ -99,22 +99,3 @@ class JobTrackerInterface(BaseInterface):
             return sess.query(Submission).filter_by(submission_id = submission_or_id).one()
         else:
             return submission_or_id
-
-    def setPublishStatus(self, statusName, submissionOrId):
-        """ Set publish status to specified name"""
-        statusId = PUBLISH_STATUS_DICT[statusName]
-        submission = self.extract_submission(submissionOrId)
-        submission.publish_status_id = statusId
-        self.session.commit()
-
-    def updatePublishStatus(self, submissionOrId):
-        """ If submission was already published, mark as updated.  Also set publishable back to false. """
-        submission = self.extract_submission(submissionOrId)
-        publishedStatus = PUBLISH_STATUS_DICT["published"]
-        if submission.publish_status_id == publishedStatus:
-            # Submission already published, mark as updated
-            self.setPublishStatus("updated", submission)
-        # Changes have been made, so don't publish until user marks as publishable again
-        submission.publishable = False
-        self.session.commit()
-
