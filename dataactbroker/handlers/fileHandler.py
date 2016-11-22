@@ -1,4 +1,5 @@
 import os
+from collections import namedtuple
 from csv import reader
 from datetime import datetime
 import logging
@@ -33,7 +34,7 @@ from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     checkNumberOfErrorsByJobId, getErrorType, run_job_checks,
     createFileIfNeeded, getErrorMetricsByJobId, get_submission_stats,
-    mark_job_status, create_submission)
+    mark_job_status, create_submission, create_jobs)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -58,7 +59,9 @@ class FileHandler:
     STATUS_MAP = {"waiting":"invalid", "ready":"invalid", "running":"waiting", "finished":"finished", "invalid":"failed", "failed":"failed"}
     VALIDATION_STATUS_MAP = {"waiting":"waiting", "ready":"waiting", "running":"waiting", "finished":"finished", "failed":"failed", "invalid":"failed"}
 
-    def __init__(self,request,interfaces = None,isLocal= False,serverPath =""):
+    UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'upload_job_id'])
+
+    def __init__(self, request, interfaces = None, isLocal= False, serverPath =""):
         """ Create the File Handler
 
         Arguments:
@@ -186,7 +189,7 @@ class FileHandler:
         try:
             response_dict= {}
 
-            file_name_map = []
+            upload_files = []
             request_params = RequestDictionary.derive(self.request)
 
             # unfortunately, field names in the request don't match
@@ -238,9 +241,14 @@ class FileHandler:
                     else:
                         upload_name = filename
                     response_dict[file_type+"_key"] = upload_name
-                    file_name_map.append((file_type, upload_name, filename))
+                    upload_files.append(FileHandler.UploadFile(
+                        file_type=file_type,
+                        upload_name=upload_name,
+                        file_name=filename,
+                        upload_job_id=None
+                    ))
 
-            if not file_name_map and existing_submission:
+            if not upload_files and existing_submission:
                 raise ResponseException("Must include at least one file for an existing submission",
                                         StatusCode.CLIENT_ERROR)
             if not existing_submission:
@@ -253,9 +261,14 @@ class FileHandler:
                     else:
                         upload_name = filename
                     response_dict[ext_file_type + "_key"] = upload_name
-                    file_name_map.append((ext_file_type, upload_name, filename))
+                    upload_files.append(FileHandler.UploadFile(
+                        file_type=ext_file_type,
+                        upload_name=upload_name,
+                        file_name=filename,
+                        upload_job_id=None
+                    ))
 
-            file_job_dict = self.jobManager.createJobs(file_name_map, submission.submission_id, existing_submission)
+            file_job_dict = create_jobs(upload_files, submission, existing_submission)
             for file_type in file_job_dict.keys():
                 if not "submission_id" in file_type:
                     response_dict[file_type+"_id"] = file_job_dict[file_type]

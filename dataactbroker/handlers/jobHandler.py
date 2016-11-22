@@ -1,6 +1,6 @@
 from datetime import datetime, date
 
-from dataactcore.interfaces.function_bag import addJobsForFileType
+from dataactcore.interfaces.function_bag import add_jobs_for_file_type
 from dataactcore.models.jobModels import Job,JobDependency,Submission, FileType
 from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 from dataactcore.utils.responseException import ResponseException
@@ -77,83 +77,7 @@ class JobHandler(JobTrackerInterface):
         # Defaulting day to 1, this will not be used
         return date(year = int(dateParts[1]),month = int(dateParts[0]),day=1)
 
-    def createJobs(self, filenames, submission_id, existing_submission = False):
-        """  Given the filenames to be uploaded, create the set of jobs needing to be completed for this submission
 
-        Arguments:
-        filenames -- List of tuples containing (file type, upload path, original filenames)
-        submission_id -- Submission ID to be linked to jobs
-        existing_submission -- True if we should update jobs in an existing submission rather than creating new jobs
-
-        Returns:
-        Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
-        """
-
-
-        jobs_required, upload_dict = self.addUploadJobs(filenames,submission_id,existing_submission)
-
-        if existing_submission:
-            # Find cross-file and external validation jobs and mark them as waiting
-            val_query = self.session.query(Job).filter(Job.submission_id == submission_id).filter(Job.job_type_id == JOB_TYPE_DICT["validation"])
-            val_job = self.runUniqueQuery(val_query,"No cross-file validation job found","Conflicting jobs found")
-            val_job.job_status_id = JOB_STATUS_DICT["waiting"]
-            ext_query = self.session.query(Job).filter(Job.submission_id == submission_id).filter(Job.job_type_id == JOB_TYPE_DICT["external_validation"])
-            ext_job = self.runUniqueQuery(ext_query,"No external validation job found","Conflicting jobs found")
-            ext_job.job_status_id = JOB_STATUS_DICT["waiting"]
-
-            # Update submission updated_at
-            submission = self.session.query(Submission).filter_by(submission_id = submission_id).one()
-            submission.updated_at = time.strftime("%c")
-            self.session.commit()
-        else:
-            # Create validation job
-            validation_job = Job(job_status_id=JOB_STATUS_DICT["waiting"], job_type_id=JOB_TYPE_DICT["validation"], submission_id=submission_id)
-            self.session.add(validation_job)
-            # Create external validation job
-            external_job = Job(job_status_id=JOB_STATUS_DICT["waiting"], job_type_id=JOB_TYPE_DICT["external_validation"], submission_id=submission_id)
-            self.session.add(external_job)
-            self.session.flush()
-            # Create dependencies for validation jobs
-            for job_id in jobs_required:
-                val_dependency = JobDependency(job_id = validation_job.job_id, prerequisite_id = job_id)
-                self.session.add(val_dependency)
-                ext_dependency = JobDependency(job_id = external_job.job_id, prerequisite_id = job_id)
-                self.session.add(ext_dependency)
-
-        # Commit all changes
-        self.session.commit()
-        upload_dict["submission_id"] = submission_id
-        return upload_dict
-
-    def addUploadJobs(self,filenames,submissionId,existingSubmission):
-        """  Add upload jobs to job tracker database
-
-        Arguments:
-        filenames -- List of tuples containing (file type, upload path, original filenames)
-        submissionId -- Submission ID to attach to jobs
-        existingSubmission -- True if we should update existing jobs rather than creating new ones
-
-        Returns:
-        jobsRequired -- List of job ids required for validation jobs, used to populate the prerequisite table
-        uploadDict -- Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
-        """
-        # Keep list of job ids required for validation jobs
-        jobsRequired = []
-        # Dictionary of upload ids by filename to return to client
-        uploadDict = {}
-
-        # First do award_financial and award_procurement jobs so they will be available for later dependencies
-        for fileType, filePath, filename in filenames:
-            if fileType in ["award_financial", "award_procurement"]:
-                jobsRequired, uploadDict = addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
-
-        # Then do all other file types
-        for fileType, filePath, filename in filenames:
-            if fileType not in ["award_financial", "award_procurement"]:
-                jobsRequired, uploadDict = addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict)
-
-        # Return list of upload jobs
-        return jobsRequired, uploadDict
 
     def checkUploadType(self, jobId):
         """ Check that specified job is a file_upload job
