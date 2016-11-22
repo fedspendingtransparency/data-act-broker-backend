@@ -85,7 +85,7 @@ class FileHandler:
     STATUS_MAP = {"waiting":"invalid", "ready":"invalid", "running":"waiting", "finished":"finished", "invalid":"failed", "failed":"failed"}
     VALIDATION_STATUS_MAP = {"waiting":"waiting", "ready":"waiting", "running":"waiting", "finished":"finished", "failed":"failed", "invalid":"failed"}
 
-    UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name'])
+    UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
     def __init__(self, request, interfaces = None, isLocal= False, serverPath =""):
         """ Create the File Handler
@@ -269,6 +269,7 @@ class FileHandler:
                         file_type=file_type,
                         upload_name=upload_name,
                         file_name=filename,
+                        file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type]]
                     ))
 
             if not upload_files and existing_submission:
@@ -288,6 +289,7 @@ class FileHandler:
                         file_type=ext_file_type,
                         upload_name=upload_name,
                         file_name=filename,
+                        file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[ext_file_type]]
                     ))
 
             file_job_dict = create_jobs(upload_files, submission, existing_submission)

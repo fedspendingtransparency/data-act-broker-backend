@@ -1,5 +1,6 @@
 from datetime import datetime
 import logging
+from operator import attrgetter
 import time
 import uuid
 
@@ -427,9 +428,14 @@ def create_jobs(upload_files, submission, existing_submission=False):
 
     # create the file upload and single-file validation jobs and
     # set up the dependencies between them
+    # before starting, sort the incoming list of jobs by letter
+    # to ensure that jobs dependent on the awards jobs being present
+    # are processed last.
     jobs_required = []
     upload_dict= {}
-    for upload_file in upload_files:
+    sorted_uploads = sorted(upload_files, key=attrgetter('file_letter'))
+
+    for upload_file in sorted_uploads:
         validation_job_id, upload_job_id = add_jobs_for_file_type(upload_file, submission_id, existing_submission)
         if validation_job_id:
             jobs_required.append(validation_job_id)
