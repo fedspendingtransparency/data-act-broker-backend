@@ -413,9 +413,8 @@ class ValidationManager:
         sess = GlobalDB.db().session
         job_id = job.job_id
         error_rows = []
-        submission_id = sess.query(Job).filter_by(job_id = job_id).one().submission_id
         sql_failures = Validator.validateFileBySql(
-            submission_id, file_type, self.short_to_long_dict)
+            job.submission_id, file_type, self.short_to_long_dict)
         for failure in sql_failures:
             # convert shorter, machine friendly column names used in the
             # SQL validation queries back to their long names

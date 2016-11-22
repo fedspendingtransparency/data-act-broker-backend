@@ -446,7 +446,14 @@ class FileHandler:
                 job_info["job_id"] = job.job_id
                 job_info["job_status"] = job.job_status.name
                 job_info["job_type"] = job_type
-                job_info["filename"] = sess.query(Job).filter_by(job_id = job.job_id).one().original_filename
+                job_info["filename"] = job.original_filename
+                job_info["file_size"] = job.file_size
+                job_info["number_of_rows"] = job.number_of_rows
+                if job.file_type:
+                    job_info["file_type"] = job.file_type.name
+                else:
+                    job_info["file_type"] = ''
+
                 try:
                     file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job.job_id).one()
                     job_info["file_status"] = file_results.file_status.name
@@ -479,17 +486,7 @@ class FileHandler:
                         job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['fatal'])
                     job_info["warning_data"] = getErrorMetricsByJobId(
                         job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['warning'])
-                # File size and number of rows not dependent on error DB
-                # Get file size
-                job_info["file_size"] = sess.query(Job).filter_by(job_id = job.job_id).one().file_size
-                # Get number of rows in file
-                job_info["number_of_rows"] = sess.query(Job).filter_by(job_id = job.job_id).one().number_of_rows
 
-                try :
-                    job_info["file_type"] = sess.query(Job).options(joinedload("file_type")).filter_by(job_id = job.job_id).one().file_type.name
-                except:
-                    # todo: add specific type of exception when we figure out what it is?
-                    job_info["file_type"]  = ''
                 submission_info["jobs"].append(job_info)
 
             # Build response object holding dictionary
@@ -751,7 +748,7 @@ class FileHandler:
                 # Error occurred while downloading file, mark job as failed and record error message
                 mark_job_status(job_id, "failed")
                 job = sess.query(Job).filter_by(job_id = job_id).one()
-                file_type = sess.query(Job).options(joinedload("file_type")).filter_by(job_id = job_id).one().file_type.name
+                file_type = job.file_type.name
                 if file_type == "award":
                     source= "ASP"
                 elif file_type == "award_procurement":
