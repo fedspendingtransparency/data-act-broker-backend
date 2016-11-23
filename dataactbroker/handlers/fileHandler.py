@@ -231,16 +231,20 @@ class FileHandler:
             existing_submission_id = request_params.get('existing_submission_id')
             existing_submission = True if existing_submission_id else None
             for request_field, submission_field in request_submission_mapping.items():
-                request_value = request_params.get(request_field)
-                if request_value and 'date' in request_field:
-                    # convert incoming dates to Python date objects
-                    try:
-                        submission_data[submission_field] = datetime.strptime(request_value, date_format)
-                    except ValueError:
-                        raise ResponseException("Date must be provided as MM/YYYY", StatusCode.CLIENT_ERROR,
-                                                ValueError)
-                elif request_value:
+                if request_field in request_params:
+                    request_value = request_params[request_field]
+
+                    if 'date' in request_field:
+                        # convert incoming dates to Python date objects
+                        try:
+                            request_value = datetime.strptime(request_value, date_format)
+                        except ValueError:
+                            raise ResponseException("Date must be provided as MM/YYYY", StatusCode.CLIENT_ERROR,
+                                                    ValueError)
+
                     submission_data[submission_field] = request_value
+                # All of those fields are required unless
+                # existing_submission_id is present
                 elif 'existing_submission_id' not in request_params:
                     raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
 
