@@ -197,13 +197,15 @@ class AccountHandler:
                         user.name = first_name + " " + middle_name[0] + ". " + last_name
                     user.user_status_id = user.user_status_id = USER_STATUS_DICT['approved']
 
-                    # If part of the SYS agency, use that as the cgac otherwise use the first agency provided
-                    if [g for g in cgac_group if g.endswith("SYS")]:
-                        user.cgac_code = "SYS"
-                    else:
-                        user.cgac_code = cgac_group[0][-3:]
                     sess.add(user)
                     sess.commit()
+
+                # update user's cgac based on their current membership
+                # If part of the SYS agency, use that as the cgac otherwise use the first agency provided
+                if [g for g in cgac_group if g.endswith("SYS")]:
+                    user.cgac_code = "SYS"
+                else:
+                    user.cgac_code = cgac_group[0][-3:]
 
                 self.grant_highest_permission(sess, user, group_list, cgac_group[0])
 
@@ -230,15 +232,15 @@ class AccountHandler:
             permission_group = [g for g in group_list if g.startswith(cgac_group + "-PERM_")]
             # Check if a user has been placed in a specific group. If not, deny access
             if not permission_group:
-                raise ValueError("You have logged in with MAX but do not have permission to access the broker.")
+                user.permission_type_id = None
+            else:
+                perms = [perm[-1].lower() for perm in permission_group]
+                ordered_perms = sorted(PERMISSION_MAP, key=lambda k: PERMISSION_MAP[k]['order'])
 
-            perms = [perm[-1].lower() for perm in permission_group]
-            ordered_perms = sorted(PERMISSION_MAP, key=lambda k: PERMISSION_MAP[k]['order'])
-
-            for perm in ordered_perms:
-                if perm in perms:
-                    user.permission_type_id = PERMISSION_TYPE_DICT[PERMISSION_MAP[perm]['name']]
-                    break
+                for perm in ordered_perms:
+                    if perm in perms:
+                        user.permission_type_id = PERMISSION_TYPE_DICT[PERMISSION_MAP[perm]['name']]
+                        break
         session.merge(user)
         session.commit()
 
