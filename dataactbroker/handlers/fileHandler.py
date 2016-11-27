@@ -438,7 +438,10 @@ class FileHandler:
             submission_info["created_on"] = submission.datetime_utc.strftime('%m/%d/%Y')
             # Include number of errors in submission
             submission_info["number_of_errors"] = submission.number_of_errors
-            submission_info["number_of_rows"] = self.interfaces.jobDb.sumNumberOfRowsForJobList(jobs)
+            submission_info["number_of_rows"] = sess.query(
+                func.sum(Job.number_of_rows)).\
+                filter_by(submission_id = submission_id).\
+                scalar() or 0
             submission_info["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
 
             for job in jobs:

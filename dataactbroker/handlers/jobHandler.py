@@ -75,22 +75,5 @@ class JobHandler(JobTrackerInterface):
         # Defaulting day to 1, this will not be used
         return date(year = int(dateParts[1]),month = int(dateParts[0]),day=1)
 
-    def sumNumberOfRowsForJobList(self, jobs):
-        """ Given a list of job IDs, return the number of rows summed across jobs """
-        sess = GlobalDB.db().session
-        # temporary fix until jobHandler.py is refactored away
-        jobList = [j.job_id for j in jobs]
-        rowSum = 0
-        for jobId in jobList:
-            jobRows = sess.query(Job).filter_by(job_id = jobId).one().number_of_rows
-            try:
-                rowSum += int(jobRows)
-            except TypeError:
-                # If jobRows is None or empty string, just don't add it, otherwise reraise
-                if jobRows is None or jobRows == "":
-                    continue
-                else:
-                    raise
-        return rowSum
 
 
