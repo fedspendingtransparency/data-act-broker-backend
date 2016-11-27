@@ -24,7 +24,8 @@ from dataactcore.models.jobModels import (
     FileGenerationTask, Job, JobDependency, Submission, SubmissionNarrative)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
-    FILE_STATUS_DICT, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, JOB_STATUS_DICT, RULE_SEVERITY_DICT)
+    FILE_STATUS_DICT, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID,
+    JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import (get_report_path, get_cross_report_name,
@@ -100,7 +101,6 @@ class FileHandler:
         if(interfaces != None):
             self.interfaces = interfaces
             self.jobManager = interfaces.jobDb
-            self.fileTypeMap = self.interfaces.jobDb.createFileTypeMap()
         self.isLocal = isLocal
         self.serverPath = serverPath
         self.s3manager = s3UrlHandler()
@@ -114,7 +114,6 @@ class FileHandler:
         """
         self.interfaces = interfaces
         self.jobManager = interfaces.jobDb
-        self.fileTypeMap = self.interfaces.jobDb.createFileTypeMap()
 
     def getErrorReportURLsForSubmission(self, is_warning = False):
         """
@@ -556,23 +555,22 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-    def start_generation_job(self, submission_id, file_type):
+    def start_generation_job(self, job):
         """ Initiates a file generation job
 
         Args:
-            submission_id: ID of submission to start job for
-            file_type: Type of file to be generated
+            job: the file generation job to start
 
         Returns:
             Tuple of boolean indicating successful start, and error response if False
 
         """
-        jobDb = self.interfaces.jobDb
         sess = GlobalDB.db().session
-        file_type_name = self.fileTypeMap[file_type]
+        file_type_name = job.file_type.name
+        file_type = job.file_type.letter_name
 
         try:
-            if file_type in ["D1", "D2"]:
+            if file_type in ['D1', 'D2']:
                 # Populate start and end dates, these should be provided in
                 # MM/DD/YYYY format, using calendar year (not fiscal year)
                 requestDict = RequestDictionary(self.request)
@@ -594,7 +592,8 @@ class FileHandler:
             return False, JsonResponse.error(
                 e, e.status, file_type=file_type, status='failed')
 
-        cgac_code = sess.query(Submission).filter_by(submission_id=submission_id).one().cgac_code
+        submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
+        cgac_code = submission.cgac_code
 
         # Generate and upload file to S3
         user_id = LoginSession.getName(session)
@@ -604,21 +603,20 @@ class FileHandler:
         else:
             upload_file_name = "".join([str(user_id), "/", timestamped_name])
 
-        job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, file_type_name, "file_upload")
         job.filename = upload_file_name
         job.original_filename = timestamped_name
         job.job_status_id = JOB_STATUS_DICT["running"]
-        jobDb.session.commit()
+        sess.commit()
         if file_type in ["D1", "D2"]:
             _debug_logger.debug('Adding job info for job id of %s', job.job_id)
-            return self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
+            return self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
         elif file_type == 'E':
             generate_e_file.delay(
-                submission_id, job.job_id, timestamped_name,
+                submission.submission_id, job.job_id, timestamped_name,
                 upload_file_name, self.isLocal)
         elif file_type == 'F':
             generate_f_file.delay(
-                submission_id, job.job_id, timestamped_name,
+                submission.submission_id, job.job_id, timestamped_name,
                 upload_file_name, self.isLocal)
 
         return True, None
@@ -637,9 +635,13 @@ class FileHandler:
             cgac_code - Agency to generate D file for
             job - Job object for upload job
         """
-        jobDb = self.interfaces.jobDb
+        sess = GlobalDB.db().session
+        val_job = sess.query(Job).filter_by(
+            submission_id=submission_id,
+            file_type_id=FILE_TYPE_DICT[file_type_name],
+            job_type_id=JOB_TYPE_DICT['csv_record_validation']
+        ).one()
         try:
-            val_job = jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, file_type_name, "csv_record_validation")
             val_job.filename = upload_file_name
             val_job.original_filename = timestamped_name
             val_job.job_status_id = JOB_STATUS_DICT["waiting"]
@@ -650,9 +652,8 @@ class FileHandler:
             # Generate random uuid and store generation task
             task_key = uuid4()
             task = FileGenerationTask(generation_task_key = task_key, submission_id = submission_id, file_type_id = FILE_TYPE_DICT[file_type_name], job_id = job.job_id)
-            jobDb.session.add(task)
-
-            jobDb.session.commit()
+            sess.add(task)
+            sess.commit()
         except ValueError as e:
             # Date was not in expected format
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
@@ -802,12 +803,20 @@ class FileHandler:
 
         _debug_logger.debug('Submission ID = %s / File type = %s',
                             submission_id, file_type)
+
+        sess = GlobalDB.db().session
+
         # Check permission to submission
         success, error_response = self.check_submission_by_id(submission_id, file_type)
         if not success:
             return error_response
 
-        job = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "file_upload")
+        job = sess.query(Job).filter_by(
+            submission_id = submission_id,
+            file_type_id = FILE_TYPE_DICT_LETTER_ID[file_type],
+            job_type_id = JOB_TYPE_DICT['file_upload']
+        ).one()
+
         try:
             # Check prerequisites on upload job
             if not run_job_checks(job.job_id):
@@ -818,7 +827,7 @@ class FileHandler:
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
-        success, error_response = self.start_generation_job(submission_id,file_type)
+        success, error_response = self.start_generation_job(job)
 
         _debug_logger.debug('Finished start_generation_job method')
         if not success:
@@ -829,20 +838,31 @@ class FileHandler:
         # Return same response as check generation route
         return self.checkGeneration(submission_id, file_type)
 
-    def checkGeneration(self, submission_id = None, file_type = None):
+    def checkGeneration(self, submission_id=None, file_type=None):
         """ Return information about file generation jobs
 
         Returns:
-            Response object with keys status, file_type, url, message.  If file_type is D1 or D2, also includes start and end.
+            Response object with keys status, file_type, url, message.
+            If file_type is D1 or D2, also includes start and end.
         """
+        sess = GlobalDB.db().session
         if submission_id is None or file_type is None:
             submission_id, file_type = self.getRequestParamsForGenerate()
         # Check permission to submission
         self.check_submission_by_id(submission_id, file_type)
 
-        uploadJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "file_upload")
+        uploadJob = sess.query(Job).filter_by(
+            submission_id = submission_id,
+            file_type_id = FILE_TYPE_DICT_LETTER_ID[file_type],
+            job_type_id = JOB_TYPE_DICT['file_upload']
+        ).one()
+
         if file_type in ["D1","D2"]:
-            validationJob = self.interfaces.jobDb.getJobBySubmissionFileTypeAndJobType(submission_id, self.fileTypeMap[file_type], "csv_record_validation")
+            validationJob = sess.query(Job).filter_by(
+                submission_id = submission_id,
+                file_type_id = FILE_TYPE_DICT_LETTER_ID[file_type],
+                job_type_id = JOB_TYPE_DICT['csv_record_validation']
+            ).one()
         else:
             validationJob = None
         responseDict = {}
@@ -862,7 +882,7 @@ class FileHandler:
             responseDict["start"] = uploadJob.start_date.strftime("%m/%d/%Y") if uploadJob.start_date is not None else ""
             responseDict["end"] = uploadJob.end_date.strftime("%m/%d/%Y") if uploadJob.end_date is not None else ""
 
-        return JsonResponse.create(StatusCode.OK,responseDict)
+        return JsonResponse.create(StatusCode.OK, responseDict)
 
     def mapGenerateStatus(self, uploadJob, validationJob = None):
         """ Maps job status to file generation statuses expected by frontend """
