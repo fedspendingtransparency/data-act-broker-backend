@@ -75,36 +75,6 @@ class JobHandler(JobTrackerInterface):
         # Defaulting day to 1, this will not be used
         return date(year = int(dateParts[1]),month = int(dateParts[0]),day=1)
 
-
-
-    def checkUploadType(self, jobId):
-        """ Check that specified job is a file_upload job
-
-        Args:
-        jobId -- Job ID to check
-        Returns:
-        True if file upload, False otherwise
-        """
-        query = self.session.query(Job.job_type_id).filter(Job.job_id == jobId)
-        result = self.checkJobUnique(query)
-        # Got single job, check type
-        if result.job_type_id == JOB_TYPE_DICT["file_upload"]:
-            # Correct type
-            return True
-        # Did not confirm correct type
-        return False
-
-    def getSubmissionForJob(self,job):
-        """ Takes a job object and returns the associated submission object """
-        query = self.session.query(Submission).filter(Submission.submission_id == job.submission_id)
-        try:
-            result = self.runUniqueQuery(query,"This job has no attached submission", "Multiple submissions with conflicting ID")
-            return result
-        except ResponseException as e:
-            # Either of these errors is a 500, jobs should not be created without being part of a submission
-            e.status = StatusCode.INTERNAL_ERROR
-            raise e
-
     def sumNumberOfRowsForJobList(self, jobs):
         """ Given a list of job IDs, return the number of rows summed across jobs """
         sess = GlobalDB.db().session
@@ -122,10 +92,5 @@ class JobHandler(JobTrackerInterface):
                 else:
                     raise
         return rowSum
-
-    def getFormattedDatetimeBySubmissionId(self, submission_id):
-        """ Given a submission ID, return MM/DD/YYYY for the datetime of that submission """
-        datetime = self.session.query(Submission).filter_by(submission_id=submission_id).one().datetime_utc
-        return datetime.strftime("%m/%d/%Y")
 
 

@@ -339,7 +339,7 @@ class FileHandler:
 
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id = job_id).one()
-            submission = self.jobManager.getSubmissionForJob(job)
+            submission = sess.query(Submission).filter_by(submission_id = job.submission_id).one()
             if not user_agency_matches(submission):
                 # This user cannot finalize this job
                 raise ResponseException(
@@ -347,20 +347,20 @@ class FileHandler:
                     StatusCode.CLIENT_ERROR
                 )
             # Change job status to finished
-            if self.jobManager.checkUploadType(job_id):
+            if job.job_type_id == JOB_TYPE_DICT["file_upload"]:
                 mark_job_status(job_id, 'finished')
                 response_dict["success"] = True
-                return JsonResponse.create(StatusCode.OK,response_dict)
+                return JsonResponse.create(StatusCode.OK, response_dict)
             else:
-                raise ResponseException("Wrong job type for finalize route",StatusCode.CLIENT_ERROR)
+                raise ResponseException("Wrong job type for finalize route", StatusCode.CLIENT_ERROR)
 
         except ( ValueError , TypeError ) as e:
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ResponseException as e:
-            return JsonResponse.error(e,e.status)
+            return JsonResponse.error(e, e.status)
         except Exception as e:
             # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
     def check_submission_by_id(self, submission_id, file_type):
         """ Check that submission exists and user has permission to it
@@ -435,7 +435,7 @@ class FileHandler:
             submission_info["cgac_code"] = submission.cgac_code
             submission_info["reporting_period_start_date"] = self.interfaces.jobDb.getStartDate(submission)
             submission_info["reporting_period_end_date"] = self.interfaces.jobDb.getEndDate(submission)
-            submission_info["created_on"] = self.interfaces.jobDb.getFormattedDatetimeBySubmissionId(submission_id)
+            submission_info["created_on"] = submission.datetime_utc.strftime('%m/%d/%Y')
             # Include number of errors in submission
             submission_info["number_of_errors"] = submission.number_of_errors
             submission_info["number_of_rows"] = self.interfaces.jobDb.sumNumberOfRowsForJobList(jobs)
@@ -745,7 +745,6 @@ class FileHandler:
 
     def load_d_file(self, url, upload_name, timestamped_name, job_id, isLocal):
         """ Pull D file from specified URL and write to S3 """
-        job_manager = self.interfaces.jobDb
         sess = GlobalDB.db().session
         try:
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
