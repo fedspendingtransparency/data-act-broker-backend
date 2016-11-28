@@ -37,7 +37,7 @@ from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     checkNumberOfErrorsByJobId, getErrorType, run_job_checks,
     createFileIfNeeded, getErrorMetricsByJobId, get_submission_stats,
-    mark_job_status, create_submission, create_jobs)
+    get_submission_status, mark_job_status, create_submission, create_jobs)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
@@ -1030,7 +1030,7 @@ class FileHandler:
                 filter_by(submission_id=submission.submission_id).\
                 scalar() or 0
 
-            status = self.interfaces.jobDb.getSubmissionStatus(submission)
+            status = get_submission_status(submission)
             if submission.user_id is None:
                 submission_user_name = "No user"
             else:

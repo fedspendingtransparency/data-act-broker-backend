@@ -606,3 +606,44 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
     sess.commit()
 
     return validation_job_id, upload_job.job_id
+
+def get_submission_status(submission):
+    """Return the status of a submission."""
+    sess = GlobalDB.db().session
+
+    jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
+    status_names = JOB_STATUS_DICT.keys()
+    statuses = {name: 0 for name in status_names}
+    skip_count = 0
+
+    for job in jobs:
+        if job.job_type.name not in ["external_validation", None]:
+            job_status = job.job_status.name
+            statuses[job_status] += 1
+        else:
+            skip_count += 1
+
+    status = "unknown"
+
+    if statuses["failed"] != 0:
+        status = "failed"
+    elif statuses["invalid"] != 0:
+        status = "file_errors"
+    elif statuses["running"] != 0:
+        status = "running"
+    elif statuses["waiting"] != 0:
+        status = "waiting"
+    elif statuses["ready"] != 0:
+        status = "ready"
+    elif statuses["finished"] == jobs.count() - skip_count:  # need to account for the jobs that were skipped above
+        status = "validation_successful"
+        if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
+            status = "validation_successful_warnings"
+        if submission.publishable:
+            status = "submitted"
+
+    # Check if submission has errors
+    if submission.number_of_errors is not None and submission.number_of_errors > 0:
+        status = "validation_errors"
+
+    return status
