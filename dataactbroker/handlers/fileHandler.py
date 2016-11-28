@@ -88,32 +88,18 @@ class FileHandler:
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
-    def __init__(self, request, interfaces = None, isLocal= False, serverPath =""):
+    def __init__(self, request, isLocal= False, serverPath =""):
         """ Create the File Handler
 
         Arguments:
             request - HTTP request object for this route
-            interfaces - InterfaceHolder object to databases
             isLocal - True if this is a local installation that will not use AWS or Smartronix
             serverPath - If isLocal is True, this is used as the path to local files
         """
         self.request = request
-        if(interfaces != None):
-            self.interfaces = interfaces
-            self.jobManager = interfaces.jobDb
         self.isLocal = isLocal
         self.serverPath = serverPath
         self.s3manager = s3UrlHandler()
-
-
-    def addInterfaces(self,interfaces):
-        """ Add connections to databases
-
-        Args:
-            interfaces: InterfaceHolder object to DBs
-        """
-        self.interfaces = interfaces
-        self.jobManager = interfaces.jobDb
 
     def getErrorReportURLsForSubmission(self, is_warning = False):
         """
@@ -696,10 +682,9 @@ class FileHandler:
             valJob - Job object for validation job
         """
         sess = GlobalDB.db().session
-        jobDb = self.interfaces.jobDb
         # No results found, skip validation and mark as finished
-        jobDb.session.query(JobDependency).filter(JobDependency.prerequisite_id == job.job_id).delete()
-        jobDb.session.commit()
+        sess.query(JobDependency).filter(JobDependency.prerequisite_id == job.job_id).delete()
+        sess.commit()
         mark_job_status(job.job_id,"finished")
         job.filename = None
         if valJob is not None:
@@ -714,7 +699,7 @@ class FileHandler:
             valJob.number_of_errors = 0
             valJob.number_of_warnings = 0
             valJob.filename = None
-            jobDb.session.commit()
+            sess.commit()
 
     def get_xml_response_content(self, api_url):
         """ Retrieve XML Response from the provided API url """
@@ -842,7 +827,7 @@ class FileHandler:
         _debug_logger.debug('Finished start_generation_job method')
         if not success:
             # If not successful, set job status as "failed"
-            self.interfaces.mark_job_status(job.job_id, "failed")
+            mark_job_status(job.job_id, "failed")
             return error_response
 
         # Return same response as check generation route
@@ -896,6 +881,7 @@ class FileHandler:
 
     def mapGenerateStatus(self, uploadJob, validationJob = None):
         """ Maps job status to file generation statuses expected by frontend """
+        sess = GlobalDB.db().session
         uploadStatus = uploadJob.job_status.name
         if validationJob is None:
             errorsPresent = False
@@ -914,7 +900,7 @@ class FileHandler:
 
         if validationJob is None:
             # No validation job, so don't need to check it
-            self.interfaces.jobDb.session.commit()
+            sess.commit()
             return responseStatus
 
         if responseStatus == "finished":
@@ -934,7 +920,7 @@ class FileHandler:
 
             elif uploadJob.error_message is None:
                 uploadJob.error_message = validationJob.error_message
-        self.interfaces.jobDb.session.commit()
+        sess.commit()
         return responseStatus
 
     def getProtectedFiles(self):
@@ -984,7 +970,10 @@ class FileHandler:
 
             #Pull information based on task key
             _smx_logger.debug('Pulling information based on task key...')
-            task = self.interfaces.jobDb.session.query(FileGenerationTask).options(joinedload(FileGenerationTask.file_type)).filter(FileGenerationTask.generation_task_key == generationId).one()
+            task = sess.query(FileGenerationTask).\
+                options(joinedload(FileGenerationTask.file_type)).\
+                filter(FileGenerationTask.generation_task_key == generationId).\
+                one()
             job = sess.query(Job).filter_by(job_id = task.job_id).one()
             _smx_logger.debug('Loading D file...')
             result = self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)

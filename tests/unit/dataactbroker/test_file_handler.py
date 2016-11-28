@@ -4,7 +4,6 @@ from unittest.mock import Mock
 import pytest
 
 from dataactbroker.handlers import fileHandler
-from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.models.jobModels import JobStatus, JobType, FileType
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
@@ -16,7 +15,7 @@ LIMIT = 10
 CERTIFIED = "mixed"
 
 def test_list_submissions_success(database, job_constants, monkeypatch):
-    fh = fileHandler.FileHandler(Mock(), InterfaceHolder())
+    fh = fileHandler.FileHandler(Mock())
 
     mock_value = Mock()
     mock_value.getName.return_value = 1
@@ -84,7 +83,7 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
     delete_models(database, [user, sub, job])
 
 def test_list_submissions_failure(database, job_constants, monkeypatch):
-    fh = fileHandler.FileHandler(Mock(), InterfaceHolder())
+    fh = fileHandler.FileHandler(Mock())
 
     mock_value = Mock()
     mock_value.getName.return_value = 1

@@ -83,14 +83,13 @@ class ValidationManager:
         # Forcing forward slash here instead of using os.path to write a valid path for S3
         return "".join(["errors/", path])
 
-    def readRecord(self,reader,writer,file_type,interfaces,row_number,job,fields,error_list):
+    def readRecord(self,reader,writer,file_type,row_number,job,fields,error_list):
         """ Read and process the next record
 
         Args:
             reader: CsvReader object
             writer: CsvWriter object
             file_type: Type of file for current job
-            interfaces: InterfaceHolder object
             row_number: Next row number to be read
             job_id: ID of current job
             fields: List of FileColumn objects for this file type
@@ -165,12 +164,11 @@ class ValidationManager:
             return True
         return False
 
-    def writeErrors(self, failures, interfaces, job, short_colnames, writer, warning_writer, row_number, error_list):
+    def writeErrors(self, failures, job, short_colnames, writer, warning_writer, row_number, error_list):
         """ Write errors to error database
 
         Args:
             failures: List of errors to be written
-            interfaces: InterfaceHolder object
             job: Current job
             short_colnames: Dict mapping short names to long names
             writer: CsvWriter object
@@ -230,11 +228,10 @@ class ValidationManager:
         sess.add(FlexField(**flex_cols))
         sess.commit()
 
-    def runValidation(self, job, interfaces):
+    def runValidation(self, job):
         """ Run validations for specified job
         Args:
             job: Job to be validated
-            interfaces: All interfaces
         Returns:
             True if successful
         """
@@ -247,7 +244,6 @@ class ValidationManager:
         _exception_logger.info(
             'VALIDATOR_INFO: Beginning runValidation on job_id: %s', job_id)
 
-        jobTracker = interfaces.jobDb
         submission_id = job.submission_id
 
         rowNumber = 1
@@ -315,7 +311,7 @@ class ValidationManager:
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
                     #
-                    (record, reduceRow, skipRow, doneReading, rowErrorHere, flex_cols) = self.readRecord(reader, writer, fileType, interfaces, rowNumber, job, fields, error_list)
+                    (record, reduceRow, skipRow, doneReading, rowErrorHere, flex_cols) = self.readRecord(reader, writer, fileType, rowNumber, job, fields, error_list)
                     if reduceRow:
                         rowNumber -= 1
                     if rowErrorHere:
@@ -351,7 +347,7 @@ class ValidationManager:
                             continue
 
                     if not passedValidations:
-                        if self.writeErrors(failures, interfaces, job, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list):
+                        if self.writeErrors(failures, job, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list):
                             errorRows.append(rowNumber)
 
                 _exception_logger.info(
@@ -450,7 +446,7 @@ class ValidationManager:
                                           error,row_number,original_label, file_type_id=file_type_id, target_file_id = target_file_id, severity_id=severity_id)
         return error_rows
 
-    def runCrossValidation(self, job, interfaces):
+    def runCrossValidation(self, job):
         """ Cross file validation job, test all rules with matching rule_timing """
         sess = GlobalDB.db().session
         job_id = job.job_id
@@ -520,18 +516,16 @@ class ValidationManager:
         # Mark validation complete
         markFileComplete(job_id)
 
-    def validate_job(self, request, interfaces):
+    def validate_job(self, request):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
         Args:
         request -- HTTP request containing the jobId
-        interfaces -- InterfaceHolder object to the databases
         Returns:
         Http response object
         """
         # Create connection to job tracker database
         sess = GlobalDB.db().session
 
-        jobTracker = interfaces.jobDb
         requestDict = RequestDictionary(request)
         if requestDict.exists('job_id'):
             job_id = requestDict.getValue('job_id')
@@ -573,9 +567,9 @@ class ValidationManager:
         # set job status to running and do validations
         mark_job_status(job_id, "running")
         if job_type_name == 'csv_record_validation':
-            self.runValidation(job, interfaces)
+            self.runValidation(job)
         elif job_type_name == 'validation':
-            self.runCrossValidation(job, interfaces)
+            self.runCrossValidation(job)
         else:
             raise ResponseException("Bad job type for validator",
                 StatusCode.INTERNAL_ERROR)

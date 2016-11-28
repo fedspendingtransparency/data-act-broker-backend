@@ -6,7 +6,6 @@ from flask import Flask, request, g
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import writeFileError, mark_job_status
-from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import Job
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -78,11 +77,10 @@ def createApp():
     @app.route("/validate/",methods=["POST"])
     def validate():
         """Start the validation process."""
-        interfaces = InterfaceHolder() # Create sessions for this route
         if request.is_json:
             g.job_id = request.json.get('job_id')
         validation_manager = ValidationManager(local, error_report_path)
-        return validation_manager.validate_job(request,interfaces)
+        return validation_manager.validate_job(request)
 
     JsonResponse.debugMode = app.debug
 

@@ -1,6 +1,5 @@
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from dataactbroker.handlers import fileHandler
-from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from unittest.mock import Mock
 import json
 
@@ -9,8 +8,7 @@ def test_get_signed_url_for_submission_file_local(database, monkeypatch):
     database.session.add(submission)
     database.session.commit()
 
-    interfaces = InterfaceHolder()
-    file_handler = fileHandler.FileHandler(Mock(), interfaces=interfaces, isLocal=True, serverPath="/test/server/path/")
+    file_handler = fileHandler.FileHandler(Mock(), isLocal=True, serverPath="/test/server/path/")
     monkeypatch.setattr(fileHandler, 'user_agency_matches', Mock(return_value=True))
 
     mock_dict = Mock()
@@ -25,8 +23,7 @@ def test_get_signed_url_for_submission_file_s3(database, monkeypatch):
     database.session.add(submission)
     database.session.commit()
 
-    interfaces = InterfaceHolder()
-    file_handler = fileHandler.FileHandler(Mock(), interfaces=interfaces, isLocal=False)
+    file_handler = fileHandler.FileHandler(Mock(), isLocal=False)
     monkeypatch.setattr(fileHandler, 'user_agency_matches', Mock(return_value=True))
 
     mock_dict = Mock()
