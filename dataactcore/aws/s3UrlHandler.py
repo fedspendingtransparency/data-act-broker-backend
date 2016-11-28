@@ -98,8 +98,8 @@ class s3UrlHandler:
         s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
         bucket = s3connection.get_bucket(CONFIG_BROKER['aws_bucket'])
         key = bucket.get_key(filename)
-        if(key == None):
-            return False
+        if key is None:
+            return 0
         else:
             return key.size
 
