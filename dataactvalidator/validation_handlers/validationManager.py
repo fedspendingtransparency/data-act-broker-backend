@@ -585,11 +585,10 @@ def update_tas_ids(model, submission_id):
     # more gnarly in sqlalchemy than straight SQL, so using SQL instead
     #
     # Why min()?
-    # Our data schema doesn't restrict two TAS entries (with the same ATA, AI,
-    # etc.) to be disjoint in time, though we do require that there only be a
-    # single combination of ATA, AI, etc. and CARS' internal accounting
-    # number. In that scenario, we select the minimum of the potential
-    # tas_ids. We don't expect this situation to arise in practice, however.
+    # Our data schema doesn't prevent two TAS history entries with the same
+    # TAS components (ATA, AI, etc.) from being valid at the same time. When
+    # that happens (unlikely), we select the minimum (i.e. older) of the
+    # potential TAS history entries.
     sql = """
         UPDATE {table_name}
         SET tas_id = (
