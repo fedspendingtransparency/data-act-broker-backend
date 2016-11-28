@@ -380,7 +380,9 @@ class ValidationManager:
             validRows = totalRowsExcludingHeader - len(errorRowsUnique)
 
             # Update job metadata
-            jobTracker.setJobRowcounts(job_id, rowNumber, validRows)
+            job.number_of_rows = rowNumber
+            job.number_of_rows_valid = validRows
+            sess.commit()
 
             error_list.writeAllRowErrors(job_id)
             # Update error info for submission

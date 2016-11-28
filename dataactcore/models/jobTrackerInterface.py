@@ -23,16 +23,6 @@ class JobTrackerInterface(BaseInterface):
         """
         return self.runUniqueQuery(query, "Job ID not found in job table","Conflicting jobs found for this ID")
 
-    def getJobStatusNameById(self, status_id):
-        """ Returns the status name that corresponds to the given id """
-        return self.getNameFromDict(JobStatus,"JOB_STATUS_DICT","name",status_id,"job_status_id")
-
-    def setJobRowcounts(self, jobId, numRows, numValidRows):
-        """Set number of rows in job that passed validations."""
-        self.session.query(Job).filter(Job.job_id == jobId).update(
-            {"number_of_rows_valid": numValidRows, "number_of_rows": numRows})
-        self.session.commit()
-
     def getSubmissionStatus(self,submission):
         # obviously this entire file is going away soon, but temporarily
         # patch this so we can remove getJobsBySubmission function

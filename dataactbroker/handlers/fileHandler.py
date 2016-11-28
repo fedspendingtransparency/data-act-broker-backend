@@ -896,12 +896,12 @@ class FileHandler:
 
     def mapGenerateStatus(self, uploadJob, validationJob = None):
         """ Maps job status to file generation statuses expected by frontend """
-        uploadStatus = self.interfaces.jobDb.getJobStatusNameById(uploadJob.job_status_id)
+        uploadStatus = uploadJob.job_status.name
         if validationJob is None:
             errorsPresent = False
             validationStatus = None
         else:
-            validationStatus = self.interfaces.jobDb.getJobStatusNameById(validationJob.job_status_id)
+            validationStatus = validationJob.job_status.name
             if checkNumberOfErrorsByJobId(validationJob.job_id) > 0:
                 errorsPresent = True
             else:
