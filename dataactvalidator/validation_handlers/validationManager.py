@@ -11,7 +11,8 @@ from dataactcore.models.jobModels import Submission
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.interfaces.function_bag import (
     createFileIfNeeded, writeFileError, markFileComplete, run_job_checks,
-    mark_job_status)
+    mark_job_status, sumNumberOfErrorsForJobList, populateSubmissionErrorInfo
+)
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
 from dataactcore.models.stagingModels import FlexField
@@ -383,7 +384,7 @@ class ValidationManager:
 
             error_list.writeAllRowErrors(job_id)
             # Update error info for submission
-            jobTracker.populateSubmissionErrorInfo(submission_id)
+            populateSubmissionErrorInfo(submission_id)
             # Mark validation as finished in job tracker
             mark_job_status(job_id, "finished")
             markFileComplete(job_id, fileName)
@@ -502,14 +503,17 @@ class ValidationManager:
         _exception_logger.info(
             'VALIDATOR_INFO: Completed runCrossValidation on submission_id: '
             '%s', submission_id)
+        submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
         # Update error info for submission
-        interfaces.jobDb.populateSubmissionErrorInfo(submission_id)
+        submission.number_of_errors = sumNumberOfErrorsForJobList(submission_id)
+        submission.number_of_warnings = sumNumberOfErrorsForJobList(submission_id, errorType="warning")
         # TODO: Remove temporary step below
         # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their submissions
         # as publishable
         # Publish only if no errors are present
-        if sess.query(Submission).filter_by(submission_id = submission_id).one().number_of_errors == 0:
-            interfaces.jobDb.setPublishableFlag(submission_id, True)
+        if submission.number_of_errors == 0:
+            submission.publishable = True
+        sess.commit()
 
         # Mark validation complete
         markFileComplete(job_id)

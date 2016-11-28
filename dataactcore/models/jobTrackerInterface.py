@@ -3,7 +3,7 @@ import logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import sumNumberOfErrorsForJobList
 from dataactcore.models.baseInterface import BaseInterface
-from dataactcore.models.jobModels import Job, JobStatus, Submission
+from dataactcore.models.jobModels import Job, JobStatus
 from dataactcore.models.lookups import JOB_STATUS_DICT
 
 
@@ -75,27 +75,4 @@ class JobTrackerInterface(BaseInterface):
 
         return status
 
-    def populateSubmissionErrorInfo(self, submission_id):
-        """Deprecated: moved to function_bag.py."""
-        sess = GlobalDB.db().session
-        submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
-        # TODO find where interfaces is set as an instance variable which overrides the static variable, fix that and then remove this line
-        self.interfaces = BaseInterface.interfaces
-        submission.number_of_errors = sumNumberOfErrorsForJobList(submission_id)
-        submission.number_of_warnings = sumNumberOfErrorsForJobList(submission_id, errorType = "warning")
-        self.session.commit()
 
-    def setPublishableFlag(self, submission_id, publishable):
-        """ Set publishable flag to specified value """
-        sess = GlobalDB.db().session
-        submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
-        submission.publishable = publishable
-        self.session.commit()
-
-    def extract_submission(self, submission_or_id):
-        """ If given an integer, get the specified submission, otherwise return the input """
-        if isinstance(submission_or_id, int):
-            sess = GlobalDB.db().session
-            return sess.query(Submission).filter_by(submission_id = submission_or_id).one()
-        else:
-            return submission_or_id
