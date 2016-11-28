@@ -1,5 +1,5 @@
 from dataactcore.models.baseInterface import BaseInterface
-from dataactbroker.handlers.jobHandler import JobHandler
+from dataactcore.models.jobTrackerInterface import JobTrackerInterface
 
 
 class InterfaceHolder:
@@ -7,7 +7,7 @@ class InterfaceHolder:
     def __init__(self):
         """ Create the interfaces """
         if BaseInterface.interfaces is None:
-            self.jobDb = JobHandler()
+            self.jobDb = JobTrackerInterface()
             BaseInterface.interfaces = self
         else:
             self.jobDb = BaseInterface.interfaces.jobDb

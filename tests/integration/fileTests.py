@@ -13,7 +13,6 @@ from dataactcore.models.jobModels import Submission, Job, JobDependency
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.userModel import User
 from dataactcore.config import CONFIG_BROKER
-from dataactbroker.handlers.jobHandler import JobHandler
 from dataactvalidator.app import createApp
 
 
