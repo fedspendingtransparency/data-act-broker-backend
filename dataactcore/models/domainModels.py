@@ -90,8 +90,10 @@ class SF133(Base):
     period = Column(Integer, nullable=False)
     line = Column(Integer,nullable=False)
     amount = Column(Numeric,nullable=False,default=0,server_default="0")
-    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'),
-                    nullable=True)
+    tas_id = Column(
+        Integer,
+        ForeignKey("tas_lookup.tas_id", name='fk_sf_133_tas_lookup'),
+        nullable=True)
     tas_obj = relationship(TASLookup)
 
 Index("ix_sf_133_tas",
