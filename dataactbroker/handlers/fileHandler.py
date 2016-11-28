@@ -433,8 +433,6 @@ class FileHandler:
             submission_info = {}
             submission_info["jobs"] = []
             submission_info["cgac_code"] = submission.cgac_code
-            submission_info["reporting_period_start_date"] = self.interfaces.jobDb.getStartDate(submission)
-            submission_info["reporting_period_end_date"] = self.interfaces.jobDb.getEndDate(submission)
             submission_info["created_on"] = submission.datetime_utc.strftime('%m/%d/%Y')
             # Include number of errors in submission
             submission_info["number_of_errors"] = submission.number_of_errors
@@ -443,6 +441,16 @@ class FileHandler:
                 filter_by(submission_id = submission_id).\
                 scalar() or 0
             submission_info["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
+            # Format submission reporting date
+            if submission.is_quarter_format:
+                reporting_date = 'Q{}/{}'.format(
+                    int(submission.reporting_fiscal_period / 3), submission.reporting_fiscal_year)
+            else:
+                reporting_date = submission.reporting_start_date.strftime("%m/%Y")
+            # Broker allows submission for a single quarter or a single month,
+            # so reporting_period start and end dates reported by check_status
+            # are always equal
+            submission_info["reporting_period_start_date"] = submission_info["reporting_period_end_date"] = reporting_date
 
             for job in jobs:
                 job_info = {}

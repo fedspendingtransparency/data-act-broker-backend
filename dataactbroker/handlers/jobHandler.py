@@ -21,59 +21,6 @@ class JobHandler(JobTrackerInterface):
     session -- sqlalchemy session for ORM usage
     """
 
-    fiscalStartMonth = 10
-
-    def getStartDate(self, submission):
-        """ Return formatted start date """
-        if submission.is_quarter_format:
-            quarter = self.monthToQuarter(submission.reporting_start_date.month, True)
-            year = submission.reporting_start_date.year
-            if quarter == "Q1":
-                # First quarter is part of next fiscal year
-                year += 1
-            return "".join([quarter,"/",str(year)])
-        else:
-            return submission.reporting_start_date.strftime("%m/%Y")
-
-    def getEndDate(self, submission):
-        """ Return formatted end date """
-        if submission.is_quarter_format:
-            quarter = self.monthToQuarter(submission.reporting_end_date.month, False)
-            year = submission.reporting_end_date.year
-            if quarter == "Q1":
-                # First quarter is part of next fiscal year
-                year += 1
-            return "".join([quarter,"/",str(year)])
-        else:
-            return submission.reporting_end_date.strftime("%m/%Y")
-
-    @classmethod
-    def monthToQuarter(cls, month, isStart):
-        """ Convert month as int to a two character quarter """
-        # Base off fiscal year beginning
-        baseMonth =  cls.fiscalStartMonth
-        if not isStart:
-            # Quarters end two months after they start
-            baseMonth += 2
-        monthsIntoFiscalYear = (month - baseMonth) % 12
-        if (monthsIntoFiscalYear % 3) != 0:
-            # Not a valid month for a quarter
-            raise ResponseException("Not a valid month to be in quarter format", StatusCode.INTERNAL_ERROR, ValueError)
-        quartersFromStart = monthsIntoFiscalYear / 3
-        quarter = quartersFromStart + 1
-        return "".join(["Q",str(int(quarter))])
-
-    @staticmethod
-    def createDate(dateString):
-        """ Create a date object from a string in "MM/YYYY" """
-        if dateString is None:
-            return None
-        dateParts = dateString.split("/")
-        if len(dateParts) > 2:
-            # Cannot include day now
-            raise ResponseException("Please format dates as MM/YYYY",StatusCode.CLIENT_ERROR,ValueError)
-        # Defaulting day to 1, this will not be used
-        return date(year = int(dateParts[1]),month = int(dateParts[0]),day=1)
 
 
 
