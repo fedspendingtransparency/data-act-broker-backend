@@ -88,7 +88,7 @@ class FileHandler:
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
-    def __init__(self, request, isLocal= False, serverPath =""):
+    def __init__(self, request, isLocal=False, serverPath=""):
         """ Create the File Handler
 
         Arguments:

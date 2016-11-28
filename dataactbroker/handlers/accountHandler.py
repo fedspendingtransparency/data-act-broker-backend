@@ -34,7 +34,7 @@ class AccountHandler:
     ALLOWED_PASSWORD_ATTEMPTS = 3 # Number of allowed login attempts before account is locked
     # Instance fields include request, response, logFlag, and logFile
 
-    def __init__(self,request, bcrypt = None, isLocal=False):
+    def __init__(self,request, bcrypt=None, isLocal=False):
         """ Creates the Login Handler
 
         Args:

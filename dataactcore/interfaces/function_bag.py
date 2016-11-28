@@ -19,16 +19,11 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
 
-# First step to deprecating BaseInterface, its children, and corresponding
-# interface holders is to start moving all db access logic into one big
-# file (to prevent circular imports and have everything in the same place).
-# Still to do...make this work solely with a flask context...original idea
-# was that these functions would only be invoked within a Flask route, but
-# there are some (e.g., createUserWithPassword) that need to be here,
-# pending a further refactor.
-# As a temporary measure, until the next part of the work that refactors
-# the db access within Flask requests, fire up an ad-hoc db session in
-# these transitional functions.
+# This is a holding place for functions from a previous iteration of
+# broker databases and database access code. Work still to do:
+# - simplify functions
+# - move functions to a better place?
+# - replace GlobalDB function, which is deprecated now that db logic is refactored
 
 
 logger = logging.getLogger(__name__)

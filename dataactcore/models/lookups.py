@@ -3,7 +3,6 @@
 # and then make db calls to lookup the surrogate keys, we'll define everything
 # here, in a file that can be used by the db setup scripts *and* the application
 # code.
-# todo: replace getIdFromDict and getNameFromDict baseInterface functions with these constants
 
 from collections import namedtuple
 
