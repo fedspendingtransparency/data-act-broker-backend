@@ -35,6 +35,32 @@ def load_all_sf133(sf133_path=None):
             sf133.full_file, file_match.group('year'), file_match.group('period'))
 
 
+def fill_blank_sf133_lines(data):
+    """Incoming .csv does not always include rows for zero-value SF-133 lines
+    so we add those here because they're needed for the SF-133 validations.
+    1. "pivot" the sf-133 dataset to explode it horizontally, creating one
+        row for each tas/fiscal year/period, with columns for each SF-133 line.
+    2. Fill any SF-133 line number cells with a missing value for a
+       specific tas/fiscal year/period with a 0.0. We don't do this in the
+       "pivot" step because that'll downcast floats to ints
+    3. Once the zeroes are filled in, "melt" the pivoted data back to its normal
+       format of one row per tas/fiscal year/period.
+    NOTE: fields used for the pivot in step #1 (i.e., items in pivot_idx) cannot
+    have NULL values, else they will be silently dropped by pandas :("""
+    pivot_idx = (
+        'created_at', 'updated_at', 'agency_identifier',
+        'allocation_transfer_agency', 'availability_type_code',
+        'beginning_period_of_availa', 'ending_period_of_availabil',
+        'main_account_code', 'sub_account_code', 'tas', 'fiscal_year',
+        'period')
+
+    data = pd.pivot_table(
+        data, values='amount', index=pivot_idx, columns=['line']).reset_index()
+    data = data.fillna(value=0.0)
+    data = pd.melt(data, id_vars=pivot_idx, value_name='amount')
+    return data
+
+
 def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
     """Load SF 133 (budget execution report) lookup table."""
 
@@ -99,23 +125,8 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
 
         # add concatenated TAS field for internal use (i.e., joining to staging tables)
         data['tas'] = data.apply(lambda row: format_internal_tas(row), axis=1)
-
-        # incoming .csv does not always include rows for zero-value SF-133 lines
-        # so we add those here because they're needed for the SF-133 validations.
-        # 1. "pivot" the sf-133 dataset to explode it horizontally, creating one
-        # row for each tas/fiscal year/period, with columns for each SF-133 line.
-        # the "fill_value=0" parameter puts a 0 into any Sf-133 line number cell
-        # with a missing value for a specific tas/fiscal year/period.
-        # 2. Once the zeroes are filled in, "melt" the pivoted data back to its normal
-        # format of one row per tas/fiscal year/period.
-        # NOTE: fields used for the pivot in step #1 (i.e., items in pivot_idx) cannot
-        # have NULL values, else they will be silently dropped by pandas :(
-        pivot_idx = ['created_at', 'updated_at', 'agency_identifier', 'allocation_transfer_agency',
-                     'availability_type_code', 'beginning_period_of_availa', 'ending_period_of_availabil',
-                     'main_account_code', 'sub_account_code', 'tas', 'fiscal_year', 'period']
-        data.amount = data.amount.astype(float)
-        data = pd.pivot_table(data, values='amount', index=pivot_idx, columns=['line'], fill_value=0).reset_index()
-        data = pd.melt(data, id_vars=pivot_idx, value_name='amount')
+        
+        data = fill_blank_sf133_lines(data)
 
         # Now that we've added zero lines for EVERY tas and SF 133 line number, get rid of the ones
         # we don't actually use in the validations. Arguably, it would be better just to include

@@ -1,21 +1,22 @@
 from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.models.baseInterface import databaseSession
 from dataactcore.models.jobModels import Submission, Job, JobDependency
+from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 
 EXTERNAL_FILE_TYPES = ["award_procurement", "award", "awardee_attributes", "sub_award"]
 # Get all submission IDs
 interfaces = InterfaceHolder()
 submissionIds = interfaces.jobDb.session.query(Submission.submission_id).all()
 print(str(submissionIds))
-fileUpload = interfaces.jobDb.getJobTypeId("file_upload")
-validation = interfaces.jobDb.getJobTypeId("csv_record_validation")
-ready = interfaces.jobDb.getJobStatusId("ready")
-waiting = interfaces.jobDb.getJobStatusId("waiting")
-awardTypeId = interfaces.jobDb.getFileTypeId("award")
-awardProcTypeId =  interfaces.jobDb.getFileTypeId("award_procurement")
+fileUpload = JOB_TYPE_DICT["file_upload"]
+validation = JOB_TYPE_DICT["csv_record_validation"]
+ready = JOB_STATUS_DICT["ready"]
+waiting = JOB_STATUS_DICT["waiting"]
+awardTypeId = FILE_TYPE_DICT["award"]
+awardProcTypeId =  FILE_TYPE_DICT["award_procurement"]
 externalIds = []
 for fileType in EXTERNAL_FILE_TYPES:
-    externalIds.append(interfaces.jobDb.getFileTypeId(fileType))
+    externalIds.append(FILE_TYPE_DICT[fileType])
 # For each submission ID, check that all jobs are present and create any missing
 print("external IDs: " + str(externalIds))
 with databaseSession() as session:
