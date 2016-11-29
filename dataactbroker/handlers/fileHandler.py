@@ -4,6 +4,7 @@ from csv import reader
 from datetime import datetime
 from functools import wraps
 import logging
+from dateutil.relativedelta import relativedelta
 from uuid import uuid4
 from shutil import copyfile
 
@@ -197,6 +198,7 @@ class FileHandler:
         key_url is the S3 URL for uploading
         key_id is the job id to be passed to the finalize_submission route
         """
+        sess = GlobalDB.db().session
         try:
             response_dict= {}
             upload_files = []
@@ -209,31 +211,35 @@ class FileHandler:
                 "reporting_period_start_date": "reporting_start_date",
                 "reporting_period_end_date": "reporting_end_date",
                 "is_quarter": "is_quarter_format"}
-            # incoming dates should be formatted as 'mm/yyyy'
-            date_format = '%m/%Y'
 
             submission_data = {}
             existing_submission_id = request_params.get('existing_submission_id')
-            existing_submission = True if existing_submission_id else None
+            if existing_submission_id:
+                existing_submission = True
+                existing_submission_obj = sess.query(Submission).\
+                    filter_by(submission_id=existing_submission_id).\
+                    one()
+            else:
+                existing_submission = None
+                existing_submission_obj = None
             for request_field, submission_field in request_submission_mapping.items():
                 if request_field in request_params:
                     request_value = request_params[request_field]
-
-                    if 'date' in request_field:
-                        # convert incoming dates to Python date objects
-                        try:
-                            request_value = datetime.strptime(request_value, date_format)
-                        except ValueError:
-                            raise ResponseException("Date must be provided as MM/YYYY", StatusCode.CLIENT_ERROR,
-                                                    ValueError)
-
                     submission_data[submission_field] = request_value
-                # All of those fields are required unless
+                # all of those fields are required unless
                 # existing_submission_id is present
                 elif 'existing_submission_id' not in request_params:
                     raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
+            # make sure submission dates are valid
+            formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(
+                submission_data.get('reporting_start_date'),
+                submission_data.get('reporting_end_date'),
+                submission_data.get('is_quarter_format'),
+                existing_submission_obj)
+            submission_data['reporting_start_date'] = formatted_start_date
+            submission_data['reporting_end_date'] = formatted_end_date
 
-            submission = create_submission(user_id, submission_data, existing_submission_id)
+            submission = create_submission(user_id, submission_data, existing_submission_obj)
             if existing_submission:
                 # check if user has permission to specified submission
                 user_agency_must_match(submission)
@@ -307,6 +313,57 @@ class FileHandler:
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
         except:
             return JsonResponse.error(Exception("Failed to catch exception"),StatusCode.INTERNAL_ERROR)
+
+    @staticmethod
+    def check_submission_dates(start_date, end_date, is_quarter, existing_submission=None):
+        """Check validity of incoming submission start and end dates."""
+        # if any of the date fields are none, there should be an existing submission
+        # otherwise, we shouldn't be here
+        if None in (start_date, end_date, is_quarter) and existing_submission is None:
+            raise ResponseException("An existing submission is required when start/end date"
+                                    " or is_quarter aren't supplied", StatusCode.INTERNAL_ERROR)
+
+        # convert submission start/end dates from the request into Python date
+        # objects. if a date is missing, grab it from the existing submission
+        # note: a previous check ensures that there's an existing submission
+        # when the start/end dates are empty
+        date_format = '%m/%Y'
+        try:
+            if start_date is not None:
+                start_date = datetime.strptime(start_date, date_format).date()
+            else:
+                start_date = existing_submission.reporting_start_date
+            if end_date is not None:
+                end_date = datetime.strptime(end_date, date_format).date()
+            else:
+                end_date = existing_submission.reporting_end_date
+        except ValueError:
+            raise ResponseException("Date must be provided as MM/YYYY", StatusCode.CLIENT_ERROR,
+                                    ValueError)
+
+        # the front-end is doing date checks, but we'll also do a few server side to ensure
+        # everything is correct when clients call the API directly
+        if start_date > end_date:
+            raise ResponseException(
+                "Submission start date {} is after the end date {}".format(start_date, end_date),
+                StatusCode.CLIENT_ERROR)
+
+        # currently, broker allows quarterly submissions for a single quarter only. the front-end
+        # handles this requirement, but since we have some downstream logic that depends on a
+        # quarterly submission representing one quarter, we'll check server side as well
+        is_quarter = is_quarter if is_quarter is not None else existing_submission.is_quarter_format
+        if is_quarter is None:
+            is_quarter = existing_submission.is_quarter_format
+        if is_quarter:
+            if relativedelta(end_date + relativedelta(months=1), start_date).months != 3:
+                raise ResponseException(
+                    "Quarterly submission must span 3 months", StatusCode.CLIENT_ERROR)
+            if end_date.month % 3 != 0:
+                raise ResponseException(
+                    "Invalid end month for a quarterly submission: {}".format(end_date.month),
+                    StatusCode.CLIENT_ERROR)
+
+        return start_date, end_date
 
     def finalize(self, job_id=None):
         """ Set upload job in job tracker database to finished, allowing dependent jobs to be started

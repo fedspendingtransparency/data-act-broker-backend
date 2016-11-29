@@ -375,7 +375,7 @@ def check_job_dependencies(job_id):
                 from dataactcore.utils.jobQueue import enqueue
                 enqueue.delay(dep_job_id)
 
-def create_submission(user_id, submission_values, existing_submission_id):
+def create_submission(user_id, submission_values, existing_submission):
     """ Create a new submission
 
     Arguments:
@@ -388,13 +388,13 @@ def create_submission(user_id, submission_values, existing_submission_id):
     """
     sess = GlobalDB.db().session
 
-    if existing_submission_id is None:
+    if existing_submission is None:
         submission = Submission(datetime_utc = datetime.utcnow(), **submission_values)
         submission.user_id = user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
         sess.add(submission)
     else:
-        submission = sess.query(Submission).filter_by(submission_id = existing_submission_id).one()
+        submission = existing_submission
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
             submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
         # submission is being updated, so turn off publishable flag
@@ -405,7 +405,6 @@ def create_submission(user_id, submission_values, existing_submission_id):
 
     sess.commit()
     return submission
-
 
 def create_jobs(upload_files, submission, existing_submission=False):
     """Create the set of jobs associated with the specified submission

@@ -82,7 +82,7 @@ class FileTests(BaseTestAPI):
                     "award_financial":"test2.csv",
                     "program_activity":"test4.csv", "cgac_code": "SYS",
                     "reporting_period_start_date":"01/2001",
-                    "reporting_period_end_date":"01/2001", "is_quarter":True}
+                    "reporting_period_end_date":"03/2001", "is_quarter":True}
             else:
                 # If local must use full destination path
                 filePath = CONFIG_BROKER["broker_files"]
@@ -90,7 +90,7 @@ class FileTests(BaseTestAPI):
                     "award_financial":os.path.join(filePath,"test2.csv"),
                     "program_activity":os.path.join(filePath,"test4.csv"), "cgac_code": "SYS",
                     "reporting_period_start_date":"01/2001",
-                    "reporting_period_end_date":"01/2001", "is_quarter":True}
+                    "reporting_period_end_date":"03/2001", "is_quarter":True}
             self.submitFilesResponse = self.app.post_json("/v1/submit_files/", self.filenames, headers={"x-session-id":self.session_id})
             self.updateSubmissionId = self.submitFilesResponse.json["submission_id"]
         return self.submitFilesResponse
@@ -150,18 +150,20 @@ class FileTests(BaseTestAPI):
     def test_update_submission(self):
         """ Test submit_files with an existing submission ID """
         self.call_file_submission()
-        if(CONFIG_BROKER["use_aws"]):
+        # note: this is a quarterly test submission, so
+        # updated dates must still reflect a quarter
+        if CONFIG_BROKER["use_aws"]:
             updateJson = {"existing_submission_id": self.updateSubmissionId,
                 "award_financial":"updated.csv",
-                "reporting_period_start_date":"02/2016",
-                "reporting_period_end_date":"03/2016"}
+                "reporting_period_start_date":"04/2016",
+                "reporting_period_end_date":"06/2016"}
         else:
             # If local must use full destination path
             filePath = CONFIG_BROKER["broker_files"]
             updateJson = {"existing_submission_id": self.updateSubmissionId,
                 "award_financial": os.path.join(filePath,"updated.csv"),
-                "reporting_period_start_date":"02/2016",
-                "reporting_period_end_date":"03/2016"}
+                "reporting_period_start_date":"04/2016",
+                "reporting_period_end_date":"06/2016"}
         # Mark submission as published
         with createApp().app_context():
             sess = GlobalDB.db().session
@@ -177,8 +179,8 @@ class FileTests(BaseTestAPI):
             submissionId = json["submission_id"]
             submission = sess.query(Submission).filter(Submission.submission_id == submissionId).one()
             self.assertEqual(submission.cgac_code, "SYS")  # Should not have changed agency name
-            self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"), "02/2016")
-            self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"), "03/2016")
+            self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"), "04/2016")
+            self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"), "06/2016")
             self.assertEqual(submission.publish_status_id, self.publishStatusDict['updated'])
 
     def test_bad_quarter_or_month(self):
@@ -195,7 +197,7 @@ class FileTests(BaseTestAPI):
 
         updateJson = {
             # make sure date checks work as expected for an existing submission
-            "existing_submission_id": 999,
+            "existing_submission_id": self.status_check_submission_id,
             "award_financial":"updated.csv",
             "reporting_period_start_date":"AB/2016",
             "reporting_period_end_date":"CD/2016"}
