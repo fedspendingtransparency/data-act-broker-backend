@@ -34,29 +34,16 @@ class AccountHandler:
     ALLOWED_PASSWORD_ATTEMPTS = 3 # Number of allowed login attempts before account is locked
     # Instance fields include request, response, logFlag, and logFile
 
-    def __init__(self,request, interfaces = None, bcrypt = None, isLocal=False):
+    def __init__(self,request, bcrypt=None, isLocal=False):
         """ Creates the Login Handler
 
         Args:
             request - Flask request object
-            interfaces - InterfaceHolder object for databases
             bcrypt - Bcrypt object associated with app
         """
         self.isLocal = isLocal
         self.request = request
         self.bcrypt = bcrypt
-        if interfaces is not None:
-            self.interfaces = interfaces
-            self.jobManager = interfaces.jobDb
-
-    def addInterfaces(self,interfaces):
-        """ Add interfaces to an existing account handler
-
-        Args:
-            interfaces - InterfaceHolder object for databases
-        """
-        self.interfaces = interfaces
-        self.jobManager = interfaces.jobDb
 
     def checkPassword(self,password):
         """Checks to make sure the password is valid"""

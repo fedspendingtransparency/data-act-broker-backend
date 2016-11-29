@@ -3,7 +3,6 @@
 # and then make db calls to lookup the surrogate keys, we'll define everything
 # here, in a file that can be used by the db setup scripts *and* the application
 # code.
-# todo: replace getIdFromDict and getNameFromDict baseInterface functions with these constants
 
 from collections import namedtuple
 
@@ -72,6 +71,7 @@ FILE_TYPE = [
 FILE_TYPE_DICT = {item.name: item.id for item in FILE_TYPE}
 FILE_TYPE_DICT_ID = {item.id: item.name for item in FILE_TYPE}
 FILE_TYPE_DICT_LETTER = {item.id: item.letter for item in FILE_TYPE}
+FILE_TYPE_DICT_LETTER_ID = {item.letter: item.id for item in FILE_TYPE}
 
 
 USER_STATUS = [

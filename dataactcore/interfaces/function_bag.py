@@ -19,16 +19,11 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactvalidator.validation_handlers.validationError import ValidationError
 
 
-# First step to deprecating BaseInterface, its children, and corresponding
-# interface holders is to start moving all db access logic into one big
-# file (to prevent circular imports and have everything in the same place).
-# Still to do...make this work solely with a flask context...original idea
-# was that these functions would only be invoked within a Flask route, but
-# there are some (e.g., createUserWithPassword) that need to be here,
-# pending a further refactor.
-# As a temporary measure, until the next part of the work that refactors
-# the db access within Flask requests, fire up an ad-hoc db session in
-# these transitional functions.
+# This is a holding place for functions from a previous iteration of
+# broker databases and database access code. Work still to do:
+# - simplify functions
+# - move functions to a better place?
+# - replace GlobalDB function, which is deprecated now that db logic is refactored
 
 
 logger = logging.getLogger(__name__)
@@ -380,7 +375,7 @@ def check_job_dependencies(job_id):
                 from dataactcore.utils.jobQueue import enqueue
                 enqueue.delay(dep_job_id)
 
-def create_submission(user_id, submission_values, existing_submission_id):
+def create_submission(user_id, submission_values, existing_submission):
     """ Create a new submission
 
     Arguments:
@@ -393,13 +388,13 @@ def create_submission(user_id, submission_values, existing_submission_id):
     """
     sess = GlobalDB.db().session
 
-    if existing_submission_id is None:
+    if existing_submission is None:
         submission = Submission(datetime_utc = datetime.utcnow(), **submission_values)
         submission.user_id = user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
         sess.add(submission)
     else:
-        submission = sess.query(Submission).filter_by(submission_id = existing_submission_id).one()
+        submission = existing_submission
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
             submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
         # submission is being updated, so turn off publishable flag
@@ -410,7 +405,6 @@ def create_submission(user_id, submission_values, existing_submission_id):
 
     sess.commit()
     return submission
-
 
 def create_jobs(upload_files, submission, existing_submission=False):
     """Create the set of jobs associated with the specified submission
@@ -606,3 +600,44 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
     sess.commit()
 
     return validation_job_id, upload_job.job_id
+
+def get_submission_status(submission):
+    """Return the status of a submission."""
+    sess = GlobalDB.db().session
+
+    jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
+    status_names = JOB_STATUS_DICT.keys()
+    statuses = {name: 0 for name in status_names}
+    skip_count = 0
+
+    for job in jobs:
+        if job.job_type.name not in ["external_validation", None]:
+            job_status = job.job_status.name
+            statuses[job_status] += 1
+        else:
+            skip_count += 1
+
+    status = "unknown"
+
+    if statuses["failed"] != 0:
+        status = "failed"
+    elif statuses["invalid"] != 0:
+        status = "file_errors"
+    elif statuses["running"] != 0:
+        status = "running"
+    elif statuses["waiting"] != 0:
+        status = "waiting"
+    elif statuses["ready"] != 0:
+        status = "ready"
+    elif statuses["finished"] == jobs.count() - skip_count:  # need to account for the jobs that were skipped above
+        status = "validation_successful"
+        if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
+            status = "validation_successful_warnings"
+        if submission.publishable:
+            status = "submitted"
+
+    # Check if submission has errors
+    if submission.number_of_errors is not None and submission.number_of_errors > 0:
+        status = "validation_errors"
+
+    return status

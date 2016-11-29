@@ -1,10 +1,10 @@
+from datetime import date, datetime
 import json
 from unittest.mock import Mock
 
 import pytest
 
 from dataactbroker.handlers import fileHandler
-from dataactcore.interfaces.interfaceHolder import InterfaceHolder
 from dataactcore.models.jobModels import JobStatus, JobType, FileType
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
@@ -16,7 +16,7 @@ LIMIT = 10
 CERTIFIED = "mixed"
 
 def test_list_submissions_success(database, job_constants, monkeypatch):
-    fh = fileHandler.FileHandler(Mock(), InterfaceHolder())
+    fh = fileHandler.FileHandler(Mock())
 
     mock_value = Mock()
     mock_value.getName.return_value = 1
@@ -84,7 +84,7 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
     delete_models(database, [user, sub, job])
 
 def test_list_submissions_failure(database, job_constants, monkeypatch):
-    fh = fileHandler.FileHandler(Mock(), InterfaceHolder())
+    fh = fileHandler.FileHandler(Mock())
 
     mock_value = Mock()
     mock_value.getName.return_value = 1
@@ -208,3 +208,63 @@ def test_narratives(database, job_constants, monkeypatch):
         'E': 'E2E2E2',
         'F': ''
     }
+
+good_dates = [
+    ('04/2016', '05/2016', False, None),
+    ('07/2014', '07/2014', False, None),
+    ('01/2010', '03/2010', False, None),
+    ('10/2017', '12/2017', True, None),
+    ('04/2016', None, False, SubmissionFactory(
+        reporting_start_date=datetime.strptime('09/2016', '%m/%Y').date(),
+        reporting_end_date=datetime.strptime('09/2016', '%m/%Y').date())),
+    (None, '07/2014', None, SubmissionFactory(
+        reporting_start_date=datetime.strptime('08/2013', '%m/%Y').date(),
+        reporting_end_date = datetime.strptime('09/2016', '%m/%Y').date())),
+    ('01/2010', '03/2010', True, SubmissionFactory(is_quarter_format=False)),
+    (None, None, None, SubmissionFactory(
+        reporting_start_date=datetime.strptime('09/2016', '%m/%Y').date(),
+        reporting_end_date=datetime.strptime('09/2016', '%m/%Y').date()
+    )),
+    (None, None, None, SubmissionFactory(
+        is_quarter_format=True,
+        reporting_start_date=datetime.strptime('10/2016', '%m/%Y').date(),
+        reporting_end_date=datetime.strptime('12/2016', '%m/%Y').date()
+    ))
+]
+@pytest.mark.parametrize("start_date, end_date, quarter_flag, submission", good_dates)
+def test_submission_good_dates(start_date, end_date, quarter_flag, submission):
+    fh = fileHandler.FileHandler(Mock())
+    date_format = '%m/%Y'
+    output_start_date, output_end_date = fh.check_submission_dates(start_date, end_date, quarter_flag, submission)
+    assert isinstance(output_start_date, date)
+    assert isinstance(output_end_date, date)
+    # if we explicitly give a submission beginning or end date, those dates should
+    # override the ones on the existing submission
+    if start_date is None:
+        assert output_start_date == submission.reporting_start_date
+    else:
+        assert output_start_date == datetime.strptime(start_date, date_format).date()
+    if end_date is None:
+        assert output_end_date == submission.reporting_end_date
+    else:
+        assert output_end_date == datetime.strptime(end_date, date_format).date()
+
+bad_dates = [
+    ('04/2016', '05/2016', True, SubmissionFactory()),
+    ('08/2016', '11/2016', True, SubmissionFactory()),
+    ('07/2014', '06/2014', False, None),
+    ('11/2010', '03/2010', False, None),
+    ('10/2017', '12/xyz', True, None),
+    ('01/2016', '07/2016', True, None),
+    (None, '01/1930', False, SubmissionFactory())
+]
+@pytest.mark.parametrize("start_date, end_date, quarter_flag, submission", bad_dates)
+def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
+    """Verify that submission date checks fail on bad input"""
+    # all dates must be in mm/yyyy format
+    # quarterly submissions:
+    # - can span a single quarter only
+    # - must end with month = 3, 6, 9, or 12
+    fh = fileHandler.FileHandler(Mock())
+    with pytest.raises(ResponseException):
+        fh.check_submission_dates(start_date, end_date, quarter_flag, submission)
