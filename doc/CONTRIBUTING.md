@@ -224,16 +224,17 @@ bucket, within the `config` directory, you should see a series of
 `sf_133_yyyy_mm.csv` files. Download these and store them in your local
 `dataactvalidator/config` folder. 
 
-In either case, you'll need to make a local tweak to
-`dataactvalidator/scipts/loadFile.py` and run it. The file needs an additional
-line, to look like this:
+Once you've placed those files, run:
 
-```python
-if __name__ == '__main__':
-    loadDomainValues(
-        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
-        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
-    )
+```bash
+python dataactvalidator/scripts/load_sf133.py
+```
+
+This will only load the new SF133 entries. To force load from your files, you
+can add the `-f` or `--force` flag:
+
+```bash
+python dataactvalidator/scripts/load_sf133.py -f
 ```
 
 This will take several minutes to process.

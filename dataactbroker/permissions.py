@@ -55,7 +55,7 @@ def permissions_check(f=None,permission=None):
 
                     if valid_user:
                         return f(*args, **kwargs)
-                    error_message = "Insufficient permissions to perform requested task."
+                    error_message = "You are not authorized to perform the requested task. Please contact your administrator."
 
                 # No user logged in
                 return_response = flask.Response()
