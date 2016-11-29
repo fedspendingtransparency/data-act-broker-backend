@@ -7,7 +7,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from dataactbroker.handlers.aws.session import LoginSession
 
-# todo: determine if we even need this DomainHandler. It will only contain one static function
+# todo: Determine if we even need this DomainHandler. It only contains one static function.
 
 class DomainHandler:
 

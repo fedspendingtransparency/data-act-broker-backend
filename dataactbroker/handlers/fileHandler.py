@@ -731,31 +731,31 @@ class FileHandler:
 
         return True, None
 
-    def handleEmptyResponse(self, job, valJob):
+    def handleEmptyResponse(self, job, val_job):
         """ Handles an empty response from the D file API by marking jobs as finished with no errors or rows
 
         Args:
             job - Job object for upload job
-            valJob - Job object for validation job
+            val_job - Job object for validation job
         """
         sess = GlobalDB.db().session
         # No results found, skip validation and mark as finished
-        sess.query(JobDependency).filter(JobDependency.prerequisite_id == job.job_id).delete()
-        sess.commit()
+        sess.query(JobDependency).\
+            filter(JobDependency.prerequisite_id == job.job_id).\
+            delete(synchronize_session='fetch')
         mark_job_status(job.job_id,"finished")
         job.filename = None
-        if valJob is not None:
-            mark_job_status(valJob.job_id, "finished")
+        if val_job is not None:
+            mark_job_status(val_job.job_id, "finished")
             # Create File object for this validation job
-            valFile = createFileIfNeeded(valJob.job_id, filename = valJob.filename)
-            valFile.file_status_id = FILE_STATUS_DICT['complete']
-            sess.commit()
-            valJob.number_of_rows = 0
-            valJob.number_of_rows_valid = 0
-            valJob.file_size = 0
-            valJob.number_of_errors = 0
-            valJob.number_of_warnings = 0
-            valJob.filename = None
+            val_file = createFileIfNeeded(val_job.job_id, filename = val_job.filename)
+            val_file.file_status_id = FILE_STATUS_DICT['complete']
+            val_job.number_of_rows = 0
+            val_job.number_of_rows_valid = 0
+            val_job.file_size = 0
+            val_job.number_of_errors = 0
+            val_job.number_of_warnings = 0
+            val_job.filename = None
             sess.commit()
 
     def get_xml_response_content(self, api_url):
