@@ -1,7 +1,7 @@
 from decimal import Decimal
 import logging
 
-from dataactcore.models.lookups import FILE_TYPE_DICT_ID, FILE_TYPE_DICT
+from dataactcore.models.lookups import (FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT)
 from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.interfaces.db import GlobalDB
@@ -101,7 +101,8 @@ class Validator(object):
                     checkRequiredOnly = True
 
             # Always check the type in the schema
-            if(not checkRequiredOnly and not Validator.checkType(currentData,currentSchema.field_type.name) ) :
+            if not checkRequiredOnly and not Validator.checkType(currentData,
+                                                                 FIELD_TYPE_DICT_ID[currentSchema.field_types_id]):
                 recordTypeFailure = True
                 recordFailed = True
                 failedRules.append([fieldName, ValidationError.typeError, currentData,"", "fatal"])

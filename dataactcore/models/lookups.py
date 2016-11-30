@@ -101,6 +101,7 @@ FIELD_TYPE = [
     LookupType(5, 'LONG', 'long integer')
 ]
 FIELD_TYPE_DICT = {item.name: item.id for item in FIELD_TYPE}
+FIELD_TYPE_DICT_ID = {item.id: item.name for item in FIELD_TYPE}
 
 RULE_SEVERITY = [
     LookupType(1, 'warning', 'warning'),
