@@ -3,7 +3,6 @@ import os
 import logging
 
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import joinedload
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -33,6 +32,7 @@ from dataactcore.models.validationModels import RuleSql
 
 
 _exception_logger = logging.getLogger('deprecated.exception')
+logger = logging.getLogger(__name__)
 
 
 class ValidationManager:
@@ -297,9 +297,12 @@ class ValidationManager:
 
         # Get fields for this file
         fields = sess.query(FileColumn). \
-            options(joinedload('field_type')). \
             filter(FileColumn.file_id == FILE_TYPE_DICT[fileType]). \
             all()
+
+        for field in fields:
+            sess.expunge(field)
+
         csvSchema = {row.name_short: row for row in fields}
 
         try:
@@ -318,10 +321,8 @@ class ValidationManager:
                 while not reader.is_finished:
                     rowNumber += 1
 
-                    if (rowNumber % 100) == 0:
-                        _exception_logger.info(
-                            'VALIDATOR_INFO: JobId: %s loading row %s',
-                            job_id, rowNumber)
+                    if rowNumber % 10 == 0:
+                        logger.info('loading row %s', rowNumber)
 
                     #
                     # first phase of validations: read record and record a

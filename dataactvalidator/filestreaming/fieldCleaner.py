@@ -2,6 +2,7 @@ import csv
 
 from dataactcore.logging import configure_logging
 from dataactcore.utils.stringCleaner import StringCleaner
+from dataactcore.models.lookups import FIELD_TYPE_DICT_ID
 
 
 class FieldCleaner(StringCleaner):
@@ -126,7 +127,7 @@ class FieldCleaner(StringCleaner):
 
         for field in fields:
             key = longToShortDict[field.name]
-            field_type = field.field_type.name
+            field_type = FIELD_TYPE_DICT_ID[field.field_types_id]
             value = row[key]
             if value is not None:
                 # Remove extra whitespace
