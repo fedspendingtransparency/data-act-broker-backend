@@ -24,7 +24,7 @@ dataactcore/
 ├── aws/            (Common AWS functions)
 ├── migrations/     (Alembic migration scripts)
 ├── credentials/    (Database credentials)
-├── models/         (ORM models and database interfaces)
+├── models/         (ORM models)
 ├── scripts/        (Utility and database setup scripts)
 └── utils/          (JSON helper objects)
 ```
@@ -59,8 +59,6 @@ class ExampleTable(Base):
 Note that all new ORM objects must inherit from the `declarative_base` object and have the `__tablename__` field set. For consistency, field and tables names should be in all lower case, separated by `_` between words.
 
 Additional fields exist on some of the models to enable the automatic population of foreign key relationships. These fields use the `relationship` function to signify a mapping to another table.  More information on SQLAlchemy ORM objects can be found on the [official website](http://docs.sqlalchemy.org/en/latest/orm/tutorial.html#create-a-schema).
-
-Database interfaces are defined for logical data functions in the data broker (e.g., validations). Each interface inherits base functionality from `BaseInterface`, which defines the location of connection credentials and is responsible for overall session and connection handling. Where required, interfaces are extended to add additional functionality.
 
 #### Scripts
 

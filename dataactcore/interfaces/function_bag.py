@@ -1,3 +1,7 @@
+from datetime import datetime
+import logging
+from operator import attrgetter
+import time
 import uuid
 
 from sqlalchemy import func, or_
@@ -10,22 +14,19 @@ from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.models.userModel import User, UserStatus, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
-                                        JOB_STATUS_DICT, FILE_TYPE_DICT_ID)
+                                        JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PUBLISH_STATUS_DICT)
 from dataactcore.interfaces.db import GlobalDB
 from dataactvalidator.validation_handlers.validationError import ValidationError
-import time
 
 
-# First step to deprecating BaseInterface, its children, and corresponding
-# interface holders is to start moving all db access logic into one big
-# file (to prevent circular imports and have everything in the same place).
-# Still to do...make this work solely with a flask context...original idea
-# was that these functions would only be invoked within a Flask route, but
-# there are some (e.g., createUserWithPassword) that need to be here,
-# pending a further refactor.
-# As a temporary measure, until the next part of the work that refactors
-# the db access within Flask requests, fire up an ad-hoc db session in
-# these transitional functions.
+# This is a holding place for functions from a previous iteration of
+# broker databases and database access code. Work still to do:
+# - simplify functions
+# - move functions to a better place?
+# - replace GlobalDB function, which is deprecated now that db logic is refactored
+
+
+logger = logging.getLogger(__name__)
 
 
 # todo: move these value to config if it is decided to keep local user login long term
@@ -91,130 +92,6 @@ def checkNumberOfErrorsByJobId(jobId, errorType='fatal'):
     # returns an empty value that means the job didn't have any errors that matched
     # the specified severity type, so return 0
     return errors or 0
-
-
-def addJobsForFileType(fileType, filePath, filename, submissionId, existingSubmission, jobsRequired, uploadDict):
-    """ Add upload and validation jobs for a single filetype
-
-    Args:
-        fileType: What type of file to add jobs for
-        filePath: Path to upload the file to
-        filename: Original filename
-        submissionId -- Submission ID to attach to jobs
-        existingSubmission -- True if we should update existing jobs rather than creating new ones
-        jobsRequired: List of job ids that will be prerequisites for cross-file job
-        uploadDict: Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
-
-    Returns:
-        jobsRequired: List of job ids that will be prerequisites for cross-file job
-        uploadDict: Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
-    """
-    sess = GlobalDB.db().session
-
-    fileTypeId = FILE_TYPE_DICT[fileType]
-
-    # Create a file upload job or, for an existing submission, modify the
-    # existing upload job.
-
-    if existingSubmission:
-        # mark existing upload job as running
-        uploadJob = sess.query(Job).filter_by(
-            submission_id=submissionId,
-            file_type_id=fileTypeId,
-            job_type_id=JOB_TYPE_DICT['file_upload']
-        ).one()
-        # Mark as running and set new file name and path
-        uploadJob.job_status_id = JOB_STATUS_DICT['running']
-        uploadJob.original_filename = filename
-        uploadJob.filename = filePath
-
-    else:
-        if fileType in ["award", "award_procurement"]:
-            # file generation handled on backend, mark as ready
-            uploadStatus = JOB_STATUS_DICT['ready']
-        elif fileType in ["awardee_attributes", "sub_award"]:
-            # these are dependent on file D2 validation
-            uploadStatus = JOB_STATUS_DICT['waiting']
-        else:
-            # mark as running since frontend should be doing this upload
-            uploadStatus = JOB_STATUS_DICT['running']
-
-        uploadJob = Job(original_filename=filename, filename=filePath, file_type_id=fileTypeId,
-                        job_status_id=uploadStatus, job_type_id=JOB_TYPE_DICT['file_upload'],
-                        submission_id=submissionId)
-        sess.add(uploadJob)
-
-    sess.flush()
-
-    # Create a file validation job or, for an existing submission, modify the
-    # existing validation job.
-
-    if existingSubmission:
-        # if the file's validation job is attached to an existing submission,
-        # reset its status and delete any validation artifacts (e.g., error metadata) that
-        # might exist from a previous run.
-        valJob = sess.query(Job).filter_by(
-            submission_id=submissionId,
-            file_type_id=fileTypeId,
-            job_type_id=JOB_TYPE_DICT['csv_record_validation']
-        ).one()
-        valJob.job_status_id = JOB_STATUS_DICT['waiting']
-        valJob.original_filename = filename
-        valJob.filename = filePath
-        # Reset file size and number of rows to be set during validation of new file
-        valJob.file_size = None
-        valJob.number_of_rows = None
-        # Delete error metdata this might exist from a previous run of this validation job
-        sess.query(ErrorMetadata).\
-            filter(ErrorMetadata.job_id == valJob.job_id).\
-            delete(synchronize_session='fetch')
-        # Delete file error information that might exist from a previous run of this validation job
-        sess.query(File).filter(File.job_id == valJob.job_id).delete(synchronize_session='fetch')
-
-    else:
-        # create a new record validation job and add dependencies if necessary
-        if fileType == "awardee_attributes":
-            d1ValJob = sess.query(Job).\
-                filter(Job.submission_id == submissionId,
-                       Job.file_type_id == FILE_TYPE_DICT['award_procurement'],
-                       Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).\
-                first()
-            if d1ValJob is None:
-                raise Exception("Cannot create E job without a D1 job")
-            # Add dependency on D1 validation job
-            d1Dependency = JobDependency(job_id=uploadJob.job_id, prerequisite_id=d1ValJob.job_id)
-            sess.add(d1Dependency)
-
-        elif fileType == "sub_award":
-            # todo: check for C validation job
-            cValJob = sess.query(Job). \
-                filter(Job.submission_id == submissionId,
-                       Job.file_type_id == FILE_TYPE_DICT['award_financial'],
-                       Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']). \
-                first()
-            if cValJob is None:
-                raise Exception("Cannot create F job without a C job")
-            # Add dependency on C validation job
-            cDependency = JobDependency(job_id=uploadJob.job_id, prerequisite_id=cValJob.job_id)
-            sess.add(cDependency)
-
-        else:
-            # E and F don't get validation jobs
-            valJob = Job(original_filename=filename, filename=filePath, file_type_id=fileTypeId,
-                         job_status_id=JOB_STATUS_DICT['waiting'],
-                         job_type_id=JOB_TYPE_DICT['csv_record_validation'],
-                         submission_id=submissionId)
-            sess.add(valJob)
-            sess.flush()
-            # Add dependency between file upload and db upload
-            uploadDependency = JobDependency(job_id=valJob.job_id, prerequisite_id=uploadJob.job_id)
-            sess.add(uploadDependency)
-            jobsRequired.append(valJob.job_id)
-
-    sess.commit()
-
-    uploadDict[fileType] = uploadJob.job_id
-    return jobsRequired, uploadDict
 
 """ ERROR DB FUNCTIONS """
 def getErrorType(job_id):
@@ -434,3 +311,333 @@ def run_job_checks(job_id):
         return False
     else:
         return True
+
+def mark_job_status(job_id, status_name):
+    """
+    Mark job as having specified status.
+    Jobs being marked as finished will add dependent jobs to queue.
+
+    Args:
+        job_id: ID for job being marked
+        status_name: Status to change job to
+    """
+    sess = GlobalDB.db().session
+
+    job = sess.query(Job).filter(Job.job_id == job_id).one()
+    old_status = job.job_status.name
+    # update job status
+    job.job_status_id = JOB_STATUS_DICT[status_name]
+    sess.commit()
+
+    # if status is changed to finished for the first time, check dependencies
+    # and add to the job queue as necessary
+    if old_status != 'finished' and status_name == 'finished':
+        check_job_dependencies(job_id)
+
+
+def check_job_dependencies(job_id):
+    """
+    For specified job, check which of its dependencies are ready to be started
+    and add them to the queue
+    """
+    sess = GlobalDB.db().session
+
+    # raise exception if current job is not actually finished
+    job = sess.query(Job).filter(Job.job_id == job_id).one()
+    if job.job_status_id != JOB_STATUS_DICT['finished']:
+        raise ValueError('Current job not finished, unable to check dependencies')
+
+    # get the jobs that are dependent on job_id being finished
+    dependencies = sess.query(JobDependency).filter_by(prerequisite_id = job_id).all()
+    for dependency in dependencies:
+        dep_job_id = dependency.job_id
+        if dependency.dependent_job.job_status_id != JOB_STATUS_DICT['waiting']:
+            logger.error("%s (dependency of %s) is not in a 'waiting' state",
+                dep_job_id, job_id)
+        else:
+            # find the number of this job's prerequisites that do
+            # not have a status of 'finished'.
+            unfinished_prerequisites = sess.query(JobDependency).\
+                join(Job, JobDependency.prerequisite_job).\
+                filter(
+                    Job.job_status_id != JOB_STATUS_DICT['finished'],
+                    JobDependency.job_id == dep_job_id).\
+                count()
+            if unfinished_prerequisites == 0:
+                # this job has no unfinished prerequisite jobs,
+                # so it is eligible to be set to a 'ready'
+                # status and added to the queue
+                mark_job_status(dep_job_id, 'ready')
+                # add to the job queue
+                logging.getLogger('deprecated.info').info(
+                    'Sending job %s to job manager', dep_job_id)
+                # will move this later
+                from dataactcore.utils.jobQueue import enqueue
+                enqueue.delay(dep_job_id)
+
+def create_submission(user_id, submission_values, existing_submission):
+    """ Create a new submission
+
+    Arguments:
+        user_id:  user to associate with this submission
+        submission_values: metadata about the submission
+        existing_submission_id: id of existing submission (blank for new submissions)
+
+    Returns:
+        submission object
+    """
+    sess = GlobalDB.db().session
+
+    if existing_submission is None:
+        submission = Submission(datetime_utc = datetime.utcnow(), **submission_values)
+        submission.user_id = user_id
+        submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
+        sess.add(submission)
+    else:
+        submission = existing_submission
+        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+            submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
+        # submission is being updated, so turn off publishable flag
+        submission.publishable = False
+        for key in submission_values:
+            # update existing submission with any values provided
+            setattr(submission, key, submission_values[key])
+
+    sess.commit()
+    return submission
+
+def create_jobs(upload_files, submission, existing_submission=False):
+    """Create the set of jobs associated with the specified submission
+
+    Arguments:
+    upload_files -- list of named tuples that describe files uploaded to the broker
+    submission -- submission
+    existing_submission -- true if we should update jobs in an existing submission rather than creating new jobs
+
+    Returns:
+    Dictionary of upload ids by filename to return to client, used for calling finalize_submission route
+    """
+    sess = GlobalDB.db().session
+    submission_id = submission.submission_id
+
+    # create the file upload and single-file validation jobs and
+    # set up the dependencies between them
+    # before starting, sort the incoming list of jobs by letter
+    # to ensure that jobs dependent on the awards jobs being present
+    # are processed last.
+    jobs_required = []
+    upload_dict= {}
+    sorted_uploads = sorted(upload_files, key=attrgetter('file_letter'))
+
+    for upload_file in sorted_uploads:
+        validation_job_id, upload_job_id = add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission)
+        if validation_job_id:
+            jobs_required.append(validation_job_id)
+        upload_dict[upload_file.file_type] = upload_job_id
+
+    # once single-file upload/validation jobs are created, create the cross-file
+    # validation job and dependencies
+    # todo: remove external validation jobs from the code-base--they aren't used
+    if existing_submission:
+        # find cross-file and external validation jobs and mark them as waiting
+        # (note: job_type of 'validation' is a cross-file job)
+        val_job = sess.query(Job).\
+            filter_by(
+                submission_id = submission_id,
+                job_type_id = JOB_TYPE_DICT["validation"]).\
+            one()
+        val_job.job_status_id = JOB_STATUS_DICT["waiting"]
+        ext_job = sess.query(Job).\
+            filter_by(
+                submission_id = submission_id,
+                job_type_id = JOB_TYPE_DICT["external_validation"]).\
+            one()
+        ext_job.job_status_id = JOB_STATUS_DICT["waiting"]
+        submission.updated_at = time.strftime("%c")
+    else:
+        # create cross-file validation job
+        validation_job = Job(
+            job_status_id=JOB_STATUS_DICT["waiting"],
+            job_type_id=JOB_TYPE_DICT["validation"],
+            submission_id=submission_id)
+        sess.add(validation_job)
+        # create external validation job
+        external_job = Job(
+            job_status_id=JOB_STATUS_DICT["waiting"],
+            job_type_id=JOB_TYPE_DICT["external_validation"],
+            submission_id=submission_id)
+        sess.add(external_job)
+        sess.flush()
+        # create dependencies for validation jobs
+        for job_id in jobs_required:
+            val_dependency = JobDependency(job_id=validation_job.job_id, prerequisite_id=job_id)
+            sess.add(val_dependency)
+            ext_dependency = JobDependency(job_id=external_job.job_id, prerequisite_id=job_id)
+            sess.add(ext_dependency)
+
+    sess.commit()
+    upload_dict["submission_id"] = submission_id
+    return upload_dict
+
+def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
+    """ Add upload and validation jobs for a single filetype
+
+    Arguments:
+        upload_file: UploadFile named tuple
+        submission_id: submission ID to attach to jobs
+        existing_submission: true if we should update existing jobs rather than creating new ones
+
+    Returns:
+        the validation job id for this file type (if any)
+        the upload job id for this file type
+    """
+    sess = GlobalDB.db().session
+
+    file_type_id = FILE_TYPE_DICT[upload_file.file_type]
+    validation_job_id = None
+
+    # Create a file upload job or, for an existing submission, modify the
+    # existing upload job.
+
+    if existing_submission:
+        # mark existing upload job as running
+        upload_job = sess.query(Job).filter_by(
+            submission_id=submission_id,
+            file_type_id=file_type_id,
+            job_type_id=JOB_TYPE_DICT['file_upload']
+        ).one()
+        # mark as running and set new file name and path
+        upload_job.job_status_id = JOB_STATUS_DICT['running']
+        upload_job.original_filename = upload_file.file_name
+        upload_job.filename = upload_file.upload_name
+
+    else:
+        if upload_file.file_type in ["award", "award_procurement"]:
+            # file generation handled on backend, mark as ready
+            upload_status = JOB_STATUS_DICT['ready']
+        elif upload_file.file_type in ["awardee_attributes", "sub_award"]:
+            # these are dependent on file D2 validation
+            upload_status = JOB_STATUS_DICT['waiting']
+        else:
+            # mark as running since frontend should be doing this upload
+            upload_status = JOB_STATUS_DICT['running']
+
+        upload_job = Job(
+            original_filename=upload_file.file_name,
+            filename=upload_file.upload_name,
+            file_type_id=file_type_id,
+            job_status_id=upload_status,
+            job_type_id=JOB_TYPE_DICT['file_upload'],
+            submission_id=submission_id)
+        sess.add(upload_job)
+        sess.flush()
+
+    if existing_submission:
+        # if the file's validation job is attached to an existing submission,
+        # reset its status and delete any validation artifacts (e.g., error metadata) that
+        # might exist from a previous run.
+        val_job = sess.query(Job).filter_by(
+            submission_id=submission_id,
+            file_type_id=file_type_id,
+            job_type_id=JOB_TYPE_DICT['csv_record_validation']
+        ).one()
+        val_job.job_status_id = JOB_STATUS_DICT['waiting']
+        val_job.original_filename = upload_file.file_name
+        val_job.filename = upload_file.upload_name
+        # reset file size and number of rows to be set during validation of new file
+        val_job.file_size = None
+        val_job.number_of_rows = None
+        # delete error metadata this might exist from a previous run of this validation job
+        sess.query(ErrorMetadata).\
+            filter(ErrorMetadata.job_id == val_job.job_id).\
+            delete(synchronize_session='fetch')
+        # delete file error information that might exist from a previous run of this validation job
+        sess.query(File).filter(File.job_id == val_job.job_id).delete(synchronize_session='fetch')
+
+    else:
+        # create a new record validation job and add dependencies if necessary
+        if upload_file.file_type == "awardee_attributes":
+            d1_val_job = sess.query(Job).\
+                filter(Job.submission_id == submission_id,
+                       Job.file_type_id == FILE_TYPE_DICT['award_procurement'],
+                       Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).\
+                one_or_none()
+            if d1_val_job is None:
+                raise Exception("Cannot create E job without a D1 job")
+            # Add dependency on D1 validation job
+            d1_dependency = JobDependency(job_id=upload_job.job_id, prerequisite_id=d1_val_job.job_id)
+            sess.add(d1_dependency)
+
+        elif upload_file.file_type == "sub_award":
+            # todo: check for C validation job
+            c_val_job = sess.query(Job).\
+                filter(Job.submission_id == submission_id,
+                       Job.file_type_id == FILE_TYPE_DICT['award_financial'],
+                       Job.job_type_id == JOB_TYPE_DICT['csv_record_validation']).\
+                one_or_none()
+            if c_val_job is None:
+                raise Exception("Cannot create F job without a C job")
+            # add dependency on C validation job
+            c_dependency = JobDependency(job_id=upload_job.job_id, prerequisite_id=c_val_job.job_id)
+            sess.add(c_dependency)
+
+        else:
+            # E and F don't get validation jobs
+            val_job = Job(
+                original_filename=upload_file.file_name,
+                filename=upload_file.upload_name,
+                file_type_id=file_type_id,
+                job_status_id=JOB_STATUS_DICT['waiting'],
+                job_type_id=JOB_TYPE_DICT['csv_record_validation'],
+                submission_id=submission_id)
+            sess.add(val_job)
+            sess.flush()
+            # add dependency between file upload job and file validation job
+            upload_dependency = JobDependency(job_id=val_job.job_id, prerequisite_id=upload_job.job_id)
+            sess.add(upload_dependency)
+            validation_job_id = val_job.job_id
+
+    sess.commit()
+
+    return validation_job_id, upload_job.job_id
+
+def get_submission_status(submission):
+    """Return the status of a submission."""
+    sess = GlobalDB.db().session
+
+    jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
+    status_names = JOB_STATUS_DICT.keys()
+    statuses = {name: 0 for name in status_names}
+    skip_count = 0
+
+    for job in jobs:
+        if job.job_type.name not in ["external_validation", None]:
+            job_status = job.job_status.name
+            statuses[job_status] += 1
+        else:
+            skip_count += 1
+
+    status = "unknown"
+
+    if statuses["failed"] != 0:
+        status = "failed"
+    elif statuses["invalid"] != 0:
+        status = "file_errors"
+    elif statuses["running"] != 0:
+        status = "running"
+    elif statuses["waiting"] != 0:
+        status = "waiting"
+    elif statuses["ready"] != 0:
+        status = "ready"
+    elif statuses["finished"] == jobs.count() - skip_count:  # need to account for the jobs that were skipped above
+        status = "validation_successful"
+        if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
+            status = "validation_successful_warnings"
+        if submission.publishable:
+            status = "submitted"
+
+    # Check if submission has errors
+    if submission.number_of_errors is not None and submission.number_of_errors > 0:
+        status = "validation_errors"
+
+    return status

@@ -1,10 +1,12 @@
-import os
-import boto
+from collections import namedtuple
+from datetime import date
 import glob
 import logging
+import os
 import re
-from collections import namedtuple
+import sys
 
+import boto
 import pandas as pd
 
 from dataactcore.config import CONFIG_BROKER
@@ -17,7 +19,7 @@ from dataactvalidator.scripts.loaderUtils import LoaderUtils
 logger = logging.getLogger(__name__)
 
 
-def load_all_sf133(sf133_path=None):
+def load_all_sf133(sf133_path=None, force_load=False):
     """Load any SF-133 files that are not yet in the database."""
     # get a list of SF 133 files to load
     sf133_list = get_sf133_list(sf133_path)
@@ -32,7 +34,95 @@ def load_all_sf133(sf133_path=None):
             continue
         logger.info('{}Starting {}...'.format(os.linesep, sf133.full_file))
         load_sf133(
-            sf133.full_file, file_match.group('year'), file_match.group('period'))
+            sf133.full_file, file_match.group('year'), file_match.group('period'),
+            force_load=force_load
+        )
+
+
+def fill_blank_sf133_lines(data):
+    """Incoming .csv does not always include rows for zero-value SF-133 lines
+    so we add those here because they're needed for the SF-133 validations.
+    1. "pivot" the sf-133 dataset to explode it horizontally, creating one
+        row for each tas/fiscal year/period, with columns for each SF-133 line.
+    2. Fill any SF-133 line number cells with a missing value for a
+       specific tas/fiscal year/period with a 0.0. We don't do this in the
+       "pivot" step because that'll downcast floats to ints
+    3. Once the zeroes are filled in, "melt" the pivoted data back to its normal
+       format of one row per tas/fiscal year/period.
+    NOTE: fields used for the pivot in step #1 (i.e., items in pivot_idx) cannot
+    have NULL values, else they will be silently dropped by pandas :("""
+    pivot_idx = (
+        'created_at', 'updated_at', 'agency_identifier',
+        'allocation_transfer_agency', 'availability_type_code',
+        'beginning_period_of_availa', 'ending_period_of_availabil',
+        'main_account_code', 'sub_account_code', 'tas', 'fiscal_year',
+        'period')
+
+    data = pd.pivot_table(
+        data, values='amount', index=pivot_idx, columns=['line']).reset_index()
+    data = data.fillna(value=0.0)
+    data = pd.melt(data, id_vars=pivot_idx, value_name='amount')
+    return data
+
+
+def update_tas_id(fiscal_year, fiscal_period):
+    """Set the tas_id on newly SF133 entries. We use raw SQL as sqlalchemy
+    doesn't have operators like OVERLAPS and IS NOT DISTINCT FROM built in
+    (resulting in a harder to understand query)."""
+    sess = GlobalDB.db().session
+
+    # number of months since 0AD for this fiscal period
+    zero_based_period = fiscal_period - 1
+    absolute_fiscal_month = 12 * fiscal_year + zero_based_period - 3
+    absolute_following_month = absolute_fiscal_month + 1
+    start_date = date(absolute_fiscal_month // 12,
+                      (absolute_fiscal_month % 12) + 1,     # 1-based
+                      1)
+    end_date = date(absolute_following_month // 12,
+                    (absolute_following_month % 12) + 1,    # 1-based
+                    1)
+
+    # Why min()?
+    # Our data schema doesn't prevent two TAS history entries with the same
+    # TAS components (ATA, AI, etc.) from being valid at the same time. When
+    # that happens (unlikely), we select the minimum (i.e. older) of the
+    # potential TAS history entries.
+    sql = """
+        UPDATE sf_133
+        SET tas_id = (
+            SELECT min(tas.tas_id)
+            FROM tas_lookup AS tas
+            WHERE
+            sf_133.allocation_transfer_agency
+                IS NOT DISTINCT FROM tas.allocation_transfer_agency
+            AND sf_133.agency_identifier
+                IS NOT DISTINCT FROM tas.agency_identifier
+            AND sf_133.beginning_period_of_availa
+                IS NOT DISTINCT FROM tas.beginning_period_of_availability
+            AND sf_133.ending_period_of_availabil
+                IS NOT DISTINCT FROM tas.ending_period_of_availability
+            AND sf_133.availability_type_code
+                IS NOT DISTINCT FROM tas.availability_type_code
+            AND sf_133.main_account_code
+                IS NOT DISTINCT FROM tas.main_account_code
+            AND sf_133.sub_account_code
+                IS NOT DISTINCT FROM tas.sub_account_code
+            AND (:start_date, :end_date) OVERLAPS
+                -- A null end date indicates "still open". To make OVERLAPS
+                -- work, we'll use the day after the end date of the SF133
+                -- to achieve the same result
+                (tas.internal_start_date,
+                 COALESCE(tas.internal_end_date, :end_date + interval '1 day')
+                )
+            )
+        WHERE fiscal_year = :fiscal_year
+        AND period = :fiscal_period
+    """
+    sess.execute(
+        sql, {'start_date': start_date, 'end_date': end_date,
+              'fiscal_year': fiscal_year, 'fiscal_period': fiscal_period}
+    )
+    sess.commit()
 
 
 def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
@@ -69,8 +159,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
              "fiscal_year": "fiscal_year",
              "period": "period",
              "line_num": "line",
-             "amount_summed":
-            "amount"},
+             "amount_summed": "amount"},
             {"allocation_transfer_agency": {"pad_to_length": 3},
              "agency_identifier": {"pad_to_length": 3},
              "main_account_code": {"pad_to_length": 4},
@@ -99,23 +188,9 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
 
         # add concatenated TAS field for internal use (i.e., joining to staging tables)
         data['tas'] = data.apply(lambda row: format_internal_tas(row), axis=1)
-
-        # incoming .csv does not always include rows for zero-value SF-133 lines
-        # so we add those here because they're needed for the SF-133 validations.
-        # 1. "pivot" the sf-133 dataset to explode it horizontally, creating one
-        # row for each tas/fiscal year/period, with columns for each SF-133 line.
-        # the "fill_value=0" parameter puts a 0 into any Sf-133 line number cell
-        # with a missing value for a specific tas/fiscal year/period.
-        # 2. Once the zeroes are filled in, "melt" the pivoted data back to its normal
-        # format of one row per tas/fiscal year/period.
-        # NOTE: fields used for the pivot in step #1 (i.e., items in pivot_idx) cannot
-        # have NULL values, else they will be silently dropped by pandas :(
-        pivot_idx = ['created_at', 'updated_at', 'agency_identifier', 'allocation_transfer_agency',
-                     'availability_type_code', 'beginning_period_of_availa', 'ending_period_of_availabil',
-                     'main_account_code', 'sub_account_code', 'tas', 'fiscal_year', 'period']
-        data.amount = data.amount.astype(float)
-        data = pd.pivot_table(data, values='amount', index=pivot_idx, columns=['line'], fill_value=0).reset_index()
-        data = pd.melt(data, id_vars=pivot_idx, value_name='amount')
+        data['amount'] = data['amount'].astype(float)
+        
+        data = fill_blank_sf133_lines(data)
 
         # Now that we've added zero lines for EVERY tas and SF 133 line number, get rid of the ones
         # we don't actually use in the validations. Arguably, it would be better just to include
@@ -143,6 +218,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
         # insert to db
         table_name = SF133.__table__.name
         num = LoaderUtils.insertDataframe(data, table_name, sess.connection())
+        update_tas_id(int(fiscal_year), int(fiscal_period))
         sess.commit()
 
     logger.info('{} records inserted to {}'.format(num, table_name))
@@ -188,6 +264,8 @@ def get_sf133_list(sf133_path):
 
 if __name__ == '__main__':
     configure_logging()
+    force_load = '-f' in sys.argv or '--force' in sys.argv
     load_all_sf133(
-        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
+        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
+        force_load
     )

@@ -71,10 +71,6 @@ The complex rule validations (including both individual file and cross-file rule
 * `SchemaLoader` - Reads a specification of fields and rules to be applied to specified file type.
 * `TASLoader` - Loads valid TAS combinations from CARS file
 
-### Interfaces
-
-* `JobTrackerInterface` - This class controls communication with the database.
-* `InterfaceHolder` - Container that holds one interface for each database as a static variable to ensure that redundant connections are not created
 
 ### Scripts
 

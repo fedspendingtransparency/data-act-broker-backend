@@ -19,5 +19,5 @@ def setupAllDB():
 
 
 if __name__ == '__main__':
-    configure_logging
+    configure_logging()
     setupAllDB()

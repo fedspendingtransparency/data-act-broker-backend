@@ -16,6 +16,8 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
 
 
 def createApp():
@@ -65,6 +67,16 @@ def createApp():
     @app.route("/", methods=["GET"])
     def root():
         return "Broker is running"
+
+    @app.errorhandler(ResponseException)
+    def handle_response_exception(exception):
+        return JsonResponse.error(exception, exception.status)
+
+    @app.errorhandler(Exception)
+    def handle_exception(exception):
+        wrapped = ResponseException(str(exception), StatusCode.INTERNAL_ERROR,
+                                    type(exception))
+        return JsonResponse.error(wrapped, wrapped.status)
 
     # Add routes for modules here
     add_login_routes(app, bcrypt)

@@ -13,7 +13,6 @@ from dataactcore.models.jobModels import Submission, Job, JobDependency
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.userModel import User
 from dataactcore.config import CONFIG_BROKER
-from dataactbroker.handlers.jobHandler import JobHandler
 from dataactvalidator.app import createApp
 
 
@@ -44,10 +43,10 @@ class FileTests(BaseTestAPI):
 
             # setup submission/jobs data for test_check_status
             cls.status_check_submission_id = cls.insertSubmission(
-                sess, cls.submission_user_id, cgac_code="SYS", startDate="10/2015", endDate="06/2016", is_quarter=True)
+                sess, cls.submission_user_id, cgac_code="SYS", startDate="10/2015", endDate="12/2015", is_quarter=True)
 
             cls.generation_submission_id = cls.insertSubmission(
-                sess, cls.submission_user_id, cgac_code="SYS", startDate="10/2015", endDate="06/2016", is_quarter=True)
+                sess, cls.submission_user_id, cgac_code="SYS", startDate="07/2015", endDate="09/2015", is_quarter=True)
 
             cls.setupFileGenerationSubmission(sess)
 
@@ -56,16 +55,16 @@ class FileTests(BaseTestAPI):
 
             # setup submission/jobs data for test_error_report
             cls.error_report_submission_id = cls.insertSubmission(
-                sess, cls.submission_user_id, cgac_code="SYS", startDate="10/2015", endDate="06/2016")
+                sess, cls.submission_user_id, cgac_code="SYS", startDate="10/2015", endDate="10/2015")
             cls.setupJobsForReports(sess, cls.error_report_submission_id)
 
             # setup file status data for test_metrics
             cls.test_metrics_submission_id = cls.insertSubmission(
-                sess, cls.submission_user_id, cgac_code="SYS", startDate="10/2015", endDate="06/2016")
+                sess, cls.submission_user_id, cgac_code="SYS", startDate="08/2015", endDate="08/2015")
             cls.setupFileData(sess, cls.test_metrics_submission_id)
 
             cls.row_error_submission_id = cls.insertSubmission(
-                sess, cls.submission_user_id, cgac_code="SYS", startDate="10/2015", endDate="06/2016", is_quarter=True,
+                sess, cls.submission_user_id, cgac_code="SYS", startDate="10/2015", endDate="12/2015", is_quarter=True,
                 number_of_errors=1)
             cls.setupSubmissionWithError(sess, cls.row_error_submission_id)
 
@@ -83,7 +82,7 @@ class FileTests(BaseTestAPI):
                     "award_financial":"test2.csv",
                     "program_activity":"test4.csv", "cgac_code": "SYS",
                     "reporting_period_start_date":"01/2001",
-                    "reporting_period_end_date":"01/2001", "is_quarter":True}
+                    "reporting_period_end_date":"03/2001", "is_quarter":True}
             else:
                 # If local must use full destination path
                 filePath = CONFIG_BROKER["broker_files"]
@@ -91,7 +90,7 @@ class FileTests(BaseTestAPI):
                     "award_financial":os.path.join(filePath,"test2.csv"),
                     "program_activity":os.path.join(filePath,"test4.csv"), "cgac_code": "SYS",
                     "reporting_period_start_date":"01/2001",
-                    "reporting_period_end_date":"01/2001", "is_quarter":True}
+                    "reporting_period_end_date":"03/2001", "is_quarter":True}
             self.submitFilesResponse = self.app.post_json("/v1/submit_files/", self.filenames, headers={"x-session-id":self.session_id})
             self.updateSubmissionId = self.submitFilesResponse.json["submission_id"]
         return self.submitFilesResponse
@@ -151,18 +150,20 @@ class FileTests(BaseTestAPI):
     def test_update_submission(self):
         """ Test submit_files with an existing submission ID """
         self.call_file_submission()
-        if(CONFIG_BROKER["use_aws"]):
+        # note: this is a quarterly test submission, so
+        # updated dates must still reflect a quarter
+        if CONFIG_BROKER["use_aws"]:
             updateJson = {"existing_submission_id": self.updateSubmissionId,
                 "award_financial":"updated.csv",
-                "reporting_period_start_date":"02/2016",
-                "reporting_period_end_date":"03/2016"}
+                "reporting_period_start_date":"04/2016",
+                "reporting_period_end_date":"06/2016"}
         else:
             # If local must use full destination path
             filePath = CONFIG_BROKER["broker_files"]
             updateJson = {"existing_submission_id": self.updateSubmissionId,
                 "award_financial": os.path.join(filePath,"updated.csv"),
-                "reporting_period_start_date":"02/2016",
-                "reporting_period_end_date":"03/2016"}
+                "reporting_period_start_date":"04/2016",
+                "reporting_period_end_date":"06/2016"}
         # Mark submission as published
         with createApp().app_context():
             sess = GlobalDB.db().session
@@ -178,13 +179,15 @@ class FileTests(BaseTestAPI):
             submissionId = json["submission_id"]
             submission = sess.query(Submission).filter(Submission.submission_id == submissionId).one()
             self.assertEqual(submission.cgac_code, "SYS")  # Should not have changed agency name
-            self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"), "02/2016")
-            self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"), "03/2016")
+            self.assertEqual(submission.reporting_start_date.strftime("%m/%Y"), "04/2016")
+            self.assertEqual(submission.reporting_end_date.strftime("%m/%Y"), "06/2016")
             self.assertEqual(submission.publish_status_id, self.publishStatusDict['updated'])
 
     def test_bad_quarter_or_month(self):
         """ Test file submissions for Q5, 13, and AB, and year of ABCD """
-        updateJson = {"existing_submission_id": self.updateSubmissionId,
+        updateJson = {
+            "cgac_code": "020",
+            "is_quarter": True,
             "award_financial":"updated.csv",
             "reporting_period_start_date":"12/2016",
             "reporting_period_end_date":"13/2016"}
@@ -192,7 +195,9 @@ class FileTests(BaseTestAPI):
         self.assertEqual(updateResponse.status_code, 400)
         self.assertIn("Date must be provided as",updateResponse.json["message"])
 
-        updateJson = {"existing_submission_id": self.updateSubmissionId,
+        updateJson = {
+            # make sure date checks work as expected for an existing submission
+            "existing_submission_id": self.status_check_submission_id,
             "award_financial":"updated.csv",
             "reporting_period_start_date":"AB/2016",
             "reporting_period_end_date":"CD/2016"}
@@ -200,7 +205,9 @@ class FileTests(BaseTestAPI):
         self.assertEqual(updateResponse.status_code, 400)
         self.assertIn("Date must be provided as",updateResponse.json["message"])
 
-        updateJson = {"existing_submission_id": self.updateSubmissionId,
+        updateJson = {
+            "cgac_code": "020",
+            "is_quarter": True,
             "award_financial":"updated.csv",
             "reporting_period_start_date":"Q1/ABCD",
             "reporting_period_end_date":"Q2/2016"}
@@ -325,7 +332,7 @@ class FileTests(BaseTestAPI):
             # Check submission metadata
             self.assertEqual(json["cgac_code"], "SYS")
             self.assertEqual(json["reporting_period_start_date"], "Q1/2016")
-            self.assertEqual(json["reporting_period_end_date"], "Q3/2016")
+            self.assertEqual(json["reporting_period_end_date"], "Q1/2016")
 
             # Check submission level info
             self.assertEqual(json["number_of_errors"], 17)
@@ -470,7 +477,7 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertIn(json["status"], ["waiting","finished"])
         self.assertEqual(json["file_type"], "D1")
-        self.assertEqual("#", json["url"])
+        self.assertIn("url", json)
         self.assertEqual(json["start"],"01/02/2016")
         self.assertEqual(json["end"],"02/03/2016")
         self.assertEqual(json["message"],"")
@@ -521,19 +528,15 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["message"],"User does not have permission to view that submission")
 
     @staticmethod
-    def insertSubmission(sess, submission_user_id, submission=None, cgac_code = None, startDate = None, endDate = None, is_quarter = False, number_of_errors=0):
+    def insertSubmission(sess, submission_user_id, cgac_code = None, startDate = None, endDate = None, is_quarter = False, number_of_errors=0):
         """Insert one submission into job tracker and get submission ID back."""
-        if submission:
-            sub = Submission(submission_id=submission,
-                datetime_utc=datetime.utcnow(), user_id=submission_user_id, cgac_code = cgac_code,
-                             reporting_start_date = JobHandler.createDate(startDate),
-                             reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter,
-                             number_of_errors=number_of_errors)
-        else:
-            sub = Submission(datetime_utc=datetime.utcnow(), user_id=submission_user_id, cgac_code = cgac_code,
-                             reporting_start_date = JobHandler.createDate(startDate),
-                             reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter,
-                             number_of_errors=number_of_errors)
+        sub = Submission(datetime_utc=datetime.utcnow(),
+                         user_id=submission_user_id,
+                         cgac_code = cgac_code,
+                         reporting_start_date=datetime.strptime(startDate, '%m/%Y'),
+                         reporting_end_date=datetime.strptime(endDate, '%m/%Y'),
+                         is_quarter_format = is_quarter,
+                         number_of_errors=number_of_errors)
         sess.add(sub)
         sess.commit()
         return sub.submission_id

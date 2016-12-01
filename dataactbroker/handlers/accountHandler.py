@@ -18,6 +18,7 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import func
 from dataactcore.models.userModel import User, EmailToken
 from dataactcore.models.domainModels import CGAC
+from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import (get_email_template, check_correct_password, set_user_password, updateLastLogin)
 from dataactcore.config import CONFIG_BROKER
@@ -33,29 +34,16 @@ class AccountHandler:
     ALLOWED_PASSWORD_ATTEMPTS = 3 # Number of allowed login attempts before account is locked
     # Instance fields include request, response, logFlag, and logFile
 
-    def __init__(self,request, interfaces = None, bcrypt = None, isLocal=False):
+    def __init__(self,request, bcrypt=None, isLocal=False):
         """ Creates the Login Handler
 
         Args:
             request - Flask request object
-            interfaces - InterfaceHolder object for databases
             bcrypt - Bcrypt object associated with app
         """
         self.isLocal = isLocal
         self.request = request
         self.bcrypt = bcrypt
-        if interfaces is not None:
-            self.interfaces = interfaces
-            self.jobManager = interfaces.jobDb
-
-    def addInterfaces(self,interfaces):
-        """ Add interfaces to an existing account handler
-
-        Args:
-            interfaces - InterfaceHolder object for databases
-        """
-        self.interfaces = interfaces
-        self.jobManager = interfaces.jobDb
 
     def checkPassword(self,password):
         """Checks to make sure the password is valid"""
@@ -197,13 +185,15 @@ class AccountHandler:
                         user.name = first_name + " " + middle_name[0] + ". " + last_name
                     user.user_status_id = user.user_status_id = USER_STATUS_DICT['approved']
 
-                    # If part of the SYS agency, use that as the cgac otherwise use the first agency provided
-                    if [g for g in cgac_group if g.endswith("SYS")]:
-                        user.cgac_code = "SYS"
-                    else:
-                        user.cgac_code = cgac_group[0][-3:]
                     sess.add(user)
                     sess.commit()
+
+                # update user's cgac based on their current membership
+                # If part of the SYS agency, use that as the cgac otherwise use the first agency provided
+                if [g for g in cgac_group if g.endswith("SYS")]:
+                    user.cgac_code = "SYS"
+                else:
+                    user.cgac_code = cgac_group[0][-3:]
 
                 self.grant_highest_permission(sess, user, group_list, cgac_group[0])
 
@@ -230,15 +220,15 @@ class AccountHandler:
             permission_group = [g for g in group_list if g.startswith(cgac_group + "-PERM_")]
             # Check if a user has been placed in a specific group. If not, deny access
             if not permission_group:
-                raise ValueError("You have logged in with MAX but do not have permission to access the broker.")
+                user.permission_type_id = None
+            else:
+                perms = [perm[-1].lower() for perm in permission_group]
+                ordered_perms = sorted(PERMISSION_MAP, key=lambda k: PERMISSION_MAP[k]['order'])
 
-            perms = [perm[-1].lower() for perm in permission_group]
-            ordered_perms = sorted(PERMISSION_MAP, key=lambda k: PERMISSION_MAP[k]['order'])
-
-            for perm in ordered_perms:
-                if perm in perms:
-                    user.permission_type_id = PERMISSION_TYPE_DICT[PERMISSION_MAP[perm]['name']]
-                    break
+                for perm in ordered_perms:
+                    if perm in perms:
+                        user.permission_type_id = PERMISSION_TYPE_DICT[PERMISSION_MAP[perm]['name']]
+                        break
         session.merge(user)
         session.commit()
 
@@ -874,7 +864,7 @@ class AccountHandler:
         user_ids = request_dict['users']
         submission_id = request_dict['submission_id']
         # Check if submission id is valid
-        self.jobManager.getSubmissionById(submission_id)
+        sess.query(Submission).filter_by(submission_id=submission_id).one()
 
         template_type = request_dict['email_template']
         # Check if email template type is valid

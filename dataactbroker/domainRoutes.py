@@ -1,9 +1,8 @@
 from dataactbroker.handlers.domainHandler import DomainHandler
-from dataactbroker.routeUtils import RouteUtils
 
 
 # Add the file submission route
-def add_domain_routes(app,isLocal,bcrypt):
+def add_domain_routes(app, isLocal, bcrypt):
     """ Create routes related to domain values for flask app
 
     """
@@ -12,4 +11,4 @@ def add_domain_routes(app,isLocal,bcrypt):
     def list_agencies():
         """ List all CGAC Agencies """
         domainHandler = DomainHandler()
-        return RouteUtils.run_instance_function(domainHandler, domainHandler.list_agencies)
+        return domainHandler.list_agencies()

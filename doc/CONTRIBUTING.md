@@ -78,7 +78,7 @@ If you already have a Python development environment on your machine and a prefe
         pip install virtualenvwrapper
 
 4. Tell virtualenvwrapper where on your machine to create virtual environments and add it to your profile. This is a one-time virtualenvwrapper setup step, and the process varies by operating system. [This tutorial](http://newcoder.io/begin/setup-your-machine/ "Python: setting up your computer") covers setting up virtualenvwrapper on OSX, Linux, and Windows.
-   For Windows users, there may be extra steps needed.  If you run into an error on the import-module step, move the "VirtualEnvWrapper" folder from C:/Python27/Lib/site-packages/Users/*username*/Documents/WindowsPowerShell/Modules/ to C:/Users/*username*/Documents/WindowsPowerShell/Modules/.  Next, in powershell run the command "set-executionpolicy unrestricted".  Finally, in the VirtualEnvWrapper directory, open the file "VirtualEnvWrapperTabExpansion.psm1" and change "Function:TabExpansion" to "Function:TabExpansion2" in line 12.
+   For Windows users, there may be extra steps needed.  If you run into an error on the import-module step, move the "VirtualEnvWrapper" folder from C:/Python27/Lib/site-packages/Users/*username*/Documents/WindowsPowerShell/Modules/ to C:/Users/*username*/Documents/WindowsPowerShell/Modules/.  Next, in powershell run the command "set-executionpolicy unrestricted".  Finally, in the VirtualEnvWrapper directory, open the file "VirtualEnvWrapperTabExpansion.psm1" and change "Function:TabExpansion" to "Function:TabExpansion2" in line 12. Windows users should also note that the virtualenvwrapper port can be problematic so if problems arise that you cannot get past, consider running without turning on virtualenvwrapper. This will cause the install changes to affect your entire system rather than just the virtualenv.
    
    **Note to Mac and Linux users:** After running:
    
@@ -224,16 +224,17 @@ bucket, within the `config` directory, you should see a series of
 `sf_133_yyyy_mm.csv` files. Download these and store them in your local
 `dataactvalidator/config` folder. 
 
-In either case, you'll need to make a local tweak to
-`dataactvalidator/scipts/loadFile.py` and run it. The file needs an additional
-line, to look like this:
+Once you've placed those files, run:
 
-```python
-if __name__ == '__main__':
-    loadDomainValues(
-        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
-        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"),
-    )
+```bash
+python dataactvalidator/scripts/load_sf133.py
+```
+
+This will only load the new SF133 entries. To force load from your files, you
+can add the `-f` or `--force` flag:
+
+```bash
+python dataactvalidator/scripts/load_sf133.py -f
 ```
 
 This will take several minutes to process.
