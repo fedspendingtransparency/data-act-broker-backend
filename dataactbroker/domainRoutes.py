@@ -12,4 +12,4 @@ def add_domain_routes(app,isLocal,bcrypt):
     def list_agencies():
         """ List all CGAC Agencies """
         domainHandler = DomainHandler()
-        return RouteUtils.run_instance_function(domainHandler, domainHandler.listAgencies)
+        return RouteUtils.run_instance_function(domainHandler, domainHandler.list_agencies)

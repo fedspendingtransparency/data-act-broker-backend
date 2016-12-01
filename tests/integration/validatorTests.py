@@ -1,8 +1,7 @@
-import unittest
-
 from dataactcore.models.validationModels import FieldType, FileColumn
 from dataactvalidator.validation_handlers.validator import Validator
 from tests.integration.baseTestValidator import BaseTestValidator
+from dataactcore.models.lookups import FIELD_TYPE_DICT
 
 
 class ValidatorTests(BaseTestValidator):
@@ -39,6 +38,7 @@ class ValidatorTests(BaseTestValidator):
         column1.name = "test1"
         column1.required = True
         column1.field_type = stringType
+        column1.field_types_id = FIELD_TYPE_DICT[stringType.name]
         column1.file_id = 1
 
         column2 = FileColumn()
@@ -46,6 +46,7 @@ class ValidatorTests(BaseTestValidator):
         column2.name = "test2"
         column2.required = True
         column2.field_type = floatType
+        column2.field_types_id = FIELD_TYPE_DICT[floatType.name]
         column2.file_id = 1
 
         column3 = FileColumn()
@@ -53,6 +54,7 @@ class ValidatorTests(BaseTestValidator):
         column3.name = "test3"
         column3.required = True
         column3.field_type = booleanType
+        column3.field_types_id = FIELD_TYPE_DICT[booleanType.name]
         column3.file_id = 1
 
         column4 = FileColumn()
@@ -60,6 +62,7 @@ class ValidatorTests(BaseTestValidator):
         column4.name = "test4"
         column4.required = True
         column4.field_type = intType
+        column4.field_types_id = FIELD_TYPE_DICT[intType.name]
         column4.file_id = 1
 
         column5 = FileColumn()
@@ -67,6 +70,7 @@ class ValidatorTests(BaseTestValidator):
         column5.name = "test5"
         column5.required = False
         column5.field_type = intType
+        column5.field_types_id = FIELD_TYPE_DICT[intType.name]
         column5.file_id = 1
 
         column6 = FileColumn()
@@ -74,6 +78,7 @@ class ValidatorTests(BaseTestValidator):
         column6.name = "test6"
         column6.required = False
         column6.field_type = stringType
+        column6.field_types_id = FIELD_TYPE_DICT[stringType.name]
         column6.file_id = 1
 
         column7 = FileColumn()
@@ -81,6 +86,7 @@ class ValidatorTests(BaseTestValidator):
         column7.name = "test7"
         column7.required = False
         column7.field_type = longType
+        column7.field_types_id = FIELD_TYPE_DICT[longType.name]
         column7.file_id = 1
 
         cls.schema = {
@@ -137,7 +143,3 @@ class ValidatorTests(BaseTestValidator):
         record["test5"] = ""
         record["test3"] = ""
         self.assertTrue(Validator.validate(record, schema))
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -1,6 +1,4 @@
-from __future__ import print_function
 from datetime import datetime
-import unittest
 
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.interfaces.db import GlobalDB
@@ -8,7 +6,7 @@ from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId
 from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import AwardFinancial
-from dataactcore.utils.report import getCrossReportName, getCrossWarningReportName
+from dataactcore.utils.report import get_cross_report_name, get_cross_warning_report_name
 from dataactvalidator.app import createApp
 from tests.integration.baseTestValidator import BaseTestValidator
 from tests.integration.fileTypeTests import FileTypeTests
@@ -295,10 +293,10 @@ class MixedFileTests(BaseTestValidator):
             # Check that cross file validation report exists and is the right size
             submissionId = job.submission_id
             sizePathPairs = [
-                (89, getCrossReportName(submissionId, "appropriations", "program_activity")),
-                (89, getCrossReportName(submissionId, "award_financial", "award")),
-                (2348, getCrossWarningReportName(submissionId, "appropriations", "program_activity")),
-                (89, getCrossWarningReportName(submissionId, "award_financial", "award")),
+                (89, get_cross_report_name(submissionId, "appropriations", "program_activity")),
+                (89, get_cross_report_name(submissionId, "award_financial", "award")),
+                (2363, get_cross_warning_report_name(submissionId, "appropriations", "program_activity")),
+                (89, get_cross_warning_report_name(submissionId, "award_financial", "award")),
             ]
 
         for size, path in sizePathPairs:
@@ -309,6 +307,3 @@ class MixedFileTests(BaseTestValidator):
                     s3UrlHandler.getFileSize("errors/" + path), size - 5)
                 self.assertLess(
                     s3UrlHandler.getFileSize("errors/" + path), size + 5)
-
-if __name__ == '__main__':
-    unittest.main()

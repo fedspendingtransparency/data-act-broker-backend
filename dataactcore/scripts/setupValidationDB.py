@@ -1,7 +1,8 @@
-from dataactvalidator.app import createApp
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
 from dataactcore.models import lookups
-from dataactcore.models.validationModels import FileTypeValidation, FieldType, RuleSeverity
+from dataactcore.models.validationModels import FieldType, RuleSeverity
+from dataactvalidator.app import createApp
 
 
 def setupValidationDB():
@@ -14,12 +15,6 @@ def setupValidationDB():
 
 def insertCodes(sess):
     """Insert static data."""
-    # insert validation file type
-    # todo: combine this table with file_types table
-    for f in lookups.FILE_TYPE:
-        if f.order is not None:
-            fileType = FileTypeValidation(file_id=f.id, name=f.name, description=f.desc, file_order=f.order)
-            sess.merge(fileType)
 
     # insert field types
     for f in lookups.FIELD_TYPE:
@@ -33,4 +28,5 @@ def insertCodes(sess):
 
 
 if __name__ == '__main__':
+    configure_logging()
     setupValidationDB()

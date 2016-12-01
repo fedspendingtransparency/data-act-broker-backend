@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the user database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, Boolean
+from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, Boolean, Index
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -13,7 +13,8 @@ class User(Base):
     name = Column(Text)
     cgac_code = Column(Text)
     title = Column(Text)
-    permissions = Column(Integer)
+    permission_type_id = Column(Integer, ForeignKey(column="permission_type.permission_type_id",
+                                                    name="user_permission_type_fk"))
     user_status_id = Column(Integer, ForeignKey("user_status.user_status_id"))
     password_hash = Column(Text)
     salt = Column(Text)
@@ -62,3 +63,15 @@ class EmailToken(Base):
     email_token_id = Column(Integer, primary_key=True)
     token = Column(Text)
     salt = Column(Text)
+
+class SessionMap(Base):
+    """ This table maps session IDs to user data """
+    __tablename__ = "session_map"
+    session_id = Column(Integer, primary_key=True)
+    uid = Column(Text)
+    data = Column(Text)
+    expiration = Column(Integer)
+
+Index("ix_session_uid",
+    SessionMap.uid,
+    unique=False)

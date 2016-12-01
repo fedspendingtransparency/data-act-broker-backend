@@ -94,4 +94,7 @@ The `JsonResponse` object contains methods for automatically encoding a JSON res
 from a REST request. Users are able to pass dictionary objects that will be
 automatically converted to JSON with the correct application headers added.
 
-In addition, the static `error` method will auto create a JSON response with the current exception stack trace encoded. This is useful in the development environment, but should be disabled in production by setting the static class variable `printDebug` to `false`.
+In addition, the static `error` method will auto create a JSON response with
+the current exception stack trace encoded. This is useful in the development
+environment, but should be disabled in production by setting the `debug`
+configuration to `false`.

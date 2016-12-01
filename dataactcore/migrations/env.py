@@ -20,7 +20,6 @@ config = context.config
 # on other app logging when alembic runs programmatically,
 # don't load up the fileConfig object form alembic.ini
 #fileConfig(config.config_file_name)
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('alembic.env')
 
 # Use the broker's config file to gather section names referring to different

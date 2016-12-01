@@ -126,20 +126,8 @@ If you already have a Python development environment on your machine and a prefe
 When running the broker, you have the option to use Amazon Web Services (AWS) to handle:
 
 * Storage of data submissions and validation reports (via S3 buckets).
-* Session management (via DynamoDB).
 
 Using AWS is optional, and by default the broker will not use these services. If you'd like to use AWS, [follow these directions](AWS.md "set up Amazon Web Services") now.
-
-### Install Local DynamoDB (non-AWS users only)
-
-If you're not using AWS tools when running the broker, you'll need to install a local version of Amazon's DynamoDB to handle session management. The local DynamoDB is a Java executable the runs on Windows, Mac, and Linux systems.
-
-1. Install version 7+ of the [Java Development Kit (jdk)](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html "download Java Development Kit").
-2. Follow [Amazon's instructions](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html#Tools.DynamoDBLocal.DownloadingAndRunning "running DynamoDB on your computer") for downloading and running local DynamoDB. You should be able to start the local DynamoDB using the example command provided by Amazon, without overriding any of the default options.
-
-Don't worry about setting DynamoDB endpoints or creating tables: the broker's code handles this.
-
-**Note:** The local version of DynamoDB is not recommended for production.
 
 ### Install RabbitMQ
 
@@ -147,6 +135,10 @@ RabbitMQ is used to pass jobs to the validator, and requires Erlang to be instal
 
 1.  Install Erlang based on the [download instructions](https://www.erlang.org/downloads)
 2.  Choose an installation guide based on your OS for [RabbitMQ](https://www.rabbitmq.com/download.html).  Be sure to install Erlang before installing RabbitMQ.  The default user and password is "guest"/"guest", if you change these you'll need to keep that information to be placed in the config files later in the process.
+
+Alternatively, a [Docker](https://www.docker.com/products/overview#/install_the_platform) setup is pretty straight forward:
+
+        $ docker run -d -p 5672:5672 rabbitmq:3
 
 ### Clone Broker Backend Code Repository
 
@@ -211,7 +203,6 @@ You will need to run two scripts to setup the broker's backend components. The f
         $ python dataactcore/scripts/initialize.py -a
 
 **Important Notes:**
-* If you're using a local DynamoDB, make sure it's running before executing these scripts.
 * By default, the broker installs with a small sample of [GTAS financial
   data](https://www.fiscal.treasury.gov/fsservices/gov/acctg/gtas/gtas_home.htm
   "GTAS"), which is used during the validation process. See the next section
@@ -309,3 +300,58 @@ In order to revert to a specific revision run the following, where [revision] co
 ```bash
 $ alembic downgrade [revision]
 ```
+
+## Debugging
+
+### Logging Configuration
+
+The default logging level for our loggers (and libraries we use) aren't always
+verbose enough. Luckily, we can change the settings for any logger in our
+local `dataactcore/config.yml`. For example, let's add print out all of the
+sqlalchemy SQL calls:
+
+```yaml
+logging:
+    python_config:
+        loggers:
+            sqlalchemy.engine:
+                handlers: ['console']
+                level: INFO
+```
+
+This modifies the `sqlalchemy.engine` logger (as well as
+`sqlalchemy.engine.*`), changing the logging level.
+
+See the
+[docs](https://docs.python.org/3.4/library/logging.config.html#logging-config-dictschema)
+for more configuration details. Everything within `python_config` is imported
+via `dictConfig` (in addition to some standard settings defined in
+`dataactcore.logging`.
+
+### Adding log messages
+
+Of course, if nothing is being logged, you won't be able to see application
+state. To add log messages, you may need to create a logger at the top of the
+module (i.e. *.py file). We should use `__name__` to name the loggers after
+the modules they are used in.
+
+```python
+import logging
+
+
+logger = logging.getLogger(__name__)
+```
+
+Then, use the logger by calling methods on it:
+
+```python
+logger.info('My message without parameters')
+logger.warning('A bad thing happened to user %s', user_id)
+try:
+    raise ValueError()
+except ValueError:
+    logger.exception("Carries traceback info")
+```
+
+See the Python [docs](https://docs.python.org/3.4/library/logging.html) for
+more info.

@@ -13,6 +13,7 @@ broker:
 
 services:
 
+    debug: true
     broker_api_host: 127.0.0.1
     broker_api_port: 3333
     validator_host: 127.0.0.1
@@ -27,12 +28,9 @@ db:
     base_db_name: postgres #This is the default db on the instance.
     job_queue_db_name: da_job_queue # Job queue db
     db_name: data_broker
-    dynamo_host: 127.0.0.1
-    dynamo_port: 8000
 
 logging:
 
-    use_logstash: false
     log_files: /full/path/to/local/logfiles
 
 job-queue:

@@ -1,4 +1,3 @@
-import unittest
 import os
 from datetime import datetime
 from shutil import copy
@@ -66,7 +65,8 @@ class FileTests(BaseTestAPI):
             cls.setupFileData(sess, cls.test_metrics_submission_id)
 
             cls.row_error_submission_id = cls.insertSubmission(
-                sess, cls.submission_user_id, cgac_code="SYS", startDate="10/2015", endDate="06/2016", is_quarter=True)
+                sess, cls.submission_user_id, cgac_code="SYS", startDate="10/2015", endDate="06/2016", is_quarter=True,
+                number_of_errors=1)
             cls.setupSubmissionWithError(sess, cls.row_error_submission_id)
 
     def setUp(self):
@@ -353,7 +353,7 @@ class FileTests(BaseTestAPI):
         
     def test_list_submissions(self):
         """ Check list submissions route on status check submission """
-        response = self.app.get("/v1/list_submissions/", headers={"x-session-id":self.session_id})
+        response = self.app.get("/v1/list_submissions/?certified=mixed", headers={"x-session-id":self.session_id})
 
         self.assertEqual(response.status_code, 200, msg=str(response.json))
         self.assertEqual(
@@ -521,13 +521,19 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["message"],"User does not have permission to view that submission")
 
     @staticmethod
-    def insertSubmission(sess, submission_user_id, submission=None, cgac_code = None, startDate = None, endDate = None, is_quarter = False):
+    def insertSubmission(sess, submission_user_id, submission=None, cgac_code = None, startDate = None, endDate = None, is_quarter = False, number_of_errors=0):
         """Insert one submission into job tracker and get submission ID back."""
         if submission:
             sub = Submission(submission_id=submission,
-                datetime_utc=datetime.utcnow(), user_id=submission_user_id, cgac_code = cgac_code, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter)
+                datetime_utc=datetime.utcnow(), user_id=submission_user_id, cgac_code = cgac_code,
+                             reporting_start_date = JobHandler.createDate(startDate),
+                             reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter,
+                             number_of_errors=number_of_errors)
         else:
-            sub = Submission(datetime_utc=datetime.utcnow(), user_id=submission_user_id, cgac_code = cgac_code, reporting_start_date = JobHandler.createDate(startDate), reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter)
+            sub = Submission(datetime_utc=datetime.utcnow(), user_id=submission_user_id, cgac_code = cgac_code,
+                             reporting_start_date = JobHandler.createDate(startDate),
+                             reporting_end_date = JobHandler.createDate(endDate), is_quarter_format = is_quarter,
+                             number_of_errors=number_of_errors)
         sess.add(sub)
         sess.commit()
         return sub.submission_id
@@ -814,6 +820,3 @@ class FileTests(BaseTestAPI):
         )
         FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['complete']) # Validation level Errors
         cls.insertRowLevelError(sess, job.job_id)
-
-if __name__ == '__main__':
-    unittest.main()

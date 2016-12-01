@@ -1,5 +1,9 @@
 import csv
+
+from dataactcore.logging import configure_logging
 from dataactcore.utils.stringCleaner import StringCleaner
+from dataactcore.models.lookups import FIELD_TYPE_DICT_ID
+
 
 class FieldCleaner(StringCleaner):
     """ This class takes a field definition file and cleans it, producing a field definition file that can be read by schemaLoader """
@@ -109,13 +113,11 @@ class FieldCleaner(StringCleaner):
         return length
 
     @classmethod
-    def cleanRow(cls, row, fileType, validationInterface, longToShortDict, fields):
+    def cleanRow(cls, row, longToShortDict, fields):
         """ Strips whitespace, replaces empty strings with None, and pads fields that need it
 
         Args:
             row: Record in this row
-            fileType: Which file type this is for
-            validationInterface: Interface to the validation DB
             longToShortDict: Maps long column names to short
             fields: List of FileColumn objects for this file type
 
@@ -125,7 +127,7 @@ class FieldCleaner(StringCleaner):
 
         for field in fields:
             key = longToShortDict[field.name]
-            field_type = field.field_type.name
+            field_type = FIELD_TYPE_DICT_ID[field.field_types_id]
             value = row[key]
             if value is not None:
                 # Remove extra whitespace
@@ -160,6 +162,7 @@ class FieldCleaner(StringCleaner):
             return value
 
 if __name__ == '__main__':
+    configure_logging()
     FieldCleaner.cleanFile("../config/awardProcurementFieldsRaw.csv","../config/awardProcurementFields.csv")
     FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")
     FieldCleaner.cleanFile("../config/awardFinancialFieldsRaw.csv","../config/awardFinancialFields.csv")

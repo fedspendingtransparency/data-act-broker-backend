@@ -1,4 +1,6 @@
-from tests.unit.dataactcore.factories.staging import AppropriationFactory, ObjectClassProgramActivityFactory
+from tests.unit.dataactcore.factories.domain import TASFactory
+from tests.unit.dataactcore.factories.staging import (
+    AppropriationFactory, ObjectClassProgramActivityFactory)
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
@@ -15,54 +17,78 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Tests that, for entries with the matching TAS, Appropriations deobligations_recoveries_r_cpe equals the sum of
-    all corresponding entries for Object Class Program Acitivity fields ussgl487100_downward_adjus_cpe,
-    ussgl497100_downward_adjus_cpe, ussgl487200_downward_adjus_cpe, ussgl497200_downward_adjus_cpe"""
+    """ Tests that, for entries with the matching TAS, Appropriations
+    deobligations_recoveries_r_cpe equals the sum of all corresponding entries
+    for Object Class Program Acitivity fields ussgl487100_downward_adjus_cpe,
+    ussgl497100_downward_adjus_cpe, ussgl487200_downward_adjus_cpe,
+    ussgl497200_downward_adjus_cpe"""
+    tas = TASFactory()
+    database.session.add(tas)
+    database.session.flush()
 
-    tas_ignore = ''.join([_TAS + "_ignore"])
-
-    ap = AppropriationFactory(tas=_TAS, deobligations_recoveries_r_cpe=8)
-
-    op_1 = ObjectClassProgramActivityFactory(tas=_TAS, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
-                                             ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
-
-    op_2 = ObjectClassProgramActivityFactory(tas=_TAS, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
-                                             ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
+    ap = AppropriationFactory(tas_id=tas.tas_id,
+                              deobligations_recoveries_r_cpe=8)
+    # Contributes 4
+    op_1 = ObjectClassProgramActivityFactory(
+        tas_id=tas.tas_id, ussgl487100_downward_adjus_cpe=1,
+        ussgl497100_downward_adjus_cpe=1, ussgl487200_downward_adjus_cpe=1,
+        ussgl497200_downward_adjus_cpe=1)
+    # Contributes another 4
+    op_2 = ObjectClassProgramActivityFactory(
+        tas_id=tas.tas_id, ussgl487100_downward_adjus_cpe=1,
+        ussgl497100_downward_adjus_cpe=1, ussgl487200_downward_adjus_cpe=1,
+        ussgl497200_downward_adjus_cpe=1)
 
     assert number_of_errors(_FILE, database, models=[ap, op_1, op_2]) == 0
 
-    ap = AppropriationFactory(tas=_TAS, deobligations_recoveries_r_cpe=8)
 
-    op_1 = ObjectClassProgramActivityFactory(tas=_TAS, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
-                                             ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
+def test_success_scenario2(database):
+    tas1 = TASFactory()
+    tas2 = TASFactory()
+    database.session.add_all([tas1, tas2])
+    database.session.flush()
 
-    op_2 = ObjectClassProgramActivityFactory(tas=_TAS, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
-                                             ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
-
-    op_3 = ObjectClassProgramActivityFactory(tas=tas_ignore, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
-                                             ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
-
+    ap = AppropriationFactory(tas_id=tas1.tas_id,
+                              deobligations_recoveries_r_cpe=8)
+    # Contributes 4
+    op_1 = ObjectClassProgramActivityFactory(
+        tas_id=tas1.tas_id, ussgl487100_downward_adjus_cpe=1,
+        ussgl497100_downward_adjus_cpe=1, ussgl487200_downward_adjus_cpe=1,
+        ussgl497200_downward_adjus_cpe=1)
+    # Contributes another 4
+    op_2 = ObjectClassProgramActivityFactory(
+        tas_id=tas1.tas_id, ussgl487100_downward_adjus_cpe=1,
+        ussgl497100_downward_adjus_cpe=1, ussgl487200_downward_adjus_cpe=1,
+        ussgl497200_downward_adjus_cpe=1)
+    # Doesn't contribute, different TAS
+    op_3 = ObjectClassProgramActivityFactory(
+        tas_id=tas2.tas_id, ussgl487100_downward_adjus_cpe=1,
+        ussgl497100_downward_adjus_cpe=1, ussgl487200_downward_adjus_cpe=1,
+        ussgl497200_downward_adjus_cpe=1)
     assert number_of_errors(_FILE, database, models=[ap, op_1, op_2, op_3]) == 0
 
 
 def test_failure(database):
-    """ Tests that, for entries with the matching TAS, Appropriations deobligations_recoveries_r_cpe does not equals
-    the sum of all corresponding entries for Object Class Program Acitivity fields ussgl487100_downward_adjus_cpe,
-    ussgl497100_downward_adjus_cpe, ussgl487200_downward_adjus_cpe, ussgl497200_downward_adjus_cpe"""
+    """ Tests that, for entries with the matching TAS, Appropriations
+    deobligations_recoveries_r_cpe does not equals the sum of all
+    corresponding entries for Object Class Program Acitivity fields
+    ussgl487100_downward_adjus_cpe, ussgl497100_downward_adjus_cpe,
+    ussgl487200_downward_adjus_cpe, ussgl497200_downward_adjus_cpe"""
+    tas = TASFactory()
+    database.session.add(tas)
+    database.session.flush()
 
-    tas_ignore = ''.join([_TAS + "_ignore"])
+    ap = AppropriationFactory(tas_id=tas.tas_id,
+                              deobligations_recoveries_r_cpe=7)
+    # Contributes 4
+    op_1 = ObjectClassProgramActivityFactory(
+        tas_id=tas.tas_id, ussgl487100_downward_adjus_cpe=1,
+        ussgl497100_downward_adjus_cpe=1, ussgl487200_downward_adjus_cpe=1,
+        ussgl497200_downward_adjus_cpe=1)
+    # Contributes another 4
+    op_2 = ObjectClassProgramActivityFactory(
+        tas_id=tas.tas_id, ussgl487100_downward_adjus_cpe=1,
+        ussgl497100_downward_adjus_cpe=1, ussgl487200_downward_adjus_cpe=1,
+        ussgl497200_downward_adjus_cpe=1)
 
-    ap = AppropriationFactory(tas=_TAS, deobligations_recoveries_r_cpe=7)
-
-    op_1 = ObjectClassProgramActivityFactory(tas=_TAS, ussgl487100_downward_adjus_cpe=1,
-                                             ussgl497100_downward_adjus_cpe=1,
-                                             ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
-
-    op_2 = ObjectClassProgramActivityFactory(tas=_TAS, ussgl487100_downward_adjus_cpe=1,
-                                             ussgl497100_downward_adjus_cpe=1,
-                                             ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
-
-    op_3 = ObjectClassProgramActivityFactory(tas=tas_ignore, ussgl487100_downward_adjus_cpe=1, ussgl497100_downward_adjus_cpe=1,
-                                             ussgl487200_downward_adjus_cpe=1, ussgl497200_downward_adjus_cpe=1)
-
-    assert number_of_errors(_FILE, database, models=[ap, op_1, op_2, op_3]) == 1
+    assert number_of_errors(_FILE, database, models=[ap, op_1, op_2]) == 1

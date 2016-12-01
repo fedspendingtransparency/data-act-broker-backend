@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from random import randint
 
@@ -15,7 +15,7 @@ from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.scripts.setupValidationDB import setupValidationDB
-from dataactcore.utils.report import getReportPath
+from dataactcore.utils.report import get_report_path
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.jobModels import Job, Submission
 from dataactcore.models.errorModels import File
@@ -70,6 +70,7 @@ class BaseTestValidator(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         """Tear down class-level resources."""
+        GlobalDB.close()
         dropDatabase(CONFIG_DB['db_name'])
 
     def tearDown(self):
@@ -134,7 +135,7 @@ class BaseTestValidator(unittest.TestCase):
                 self.assertEqual(checkNumberOfErrorsByJobId(jobId, 'warning'), numWarnings)
 
             if fileSize is not False:
-                reportPath = getReportPath(job, 'error')
+                reportPath = get_report_path(job, 'error')
                 if self.local:
                     self.assertFileSizeAppxy(fileSize, reportPath)
                 else:
@@ -144,7 +145,7 @@ class BaseTestValidator(unittest.TestCase):
                         'errors/{}'.format(reportPath)), fileSize + 5)
 
             if warningFileSize is not None and warningFileSize is not False:
-                reportPath = getReportPath(job, 'warning')
+                reportPath = get_report_path(job, 'warning')
                 if self.local:
                     self.assertFileSizeAppxy(warningFileSize, reportPath)
                 else:
@@ -164,9 +165,11 @@ class BaseTestValidator(unittest.TestCase):
     @classmethod
     def insertSubmission(cls, sess, userId=None, reporting_end_date=None):
         """Insert submission and return id."""
-        reporting_start_date = cls.SUBMISSION_START_DEFAULT
         if reporting_end_date is None:
+            reporting_start_date = cls.SUBMISSION_START_DEFAULT
             reporting_end_date = cls.SUBMISSION_END_DEFAULT
+        else:
+            reporting_start_date = reporting_end_date - timedelta(days=30)
         sub = Submission(
             datetime_utc=datetime.utcnow(),
             user_id=userId,

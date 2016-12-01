@@ -84,32 +84,6 @@ class BaseInterface(object):
         self.interfaces = None
         GlobalDB.close()
 
-    @classmethod
-    def getCredDict(cls):
-        """ Return db credentials. """
-        credDict = {
-            'username': cls.dbConfig['username'],
-            'password': cls.dbConfig['password'],
-            'host': cls.dbConfig['host'],
-            'port': cls.dbConfig['port'],
-            'dbBaseName': cls.dbConfig['base_db_name'],
-            'scheme': cls.dbConfig['scheme']
-        }
-        return credDict
-
-    @staticmethod
-    def checkUnique(queryResult, noResultMessage, multipleResultMessage):
-        """ Check that result is unique, if not raise exception"""
-        if(len(queryResult) == 0):
-            # Did not get a result for this job, mark as a job error
-            raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound)
-
-        elif(len(queryResult) > 1):
-            # Multiple results for single job ID
-            raise ResponseException(multipleResultMessage,StatusCode.INTERNAL_ERROR,MultipleResultsFound)
-
-        return True
-
     @staticmethod
     def runUniqueQuery(query, noResultMessage, multipleResultMessage):
         """ Run query looking for one result, if it fails wrap it in a ResponseException with an appropriate message """
@@ -122,12 +96,6 @@ class BaseInterface(object):
             raise ResponseException(noResultMessage,StatusCode.CLIENT_ERROR,NoResultFound)
         except MultipleResultsFound as e:
             raise ResponseException(multipleResultMessage,StatusCode.INTERNAL_ERROR,MultipleResultsFound)
-
-    def runStatement(self,statement):
-        """ Run specified statement on this database"""
-        response =  self.session.execute(statement)
-        self.session.commit()
-        return response
 
     def getIdFromDict(self, model, dictName, fieldName, fieldValue, idField):
         """ Populate a static dictionary to hold an id to name dictionary for specified model

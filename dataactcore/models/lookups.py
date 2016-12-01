@@ -7,8 +7,11 @@
 
 from collections import namedtuple
 
+from dataactcore.models.stagingModels import (
+    AwardFinancialAssistance, AwardFinancial, Appropriation, ObjectClassProgramActivity, AwardProcurement)
+
 LookupType = namedtuple('LookupType', ['id', 'name', 'desc'])
-LookupFileType = namedtuple('LookupFileType', ['id', 'name', 'desc', 'letter', 'order'])
+LookupFileType = namedtuple('LookupFileType', ['id', 'name', 'desc', 'letter', 'order', 'crossfile', 'model'])
 
 FILE_STATUS = [
     LookupType(1, 'complete', 'File has been processed'),
@@ -58,15 +61,17 @@ PUBLISH_STATUS = [
 PUBLISH_STATUS_DICT = {item.name: item.id for item in PUBLISH_STATUS}
 
 FILE_TYPE = [
-    LookupFileType(1, 'appropriations', '', 'A', 1),
-    LookupFileType(2, 'program_activity', '', 'B', 2),
-    LookupFileType(3, 'award_financial', '', 'C', 3),
-    LookupFileType(4, 'award', '', 'D2', 4),
-    LookupFileType(5, 'award_procurement', '', 'D1', 5),
-    LookupFileType(6, 'awardee_attributes', '', 'E', None),
-    LookupFileType(7, 'sub_award', '', 'F', None)
+    LookupFileType(1, 'appropriations', '', 'A', 1, True, Appropriation),
+    LookupFileType(2, 'program_activity', '', 'B', 2, True, ObjectClassProgramActivity),
+    LookupFileType(3, 'award_financial', '', 'C', 3, True, AwardFinancial),
+    LookupFileType(4, 'award', '', 'D2', 4, True, AwardFinancialAssistance),
+    LookupFileType(5, 'award_procurement', '', 'D1', 5, True, AwardProcurement),
+    LookupFileType(6, 'awardee_attributes', '', 'E', None, False, None),
+    LookupFileType(7, 'sub_award', '', 'F', None, False, None)
 ]
 FILE_TYPE_DICT = {item.name: item.id for item in FILE_TYPE}
+FILE_TYPE_DICT_ID = {item.id: item.name for item in FILE_TYPE}
+
 
 USER_STATUS = [
     LookupType(1, 'awaiting_confirmation', 'User has entered email but not confirmed'),
@@ -78,11 +83,15 @@ USER_STATUS = [
 USER_STATUS_DICT = {item.name: item.id for item in USER_STATUS}
 
 PERMISSION_TYPE = [
-    LookupType(0, 'agency_user', 'This user is allowed to upload data to be validated'),
-    LookupType(1, 'website_admin', 'This user is allowed to manage user accounts'),
-    LookupType(2, 'agency_admin', 'This user is allowed to manage user accounts within their agency')
+    LookupType(1, 'reader', 'This user is allowed to view any submission for their agency'),
+    LookupType(2, 'writer', 'This user is allowed to create and edit any submission for their agency'),
+    LookupType(3, 'submitter', 'This user is allowed to certify and submit any submission for their agency'),
+    LookupType(4, 'website_admin', 'This user is a super user and has full admin control')
 ]
 PERMISSION_TYPE_DICT = {item.name: item.id for item in PERMISSION_TYPE}
+PERMISSION_TYPE_DICT_ID = {item.id: item.name for item in PERMISSION_TYPE}
+PERMISSION_MAP = {'r': {'name': 'reader', 'order': 4}, 'w': {'name': 'writer', 'order': 3},
+                  's': {'name': 'submitter', 'order': 2}, 'a': {'name': 'website_admin', 'order': 1}}
 
 FIELD_TYPE = [
     LookupType(1, 'INT', 'integer type'),
@@ -92,6 +101,7 @@ FIELD_TYPE = [
     LookupType(5, 'LONG', 'long integer')
 ]
 FIELD_TYPE_DICT = {item.name: item.id for item in FIELD_TYPE}
+FIELD_TYPE_DICT_ID = {item.id: item.name for item in FIELD_TYPE}
 
 RULE_SEVERITY = [
     LookupType(1, 'warning', 'warning'),

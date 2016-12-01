@@ -5,19 +5,20 @@ import os
 from flask_bcrypt import Bcrypt
 
 
-from dataactvalidator.app import createApp
 from dataactbroker.scripts.setupEmails import setupEmails
-from dataactcore.models.userModel import User
-from dataactcore.interfaces.function_bag import createUserWithPassword
-from dataactcore.scripts.setupAllDB import setupAllDB
-from dataactbroker.handlers.aws.session import SessionTable
+from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.config import CONFIG_BROKER, CONFIG_DB
-from dataactvalidator.scripts.loadTas import loadTas
-from dataactvalidator.filestreaming.sqlLoader import SQLLoader
+from dataactcore.interfaces.function_bag import createUserWithPassword
+from dataactcore.logging import configure_logging
+from dataactcore.models.userModel import User
+from dataactcore.scripts.setupAllDB import setupAllDB
+from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
+from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.scripts.loadFile import loadDomainValues
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
+from dataactvalidator.scripts.loadTas import loadTas
+from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 
 logger = logging.getLogger(__name__)
 basePath = CONFIG_BROKER["path"]
@@ -29,8 +30,6 @@ def setup_db():
     logger.info('Setting up db')
     setupAllDB()
     setupEmails()
-    setup_session_table()
-
 
 def create_admin():
     """Create initial admin user."""
@@ -45,15 +44,8 @@ def create_admin():
             # GlobalDB instead of databaseSession, move the app_context
             # creation up to initialize()
             user = createUserWithPassword(
-                admin_email, admin_pass, Bcrypt(), permission=2)
+                admin_email, admin_pass, Bcrypt(), permission=PERMISSION_TYPE_DICT['website_admin'])
     return user
-
-
-def setup_session_table():
-    """Create Dynamo session table."""
-    logger.info('Setting up DynamoDB session table')
-    SessionTable.createTable(CONFIG_BROKER['local'], CONFIG_DB['dynamo_port'])
-
 
 def load_tas_lookup():
     """Load/update the TAS table to reflect the latest list."""
@@ -134,6 +126,5 @@ def main():
         load_validator_schema()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    configure_logging()
     main()
-

@@ -1,7 +1,8 @@
-from dataactvalidator.app import createApp
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
 from dataactcore.models import lookups
 from dataactcore.models.jobModels import JobStatus, JobType, FileType, PublishStatus
+from dataactvalidator.app import createApp
 
 
 def setupJobTrackerDB():
@@ -33,9 +34,16 @@ def insertCodes(sess):
 
     # insert file types
     for ft in lookups.FILE_TYPE:
-        fileType = FileType(file_type_id=ft.id, name=ft.name, description=ft.desc, letter_name=ft.letter)
+        fileType = FileType(
+            file_type_id=ft.id,
+            name=ft.name,
+            description=ft.desc,
+            letter_name=ft.letter,
+            file_order=ft.order
+        )
         sess.merge(fileType)
 
 
 if __name__ == '__main__':
+    configure_logging()
     setupJobTrackerDB()
