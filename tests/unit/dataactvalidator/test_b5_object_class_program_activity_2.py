@@ -15,8 +15,9 @@ def test_success(database):
     """ Tests that Object Class Program activity gross_outlays_delivered_or_cpe + gross_outlays_undelivered_cpe
     equals gross_outlay_amount_by_pro_cpe """
 
-    op = ObjectClassProgramActivityFactory(gross_outlay_amount_by_pro_cpe=2, gross_outlays_undelivered_cpe=1,
-                                           gross_outlays_delivered_or_cpe=1)
+    op = ObjectClassProgramActivityFactory(gross_outlay_amount_by_pro_cpe=2, gross_outlays_undelivered_cpe=2,
+                                           gross_outlays_undelivered_fyb=1, gross_outlays_delivered_or_cpe=2,
+                                           gross_outlays_delivered_or_fyb=1)
 
     assert number_of_errors(_FILE, database, models=[op]) == 0
 
@@ -25,7 +26,8 @@ def test_failure(database):
     """ Tests that Object Class Program activity gross_outlays_delivered_or_cpe + gross_outlays_undelivered_cpe
     doesn't equals gross_outlay_amount_by_pro_cpe """
 
-    op = ObjectClassProgramActivityFactory(gross_outlay_amount_by_pro_cpe=1, gross_outlays_undelivered_cpe=1,
-                                           gross_outlays_delivered_or_cpe=1)
+    op = ObjectClassProgramActivityFactory(gross_outlay_amount_by_pro_cpe=2, gross_outlays_undelivered_cpe=1,
+                                           gross_outlays_undelivered_fyb=1, gross_outlays_delivered_or_cpe=1,
+                                           gross_outlays_delivered_or_fyb=1)
 
     assert number_of_errors(_FILE, database, models=[op]) == 1
