@@ -1,5 +1,5 @@
 from collections import namedtuple
-from datetime import date
+from datetime import date, timedelta
 import glob
 import logging
 import os
@@ -8,11 +8,12 @@ import sys
 
 import boto
 import pandas as pd
+import sqlalchemy as sa
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import SF133
+from dataactcore.models.domainModels import SF133, TASLookup
 from dataactvalidator.app import createApp
 from dataactvalidator.scripts.loaderUtils import LoaderUtils
 
@@ -29,10 +30,10 @@ def load_all_sf133(sf133_path=None, force_load=False):
         # and call the SF 133 loader
         file_match = SF_RE.match(sf133.file)
         if not file_match:
-            logger.info('{}Skipping SF 133 file with invalid name: {}'.format(
-                os.linesep, sf133.full_file))
+            logger.info('Skipping SF 133 file with invalid name: %s',
+                        sf133.full_file)
             continue
-        logger.info('{}Starting {}...'.format(os.linesep, sf133.full_file))
+        logger.info('Starting %s...', sf133.full_file)
         load_sf133(
             sf133.full_file, file_match.group('year'), file_match.group('period'),
             force_load=force_load
@@ -65,11 +66,16 @@ def fill_blank_sf133_lines(data):
     return data
 
 
-def update_tas_id(fiscal_year, fiscal_period):
-    """Set the tas_id on newly SF133 entries. We use raw SQL as sqlalchemy
-    doesn't have operators like OVERLAPS and IS NOT DISTINCT FROM built in
-    (resulting in a harder to understand query)."""
-    sess = GlobalDB.db().session
+_tas_fields_to_match = (
+    'allocation_transfer_agency', 'agency_identifier',
+    'beginning_period_of_availability', 'ending_period_of_availability',
+    'availability_type_code', 'main_account_code', 'sub_account_code'
+)
+
+
+def tas_time_overlaps(fiscal_year, fiscal_period):
+    """Derive a sqlalchemy filter against the requested fiscal period. Uses
+    the postgres OVERLAPS operator"""
 
     # number of months since 0AD for this fiscal period
     zero_based_period = fiscal_period - 1
@@ -81,47 +87,49 @@ def update_tas_id(fiscal_year, fiscal_period):
     end_date = date(absolute_following_month // 12,
                     (absolute_following_month % 12) + 1,    # 1-based
                     1)
+    day_after_end = end_date + timedelta(days=1)
+
+    sf133_dates = sa.tuple_(start_date, end_date)
+    tas_dates = sa.tuple_(TASLookup.internal_start_date,
+                          sa.func.coalesce(TASLookup.internal_end_date,
+                                           day_after_end))
+    return sf133_dates.op('OVERLAPS')(tas_dates)
+
+
+def is_not_distinct_from(left, right):
+    """Postgres' IS NOT DISTINCT FROM is an equality check that accounts for
+    NULLs. Unfortunately, it doesn't make use of indexes. Instead, we'll
+    imitate it here"""
+    return sa.or_(left == right, sa.and_(left.is_(None), right.is_(None)))
+
+
+def update_tas_id(fiscal_year, fiscal_period):
+    """Set the tas_id on newly SF133 entries. We use raw SQL as sqlalchemy
+    doesn't have operators like OVERLAPS and IS NOT DISTINCT FROM built in
+    (resulting in a harder to understand query)."""
+    sess = GlobalDB.db().session
 
     # Why min()?
     # Our data schema doesn't prevent two TAS history entries with the same
     # TAS components (ATA, AI, etc.) from being valid at the same time. When
     # that happens (unlikely), we select the minimum (i.e. older) of the
     # potential TAS history entries.
-    sql = """
-        UPDATE sf_133
-        SET tas_id = (
-            SELECT min(tas.tas_id)
-            FROM tas_lookup AS tas
-            WHERE
-            sf_133.allocation_transfer_agency
-                IS NOT DISTINCT FROM tas.allocation_transfer_agency
-            AND sf_133.agency_identifier
-                IS NOT DISTINCT FROM tas.agency_identifier
-            AND sf_133.beginning_period_of_availa
-                IS NOT DISTINCT FROM tas.beginning_period_of_availability
-            AND sf_133.ending_period_of_availabil
-                IS NOT DISTINCT FROM tas.ending_period_of_availability
-            AND sf_133.availability_type_code
-                IS NOT DISTINCT FROM tas.availability_type_code
-            AND sf_133.main_account_code
-                IS NOT DISTINCT FROM tas.main_account_code
-            AND sf_133.sub_account_code
-                IS NOT DISTINCT FROM tas.sub_account_code
-            AND (:start_date, :end_date) OVERLAPS
-                -- A null end date indicates "still open". To make OVERLAPS
-                -- work, we'll use the day after the end date of the SF133
-                -- to achieve the same result
-                (tas.internal_start_date,
-                 COALESCE(tas.internal_end_date, :end_date + interval '1 day')
-                )
-            )
-        WHERE fiscal_year = :fiscal_year
-        AND period = :fiscal_period
-    """
-    sess.execute(
-        sql, {'start_date': start_date, 'end_date': end_date,
-              'fiscal_year': fiscal_year, 'fiscal_period': fiscal_period}
-    )
+    subquery = sess.query(sa.func.min(TASLookup.tas_id))
+
+    # Filter to matching TAS components, accounting for NULLs
+    for field in _tas_fields_to_match:
+        tas_col = getattr(TASLookup, field)
+        sf133_col = getattr(SF133, field[:26])
+        subquery = subquery.filter(is_not_distinct_from(tas_col, sf133_col))
+
+    subquery = subquery.filter(tas_time_overlaps(fiscal_year, fiscal_period))
+    subquery = subquery.as_scalar()
+
+    logger.info("Updating tas_ids for Fiscal %s-%s", fiscal_year,
+                fiscal_period)
+    sess.query(SF133).\
+        filter_by(fiscal_year=fiscal_year, period=fiscal_period).\
+        update({SF133.tas_id: subquery}, synchronize_session=False)
     sess.commit()
 
 
