@@ -119,6 +119,8 @@ def update_tas_id(fiscal_year, fiscal_period):
     # Filter to matching TAS components, accounting for NULLs
     for field in _tas_fields_to_match:
         tas_col = getattr(TASLookup, field)
+        # The SF133 column names are truncated versions of the tas columns.
+        # See DB-1354 for a potential solution
         sf133_col = getattr(SF133, field[:26])
         subquery = subquery.filter(is_not_distinct_from(tas_col, sf133_col))
 
