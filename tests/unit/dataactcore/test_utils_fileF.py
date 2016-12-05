@@ -7,37 +7,26 @@ from tests.unit.dataactcore.factories.fsrs import (
 from tests.unit.dataactcore.factories.staging import AwardFinancialFactory
 
 
-def test_valueFromMapping_None():
-    result = fileF.valueFromMapping(
-        FSRSProcurementFactory(), FSRSSubcontractFactory(), None, None,
-        mapping=None)
-    assert '' == result
+def test_CopyValues_procurement():
+    proc = FSRSProcurementFactory(duns='DUNS')
+    sub = FSRSSubcontractFactory(duns='DUNS SUB')
+    mapper = fileF.CopyValues(procurement='duns')
+    assert mapper.subcontract(proc, sub) == 'DUNS'
+    mapper = fileF.CopyValues(subcontract='duns')
+    assert mapper.subcontract(proc, sub) == 'DUNS SUB'
+    mapper = fileF.CopyValues(grant='duns')
+    assert mapper.subcontract(proc, sub) == ''
 
 
-def test_valueFromMapping_string():
-    proc = FSRSProcurementFactory()
-    sub = FSRSSubcontractFactory(duns='Some DUNS')
-    result = fileF.valueFromMapping(proc, sub, None, None, mapping='duns')
-    assert 'Some DUNS' == result
-
-
-def test_valueFromMapping_tuple():
-    proc = FSRSProcurementFactory()
-    subc = FSRSSubcontractFactory(duns='subcontract DUNS')
-    grant = FSRSGrantFactory()
-    subg = FSRSSubgrantFactory(parent_duns='subgrant DUNS')
-
-    mapping = ('duns', 'parent_duns')
-    assert 'subcontract DUNS' == fileF.valueFromMapping(
-        proc, subc, None, None, mapping)
-    assert 'subgrant DUNS' == fileF.valueFromMapping(
-        None, None, grant, subg, mapping)
-
-    # None indicates that no result should be provided
-    mapping = ('duns', None)
-    assert 'subcontract DUNS' == fileF.valueFromMapping(
-        proc, subc, None, None, mapping)
-    assert '' == fileF.valueFromMapping(None, None, grant, subg, mapping)
+def test_CopyValues_grant():
+    grant = FSRSGrantFactory(duns='DUNS')
+    sub = FSRSSubgrantFactory(duns='DUNS SUB')
+    mapper = fileF.CopyValues(grant='duns')
+    assert mapper.subgrant(grant, sub) == 'DUNS'
+    mapper = fileF.CopyValues(subgrant='duns')
+    assert mapper.subgrant(grant, sub) == 'DUNS SUB'
+    mapper = fileF.CopyValues(procurement='duns')
+    assert mapper.subgrant(grant, sub) == ''
 
 
 def test_relevantFainPiids(database):
