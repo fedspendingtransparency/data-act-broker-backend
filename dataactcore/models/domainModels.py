@@ -85,7 +85,7 @@ class SF133(Base):
     ending_period_of_availabil = Column(Text)
     main_account_code = Column(Text, nullable=False)
     sub_account_code = Column(Text, nullable=False)
-    tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
+    tas = Column(Text, nullable=False, default=concatTas)
     fiscal_year = Column(Integer, nullable=False)
     period = Column(Integer, nullable=False)
     line = Column(Integer,nullable=False)
