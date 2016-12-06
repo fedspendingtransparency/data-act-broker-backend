@@ -1,8 +1,25 @@
 from collections import OrderedDict
 
+import iso3166
+
 from dataactcore.models.fsrs import (
     FSRSGrant, FSRSProcurement, FSRSSubcontract, FSRSSubgrant)
 from dataactcore.models.stagingModels import AwardFinancial
+
+
+def _country_name(code):
+    """Convert a country code to the country name; return None if invalid"""
+    country = iso3166.countries.get(code, None)
+    if country:
+        return country.name
+
+
+def _zipcode_guard(model, field_prefix, match_usa):
+    """Get the zip code or not depending on country value"""
+    is_usa = getattr(model, field_prefix + '_country') == 'USA'
+    zipcode = getattr(model, field_prefix + '_zip')
+    if (match_usa and is_usa) or (not match_usa and not is_usa):
+        return zipcode
 
 
 class CopyValues():
@@ -14,95 +31,125 @@ class CopyValues():
         self.grant_field = grant
         self.subgrant_field = subgrant
 
-    def subcontract(self, procurement, subcontract):
+    def subcontract(self, procurement, subcontract, **kwargs):
         if self.subcontract_field:
             return getattr(subcontract, self.subcontract_field)
         elif self.procurement_field:
             return getattr(procurement, self.procurement_field)
-        else:
-            return ''
 
-    def subgrant(self, grant, subgrant):
+    def subgrant(self, grant, subgrant, **kwargs):
         if self.subgrant_field:
             return getattr(subgrant, self.subgrant_field)
         elif self.grant_field:
             return getattr(grant, self.grant_field)
-        else:
-            return ''
 
 
 def copy_subaward_field(field_name):
     return CopyValues(field_name, field_name)
 
 
+def copy_prime_field(field_name):
+    return CopyValues(procurement=field_name, grant=field_name)
+
+
 def todo():
     return CopyValues()     # noop
 
 
-mappings = OrderedDict()
-mappings['SubAwardeeOrRecipientLegalEntityName'] = CopyValues('company_name',
-                                                              'awardee_name')
-mappings['SubAwardeeOrRecipientUniqueIdentifier'] = copy_subaward_field('duns')
-mappings['SubAwardeeUltimateParentUniqueIdentifier'] = copy_subaward_field('parent_duns')
-mappings['SubAwardeeUltimateParentLegalEntityName'] = CopyValues(
-    subcontract='parent_company_name')    # @todo nothing for subgrants?
-mappings['LegalEntityAddressLine1'] = CopyValues('company_address_street',
-                                                 'awardee_address_street')
-mappings['LegalEntityCityName'] = CopyValues('company_address_city',
-                                             'awardee_address_city')
-mappings['LegalEntityStateCode'] = CopyValues('company_address_state',
-                                              'awardee_address_state')
-mappings['LegalEntityZIP+4'] = CopyValues('company_address_zip',
-                                          'awardee_address_zip')
-mappings['LegalEntityForeignPostalCode'] = todo()
-mappings['LegalEntityCongressionalDistrict'] = CopyValues(
-    subcontract='company_address_district', subgrant='awardee_address_district')
-mappings['LegalEntityCountryCode'] = todo()
-mappings['LegalEntityCountryName'] = CopyValues('company_address_country',
-                                                'awardee_address_country')
-mappings['HighCompOfficer1FullName'] = copy_subaward_field('top_paid_fullname_1')
-mappings['HighCompOfficer1Amount'] = copy_subaward_field('top_paid_amount_1')
-mappings['HighCompOfficer2FullName'] = copy_subaward_field('top_paid_fullname_2')
-mappings['HighCompOfficer2Amount'] = copy_subaward_field('top_paid_amount_2')
-mappings['HighCompOfficer3FullName'] = copy_subaward_field('top_paid_fullname_3')
-mappings['HighCompOfficer3Amount'] = copy_subaward_field('top_paid_amount_3')
-mappings['HighCompOfficer4FullName'] = copy_subaward_field('top_paid_fullname_4')
-mappings['HighCompOfficer4Amount'] = copy_subaward_field('top_paid_amount_4')
-mappings['HighCompOfficer5FullName'] = copy_subaward_field('top_paid_fullname_5')
-mappings['HighCompOfficer5Amount'] = copy_subaward_field('top_paid_amount_5')
-mappings['SubcontractAwardAmount'] = CopyValues(
-    subcontract='subcontract_amount')   # @todo  nothing for subgrants?
-mappings['TotalFundingAmount'] = CopyValues(
-    subgrant='subaward_amount')     # @todo    nothing for subcontracts?
-mappings['NAICS'] = CopyValues(
-    subcontract='naics')    # @todo    nothing for subgrants?
-mappings['NAICS_Description'] = todo()
-mappings['CFDA_NumberAndTitle'] = CopyValues(
-    subgrant='cfda_numbers')    # @todo     nothing for subcontracts
-mappings['AwardingSubTierAgencyName'] = copy_subaward_field(
-    'funding_agency_name')     # @todo - check
-mappings['AwardingSubTierAgencyCode'] = todo()
-mappings['AwardDescription'] = CopyValues('overall_description',
-                                          'project_description')
-mappings['ActionDate'] = todo()     # grant.obligation_date
-mappings['PrimaryPlaceOfPerformanceCityName'] = copy_subaward_field('principle_place_city')
-mappings['PrimaryPlaceOfPerformanceAddressLine1'] = copy_subaward_field('principle_place_street')
-mappings['PrimaryPlaceOfPerformanceStateCode'] = copy_subaward_field('principle_place_state')
-mappings['PrimaryPlaceOfPerformanceZIP+4'] = copy_subaward_field('principle_place_zip')
-mappings['PrimaryPlaceOfPerformanceCongressionalDistrict'] = copy_subaward_field('principle_place_district')
-mappings['PrimaryPlaceOfPerformanceCountryCode'] = todo()
-mappings['PrimaryPlaceOfPerformanceCountryName'] = copy_subaward_field('principle_place_country')
-mappings['Vendor Doing As Business Name'] = copy_subaward_field('dba_name')
-mappings['PrimeAwardReportID'] = todo()   # contract_number, fain
-mappings['ParentAwardId'] = todo()
-mappings['AwardReportMonth'] = todo()
-mappings['AwardReportYear'] = todo()
-mappings['RecModelQuestion1'] = todo()    # conversion from bool
-mappings['RecModelQuestion2'] = todo()    # conversion from bool
-mappings['SubawardNumber'] = todo()
-mappings['SubawardeeBusinessType'] = todo()
-mappings['AwardeeOrRecipientUniqueIdentifier'] = copy_subaward_field(
-    'duns')     # check
+class SpecialLogic():
+    def __init__(self, subcontract_fn, subgrant_fn):
+        self.subcontract = subcontract_fn
+        self.subgrant = subgrant_fn
+
+
+mappings = OrderedDict([
+    ('SubAwardeeOrRecipientLegalEntityName',
+        CopyValues('company_name', 'awardee_name')),
+    ('SubAwardeeOrRecipientUniqueIdentifier', copy_subaward_field('duns')),
+    ('SubAwardeeUltimateParentUniqueIdentifier',
+        copy_subaward_field('parent_duns')),
+    ('SubAwardeeUltimateParentLegalEntityName',
+        CopyValues(subcontract='parent_company_name')),
+    ('LegalEntityAddressLine1',
+        CopyValues('company_address_street', 'awardee_address_street')),
+    ('LegalEntityCityName',
+        CopyValues('company_address_city', 'awardee_address_city')),
+    ('LegalEntityStateCode',
+        CopyValues('company_address_state', 'awardee_address_state')),
+    ('LegalEntityZIP+4', SpecialLogic(
+        lambda subcontract, **_:
+            _zipcode_guard(subcontract, 'company_address', True),
+        lambda subgrant, **_: _zipcode_guard(subgrant, 'awardee_address', True)
+    )),
+    ('LegalEntityForeignPostalCode', SpecialLogic(
+        lambda subcontract, **_:
+            _zipcode_guard(subcontract, 'company_address', False),
+        lambda subgrant, **_:
+            _zipcode_guard(subgrant, 'awardee_address', False)
+    )),
+    ('LegalEntityCongressionalDistrict',
+        CopyValues('company_address_district', 'awardee_address_district')),
+    ('LegalEntityCountryCode',
+        CopyValues('company_address_country', 'awardee_address_country')),
+    ('LegalEntityCountryName', SpecialLogic(
+        lambda subcontract, **_:
+            _country_name(subcontract.company_address_country),
+        lambda subgrant, **_:
+            _country_name(subgrant.awardee_address_country)
+    )),
+    ('HighCompOfficer1FullName', copy_subaward_field('top_paid_fullname_1')),
+    ('HighCompOfficer1Amount', copy_subaward_field('top_paid_amount_1')),
+    ('HighCompOfficer2FullName', copy_subaward_field('top_paid_fullname_2')),
+    ('HighCompOfficer2Amount', copy_subaward_field('top_paid_amount_2')),
+    ('HighCompOfficer3FullName', copy_subaward_field('top_paid_fullname_3')),
+    ('HighCompOfficer3Amount', copy_subaward_field('top_paid_amount_3')),
+    ('HighCompOfficer4FullName', copy_subaward_field('top_paid_fullname_4')),
+    ('HighCompOfficer4Amount', copy_subaward_field('top_paid_amount_4')),
+    ('HighCompOfficer5FullName', copy_subaward_field('top_paid_fullname_5')),
+    ('HighCompOfficer5Amount', copy_subaward_field('top_paid_amount_5')),
+    ('SubcontractAwardAmount', CopyValues(subcontract='subcontract_amount')),
+    ('TotalFundingAmount', CopyValues(subgrant='subaward_amount')),
+    ('NAICS', CopyValues(subcontract='naics')),
+    ('NAICS_Description', todo()),
+    ('CFDA_NumberAndTitle', CopyValues(subgrant='cfda_numbers')),
+    # @todo - this is the wrong field, should be federal_agency_name
+    ('AwardingSubTierAgencyName', copy_subaward_field('funding_agency_name')),
+    # @todo - this is the wrong field, should be federal_agency_id
+    ('AwardingSubTierAgencyCode', copy_subaward_field('funding_agency_id')),
+    ('AwardDescription',
+        CopyValues('overall_description', 'project_description')),
+    ('ActionDate',
+        CopyValues(subcontract='subcontract_date', grant='obligation_date')),
+    ('PrimaryPlaceOfPerformanceCityName',
+        copy_subaward_field('principle_place_city')),
+    ('PrimaryPlaceOfPerformanceAddressLine1',
+        copy_subaward_field('principle_place_street')),
+    ('PrimaryPlaceOfPerformanceStateCode',
+        copy_subaward_field('principle_place_state')),
+    ('PrimaryPlaceOfPerformanceZIP+4',
+        copy_subaward_field('principle_place_zip')),
+    ('PrimaryPlaceOfPerformanceCongressionalDistrict',
+        copy_subaward_field('principle_place_district')),
+    ('PrimaryPlaceOfPerformanceCountryCode',
+        copy_subaward_field('principle_place_country')),
+    ('PrimaryPlaceOfPerformanceCountryName', SpecialLogic(
+        lambda subcontract, **_:
+            _country_name(subcontract.principle_place_country),
+        lambda subgrant, **_:
+            _country_name(subgrant.principle_place_country)
+    )),
+    ('Vendor Doing As Business Name', copy_subaward_field('dba_name')),
+    ('PrimeAwardReportID',
+        CopyValues(procurement='contract_number', grant='fain')),
+    ('ParentAwardId', CopyValues(procurement='idv_reference_number')),
+    ('AwardReportMonth', copy_prime_field('report_period_mon')),
+    ('AwardReportYear', copy_prime_field('report_period_year')),
+    ('RecModelQuestion1', CopyValues('recovery_model_q1', 'compensation_q1')),
+    ('RecModelQuestion2', CopyValues('recovery_model_q2', 'compensation_q2')),
+    ('SubawardNumber', CopyValues('subcontract_num', 'subaward_num')),
+    ('SubawardeeBusinessType', CopyValues(subcontract='bus_types')),
+    ('AwardeeOrRecipientUniqueIdentifier', copy_prime_field('duns'))
+])
 
 
 def relevantFainsPiids(sess, submissionId):
@@ -129,7 +176,8 @@ def generateFRows(sess, submissionId):
     for proc, sub in query:
         result = OrderedDict()
         for key, mapper in mappings.items():
-            result[key] = mapper.subcontract(proc, sub)
+            result[key] = mapper.subcontract(
+                procurement=proc, subcontract=sub) or ''
         yield result
 
     query = sess.query(FSRSGrant, FSRSSubgrant).\
@@ -138,5 +186,5 @@ def generateFRows(sess, submissionId):
     for grant, sub in query:
         result = OrderedDict()
         for key, mapper in mappings.items():
-            result[key] = mapper.subgrant(grant, sub)
+            result[key] = mapper.subgrant(grant=grant, subgrant=sub) or ''
         yield result
