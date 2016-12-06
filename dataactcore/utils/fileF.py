@@ -1,7 +1,9 @@
-from collections import OrderedDict
+from collections import namedtuple, OrderedDict
+import itertools
 
 import iso3166
 
+from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.fsrs import (
     FSRSGrant, FSRSProcurement, FSRSSubcontract, FSRSSubgrant)
 from dataactcore.models.stagingModels import AwardFinancial
@@ -25,23 +27,24 @@ def _zipcode_guard(model, field_prefix, match_usa):
 class CopyValues():
     """Copy a field value from one of our existing models"""
     def __init__(self, subcontract=None, subgrant=None, procurement=None,
-                 grant=None):
+                 grant=None, award=None):
         self.procurement_field = procurement
         self.subcontract_field = subcontract
         self.grant_field = grant
         self.subgrant_field = subgrant
+        self.award_field = award
 
-    def subcontract(self, procurement, subcontract, **kwargs):
-        if self.subcontract_field:
-            return getattr(subcontract, self.subcontract_field)
-        elif self.procurement_field:
-            return getattr(procurement, self.procurement_field)
-
-    def subgrant(self, grant, subgrant, **kwargs):
-        if self.subgrant_field:
-            return getattr(subgrant, self.subgrant_field)
-        elif self.grant_field:
-            return getattr(grant, self.grant_field)
+    def transform(self, models):
+        if self.subcontract_field and models.subcontract:
+            return getattr(models.subcontract, self.subcontract_field)
+        elif self.subgrant_field and models.subgrant:
+            return getattr(models.subgrant, self.subgrant_field)
+        elif self.procurement_field and models.procurement:
+            return getattr(models.procurement, self.procurement_field)
+        elif self.grant_field and models.grant:
+            return getattr(models.grant, self.grant_field)
+        elif self.award_field and models.award:
+            return getattr(models.award, self.award_field)
 
 
 def copy_subaward_field(field_name):
@@ -53,13 +56,22 @@ def copy_prime_field(field_name):
 
 
 def todo():
-    return CopyValues()     # noop
+    return CopyValues()         # noop
 
 
-class SpecialLogic():
+class SubawardLogic():
+    """Perform custom logic relating to the subaward (i.e. subcontract or
+    subgrant). Instantiated with two functions: one for subcontracts, one for
+    subawards"""
     def __init__(self, subcontract_fn, subgrant_fn):
-        self.subcontract = subcontract_fn
-        self.subgrant = subgrant_fn
+        self.subcontract_fn = subcontract_fn
+        self.subgrant_fn = subgrant_fn
+
+    def transform(self, models):
+        if models.subcontract:
+            return self.subcontract_fn(models.subcontract)
+        elif models.subgrant:
+            return self.subgrant_fn(models.subgrant)
 
 
 mappings = OrderedDict([
@@ -76,26 +88,23 @@ mappings = OrderedDict([
         CopyValues('company_address_city', 'awardee_address_city')),
     ('LegalEntityStateCode',
         CopyValues('company_address_state', 'awardee_address_state')),
-    ('LegalEntityZIP+4', SpecialLogic(
-        lambda subcontract, **_:
+    ('LegalEntityZIP+4', SubawardLogic(
+        lambda subcontract:
             _zipcode_guard(subcontract, 'company_address', True),
-        lambda subgrant, **_: _zipcode_guard(subgrant, 'awardee_address', True)
+        lambda subgrant: _zipcode_guard(subgrant, 'awardee_address', True)
     )),
-    ('LegalEntityForeignPostalCode', SpecialLogic(
-        lambda subcontract, **_:
+    ('LegalEntityForeignPostalCode', SubawardLogic(
+        lambda subcontract:
             _zipcode_guard(subcontract, 'company_address', False),
-        lambda subgrant, **_:
-            _zipcode_guard(subgrant, 'awardee_address', False)
+        lambda subgrant: _zipcode_guard(subgrant, 'awardee_address', False)
     )),
     ('LegalEntityCongressionalDistrict',
         CopyValues('company_address_district', 'awardee_address_district')),
     ('LegalEntityCountryCode',
         CopyValues('company_address_country', 'awardee_address_country')),
-    ('LegalEntityCountryName', SpecialLogic(
-        lambda subcontract, **_:
-            _country_name(subcontract.company_address_country),
-        lambda subgrant, **_:
-            _country_name(subgrant.awardee_address_country)
+    ('LegalEntityCountryName', SubawardLogic(
+        lambda subcontract: _country_name(subcontract.company_address_country),
+        lambda subgrant: _country_name(subgrant.awardee_address_country)
     )),
     ('HighCompOfficer1FullName', copy_subaward_field('top_paid_fullname_1')),
     ('HighCompOfficer1Amount', copy_subaward_field('top_paid_amount_1')),
@@ -132,11 +141,9 @@ mappings = OrderedDict([
         copy_subaward_field('principle_place_district')),
     ('PrimaryPlaceOfPerformanceCountryCode',
         copy_subaward_field('principle_place_country')),
-    ('PrimaryPlaceOfPerformanceCountryName', SpecialLogic(
-        lambda subcontract, **_:
-            _country_name(subcontract.principle_place_country),
-        lambda subgrant, **_:
-            _country_name(subgrant.principle_place_country)
+    ('PrimaryPlaceOfPerformanceCountryName', SubawardLogic(
+        lambda subcontract: _country_name(subcontract.principle_place_country),
+        lambda subgrant: _country_name(subgrant.principle_place_country)
     )),
     ('Vendor Doing As Business Name', copy_subaward_field('dba_name')),
     ('PrimeAwardReportID',
@@ -152,39 +159,39 @@ mappings = OrderedDict([
 ])
 
 
-def relevantFainsPiids(sess, submissionId):
-    """Fetch distinct fain and piid values related to this submission"""
-    pairs = sess.query(AwardFinancial.fain, AwardFinancial.piid).filter(
-        AwardFinancial.submission_id == submissionId)
-    fains, piids = set(), set()
-    for fain, piid in pairs:
-        if fain:
-            fains.add(fain)
-        if piid:
-            piids.add(piid)
-    return fains, piids
+# Collect the models associated with a single F CSV row
+ModelRow = namedtuple(
+    'ModelRow', ['award', 'procurement', 'subcontract', 'grant', 'subgrant'])
 
 
-def generateFRows(sess, submissionId):
+def submission_procurements(submission_id):
+    """Fetch procurements and subcontracts"""
+    triplets = GlobalDB.db().session.\
+        query(AwardFinancial, FSRSProcurement, FSRSSubcontract).\
+        filter(AwardFinancial.submission_id == submission_id).\
+        filter(FSRSProcurement.contract_number == AwardFinancial.piid).\
+        filter(FSRSSubcontract.parent_id == FSRSProcurement.id)
+    for award, proc, sub in triplets:
+        yield ModelRow(award, proc, sub, None, None)
+
+
+def submission_grants(submission_id):
+    """Fetch grants and subgrants"""
+    triplets = GlobalDB.db().session.\
+        query(AwardFinancial, FSRSGrant, FSRSSubgrant).\
+        filter(AwardFinancial.submission_id == submission_id).\
+        filter(FSRSGrant.fain == AwardFinancial.fain).\
+        filter(FSRSSubgrant.parent_id == FSRSGrant.id)
+    for award, grant, sub in triplets:
+        yield ModelRow(award, None, None, grant, sub)
+
+
+def generate_f_rows(submission_id):
     """Generated OrderedDicts representing File F rows. Subawards are filtered
     to those relevant to a particular submissionId"""
-    fains, piids = relevantFainsPiids(sess, submissionId)
-
-    query = sess.query(FSRSProcurement, FSRSSubcontract).\
-        filter(FSRSProcurement.id == FSRSSubcontract.parent_id).\
-        filter(FSRSProcurement.contract_number.in_(piids))
-    for proc, sub in query:
+    for model_row in itertools.chain(submission_procurements(submission_id),
+                                     submission_grants(submission_id)):
         result = OrderedDict()
         for key, mapper in mappings.items():
-            result[key] = mapper.subcontract(
-                procurement=proc, subcontract=sub) or ''
-        yield result
-
-    query = sess.query(FSRSGrant, FSRSSubgrant).\
-        filter(FSRSGrant.id == FSRSSubgrant.parent_id).\
-        filter(FSRSGrant.fain.in_(fains))
-    for grant, sub in query:
-        result = OrderedDict()
-        for key, mapper in mappings.items():
-            result[key] = mapper.subgrant(grant=grant, subgrant=sub) or ''
+            result[key] = mapper.transform(model_row) or ''
         yield result

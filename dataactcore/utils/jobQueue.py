@@ -84,10 +84,9 @@ def job_context(task, job_id):
 @celery_app.task(name='jobQueue.generate_f_file', max_retries=0, bind=True)
 def generate_f_file(task, submission_id, job_id, timestamped_name,
                     upload_file_name, is_local):
-    """Write rows from fileF.generateFRows to an appropriate CSV."""
-    with job_context(task, job_id) as session:
-        rows_of_dicts = fileF.generateFRows(session,
-                                            submission_id)
+    """Write rows from fileF.generate_f_rows to an appropriate CSV."""
+    with job_context(task, job_id):
+        rows_of_dicts = fileF.generate_f_rows(submission_id)
         header = [key for key in fileF.mappings]    # keep order
         body = []
         for row in rows_of_dicts:
