@@ -121,9 +121,7 @@ mappings = OrderedDict([
     ('NAICS', CopyValues(subcontract='naics')),
     ('NAICS_Description', todo()),
     ('CFDA_NumberAndTitle', CopyValues(subgrant='cfda_numbers')),
-    # @todo - this is the wrong field, should be federal_agency_name
     ('AwardingSubTierAgencyName', copy_subaward_field('funding_agency_name')),
-    # @todo - this is the wrong field, should be federal_agency_id
     ('AwardingSubTierAgencyCode', copy_subaward_field('funding_agency_id')),
     ('AwardDescription',
         CopyValues('overall_description', 'project_description')),
