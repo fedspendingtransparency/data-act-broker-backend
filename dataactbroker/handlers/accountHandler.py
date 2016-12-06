@@ -185,17 +185,17 @@ class AccountHandler:
                         user.name = first_name + " " + middle_name[0] + ". " + last_name
                     user.user_status_id = user.user_status_id = USER_STATUS_DICT['approved']
 
-                    sess.add(user)
-                    sess.commit()
 
                 # update user's cgac based on their current membership
-                # If part of the SYS agency, use that as the cgac otherwise use the first agency provided
+                # If part of the SYS agency, use that as the cgac otherwise
+                # use the first agency provided
                 if [g for g in cgac_group if g.endswith("SYS")]:
-                    user.cgac_code = "SYS"
+                    grant_superuser(user)
                 else:
-                    user.cgac_code = cgac_group[0][-3:]
+                    grant_highest_permission(user, group_list, cgac_group[0])
 
-                self.grant_highest_permission(sess, user, group_list, cgac_group[0])
+                sess.add(user)
+                sess.commit()
 
             except MultipleResultsFound:
                 raise ValueError("An error occurred during login.")
@@ -212,25 +212,6 @@ class AccountHandler:
             # Return 500
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
         return self.response
-
-    def grant_highest_permission(self, session, user, group_list, cgac_group):
-        if user.cgac_code == 'SYS':
-            user.permission_type_id = PERMISSION_TYPE_DICT['website_admin']
-        else:
-            permission_group = [g for g in group_list if g.startswith(cgac_group + "-PERM_")]
-            # Check if a user has been placed in a specific group. If not, deny access
-            if not permission_group:
-                user.permission_type_id = None
-            else:
-                perms = [perm[-1].lower() for perm in permission_group]
-                ordered_perms = sorted(PERMISSION_MAP, key=lambda k: PERMISSION_MAP[k]['order'])
-
-                for perm in ordered_perms:
-                    if perm in perms:
-                        user.permission_type_id = PERMISSION_TYPE_DICT[PERMISSION_MAP[perm]['name']]
-                        break
-        session.merge(user)
-        session.commit()
 
     def get_max_dict(self, ticket, service):
         url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
@@ -884,3 +865,28 @@ class AccountHandler:
             new_email.send()
 
         return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})
+
+
+def grant_superuser(user):
+    user.cgac_code = 'SYS'
+    user.permission_type_id = PERMISSION_TYPE_DICT['website_admin']
+
+
+def grant_highest_permission(user, group_list, cgac_group):
+    """Find the highest permission within the provided cgac_group; set that as
+    the user's permission_type_id"""
+    user.cgac_code = cgac_group[-3:]
+    permission_group = [g for g in group_list
+                        if g.startswith(cgac_group + "-PERM_")]
+    # Check if a user has been placed in a specific group. If not, deny access
+    if not permission_group:
+        user.permission_type_id = None
+    else:
+        perms = [perm[-1].lower() for perm in permission_group]
+        ordered_perms = sorted(
+            PERMISSION_MAP.items(), key=lambda pair: pair[1]['order'])
+        for key, permission in ordered_perms:
+            name = permission['name']
+            if key in perms:
+                user.permission_type_id = PERMISSION_TYPE_DICT[name]
+                break
