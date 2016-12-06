@@ -1,6 +1,6 @@
 from flask import request, session
 from dataactbroker.handlers.accountHandler import AccountHandler
-from dataactbroker.permissions import permissions_check
+from dataactbroker.permissions import permissions_check, requires_admin
 
 
 def add_user_routes(app,system_email,bcrypt):
@@ -21,14 +21,14 @@ def add_user_routes(app,system_email,bcrypt):
         return accountManager.register(system_email, session)
 
     @app.route("/v1/update_user/", methods=["POST"])
-    @permissions_check(permission="website_admin")
+    @requires_admin
     def update_user():
         """ Updates editable fields for the specified user """
         accountManager = AccountHandler(request, bcrypt=bcrypt)
         return accountManager.update_user(system_email)
 
     @app.route("/v1/delete_user/", methods=["POST"])
-    @permissions_check(permission="website_admin")
+    @requires_admin
     def delete_user():
         """ Updates editable fields for the specified user """
         accountManager = AccountHandler(request, bcrypt=bcrypt)
@@ -53,7 +53,7 @@ def add_user_routes(app,system_email,bcrypt):
         return accountManager.checkPasswordToken(session)
 
     @app.route("/v1/list_users/", methods=["POST"])
-    @permissions_check(permission="website_admin")
+    @requires_admin
     def list_users():
         """ list all users """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
@@ -67,7 +67,7 @@ def add_user_routes(app,system_email,bcrypt):
         return accountManager.list_user_emails()
 
     @app.route("/v1/list_users_with_status/", methods = ["POST"])
-    @permissions_check(permission="website_admin")
+    @requires_admin
     def list_users_with_status():
         """ Expects request to have key 'status', will list all users with that status """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
