@@ -42,9 +42,20 @@ class UserStatus(Base):
     name = Column(Text)
     description = Column(Text)
 
-class AccountType:
-    AGENCY_USER = 1
-    WEBSITE_ADMIN = 2
+
+class UserAffiliation(Base):
+    __tablename__ = 'user_affiliation'
+    # composite primary_key
+    user_id = Column(
+        Integer, ForeignKey("users.user_id", name="user_affiliation_user_fk"),
+        primary_key=True)
+    cgac_id = Column(
+        Integer, ForeignKey("cgac.cgac_id", name="user_affiliation_cgac_fk"),
+        primary_key=True)
+    permission_type_id = Column(
+        Integer, ForeignKey(column="permission_type.permission_type_id",
+                            name="user_affiliation_permission_type_fk"))
+
 
 class EmailTemplateType(Base):
     __tablename__ = 'email_template_type'
