@@ -15,7 +15,7 @@ def test_CopyValues_procurement():
     mapper = fileF.CopyValues(subcontract='duns')
     assert mapper.subcontract(proc, sub) == 'DUNS SUB'
     mapper = fileF.CopyValues(grant='duns')
-    assert mapper.subcontract(proc, sub) == ''
+    assert mapper.subcontract(proc, sub) is None
 
 
 def test_CopyValues_grant():
@@ -26,7 +26,7 @@ def test_CopyValues_grant():
     mapper = fileF.CopyValues(subgrant='duns')
     assert mapper.subgrant(grant, sub) == 'DUNS SUB'
     mapper = fileF.CopyValues(procurement='duns')
-    assert mapper.subgrant(grant, sub) == ''
+    assert mapper.subgrant(grant, sub) is None
 
 
 def test_relevantFainPiids(database):
@@ -44,6 +44,34 @@ def test_relevantFainPiids(database):
     assert piids == {award1.piid}               # ignores award2's None
 
 
+def test_country_name():
+    sub = FSRSSubgrantFactory(awardee_address_country='USA',
+                              principle_place_country='DE')
+    entity = fileF.mappings['LegalEntityCountryName'].subgrant(subgrant=sub)
+    assert entity == 'United States'
+
+    place = fileF.mappings['PrimaryPlaceOfPerformanceCountryName'].subgrant(
+        subgrant=sub)
+    assert place == 'Germany'
+
+
+def test_zipcode_guard():
+    sub = FSRSSubcontractFactory(company_address_country='USA',
+                                 company_address_zip='12345')
+    us_zip = fileF.mappings['LegalEntityZIP+4'].subcontract(subcontract=sub)
+    foreign_zip = fileF.mappings['LegalEntityForeignPostalCode'].subcontract(
+        subcontract=sub)
+    assert us_zip == '12345'
+    assert foreign_zip is None
+
+    sub.company_address_country = 'RU'
+    us_zip = fileF.mappings['LegalEntityZIP+4'].subcontract(subcontract=sub)
+    foreign_zip = fileF.mappings['LegalEntityForeignPostalCode'].subcontract(
+        subcontract=sub)
+    assert us_zip is None
+    assert foreign_zip == '12345'
+
+
 def test_generateFRows(database, monkeypatch):
     """generateFRows should find and convert subaward data relevant to a
     specific submission id. We'll compare the resulting DUNs values for
@@ -54,10 +82,10 @@ def test_generateFRows(database, monkeypatch):
     monkeypatch.setattr(fileF, 'relevantFainsPiids', mock_fn)
     # Create some dummy data: 4 procurements, 4 grants, each with 3 subawards
     procs = [FSRSProcurementFactory(contract_number='piid' + str(i))
-             for i in range(0, 4)]
+             for i in range(4)]
     for proc in procs:
         proc.subawards = [FSRSSubcontractFactory() for _ in range(3)]
-    grants = [FSRSGrantFactory(fain='fain' + str(i)) for i in range(0, 4)]
+    grants = [FSRSGrantFactory(fain='fain' + str(i)) for i in range(4)]
     for grant in grants:
         grant.subawards = [FSRSSubgrantFactory() for _ in range(3)]
 
@@ -65,9 +93,10 @@ def test_generateFRows(database, monkeypatch):
 
     actual = {result['SubAwardeeOrRecipientUniqueIdentifier']
               for result in fileF.generateFRows(sess, 1234)}
-    expected = set()
-    for award in procs[1:3] + grants[1:2]:
-        expected.update(sub.duns for sub in award.subawards)
+    # fain1, fain2
+    expected = {sub.duns for award in grants[1:3] for sub in award.subawards}
+    # piid1
+    expected.update(sub.duns for sub in procs[1].subawards)
     assert actual == expected
     # Also make sure that we filtered by the right submission
     assert mock_fn.call_args == ((sess, 1234),)
