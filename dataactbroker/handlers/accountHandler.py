@@ -277,7 +277,7 @@ class AccountHandler:
                 filter(CGAC.cgac_code == cgac_code).\
                 one_or_none()
             agency_name = "Unknown" if agency_name is None else agency_name
-            for user in sess.query(User).filter_by(permission_type_id=PERMISSION_TYPE_DICT['website_admin']):
+            for user in sess.query(User).filter_by(website_admin=True):
                 email_template = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
                                  '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : user_email,'[URL]':link}
                 new_email = sesEmail(user.email, system_email,templateType="account_creation",parameters=email_template)
@@ -869,13 +869,15 @@ class AccountHandler:
 
 def grant_superuser(user):
     user.cgac_code = 'SYS'
-    user.permission_type_id = PERMISSION_TYPE_DICT['website_admin']
+    user.website_admin = True
+    user.permission_type_id = PERMISSION_TYPE_DICT['writer']
 
 
 def grant_highest_permission(user, group_list, cgac_group):
     """Find the highest permission within the provided cgac_group; set that as
     the user's permission_type_id"""
     user.cgac_code = cgac_group[-3:]
+    user.website_admin = False
     permission_group = [g for g in group_list
                         if g.startswith(cgac_group + "-PERM_")]
     # Check if a user has been placed in a specific group. If not, deny access

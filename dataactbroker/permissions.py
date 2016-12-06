@@ -1,7 +1,5 @@
-import json
 from functools import wraps
 
-import flask
 from flask import session
 
 from dataactbroker.handlers.aws.session import LoginSession
@@ -17,6 +15,9 @@ from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PERMISSION_MAP, PER
 # set of values we allow to be checked.
 temp_perm_list = ["check_email_token", "check_password_token"]
 
+
+NOT_AUTHORIZED_MSG = ("You are not authorized to perform the requested task. "
+                      "Please contact your administrator.")
 
 def permissions_check(f=None,permission=None):
 
@@ -45,7 +46,7 @@ def permissions_check(f=None,permission=None):
                     user = sess.query(User).filter(User.user_id == session["name"]).one()
                     valid_user = True
 
-                    if permission is not None:
+                    if permission is not None and not user.website_admin:
                         perm_hierarchy = {d['name']: d['order'] for d in PERMISSION_MAP.values()}
                         # if the users permission is not higher than the one specified, check their permission
                         # if user's perm order is < than what's passed in, it means they have higher permissions
@@ -55,17 +56,13 @@ def permissions_check(f=None,permission=None):
 
                     if valid_user:
                         return f(*args, **kwargs)
-                    error_message = "You are not authorized to perform the requested task. Please contact your administrator."
+                    error_message = NOT_AUTHORIZED_MSG
 
                 # No user logged in
-                return_response = flask.Response()
-                return_response.headers["Content-Type"] = "application/json"
-                return_response.status_code = 401  # Error code
-                response_dict = {}
-                response_dict["message"] = error_message
-                return_response.set_data(json.dumps(response_dict))
-                return return_response
-
+                return JsonResponse.create(
+                    StatusCode.LOGIN_REQUIRED,
+                    {'message': error_message}
+                )
             except ResponseException as e:
                 return JsonResponse.error(e,e.status)
             except InvalidUsage:
@@ -80,3 +77,26 @@ def permissions_check(f=None,permission=None):
         return waiting_for_func
     else:
         return actual_decorator(f)
+
+
+def requires_admin(func):
+    """Decorator requiring the requesting user be a website admin"""
+    @wraps(func)
+    def inner(*args, **kwargs):
+        if not LoginSession.isLogin(session):
+            return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
+                                       {'message': "Login Required"})
+
+        sess = GlobalDB.db().session
+        user = sess.query(User).\
+            filter_by(user_id=session["name"]).one_or_none()
+        if user is None:
+            return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
+                                       {'message': "Login Required"})
+
+        if not user.website_admin:
+            return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
+                                       {'message': NOT_AUTHORIZED_MSG})
+
+        return func(*args, **kwargs)
+    return inner
