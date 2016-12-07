@@ -61,17 +61,33 @@ def permissions_check(f=None, permission=None):
         return actual_decorator(f)
 
 
+def logged_in_user():
+    """Helper function which inspects the session to pull out the logged in
+    user. Returns None is anonymous session"""
+    if not LoginSession.isLogin(session):
+        return None
+
+    sess = GlobalDB.db().session
+    return sess.query(User).filter_by(user_id=session["name"]).one_or_none()
+
+
+def requires_login(func):
+    """Decorator requiring that _a_ user be logged in (i.e. that we're not
+    using an anonymous session)"""
+    @wraps(func)
+    def inner(*args, **kwargs):
+        if logged_in_user() is None:
+            return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
+                                       {'message': "Login Required"})
+        return func(*args, **kwargs)
+    return inner
+
+
 def requires_admin(func):
     """Decorator requiring the requesting user be a website admin"""
     @wraps(func)
     def inner(*args, **kwargs):
-        if not LoginSession.isLogin(session):
-            return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
-                                       {'message': "Login Required"})
-
-        sess = GlobalDB.db().session
-        user = sess.query(User).\
-            filter_by(user_id=session["name"]).one_or_none()
+        user = logged_in_user()
         if user is None:
             return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
                                        {'message': "Login Required"})
