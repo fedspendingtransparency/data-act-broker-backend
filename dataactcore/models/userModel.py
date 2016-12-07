@@ -25,6 +25,8 @@ class User(Base):
     skip_guide = Column(Boolean, default=False,nullable=False,server_default="False")
     website_admin = Column(Boolean, default=False, nullable=False,
                            server_default="False")
+    affiliations = relationship("UserAffiliation",
+                                cascade="all, delete-orphan")
 
 class PermissionType(Base):
     __tablename__ = "permission_type"
@@ -52,6 +54,7 @@ class UserAffiliation(Base):
     cgac_id = Column(
         Integer, ForeignKey("cgac.cgac_id", name="user_affiliation_cgac_fk"),
         primary_key=True)
+    cgac = relationship("CGAC")
     permission_type_id = Column(
         Integer, ForeignKey(column="permission_type.permission_type_id",
                             name="user_affiliation_permission_type_fk"))
