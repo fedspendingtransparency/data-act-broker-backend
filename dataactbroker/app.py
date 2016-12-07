@@ -90,7 +90,7 @@ def createApp():
     add_file_routes(app, CONFIG_BROKER['aws_create_temp_credentials'],
         local, broker_file_path, bcrypt)
     add_user_routes(app, app.config['SYSTEM_EMAIL'], bcrypt)
-    add_domain_routes(app, local, bcrypt)
+    add_domain_routes(app)
     add_exception_handlers(app)
     return app
 
