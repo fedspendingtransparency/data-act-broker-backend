@@ -1,5 +1,6 @@
 from sqlalchemy import (
-    Column, Date, Index, Integer, Numeric, Text, UniqueConstraint)
+    Column, Date, ForeignKey, Index, Integer, Numeric, Text, UniqueConstraint)
+from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
 
@@ -84,11 +85,16 @@ class SF133(Base):
     ending_period_of_availabil = Column(Text)
     main_account_code = Column(Text, nullable=False)
     sub_account_code = Column(Text, nullable=False)
-    tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
+    tas = Column(Text, nullable=False, default=concatTas)
     fiscal_year = Column(Integer, nullable=False)
     period = Column(Integer, nullable=False)
     line = Column(Integer,nullable=False)
     amount = Column(Numeric,nullable=False,default=0,server_default="0")
+    tas_id = Column(
+        Integer,
+        ForeignKey("tas_lookup.tas_id", name='fk_sf_133_tas_lookup'),
+        nullable=True)
+    tas_obj = relationship(TASLookup)
 
 Index("ix_sf_133_tas",
   SF133.tas,

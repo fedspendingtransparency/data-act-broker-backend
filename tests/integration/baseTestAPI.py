@@ -176,6 +176,7 @@ class BaseTestAPI(unittest.TestCase):
         """Set up broker unit tests."""
         app = createBrokerApp()
         app.config['TESTING'] = True
+        app.config['DEBUG'] = False
         self.app = TestApp(app)
 
     @classmethod

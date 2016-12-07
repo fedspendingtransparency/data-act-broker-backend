@@ -1,6 +1,8 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, Date, DateTime, Boolean
+from sqlalchemy import (
+    Boolean, Column, Date, DateTime, ForeignKey, Integer, Text,
+    UniqueConstraint) 
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
@@ -116,3 +118,26 @@ class FileGenerationTask(Base):
     file_type = relationship("FileType", uselist=False, cascade="delete")
     job_id = Column(Integer, ForeignKey("job.job_id", name = "fk_generation_job"))
     job = relationship("Job", uselist=False, cascade="delete")
+
+class SubmissionNarrative(Base):
+    __tablename__ = "submission_narrative"
+
+    submission_narrative_id = Column(Integer, primary_key=True)
+    submission_id = Column(
+        Integer,
+        ForeignKey("submission.submission_id", name="fk_submission"),
+        nullable=False
+    )
+    submission = relationship(Submission, uselist=False)
+    file_type_id = Column(
+        Integer, 
+        ForeignKey("file_type.file_type_id", name="fk_file_type"),
+        nullable=False
+    )
+    file_type = relationship(FileType, uselist=False)
+    narrative = Column(Text, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('submission_id', 'file_type_id',
+                         name='uniq_submission_file_type'),
+    )
