@@ -930,8 +930,7 @@ class FileHandler:
                       job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                       user_id=user_id)
         task_key = uuid4()
-        task = FileGenerationTask(generation_task_key=task_key, file_type_id=FILE_TYPE_DICT[file_type_name],
-                                  job_id=new_job.job_id)
+        task = FileGenerationTask(generation_task_key=task_key, job_id=new_job.job_id)
         sess.add_all([new_job, task])
         sess.commit()
 
