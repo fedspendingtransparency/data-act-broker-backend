@@ -928,7 +928,8 @@ class FileHandler:
 
         new_job = Job(filename=upload_file_name, original_filename=timestamped_name,
                       job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                      user_id=user_id, file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type])
+                      user_id=user_id, file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type], start_date=start_date,
+                      end_date=end_date)
         sess.add(new_job)
         sess.commit()
 
