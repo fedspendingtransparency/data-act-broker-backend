@@ -928,10 +928,13 @@ class FileHandler:
 
         new_job = Job(filename=upload_file_name, original_filename=timestamped_name,
                       job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                      user_id=user_id)
+                      user_id=user_id, file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type])
+        sess.add(new_job)
+        sess.commit()
+
         task_key = uuid4()
         task = FileGenerationTask(generation_task_key=task_key, job_id=new_job.job_id)
-        sess.add_all([new_job, task])
+        sess.add(task)
         sess.commit()
 
         if not self.isLocal:
@@ -977,7 +980,7 @@ class FileHandler:
             user_id=user_id,
             file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
             job_type_id=JOB_TYPE_DICT['file_upload']
-        ).order_by(Job.created_at.desc()).one()
+        ).order_by(Job.created_at.desc()).first()
 
         responseDict = {}
         responseDict["status"] = JOB_STATUS_DICT_ID[uploadJob.job_status_id]
