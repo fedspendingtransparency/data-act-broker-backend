@@ -705,7 +705,7 @@ class FileHandler:
             val_job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
             # Generate random uuid and store generation task
             task_key = uuid4()
-            task = FileGenerationTask(generation_task_key = task_key, submission_id = submission_id, file_type_id = FILE_TYPE_DICT[file_type_name], job_id = job.job_id)
+            task = FileGenerationTask(generation_task_key=task_key, job_id=job.job_id)
             sess.add(task)
             sess.commit()
         except ValueError as e:
@@ -715,9 +715,8 @@ class FileHandler:
 
         if not self.isLocal:
             # Create file D API URL with dates and callback URL
-            callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
-            _debug_logger.debug('Callback URL for %s: %s', file_type, callback)
-            get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+            get_url = FileHandler.get_d_file_url('complete_generation', task_key, file_type_name, cgac_code,
+                                          start_date, end_date)
 
             _debug_logger.debug('Calling D file API => %s', get_url)
             try:
@@ -727,7 +726,7 @@ class FileHandler:
                 exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
                 return False, JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
         else:
-            self.completeGeneration(task.generation_task_key, file_type)
+            self.complete_generation(task.generation_task_key, file_type)
 
         return True, None
 
@@ -930,6 +929,8 @@ class FileHandler:
                       job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
                       user_id=user_id, file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type], start_date=start_date,
                       end_date=end_date)
+
+        # need to add & commit the new job first so we can reference the job_id below for the task generation
         sess.add(new_job)
         sess.commit()
 
@@ -940,19 +941,20 @@ class FileHandler:
 
         if not self.isLocal:
             # Create file D API URL with dates and callback URL
-            callback = "{}://{}:{}/v1/complete_detached_generation/{}/".format(CONFIG_SERVICES["protocol"],CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
-            _debug_logger.debug('Callback URL for %s: %s', file_type, callback)
-            get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+            get_url = FileHandler.get_d_file_url('complete_detached_generation', task_key, file_type_name, cgac_code,
+                                          start_date, end_date)
 
             _debug_logger.debug('Calling Detached D file API => %s', get_url)
             try:
                 if not self.call_d_file_api(get_url):
+                    # If the call to the external API wasn't successful, mark the job as failed
                     new_job.job_status_id = JOB_STATUS_DICT['failed']
+                    sess.commit()
             except Timeout as e:
                 exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
                 return False, JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
         else:
-            self.completeGeneration(task.generation_task_key, file_type)
+            self.complete_generation(task.generation_task_key, file_type)
 
         # Return same response as check generation route
         return self.check_detached_generation(user_id, file_type)
@@ -985,27 +987,23 @@ class FileHandler:
             job_type_id=JOB_TYPE_DICT['file_upload']
         ).order_by(Job.created_at.desc()).first()
 
-        responseDict = {}
-        responseDict["status"] = JOB_STATUS_DICT_ID[uploadJob.job_status_id]
-        responseDict["file_type"] = file_type
-        responseDict["message"] = ''
+        response_dict = {"status": JOB_STATUS_DICT_ID[uploadJob.job_status_id], "file_type": file_type, "message": ''}
         if uploadJob.filename is None:
-            responseDict["url"] = "#"
+            response_dict["url"] = "#"
         elif CONFIG_BROKER["use_aws"]:
             path, file_name = uploadJob.filename.split("/")
-            responseDict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name, bucketRoute=None,
+            response_dict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name, bucketRoute=None,
                                                               method="GET")
         else:
-            responseDict["url"] = uploadJob.filename
+            response_dict["url"] = uploadJob.filename
 
         # Pull start and end from jobs table if D1 or D2
         if file_type in ["D1", "D2"]:
-            responseDict["start"] = uploadJob.start_date.strftime(
+            response_dict["start"] = uploadJob.start_date.strftime(
                 "%m/%d/%Y") if uploadJob.start_date is not None else ""
-            responseDict["end"] = uploadJob.end_date.strftime("%m/%d/%Y") if uploadJob.end_date is not None else ""
+            response_dict["end"] = uploadJob.end_date.strftime("%m/%d/%Y") if uploadJob.end_date is not None else ""
 
-        return JsonResponse.create(StatusCode.OK, responseDict)
-
+        return JsonResponse.create(StatusCode.OK, response_dict)
 
     def checkGeneration(self, submission_id=None, file_type=None):
         """ Return information about file generation jobs
@@ -1107,19 +1105,19 @@ class FileHandler:
         response["urls"] = self.s3manager.getFileUrls(bucket_name=CONFIG_BROKER["static_files_bucket"], path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
 
-    def completeGeneration(self, generationId, file_type=None):
+    def complete_generation(self, generation_id, file_type=None):
         """ For files D1 and D2, the API uses this route as a callback to load the generated file.
         Requires an 'href' key in the request that specifies the URL of the file to be downloaded
 
         Args:
             generationId - Unique key stored in file_generation_task table, used in callback to identify which submission
             this file is for.
-            file_type - the type of file to be generated, D1 or D2. Only used when calling completeGeneration for local development
+            file_type - the type of file to be generated, D1 or D2. Only used when calling complete_generation for local development
 
         """
         sess = GlobalDB.db().session
         try:
-            if generationId is None:
+            if generation_id is None:
                 raise ResponseException(
                     "Must include a generation ID", StatusCode.CLIENT_ERROR)
 
@@ -1145,7 +1143,7 @@ class FileHandler:
             #Pull information based on task key
             _smx_logger.debug('Pulling information based on task key...')
             task = sess.query(FileGenerationTask).\
-                filter(FileGenerationTask.generation_task_key == generationId).\
+                filter(FileGenerationTask.generation_task_key == generation_id).\
                 one()
             job = sess.query(Job).filter_by(job_id = task.job_id).one()
             _smx_logger.debug('Loading D file...')
@@ -1208,6 +1206,16 @@ class FileHandler:
         total_submissions = query.from_self().count()
 
         return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})
+
+    @staticmethod
+    def get_d_file_url(callback_route, task_key, file_type_name, cgac_code, start_date, end_date):
+        """ Compiles the URL to be called in order to generate the D files """
+        callback = "{}://{}:{}/v1/{}/{}/".format(callback_route, CONFIG_SERVICES["protocol"],
+                                                 CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],
+                                                 task_key)
+        _debug_logger.debug('Callback URL for %s: %s', FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]], callback)
+        url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+        return url
 
 
 def requires_submission_perms(fn):
