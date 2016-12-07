@@ -973,7 +973,6 @@ class FileHandler:
                 raise ResponseException("Check detached generation route requires file_type",
                                         StatusCode.CLIENT_ERROR)
 
-            submission_id = requestDict.getValue("submission_id")
             file_type = requestDict.getValue("file_type")
 
         sess = GlobalDB.db().session
