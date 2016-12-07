@@ -11,19 +11,11 @@ from dataactcore.models.userModel import User
 from dataactbroker.exceptions.invalid_usage import InvalidUsage
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PERMISSION_MAP, PERMISSION_TYPE_DICT_ID
 
-# This is used in conjunction with PERMISSION_TYPE_DICT to check if the permission passed in is part of the valid
-# set of values we allow to be checked.
-temp_perm_list = ["check_email_token", "check_password_token"]
-
-
 NOT_AUTHORIZED_MSG = ("You are not authorized to perform the requested task. "
                       "Please contact your administrator.")
 
-def permissions_check(f=None,permission=None):
-
-    # This will change to "if permission is not None and permission not in PERMISSION_TYPE_DICT" once the temp
-    # perms above are removed during the local login refactor
-    if permission is not None and permission not in list(PERMISSION_TYPE_DICT.keys()) + temp_perm_list:
+def permissions_check(f=None, permission=None):
+    if permission is not None and permission not in PERMISSION_TYPE_DICT:
         raise ValueError("{} not a valid permission".format(permission))
 
     def actual_decorator(f):
@@ -32,17 +24,7 @@ def permissions_check(f=None,permission=None):
             try:
                 sess = GlobalDB.db().session
                 error_message = "Login Required"
-                if permission == "check_email_token":
-                    if LoginSession.isRegistering(session):
-                        return f(*args, **kwargs)
-                    else :
-                        error_message = "unauthorized"
-                elif permission == "check_password_token":
-                    if LoginSession.isResetingPassword(session):
-                        return f(*args, **kwargs)
-                    else :
-                        error_message  = "unauthorized"
-                elif LoginSession.isLogin(session):
+                if LoginSession.isLogin(session):
                     user = sess.query(User).filter(User.user_id == session["name"]).one()
                     valid_user = True
 

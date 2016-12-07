@@ -1,6 +1,10 @@
 from flask import request, session
+
 from dataactbroker.handlers.accountHandler import AccountHandler
+from dataactbroker.handlers.aws.session import LoginSession
 from dataactbroker.permissions import permissions_check, requires_admin
+from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.statusCode import StatusCode
 
 
 def add_user_routes(app,system_email,bcrypt):
@@ -13,12 +17,16 @@ def add_user_routes(app,system_email,bcrypt):
     """
 
     @app.route("/v1/register/", methods = ["POST"])
-    #check the session to make sure register is set to prevent any one from using route
-    @permissions_check(permission="check_email_token")
     def register_user():
         """ Expects request to have keys 'email', 'name', 'cgac_code', and 'title' """
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return accountManager.register(system_email, session)
+        # check the session to make sure register is set to prevent any one
+        # from using route
+        if LoginSession.isRegistering(session):
+            accountManager = AccountHandler(request,bcrypt = bcrypt)
+            return accountManager.register(system_email, session)
+        else:
+            return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
+                                       {'message': 'unauthorized'})
 
     @app.route("/v1/update_user/", methods=["POST"])
     @requires_admin
@@ -74,11 +82,14 @@ def add_user_routes(app,system_email,bcrypt):
         return accountManager.list_users_with_status()
 
     @app.route("/v1/set_password/", methods=["POST"])
-    @permissions_check(permission="check_password_token")
     def set_password():
         """ Set a new password for specified user """
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return accountManager.set_new_password(session)
+        if LoginSession.isResetingPassword(session):
+            accountManager = AccountHandler(request,bcrypt = bcrypt)
+            return accountManager.set_new_password(session)
+        else:
+            return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
+                                       {'message': 'unauthorized'})
 
     @app.route("/v1/reset_password/", methods=["POST"])
     def reset_password():
