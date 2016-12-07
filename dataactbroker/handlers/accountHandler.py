@@ -16,13 +16,15 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.interfaces.db import GlobalDB
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import func
-from dataactcore.models.userModel import User, EmailToken
+
+from dataactcore.models.userModel import EmailToken, User, UserAffiliation
 from dataactcore.models.domainModels import CGAC
 from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import (get_email_template, check_correct_password, set_user_password, updateLastLogin)
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT, PERMISSION_TYPE_DICT_ID, PERMISSION_MAP
+
 
 class AccountHandler:
     """
@@ -880,6 +882,8 @@ def grant_superuser(user):
 def grant_highest_permission(user, group_list, cgac_group):
     """Find the highest permission within the provided cgac_group; set that as
     the user's permission_type_id"""
+    sess = GlobalDB.db().session
+
     user.cgac_code = cgac_group[-3:]
     user.website_admin = False
     permission_group = [g for g in group_list
@@ -896,3 +900,7 @@ def grant_highest_permission(user, group_list, cgac_group):
             if key in perms:
                 user.permission_type_id = PERMISSION_TYPE_DICT[name]
                 break
+    user.affiliations = [UserAffiliation(
+        cgac=sess.query(CGAC).filter_by(cgac_code=user.cgac_code).one(),
+        permission_type_id=user.permission_type_id
+    )]

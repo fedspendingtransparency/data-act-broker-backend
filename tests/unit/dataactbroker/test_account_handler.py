@@ -5,6 +5,7 @@ from dataactbroker.handlers import accountHandler
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
+from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
@@ -103,15 +104,29 @@ def test_max_login_failure(monkeypatch):
     assert error_message == json.loads(json_response.get_data().decode("utf-8"))['message']
 
 
-def test_grant_highest_permission():
+def test_grant_highest_permission(database, user_constants):
     """Verify that we get the _highest_ permission within our CGAC"""
+    cgac = CGACFactory(cgac_code='ABC')
     user = UserFactory()
+    database.session.add_all([cgac, user])
+    database.session.commit()
+
     group_list = ['prefix-ABC-PERM_R', 'prefix-ABC-PERM_S']
     accountHandler.grant_highest_permission(user, group_list, 'prefix-ABC')
+    database.session.commit()   # populate ids
     assert user.cgac_code == 'ABC'
     assert user.permission_type_id == PERMISSION_TYPE_DICT['submitter']
+    assert len(user.affiliations) == 1
+    affil = user.affiliations[0]
+    assert affil.cgac_id == cgac.cgac_id
+    assert affil.permission_type_id == PERMISSION_TYPE_DICT['submitter']
 
     group_list = ['prefix-ABC-PERM_W']
     accountHandler.grant_highest_permission(user, group_list, 'prefix-ABC')
+    database.session.commit()   # populate ids
     assert user.cgac_code == 'ABC'
     assert user.permission_type_id == PERMISSION_TYPE_DICT['writer']
+    assert len(user.affiliations) == 1
+    affil = user.affiliations[0]
+    assert affil.cgac_id == cgac.cgac_id
+    assert affil.permission_type_id == PERMISSION_TYPE_DICT['writer']
