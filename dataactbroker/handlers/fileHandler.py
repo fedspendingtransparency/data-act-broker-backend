@@ -1139,7 +1139,6 @@ class FileHandler:
             #Pull information based on task key
             _smx_logger.debug('Pulling information based on task key...')
             task = sess.query(FileGenerationTask).\
-                options(joinedload(FileGenerationTask.file_type)).\
                 filter(FileGenerationTask.generation_task_key == generationId).\
                 one()
             job = sess.query(Job).filter_by(job_id = task.job_id).one()
