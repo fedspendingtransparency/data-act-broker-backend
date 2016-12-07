@@ -1,13 +1,11 @@
 from functools import wraps
 
-from flask import session
+from flask import g
 
-from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.userModel import User
 from dataactbroker.exceptions.invalid_usage import InvalidUsage
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PERMISSION_MAP, PERMISSION_TYPE_DICT_ID
 
@@ -24,16 +22,15 @@ def permissions_check(f=None, permission=None):
             try:
                 sess = GlobalDB.db().session
                 error_message = "Login Required"
-                if LoginSession.isLogin(session):
-                    user = sess.query(User).filter(User.user_id == session["name"]).one()
+                if g.user is not None:
                     valid_user = True
 
-                    if permission is not None and not user.website_admin:
+                    if permission is not None and not g.user.website_admin:
                         perm_hierarchy = {d['name']: d['order'] for d in PERMISSION_MAP.values()}
                         # if the users permission is not higher than the one specified, check their permission
                         # if user's perm order is < than what's passed in, it means they have higher permissions
-                        if perm_hierarchy[PERMISSION_TYPE_DICT_ID[user.permission_type_id]] > perm_hierarchy[permission]:
-                            if not user.permission_type_id == PERMISSION_TYPE_DICT[permission]:
+                        if perm_hierarchy[PERMISSION_TYPE_DICT_ID[g.user.permission_type_id]] > perm_hierarchy[permission]:
+                            if not g.user.permission_type_id == PERMISSION_TYPE_DICT[permission]:
                                 valid_user = False
 
                     if valid_user:
@@ -61,22 +58,12 @@ def permissions_check(f=None, permission=None):
         return actual_decorator(f)
 
 
-def logged_in_user():
-    """Helper function which inspects the session to pull out the logged in
-    user. Returns None is anonymous session"""
-    if not LoginSession.isLogin(session):
-        return None
-
-    sess = GlobalDB.db().session
-    return sess.query(User).filter_by(user_id=session["name"]).one_or_none()
-
-
 def requires_login(func):
     """Decorator requiring that _a_ user be logged in (i.e. that we're not
     using an anonymous session)"""
     @wraps(func)
     def inner(*args, **kwargs):
-        if logged_in_user() is None:
+        if g.user is None:
             return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
                                        {'message': "Login Required"})
         return func(*args, **kwargs)
@@ -87,12 +74,11 @@ def requires_admin(func):
     """Decorator requiring the requesting user be a website admin"""
     @wraps(func)
     def inner(*args, **kwargs):
-        user = logged_in_user()
-        if user is None:
+        if g.user is None:
             return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
                                        {'message': "Login Required"})
 
-        if not user.website_admin:
+        if not g.user.website_admin:
             return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
                                        {'message': NOT_AUTHORIZED_MSG})
 

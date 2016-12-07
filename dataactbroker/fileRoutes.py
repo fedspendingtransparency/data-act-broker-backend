@@ -1,8 +1,7 @@
-from flask import request, session
+from flask import request
 from dataactbroker.handlers.fileHandler import (
     FileHandler, narratives_for_submission, update_narratives)
 from dataactbroker.permissions import permissions_check, requires_login
-from dataactbroker.handlers.aws.session import LoginSession
 from dataactbroker.exceptions.invalid_usage import InvalidUsage
 
 
@@ -18,7 +17,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     @permissions_check(permission="writer")
     def submit_files():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.submit(LoginSession.getName(session), CreateCredentials)
+        return fileManager.submit(CreateCredentials)
 
     @app.route("/v1/finalize_job/", methods = ["POST"])
     @permissions_check(permission="writer")
