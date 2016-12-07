@@ -6,7 +6,7 @@ import xmltodict
 from threading import Thread
 
 from dateutil.parser import parse
-from flask import session as flaskSession
+from flask import g
 
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactbroker.handlers.aws.session import LoginSession
@@ -584,9 +584,12 @@ class AccountHandler:
     def list_user_emails(self):
         """ List user names and emails """
         sess = GlobalDB.db().session
-        user = sess.query(User).filter(User.user_id == LoginSession.getName(flaskSession)).one()
         try:
-            users = sess.query(User).filter(User.cgac_code == user.cgac_code, User.user_status_id == USER_STATUS_DICT["approved"], User.is_active == True).all()
+            users = sess.query(User).filter_by(
+                cgac_code=g.user.cgac_code,
+                user_status_id=USER_STATUS_DICT["approved"],
+                is_active=True
+            ).all()
         except ValueError as exc:
             # Client provided a bad status
             return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
@@ -729,14 +732,18 @@ class AccountHandler:
 
         """
         sess = GlobalDB.db().session
-        uid = session["name"]
-        user = sess.query(User).filter(User.user_id == uid).one()
         agency_name = sess.query(CGAC.agency_name).\
-            filter(CGAC.cgac_code == user.cgac_code).\
+            filter(CGAC.cgac_code == g.user.cgac_code).\
             one_or_none()
-        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency_name": agency_name,
-                                                  "cgac_code": user.cgac_code,"title":user.title,
-                                                  "permission": user.permission_type_id, "skip_guide": user.skip_guide})
+        return JsonResponse.create(StatusCode.OK, {
+            "user_id": g.user.user_id,
+            "name": g.user.name,
+            "agency_name": agency_name,
+            "cgac_code": g.user.cgac_code,
+            "title": g.user.title,
+            "permission": g.user.permission_type_id,
+            "skip_guide": g.user.skip_guide
+        })
 
     def isAccountExpired(self, user):
         """ Checks user's last login date against inactivity threshold, marks account as inactive if expired
@@ -792,7 +799,6 @@ class AccountHandler:
     def set_skip_guide(self, session):
         """ Set current user's skip guide parameter """
         sess = GlobalDB.db().session
-        user = sess.query(User).filter(User.user_id == session["name"]).one()
         request_dict = RequestDictionary.derive(self.request)
         try:
             if 'skip_guide' not in request_dict:
@@ -802,13 +808,13 @@ class AccountHandler:
                 )
             skip_guide = request_dict['skip_guide']
             if isinstance(skip_guide, bool):    # e.g. from JSON
-                user.skip_guide = skip_guide
+                g.user.skip_guide = skip_guide
             elif isinstance(skip_guide, str):
                 # param is a string, allow "true" or "false"
                 if skip_guide.lower() == "true":
-                    user.skip_guide = True
+                    g.user.skip_guide = True
                 elif skip_guide.lower() == "false":
-                    user.skip_guide = False
+                    g.user.skip_guide = False
                 else:
                     raise ResponseException(
                         "skip_guide must be true or false",
@@ -840,8 +846,6 @@ class AccountHandler:
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
-        current_user = sess.query(User).filter(User.user_id == session["name"]).one()
-
         user_ids = request_dict['users']
         submission_id = request_dict['submission_id']
         # Check if submission id is valid
@@ -854,7 +858,7 @@ class AccountHandler:
         users = []
 
         link = "".join([AccountHandler.FRONT_END, '#/reviewData/', str(submission_id)])
-        email_template = {'[REV_USER_NAME]': current_user.name, '[REV_URL]': link}
+        email_template = {'[REV_USER_NAME]': g.user.name, '[REV_URL]': link}
 
         for user_id in user_ids:
             # Check if user id is valid, if so add User object to array

@@ -9,14 +9,13 @@ from uuid import uuid4
 from shutil import copyfile
 
 import requests
-from flask import request, session
+from flask import g, request
 from requests.exceptions import Timeout
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug import secure_filename
 
-from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
@@ -50,14 +49,12 @@ def user_agency_matches(submission):
     """Does the currently logged in user have an agency that matches this
     submission?"""
     sess = GlobalDB.db().session
-    user_id = LoginSession.getName(session)
-    user = sess.query(User).filter_by(user_id=user_id).one()
     submission_cgac = StringCleaner.cleanString(submission.cgac_code)
-    user_cgac = StringCleaner.cleanString(user.cgac_code)
+    user_cgac = StringCleaner.cleanString(g.user.cgac_code)
     return (
         submission_cgac == user_cgac
-        or submission.user_id == user_id
-        or user.website_admin
+        or submission.user_id == g.user.user_id
+        or g.user.website_admin
     )
 
 
@@ -184,13 +181,12 @@ class FileHandler:
         else:
             return "cross_{}-{}".format(sourceType,targetType)
 
-    def submit(self, user_id, create_credentials):
+    def submit(self, create_credentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
 
         Flask request should include keys from FILE_TYPES class variable above
 
         Arguments:
-            name -- User ID from the session handler
             create_credentials - If True, will create temporary credentials for S3 uploads
 
         Returns:
@@ -239,7 +235,8 @@ class FileHandler:
             submission_data['reporting_start_date'] = formatted_start_date
             submission_data['reporting_end_date'] = formatted_end_date
 
-            submission = create_submission(user_id, submission_data, existing_submission_obj)
+            submission = create_submission(g.user.user_id, submission_data,
+                                           existing_submission_obj)
             if existing_submission:
                 # check if user has permission to specified submission
                 user_agency_must_match(submission)
@@ -256,7 +253,10 @@ class FileHandler:
                 filename = request_params.get(file_type)
                 if filename:
                     if not self.isLocal:
-                        upload_name = str(user_id) + "/" + s3UrlHandler.getTimestampedFilename(filename)
+                        upload_name = "{}/{}".format(
+                            g.user.user_id,
+                            s3UrlHandler.getTimestampedFilename(filename)
+                        )
                     else:
                         upload_name = filename
                     response_dict[file_type+"_key"] = upload_name
@@ -276,7 +276,10 @@ class FileHandler:
                     filename = CONFIG_BROKER["".join([ext_file_type,"_file_name"])]
 
                     if not self.isLocal:
-                        upload_name = str(user_id) + "/" + s3UrlHandler.getTimestampedFilename(filename)
+                        upload_name = "{}/{}".format(
+                            g.user.user_id,
+                            s3UrlHandler.getTimestampedFilename(filename)
+                        )
                     else:
                         upload_name = filename
                     response_dict[ext_file_type + "_key"] = upload_name
@@ -293,7 +296,7 @@ class FileHandler:
                     response_dict[file_type+"_id"] = file_job_dict[file_type]
             if create_credentials and not self.isLocal:
                 self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
-                response_dict["credentials"] = self.s3manager.getTemporaryCredentials(user_id)
+                response_dict["credentials"] = self.s3manager.getTemporaryCredentials(g.user.user_id)
             else :
                 response_dict["credentials"] ={"AccessKeyId" : "local","SecretAccessKey" :"local","SessionToken":"local" ,"Expiration" :"local"}
 
@@ -650,12 +653,11 @@ class FileHandler:
         cgac_code = submission.cgac_code
 
         # Generate and upload file to S3
-        user_id = LoginSession.getName(session)
         timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["".join([str(file_type_name),"_file_name"])])
         if self.isLocal:
             upload_file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
         else:
-            upload_file_name = "".join([str(user_id), "/", timestamped_name])
+            upload_file_name = "{}/{}".format(g.user.user_id, timestamped_name)
 
         job.filename = upload_file_name
         job.original_filename = timestamped_name
@@ -1059,13 +1061,11 @@ class FileHandler:
     def list_submissions(self, page, limit, certified):
         """ List submission based on current page and amount to display. If provided, filter based on
         certification status """
-        user_id = LoginSession.getName(session)
         sess = GlobalDB.db().session
-        user = sess.query(User).filter(User.user_id == user_id).one()
 
         offset = limit*(page-1)
 
-        query = sess.query(Submission).filter(Submission.cgac_code == user.cgac_code)
+        query = sess.query(Submission).filter_by(cgac_code=g.user.cgac_code)
         if certified != 'mixed':
             query = query.filter_by(publishable=certified)
         submissions = query.order_by(Submission.updated_at.desc()).limit(limit).offset(offset).all()
