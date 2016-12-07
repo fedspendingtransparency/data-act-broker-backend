@@ -964,10 +964,13 @@ class FileHandler:
             Response object with keys status, file_type, url, message.
             If file_type is D1 or D2, also includes start and end.
         """
-        if user_id is None and file_type is None:
+        if user_id is None:
+            user_id = LoginSession.getName(session)
+
+        if file_type is None:
             requestDict = RequestDictionary(self.request)
-            if not (requestDict.exists("user_id") and requestDict.exists("file_type")):
-                raise ResponseException("Check detached generation route requires user_id and file_type",
+            if not requestDict.exists("file_type"):
+                raise ResponseException("Check detached generation route requires file_type",
                                         StatusCode.CLIENT_ERROR)
 
             submission_id = requestDict.getValue("submission_id")
