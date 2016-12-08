@@ -941,7 +941,7 @@ class FileHandler:
 
         if not self.isLocal:
             # Create file D API URL with dates and callback URL
-            get_url = FileHandler.get_d_file_url('complete_detached_generation', task_key, file_type_name, cgac_code,
+            get_url = FileHandler.get_d_file_url('complete_generation', task_key, file_type_name, cgac_code,
                                           start_date, end_date)
 
             _debug_logger.debug('Calling Detached D file API => %s', get_url)
