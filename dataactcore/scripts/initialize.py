@@ -18,7 +18,6 @@ from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.scripts.loadFile import loadDomainValues
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
 from dataactvalidator.scripts.loadTas import loadTas
-from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 
 logger = logging.getLogger(__name__)
 basePath = CONFIG_BROKER["path"]
@@ -44,7 +43,7 @@ def create_admin():
             # GlobalDB instead of databaseSession, move the app_context
             # creation up to initialize()
             user = createUserWithPassword(
-                admin_email, admin_pass, Bcrypt(), permission=PERMISSION_TYPE_DICT['website_admin'])
+                admin_email, admin_pass, Bcrypt(), website_admin=True)
     return user
 
 def load_tas_lookup():

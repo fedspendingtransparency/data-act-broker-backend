@@ -1,6 +1,5 @@
 import unittest
 import time
-from collections import namedtuple
 from datetime import timedelta
 from dateutil.parser import parse
 from random import randint
@@ -23,7 +22,9 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import dataactcore.config
 from dataactbroker.scripts.setupEmails import setupEmails
 from dataactvalidator.app import createApp as createValidatorApp
-from dataactcore.models.lookups import PERMISSION_TYPE_DICT
+from dataactcore.models.lookups import PERMISSION_TYPE_DICT, USER_STATUS_DICT
+from tests.unit.dataactcore.factories.user import UserFactory
+
 
 class BaseTestAPI(unittest.TestCase):
     """ Test login, logout, and session handling """
@@ -74,22 +75,29 @@ class BaseTestAPI(unittest.TestCase):
             user_password = '!passw0rdUp!'
             admin_password = '@pprovedPassw0rdy'
 
+            # get user info and save as class variables for use by tests
+            sess = GlobalDB.db().session
+
             # set up users for status tests
-            StatusTestUser = namedtuple('StatusTestUser', ['email', 'user_status', 'permission_type_id', 'user_type'])
-            StatusTestUser.__new__.__defaults__ = (None, None, PERMISSION_TYPE_DICT['writer'], None)
-            status_test_users = []
-            status_test_users.append(StatusTestUser('user@agency.gov', 'awaiting_confirmation'))
-            status_test_users.append(StatusTestUser('realEmail@agency.gov', 'email_confirmed'))
-            status_test_users.append(StatusTestUser('waiting@agency.gov', 'awaiting_approval'))
-            status_test_users.append(StatusTestUser('impatient@agency.gov', 'awaiting_approval'))
-            status_test_users.append(StatusTestUser('watchingPaintDry@agency.gov', 'awaiting_approval'))
-            status_test_users.append(StatusTestUser(test_users['admin_email'], 'approved', PERMISSION_TYPE_DICT['website_admin']))
-            status_test_users.append(StatusTestUser(test_users['approved_email'], 'approved'))
-            status_test_users.append(StatusTestUser('nefarious@agency.gov', 'denied'))
+            def add_status_user(email, status_name, website_admin=False):
+                sess.add(UserFactory(
+                    email=email, user_status_id=USER_STATUS_DICT[status_name],
+                    permission_type_id=PERMISSION_TYPE_DICT['writer'],
+                    website_admin=website_admin))
+            add_status_user('user@agency.gov', 'awaiting_confirmation')
+            add_status_user('realEmail@agency.gov', 'email_confirmed')
+            add_status_user('waiting@agency.gov', 'awaiting_approval')
+            add_status_user('impatient@agency.gov', 'awaiting_approval')
+            add_status_user('watchingPaintDry@agency.gov', 'awaiting_approval')
+            add_status_user(test_users['admin_email'], 'approved', True)
+            add_status_user(test_users['approved_email'], 'approved')
+            add_status_user('nefarious@agency.gov', 'denied')
 
             # add new users
             createUserWithPassword(
-                test_users["submission_email"], user_password, Bcrypt(), permission=PERMISSION_TYPE_DICT['website_admin'])
+                test_users["submission_email"], user_password, Bcrypt(),
+                website_admin=True
+            )
             createUserWithPassword(
                 test_users["change_user_email"], user_password, Bcrypt())
             createUserWithPassword(
@@ -105,9 +113,6 @@ class BaseTestAPI(unittest.TestCase):
             createUserWithPassword(
                 test_users['agency_user'], user_password, Bcrypt())
 
-            # get user info and save as class variables for use by tests
-            sess = GlobalDB.db().session
-
             agencyUser = sess.query(User).filter(User.email == test_users['agency_user']).one()
             cls.agency_user_id = agencyUser.user_id
 
@@ -116,15 +121,6 @@ class BaseTestAPI(unittest.TestCase):
             today = parse(time.strftime("%c"))
             expiredUser.last_login_date = (today-timedelta(days=120)).strftime("%c")
             sess.add(expiredUser)
-
-            # create users for status testing
-            for u in status_test_users:
-                user = User(
-                    email=u.email,
-                    permission_type_id=u.permission_type_id,
-                    user_status=sess.query(UserStatus).filter(UserStatus.name == u.user_status).one()
-                )
-                sess.add(user)
 
             # set up approved user
             user = sess.query(User).filter(User.email == test_users['approved_email']).one()

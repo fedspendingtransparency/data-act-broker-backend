@@ -87,12 +87,12 @@ PERMISSION_TYPE = [
     LookupType(1, 'reader', 'This user is allowed to view any submission for their agency'),
     LookupType(2, 'writer', 'This user is allowed to create and edit any submission for their agency'),
     LookupType(3, 'submitter', 'This user is allowed to certify and submit any submission for their agency'),
-    LookupType(4, 'website_admin', 'This user is a super user and has full admin control')
+    # Placeholder 4: website_admin
 ]
 PERMISSION_TYPE_DICT = {item.name: item.id for item in PERMISSION_TYPE}
 PERMISSION_TYPE_DICT_ID = {item.id: item.name for item in PERMISSION_TYPE}
 PERMISSION_MAP = {'r': {'name': 'reader', 'order': 4}, 'w': {'name': 'writer', 'order': 3},
-                  's': {'name': 'submitter', 'order': 2}, 'a': {'name': 'website_admin', 'order': 1}}
+                  's': {'name': 'submitter', 'order': 2}}
 
 FIELD_TYPE = [
     LookupType(1, 'INT', 'integer type'),

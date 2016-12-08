@@ -1,8 +1,7 @@
-from flask import request, session
+from flask import request
 from dataactbroker.handlers.fileHandler import (
     FileHandler, narratives_for_submission, update_narratives)
-from dataactbroker.permissions import permissions_check
-from dataactbroker.handlers.aws.session import LoginSession
+from dataactbroker.permissions import permissions_check, requires_login
 from dataactbroker.exceptions.invalid_usage import InvalidUsage
 
 
@@ -18,7 +17,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     @permissions_check(permission="writer")
     def submit_files():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.submit(LoginSession.getName(session), CreateCredentials)
+        return fileManager.submit(CreateCredentials)
 
     @app.route("/v1/finalize_job/", methods = ["POST"])
     @permissions_check(permission="writer")
@@ -27,37 +26,37 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return fileManager.finalize()
 
     @app.route("/v1/check_status/", methods = ["POST"])
-    @permissions_check
+    @requires_login
     def check_status():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.getStatus()
 
     @app.route("/v1/submission_error_reports/", methods = ["POST"])
-    @permissions_check
+    @requires_login
     def submission_error_reports():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.getErrorReportURLsForSubmission()
 
     @app.route("/v1/submission_warning_reports/", methods = ["POST"])
-    @permissions_check
+    @requires_login
     def submission_warning_reports():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.getErrorReportURLsForSubmission(True)
 
     @app.route("/v1/error_metrics/", methods = ["POST"])
-    @permissions_check
+    @requires_login
     def submission_error_metrics():
         fileManager = FileHandler(request,isLocal=IS_LOCAL ,serverPath=SERVER_PATH)
         return fileManager.get_error_metrics()
 
     @app.route("/v1/local_upload/", methods = ["POST"])
-    @permissions_check
+    @requires_login
     def upload_local_file():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.uploadFile()
 
     @app.route("/v1/list_submissions/", methods = ["GET"])
-    @permissions_check
+    @requires_login
     def list_submissions():
         """ List submission IDs associated with the current user """
 
@@ -88,7 +87,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return file_manager.list_submissions(page, limit, certified)
 
     @app.route("/v1/get_protected_files/", methods=["GET"])
-    @permissions_check
+    @requires_login
     def get_protected_files():
         """ Return signed URLs for all help page files """
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
@@ -102,7 +101,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return fileManager.generateFile()
 
     @app.route("/v1/check_generation_status/", methods=["POST"])
-    @permissions_check
+    @requires_login
     def check_generation_status():
         """ Return status of file generation job """
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
@@ -114,13 +113,13 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return fileManager.completeGeneration(generationId)
 
     @app.route("/v1/get_obligations/", methods = ["POST"])
-    @permissions_check
+    @requires_login
     def get_obligations():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.getObligations()
 
     @app.route("/v1/sign_submission_file", methods = ["POST"])
-    @permissions_check
+    @requires_login
     def sign_submission_file():
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.get_signed_url_for_submission_file()
