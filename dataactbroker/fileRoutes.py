@@ -125,7 +125,7 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     @app.route("/v1/complete_generation/<generationId>/", methods=["POST"])
     def complete_generation(generationId):
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.completeGeneration(generationId)
+        return fileManager.complete_generation(generationId)
 
     @app.route("/v1/get_obligations/", methods = ["POST"])
     @permissions_check
