@@ -946,6 +946,7 @@ class FileHandler:
             try:
                 if not self.call_d_file_api(get_url):
                     # If the call to the external API wasn't successful, mark the job as failed
+                    new_job.error_message = "%s data unavailable for the specified date range" % file_type
                     new_job.job_status_id = JOB_STATUS_DICT['failed']
                     sess.commit()
             except Timeout as e:
@@ -990,7 +991,10 @@ class FileHandler:
                                     'A generation request must be submitted prior to checking the status.' % file_type,
                                     StatusCode.CLIENT_ERROR)
 
-        response_dict = {"status": JOB_STATUS_DICT_ID[uploadJob.job_status_id], "file_type": file_type, "message": ''}
+        response_dict = {}
+        response_dict["status"] = JOB_STATUS_DICT_ID[uploadJob.job_status_id]
+        response_dict["file_type"] = file_type
+        response_dict["message"] = uploadJob.error_message or ""
         if uploadJob.filename is None:
             response_dict["url"] = "#"
         elif CONFIG_BROKER["use_aws"]:
