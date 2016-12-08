@@ -1,5 +1,3 @@
-from unittest.mock import Mock
-
 from dataactcore.utils import fileF
 from tests.unit.dataactcore.factories.fsrs import (
     FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory,
@@ -7,78 +5,108 @@ from tests.unit.dataactcore.factories.fsrs import (
 from tests.unit.dataactcore.factories.staging import AwardFinancialFactory
 
 
-def test_valueFromMapping_None():
-    result = fileF.valueFromMapping(
-        FSRSProcurementFactory(), FSRSSubcontractFactory(), None, None,
-        mapping=None)
-    assert '' == result
+def test_CopyValues_procurement():
+    model_row = fileF.ModelRow(None,
+                               FSRSProcurementFactory(duns='DUNS'),
+                               FSRSSubcontractFactory(duns='DUNS SUB'),
+                               None, None)
+    mapper = fileF.CopyValues(procurement='duns')
+    assert mapper.transform(model_row) =='DUNS'
+    mapper = fileF.CopyValues(subcontract='duns')
+    assert mapper.transform(model_row) == 'DUNS SUB'
+    mapper = fileF.CopyValues(grant='duns')
+    assert mapper.transform(model_row) is None
 
 
-def test_valueFromMapping_string():
-    proc = FSRSProcurementFactory()
-    sub = FSRSSubcontractFactory(duns='Some DUNS')
-    result = fileF.valueFromMapping(proc, sub, None, None, mapping='duns')
-    assert 'Some DUNS' == result
+def test_CopyValues_grant():
+    model_row = fileF.ModelRow(None, None, None,
+                               FSRSGrantFactory(duns='DUNS'),
+                               FSRSSubgrantFactory(duns='DUNS SUB'))
+    mapper = fileF.CopyValues(grant='duns')
+    assert mapper.transform(model_row) == 'DUNS'
+    mapper = fileF.CopyValues(subgrant='duns')
+    assert mapper.transform(model_row) == 'DUNS SUB'
+    mapper = fileF.CopyValues(procurement='duns')
+    assert mapper.transform(model_row) is None
 
 
-def test_valueFromMapping_tuple():
-    proc = FSRSProcurementFactory()
-    subc = FSRSSubcontractFactory(duns='subcontract DUNS')
-    grant = FSRSGrantFactory()
-    subg = FSRSSubgrantFactory(parent_duns='subgrant DUNS')
+def test_country_name():
+    model_row = fileF.ModelRow(
+        None, None, None, None,
+        FSRSSubgrantFactory(awardee_address_country='USA',
+                            principle_place_country='DE')
+    )
+    entity = fileF.mappings['LegalEntityCountryName'].transform(model_row)
+    assert entity == 'United States'
 
-    mapping = ('duns', 'parent_duns')
-    assert 'subcontract DUNS' == fileF.valueFromMapping(
-        proc, subc, None, None, mapping)
-    assert 'subgrant DUNS' == fileF.valueFromMapping(
-        None, None, grant, subg, mapping)
-
-    # None indicates that no result should be provided
-    mapping = ('duns', None)
-    assert 'subcontract DUNS' == fileF.valueFromMapping(
-        proc, subc, None, None, mapping)
-    assert '' == fileF.valueFromMapping(None, None, grant, subg, mapping)
+    place = fileF.mappings['PrimaryPlaceOfPerformanceCountryName'].transform(
+        model_row)
+    assert place == 'Germany'
 
 
-def test_relevantFainPiids(database):
-    """We should be retrieving a pair of all FAINs and PIIDs associated with a
-    particular submission"""
-    sess = database.session
-    award1 = AwardFinancialFactory()
-    award2 = AwardFinancialFactory(submission_id=award1.submission_id,
-                                   piid=None)
-    award3 = AwardFinancialFactory()
-    sess.add_all([award1, award2, award3])
+def test_zipcode_guard():
+    model_row = fileF.ModelRow(
+        None, None,
+        FSRSSubcontractFactory(company_address_country='USA',
+                               company_address_zip='12345'),
+        None, None
+    )
+    us_zip = fileF.mappings['LegalEntityZIP+4'].transform(model_row)
+    foreign_zip = fileF.mappings['LegalEntityForeignPostalCode'].transform(
+        model_row)
+    assert us_zip == '12345'
+    assert foreign_zip is None
 
-    fains, piids = fileF.relevantFainsPiids(sess, award1.submission_id)
-    assert fains == {award1.fain, award2.fain}  # ignores award3
-    assert piids == {award1.piid}               # ignores award2's None
+    model_row.subcontract.company_address_country = 'RU'
+    us_zip = fileF.mappings['LegalEntityZIP+4'].transform(model_row)
+    foreign_zip = fileF.mappings['LegalEntityForeignPostalCode'].transform(
+        model_row)
+    assert us_zip is None
+    assert foreign_zip == '12345'
 
 
-def test_generateFRows(database, monkeypatch):
-    """generateFRows should find and convert subaward data relevant to a
+def test_generate_f_rows(database, monkeypatch):
+    """generate_f_rows should find and convert subaward data relevant to a
     specific submission id. We'll compare the resulting DUNs values for
     uniqueness"""
+    # Setup - create awards, procurements/grants, subawards
     sess = database.session
-
-    mock_fn = Mock(return_value=({'fain1', 'fain2'}, {'piid1'}))
-    monkeypatch.setattr(fileF, 'relevantFainsPiids', mock_fn)
-    # Create some dummy data: 4 procurements, 4 grants, each with 3 subawards
-    procs = [FSRSProcurementFactory(contract_number='piid' + str(i))
-             for i in range(0, 4)]
-    for proc in procs:
-        proc.subawards = [FSRSSubcontractFactory() for _ in range(3)]
-    grants = [FSRSGrantFactory(fain='fain' + str(i)) for i in range(0, 4)]
-    for grant in grants:
-        grant.subawards = [FSRSSubgrantFactory() for _ in range(3)]
-
-    sess.add_all(procs + grants)
+    awards = [AwardFinancialFactory(submission_id=123, piid='PIID1'),
+              AwardFinancialFactory(submission_id=123, piid='PIID2'),
+              AwardFinancialFactory(submission_id=123, fain='FAIN1'),
+              AwardFinancialFactory(submission_id=123, fain='FAIN2'),
+              AwardFinancialFactory(submission_id=321, piid='PIID1'),
+              AwardFinancialFactory(submission_id=321, fain='FAIN1')]
+    sess.add_all(awards)
+    procurements = {}
+    for piid in ('PIID1', 'PIID2', 'PIID3'):
+        procurements[piid] = [
+            FSRSProcurementFactory(contract_number=piid, subawards=[
+                FSRSSubcontractFactory() for _ in range(3)]),
+            FSRSProcurementFactory(contract_number=piid, subawards=[]),
+            FSRSProcurementFactory(contract_number=piid, subawards=[
+                FSRSSubcontractFactory() for _ in range(2)])
+        ]
+        sess.add_all(procurements[piid])
+    grants = {}
+    for fain in ('FAIN0', 'FAIN1'):
+        grants[fain] = [
+            FSRSGrantFactory(fain=fain, subawards=[
+                FSRSSubgrantFactory() for _ in range(3)]),
+            FSRSGrantFactory(fain=fain, subawards=[]),
+            FSRSGrantFactory(fain=fain, subawards=[
+                FSRSSubgrantFactory() for _ in range(2)])
+        ]
+        sess.add_all(grants[fain])
+    sess.commit()
 
     actual = {result['SubAwardeeOrRecipientUniqueIdentifier']
-              for result in fileF.generateFRows(sess, 1234)}
+              for result in fileF.generate_f_rows(123)}
     expected = set()
-    for award in procs[1:3] + grants[1:2]:
-        expected.update(sub.duns for sub in award.subawards)
+    expected.update(
+        sub.duns for proc in procurements['PIID1'] for sub in proc.subawards)
+    expected.update(
+        sub.duns for proc in procurements['PIID2'] for sub in proc.subawards)
+    expected.update(
+        sub.duns for grant in grants['FAIN1'] for sub in grant.subawards)
     assert actual == expected
-    # Also make sure that we filtered by the right submission
-    assert mock_fn.call_args == ((sess, 1234),)
