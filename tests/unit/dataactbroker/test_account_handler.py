@@ -1,21 +1,24 @@
-from unittest.mock import Mock
-import dataactbroker.handlers.accountHandler
 import json
+from unittest.mock import Mock
+
+from dataactbroker.handlers import accountHandler
+from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
+from tests.unit.dataactcore.factories.user import UserFactory
 
 
 def test_max_login_success(database, user_constants, monkeypatch):
-    ah = dataactbroker.handlers.accountHandler.AccountHandler(Mock())
+    ah = accountHandler.AccountHandler(Mock())
 
     mock_dict = Mock()
     mock_dict.return_value.safeDictionary.side_effect = {'ticket': '', 'service': ''}
-    monkeypatch.setattr(dataactbroker.handlers.accountHandler, 'RequestDictionary', mock_dict)
+    monkeypatch.setattr(accountHandler, 'RequestDictionary', mock_dict)
 
     max_dict= {'cas:serviceResponse': {}}
     monkeypatch.setattr(ah, 'get_max_dict', Mock(return_value=max_dict))
     config = {'parent_group': 'parent-group'}
-    monkeypatch.setattr(dataactbroker.handlers.accountHandler, 'CONFIG_BROKER', config)
+    monkeypatch.setattr(accountHandler, 'CONFIG_BROKER', config)
     max_dict = {
         'cas:serviceResponse':
             {
@@ -43,13 +46,13 @@ def test_max_login_success(database, user_constants, monkeypatch):
 
 
 def test_max_login_failure(monkeypatch):
-    ah = dataactbroker.handlers.accountHandler.AccountHandler(Mock())
+    ah = accountHandler.AccountHandler(Mock())
     config = {'parent_group': 'parent-group'}
-    monkeypatch.setattr(dataactbroker.handlers.accountHandler, 'CONFIG_BROKER', config)
+    monkeypatch.setattr(accountHandler, 'CONFIG_BROKER', config)
 
     mock_dict = Mock()
     mock_dict.return_value.safeDictionary.side_effect = {'ticket': '', 'service': ''}
-    monkeypatch.setattr(dataactbroker.handlers.accountHandler, 'RequestDictionary', mock_dict)
+    monkeypatch.setattr(accountHandler, 'RequestDictionary', mock_dict)
 
     max_dict= {'cas:serviceResponse': {}}
     monkeypatch.setattr(ah, 'get_max_dict', Mock(return_value=max_dict))
@@ -98,3 +101,17 @@ def test_max_login_failure(monkeypatch):
 
     # Not in cgac group
     assert error_message == json.loads(json_response.get_data().decode("utf-8"))['message']
+
+
+def test_grant_highest_permission():
+    """Verify that we get the _highest_ permission within our CGAC"""
+    user = UserFactory()
+    group_list = ['prefix-ABC-PERM_R', 'prefix-ABC-PERM_S']
+    accountHandler.grant_highest_permission(user, group_list, 'prefix-ABC')
+    assert user.cgac_code == 'ABC'
+    assert user.permission_type_id == PERMISSION_TYPE_DICT['submitter']
+
+    group_list = ['prefix-ABC-PERM_W']
+    accountHandler.grant_highest_permission(user, group_list, 'prefix-ABC')
+    assert user.cgac_code == 'ABC'
+    assert user.permission_type_id == PERMISSION_TYPE_DICT['writer']
