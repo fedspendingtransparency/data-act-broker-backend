@@ -715,8 +715,7 @@ class FileHandler:
 
         if not self.isLocal:
             # Create file D API URL with dates and callback URL
-            get_url = FileHandler.get_d_file_url('complete_generation', task_key, file_type_name, cgac_code,
-                                          start_date, end_date)
+            get_url = FileHandler.get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date)
 
             _debug_logger.debug('Calling D file API => %s', get_url)
             try:
@@ -941,8 +940,7 @@ class FileHandler:
 
         if not self.isLocal:
             # Create file D API URL with dates and callback URL
-            get_url = FileHandler.get_d_file_url('complete_generation', task_key, file_type_name, cgac_code,
-                                          start_date, end_date)
+            get_url = FileHandler.get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date)
 
             _debug_logger.debug('Calling Detached D file API => %s', get_url)
             try:
@@ -1208,11 +1206,11 @@ class FileHandler:
         return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})
 
     @staticmethod
-    def get_d_file_url(callback_route, task_key, file_type_name, cgac_code, start_date, end_date):
+    def get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date):
         """ Compiles the URL to be called in order to generate the D files """
-        callback = "{}://{}:{}/v1/{}/{}/".format(callback_route, CONFIG_SERVICES["protocol"],
-                                                 CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],
-                                                 task_key)
+        callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],
+                                                                  CONFIG_SERVICES["broker_api_host"],
+                                                                  CONFIG_SERVICES["broker_api_port"], task_key)
         _debug_logger.debug('Callback URL for %s: %s', FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]], callback)
         url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
         return url
