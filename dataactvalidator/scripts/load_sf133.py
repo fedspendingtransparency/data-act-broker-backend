@@ -257,18 +257,23 @@ def get_sf133_list(sf133_path):
         # get list of SF 133 files in the specified local directory
         sf133_files = glob.glob(os.path.join(sf133_path, 'sf_133*.csv'))
         sf133_list = [SF133File(sf133, os.path.basename(sf133)) for sf133 in sf133_files]
+    elif CONFIG_BROKER["use_aws"]:
+        logger.info("Loading SF-133")
+        # get list of SF 133 files in the config bucket on S3
+        s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
+        s3bucket = s3connection.lookup(CONFIG_BROKER['aws_bucket'])
+        # get bucketlistresultset with all sf_133 files
+        sf133_files = s3bucket.list(
+            prefix='{}/sf_133'.format(CONFIG_BROKER['sf_133_folder']))
+        sf133_list = [SF133File(sf133, os.path.basename(sf133.name)) for sf133 in sf133_files]
+    elif CONFIG_BROKER['sf_133_files'] is not None:
+        logger.info('Loading local SF-133')
+        # get list of SF 133 files from the directory specified in the config file
+        sf133_files = glob.glob(os.path.join(CONFIG_BROKER['sf_133_files'], 'sf_133*.csv'))
+        sf133_list = [SF133File(sf133, os.path.basename(sf133)) for sf133 in sf133_files]
     else:
         logger.info("Loading SF-133")
-        if CONFIG_BROKER["use_aws"]:
-            # get list of SF 133 files in the config bucket on S3
-            s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-            s3bucket = s3connection.lookup(CONFIG_BROKER['aws_bucket'])
-            # get bucketlistresultset with all sf_133 files
-            sf133_files = s3bucket.list(
-                prefix='{}/sf_133'.format(CONFIG_BROKER['sf_133_folder']))
-            sf133_list = [SF133File(sf133, os.path.basename(sf133.name)) for sf133 in sf133_files]
-        else:
-            sf133_list = []
+        sf133_list = []
 
     return sf133_list
 
