@@ -549,12 +549,16 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["message"],'Check detached generation route requires file_type')
 
-        postJson = {'file_type': 'D2'}
-        response = self.app.post_json("/v1/check_detached_generation_status/", postJson,
-                                      headers={"x-session-id":self.session_id}, expect_errors=True)
+        post_json = {'file_type': 'D2'}
+        response = self.app.post_json("/v1/check_detached_generation_status/", post_json,
+                                      headers={"x-session-id":self.session_id})
         json = response.json
-        self.assertEqual(json["message"], 'Cannot check detached generation status for D2. A generation '
-                                          'request must be submitted prior to checking the status.')
+        self.assertEqual(json["status"], 'invalid')
+        self.assertEqual(json["file_type"], 'D2')
+        self.assertEqual(json["url"], '')
+        self.assertEqual(json["start"], '')
+        self.assertEqual(json["end"], '')
+        self.assertEqual(json["message"], '')
 
 
     @staticmethod

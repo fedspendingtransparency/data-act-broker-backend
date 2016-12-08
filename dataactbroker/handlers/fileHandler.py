@@ -986,12 +986,13 @@ class FileHandler:
             job_type_id=JOB_TYPE_DICT['file_upload']
         ).order_by(Job.created_at.desc()).first()
 
-        if uploadJob is None:
-            raise ResponseException('Cannot check detached generation status for %s. '
-                                    'A generation request must be submitted prior to checking the status.' % file_type,
-                                    StatusCode.CLIENT_ERROR)
+        response_dict = {'status': '', 'file_type': '', 'message': '', 'url': '', 'start': '', 'end': ''}
 
-        response_dict = {}
+        if uploadJob is None:
+            response_dict['status'] = 'invalid'
+            response_dict['file_type'] = file_type
+            return JsonResponse.create(StatusCode.OK, response_dict)
+
         response_dict["status"] = JOB_STATUS_DICT_ID[uploadJob.job_status_id]
         response_dict["file_type"] = file_type
         response_dict["message"] = uploadJob.error_message or ""
