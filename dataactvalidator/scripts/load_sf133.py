@@ -262,10 +262,9 @@ def get_sf133_list(sf133_path):
         if CONFIG_BROKER["use_aws"]:
             # get list of SF 133 files in the config bucket on S3
             s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-            s3bucket = s3connection.lookup(CONFIG_BROKER['aws_bucket'])
+            s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
             # get bucketlistresultset with all sf_133 files
-            sf133_files = s3bucket.list(
-                prefix='{}/sf_133'.format(CONFIG_BROKER['sf_133_folder']))
+            sf133_files = s3bucket.list(prefix='sf_133')
             sf133_list = [SF133File(sf133, os.path.basename(sf133.name)) for sf133 in sf133_files]
         else:
             sf133_list = []
