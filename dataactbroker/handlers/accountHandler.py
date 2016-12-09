@@ -734,9 +734,16 @@ class AccountHandler:
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\
             one_or_none()
-        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency_name": agency_name,
-                                                  "cgac_code": user.cgac_code,"title":user.title,
-                                                  "permission": user.permission_type_id, "skip_guide": user.skip_guide})
+        return JsonResponse.create(StatusCode.OK, {
+            "user_id": int(uid),
+            "name": user.name,
+            "agency_name": agency_name,
+            "cgac_code": user.cgac_code,
+            "title": user.title,
+            "permission": user.permission_type_id,
+            "skip_guide": user.skip_guide,
+            "website_admin": user.website_admin
+        })
 
     def isAccountExpired(self, user):
         """ Checks user's last login date against inactivity threshold, marks account as inactive if expired
