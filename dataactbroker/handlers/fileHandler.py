@@ -1165,7 +1165,7 @@ class FileHandler:
     def add_generation_job_info(self, file_type_name, job=None, dates=None):
         # if job is None, that means the info being added is for detached d file generation
         sess = GlobalDB.db().session
-        user_id = LoginSession.getName(session)
+        user_id = g.user.user_id
 
         timestamped_name = s3UrlHandler.getTimestampedFilename(
             CONFIG_BROKER["".join([str(file_type_name), "_file_name"])])
