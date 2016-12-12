@@ -185,17 +185,17 @@ class AccountHandler:
                         user.name = first_name + " " + middle_name[0] + ". " + last_name
                     user.user_status_id = user.user_status_id = USER_STATUS_DICT['approved']
 
-                    sess.add(user)
-                    sess.commit()
 
                 # update user's cgac based on their current membership
-                # If part of the SYS agency, use that as the cgac otherwise use the first agency provided
+                # If part of the SYS agency, use that as the cgac otherwise
+                # use the first agency provided
                 if [g for g in cgac_group if g.endswith("SYS")]:
-                    user.cgac_code = "SYS"
+                    grant_superuser(user)
                 else:
-                    user.cgac_code = cgac_group[0][-3:]
+                    grant_highest_permission(user, group_list, cgac_group[0])
 
-                self.grant_highest_permission(sess, user, group_list, cgac_group[0])
+                sess.add(user)
+                sess.commit()
 
             except MultipleResultsFound:
                 raise ValueError("An error occurred during login.")
@@ -212,25 +212,6 @@ class AccountHandler:
             # Return 500
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
         return self.response
-
-    def grant_highest_permission(self, session, user, group_list, cgac_group):
-        if user.cgac_code == 'SYS':
-            user.permission_type_id = PERMISSION_TYPE_DICT['website_admin']
-        else:
-            permission_group = [g for g in group_list if g.startswith(cgac_group + "-PERM_")]
-            # Check if a user has been placed in a specific group. If not, deny access
-            if not permission_group:
-                user.permission_type_id = None
-            else:
-                perms = [perm[-1].lower() for perm in permission_group]
-                ordered_perms = sorted(PERMISSION_MAP, key=lambda k: PERMISSION_MAP[k]['order'])
-
-                for perm in ordered_perms:
-                    if perm in perms:
-                        user.permission_type_id = PERMISSION_TYPE_DICT[PERMISSION_MAP[perm]['name']]
-                        break
-        session.merge(user)
-        session.commit()
 
     def get_max_dict(self, ticket, service):
         url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
@@ -296,7 +277,7 @@ class AccountHandler:
                 filter(CGAC.cgac_code == cgac_code).\
                 one_or_none()
             agency_name = "Unknown" if agency_name is None else agency_name
-            for user in sess.query(User).filter_by(permission_type_id=PERMISSION_TYPE_DICT['website_admin']):
+            for user in sess.query(User).filter_by(website_admin=True):
                 email_template = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
                                  '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : user_email,'[URL]':link}
                 new_email = sesEmail(user.email, system_email,templateType="account_creation",parameters=email_template)
@@ -753,9 +734,16 @@ class AccountHandler:
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\
             one_or_none()
-        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency_name": agency_name,
-                                                  "cgac_code": user.cgac_code,"title":user.title,
-                                                  "permission": user.permission_type_id, "skip_guide": user.skip_guide})
+        return JsonResponse.create(StatusCode.OK, {
+            "user_id": int(uid),
+            "name": user.name,
+            "agency_name": agency_name,
+            "cgac_code": user.cgac_code,
+            "title": user.title,
+            "permission": user.permission_type_id,
+            "skip_guide": user.skip_guide,
+            "website_admin": user.website_admin
+        })
 
     def isAccountExpired(self, user):
         """ Checks user's last login date against inactivity threshold, marks account as inactive if expired
@@ -884,3 +872,30 @@ class AccountHandler:
             new_email.send()
 
         return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})
+
+
+def grant_superuser(user):
+    user.cgac_code = 'SYS'
+    user.website_admin = True
+    user.permission_type_id = PERMISSION_TYPE_DICT['writer']
+
+
+def grant_highest_permission(user, group_list, cgac_group):
+    """Find the highest permission within the provided cgac_group; set that as
+    the user's permission_type_id"""
+    user.cgac_code = cgac_group[-3:]
+    user.website_admin = False
+    permission_group = [g for g in group_list
+                        if g.startswith(cgac_group + "-PERM_")]
+    # Check if a user has been placed in a specific group. If not, deny access
+    if not permission_group:
+        user.permission_type_id = None
+    else:
+        perms = [perm[-1].lower() for perm in permission_group]
+        ordered_perms = sorted(
+            PERMISSION_MAP.items(), key=lambda pair: pair[1]['order'])
+        for key, permission in ordered_perms:
+            name = permission['name']
+            if key in perms:
+                user.permission_type_id = PERMISSION_TYPE_DICT[name]
+                break

@@ -57,7 +57,7 @@ def user_agency_matches(submission):
     return (
         submission_cgac == user_cgac
         or submission.user_id == user_id
-        or user_cgac == 'sys'
+        or user.website_admin
     )
 
 

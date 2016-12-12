@@ -156,17 +156,10 @@ Example output:
     "title":"Developer",
     "agency": "Department of Labor",
     "permission" : 1,
-    "skip_guide": False
+    "skip_guide": False,
+    "website_admin": False
 }
 ```
-
-Permissions for the DATA Act Broker are list based. Each integer in the list corresponds with a permission.
-
-
-| Permission Type  | Value |
-| ------------- |-------------|
-|User| 0|
-|Admin  |1|
 
 
 #### POST "/v1/set_skip_guide/"
