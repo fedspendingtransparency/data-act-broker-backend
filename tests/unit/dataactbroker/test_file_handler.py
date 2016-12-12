@@ -18,14 +18,11 @@ CERTIFIED = "mixed"
 def test_list_submissions_success(database, job_constants, monkeypatch):
     fh = fileHandler.FileHandler(Mock())
 
-    mock_value = Mock()
-    mock_value.getName.return_value = 1
-    monkeypatch.setattr(fileHandler, 'LoginSession', mock_value)
-
     user = UserFactory(user_id=1, cgac_code='cgac')
     sub = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1, cgac_code='cgac')
     add_models(database, [user, sub])
 
+    monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
     json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
     assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
     assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "validation_successful_warnings"
@@ -86,14 +83,11 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
 def test_list_submissions_failure(database, job_constants, monkeypatch):
     fh = fileHandler.FileHandler(Mock())
 
-    mock_value = Mock()
-    mock_value.getName.return_value = 1
-    monkeypatch.setattr(fileHandler, 'LoginSession', mock_value)
-
     user = UserFactory(user_id=1, cgac_code='cgac')
     sub = SubmissionFactory(user_id=1, submission_id=1, number_of_errors=1, cgac_code='cgac')
     add_models(database, [user, sub])
 
+    monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
     json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
     assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
     assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "validation_errors"
