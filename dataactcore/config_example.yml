@@ -56,12 +56,6 @@ broker:
     # S3 filenames for SF-133 file, only required if planning to load SF-133 table
     sf_133_folder: config
 
-    # The path where the broker will store sf133 files and emails
-    # when the broker is not using an AWS S3 bucket.
-    # This should be an absolute path. Note that this path
-    # is ignored if use_aws is true.
-    sf_133_files: /full/path/to/sf133/files
-
     # Static Files Locations
     static_files_bucket: sample-static-files-bucket
     help_files_path: sample-help-files-folder

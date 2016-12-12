@@ -10,7 +10,6 @@ broker:
     reply_to_email: valid.developer.email@domain.com
     broker_files: /full/path/to/local/broker/files
     d_file_storage_path: /full/path/to/local/d/file/storage
-    sf_133_files: /full/path/to/sf133/files
 
 services:
 

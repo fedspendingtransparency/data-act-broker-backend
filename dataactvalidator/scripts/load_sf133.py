@@ -155,52 +155,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
                 fiscal_year, fiscal_period, existing_records.count()))
             return
 
-        data = pd.read_csv(filename, dtype=str)
-        data = LoaderUtils.cleanData(
-            data,
-            SF133,
-            {"ata": "allocation_transfer_agency",
-             "aid": "agency_identifier",
-             "availability_type_code": "availability_type_code",
-             "bpoa": "beginning_period_of_availa",
-             "epoa": "ending_period_of_availabil",
-             "main_account": "main_account_code",
-             "sub_account": "sub_account_code",
-             "fiscal_year": "fiscal_year",
-             "period": "period",
-             "line_num": "line",
-             "amount_summed": "amount"},
-            {"allocation_transfer_agency": {"pad_to_length": 3},
-             "agency_identifier": {"pad_to_length": 3},
-             "main_account_code": {"pad_to_length": 4},
-             "sub_account_code": {"pad_to_length": 3},
-             # next 3 lines handle the TAS fields that shouldn't
-             # be padded but should still be empty spaces rather
-             # than NULLs. this ensures that the downstream pivot & melt
-             # (which insert the missing 0-value SF-133 lines)
-             # will work as expected (values used in the pivot
-             # index cannot be NULL).
-             # the "pad_to_length: 0" works around the fact
-             # that sometimes the incoming data for these columns
-             # is a single space and sometimes it is blank/NULL.
-             "beginning_period_of_availa": {"pad_to_length": 0},
-             "ending_period_of_availabil": {"pad_to_length": 0},
-             "availability_type_code": {"pad_to_length": 0},
-             "amount": {"strip_commas": True}}
-        )
-
-        # todo: find out how to handle dup rows (e.g., same tas/period/line number)
-        # line numbers 2002 and 2012 are the only duped SF 133 report line numbers,
-        # and they are not used by the validation rules, so for now
-        # just remove them before loading our SF-133 table
-        dupe_line_numbers = ['2002', '2102']
-        data = data[~data.line.isin(dupe_line_numbers)]
-
-        # add concatenated TAS field for internal use (i.e., joining to staging tables)
-        data['tas'] = data.apply(lambda row: format_internal_tas(row), axis=1)
-        data['amount'] = data['amount'].astype(float)
-        
-        data = fill_blank_sf133_lines(data)
+        data = clean_sf133_data(filename, SF133)
 
         # Now that we've added zero lines for EVERY tas and SF 133 line number, get rid of the ones
         # we don't actually use in the validations. Arguably, it would be better just to include
@@ -234,6 +189,57 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
+def clean_sf133_data(filename, SF133):
+    data = pd.read_csv(filename, dtype=str)
+    data = LoaderUtils.cleanData(
+        data,
+        SF133,
+        {"ata": "allocation_transfer_agency",
+         "aid": "agency_identifier",
+         "availability_type_code": "availability_type_code",
+         "bpoa": "beginning_period_of_availa",
+         "epoa": "ending_period_of_availabil",
+         "main_account": "main_account_code",
+         "sub_account": "sub_account_code",
+         "fiscal_year": "fiscal_year",
+         "period": "period",
+         "line_num": "line",
+         "amount_summed": "amount"},
+        {"allocation_transfer_agency": {"pad_to_length": 3},
+         "agency_identifier": {"pad_to_length": 3},
+         "main_account_code": {"pad_to_length": 4},
+         "sub_account_code": {"pad_to_length": 3},
+         # next 3 lines handle the TAS fields that shouldn't
+         # be padded but should still be empty spaces rather
+         # than NULLs. this ensures that the downstream pivot & melt
+         # (which insert the missing 0-value SF-133 lines)
+         # will work as expected (values used in the pivot
+         # index cannot be NULL).
+         # the "pad_to_length: 0" works around the fact
+         # that sometimes the incoming data for these columns
+         # is a single space and sometimes it is blank/NULL.
+         "beginning_period_of_availa": {"pad_to_length": 0},
+         "ending_period_of_availabil": {"pad_to_length": 0},
+         "availability_type_code": {"pad_to_length": 0},
+         "amount": {"strip_commas": True}}
+    )
+
+    # todo: find out how to handle dup rows (e.g., same tas/period/line number)
+    # line numbers 2002 and 2012 are the only duped SF 133 report line numbers,
+    # and they are not used by the validation rules, so for now
+    # just remove them before loading our SF-133 table
+    dupe_line_numbers = ['2002', '2102']
+    data = data[~data.line.isin(dupe_line_numbers)]
+
+    # add concatenated TAS field for internal use (i.e., joining to staging tables)
+    data['tas'] = data.apply(lambda row: format_internal_tas(row), axis=1)
+    data['amount'] = data['amount'].astype(float)
+    
+    data = fill_blank_sf133_lines(data)
+
+    return data
+
+
 def format_internal_tas(row):
     """Concatenate TAS components into a single field for internal use."""
     # This formatting should match formatting in dataactcore.models.stagingModels concatTas
@@ -257,21 +263,17 @@ def get_sf133_list(sf133_path):
         # get list of SF 133 files in the specified local directory
         sf133_files = glob.glob(os.path.join(sf133_path, 'sf_133*.csv'))
         sf133_list = [SF133File(sf133, os.path.basename(sf133)) for sf133 in sf133_files]
-    elif CONFIG_BROKER["use_aws"]:
-        # get list of SF 133 files in the config bucket on S3
-        s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-        s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-        # get bucketlistresultset with all sf_133 files
-        sf133_files = s3bucket.list(prefix='sf_133')
-        sf133_list = [SF133File(sf133, os.path.basename(sf133.name)) for sf133 in sf133_files]
-    elif CONFIG_BROKER['sf_133_files'] is not None:
-        logger.info('Loading local SF-133')
-        # get list of SF 133 files from the directory specified in the config file
-        sf133_files = glob.glob(os.path.join(CONFIG_BROKER['sf_133_files'], 'sf_133*.csv'))
-        sf133_list = [SF133File(sf133, os.path.basename(sf133)) for sf133 in sf133_files]
     else:
         logger.info("Loading SF-133")
-        sf133_list = []
+        if CONFIG_BROKER["use_aws"]:
+            # get list of SF 133 files in the config bucket on S3
+            s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
+            s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
+            # get bucketlistresultset with all sf_133 files
+            sf133_files = s3bucket.list(prefix='sf_133')
+            sf133_list = [SF133File(sf133, os.path.basename(sf133.name)) for sf133 in sf133_files]
+        else:
+            sf133_list = []
 
     return sf133_list
 
