@@ -877,7 +877,7 @@ class FileHandler:
         """ Start a file generation job for the specified file type """
         logger.debug("Starting detached D file generation")
 
-        file_type, cgac_code, start_date, end_date = self.get_request_params_for_generate_detached(True)
+        file_type, cgac_code, start_date, end_date = self.get_request_params_for_generate_detached()
 
         # check file type
         if file_type not in ['D1', 'D2']:
