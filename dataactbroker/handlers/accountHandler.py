@@ -808,23 +808,13 @@ class AccountHandler:
                     "Must include skip_guide parameter",
                     StatusCode.CLIENT_ERROR
                 )
-            skip_guide = request_dict['skip_guide']
-            if isinstance(skip_guide, bool):    # e.g. from JSON
-                g.user.skip_guide = skip_guide
-            elif isinstance(skip_guide, str):
-                # param is a string, allow "true" or "false"
-                if skip_guide.lower() == "true":
-                    g.user.skip_guide = True
-                elif skip_guide.lower() == "false":
-                    g.user.skip_guide = False
-                else:
-                    raise ResponseException(
-                        "skip_guide must be true or false",
-                        StatusCode.CLIENT_ERROR
-                    )
-            else:
+            skip_guide = str(request_dict['skip_guide']).lower()
+            if skip_guide not in ("true", "false"):
                 raise ResponseException(
-                    "skip_guide must be a boolean", StatusCode.CLIENT_ERROR)
+                    "skip_guide must be true or false",
+                    StatusCode.CLIENT_ERROR
+                )
+            g.user.skip_guide = skip_guide == "true"
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
         sess.commit()
