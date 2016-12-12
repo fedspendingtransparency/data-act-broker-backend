@@ -1198,7 +1198,7 @@ class FileHandler:
                           user_id=user_id, file_type_id=FILE_TYPE_DICT[file_type_name], start_date=dates['start_date'],
                           end_date=dates['end_date'])
             sess.add(new_job)
-            sess.commit
+            sess.commit()
             return new_job
 
         # This will update the reference so no need to return the job, just the upload and timestamped file names
