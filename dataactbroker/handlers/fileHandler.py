@@ -21,10 +21,10 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import (
-    FileGenerationTask, Job, JobDependency, Submission, SubmissionNarrative)
+    FileGenerationTask, Job, Submission, SubmissionNarrative)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
-    FILE_STATUS_DICT, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID,
+    FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID,
     JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -36,8 +36,8 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     checkNumberOfErrorsByJobId, getErrorType, run_job_checks,
-    createFileIfNeeded, getErrorMetricsByJobId, get_submission_stats,
-    get_submission_status, mark_job_status, create_submission, create_jobs)
+    getErrorMetricsByJobId, get_submission_stats, get_submission_status,
+    mark_job_status, create_submission, create_jobs)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 _debug_logger = logging.getLogger('deprecated.debug')
