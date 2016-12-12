@@ -2,7 +2,8 @@ from dataactcore.utils import fileF
 from tests.unit.dataactcore.factories.fsrs import (
     FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory,
     FSRSSubgrantFactory)
-from tests.unit.dataactcore.factories.staging import AwardFinancialFactory
+from tests.unit.dataactcore.factories.staging import (
+    AwardFinancialFactory, AwardProcurementFactory)
 
 
 def test_CopyValues_procurement():
@@ -11,11 +12,11 @@ def test_CopyValues_procurement():
                                FSRSSubcontractFactory(duns='DUNS SUB'),
                                None, None)
     mapper = fileF.CopyValues(procurement='duns')
-    assert mapper.transform(model_row) =='DUNS'
+    assert mapper(model_row) =='DUNS'
     mapper = fileF.CopyValues(subcontract='duns')
-    assert mapper.transform(model_row) == 'DUNS SUB'
+    assert mapper(model_row) == 'DUNS SUB'
     mapper = fileF.CopyValues(grant='duns')
-    assert mapper.transform(model_row) is None
+    assert mapper(model_row) is None
 
 
 def test_CopyValues_grant():
@@ -23,11 +24,11 @@ def test_CopyValues_grant():
                                FSRSGrantFactory(duns='DUNS'),
                                FSRSSubgrantFactory(duns='DUNS SUB'))
     mapper = fileF.CopyValues(grant='duns')
-    assert mapper.transform(model_row) == 'DUNS'
+    assert mapper(model_row) == 'DUNS'
     mapper = fileF.CopyValues(subgrant='duns')
-    assert mapper.transform(model_row) == 'DUNS SUB'
+    assert mapper(model_row) == 'DUNS SUB'
     mapper = fileF.CopyValues(procurement='duns')
-    assert mapper.transform(model_row) is None
+    assert mapper(model_row) is None
 
 
 def test_country_name():
@@ -36,11 +37,10 @@ def test_country_name():
         FSRSSubgrantFactory(awardee_address_country='USA',
                             principle_place_country='DE')
     )
-    entity = fileF.mappings['LegalEntityCountryName'].transform(model_row)
+    entity = fileF.mappings['LegalEntityCountryName'](model_row)
     assert entity == 'United States'
 
-    place = fileF.mappings['PrimaryPlaceOfPerformanceCountryName'].transform(
-        model_row)
+    place = fileF.mappings['PrimaryPlaceOfPerformanceCountryName'](model_row)
     assert place == 'Germany'
 
 
@@ -51,16 +51,14 @@ def test_zipcode_guard():
                                company_address_zip='12345'),
         None, None
     )
-    us_zip = fileF.mappings['LegalEntityZIP+4'].transform(model_row)
-    foreign_zip = fileF.mappings['LegalEntityForeignPostalCode'].transform(
-        model_row)
+    us_zip = fileF.mappings['LegalEntityZIP+4'](model_row)
+    foreign_zip = fileF.mappings['LegalEntityForeignPostalCode'](model_row)
     assert us_zip == '12345'
     assert foreign_zip is None
 
     model_row.subcontract.company_address_country = 'RU'
-    us_zip = fileF.mappings['LegalEntityZIP+4'].transform(model_row)
-    foreign_zip = fileF.mappings['LegalEntityForeignPostalCode'].transform(
-        model_row)
+    us_zip = fileF.mappings['LegalEntityZIP+4'](model_row)
+    foreign_zip = fileF.mappings['LegalEntityForeignPostalCode'](model_row)
     assert us_zip is None
     assert foreign_zip == '12345'
 
@@ -110,3 +108,23 @@ def test_generate_f_rows(database, monkeypatch):
     expected.update(
         sub.duns for grant in grants['FAIN1'] for sub in grant.subawards)
     assert actual == expected
+
+
+def test_generate_f_rows_naics_desc(database, monkeypatch):
+    """The NAICS description should be retireved from an AwardProcurement"""
+    award = AwardFinancialFactory()
+    ap = AwardProcurementFactory(submission_id=award.submission_id,
+                                 piid=award.piid)
+    other_aps = [AwardProcurementFactory(submission_id=award.submission_id)
+                 for _ in range(3)]
+    proc = FSRSProcurementFactory(
+        contract_number=award.piid,
+        subawards=[FSRSSubcontractFactory(naics=ap.naics)]
+    )
+
+    database.session.add_all([award, ap, proc] + other_aps)
+    database.session.commit()
+
+    actual = {result['NAICS_Description']
+              for result in fileF.generate_f_rows(award.submission_id)}
+    assert actual == {ap.naics_description}

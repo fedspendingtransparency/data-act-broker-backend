@@ -6,7 +6,7 @@ import iso3166
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.fsrs import (
     FSRSGrant, FSRSProcurement, FSRSSubcontract, FSRSSubgrant)
-from dataactcore.models.stagingModels import AwardFinancial
+from dataactcore.models.stagingModels import AwardFinancial, AwardProcurement
 
 
 def _country_name(code):
@@ -34,7 +34,7 @@ class CopyValues():
         self.subgrant_field = subgrant
         self.award_field = award
 
-    def transform(self, models):
+    def __call__(self, models):
         if self.subcontract_field and models.subcontract:
             return getattr(models.subcontract, self.subcontract_field)
         elif self.subgrant_field and models.subgrant:
@@ -55,10 +55,6 @@ def copy_prime_field(field_name):
     return CopyValues(procurement=field_name, grant=field_name)
 
 
-def todo():
-    return CopyValues()         # noop
-
-
 class SubawardLogic():
     """Perform custom logic relating to the subaward (i.e. subcontract or
     subgrant). Instantiated with two functions: one for subcontracts, one for
@@ -67,7 +63,7 @@ class SubawardLogic():
         self.subcontract_fn = subcontract_fn
         self.subgrant_fn = subgrant_fn
 
-    def transform(self, models):
+    def __call__(self, models):
         if models.subcontract:
             return self.subcontract_fn(models.subcontract)
         elif models.subgrant:
@@ -119,7 +115,7 @@ mappings = OrderedDict([
     ('SubcontractAwardAmount', CopyValues(subcontract='subcontract_amount')),
     ('TotalFundingAmount', CopyValues(subgrant='subaward_amount')),
     ('NAICS', CopyValues(subcontract='naics')),
-    ('NAICS_Description', todo()),
+    ('NAICS_Description', lambda models: models.naics_desc),
     ('CFDA_NumberAndTitle', CopyValues(subgrant='cfda_numbers')),
     ('AwardingSubTierAgencyName', copy_subaward_field('funding_agency_name')),
     ('AwardingSubTierAgencyCode', copy_subaward_field('funding_agency_id')),
@@ -159,18 +155,27 @@ mappings = OrderedDict([
 
 # Collect the models associated with a single F CSV row
 ModelRow = namedtuple(
-    'ModelRow', ['award', 'procurement', 'subcontract', 'grant', 'subgrant'])
+    'ModelRow',
+    ['award', 'procurement', 'subcontract', 'grant', 'subgrant', 'naics_desc'])
+ModelRow.__new__.__defaults__ = (None, None, None, None, None)
 
 
 def submission_procurements(submission_id):
     """Fetch procurements and subcontracts"""
-    triplets = GlobalDB.db().session.\
-        query(AwardFinancial, FSRSProcurement, FSRSSubcontract).\
+    sess = GlobalDB.db().session
+
+    naics_subquery = sess.query(AwardProcurement.naics_description).\
+        filter(AwardProcurement.submission_id == submission_id,
+               AwardProcurement.piid == AwardFinancial.piid,
+               AwardProcurement.naics == FSRSSubcontract.naics).\
+        order_by(AwardProcurement.award_procurement_id).limit(1).as_scalar()
+    results = sess.query(AwardFinancial, FSRSProcurement, FSRSSubcontract,
+                         naics_subquery).\
         filter(AwardFinancial.submission_id == submission_id).\
         filter(FSRSProcurement.contract_number == AwardFinancial.piid).\
         filter(FSRSSubcontract.parent_id == FSRSProcurement.id)
-    for award, proc, sub in triplets:
-        yield ModelRow(award, proc, sub, None, None)
+    for award, proc, sub, naics_desc in results:
+        yield ModelRow(award, proc, sub, naics_desc=naics_desc)
 
 
 def submission_grants(submission_id):
@@ -181,7 +186,7 @@ def submission_grants(submission_id):
         filter(FSRSGrant.fain == AwardFinancial.fain).\
         filter(FSRSSubgrant.parent_id == FSRSGrant.id)
     for award, grant, sub in triplets:
-        yield ModelRow(award, None, None, grant, sub)
+        yield ModelRow(award, grant=grant, subgrant=sub)
 
 
 def generate_f_rows(submission_id):
@@ -191,5 +196,5 @@ def generate_f_rows(submission_id):
                                      submission_grants(submission_id)):
         result = OrderedDict()
         for key, mapper in mappings.items():
-            result[key] = mapper.transform(model_row) or ''
+            result[key] = mapper(model_row) or ''
         yield result
