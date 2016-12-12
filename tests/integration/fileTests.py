@@ -541,24 +541,20 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["start"],"01/02/2016")
         self.assertEqual(json["end"],"02/03/2016")
         self.assertEqual(json["message"],"")
+        self.assertIsNotNone(json["job_id"])
 
         # call check generation status route for D2 and check results
         postJson = {}
         response = self.app.post_json("/v1/check_detached_generation_status/", postJson,
                                       headers={"x-session-id":self.session_id}, expect_errors=True)
         json = response.json
-        self.assertEqual(json["message"],'Check detached generation route requires file_type')
+        self.assertEqual(json["message"],'Check detached generation route requires job_id')
 
-        post_json = {'file_type': 'D2'}
+        post_json = {'job_id': -1}
         response = self.app.post_json("/v1/check_detached_generation_status/", post_json,
-                                      headers={"x-session-id":self.session_id})
+                                      headers={"x-session-id":self.session_id}, expect_errors=True)
         json = response.json
-        self.assertEqual(json["status"], 'invalid')
-        self.assertEqual(json["file_type"], 'D2')
-        self.assertEqual(json["url"], '')
-        self.assertEqual(json["start"], '')
-        self.assertEqual(json["end"], '')
-        self.assertEqual(json["message"], '')
+        self.assertEqual(json["message"], 'No generation job found with the specified ID')
 
 
     @staticmethod

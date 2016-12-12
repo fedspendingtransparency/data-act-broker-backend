@@ -936,13 +936,13 @@ class FileHandler:
             job_id=job_id).first()
 
         response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '', 'start': '', 'end': ''}
-        file_type = FILE_TYPE_DICT_LETTER[upload_job.file_type_id]
 
         if upload_job is None:
             response_dict['status'] = 'invalid'
-            response_dict['file_type'] = file_type
+            response_dict['message'] = 'No generation job found with the specified ID'
             return JsonResponse.create(StatusCode.OK, response_dict)
 
+        file_type = FILE_TYPE_DICT_LETTER[upload_job.file_type_id]
         response_dict["status"] = JOB_STATUS_DICT_ID[upload_job.job_status_id]
         response_dict["file_type"] = file_type
         response_dict["message"] = upload_job.error_message or ""
@@ -970,7 +970,7 @@ class FileHandler:
         """
         sess = GlobalDB.db().session
         if submission_id is None or file_type is None:
-            submission_id, file_type = self.getRequestParamsForGenerate()
+            submission_id, file_type = self.get_request_params_for_generate()
         # Check permission to submission
         self.check_submission_by_id(submission_id, file_type)
 
@@ -1098,9 +1098,7 @@ class FileHandler:
 
             #Pull information based on task key
             logger.debug('Pulling information based on task key...')
-            task = sess.query(FileGenerationTask).\
-                filter(FileGenerationTask.generation_task_key == generation_id).\
-                one()
+            task = sess.query(FileGenerationTask).filter(FileGenerationTask.generation_task_key == generation_id).one()
             job = sess.query(Job).filter_by(job_id = task.job_id).one()
             logger.debug('Loading D file...')
             result = self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
@@ -1180,7 +1178,7 @@ class FileHandler:
         task = FileGenerationTask(generation_task_key=task_key, job_id=job_id)
         sess.add(task)
         sess.commit()
-        return task_key
+        return task.generation_task_key
 
     def add_generation_job_info(self, file_type_name, job=None, dates=None):
         # if job is None, that means the info being added is for detached d file generation
