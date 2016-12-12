@@ -87,6 +87,7 @@ class Job(Base):
     error_message = Column(Text)
     start_date = Column(Date)
     end_date = Column(Date)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_job_user"), nullable=True)
 
 class JobDependency(Base):
     __tablename__ = "job_dependency"
@@ -112,10 +113,6 @@ class FileGenerationTask(Base):
 
     file_generation_task_id = Column(Integer, primary_key=True)
     generation_task_key = Column(Text, index=True, unique=True)
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", name = "fk_generation_submission"))
-    submission = relationship("Submission", uselist=False, cascade="delete")
-    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name = "fk_generation_file_type"))
-    file_type = relationship("FileType", uselist=False, cascade="delete")
     job_id = Column(Integer, ForeignKey("job.job_id", name = "fk_generation_job"))
     job = relationship("Job", uselist=False, cascade="delete")
 

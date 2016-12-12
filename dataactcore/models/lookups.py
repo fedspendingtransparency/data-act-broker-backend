@@ -42,6 +42,7 @@ JOB_STATUS = [
     LookupType(6, 'failed', 'job failed to complete')
 ]
 JOB_STATUS_DICT = {item.name: item.id for item in JOB_STATUS}
+JOB_STATUS_DICT_ID = {item.id: item.name for item in JOB_STATUS}
 
 JOB_TYPE = [
     LookupType(1, 'file_upload', 'file must be uploaded to S3'),

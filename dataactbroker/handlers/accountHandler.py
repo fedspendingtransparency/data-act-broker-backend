@@ -155,10 +155,6 @@ class AccountHandler:
 
             cgac_group = [g for g in group_list if g.startswith(parent_group+"-CGAC_")]
 
-            # Deny access if they are not aligned with an agency
-            if not cgac_group:
-                raise ValueError("You have logged in with MAX but do not have permission to access the broker.")
-
             try:
                 sess = GlobalDB.db().session
                 user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()
@@ -192,7 +188,7 @@ class AccountHandler:
                 if [g for g in cgac_group if g.endswith("SYS")]:
                     grant_superuser(user)
                 else:
-                    grant_highest_permission(user, group_list, cgac_group[0])
+                    grant_highest_permission(user, group_list, cgac_group)
 
                 sess.add(user)
                 sess.commit()
@@ -734,9 +730,16 @@ class AccountHandler:
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\
             one_or_none()
-        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency_name": agency_name,
-                                                  "cgac_code": user.cgac_code,"title":user.title,
-                                                  "permission": user.permission_type_id, "skip_guide": user.skip_guide})
+        return JsonResponse.create(StatusCode.OK, {
+            "user_id": int(uid),
+            "name": user.name,
+            "agency_name": agency_name,
+            "cgac_code": user.cgac_code,
+            "title": user.title,
+            "permission": user.permission_type_id,
+            "skip_guide": user.skip_guide,
+            "website_admin": user.website_admin
+        })
 
     def isAccountExpired(self, user):
         """ Checks user's last login date against inactivity threshold, marks account as inactive if expired
@@ -873,17 +876,23 @@ def grant_superuser(user):
     user.permission_type_id = PERMISSION_TYPE_DICT['writer']
 
 
-def grant_highest_permission(user, group_list, cgac_group):
+def grant_highest_permission(user, group_list, cgac_group_list):
     """Find the highest permission within the provided cgac_group; set that as
     the user's permission_type_id"""
-    user.cgac_code = cgac_group[-3:]
     user.website_admin = False
+    if not cgac_group_list:
+        user.cgac_code = None
+        user.permission_type_id = None
+        return
+
+    cgac_group = cgac_group_list[0]
     permission_group = [g for g in group_list
                         if g.startswith(cgac_group + "-PERM_")]
     # Check if a user has been placed in a specific group. If not, deny access
     if not permission_group:
         user.permission_type_id = None
     else:
+        user.cgac_code = cgac_group[-3:]
         perms = [perm[-1].lower() for perm in permission_group]
         ordered_perms = sorted(
             PERMISSION_MAP.items(), key=lambda pair: pair[1]['order'])

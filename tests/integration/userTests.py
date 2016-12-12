@@ -323,9 +323,10 @@ class UserTests(BaseTestAPI):
         """Test retrieving current user information."""
         response = self.app.get("/v1/current_user/", headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK)
-        self.assertEqual(response.json["name"], "Mr. Manager")
-        self.assertEqual(response.json["cgac_code"], "SYS")
-        self.assertEqual(response.json["skip_guide"], False)
+        assert response.json["name"] == "Mr. Manager"
+        assert response.json["cgac_code"] == "SYS"
+        assert response.json["skip_guide"] == False
+        assert response.json["website_admin"] == True
 
     def test_skip_guide(self):
         """ Set skip guide to True and check value in DB """

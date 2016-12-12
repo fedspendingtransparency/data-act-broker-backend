@@ -527,6 +527,40 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["end"],"")
         self.assertEqual(json["message"],"User does not have permission to view that submission")
 
+    def test_detached_file_generation(self):
+        """ Test the generate and check routes for external files """
+        # For file generation submission, call generate route for D1 and check results
+        postJson = {'file_type': 'D1', 'start': '01/02/2016', 'end': '02/03/2016', 'cgac_code': '020'}
+        response = self.app.post_json("/v1/generate_detached_file/", postJson, headers={"x-session-id":self.session_id})
+
+        self.assertEqual(response.status_code, 200)
+        json = response.json
+        self.assertIn(json["status"], ["running","finished"])
+        self.assertEqual(json["file_type"], "D1")
+        self.assertIn("url", json)
+        self.assertEqual(json["start"],"01/02/2016")
+        self.assertEqual(json["end"],"02/03/2016")
+        self.assertEqual(json["message"],"")
+
+        # call check generation status route for D2 and check results
+        postJson = {}
+        response = self.app.post_json("/v1/check_detached_generation_status/", postJson,
+                                      headers={"x-session-id":self.session_id}, expect_errors=True)
+        json = response.json
+        self.assertEqual(json["message"],'Check detached generation route requires file_type')
+
+        post_json = {'file_type': 'D2'}
+        response = self.app.post_json("/v1/check_detached_generation_status/", post_json,
+                                      headers={"x-session-id":self.session_id})
+        json = response.json
+        self.assertEqual(json["status"], 'invalid')
+        self.assertEqual(json["file_type"], 'D2')
+        self.assertEqual(json["url"], '')
+        self.assertEqual(json["start"], '')
+        self.assertEqual(json["end"], '')
+        self.assertEqual(json["message"], '')
+
+
     @staticmethod
     def insertSubmission(sess, submission_user_id, cgac_code = None, startDate = None, endDate = None, is_quarter = False, number_of_errors=0):
         """Insert one submission into job tracker and get submission ID back."""
