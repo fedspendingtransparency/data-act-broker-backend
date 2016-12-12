@@ -650,7 +650,8 @@ class FileHandler:
         cgac_code = submission.cgac_code
 
         # Generate and upload file to S3
-        upload_file_name, timestamped_name = self.add_generation_job_info(file_type_name=file_type_name, job=job)
+        job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
+        upload_file_name, timestamped_name = job.filename, job.original_filename
 
         if file_type in ["D1", "D2"]:
             logger.debug('Adding job info for job id of %s', job.job_id)
@@ -699,36 +700,9 @@ class FileHandler:
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
             return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
 
-        result = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, job)
+        error = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, job)
 
-        return True, None if result is None else result
-
-    def handleEmptyResponse(self, job, val_job):
-        """ Handles an empty response from the D file API by marking jobs as finished with no errors or rows
-
-        Args:
-            job - Job object for upload job
-            val_job - Job object for validation job
-        """
-        sess = GlobalDB.db().session
-        # No results found, skip validation and mark as finished
-        sess.query(JobDependency).\
-            filter(JobDependency.prerequisite_id == job.job_id).\
-            delete(synchronize_session='fetch')
-        mark_job_status(job.job_id,"finished")
-        job.filename = None
-        if val_job is not None:
-            mark_job_status(val_job.job_id, "finished")
-            # Create File object for this validation job
-            val_file = createFileIfNeeded(val_job.job_id, filename = val_job.filename)
-            val_file.file_status_id = FILE_STATUS_DICT['complete']
-            val_job.number_of_rows = 0
-            val_job.number_of_rows_valid = 0
-            val_job.file_size = 0
-            val_job.number_of_errors = 0
-            val_job.number_of_warnings = 0
-            val_job.filename = None
-            sess.commit()
+        return not error, error
 
     def get_xml_response_content(self, api_url):
         """ Retrieve XML Response from the provided API url """
@@ -744,10 +718,10 @@ class FileHandler:
             # Create file D API URL with dates and callback URL
             api_url = FileHandler.get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date)
 
-            logger.debug('Calling Detached D file API => %s', api_url)
+            logger.debug('Calling D file API => %s', api_url)
             try:
                 # Check for numFound = 0
-                if not ("numFound='0'" not in self.get_xml_response_content(api_url)):
+                if "numFound='0'" in self.get_xml_response_content(api_url):
                     sess = GlobalDB.db().session
                     # If the call to the external API wasn't successful, mark the job as failed
                     job.error_message = "%s data unavailable for the specified date range" % file_type
@@ -755,7 +729,7 @@ class FileHandler:
                     sess.commit()
             except Timeout as e:
                 exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
-                return False, JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
+                return JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
         else:
             self.complete_generation(task_key, file_type)
 
@@ -824,28 +798,35 @@ class FileHandler:
             sess.commit()
             raise e
 
-    def get_request_params_for_generate(self, detached=False):
+    def get_request_params_for_generate(self):
         """ Pull information out of request object and return it
 
         Returns: tuple of submission ID and file type
 
         """
         request_dict = RequestDictionary.derive(self.request)
-
-        if detached:
-            if not set(['file_type', 'cgac_code', 'start', 'end']).issubset(request_dict.keys()):
-                raise ResponseException("Generate detached file route for D files requires file_type, cgac_code, "
-                                        "start, and end",
-                                        StatusCode.CLIENT_ERROR)
-            return request_dict['file_type'], request_dict['cgac_code'], request_dict['start'], request_dict['end']
-
-        if not set(['file_type', 'submission_id']).issubset(request_dict.keys()):
+        if not {'file_type', 'submission_id'}.issubset(request_dict.keys()):
             raise ResponseException("Generate file route requires submission_id and file_type",
                                     StatusCode.CLIENT_ERROR)
 
         submission_id = request_dict['submission_id']
         file_type = request_dict['file_type']
         return submission_id, file_type
+
+    def get_request_params_for_generate_detached(self):
+        """ Pull information out of request object and return it
+        for detached generation
+
+        Returns: tuple of submission ID and file type
+
+        """
+        request_dict = RequestDictionary.derive(self.request)
+
+        if not {'file_type', 'cgac_code', 'start', 'end'}.issubset(request_dict.keys()):
+            raise ResponseException("Generate detached file route for D files requires file_type, cgac_code, "
+                                    "start, and end",
+                                    StatusCode.CLIENT_ERROR)
+        return request_dict['file_type'], request_dict['cgac_code'], request_dict['start'], request_dict['end']
 
     def generateFile(self):
         """ Start a file generation job for the specified file type """
@@ -893,7 +874,7 @@ class FileHandler:
         """ Start a file generation job for the specified file type """
         logger.debug("Starting detached D file generation")
 
-        file_type, cgac_code, start_date, end_date = self.get_request_params_for_generate(True)
+        file_type, cgac_code, start_date, end_date = self.get_request_params_for_generate_detached(True)
 
         # check file type
         if file_type not in ['D1', 'D2']:
@@ -911,7 +892,7 @@ class FileHandler:
         result = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, new_job)
 
         # Return same response as check generation route
-        return self.check_detached_generation(new_job.job_id) if result is None else result
+        return result or self.check_detached_generation(new_job.job_id)
 
     def check_detached_generation(self, job_id=None):
         """ Return information about file generation jobs
@@ -933,7 +914,7 @@ class FileHandler:
         # the status as invalid to indicate that a status request is invoked for a job that
         # isn't created yet
         upload_job = sess.query(Job).filter_by(
-            job_id=job_id).first()
+            job_id=job_id).one_or_none()
 
         response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '', 'start': '', 'end': ''}
 
@@ -1193,13 +1174,10 @@ class FileHandler:
             upload_file_name = "".join([str(user_id), "/", timestamped_name])
 
         if job is None:
-            new_job = Job(filename=upload_file_name, original_filename=timestamped_name,
-                          job_status_id=JOB_STATUS_DICT['running'], job_type_id=JOB_TYPE_DICT['file_upload'],
-                          user_id=user_id, file_type_id=FILE_TYPE_DICT[file_type_name], start_date=dates['start_date'],
-                          end_date=dates['end_date'])
-            sess.add(new_job)
-            sess.commit()
-            return new_job
+            job = Job(job_type_id=JOB_TYPE_DICT['file_upload'], user_id=user_id,
+                      file_type_id=FILE_TYPE_DICT[file_type_name], start_date=dates['start_date'],
+                      end_date=dates['end_date'])
+            sess.add(job)
 
         # This will update the reference so no need to return the job, just the upload and timestamped file names
         job.filename = upload_file_name
@@ -1207,7 +1185,7 @@ class FileHandler:
         job.job_status_id = JOB_STATUS_DICT["running"]
         sess.commit()
 
-        return upload_file_name, timestamped_name
+        return job
 
 
 def requires_submission_perms(fn):
