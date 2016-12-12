@@ -1,3 +1,5 @@
+import logging
+from operator import attrgetter
 import re
 import time
 import requests
@@ -23,7 +25,13 @@ from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import (get_email_template, check_correct_password, set_user_password, updateLastLogin)
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT, PERMISSION_TYPE_DICT_ID, PERMISSION_MAP
+from dataactcore.models.lookups import (
+    PERMISSION_SHORT_DICT, PERMISSION_TYPE_DICT, PERMISSION_TYPE_DICT_ID,
+    USER_STATUS_DICT
+)
+
+
+logger = logging.getLogger(__name__)
 
 
 class AccountHandler:
@@ -142,20 +150,16 @@ class AccountHandler:
             # Obtain POST content
             ticket = safeDictionary.getValue("ticket")
             service = safeDictionary.getValue('service')
-            parent_group = CONFIG_BROKER['parent_group']
 
             # Call MAX's serviceValidate endpoint and retrieve the response
             max_dict = self.get_max_dict(ticket, service)
 
             if not 'cas:authenticationSuccess' in max_dict['cas:serviceResponse']:
                 raise ValueError("You have failed to login successfully with MAX")
+            cas_attrs = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']
 
             # Grab the email and list of groups from MAX's response
-            email = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['maxAttribute:Email-Address']
-            group_list_all = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']['maxAttribute:GroupList'].split(',')
-            group_list = [g for g in group_list_all if g.startswith(parent_group)]
-
-            cgac_group = [g for g in group_list if g.startswith(parent_group+"-CGAC_")]
+            email = cas_attrs['maxAttribute:Email-Address']
 
             try:
                 sess = GlobalDB.db().session
@@ -166,12 +170,9 @@ class AccountHandler:
                 if user is None:
                     user = User()
 
-                    first_name = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes'][
-                        'maxAttribute:First-Name']
-                    middle_name = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes'][
-                        'maxAttribute:Middle-Name']
-                    last_name = max_dict["cas:serviceResponse"]['cas:authenticationSuccess']['cas:attributes'][
-                        'maxAttribute:Last-Name']
+                    first_name = cas_attrs['maxAttribute:First-Name']
+                    middle_name = cas_attrs['maxAttribute:Middle-Name']
+                    last_name = cas_attrs['maxAttribute:Last-Name']
 
                     user.email = email
 
@@ -184,13 +185,7 @@ class AccountHandler:
                     user.user_status_id = user.user_status_id = USER_STATUS_DICT['approved']
 
 
-                # update user's cgac based on their current membership
-                # If part of the SYS agency, use that as the cgac otherwise
-                # use the first agency provided
-                if [g for g in cgac_group if g.endswith("SYS")]:
-                    grant_superuser(user)
-                else:
-                    grant_highest_permission(user, group_list, cgac_group)
+                set_max_perms(user, cas_attrs['maxAttribute:GroupList'])
 
                 sess.add(user)
                 sess.commit()
@@ -860,39 +855,67 @@ class AccountHandler:
         return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})
 
 
-def grant_superuser(user):
-    user.cgac_code = 'SYS'
-    user.website_admin = True
-    user.permission_type_id = PERMISSION_TYPE_DICT['writer']
+def perms_to_affiliations(perms):
+    """Convert a list of perms from MAX to a list of UserAffiliations. Filter
+    out and log any malformed perms"""
+    available_codes = {
+        cgac.cgac_code:cgac
+        for cgac in GlobalDB.db().session.query(CGAC)
+    }
+    for perm in perms:
+        components = perm.split('-PERM_')
+        if len(components) != 2:
+            logger.warning('Malformed permission: %s', perm)
+            continue
+
+        cgac_code, perm_level = components
+        perm_level = perm_level.lower()
+        if cgac_code not in available_codes or perm_level not in 'rws':
+            logger.warning('Malformed permission: %s', perm)
+            continue
+
+        yield UserAffiliation(
+            cgac=available_codes[cgac_code],
+            permission_type_id=PERMISSION_SHORT_DICT[perm_level]
+        )
 
 
-def grant_highest_permission(user, group_list, cgac_group_list):
-    """Find the highest permission within the provided cgac_group; set that as
-    the user's permission_type_id"""
-    sess = GlobalDB.db().session
-    user.website_admin = False
-    if not cgac_group_list:
-        user.cgac_code = None
-        user.permission_type_id = None
-        return
+def best_affiliation(affiliations):
+    """If a user has multiple permissions for a single agency, select the
+    best"""
+    by_agency = {}
+    affiliations = sorted(affiliations, key=attrgetter('permission_type_id'))
+    for affiliation in affiliations:
+        by_agency[affiliation.cgac] = affiliation
+    return by_agency.values()
 
-    cgac_group = cgac_group_list[0]
-    permission_group = [g for g in group_list
-                        if g.startswith(cgac_group + "-PERM_")]
-    # Check if a user has been placed in a specific group. If not, deny access
-    if not permission_group:
-        user.permission_type_id = None
+
+def set_max_perms(user, max_group_list):
+    """Convert the user group lists present on MAX into a list of
+    UserAffiliations and/or website_admin status.
+
+    Permissions are encoded as a comma-separated list of
+    {parent-group}-CGAC_{cgac-code}-PERM_{one-of-R-W-S}
+    or
+    {parent-group}-CGAC_SYS to indicate website_admin"""
+    prefix = CONFIG_BROKER['parent_group'] + '-CGAC_'
+    perms = [group_name[len(prefix):]
+             for group_name in max_group_list.split(',')
+             if group_name.startswith(prefix)]
+    if 'SYS' in perms:
+        user.affiliations = []
+        user.cgac_code = 'SYS'
+        user.website_admin = True
+        user.permission_type_id = PERMISSION_TYPE_DICT['writer']
     else:
-        user.cgac_code = cgac_group[-3:]
-        perms = [perm[-1].lower() for perm in permission_group]
-        ordered_perms = sorted(
-            PERMISSION_MAP.items(), key=lambda pair: pair[1]['order'])
-        for key, permission in ordered_perms:
-            name = permission['name']
-            if key in perms:
-                user.permission_type_id = PERMISSION_TYPE_DICT[name]
-                break
-    user.affiliations = [UserAffiliation(
-        cgac=sess.query(CGAC).filter_by(cgac_code=user.cgac_code).one(),
-        permission_type_id=user.permission_type_id
-    )]
+        affiliations = list(best_affiliation(perms_to_affiliations(perms)))
+
+        if affiliations:
+            user.cgac_code = affiliations[0].cgac.cgac_code
+            user.permission_type_id = affiliations[0].permission_type_id
+        else:
+            user.cgac_code = None
+            user.prmission_type_id = None
+
+        user.affiliations = affiliations
+        user.website_admin = False
