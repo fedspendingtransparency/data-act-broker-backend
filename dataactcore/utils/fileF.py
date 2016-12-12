@@ -26,6 +26,9 @@ def _zipcode_guard(model, field_prefix, match_usa):
 
 class CopyValues():
     """Copy a field value from one of our existing models"""
+    # Order to check fields
+    MODEL_TYPES = ('subcontract', 'subgrant', 'procurement', 'grant', 'award')
+
     def __init__(self, subcontract=None, subgrant=None, procurement=None,
                  grant=None, award=None):
         self.procurement_field = procurement
@@ -35,16 +38,11 @@ class CopyValues():
         self.award_field = award
 
     def __call__(self, models):
-        if self.subcontract_field and models.subcontract:
-            return getattr(models.subcontract, self.subcontract_field)
-        elif self.subgrant_field and models.subgrant:
-            return getattr(models.subgrant, self.subgrant_field)
-        elif self.procurement_field and models.procurement:
-            return getattr(models.procurement, self.procurement_field)
-        elif self.grant_field and models.grant:
-            return getattr(models.grant, self.grant_field)
-        elif self.award_field and models.award:
-            return getattr(models.award, self.award_field)
+        for model_type in self.MODEL_TYPES:
+            field_name = getattr(self, model_type + '_field')
+            model = getattr(models, model_type)
+            if model and field_name:
+                return getattr(model, field_name)
 
 
 def copy_subaward_field(field_name):
