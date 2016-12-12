@@ -1141,15 +1141,13 @@ This route returns either a signed S3 URL to the generated file or, if the file 
 
 ```
 {
-    "file_type": "D1"
+    "job_id": "1
 }
 ```
 
 ### Body Description
 
-* `file_type` - **required** - a string indicating the file type whose status we are checking. Allowable values are:
-	* `D1` - generate a D1 file
-	* `D2` - generate a D2 file
+* `job_id` - **required** - an integer corresponding the job_id for the generation. Provided in the response of the call to `generate_detached_file`
 
 ### Response (JSON)
 
@@ -1162,7 +1160,8 @@ This route returns either a signed S3 URL to the generated file or, if the file 
 	"url": "https://........",
 	"start": "01/01/2016",
 	"end": "03/31/2016",
-	"message": ""
+	"message": "",
+	"job_id": 1
 }
 ```
 
@@ -1175,7 +1174,8 @@ This route returns either a signed S3 URL to the generated file or, if the file 
 	"url": "",
     "start": "01/01/2016",
     "end": "03/31/2016",
-    "message": ""
+    "message": "",
+	"job_id": 1
 }
 ```
 
@@ -1188,7 +1188,8 @@ This route returns either a signed S3 URL to the generated file or, if the file 
 	"url": "",
 	"start": "01/01/2016",
 	"end": "03/31/2016",
-	"message": "The server could not reach the Federal Procurement Data System. Try again later."
+	"message": "The server could not reach the Federal Procurement Data System. Try again later.",
+	"job_id": 1
 }
 ```
 
@@ -1201,7 +1202,8 @@ This route returns either a signed S3 URL to the generated file or, if the file 
 	"url": "",
 	"start": "",
 	"end": "",
-	"message": ""
+	"message": "",
+	"job_id": 1
 }
 ```
 
@@ -1229,6 +1231,8 @@ The response is an object that represents that file's state.
 	* If the file is not a D1/D2 file type, return a blank string
 
 * `message` - returns a user-readable error message when the file is `failed`, otherwise returns a blank string
+
+* `job_id` - job ID of the generation job in question
 
 
 ## Test Cases
