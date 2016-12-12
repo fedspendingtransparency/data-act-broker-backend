@@ -2,6 +2,7 @@ import os
 import logging
 
 import pandas as pd
+import boto
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -115,17 +116,28 @@ def loadDomainValues(basePath, localProgramActivity = None):
         basePath : directory that contains the domain values files.
         localProgramActivity : optional location of the program activity file (None = use basePath)
     """
+    if CONFIG_BROKER["use_aws"]:
+        s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
+        s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
+        cgac_file = s3bucket.get_key("cgac.csv")
+        object_class_file = s3bucket.get_key("object_class.csv")
+        program_activity_file = s3bucket.get_key("program_activity.csv")
+
+    else:
+        cgac_file = os.path.join(basePath,"cgac.csv")
+        object_class_file = os.path.join(basePath,"object_class.csv")
+        program_activity_file = os.path.join(basePath, "program_activity.csv") 
 
     logger.info('Loading CGAC')
-    loadCgac(os.path.join(basePath,"cgac.csv"))
+    loadCgac(cgac_file)
     logger.info('Loading object class')
-    loadObjectClass(os.path.join(basePath,"object_class.csv"))
+    loadObjectClass(object_class_file)
     logger.info('Loading program activity')
 
     if localProgramActivity is not None:
         loadProgramActivity(localProgramActivity)
     else:
-        loadProgramActivity(os.path.join(basePath, "program_activity.csv"))
+        loadProgramActivity(program_activity_file)
 
 
 if __name__ == '__main__':
