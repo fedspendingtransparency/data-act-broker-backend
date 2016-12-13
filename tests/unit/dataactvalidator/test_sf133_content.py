@@ -1,6 +1,4 @@
-import logging
 import re
-import pandas as pd
 import os
 
 from dataactcore.config import CONFIG_BROKER
