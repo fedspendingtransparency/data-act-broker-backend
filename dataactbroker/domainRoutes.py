@@ -20,10 +20,9 @@ def add_domain_routes(app):
         elif g.user.website_admin:
             cgacs = sess.query(CGAC).all()
         else:
-            cgac_ids = [affil.cgac_id for affil in g.user.affiliations]
-            cgacs = sess.query(CGAC).filter(CGAC.cgac_code.in_(cgac_ids)).all()
+            cgacs = [affil.cgac for affil in g.user.affiliations]
         agency_list = [
-            {'agency_name': cgac.agencyname, 'cgac_code': cgac.cgac_code}
+            {'agency_name': cgac.agency_name, 'cgac_code': cgac.cgac_code}
             for cgac in cgacs
         ]
         return JsonResponse.create(StatusCode.OK,
