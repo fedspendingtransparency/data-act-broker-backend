@@ -7,7 +7,8 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
 from dataactbroker.exceptions.invalid_usage import InvalidUsage
-from dataactcore.models.lookups import PERMISSION_TYPE_DICT, PERMISSION_MAP, PERMISSION_TYPE_DICT_ID
+from dataactcore.models.lookups import (
+    PERMISSION_TYPE_DICT, PERMISSION_TYPE_DICT_ID)
 
 NOT_AUTHORIZED_MSG = ("You are not authorized to perform the requested task. "
                       "Please contact your administrator.")
@@ -26,12 +27,9 @@ def permissions_check(f=None, permission=None):
                     valid_user = True
 
                     if permission is not None and not g.user.website_admin:
-                        perm_hierarchy = {d['name']: d['order'] for d in PERMISSION_MAP.values()}
-                        # if the users permission is not higher than the one specified, check their permission
-                        # if user's perm order is < than what's passed in, it means they have higher permissions
-                        if perm_hierarchy[PERMISSION_TYPE_DICT_ID[g.user.permission_type_id]] > perm_hierarchy[permission]:
-                            if not g.user.permission_type_id == PERMISSION_TYPE_DICT[permission]:
-                                valid_user = False
+                        permission_id = PERMISSION_TYPE_DICT[permission]
+                        if g.user.permission_type_id < permission_id:
+                            valid_user = False
 
                     if valid_user:
                         return f(*args, **kwargs)
