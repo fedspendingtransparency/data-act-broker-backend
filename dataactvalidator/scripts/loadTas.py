@@ -89,7 +89,7 @@ def loadTas(tasFile=None):
         if CONFIG_BROKER["use_aws"]:
             s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
             s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-            tasFile = s3bucket.get_key("cars_tas.csv")
+            tasFile = s3bucket.get_key("cars_tas.csv").generate_url(expires_in=600)
         else:
             tasFile = os.path.join(
                 CONFIG_BROKER["path"],

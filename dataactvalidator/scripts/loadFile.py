@@ -119,9 +119,9 @@ def loadDomainValues(basePath, localProgramActivity = None):
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-        cgac_file = s3bucket.get_key("cgac.csv")
-        object_class_file = s3bucket.get_key("object_class.csv")
-        program_activity_file = s3bucket.get_key("program_activity.csv")
+        cgac_file = s3bucket.get_key("cgac.csv").generate_url(expires_in=600)
+        object_class_file = s3bucket.get_key("object_class.csv").generate_url(expires_in=600)
+        program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
 
     else:
         cgac_file = os.path.join(basePath,"cgac.csv")
