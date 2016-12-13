@@ -4,6 +4,7 @@ import os
 import logging
 
 import pandas as pd
+import boto
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -85,11 +86,16 @@ def loadTas(tasFile=None):
     # read TAS file to dataframe, to make sure all is well
     # with the file before firing up a db transaction
     if not tasFile:
-        tasFile = os.path.join(
-            CONFIG_BROKER["path"],
-            "dataactvalidator",
-            "config",
-            "cars_tas.csv")
+        if CONFIG_BROKER["use_aws"]:
+            s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
+            s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
+            tasFile = s3bucket.get_key("cars_tas.csv").generate_url(expires_in=600)
+        else:
+            tasFile = os.path.join(
+                CONFIG_BROKER["path"],
+                "dataactvalidator",
+                "config",
+                "cars_tas.csv")
 
     with createApp().app_context():
         updateTASLookups(tasFile)
