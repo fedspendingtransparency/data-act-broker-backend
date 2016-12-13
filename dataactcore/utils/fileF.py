@@ -163,9 +163,9 @@ def submission_procurements(submission_id):
     sess = GlobalDB.db().session
 
     naics_subquery = sess.query(AwardProcurement.naics_description).\
-        filter(AwardProcurement.submission_id == submission_id,
-               AwardProcurement.piid == AwardFinancial.piid,
-               AwardProcurement.naics == FSRSSubcontract.naics).\
+        filter(AwardProcurement.submission_id == submission_id).\
+        filter(AwardProcurement.piid == AwardFinancial.piid).\
+        filter(AwardProcurement.naics == FSRSSubcontract.naics).\
         order_by(AwardProcurement.award_procurement_id).limit(1).as_scalar()
     results = sess.query(AwardFinancial, FSRSProcurement, FSRSSubcontract,
                          naics_subquery).\
