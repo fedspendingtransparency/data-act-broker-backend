@@ -49,10 +49,14 @@ class UserAffiliation(Base):
     __tablename__ = 'user_affiliation'
     # composite primary_key
     user_id = Column(
-        Integer, ForeignKey("users.user_id", name="user_affiliation_user_fk"),
+        Integer,
+        ForeignKey("users.user_id", name="user_affiliation_user_fk",
+                   ondelete='CASCADE'),
         primary_key=True)
     cgac_id = Column(
-        Integer, ForeignKey("cgac.cgac_id", name="user_affiliation_cgac_fk"),
+        Integer,
+        ForeignKey("cgac.cgac_id", name="user_affiliation_cgac_fk",
+                   ondelete='CASCADE'),
         primary_key=True)
     cgac = relationship("CGAC")
     permission_type_id = Column(

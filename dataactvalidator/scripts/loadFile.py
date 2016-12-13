@@ -14,33 +14,53 @@ from dataactvalidator.scripts.loaderUtils import LoaderUtils
 logger = logging.getLogger(__name__)
 
 
+def delete_missing_cgacs(models, new_data):
+    """If the new file doesn't contain CGACs we had before, we should delete
+    the non-existent ones"""
+    to_delete = set(models.keys()) - set(new_data['cgac_code'])
+    sess = GlobalDB.db().session
+    if to_delete:
+        sess.query(CGAC).filter(CGAC.cgac_code.in_(to_delete)).delete(
+            synchronize_session=False)
+    for cgac_code in to_delete:
+        del models[cgac_code]
+
+
+def update_cgacs(models, new_data):
+    """Modify existing models or create new ones"""
+    for _, row in new_data.iterrows():
+        cgac_code = row['cgac_code']
+        if cgac_code not in models:
+            models[cgac_code] = CGAC()
+        for field, value in row.items():
+            setattr(models[cgac_code], field, value)
+
+
 def loadCgac(filename):
     """Load CGAC (high-level agency names) lookup table."""
-    model = CGAC
-
     with createApp().app_context():
         sess = GlobalDB.db().session
 
-        # for CGAC, delete and replace values
-        sess.query(model).delete()
+        models = {cgac.cgac_code:cgac for cgac in sess.query(CGAC)}
 
         # read CGAC values from csv
         data = pd.read_csv(filename, dtype=str)
         # clean data
         data = LoaderUtils.cleanData(
             data,
-            model,
+            CGAC,
             {"cgac": "cgac_code", "agency": "agency_name"},
             {"cgac_code": {"pad_to_length": 3}}
         )
         # de-dupe
         data.drop_duplicates(subset=['cgac_code'], inplace=True)
-        # insert to db
-        table_name = model.__table__.name
-        num = LoaderUtils.insertDataframe(data, table_name, sess.connection())
+        
+        delete_missing_cgacs(models, data)
+        update_cgacs(models, data)
+        sess.add_all(models.values())
         sess.commit()
 
-    logger.info('{} records inserted to {}'.format(num, table_name))
+        logger.info('%s CGAC records inserted', len(models))
 
 
 def loadObjectClass(filename):
