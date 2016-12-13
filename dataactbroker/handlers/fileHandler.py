@@ -749,11 +749,15 @@ class FileHandler:
                 response.encoding = "utf-8"
                 file.write(response.text)
                 return True
+        elif not os.path.isfile(file_url):
+            raise ResponseException('{} does not exist'.format(file_url),
+                                    StatusCode.INTERNAL_ERROR)
+        elif not os.path.isdir(os.path.dirname(local_file_path)):
+            dirname = os.path.dirname(local_file_path)
+            raise ResponseException('{} folder does not exist'.format(dirname),
+                                    StatusCode.INTERNAL_ERROR)
         else:
-            try:
-                copyfile(file_url, local_file_path)
-            except FileNotFoundError:
-                raise ResponseException('Source file ' + file_url + ' does not exist.', StatusCode.INTERNAL_ERROR)
+            copyfile(file_url, local_file_path)
             return True
 
     def get_lines_from_csv(self, file_path):
