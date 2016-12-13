@@ -68,6 +68,16 @@ class SubawardLogic():
             return self.subgrant_fn(models.subgrant)
 
 
+# Collect the models associated with a single F CSV row
+ModelRow = namedtuple(
+    'ModelRow',
+    ['award', 'procurement', 'subcontract', 'grant', 'subgrant', 'naics_desc'])
+ModelRow.__new__.__defaults__ = (None, None, None, None, None)
+
+
+# A collection of mappers (callables which convert a ModelRow into a string to
+# be placed in a CSV cell), keyed by the CSV column name for that cell. Order
+# matters as it defines the CSV column order
 mappings = OrderedDict([
     ('SubAwardeeOrRecipientLegalEntityName',
         CopyValues('company_name', 'awardee_name')),
@@ -149,13 +159,6 @@ mappings = OrderedDict([
     ('SubawardeeBusinessType', CopyValues(subcontract='bus_types')),
     ('AwardeeOrRecipientUniqueIdentifier', copy_prime_field('duns'))
 ])
-
-
-# Collect the models associated with a single F CSV row
-ModelRow = namedtuple(
-    'ModelRow',
-    ['award', 'procurement', 'subcontract', 'grant', 'subgrant', 'naics_desc'])
-ModelRow.__new__.__defaults__ = (None, None, None, None, None)
 
 
 def submission_procurements(submission_id):
