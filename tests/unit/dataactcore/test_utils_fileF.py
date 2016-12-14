@@ -128,3 +128,20 @@ def test_generate_f_rows_naics_desc(database, monkeypatch):
     actual = {result['NAICS_Description']
               for result in fileF.generate_f_rows(award.submission_id)}
     assert actual == {ap.naics_description}
+
+
+def test_generate_f_rows_false(database, monkeypatch):
+    """Make sure we're converting False to a string"""
+    award = AwardFinancialFactory()
+    proc = FSRSProcurementFactory(
+        contract_number=award.piid,
+        subawards=[FSRSSubcontractFactory(recovery_model_q1=False,
+                                          recovery_model_q2=None)]
+    )
+
+    database.session.add_all([award, proc])
+    database.session.commit()
+
+    results = list(fileF.generate_f_rows(award.submission_id))
+    assert results[0]['RecModelQuestion1'] == 'False'
+    assert results[0]['RecModelQuestion2'] == ''
