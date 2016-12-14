@@ -197,5 +197,9 @@ def generate_f_rows(submission_id):
                                      submission_grants(submission_id)):
         result = OrderedDict()
         for key, mapper in mappings.items():
-            result[key] = mapper(model_row) or ''
+            value = mapper(model_row)
+            if value is None:
+                result[key] = ''
+            else:
+                result[key] = str(value)
         yield result
