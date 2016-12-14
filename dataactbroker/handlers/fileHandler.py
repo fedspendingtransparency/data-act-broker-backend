@@ -875,7 +875,7 @@ class FileHandler:
             return error_response
 
         # Return same response as check generation route
-        return self.checkGeneration(submission_id, file_type)
+        return self.checkGeneration()
 
     def generate_detached_file(self):
         """ Start a file generation job for the specified file type """
@@ -949,7 +949,7 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, response_dict)
 
-    def checkGeneration(self, submission_id=None, file_type=None):
+    def checkGeneration(self):
         """ Return information about file generation jobs
 
         Returns:
@@ -957,8 +957,7 @@ class FileHandler:
             If file_type is D1 or D2, also includes start and end.
         """
         sess = GlobalDB.db().session
-        if submission_id is None or file_type is None:
-            submission_id, file_type = self.get_request_params_for_generate()
+        submission_id, file_type = self.get_request_params_for_generate()
         # Check permission to submission
         self.check_submission_by_id(submission_id, file_type)
 
