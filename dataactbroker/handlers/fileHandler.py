@@ -9,24 +9,23 @@ from uuid import uuid4
 from shutil import copyfile
 
 import requests
-from flask import request, session
+from flask import g, request
 from requests.exceptions import Timeout
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug import secure_filename
 
-from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import (
-    FileGenerationTask, Job, JobDependency, Submission, SubmissionNarrative)
+    FileGenerationTask, Job, Submission, SubmissionNarrative)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
-    FILE_STATUS_DICT, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID,
-    JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT)
+    FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID,
+    JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import (get_report_path, get_cross_report_name,
@@ -37,27 +36,25 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     checkNumberOfErrorsByJobId, getErrorType, run_job_checks,
-    createFileIfNeeded, getErrorMetricsByJobId, get_submission_stats,
-    get_submission_status, mark_job_status, create_submission, create_jobs)
+    getErrorMetricsByJobId, get_submission_stats, get_submission_status,
+    mark_job_status, create_submission, create_jobs)
 from dataactvalidator.filestreaming.csv_selection import write_csv
-
 
 _debug_logger = logging.getLogger('deprecated.debug')
 _smx_logger = logging.getLogger('deprecated.smx')
+logger = logging.getLogger(__name__)
 
 
 def user_agency_matches(submission):
     """Does the currently logged in user have an agency that matches this
     submission?"""
     sess = GlobalDB.db().session
-    user_id = LoginSession.getName(session)
-    user = sess.query(User).filter_by(user_id=user_id).one()
     submission_cgac = StringCleaner.cleanString(submission.cgac_code)
-    user_cgac = StringCleaner.cleanString(user.cgac_code)
+    user_cgac = StringCleaner.cleanString(g.user.cgac_code)
     return (
         submission_cgac == user_cgac
-        or submission.user_id == user_id
-        or user_cgac == 'sys'
+        or submission.user_id == g.user.user_id
+        or g.user.website_admin
     )
 
 
@@ -184,13 +181,12 @@ class FileHandler:
         else:
             return "cross_{}-{}".format(sourceType,targetType)
 
-    def submit(self, user_id, create_credentials):
+    def submit(self, create_credentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
 
         Flask request should include keys from FILE_TYPES class variable above
 
         Arguments:
-            name -- User ID from the session handler
             create_credentials - If True, will create temporary credentials for S3 uploads
 
         Returns:
@@ -239,7 +235,8 @@ class FileHandler:
             submission_data['reporting_start_date'] = formatted_start_date
             submission_data['reporting_end_date'] = formatted_end_date
 
-            submission = create_submission(user_id, submission_data, existing_submission_obj)
+            submission = create_submission(g.user.user_id, submission_data,
+                                           existing_submission_obj)
             if existing_submission:
                 # check if user has permission to specified submission
                 user_agency_must_match(submission)
@@ -256,7 +253,10 @@ class FileHandler:
                 filename = request_params.get(file_type)
                 if filename:
                     if not self.isLocal:
-                        upload_name = str(user_id) + "/" + s3UrlHandler.getTimestampedFilename(filename)
+                        upload_name = "{}/{}".format(
+                            g.user.user_id,
+                            s3UrlHandler.getTimestampedFilename(filename)
+                        )
                     else:
                         upload_name = filename
                     response_dict[file_type+"_key"] = upload_name
@@ -276,7 +276,10 @@ class FileHandler:
                     filename = CONFIG_BROKER["".join([ext_file_type,"_file_name"])]
 
                     if not self.isLocal:
-                        upload_name = str(user_id) + "/" + s3UrlHandler.getTimestampedFilename(filename)
+                        upload_name = "{}/{}".format(
+                            g.user.user_id,
+                            s3UrlHandler.getTimestampedFilename(filename)
+                        )
                     else:
                         upload_name = filename
                     response_dict[ext_file_type + "_key"] = upload_name
@@ -293,7 +296,7 @@ class FileHandler:
                     response_dict[file_type+"_id"] = file_job_dict[file_type]
             if create_credentials and not self.isLocal:
                 self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
-                response_dict["credentials"] = self.s3manager.getTemporaryCredentials(user_id)
+                response_dict["credentials"] = self.s3manager.getTemporaryCredentials(g.user.user_id)
             else :
                 response_dict["credentials"] ={"AccessKeyId" : "local","SecretAccessKey" :"local","SessionToken":"local" ,"Expiration" :"local"}
 
@@ -650,19 +653,11 @@ class FileHandler:
         cgac_code = submission.cgac_code
 
         # Generate and upload file to S3
-        user_id = LoginSession.getName(session)
-        timestamped_name = s3UrlHandler.getTimestampedFilename(CONFIG_BROKER["".join([str(file_type_name),"_file_name"])])
-        if self.isLocal:
-            upload_file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
-        else:
-            upload_file_name = "".join([str(user_id), "/", timestamped_name])
+        job = self.add_generation_job_info(file_type_name=file_type_name, job=job)
+        upload_file_name, timestamped_name = job.filename, job.original_filename
 
-        job.filename = upload_file_name
-        job.original_filename = timestamped_name
-        job.job_status_id = JOB_STATUS_DICT["running"]
-        sess.commit()
         if file_type in ["D1", "D2"]:
-            _debug_logger.debug('Adding job info for job id of %s', job.job_id)
+            logger.debug('Adding job info for job id of %s', job.job_id)
             return self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
         elif file_type == 'E':
             generate_e_file.delay(
@@ -703,70 +698,43 @@ class FileHandler:
             job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
             val_job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
             val_job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
-            # Generate random uuid and store generation task
-            task_key = uuid4()
-            task = FileGenerationTask(generation_task_key = task_key, submission_id = submission_id, file_type_id = FILE_TYPE_DICT[file_type_name], job_id = job.job_id)
-            sess.add(task)
-            sess.commit()
         except ValueError as e:
             # Date was not in expected format
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
             return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
 
-        if not self.isLocal:
-            # Create file D API URL with dates and callback URL
-            callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],CONFIG_SERVICES["broker_api_host"], CONFIG_SERVICES["broker_api_port"],task_key)
-            _debug_logger.debug('Callback URL for %s: %s', file_type, callback)
-            get_url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+        error = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, job)
 
-            _debug_logger.debug('Calling D file API => %s', get_url)
-            try:
-                if not self.call_d_file_api(get_url):
-                    self.handleEmptyResponse(job, val_job)
-            except Timeout as e:
-                exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
-                return False, JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
-        else:
-            self.completeGeneration(task.generation_task_key, file_type)
-
-        return True, None
-
-    def handleEmptyResponse(self, job, val_job):
-        """ Handles an empty response from the D file API by marking jobs as finished with no errors or rows
-
-        Args:
-            job - Job object for upload job
-            val_job - Job object for validation job
-        """
-        sess = GlobalDB.db().session
-        # No results found, skip validation and mark as finished
-        sess.query(JobDependency).\
-            filter(JobDependency.prerequisite_id == job.job_id).\
-            delete(synchronize_session='fetch')
-        mark_job_status(job.job_id,"finished")
-        job.filename = None
-        if val_job is not None:
-            mark_job_status(val_job.job_id, "finished")
-            # Create File object for this validation job
-            val_file = createFileIfNeeded(val_job.job_id, filename = val_job.filename)
-            val_file.file_status_id = FILE_STATUS_DICT['complete']
-            val_job.number_of_rows = 0
-            val_job.number_of_rows_valid = 0
-            val_job.file_size = 0
-            val_job.number_of_errors = 0
-            val_job.number_of_warnings = 0
-            val_job.filename = None
-            sess.commit()
+        return not error, error
 
     def get_xml_response_content(self, api_url):
         """ Retrieve XML Response from the provided API url """
-        _debug_logger.debug('Getting XML response')
+        logger.debug('Getting XML response')
         return requests.get(api_url, verify=False, timeout=120).text
 
-    def call_d_file_api(self, api_url):
+    def call_d_file_api(self, file_type_name, cgac_code, start_date, end_date, job):
         """ Call D file API, return True if results found, False otherwise """
-        # Check for numFound = 0
-        return "numFound='0'" not in self.get_xml_response_content(api_url)
+        file_type = FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]]
+        task_key = FileHandler.create_generation_task(job.job_id)
+
+        if not self.isLocal:
+            # Create file D API URL with dates and callback URL
+            api_url = FileHandler.get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date)
+
+            logger.debug('Calling D file API => %s', api_url)
+            try:
+                # Check for numFound = 0
+                if "numFound='0'" in self.get_xml_response_content(api_url):
+                    sess = GlobalDB.db().session
+                    # If the call to the external API wasn't successful, mark the job as failed
+                    job.error_message = "%s data unavailable for the specified date range" % file_type
+                    job.job_status_id = JOB_STATUS_DICT['failed']
+                    sess.commit()
+            except Timeout as e:
+                exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
+                return JsonResponse.error(e, exc.status, url="", start="", end="", file_type=file_type)
+        else:
+            self.complete_generation(task_key, file_type)
 
     def download_file(self, local_file_path, file_url):
         """ Download a file locally from the specified URL, returns True if successful """
@@ -781,11 +749,15 @@ class FileHandler:
                 response.encoding = "utf-8"
                 file.write(response.text)
                 return True
+        elif not os.path.isfile(file_url):
+            raise ResponseException('{} does not exist'.format(file_url),
+                                    StatusCode.INTERNAL_ERROR)
+        elif not os.path.isdir(os.path.dirname(local_file_path)):
+            dirname = os.path.dirname(local_file_path)
+            raise ResponseException('{} folder does not exist'.format(dirname),
+                                    StatusCode.INTERNAL_ERROR)
         else:
-            try:
-                copyfile(file_url, local_file_path)
-            except FileNotFoundError:
-                raise ResponseException('Source file ' + file_url + ' does not exist.', StatusCode.INTERNAL_ERROR)
+            copyfile(file_url, local_file_path)
             return True
 
     def get_lines_from_csv(self, file_path):
@@ -833,27 +805,42 @@ class FileHandler:
             sess.commit()
             raise e
 
-    def getRequestParamsForGenerate(self):
+    def get_request_params_for_generate(self):
         """ Pull information out of request object and return it
 
         Returns: tuple of submission ID and file type
 
         """
-        requestDict = RequestDictionary(self.request)
-        if not (requestDict.exists("submission_id") and requestDict.exists("file_type")):
+        request_dict = RequestDictionary.derive(self.request)
+        if not {'file_type', 'submission_id'}.issubset(request_dict.keys()):
             raise ResponseException("Generate file route requires submission_id and file_type",
                                     StatusCode.CLIENT_ERROR)
 
-        submission_id = requestDict.getValue("submission_id")
-        file_type = requestDict.getValue("file_type")
+        submission_id = request_dict['submission_id']
+        file_type = request_dict['file_type']
         return submission_id, file_type
+
+    def get_request_params_for_generate_detached(self):
+        """ Pull information out of request object and return it
+        for detached generation
+
+        Returns: tuple of submission ID and file type
+
+        """
+        request_dict = RequestDictionary.derive(self.request)
+
+        if not {'file_type', 'cgac_code', 'start', 'end'}.issubset(request_dict.keys()):
+            raise ResponseException("Generate detached file route for D files requires file_type, cgac_code, "
+                                    "start, and end",
+                                    StatusCode.CLIENT_ERROR)
+        return request_dict['file_type'], request_dict['cgac_code'], request_dict['start'], request_dict['end']
 
     def generateFile(self):
         """ Start a file generation job for the specified file type """
-        _debug_logger.debug('Starting D file generation')
-        submission_id, file_type = self.getRequestParamsForGenerate()
+        logger.debug('Starting D file generation')
+        submission_id, file_type = self.get_request_params_for_generate()
 
-        _debug_logger.debug('Submission ID = %s / File type = %s',
+        logger.debug('Submission ID = %s / File type = %s',
                             submission_id, file_type)
 
         sess = GlobalDB.db().session
@@ -881,7 +868,7 @@ class FileHandler:
 
         success, error_response = self.start_generation_job(job)
 
-        _debug_logger.debug('Finished start_generation_job method')
+        logger.debug('Finished start_generation_job method')
         if not success:
             # If not successful, set job status as "failed"
             mark_job_status(job.job_id, "failed")
@@ -889,6 +876,78 @@ class FileHandler:
 
         # Return same response as check generation route
         return self.checkGeneration(submission_id, file_type)
+
+    def generate_detached_file(self):
+        """ Start a file generation job for the specified file type """
+        logger.debug("Starting detached D file generation")
+
+        file_type, cgac_code, start_date, end_date = self.get_request_params_for_generate_detached()
+
+        # check file type
+        if file_type not in ['D1', 'D2']:
+            raise ResponseException("File type must be D1 or D2", StatusCode.CLIENT_ERROR)
+
+        # check if date format is MM/DD/YYYY
+        if not (StringCleaner.isDate(start_date) and StringCleaner.isDate(end_date)):
+            raise ResponseException("Start or end date cannot be parsed into a date", StatusCode.CLIENT_ERROR)
+
+        # add job info
+        file_type_name = FILE_TYPE_DICT_ID[FILE_TYPE_DICT_LETTER_ID[file_type]]
+        new_job = self.add_generation_job_info(file_type_name=file_type_name,
+                                               dates={'start_date': start_date, 'end_date': end_date})
+
+        result = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, new_job)
+
+        # Return same response as check generation route
+        return result or self.check_detached_generation(new_job.job_id)
+
+    def check_detached_generation(self, job_id=None):
+        """ Return information about file generation jobs
+
+        Returns:
+            Response object with keys job_id, status, file_type, url, message, start, and end.
+        """
+
+        if job_id is None:
+            request_dict = RequestDictionary.derive(self.request)
+            if 'job_id' not in request_dict:
+                raise ResponseException("Check detached generation route requires job_id", StatusCode.CLIENT_ERROR)
+
+            job_id = request_dict['job_id']
+
+        sess = GlobalDB.db().session
+
+        # We want to user first() here so we can see if the job is None so we can mark
+        # the status as invalid to indicate that a status request is invoked for a job that
+        # isn't created yet
+        upload_job = sess.query(Job).filter_by(
+            job_id=job_id).one_or_none()
+
+        response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '', 'start': '', 'end': ''}
+
+        if upload_job is None:
+            response_dict['status'] = 'invalid'
+            response_dict['message'] = 'No generation job found with the specified ID'
+            return JsonResponse.create(StatusCode.OK, response_dict)
+
+        file_type = FILE_TYPE_DICT_LETTER[upload_job.file_type_id]
+        response_dict["status"] = JOB_STATUS_DICT_ID[upload_job.job_status_id]
+        response_dict["file_type"] = file_type
+        response_dict["message"] = upload_job.error_message or ""
+        if upload_job.filename is None:
+            response_dict["url"] = "#"
+        elif CONFIG_BROKER["use_aws"]:
+            path, file_name = upload_job.filename.split("/")
+            response_dict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name, bucketRoute=None,
+                                                              method="GET")
+        else:
+            response_dict["url"] = upload_job.filename
+
+        response_dict["start"] = upload_job.start_date.strftime(
+            "%m/%d/%Y") if upload_job.start_date is not None else ""
+        response_dict["end"] = upload_job.end_date.strftime("%m/%d/%Y") if upload_job.end_date is not None else ""
+
+        return JsonResponse.create(StatusCode.OK, response_dict)
 
     def checkGeneration(self, submission_id=None, file_type=None):
         """ Return information about file generation jobs
@@ -899,7 +958,7 @@ class FileHandler:
         """
         sess = GlobalDB.db().session
         if submission_id is None or file_type is None:
-            submission_id, file_type = self.getRequestParamsForGenerate()
+            submission_id, file_type = self.get_request_params_for_generate()
         # Check permission to submission
         self.check_submission_by_id(submission_id, file_type)
 
@@ -990,26 +1049,26 @@ class FileHandler:
         response["urls"] = self.s3manager.getFileUrls(bucket_name=CONFIG_BROKER["static_files_bucket"], path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
 
-    def completeGeneration(self, generationId, file_type=None):
+    def complete_generation(self, generation_id, file_type=None):
         """ For files D1 and D2, the API uses this route as a callback to load the generated file.
         Requires an 'href' key in the request that specifies the URL of the file to be downloaded
 
         Args:
             generationId - Unique key stored in file_generation_task table, used in callback to identify which submission
             this file is for.
-            file_type - the type of file to be generated, D1 or D2. Only used when calling completeGeneration for local development
+            file_type - the type of file to be generated, D1 or D2. Only used when calling complete_generation for local development
 
         """
         sess = GlobalDB.db().session
         try:
-            if generationId is None:
+            if generation_id is None:
                 raise ResponseException(
                     "Must include a generation ID", StatusCode.CLIENT_ERROR)
 
             if not self.isLocal:
                 # Pull url from request
                 request_dict = RequestDictionary.derive(self.request)
-                _smx_logger.debug('Request content => %s', request_dict)
+                logger.debug('Request content => %s', request_dict)
 
                 if 'href' not in request_dict:
                     raise ResponseException(
@@ -1018,7 +1077,7 @@ class FileHandler:
                     )
 
                 url = request_dict['href']
-                _smx_logger.debug('Download URL => %s', url)
+                logger.debug('Download URL => %s', url)
             else:
                 if file_type == "D1":
                     url = CONFIG_SERVICES["d1_file_path"]
@@ -1026,15 +1085,12 @@ class FileHandler:
                     url = CONFIG_SERVICES["d2_file_path"]
 
             #Pull information based on task key
-            _smx_logger.debug('Pulling information based on task key...')
-            task = sess.query(FileGenerationTask).\
-                options(joinedload(FileGenerationTask.file_type)).\
-                filter(FileGenerationTask.generation_task_key == generationId).\
-                one()
+            logger.debug('Pulling information based on task key...')
+            task = sess.query(FileGenerationTask).filter(FileGenerationTask.generation_task_key == generation_id).one()
             job = sess.query(Job).filter_by(job_id = task.job_id).one()
-            _smx_logger.debug('Loading D file...')
+            logger.debug('Loading D file...')
             result = self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
-            _smx_logger.debug('Load D file result => %s', result)
+            logger.debug('Load D file result => %s', result)
             return JsonResponse.create(StatusCode.OK,{"message":"File loaded successfully"})
         except ResponseException as e:
             return JsonResponse.error(e, e.status)
@@ -1059,13 +1115,11 @@ class FileHandler:
     def list_submissions(self, page, limit, certified):
         """ List submission based on current page and amount to display. If provided, filter based on
         certification status """
-        user_id = LoginSession.getName(session)
         sess = GlobalDB.db().session
-        user = sess.query(User).filter(User.user_id == user_id).one()
 
         offset = limit*(page-1)
 
-        query = sess.query(Submission).filter(Submission.cgac_code == user.cgac_code)
+        query = sess.query(Submission).filter_by(cgac_code=g.user.cgac_code)
         if certified != 'mixed':
             query = query.filter_by(publishable=certified)
         submissions = query.order_by(Submission.updated_at.desc()).limit(limit).offset(offset).all()
@@ -1092,6 +1146,51 @@ class FileHandler:
         total_submissions = query.from_self().count()
 
         return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})
+
+    @staticmethod
+    def get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date):
+        """ Compiles the URL to be called in order to generate the D files """
+        callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],
+                                                                  CONFIG_SERVICES["broker_api_host"],
+                                                                  CONFIG_SERVICES["broker_api_port"], task_key)
+        _debug_logger.debug('Callback URL for %s: %s', FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]], callback)
+        url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
+        return url
+
+    @staticmethod
+    def create_generation_task(job_id):
+        sess = GlobalDB.db().session
+        task_key = uuid4()
+        task = FileGenerationTask(generation_task_key=task_key, job_id=job_id)
+        sess.add(task)
+        sess.commit()
+        return task.generation_task_key
+
+    def add_generation_job_info(self, file_type_name, job=None, dates=None):
+        # if job is None, that means the info being added is for detached d file generation
+        sess = GlobalDB.db().session
+        user_id = g.user.user_id
+
+        timestamped_name = s3UrlHandler.getTimestampedFilename(
+            CONFIG_BROKER["".join([str(file_type_name), "_file_name"])])
+        if self.isLocal:
+            upload_file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
+        else:
+            upload_file_name = "".join([str(user_id), "/", timestamped_name])
+
+        if job is None:
+            job = Job(job_type_id=JOB_TYPE_DICT['file_upload'], user_id=user_id,
+                      file_type_id=FILE_TYPE_DICT[file_type_name], start_date=dates['start_date'],
+                      end_date=dates['end_date'])
+            sess.add(job)
+
+        # This will update the reference so no need to return the job, just the upload and timestamped file names
+        job.filename = upload_file_name
+        job.original_filename = timestamped_name
+        job.job_status_id = JOB_STATUS_DICT["running"]
+        sess.commit()
+
+        return job
 
 
 def requires_submission_perms(fn):

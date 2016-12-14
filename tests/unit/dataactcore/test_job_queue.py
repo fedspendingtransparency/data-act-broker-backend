@@ -25,7 +25,7 @@ def test_generate_f_file(monkeypatch, mock_broker_config_paths):
     system"""
     fileF_mock = Mock()
     monkeypatch.setattr(jobQueue, 'fileF', fileF_mock)
-    fileF_mock.generateFRows.return_value = [
+    fileF_mock.generate_f_rows.return_value = [
         dict(key4='a', key11='b'), dict(key4='c', key11='d')
     ]
 

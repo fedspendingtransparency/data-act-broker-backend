@@ -2,7 +2,7 @@ import os, os.path
 
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
-from flask import Flask
+from flask import Flask, g, session
 
 from dataactbroker.domainRoutes import add_domain_routes
 from dataactbroker.exception_handler import add_exception_handlers
@@ -15,6 +15,7 @@ from dataactbroker.userRoutes import add_user_routes
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
+from dataactcore.models.userModel import User
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -61,7 +62,12 @@ def createApp():
 
     @app.before_request
     def before_request():
-        GlobalDB.db()
+        sess = GlobalDB.db().session
+        # setup user
+        g.user = None
+        if session.get('name') is not None:
+            g.user = sess.query(User).filter_by(user_id=session['name']).\
+                one_or_none()
 
     # Root will point to index.html
     @app.route("/", methods=["GET"])
@@ -84,7 +90,7 @@ def createApp():
     add_file_routes(app, CONFIG_BROKER['aws_create_temp_credentials'],
         local, broker_file_path, bcrypt)
     add_user_routes(app, app.config['SYSTEM_EMAIL'], bcrypt)
-    add_domain_routes(app, local, bcrypt)
+    add_domain_routes(app)
     add_exception_handlers(app)
     return app
 

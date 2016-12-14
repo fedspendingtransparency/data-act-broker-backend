@@ -23,6 +23,10 @@ class User(Base):
     is_active = Column(Boolean, default=True, nullable=False, server_default="True")
     incorrect_password_attempts = Column(Integer, default=0, nullable=False, server_default='0')
     skip_guide = Column(Boolean, default=False,nullable=False,server_default="False")
+    website_admin = Column(Boolean, default=False, nullable=False,
+                           server_default="False")
+    affiliations = relationship("UserAffiliation",
+                                cascade="all, delete-orphan")
 
 class PermissionType(Base):
     __tablename__ = "permission_type"
@@ -40,9 +44,25 @@ class UserStatus(Base):
     name = Column(Text)
     description = Column(Text)
 
-class AccountType:
-    AGENCY_USER = 1
-    WEBSITE_ADMIN = 2
+
+class UserAffiliation(Base):
+    __tablename__ = 'user_affiliation'
+    # composite primary_key
+    user_id = Column(
+        Integer,
+        ForeignKey("users.user_id", name="user_affiliation_user_fk",
+                   ondelete='CASCADE'),
+        primary_key=True)
+    cgac_id = Column(
+        Integer,
+        ForeignKey("cgac.cgac_id", name="user_affiliation_cgac_fk",
+                   ondelete='CASCADE'),
+        primary_key=True)
+    cgac = relationship("CGAC")
+    permission_type_id = Column(
+        Integer, ForeignKey(column="permission_type.permission_type_id",
+                            name="user_affiliation_permission_type_fk"))
+
 
 class EmailTemplateType(Base):
     __tablename__ = 'email_template_type'

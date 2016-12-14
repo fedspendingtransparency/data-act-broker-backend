@@ -6,8 +6,7 @@ from factory import fuzzy
 from dataactcore.models import fsrs
 
 
-class _FSRSAttributes:
-    id = None
+class _FSRSAttributes(factory.Factory):
     duns = fuzzy.FuzzyText()
     dba_name = fuzzy.FuzzyText()
     principle_place_city = fuzzy.FuzzyText()
@@ -63,7 +62,7 @@ class _GrantAttributes(_FSRSAttributes):
     compensation_q2 = fuzzy.FuzzyChoice((False, True))
 
 
-class _PrimeAwardAttributes:
+class _PrimeAwardAttributes(factory.Factory):
     internal_id = fuzzy.FuzzyText()
     date_submitted = fuzzy.FuzzyDateTime(
         datetime(2010, 1, 1, tzinfo=timezone.utc))
@@ -71,8 +70,7 @@ class _PrimeAwardAttributes:
     report_period_year = fuzzy.FuzzyText()
 
 
-class FSRSProcurementFactory(factory.Factory, _ContractAttributes,
-                             _PrimeAwardAttributes):
+class FSRSProcurementFactory(_ContractAttributes, _PrimeAwardAttributes):
     class Meta:
         model = fsrs.FSRSProcurement
 
@@ -93,7 +91,7 @@ class FSRSProcurementFactory(factory.Factory, _ContractAttributes,
     subawards = []
 
 
-class FSRSSubcontractFactory(factory.Factory, _ContractAttributes):
+class FSRSSubcontractFactory(_ContractAttributes):
     class Meta:
         model = fsrs.FSRSSubcontract
 
@@ -104,8 +102,7 @@ class FSRSSubcontractFactory(factory.Factory, _ContractAttributes):
     recovery_subcontract_amt = None
 
 
-class FSRSGrantFactory(factory.Factory, _GrantAttributes,
-                       _PrimeAwardAttributes):
+class FSRSGrantFactory(_GrantAttributes, _PrimeAwardAttributes):
     class Meta:
         model = fsrs.FSRSGrant
 
@@ -114,7 +111,7 @@ class FSRSGrantFactory(factory.Factory, _GrantAttributes,
     obligation_date = fuzzy.FuzzyDate(date(2010, 1, 1))
 
 
-class FSRSSubgrantFactory(factory.Factory, _GrantAttributes):
+class FSRSSubgrantFactory(_GrantAttributes):
     class Meta:
         model = fsrs.FSRSSubgrant
 
