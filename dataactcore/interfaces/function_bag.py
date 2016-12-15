@@ -390,13 +390,10 @@ def create_submission(user_id, submission_values, existing_submission):
     Returns:
         submission object
     """
-    sess = GlobalDB.db().session
-
     if existing_submission is None:
         submission = Submission(datetime_utc = datetime.utcnow(), **submission_values)
         submission.user_id = user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
-        sess.add(submission)
     else:
         submission = existing_submission
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
@@ -407,7 +404,6 @@ def create_submission(user_id, submission_values, existing_submission):
             # update existing submission with any values provided
             setattr(submission, key, submission_values[key])
 
-    sess.commit()
     return submission
 
 def create_jobs(upload_files, submission, existing_submission=False):

@@ -16,7 +16,8 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug import secure_filename
 
-from dataactbroker.permissions import current_user_can_on_submission
+from dataactbroker.permissions import (
+    current_user_can, current_user_can_on_submission)
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
@@ -238,9 +239,20 @@ class FileHandler:
 
             submission = create_submission(g.user.user_id, submission_data,
                                            existing_submission_obj)
-            if existing_submission:
-                # check if user has permission to specified submission
-                user_agency_must_match(submission)
+            cant_edit = (
+                existing_submission
+                and not current_user_can_on_submission(
+                    'writer', existing_submission_obj)
+            )
+            cant_create = not current_user_can('writer', submission.cgac_code)
+            if cant_edit or cant_create:
+                raise ResponseException(
+                    "User does not have permission to create/modify that "
+                    "submission", StatusCode.PERMISSION_DENIED
+                )
+            else:
+                sess.add(submission)
+                sess.commit()
 
             # build fileNameMap to be used in creating jobs
             for file_type in FileHandler.FILE_TYPES :
