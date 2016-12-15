@@ -16,6 +16,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug import secure_filename
 
+from dataactbroker.permissions import current_user_can_on_submission
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
@@ -385,7 +386,7 @@ class FileHandler:
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id = job_id).one()
             submission = sess.query(Submission).filter_by(submission_id = job.submission_id).one()
-            if not user_agency_matches(submission):
+            if not current_user_can_on_submission('writer', submission):
                 # This user cannot finalize this job
                 raise ResponseException(
                     "Cannot finalize a job for a different agency",
