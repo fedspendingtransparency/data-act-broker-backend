@@ -368,7 +368,7 @@ class FileHandler:
 
         return start_date, end_date
 
-    def finalize(self, job_id=None):
+    def finalize(self):
         """ Set upload job in job tracker database to finished, allowing dependent jobs to be started
 
         Flask request should include key "upload_id", which holds the job_id for the file_upload job
@@ -379,9 +379,8 @@ class FileHandler:
         sess = GlobalDB.db().session
         response_dict = {}
         try:
-            if job_id is None:
-                input_dictionary = RequestDictionary(self.request)
-                job_id = input_dictionary.getValue("upload_id")
+            input_dictionary = RequestDictionary(self.request)
+            job_id = input_dictionary.getValue("upload_id")
 
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id = job_id).one()
