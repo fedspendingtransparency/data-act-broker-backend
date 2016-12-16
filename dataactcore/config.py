@@ -134,7 +134,8 @@ if log_message:
     # message
     _logger = logging.getLogger('config-printer')
     _logger.setLevel(logging.INFO)
-    _logger.addHandler(logging.StreamHandler())
+    _logger.addHandler(logging.FileHandler(os.path.join(
+        CONFIG_LOGGING['log_files'], 'info.log')))
     _logger.info(log_message)
 
 # TODO: error-handling for db config?
