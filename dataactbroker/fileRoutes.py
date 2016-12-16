@@ -7,7 +7,9 @@ from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, narratives_for_submission,
     update_narratives
 )
+from dataactcore.interfaces.function_bag import get_submission_stats
 from dataactbroker.permissions import requires_login, requires_submission_perms
+from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -138,10 +140,11 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return fileManager.complete_generation(generationId)
 
     @app.route("/v1/get_obligations/", methods = ["POST"])
-    @requires_login
-    def get_obligations():
-        fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.getObligations()
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def get_obligations(submission):
+        return JsonResponse.create(
+            StatusCode.OK, get_submission_stats(submission.submission_id))
 
     @app.route("/v1/sign_submission_file", methods = ["POST"])
     @requires_login

@@ -36,9 +36,10 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    checkNumberOfErrorsByJobId, getErrorType, run_job_checks,
-    getErrorMetricsByJobId, get_submission_stats, get_submission_status,
-    mark_job_status, create_submission, create_jobs)
+    checkNumberOfErrorsByJobId, create_jobs, create_submission,
+    getErrorMetricsByJobId, getErrorType, get_submission_status,
+    mark_job_status, run_job_checks
+)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 _debug_logger = logging.getLogger('deprecated.debug')
@@ -973,20 +974,6 @@ class FileHandler:
         except NoResultFound as e:
             # Did not find file generation task
             return JsonResponse.error(ResponseException("Generation task key not found", StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
-
-    def getObligations(self):
-        sess = GlobalDB.db().session
-        input_dictionary = RequestDictionary(self.request)
-
-        # Get submission
-        submission_id = input_dictionary.getValue("submission_id")
-        submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
-
-        user_agency_must_match(submission)
-
-        obligations_info = get_submission_stats(submission_id)
-
-        return JsonResponse.create(StatusCode.OK,obligations_info)
 
     def list_submissions(self, page, limit, certified):
         """ List submission based on current page and amount to display. If provided, filter based on
