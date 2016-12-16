@@ -103,11 +103,12 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return fileManager.getProtectedFiles()
 
     @app.route("/v1/generate_file/", methods=["POST"])
-    @permissions_check(permission="writer")
-    def generate_file():
+    @convert_to_submission_id
+    def generate_file(submission_id):
         """ Generate file from external API """
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.generateFile()
+        file_manager = FileHandler(
+            request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return file_manager.generate_file(submission_id)
 
     @app.route("/v1/generate_detached_file/", methods=["POST"])
     @permissions_check(permission="reader")
@@ -124,11 +125,13 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return fileManager.check_detached_generation()
 
     @app.route("/v1/check_generation_status/", methods=["POST"])
-    @requires_login
-    def check_generation_status():
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def check_generation_status(submission):
         """ Return status of file generation job """
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.checkGeneration()
+        file_manager = FileHandler(
+            request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return file_manager.check_generation(submission)
 
     @app.route("/v1/complete_generation/<generationId>/", methods=["POST"])
     def complete_generation(generationId):

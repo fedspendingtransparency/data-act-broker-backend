@@ -419,7 +419,7 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def check_submission_by_id(self, submission_id, file_type):
+    def submission_error(self, submission_id, file_type):
         """ Check that submission exists and user has permission to it
 
         Args:
@@ -427,13 +427,12 @@ class FileHandler:
             file_type: file type that has been requested
 
         Returns:
-            Tuple of boolean indicating whether submission has passed checks, and http response if not
-
+            A JsonResponse if there's an error, None otherwise
         """
-        error = None
         sess = GlobalDB.db().session
 
-        submission = sess.query(Submission).filter_by(submission_id = submission_id).one_or_none()
+        submission = sess.query(Submission).\
+            filter_by(submission_id=submission_id).one_or_none()
         if submission is None:
             # Submission does not exist, change to 400 in this case since
             # route call specified a bad ID
@@ -447,9 +446,10 @@ class FileHandler:
                 # Add empty start and end dates
                 response_dict["start"] = ""
                 response_dict["end"] = ""
-            error = JsonResponse.error(NoResultFound, StatusCode.CLIENT_ERROR, **response_dict)
+            return JsonResponse.error(
+                NoResultFound, StatusCode.CLIENT_ERROR, **response_dict)
 
-        if not user_agency_matches(submission):
+        if not current_user_can_on_submission('writer', submission):
             response_dict = {
                 "message": ("User does not have permission to view that "
                             "submission"),
@@ -461,11 +461,8 @@ class FileHandler:
                 # Add empty start and end dates
                 response_dict["start"] = ""
                 response_dict["end"] = ""
-            error = JsonResponse.create(StatusCode.PERMISSION_DENIED,
-                                        response_dict)
-        if error:
-            return False, error
-        return True, None
+            return JsonResponse.create(StatusCode.PERMISSION_DENIED,
+                                       response_dict)
 
     def uploadFile(self):
         """ Saves a file and returns the saved path.  Should only be used for local installs. """
@@ -686,20 +683,18 @@ class FileHandler:
             sess.commit()
             raise e
 
-    def get_request_params_for_generate(self):
+    def get_file_type(self):
         """ Pull information out of request object and return it
 
         Returns: tuple of submission ID and file type
 
         """
         request_dict = RequestDictionary.derive(self.request)
-        if not {'file_type', 'submission_id'}.issubset(request_dict.keys()):
-            raise ResponseException("Generate file route requires submission_id and file_type",
+        if 'file_type' not in request_dict:
+            raise ResponseException("Generate file route requires file_type",
                                     StatusCode.CLIENT_ERROR)
 
-        submission_id = request_dict['submission_id']
-        file_type = request_dict['file_type']
-        return submission_id, file_type
+        return request_dict['file_type']
 
     def get_request_params_for_generate_detached(self):
         """ Pull information out of request object and return it
@@ -716,10 +711,10 @@ class FileHandler:
                                     StatusCode.CLIENT_ERROR)
         return request_dict['file_type'], request_dict['cgac_code'], request_dict['start'], request_dict['end']
 
-    def generateFile(self):
+    def generate_file(self, submission_id):
         """ Start a file generation job for the specified file type """
         logger.debug('Starting D file generation')
-        submission_id, file_type = self.get_request_params_for_generate()
+        file_type = self.get_file_type()
 
         logger.debug('Submission ID = %s / File type = %s',
                             submission_id, file_type)
@@ -727,9 +722,9 @@ class FileHandler:
         sess = GlobalDB.db().session
 
         # Check permission to submission
-        success, error_response = self.check_submission_by_id(submission_id, file_type)
-        if not success:
-            return error_response
+        error = self.submission_error(submission_id, file_type)
+        if error:
+            return error
 
         job = sess.query(Job).filter_by(
             submission_id = submission_id,
@@ -756,7 +751,10 @@ class FileHandler:
             return error_response
 
         # Return same response as check generation route
-        return self.checkGeneration()
+        submission = sess.query(Submission).\
+            filter_by(submission_id=submission_id).\
+            one()
+        return self.check_generation(submission)
 
     def generate_detached_file(self):
         """ Start a file generation job for the specified file type """
@@ -830,7 +828,7 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, response_dict)
 
-    def checkGeneration(self):
+    def check_generation(self, submission):
         """ Return information about file generation jobs
 
         Returns:
@@ -838,21 +836,19 @@ class FileHandler:
             If file_type is D1 or D2, also includes start and end.
         """
         sess = GlobalDB.db().session
-        submission_id, file_type = self.get_request_params_for_generate()
-        # Check permission to submission
-        self.check_submission_by_id(submission_id, file_type)
+        file_type = self.get_file_type()
 
         uploadJob = sess.query(Job).filter_by(
-            submission_id = submission_id,
-            file_type_id = FILE_TYPE_DICT_LETTER_ID[file_type],
-            job_type_id = JOB_TYPE_DICT['file_upload']
+            submission_id=submission.submission_id,
+            file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
+            job_type_id=JOB_TYPE_DICT['file_upload']
         ).one()
 
         if file_type in ["D1","D2"]:
             validationJob = sess.query(Job).filter_by(
-                submission_id = submission_id,
-                file_type_id = FILE_TYPE_DICT_LETTER_ID[file_type],
-                job_type_id = JOB_TYPE_DICT['csv_record_validation']
+                submission_id=submission.submission_id,
+                file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
+                job_type_id=JOB_TYPE_DICT['csv_record_validation']
             ).one()
         else:
             validationJob = None
