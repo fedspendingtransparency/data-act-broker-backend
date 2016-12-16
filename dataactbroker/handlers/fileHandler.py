@@ -47,28 +47,6 @@ _smx_logger = logging.getLogger('deprecated.smx')
 logger = logging.getLogger(__name__)
 
 
-def user_agency_matches(submission):
-    """Does the currently logged in user have an agency that matches this
-    submission?"""
-    sess = GlobalDB.db().session
-    submission_cgac = StringCleaner.cleanString(submission.cgac_code)
-    user_cgac = StringCleaner.cleanString(g.user.cgac_code)
-    return (
-        submission_cgac == user_cgac
-        or submission.user_id == g.user.user_id
-        or g.user.website_admin
-    )
-
-
-def user_agency_must_match(submission):
-    """Raise an exception if the logged in user doesn't have an agency match
-    with this submission"""
-    if not user_agency_matches(submission):
-        raise ResponseException(
-            "User does not have permission to view that submission",
-            StatusCode.PERMISSION_DENIED)
-
-
 class FileHandler:
     """ Responsible for all tasks relating to file upload
 

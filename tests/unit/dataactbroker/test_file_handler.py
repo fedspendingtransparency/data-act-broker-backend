@@ -120,11 +120,9 @@ def test_list_submissions_failure(database, job_constants, monkeypatch):
     delete_models(database, [user, sub, job])
 
 
-def test_narratives(database, job_constants, monkeypatch):
+def test_narratives(database, job_constants):
     """Verify that we can add, retrieve, and update submission narratives. Not
     quite a unit test as it covers a few functions in sequence"""
-    monkeypatch.setattr(fileHandler, 'user_agency_matches',
-                        Mock(return_value=True))
     sub1, sub2 = SubmissionFactory(), SubmissionFactory()
     database.session.add_all([sub1, sub2])
     database.session.commit()
