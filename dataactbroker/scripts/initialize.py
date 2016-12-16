@@ -61,8 +61,8 @@ def createAdmin():
             # once the rest of the setup scripts are updated to use
             # GlobalDB instead of databaseSession, move the app_context
             # creation up to initialize()
-            user = createUserWithPassword(
-                adminEmail, adminPass, Bcrypt(), permission=2)
+            user = createUserWithPassword(adminEmail, adminPass, Bcrypt(),
+                                          website_admin=True)
     return user
 
 

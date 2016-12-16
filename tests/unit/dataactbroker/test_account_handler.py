@@ -91,7 +91,6 @@ def test_set_max_perms(database, monkeypatch, user_constants):
         user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_ABC-PERM_S')
     database.session.commit()   # populate ids
     assert user.cgac_code == 'ABC'
-    assert user.permission_type_id == PERMISSION_TYPE_DICT['submitter']
     assert len(user.affiliations) == 1
     affil = user.affiliations[0]
     assert affil.cgac_id == cgac_abc.cgac_id
@@ -100,7 +99,6 @@ def test_set_max_perms(database, monkeypatch, user_constants):
     accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_W')
     database.session.commit()   # populate ids
     assert user.cgac_code == 'ABC'
-    assert user.permission_type_id == PERMISSION_TYPE_DICT['writer']
     assert len(user.affiliations) == 1
     affil = user.affiliations[0]
     assert affil.cgac_id == cgac_abc.cgac_id
@@ -143,6 +141,5 @@ def test_create_session_and_response(database, monkeypatch, user_constants):
     assert result['title'] == 'my title'
     assert result['agency_name'] == ['0']   # seems odd?
     assert result['cgac_code'] == '000'
-    assert result['permission'] is None
     assert dict(agency_name='1', permission='reader') in result['affiliations']
     assert dict(agency_name='2', permission='writer') in result['affiliations']

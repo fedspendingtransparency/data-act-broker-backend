@@ -24,7 +24,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import get_email_template, check_correct_password, updateLastLogin
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import (
-    PERMISSION_SHORT_DICT, PERMISSION_TYPE_DICT, USER_STATUS_DICT)
+    PERMISSION_SHORT_DICT, USER_STATUS_DICT)
 
 
 logger = logging.getLogger(__name__)
@@ -445,16 +445,13 @@ def set_max_perms(user, max_group_list):
         user.affiliations = []
         user.cgac_code = 'SYS'
         user.website_admin = True
-        user.permission_type_id = PERMISSION_TYPE_DICT['writer']
     else:
         affiliations = list(best_affiliation(perms_to_affiliations(perms)))
 
         if affiliations:
             user.cgac_code = affiliations[0].cgac.cgac_code
-            user.permission_type_id = affiliations[0].permission_type_id
         else:
             user.cgac_code = None
-            user.prmission_type_id = None
 
         user.affiliations = affiliations
         user.website_admin = False
@@ -472,7 +469,6 @@ def json_for_user(user):
         "agency_name": agency_name,
         "cgac_code": user.cgac_code,
         "title": user.title,
-        "permission": user.permission_type_id,
         "skip_guide": user.skip_guide,
         "website_admin": user.website_admin,
         "affiliations": [{"agency_name": affil.cgac.agency_name,

@@ -84,7 +84,6 @@ class BaseTestAPI(unittest.TestCase):
             def add_status_user(email, status_name, website_admin=False):
                 sess.add(UserFactory(
                     email=email, user_status_id=USER_STATUS_DICT[status_name],
-                    permission_type_id=PERMISSION_TYPE_DICT['writer'],
                     website_admin=website_admin,
                     affiliations=[UserAffiliation(
                         cgac=cgac,
@@ -116,7 +115,8 @@ class BaseTestAPI(unittest.TestCase):
             createUserWithPassword(
                 test_users['expired_lock_email'], user_password, Bcrypt())
             createUserWithPassword(
-                test_users['agency_admin_email'], admin_password, Bcrypt(), permission=PERMISSION_TYPE_DICT['writer'])
+                test_users['agency_admin_email'], admin_password, Bcrypt(),
+                website_admin=True)
             createUserWithPassword(
                 test_users['agency_user'], user_password, Bcrypt())
 
