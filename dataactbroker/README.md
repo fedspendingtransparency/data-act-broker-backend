@@ -309,37 +309,6 @@ The following is a table with all of the messages and error code
 | LINK_ALREADY_USED  |3|Link already used|
 | LINK_VALID   |0|success|
 
-
-#### POST "/v1/list_users/"
-List all users. Requires a website admin login.
-
-```json
-{
-  "users":[
-    {
-      "status": "approved",
-      "name": "user1",
-      "title": "User Title",
-      "permission": "submitter",
-      "agency": "Data Act Agency",
-      "is_active": true,
-      "email": "agency@admin.gov",
-      "id": 1
-    },
-    {
-      "status": "approved",
-      "name": "user2",
-      "title": "User Title",
-      "permission": "reader",
-      "agency": "Data Act Agency",
-      "is_active": true,
-      "email": "agency@user.gov",
-      "id": 2
-    }
-    ]
-}
-```
-
 #### POST "/v1/list_users_with_status/"
 List all users with specified status, typically used to review users that have applied for an account.  Requires an admin login.  A call to this route should have JSON or form-urlencoded with key "status".
 

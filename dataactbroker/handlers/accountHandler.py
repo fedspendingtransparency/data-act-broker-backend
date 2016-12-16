@@ -23,7 +23,7 @@ from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import (get_email_template, check_correct_password, set_user_password, updateLastLogin)
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT, PERMISSION_TYPE_DICT_ID, PERMISSION_MAP
+from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT, PERMISSION_MAP
 
 
 class AccountHandler:
@@ -552,32 +552,6 @@ class AccountHandler:
             sess.commit()
 
         return JsonResponse.create(StatusCode.OK, {"message": "User successfully updated"})
-
-    def list_users(self):
-        """ List all users ordered by status. Associated request body must have key 'filter_by' """
-        request_dict = RequestDictionary.derive(
-            self.request, optional_request=True)
-        user_status = request_dict.get('status', 'all')
-        sess = GlobalDB.db().session
-        try:
-            user_query = sess.query(User)
-            if user_status != "all":
-                user_query = user_query.filter(User.user_status_id == USER_STATUS_DICT[user_status])
-            users = user_query.all()
-        except ValueError as exc:
-            # Client provided a bad status
-            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
-        user_info = []
-        for user in users:
-            agency_name = sess.query(CGAC.agency_name).\
-                filter(CGAC.cgac_code == user.cgac_code).\
-                one_or_none()
-
-            thisInfo = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
-                        "email":user.email, "id":user.user_id, "is_active":user.is_active,
-                        "permission": PERMISSION_TYPE_DICT_ID.get(user.permission_type_id), "status": user.user_status.name}
-            user_info.append(thisInfo)
-        return JsonResponse.create(StatusCode.OK,{"users":user_info})
 
     def list_user_emails(self):
         """ List user names and emails """

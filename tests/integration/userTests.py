@@ -153,19 +153,6 @@ class UserTests(BaseTestAPI):
             badInput, expect_errors=True, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.INTERNAL_ERROR)
 
-    def test_list_users(self):
-        """Test getting user list by status."""
-        postJson = {"status": "denied"}
-        response = self.app.post_json("/v1/list_users/", postJson, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK)
-        users = response.json["users"]
-        self.assertEqual(len(users), 1)
-
-        response = self.app.post_json("/v1/list_users/", headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.OK)
-        users = response.json["users"]
-        self.assertEqual(len(users), 16)
-
     def test_list_user_emails(self):
         """Test getting user emails"""
         self.logout()
@@ -174,13 +161,6 @@ class UserTests(BaseTestAPI):
         self.check_response(response, StatusCode.OK)
         users = response.json["users"]
         self.assertEqual(len(users), 7)
-
-    def test_list_users_bad_status(self):
-        """Test getting user list with invalid status."""
-        postJson = {"status": "lost"}
-        response = self.app.post_json("/v1/list_users/",
-            postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.INTERNAL_ERROR)
 
     def test_list_submissions(self):
         """Test listing user's submissions. The expected values here correspond to the number of submissions within

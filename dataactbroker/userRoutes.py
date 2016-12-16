@@ -60,13 +60,6 @@ def add_user_routes(app,system_email,bcrypt):
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return accountManager.checkPasswordToken(session)
 
-    @app.route("/v1/list_users/", methods=["POST"])
-    @requires_admin
-    def list_users():
-        """ list all users """
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return accountManager.list_users()
-
     @app.route("/v1/list_user_emails/", methods=["GET"])
     @requires_login
     def list_user_emails():
