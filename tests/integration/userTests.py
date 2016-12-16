@@ -63,12 +63,6 @@ class UserTests(BaseTestAPI):
         super(UserTests, self).setUp()
         self.login_admin_user()
 
-    def setUpToken(self, email):
-        """Test e-mail token."""
-        self.registerToken = sesEmail.createToken(email, "validate_email")
-        postJson = {"token": self.registerToken}
-        return self.app.post_json("/v1/confirm_email_token/", postJson, headers={"x-session-id": self.session_id})
-
     def test_registration_no_token(self):
         """Test without token."""
         self.logout()
@@ -76,45 +70,6 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/check_status/",
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.LOGIN_REQUIRED)
-
-    def test_registration(self):
-        """Test user registration."""
-        self.logout()
-        email = self.test_users["change_user_email"]
-        self.setUpToken(email)
-        postJson = {"email": email, "name": "user", "cgac_code": "SYS", "title": "title", "password": self.user_password}
-        response = self.app.post_json("/v1/register/", postJson, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK, "Registration successful")
-        # Check that session does not allow another registration
-        response = self.app.post_json("/v1/register/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
-        self.check_response(response, StatusCode.LOGIN_REQUIRED)
-        # Check that re-registration with same token is an error
-        tokenJson = {"token": self.registerToken}
-        self.app.post_json("/v1/confirm_email_token/", tokenJson, headers={"x-session-id":self.session_id})
-        response = self.app.post_json("/v1/register/", postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.assertEqual(response.status_code,401)
-
-    def test_registration_empty(self):
-        """Test user registration with no user."""
-        self.logout()
-        self.setUpToken("user@agency.gov")
-        postJson = {}
-        response = self.app.post_json("/v1/register/",
-            postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.CLIENT_ERROR,
-            "Request body must include email, name, cgac_code, title, and password")
-
-    def test_registration_bad_email(self):
-        """Test user registration with invalid email."""
-        self.logout()
-        self.setUpToken("user@agency.gov")
-        postJson = {"email": "fake@notreal.faux",
-                "name": "user", "cgac_code": "SYS",
-                "title":"title", "password": self.user_password}
-        response = self.app.post_json("/v1/register/",
-            postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(
-            response, StatusCode.CLIENT_ERROR, "No users with that email")
 
     def test_list_user_emails(self):
         """Test getting user emails"""
@@ -177,23 +132,6 @@ class UserTests(BaseTestAPI):
             postJson, expect_errors=True, headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         self.logout()
-
-    def test_check_email_token_malformed(self):
-        """Test bad e-mail token."""
-        postJson = {"token": "12345678"}
-        response = self.app.post_json("/v1/confirm_email_token/",
-            postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK, "Link already used")
-        self.assertEqual(response.json["errorCode"], sesEmail.LINK_ALREADY_USED)
-
-    def test_check_email_token(self):
-        """Test valid e-mail token."""
-        #make a token based on a user
-        token = sesEmail.createToken(self.test_users["password_reset_email"], "validate_email")
-        postJson = {"token": token}
-        response = self.app.post_json("/v1/confirm_email_token/", postJson, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK, "success")
-        self.assertEqual(response.json["errorCode"], sesEmail.LINK_VALID)
 
     def test_password_reset_email(self):
         """Test password reset email."""

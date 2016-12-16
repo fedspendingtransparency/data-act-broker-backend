@@ -335,53 +335,6 @@ class AccountHandler:
         sess.commit()
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
 
-    def check_email_confirmation_token(self,session):
-        """
-
-        Creates user record and email
-
-        arguments:
-
-        session -- (Session) object from flask
-
-        return the response object with a error code and a message
-
-        """
-        sess = GlobalDB.db().session
-        request_fields = RequestDictionary.derive(self.request)
-        try:
-            if 'token' not in request_fields:
-                raise ResponseException(
-                    "Request body must include token",
-                    StatusCode.CLIENT_ERROR
-                )
-        except ResponseException as exc:
-            return JsonResponse.error(exc, exc.status)
-
-        token = request_fields['token']
-        session["token"] = token
-        success, message, errorCode = sesEmail.check_token(token, "validate_email")
-        if success:
-            #mark session that email can be filled out
-            LoginSession.register(session)
-
-            #remove token so it cant be used again
-            # The following lines are commented out for issues with registration email links bouncing users back
-            # to the original email input page instead of the registration page
-            # oldToken = sess.query(EmailToken).filter(EmailToken.token == session["token"]).one()
-            # sess.delete(oldToken)
-            # sess.commit()
-
-            #set the status only if current status is awaiting confirmation
-            user = sess.query(User).filter(func.lower(User.email) == func.lower(message)).one()
-            if user.user_status_id == USER_STATUS_DICT["awaiting_confirmation"]:
-                user.user_status_id = USER_STATUS_DICT["email_confirmed"]
-                sess.commit()
-            return JsonResponse.create(StatusCode.OK,{"email":message,"errorCode":errorCode,"message":"success"})
-        else:
-            #failure but alert UI of issue
-            return JsonResponse.create(StatusCode.OK,{"errorCode":errorCode,"message":message})
-
     def checkPasswordToken(self,session):
         """
 

@@ -183,8 +183,7 @@ Example output:
 ```
 
 #### POST "/v1/register/"
-Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.  This route can only be called after the `confirm_email_token` route. After a successful submission this route will require
-`confirm_email_token` to be called again.
+Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.
 
 
 Example input:
@@ -206,50 +205,6 @@ Example output:
   "message":"Registration successful"
 }
 ```
-
-#### POST "/v1/confirm_email_token/"
-Checks the token sent by email.  If successful, updates the user to email_confirmed.  A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned along with the error code. The email address will also be returned upon success.
-
-Example input:
-
-```json
-{
-   "token":"longRandomString"
-}
-```
-
-Success Example output:
-
-```json
-{
-  "errorCode":0,
-  "message":"success",
-  "email" : "emailAddress@email.com"
-}
-```
-
-Failure Example output:
-
-```json
-{
-  "errorCode":3,
-  "message":"Link already used"
-}
-```
-
-The following is a table with all of the messages and error code
-
-| ErrorCode  | Value |Message |
-| ------------- |-------------|------------- |
-|INVALID_LINK | 1| Invalid Link|
-| LINK_EXPIRED   |2| Link Expired|
-| LINK_ALREADY_USED  |3|Link already used|
-| LINK_VALID   |0|success|
-
-
-
-
-
 
 #### POST "/v1/confirm_password_token/"
 Checks the token sent by email for password reset. A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned along with the error code. The email address will also be returned upon success.
