@@ -463,24 +463,6 @@ class AccountHandler:
             #failure but alert UI of issue
             return JsonResponse.create(StatusCode.OK,{"errorCode":errorCode,"message":message})
 
-    def deleteUser(self):
-        """ Deletes user specified by 'email' in request """
-        sess = GlobalDB.db().session
-        request_dict = RequestDictionary.derive(self.request)
-        try:
-            if 'email' not in request_dict:
-                # missing required fields, return 400
-                raise ResponseException(
-                    "Request body must include email of user to be deleted",
-                    StatusCode.CLIENT_ERROR
-                )
-        except ResponseException as exc:
-            return JsonResponse.error(exc, exc.status)
-        email = request_dict['email']
-        sess.query(User).filter(User.email == email).delete()
-        sess.commit()
-        return JsonResponse.create(StatusCode.OK,{"message":"success"})
-
     def list_user_emails(self):
         """ List user names and emails """
         sess = GlobalDB.db().session
