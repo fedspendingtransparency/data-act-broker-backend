@@ -28,13 +28,6 @@ def add_user_routes(app,system_email,bcrypt):
             return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
                                        {'message': 'unauthorized'})
 
-    @app.route("/v1/update_user/", methods=["POST"])
-    @requires_admin
-    def update_user():
-        """ Updates editable fields for the specified user """
-        accountManager = AccountHandler(request, bcrypt=bcrypt)
-        return accountManager.update_user(system_email)
-
     @app.route("/v1/delete_user/", methods=["POST"])
     @requires_admin
     def delete_user():

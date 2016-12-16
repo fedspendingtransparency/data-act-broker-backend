@@ -396,19 +396,6 @@ Example output:
 }
 ```
 
-#### POST "/v1/update_user/"
-Update editable fields for the specified user. A call to this route should have JSON or form-urlencoded with keys "uid" and at least one from "status", "permissions", "is_active".
-
-Example input:
-
-```json
-{
-    "uid": 1,
-    "status": "approved",
-    "is_active": true
-}
-```
-
 Example output:
 
 ```json
