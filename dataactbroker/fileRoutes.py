@@ -1,8 +1,10 @@
 from flask import request
+
+from dataactbroker.exceptions.invalid_usage import InvalidUsage
 from dataactbroker.handlers.fileHandler import (
     FileHandler, narratives_for_submission, update_narratives)
-from dataactbroker.permissions import permissions_check, requires_login
-from dataactbroker.exceptions.invalid_usage import InvalidUsage
+from dataactbroker.permissions import (
+    permissions_check, requires_login, requires_submission_perms)
 
 
 # Add the file submission route
@@ -139,15 +141,15 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return fileManager.get_signed_url_for_submission_file()
 
     @app.route("/v1/submission/<int:submission_id>/narrative", methods=['GET'])
-    @permissions_check(permission='reader')
-    def get_submission_narratives(submission_id):
-        return narratives_for_submission(int(submission_id))
+    @requires_submission_perms('reader')
+    def get_submission_narratives(submission):
+        return narratives_for_submission(submission)
 
     @app.route("/v1/submission/<int:submission_id>/narrative", methods=['POST'])
-    @permissions_check(permission='writer')
-    def post_submission_narratives(submission_id):
+    @requires_submission_perms('writer')
+    def post_submission_narratives(submission):
         json = request.json or {}
         # clean input
         json = {key.upper():value.strip() for key, value in json.items()
                 if isinstance(value, str) and value.strip()}
-        return update_narratives(int(submission_id), json)
+        return update_narratives(submission, json)

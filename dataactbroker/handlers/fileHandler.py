@@ -2,7 +2,6 @@ import os
 from collections import namedtuple
 from csv import reader
 from datetime import datetime
-from functools import wraps
 import logging
 from dateutil.relativedelta import relativedelta
 from uuid import uuid4
@@ -1204,24 +1203,6 @@ class FileHandler:
         return job
 
 
-def requires_submission_perms(fn):
-    """Decorator that checks the current user's permissions and validates that
-    the submission exists."""
-    @wraps(fn)
-    def wrapped(submission_id, *args, **kwargs):
-        sess = GlobalDB.db().session
-        submission = sess.query(Submission).\
-            filter_by(submission_id=submission_id).one_or_none()
-        if submission is None:
-            # @todo - why don't we use 404s?
-            raise ResponseException('No such submission', StatusCode.CLIENT_ERROR)
-        user_agency_must_match(submission)
-
-        return fn(submission, *args, **kwargs)
-    return wrapped
-
-
-@requires_submission_perms
 def narratives_for_submission(submission):
     """Fetch narratives for this submission, indexed by file letter"""
     sess = GlobalDB.db().session
@@ -1234,7 +1215,6 @@ def narratives_for_submission(submission):
     return JsonResponse.create(StatusCode.OK, result)
 
 
-@requires_submission_perms
 def update_narratives(submission, narratives_json):
     """Clear existing narratives and replace them with the provided set. We
     assume narratives_json contains non-empty strings (i.e. that it's been
