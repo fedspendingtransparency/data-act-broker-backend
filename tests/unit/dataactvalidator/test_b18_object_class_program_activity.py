@@ -3,7 +3,7 @@ from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityF
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
-_FILE = 'b18_object_class_program_activity_2'
+_FILE = 'b18_object_class_program_activity'
 
 def test_column_headers(database):
     expected_subset = {"row_number", "object_class", "by_direct_reimbursable_fun"}
