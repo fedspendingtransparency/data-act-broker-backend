@@ -122,24 +122,6 @@ class UserTests(BaseTestAPI):
         self.check_response(response, StatusCode.OK)
         self.logout()
 
-    def test_check_password_token(self):
-        """Test password reset with valid token."""
-        #make a token based on a user
-        token = sesEmail.createToken(
-            self.test_users["admin_email"], "password_reset")
-        postJson = {"token": token}
-        response = self.app.post_json("/v1/confirm_password_token/", postJson, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK, "success")
-        self.assertEqual(response.json["errorCode"], sesEmail.LINK_VALID)
-
-    def test_check_bad_password_token(self):
-        """Test password reset with invalid token."""
-        badToken = {"token": "2345"}
-        response = self.app.post_json("/v1/confirm_password_token/",
-            badToken, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK, "Link already used")
-        self.assertEqual(response.json["errorCode"], sesEmail.LINK_ALREADY_USED)
-
     def test_current_user(self):
         """Test retrieving current user information."""
         response = self.app.get("/v1/current_user/", headers={"x-session-id":self.session_id})

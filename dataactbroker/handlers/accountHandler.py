@@ -244,38 +244,6 @@ class AccountHandler:
         LoginSession.logout(session)
         return JsonResponse.create(StatusCode.OK,{"message":"Logout successful"})
 
-    def checkPasswordToken(self,session):
-        """
-
-        Checks the password token if its valid
-
-        arguments:
-
-        session -- (Session) object from flask
-
-        return the reponse object with a error code and a message
-
-        """
-        request_fields = RequestDictionary.derive(self.request)
-        try:
-            if 'token' not in request_fields:
-                raise ResponseException(
-                    "Request body must include token", StatusCode.CLIENT_ERROR)
-        except ResponseException as exc:
-            return JsonResponse.error(exc, exc.status)
-        token = request_fields['token']
-        # Save token to be deleted after reset
-        session["token"] = token
-        success, message, errorCode = sesEmail.check_token(token, "password_reset")
-        if success:
-            #mark session that password can be filled out
-            LoginSession.reset_password(session)
-
-            return JsonResponse.create(StatusCode.OK,{"email":message,"errorCode":errorCode,"message":"success"})
-        else:
-            #failure but alert UI of issue
-            return JsonResponse.create(StatusCode.OK,{"errorCode":errorCode,"message":message})
-
     def list_user_emails(self):
         """ List user names and emails """
         sess = GlobalDB.db().session

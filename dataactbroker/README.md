@@ -182,45 +182,6 @@ Example output:
 }
 ```
 
-#### POST "/v1/confirm_password_token/"
-Checks the token sent by email for password reset. A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned along with the error code. The email address will also be returned upon success.
-
-Example input:
-
-```json
-{
-   "token":"longRandomString"
-}
-```
-
-Success Example output:
-
-```json
-{
-  "errorCode":0,
-  "message":"success",
-  "email" : "emailAddress@email.com"
-}
-```
-
-Failure Example output:
-
-```json
-{
-  "errorCode":3,
-  "message":"Link already used"
-}
-```
-
-The following is a table with all of the messages and error code
-
-| ErrorCode  | Value |Message |
-| ------------- |-------------|------------- |
-|INVALID_LINK | 1| Invalid Link|
-| LINK_EXPIRED   |2| Link Expired|
-| LINK_ALREADY_USED  |3|Link already used|
-| LINK_VALID   |0|success|
-
 #### POST "/v1/list_users_with_status/"
 List all users with specified status, typically used to review users that have applied for an account.  Requires an admin login.  A call to this route should have JSON or form-urlencoded with key "status".
 

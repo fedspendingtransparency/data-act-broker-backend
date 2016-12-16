@@ -16,12 +16,6 @@ def add_user_routes(app,system_email,bcrypt):
             bcrypt - Password hashing Bcrypt associated with app
     """
 
-    @app.route("/v1/confirm_password_token/", methods = ["POST"])
-    def checkPasswordToken():
-        """ Expects request to have email  """
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return accountManager.checkPasswordToken(session)
-
     @app.route("/v1/list_user_emails/", methods=["GET"])
     @requires_login
     def list_user_emails():
