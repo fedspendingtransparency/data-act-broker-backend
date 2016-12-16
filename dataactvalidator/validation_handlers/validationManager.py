@@ -305,8 +305,9 @@ class ValidationManager:
                 while not reader.is_finished:
                     rowNumber += 1
 
-                    if rowNumber % 10 == 0:
-                        logger.info('loading row %s', rowNumber)
+                    if rowNumber % 100 == 0:
+                        logger.info('loading row %s of submission %s',
+                                    rowNumber, submission_id)
 
                     #
                     # first phase of validations: read record and record a
