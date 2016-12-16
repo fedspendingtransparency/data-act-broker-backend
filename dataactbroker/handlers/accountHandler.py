@@ -324,38 +324,6 @@ class AccountHandler:
             user_info.append(this_info)
         return JsonResponse.create(StatusCode.OK,{"users":user_info})
 
-    def set_new_password(self, session):
-        """ Set a new password for a user, request should have keys "user_email" and "password" """
-        sess = GlobalDB.db().session
-        request_dict = RequestDictionary.derive(self.request)
-        required = ('user_email', 'password')
-        try:
-            if any(field not in request_dict for field in required):
-                # Don't have the keys we need in request
-                raise ResponseException(
-                    "Set password route requires keys user_email and password",
-                    StatusCode.CLIENT_ERROR
-                )
-            if not self.checkPassword(request_dict['password']):
-                raise ResponseException(
-                    "Invalid Password", StatusCode.CLIENT_ERROR)
-        except ResponseException as exc:
-            return JsonResponse.error(exc,exc.status)
-
-        # Get user from email
-        user = sess.query(User).filter(
-            func.lower(User.email) == func.lower(request_dict["user_email"])
-        ).one()
-        # Set new password
-        set_user_password(user,request_dict["password"],self.bcrypt)
-        # Invalidate token
-        oldToken = sess.query(EmailToken).filter(EmailToken.token == session["token"]).one()
-        sess.delete(oldToken)
-        sess.commit()
-        session["reset"] = None
-        # Return success message
-        return JsonResponse.create(StatusCode.OK,{"message":"Password successfully changed"})
-
     def reset_password(self,system_email,session):
         """
 

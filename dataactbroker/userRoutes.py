@@ -36,16 +36,6 @@ def add_user_routes(app,system_email,bcrypt):
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return accountManager.list_users_with_status()
 
-    @app.route("/v1/set_password/", methods=["POST"])
-    def set_password():
-        """ Set a new password for specified user """
-        if LoginSession.isResetingPassword(session):
-            accountManager = AccountHandler(request,bcrypt = bcrypt)
-            return accountManager.set_new_password(session)
-        else:
-            return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
-                                       {'message': 'unauthorized'})
-
     @app.route("/v1/reset_password/", methods=["POST"])
     def reset_password():
         """ Removes current password from DB and sends email with token for user to reset their password.  Expects 'email' key in request body. """

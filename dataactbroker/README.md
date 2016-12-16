@@ -270,25 +270,6 @@ Example output:
 }
 ```
 
-#### POST "/v1/set_password/"
-Change specified user's password to new value.  User must have confirmed the token they received in same session to use this route.  A call to this route should have JSON or form-urlencoded with keys "uid" and "password".
-
-Example input:
-
-```json
-{
-   "token":"longRandomString"
-}
-```
-
-Example output:
-
-```json
-{
-  "message":"Password successfully changed"
-}
-```
-
 #### POST "/v1/reset_password/"
 Remove current password and send password with token for reset.  A call to this route should have JSON or form-urlencoded with key "email".
 

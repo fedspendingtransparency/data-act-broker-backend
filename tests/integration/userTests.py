@@ -1,13 +1,10 @@
 from tests.integration.baseTestAPI import BaseTestAPI
-from tests.unit.dataactcore.factories.job import SubmissionFactory
 from dataactbroker.app import createApp
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import createUserWithPassword
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
-from flask_bcrypt import Bcrypt
 from datetime import datetime
 
 class UserTests(BaseTestAPI):
@@ -124,48 +121,6 @@ class UserTests(BaseTestAPI):
             postJson, expect_errors=True, headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         self.logout()
-
-    def test_password_reset_email(self):
-        """Test password reset email."""
-        self.logout()
-        email = self.test_users["password_reset_email"]
-        postJson = {"email": email}
-        response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK)
-
-        # Test password reset for unapproved user and locked user
-        with createApp().app_context():
-            sess = GlobalDB.db().session
-            user = sess.query(User).filter(User.email == email).one()
-            user.user_status_id = self.userStatusDict['awaiting_approval']
-            sess.commit()
-            response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id": self.session_id}, expect_errors=True)
-            self.check_response(response, StatusCode.CLIENT_ERROR)
-
-            user.user_status_id = self.userStatusDict['approved']
-            user.is_active = False
-            sess.commit()
-            response = self.app.post_json("/v1/reset_password/", postJson, headers={"x-session-id": self.session_id}, expect_errors=True)
-            self.check_response(response, StatusCode.CLIENT_ERROR)
-
-            # Test route to confirm tokens
-            token = sesEmail.createToken(
-                self.test_users["password_reset_email"], "password_reset")
-            postJson = {"token": token}
-            response = self.app.post_json("/v1/confirm_password_token/", postJson, headers={"x-session-id": self.session_id})
-            self.check_response(response, StatusCode.OK, "success")
-            self.assertEqual(response.json["errorCode"], sesEmail.LINK_VALID)
-
-            postJson = {"user_email": email, "password": self.user_password}
-            response = self.app.post_json("/v1/set_password/", postJson, headers={"x-session-id": self.session_id})
-            self.check_response(response, StatusCode.OK, "Password successfully changed")
-            user = sess.query(User).filter(User.email == email).one()
-            self.assertTrue(user.password_hash)
-
-        # Call again, should error
-        postJson = {"user_email": email, "password": self.user_password}
-        response = self.app.post_json("/v1/set_password/", postJson, headers={"x-session-id": self.session_id}, expect_errors=True)
-        self.check_response(response, StatusCode.LOGIN_REQUIRED)
 
     def test_check_password_token(self):
         """Test password reset with valid token."""
