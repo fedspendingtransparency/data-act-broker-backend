@@ -7,7 +7,7 @@ import flask
 from dataactcore.utils.responseException import ResponseException
 
 
-_exception_logger = logging.getLogger('deprecated.exception')
+logger = logging.getLogger(__name__)
 
 
 class JsonResponse :
@@ -45,9 +45,7 @@ class JsonResponse :
 
 
         trace = traceback.extract_tb(exception.__traceback__, 10)
-        _exception_logger.exception('Route Error')
-        # TODO: that this is eerily similar to CloudLogger / 
-        # DeprecatedJSONFormatter. We may want to remove this method
+        logger.exception('Route Error')
         if JsonResponse.debugMode:
             responseDict["message"] = str(exception)
             responseDict["errorType"] = str(type(exception))
