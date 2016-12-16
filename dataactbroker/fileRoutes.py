@@ -146,11 +146,13 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return JsonResponse.create(
             StatusCode.OK, get_submission_stats(submission.submission_id))
 
-    @app.route("/v1/sign_submission_file", methods = ["POST"])
-    @requires_login
-    def sign_submission_file():
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.get_signed_url_for_submission_file()
+    @app.route("/v1/sign_submission_file", methods=["POST"])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def sign_submission_file(submission):
+        file_handler = FileHandler(
+            request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return file_handler.get_signed_url_for_submission_file(submission)
 
     @app.route("/v1/submission/<int:submission_id>/narrative", methods=['GET'])
     @requires_submission_perms('reader')

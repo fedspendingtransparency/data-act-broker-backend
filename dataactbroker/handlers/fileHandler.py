@@ -151,18 +151,13 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def get_signed_url_for_submission_file(self):
+    def get_signed_url_for_submission_file(self, submission):
         """ Gets the signed URL for the specified file """
         try:
             sess = GlobalDB.db().session
             self.s3manager = s3UrlHandler()
-            safe_dictionary = RequestDictionary(self.request)
-            file_name = safe_dictionary.getValue("file") + ".csv"
-            submission_id = safe_dictionary.getValue("submission")
-            submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
-            # Check that user has access to submission
-            # If they don't, throw an exception
-            user_agency_must_match(submission)
+            safe_dictionary = RequestDictionary.derive(self.request)
+            file_name = safe_dictionary["file"] + ".csv"
 
             response_dict = {}
             if self.isLocal:
