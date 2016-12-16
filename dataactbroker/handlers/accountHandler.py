@@ -324,39 +324,6 @@ class AccountHandler:
             user_info.append(this_info)
         return JsonResponse.create(StatusCode.OK,{"users":user_info})
 
-    def reset_password(self,system_email,session):
-        """
-
-        Remove old password and email user a token to set a new password.  Request should have key "email"
-
-        arguments:
-
-        system_email  -- (string) email used to send messages
-        session  -- (Session) object from flask
-
-        """
-        sess = GlobalDB.db().session
-        request_dict = RequestDictionary.derive(self.request)
-        try:
-            if 'email' not in request_dict:
-                # Don't have the keys we need in request
-                raise ResponseException(
-                    "Reset password route requires key 'email'",
-                    StatusCode.CLIENT_ERROR
-                )
-            user = sess.query(User).filter(
-                func.lower(User.email) == func.lower(request_dict['email'])
-            ).one()
-        except Exception as exc:
-            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
-
-        email = request_dict['email']
-        LoginSession.logout(session)
-        self.send_reset_password_email(user, system_email, email)
-
-        # Return success message
-        return JsonResponse.create(StatusCode.OK,{"message":"Password reset"})
-
     def send_reset_password_email(self, user, system_email, email=None, unlock_user=False):
         sess = GlobalDB.db().session
         if email is None:

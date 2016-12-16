@@ -36,12 +36,6 @@ def add_user_routes(app,system_email,bcrypt):
         accountManager = AccountHandler(request,bcrypt = bcrypt)
         return accountManager.list_users_with_status()
 
-    @app.route("/v1/reset_password/", methods=["POST"])
-    def reset_password():
-        """ Removes current password from DB and sends email with token for user to reset their password.  Expects 'email' key in request body. """
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return accountManager.reset_password(system_email, session)
-
     @app.route("/v1/current_user/", methods=["GET"])
     @requires_login
     def current_user():

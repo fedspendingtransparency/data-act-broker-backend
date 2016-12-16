@@ -270,33 +270,6 @@ Example output:
 }
 ```
 
-#### POST "/v1/reset_password/"
-Remove current password and send password with token for reset.  A call to this route should have JSON or form-urlencoded with key "email".
-
-Example input:
-
-```json
-{
-   "email":"user@agency.gov"
-}
-```
-
-Example output:
-
-```json
-{
-  "message":"Password reset"
-}
-```
-
-Example output:
-
-```json
-{
-    "message": "User successfully updated"
-}
-```
-
 ### File Routes
 
 #### GET "/"
