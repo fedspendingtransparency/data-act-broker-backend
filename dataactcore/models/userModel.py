@@ -3,6 +3,7 @@
 from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, Boolean, Index
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
+from dataactcore.models.lookups import PERMISSION_TYPE_DICT_ID
 
 class User(Base):
     __tablename__ = 'users'
@@ -62,6 +63,10 @@ class UserAffiliation(Base):
     permission_type_id = Column(
         Integer, ForeignKey(column="permission_type.permission_type_id",
                             name="user_affiliation_permission_type_fk"))
+
+    @property
+    def permission_type_name(self):
+        return PERMISSION_TYPE_DICT_ID.get(self.permission_type_id)
 
 
 class EmailTemplateType(Base):

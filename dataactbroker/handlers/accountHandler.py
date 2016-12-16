@@ -207,7 +207,8 @@ class AccountHandler:
         max_xml = requests.get(url).content
         return xmltodict.parse(max_xml)
 
-    def create_session_and_response(self, session, user):
+    @staticmethod
+    def create_session_and_response(session, user):
         """Create a session."""
         LoginSession.login(session, user.user_id)
 
@@ -215,11 +216,20 @@ class AccountHandler:
         updateLastLogin(user)
         agency_name = sess.query(CGAC.agency_name).\
             filter(CGAC.cgac_code == user.cgac_code).\
-            one_or_none()
-        return JsonResponse.create(StatusCode.OK, {"message": "Login successful", "user_id": int(user.user_id),
-                                                   "name": user.name, "title": user.title,
-                                                   "agency_name": agency_name,
-                                                   "cgac_code": user.cgac_code, "permission": user.permission_type_id})
+            one_or_none()   # should this be .scalar()?
+        result = {
+            "message": "Login successful",
+            "user_id": int(user.user_id),
+            "name": user.name,
+            "title": user.title,
+            "agency_name": agency_name,
+            "cgac_code": user.cgac_code,
+            "permission": user.permission_type_id,
+            "affiliations": [{"agency_name": affil.cgac.agency_name,
+                              "permission": affil.permission_type_name}
+                             for affil in user.affiliations]
+        }
+        return JsonResponse.create(StatusCode.OK, result)
 
     def logout(self,session):
         """
