@@ -130,7 +130,12 @@ if "values_to_log" in CONFIG_LOGGING:
         log_message = " ".join([log_message, category_message])
 # Log config values along with warnings for missing files
 if log_message:
-    logging.getLogger('deprecated.info').info(log_message)
+    # Logging is not configured yet; create a console logger to print this
+    # message
+    _logger = logging.getLogger('config-printer')
+    _logger.setLevel(logging.INFO)
+    _logger.addHandler(logging.StreamHandler())
+    _logger.info(log_message)
 
 # TODO: error-handling for db config?
 # TODO: type checking and fixing for int stuff like ports?
