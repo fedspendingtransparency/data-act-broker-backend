@@ -178,13 +178,6 @@ class UserTests(BaseTestAPI):
         self.check_response(response, StatusCode.OK)
         self.logout()
 
-    def test_send_email(self):
-        """Test confirm e-mail."""
-        # Always use simulator to test emails!
-        postJson = {"email": "success@simulator.amazonses.com"}
-        response = self.app.post_json("/v1/confirm_email/", postJson, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.OK)
-
     def test_check_email_token_malformed(self):
         """Test bad e-mail token."""
         postJson = {"token": "12345678"}

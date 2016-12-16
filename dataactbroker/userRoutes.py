@@ -28,12 +28,6 @@ def add_user_routes(app,system_email,bcrypt):
             return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
                                        {'message': 'unauthorized'})
 
-    @app.route("/v1/confirm_email/", methods = ["POST"])
-    def confirm():
-        """ Expects request to have email  """
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return accountManager.create_email_confirmation(system_email)
-
     @app.route("/v1/confirm_email_token/", methods = ["POST"])
     def checkEmailToken():
         """ Expects request to have token  """

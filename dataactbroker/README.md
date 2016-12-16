@@ -207,25 +207,6 @@ Example output:
 }
 ```
 
-#### POST "/v1/confirm_email/"
-Create a new user and sends a confirmation email to their email address.  A call to this route should have JSON or form-urlencoded with key "email".
-
-Example input:
-
-```json
-{
-   "email":"user@agency.gov"
-}
-```
-
-Example output:
-
-```json
-{
-  "message":"Email Sent"
-}
-```
-
 #### POST "/v1/confirm_email_token/"
 Checks the token sent by email.  If successful, updates the user to email_confirmed.  A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned along with the error code. The email address will also be returned upon success.
 

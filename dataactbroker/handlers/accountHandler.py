@@ -14,7 +14,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.interfaces.db import GlobalDB
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy import func
 
 from dataactcore.models.userModel import EmailToken, User, UserAffiliation
@@ -334,55 +334,6 @@ class AccountHandler:
         user.user_status_id = USER_STATUS_DICT["awaiting_approval"]
         sess.commit()
         return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
-
-    def create_email_confirmation(self,system_email):
-        """
-
-        Creates user record and email
-
-        arguments:
-
-        system_email  -- (string) email used to send messages
-
-        """
-        sess = GlobalDB.db().session
-        request_fields = RequestDictionary.derive(self.request)
-        try:
-            if 'email' not in request_fields:
-                raise ResponseException(
-                    "Request body must include email", StatusCode.CLIENT_ERROR)
-            email = request_fields['email']
-            if not re.match("[^@]+@[^@]+\.[^@]+",email):
-                raise ValueError("Invalid Email Format")
-        except (ResponseException, ValueError) as exc:
-            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
-
-        try :
-            user = sess.query(User).filter(
-                func.lower(User.email) == func.lower(request_fields['email'])
-            ).one()
-        except NoResultFound:
-            # Create user with specified email if none is found
-            user = User(email=email)
-            user.user_status_id = USER_STATUS_DICT["awaiting_confirmation"]
-            user.permissions = 0
-            sess.add(user)
-            sess.commit()
-        else:
-            try:
-                good_statuses = (USER_STATUS_DICT["awaiting_confirmation"],
-                                 USER_STATUS_DICT["email_confirmed"])
-                if user.user_status_id not in good_statuses:
-                    raise ResponseException(
-                        "User already registered", StatusCode.CLIENT_ERROR)
-            except ResponseException as exc:
-                return JsonResponse.error(exc, exc.status)
-        email_token = sesEmail.createToken(email, "validate_email")
-        link= "".join([AccountHandler.FRONT_END,'#/registration/',email_token])
-        email_template = {'[USER]': email, '[URL]':link}
-        new_email = sesEmail(email, system_email,templateType="validate_email",parameters=email_template)
-        new_email.send()
-        return JsonResponse.create(StatusCode.OK,{"message":"Email Sent"})
 
     def check_email_confirmation_token(self,session):
         """
