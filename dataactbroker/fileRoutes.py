@@ -1,10 +1,15 @@
+from functools import wraps
+
 from flask import request
 
 from dataactbroker.exceptions.invalid_usage import InvalidUsage
 from dataactbroker.handlers.fileHandler import (
-    FileHandler, narratives_for_submission, update_narratives)
+    FileHandler, get_status, narratives_for_submission, update_narratives)
 from dataactbroker.permissions import (
     permissions_check, requires_login, requires_submission_perms)
+from dataactcore.utils.requestDictionary import RequestDictionary
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
 
 
 # Add the file submission route
@@ -28,10 +33,10 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return fileManager.finalize()
 
     @app.route("/v1/check_status/", methods = ["POST"])
-    @requires_login
-    def check_status():
-        fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.getStatus()
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def check_status(submission):
+        return get_status(submission)
 
     @app.route("/v1/submission_error_reports/", methods = ["POST"])
     @requires_login
@@ -153,3 +158,20 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         json = {key.upper():value.strip() for key, value in json.items()
                 if isinstance(value, str) and value.strip()}
         return update_narratives(submission, json)
+
+
+def convert_to_submission_id(fn):
+    """Decorator which reads the request, looking for a submission key to
+    convert into a submission_id parameter. The provided function should have
+    a submission_id parameter as its first argument."""
+    @wraps(fn)
+    @requires_login     # check login before checking submission_id
+    def wrapped(*args, **kwargs):
+        params = RequestDictionary.derive(request)
+        submission_id = params.get('submission')
+        submission_id = submission_id or params.get('submission_id')
+        if submission_id is None:
+            raise ResponseException(
+                "submission_id is required", StatusCode.CLIENT_ERROR)
+        return fn(submission_id, *args, **kwargs)
+    return wrapped
