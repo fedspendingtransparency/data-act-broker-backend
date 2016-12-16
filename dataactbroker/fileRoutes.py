@@ -7,8 +7,7 @@ from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, narratives_for_submission,
     update_narratives
 )
-from dataactbroker.permissions import (
-    permissions_check, requires_login, requires_submission_perms)
+from dataactbroker.permissions import requires_login, requires_submission_perms
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -111,14 +110,14 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return file_manager.generate_file(submission_id)
 
     @app.route("/v1/generate_detached_file/", methods=["POST"])
-    @permissions_check(permission="reader")
+    @requires_login
     def generate_detached_file():
         """ Generate a file from external API, independent from a submission """
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.generate_detached_file()
 
     @app.route("/v1/check_detached_generation_status/", methods=["POST"])
-    @permissions_check
+    @requires_login
     def check_detached_generation_status():
         """ Return status of file generation job """
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
