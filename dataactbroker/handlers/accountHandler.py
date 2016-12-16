@@ -15,11 +15,11 @@ from dataactcore.interfaces.db import GlobalDB
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy import func
 
-from dataactcore.models.userModel import EmailToken, User, UserAffiliation
+from dataactcore.models.userModel import User, UserAffiliation
 from dataactcore.models.domainModels import CGAC
 from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import (get_email_template, check_correct_password, set_user_password, updateLastLogin)
+from dataactcore.interfaces.function_bag import get_email_template, check_correct_password, updateLastLogin
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT, PERMISSION_MAP
 
@@ -261,36 +261,6 @@ class AccountHandler:
             this_info = {"id":user.user_id, "name": user.name, "email": user.email}
             user_info.append(this_info)
         return JsonResponse.create(StatusCode.OK, {"users": user_info})
-
-    def list_users_with_status(self):
-        """ List all users with the specified status.  Associated request body must have key 'status' """
-        request_dict = RequestDictionary.derive(self.request)
-        try:
-            if 'status' not in request_dict:
-                # Missing a required field, return 400
-                raise ResponseException(
-                    "Request body must include status", StatusCode.CLIENT_ERROR)
-        except ResponseException as exc:
-            return JsonResponse.error(exc, exc.status)
-
-        sess = GlobalDB.db().session
-
-        try:
-            users = sess.query(User).filter_by(
-                user_status_id=USER_STATUS_DICT[request_dict['status']]
-            ).all()
-        except ValueError as exc:
-            # Client provided a bad status
-            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
-        user_info = []
-        for user in users:
-            agency_name = sess.query(CGAC.agency_name).\
-                filter(CGAC.cgac_code == user.cgac_code).\
-                one_or_none()
-            this_info = {"name":user.name, "title":user.title, "agency_name":agency_name, "cgac_code":user.cgac_code,
-                        "email":user.email, "id":user.user_id }
-            user_info.append(this_info)
-        return JsonResponse.create(StatusCode.OK,{"users":user_info})
 
     def send_reset_password_email(self, user, system_email, email=None, unlock_user=False):
         sess = GlobalDB.db().session

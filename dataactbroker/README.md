@@ -182,25 +182,6 @@ Example output:
 }
 ```
 
-#### POST "/v1/list_users_with_status/"
-List all users with specified status, typically used to review users that have applied for an account.  Requires an admin login.  A call to this route should have JSON or form-urlencoded with key "status".
-
-Example input:
-
-```json
-{
-   "status":"awaiting_approval"
-}
-```
-
-Example output:
-
-```json
-{
-  "users":[{"uid":1,"name":"user","email":"agency@user.gov","title":"User Title","agency":"Data Act Agency"},{"uid":2,"name":"user2","email":"","title":"","agency":""}]
-}
-```
-
 #### GET "/v1/list_submissions/"
 List all submissions by currently logged in user. If "?filter_by=agency" is appended to the route, then all submissions for the current user's agency will be returned.
 

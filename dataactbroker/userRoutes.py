@@ -1,10 +1,7 @@
 from flask import request, session
 
 from dataactbroker.handlers.accountHandler import AccountHandler
-from dataactbroker.handlers.aws.session import LoginSession
-from dataactbroker.permissions import requires_admin, requires_login
-from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.statusCode import StatusCode
+from dataactbroker.permissions import requires_login
 
 
 def add_user_routes(app,system_email,bcrypt):
@@ -22,13 +19,6 @@ def add_user_routes(app,system_email,bcrypt):
         """ list all users """
         accountManager = AccountHandler(request, bcrypt=bcrypt)
         return accountManager.list_user_emails()
-
-    @app.route("/v1/list_users_with_status/", methods = ["POST"])
-    @requires_admin
-    def list_users_with_status():
-        """ Expects request to have key 'status', will list all users with that status """
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return accountManager.list_users_with_status()
 
     @app.route("/v1/current_user/", methods=["GET"])
     @requires_login

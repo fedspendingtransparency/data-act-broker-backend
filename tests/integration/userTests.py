@@ -1,6 +1,5 @@
 from tests.integration.baseTestAPI import BaseTestAPI
 from dataactbroker.app import createApp
-from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.userModel import User
@@ -90,15 +89,6 @@ class UserTests(BaseTestAPI):
         self.check_response(response, StatusCode.OK)
         self.assertIn("submissions", response.json)
         self.assertEqual(len(response.json["submissions"]), 5)
-        self.logout()
-
-    def test_list_users_with_status_non_admin(self):
-        """Test requesting user list from a non-admin account."""
-        self.login_approved_user()
-        postJson = {"status": "awaiting_approval"}
-        response = self.app.post_json("/v1/list_users_with_status/",
-            postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.LOGIN_REQUIRED, "You are not authorized to perform the requested task. Please contact your administrator.")
         self.logout()
 
     def test_finalize_wrong_user(self):
