@@ -182,30 +182,6 @@ Example output:
 }
 ```
 
-#### POST "/v1/register/"
-Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.
-
-
-Example input:
-
-```json
-{
-   "email":"user@agency.gov",
-   "name":"user",
-   "agency":"Data Act Agency",
-   "title":"User Title",
-   "password":"pass"
-}
-```
-
-Example output:
-
-```json
-{
-  "message":"Registration successful"
-}
-```
-
 #### POST "/v1/confirm_password_token/"
 Checks the token sent by email for password reset. A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned along with the error code. The email address will also be returned upon success.
 

@@ -3,8 +3,6 @@ import time
 import requests
 import xmltodict
 
-from threading import Thread
-
 from dateutil.parser import parse
 from flask import g
 
@@ -245,95 +243,6 @@ class AccountHandler:
         # Call session handler
         LoginSession.logout(session)
         return JsonResponse.create(StatusCode.OK,{"message":"Logout successful"})
-
-
-    def register(self,system_email,session):
-        """
-
-        Save user's information into user database.  Associated request body should have keys 'email', 'name', 'cgac_code', and 'title'
-
-        arguments:
-
-        system_email  -- (string) email used to send messages
-        session  -- (Session) object from flask
-
-
-        Returns message that registration is successful or error message that fields are not valid
-
-        """
-        def ThreadedFunction (username="", title="", cgac_code="", user_email="" , link="") :
-            """
-            This inner function sends emails in a new thread as there could be lots of admins
-
-            username -- (string) the name of the  user
-            title  --   (string) the title of the  user
-            cgac_code -- (string) the agency of the  user
-            user_email -- (string) the email of the user
-            link  -- (string) the broker email link
-            """
-            agency_name = sess.query(CGAC.agency_name).\
-                filter(CGAC.cgac_code == cgac_code).\
-                one_or_none()
-            agency_name = "Unknown" if agency_name is None else agency_name
-            for user in sess.query(User).filter_by(website_admin=True):
-                email_template = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
-                                 '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : user_email,'[URL]':link}
-                new_email = sesEmail(user.email, system_email,templateType="account_creation",parameters=email_template)
-                new_email.send()
-
-        sess = GlobalDB.db().session
-        request_fields = RequestDictionary.derive(self.request)
-        try:
-            required = ('email', 'name', 'cgac_code', 'title', 'password')
-            if any(field not in request_fields for field in required):
-                # Missing a required field, return 400
-                raise ResponseException(
-                    "Request body must include email, name, cgac_code, "
-                    "title, and password", StatusCode.CLIENT_ERROR
-                )
-            if not self.checkPassword(request_fields["password"]):
-                raise ResponseException(
-                    "Invalid Password", StatusCode.CLIENT_ERROR)
-            # Find user that matches specified email
-            user = sess.query(User).filter(
-                func.lower(User.email) == func.lower(request_fields['email'])
-            ).one_or_none()
-            if user is None:
-                raise ResponseException(
-                    "No users with that email", StatusCode.CLIENT_ERROR)
-            # Check that user's status is before submission of registration
-            bad_statuses = (USER_STATUS_DICT["awaiting_confirmation"], USER_STATUS_DICT["email_confirmed"])
-            if user.user_status_id not in bad_statuses:
-                # Do not allow duplicate registrations
-                raise ResponseException(
-                    "User already registered", StatusCode.CLIENT_ERROR)
-            # Add user info to database
-            user.name = request_fields['name']
-            user.cgac_code = request_fields['cgac_code']
-            user.title = request_fields['title']
-            sess.commit()
-            set_user_password(user, request_fields['password'], self.bcrypt)
-        except ResponseException as exc:
-            return JsonResponse.error(exc, exc.status)
-
-        user_link= "".join([AccountHandler.FRONT_END, '#/login?redirect=/admin'])
-        # Send email to approver list
-        email_thread = Thread(target=ThreadedFunction, kwargs=dict(username=user.name,title=user.title,cgac_code=user.cgac_code,user_email=user.email,link=user_link))
-        email_thread.start()
-
-        #email user
-        email_template = {'[EMAIL]' : system_email}
-        new_email = sesEmail(user.email, system_email,templateType="account_creation_user",parameters=email_template)
-        new_email.send()
-
-        # Logout and delete token
-        LoginSession.logout(session)
-        oldToken = sess.query(EmailToken).filter(EmailToken.token == session["token"]).one()
-        sess.delete(oldToken)
-        # Mark user as awaiting approval
-        user.user_status_id = USER_STATUS_DICT["awaiting_approval"]
-        sess.commit()
-        return JsonResponse.create(StatusCode.OK,{"message":"Registration successful"})
 
     def checkPasswordToken(self,session):
         """

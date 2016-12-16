@@ -11,7 +11,7 @@ from flask_bcrypt import Bcrypt
 from datetime import datetime
 
 class UserTests(BaseTestAPI):
-    """ Test user registration and user specific functions """
+    """ Test user specific functions """
 
     @classmethod
     def setUpClass(cls):
@@ -62,14 +62,6 @@ class UserTests(BaseTestAPI):
         """Test set-up."""
         super(UserTests, self).setUp()
         self.login_admin_user()
-
-    def test_registration_no_token(self):
-        """Test without token."""
-        self.logout()
-        postJson = {"email": "user@agency.gov", "name": "user", "cgac_code": "SYS", "title": "title", "password": "userPass"}
-        response = self.app.post_json("/v1/check_status/",
-            postJson, expect_errors=True, headers={"x-session-id":self.session_id})
-        self.check_response(response, StatusCode.LOGIN_REQUIRED)
 
     def test_list_user_emails(self):
         """Test getting user emails"""

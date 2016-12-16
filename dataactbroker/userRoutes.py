@@ -16,18 +16,6 @@ def add_user_routes(app,system_email,bcrypt):
             bcrypt - Password hashing Bcrypt associated with app
     """
 
-    @app.route("/v1/register/", methods = ["POST"])
-    def register_user():
-        """ Expects request to have keys 'email', 'name', 'cgac_code', and 'title' """
-        # check the session to make sure register is set to prevent any one
-        # from using route
-        if LoginSession.isRegistering(session):
-            accountManager = AccountHandler(request,bcrypt = bcrypt)
-            return accountManager.register(system_email, session)
-        else:
-            return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
-                                       {'message': 'unauthorized'})
-
     @app.route("/v1/confirm_password_token/", methods = ["POST"])
     def checkPasswordToken():
         """ Expects request to have email  """
