@@ -4,7 +4,9 @@ from flask import request
 
 from dataactbroker.exceptions.invalid_usage import InvalidUsage
 from dataactbroker.handlers.fileHandler import (
-    FileHandler, get_status, narratives_for_submission, update_narratives)
+    FileHandler, get_error_metrics, get_status, narratives_for_submission,
+    update_narratives
+)
 from dataactbroker.permissions import (
     permissions_check, requires_login, requires_submission_perms)
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -50,11 +52,11 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.getErrorReportURLsForSubmission(True)
 
-    @app.route("/v1/error_metrics/", methods = ["POST"])
-    @requires_login
-    def submission_error_metrics():
-        fileManager = FileHandler(request,isLocal=IS_LOCAL ,serverPath=SERVER_PATH)
-        return fileManager.get_error_metrics()
+    @app.route("/v1/error_metrics/", methods=["POST"])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def submission_error_metrics(submission):
+        return get_error_metrics(submission)
 
     @app.route("/v1/local_upload/", methods = ["POST"])
     @requires_login

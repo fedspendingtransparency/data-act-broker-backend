@@ -467,33 +467,6 @@ class FileHandler:
             return False, error
         return True, None
 
-    def get_error_metrics(self) :
-        """ Returns an Http response object containing error information for every validation job in specified submission """
-        sess = GlobalDB.db().session
-        return_dict = {}
-        try:
-            safe_dictionary = RequestDictionary(self.request)
-            submission_id =  safe_dictionary.getValue("submission_id")
-
-            # Check if user has permission to specified submission
-            submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
-            user_agency_must_match(submission)
-
-            jobs = sess.query(Job).filter_by(submission_id=submission_id)
-            for job in jobs :
-                if job.job_type.name == 'csv_record_validation':
-                    file_type = job.file_type.name
-                    data_list = getErrorMetricsByJobId(job.job_id)
-                    return_dict[file_type]  = data_list
-            return JsonResponse.create(StatusCode.OK,return_dict)
-        except ( ValueError , TypeError ) as e:
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
-        except ResponseException as e:
-            return JsonResponse.error(e,e.status)
-        except Exception as e:
-            # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
-
     def uploadFile(self):
         """ Saves a file and returns the saved path.  Should only be used for local installs. """
         try:
@@ -1224,6 +1197,28 @@ def get_status(submission):
 
         # Build response object holding dictionary
         return JsonResponse.create(StatusCode.OK,submission_info)
+    except ResponseException as e:
+        return JsonResponse.error(e,e.status)
+    except Exception as e:
+        # Unexpected exception, this is a 500 server error
+        return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+
+
+def get_error_metrics(submission):
+    """Returns an Http response object containing error information for every
+    validation job in specified submission """
+    sess = GlobalDB.db().session
+    return_dict = {}
+    try:
+        jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
+        for job in jobs :
+            if job.job_type.name == 'csv_record_validation':
+                file_type = job.file_type.name
+                data_list = getErrorMetricsByJobId(job.job_id)
+                return_dict[file_type]  = data_list
+        return JsonResponse.create(StatusCode.OK,return_dict)
+    except ( ValueError , TypeError ) as e:
+        return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
     except ResponseException as e:
         return JsonResponse.error(e,e.status)
     except Exception as e:
