@@ -2,7 +2,7 @@
 
 The DATA Act broker backend is a collection of services that power the DATA Act's central data submission platform.
 
-The website that runs on these services is here: [https://alpha-broker.usaspending.gov/](https://alpha-broker.usaspending.gov/ "DATA Act Broker website").
+The website that runs on these services is here: [https://broker.usaspending.gov/](https://broker.usaspending.gov/ "DATA Act Broker website").
 
 ## Background
 
@@ -23,7 +23,7 @@ The first three items compose the broker's backend and are maintained in this re
 
 ### Using Treasury's Hosted Broker
 
-If you're from a federal agency that will use Treasury's hosted DATA Act broker, you can probably stop reading here. Instead, visit the [broker's website](https://alpha-broker.usaspending.gov/ "DATA Act Broker") to request a user account.
+If you're from a federal agency that will use Treasury's hosted DATA Act broker, you can probably stop reading here. Instead, visit the [broker's website](https://broker.usaspending.gov/ "DATA Act Broker") to request a user account.
 
 ### Using a Broker Virtual Image (Coming Soon)
 
