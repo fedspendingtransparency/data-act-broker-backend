@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 from dataactbroker.handlers import accountHandler
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT
+from dataactcore.models.userModel import UserAffiliation
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
 from tests.unit.dataactcore.factories.domain import CGACFactory
@@ -116,3 +117,32 @@ def test_set_max_perms(database, monkeypatch, user_constants):
     assert abc_aff.permission_type_id == PERMISSION_TYPE_DICT['reader']
     assert def_aff.cgac.cgac_code == 'DEF'
     assert def_aff.permission_type_id == PERMISSION_TYPE_DICT['submitter']
+
+def test_create_session_and_response(database, monkeypatch, user_constants):
+    cgacs = [CGACFactory(cgac_code=str(i)*3, agency_name=str(i))
+             for i in range(3)]
+    user = UserFactory(
+        name="my name", title="my title", cgac_code="000",
+        affiliations=[
+            UserAffiliation(cgac=cgacs[1],
+                            permission_type_id=PERMISSION_TYPE_DICT['reader']),
+            UserAffiliation(cgac=cgacs[2],
+                            permission_type_id=PERMISSION_TYPE_DICT['writer']),
+        ]
+    )
+    database.session.add_all(cgacs + [user])
+    database.session.commit()
+    monkeypatch.setattr(accountHandler, 'LoginSession', Mock())
+
+    result = accountHandler.AccountHandler.create_session_and_response(
+        Mock(), user)
+    result = json.loads(result.data.decode('utf-8'))
+    assert result['message'] == 'Login successful'
+    assert result['user_id'] == user.user_id
+    assert result['name'] == 'my name'
+    assert result['title'] == 'my title'
+    assert result['agency_name'] == ['0']   # seems odd?
+    assert result['cgac_code'] == '000'
+    assert result['permission'] is None
+    assert dict(agency_name='1', permission='reader') in result['affiliations']
+    assert dict(agency_name='2', permission='writer') in result['affiliations']

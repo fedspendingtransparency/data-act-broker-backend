@@ -207,19 +207,14 @@ class AccountHandler:
         max_xml = requests.get(url).content
         return xmltodict.parse(max_xml)
 
-    def create_session_and_response(self, session, user):
+    @staticmethod
+    def create_session_and_response(session, user):
         """Create a session."""
         LoginSession.login(session, user.user_id)
-
-        sess = GlobalDB.db().session
         updateLastLogin(user)
-        agency_name = sess.query(CGAC.agency_name).\
-            filter(CGAC.cgac_code == user.cgac_code).\
-            one_or_none()
-        return JsonResponse.create(StatusCode.OK, {"message": "Login successful", "user_id": int(user.user_id),
-                                                   "name": user.name, "title": user.title,
-                                                   "agency_name": agency_name,
-                                                   "cgac_code": user.cgac_code, "permission": user.permission_type_id})
+        data = json_for_user(user)
+        data['message'] = 'Login successful'
+        return JsonResponse.create(StatusCode.OK, data)
 
     def logout(self,session):
         """
@@ -279,33 +274,6 @@ class AccountHandler:
         template_type = "unlock_account" if unlock_user else "reset_password"
         new_email = sesEmail(user.email, system_email, templateType=template_type, parameters=email_template)
         new_email.send()
-
-    def get_current_user(self,session):
-        """
-
-        Gets the current user information
-
-        arguments:
-
-        session  -- (Session) object from flask
-
-        return the response object with the current user information
-
-        """
-        sess = GlobalDB.db().session
-        agency_name = sess.query(CGAC.agency_name).\
-            filter(CGAC.cgac_code == g.user.cgac_code).\
-            one_or_none()
-        return JsonResponse.create(StatusCode.OK, {
-            "user_id": g.user.user_id,
-            "name": g.user.name,
-            "agency_name": agency_name,
-            "cgac_code": g.user.cgac_code,
-            "title": g.user.title,
-            "permission": g.user.permission_type_id,
-            "skip_guide": g.user.skip_guide,
-            "website_admin": g.user.website_admin
-        })
 
     def isAccountExpired(self, user):
         """ Checks user's last login date against inactivity threshold, marks account as inactive if expired
@@ -490,3 +458,24 @@ def set_max_perms(user, max_group_list):
 
         user.affiliations = affiliations
         user.website_admin = False
+
+
+def json_for_user(user):
+    """Convert the provided user to a dictionary (for JSON)"""
+    sess = GlobalDB.db().session
+    agency_name = sess.query(CGAC.agency_name).\
+        filter(CGAC.cgac_code == user.cgac_code).\
+        one_or_none()
+    return {
+        "user_id": user.user_id,
+        "name": user.name,
+        "agency_name": agency_name,
+        "cgac_code": user.cgac_code,
+        "title": user.title,
+        "permission": user.permission_type_id,
+        "skip_guide": user.skip_guide,
+        "website_admin": user.website_admin,
+        "affiliations": [{"agency_name": affil.cgac.agency_name,
+                          "permission": affil.permission_type_name}
+                         for affil in user.affiliations]
+    }
