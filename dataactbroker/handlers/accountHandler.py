@@ -2,10 +2,8 @@ import logging
 from operator import attrgetter
 import re
 import requests
-import time
 import xmltodict
 
-from dateutil.parser import parse
 from flask import g
 
 from dataactbroker.handlers.aws.sesEmail import sesEmail
@@ -36,8 +34,6 @@ class AccountHandler:
     """
     # Handles login process, compares username and password provided
     FRONT_END = ""
-    INACTIVITY_THRESHOLD = 120 # Days a user's account can be unused before being marked as inactive
-    ALLOWED_PASSWORD_ATTEMPTS = 3 # Number of allowed login attempts before account is locked
     # Instance fields include request, response, logFlag, and logFile
 
     def __init__(self,request, bcrypt=None, isLocal=False):
@@ -254,57 +250,6 @@ class AccountHandler:
         template_type = "unlock_account" if unlock_user else "reset_password"
         new_email = sesEmail(user.email, system_email, templateType=template_type, parameters=email_template)
         new_email.send()
-
-    def isAccountExpired(self, user):
-        """ Checks user's last login date against inactivity threshold, marks account as inactive if expired
-
-        Args:
-            user: User object to check
-
-        """
-        today = parse(time.strftime("%c"))
-        daysActive = (today-user.last_login_date).days
-        if daysActive >= self.INACTIVITY_THRESHOLD:
-            self.lockAccount(user)
-            return True
-        return False
-
-    def reset_password_count(self, user):
-        """ Resets the number of failed attempts when a user successfully logs in
-
-        Args:
-            user: User object to be changed
-        """
-        if user.incorrect_password_attempts != 0:
-            sess = GlobalDB.db().session
-            user.incorrect_password_attempts = 0
-            sess.commit()
-
-    def incrementPasswordCount(self, user):
-        """ Records a failed attempt to log in.  If number of failed attempts is higher than threshold, locks account.
-
-        Args:
-            user: User object to be changed
-
-        Returns:
-
-        """
-        if user.incorrect_password_attempts < self.ALLOWED_PASSWORD_ATTEMPTS:
-            sess = GlobalDB.db().session
-            user.incorrect_password_attempts += 1
-            if user.incorrect_password_attempts == self.ALLOWED_PASSWORD_ATTEMPTS:
-                self.lockAccount(user)
-            sess.commit()
-
-    def lockAccount(self, user):
-        """ Lock this user's account by marking it as inactive
-
-        Args:
-            user: User object to be locked
-        """
-        sess = GlobalDB.db().session
-        user.is_active = False
-        sess.commit()
 
     def set_skip_guide(self, session):
         """ Set current user's skip guide parameter """
