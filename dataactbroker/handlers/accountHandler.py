@@ -83,32 +83,12 @@ class AccountHandler:
             except Exception:
                 raise ValueError("Invalid username and/or password")
 
-            if user.user_status_id != USER_STATUS_DICT["approved"]:
-                raise ValueError("Invalid username and/or password")
-
-            # Only check if user is active after they've logged in for the first time
-            if user.last_login_date is not None and self.isAccountExpired(user):
-                raise ValueError("Your account has expired. Please contact an administrator.")
-
-            # for whatever reason, your account is not active, therefore it's locked
-            if not user.is_active:
-                raise ValueError("Your account has been locked. Please contact an administrator.")
-
             try:
                 if check_correct_password(user,password,self.bcrypt):
                     # We have a valid login
 
-                    # Reset incorrect password attempt count to 0
-                    self.reset_password_count(user)
-
                     return self.create_session_and_response(session, user)
                 else :
-                    # increase incorrect password attempt count by 1
-                    # if this is the 3rd incorrect attempt, lock account
-                    self.incrementPasswordCount(user)
-                    if user.incorrect_password_attempts == 3:
-                        raise ValueError("Your account has been locked due to too many failed login attempts. Please contact an administrator.")
-
                     raise ValueError("Invalid username and/or password")
             except ValueError as ve:
                 LoginSession.logout(session)
