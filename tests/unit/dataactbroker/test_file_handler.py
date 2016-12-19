@@ -120,60 +120,22 @@ def test_list_submissions_failure(database, job_constants, monkeypatch):
     delete_models(database, [user, sub, job])
 
 
-def test_requires_submission_perm_no_submission(database, monkeypatch):
-    """If no submission exists, we should see an exception"""
-    monkeypatch.setattr(fileHandler, 'user_agency_matches',
-                        Mock(return_value=True))
-
-    sub = SubmissionFactory()
-    database.session.add(sub)
-    database.session.commit()
-
-    fn = fileHandler.requires_submission_perms(Mock())
-    # Does not raise exception
-    fn(sub.submission_id)
-    with pytest.raises(ResponseException):
-        fn(sub.submission_id + 1)   # different submission id
-
-
-def test_requires_submission_perm_check(database, monkeypatch):
-    """If the user doesn't have a matching agency, we should see an
-    exception"""
-    sub = SubmissionFactory()
-    database.session.add(sub)
-    database.session.commit()
-
-    fn = fileHandler.requires_submission_perms(Mock())
-    # Does not raise exception
-    monkeypatch.setattr(fileHandler, 'user_agency_matches',
-                        Mock(return_value=True))
-    fn(sub.submission_id)
-
-    monkeypatch.setattr(fileHandler, 'user_agency_matches',
-                        Mock(return_value=False))
-    with pytest.raises(ResponseException):
-        fn(sub.submission_id)
-
-
-def test_narratives(database, job_constants, monkeypatch):
+def test_narratives(database, job_constants):
     """Verify that we can add, retrieve, and update submission narratives. Not
     quite a unit test as it covers a few functions in sequence"""
-    monkeypatch.setattr(fileHandler, 'user_agency_matches',
-                        Mock(return_value=True))
     sub1, sub2 = SubmissionFactory(), SubmissionFactory()
     database.session.add_all([sub1, sub2])
     database.session.commit()
 
     # Write some narratives
     result = fileHandler.update_narratives(
-        sub1.submission_id, {'B': 'BBBBBB', 'E': 'EEEEEE'})
+        sub1, {'B': 'BBBBBB', 'E': 'EEEEEE'})
     assert result.status_code == 200
-    result = fileHandler.update_narratives(
-        sub2.submission_id, {'A': 'Submission2'})
+    result = fileHandler.update_narratives(sub2, {'A': 'Submission2'})
     assert result.status_code == 200
 
     # Check the narratives
-    result = fileHandler.narratives_for_submission(sub1.submission_id)
+    result = fileHandler.narratives_for_submission(sub1)
     result = json.loads(result.get_data().decode('UTF-8'))
     assert result == {
         'A': '',
@@ -187,11 +149,11 @@ def test_narratives(database, job_constants, monkeypatch):
 
     # Replace the narratives
     result = fileHandler.update_narratives(
-        sub1.submission_id, {'A': 'AAAAAA', 'E': 'E2E2E2'})
+        sub1, {'A': 'AAAAAA', 'E': 'E2E2E2'})
     assert result.status_code == 200
 
     # Verify the change worked
-    result = fileHandler.narratives_for_submission(sub1.submission_id)
+    result = fileHandler.narratives_for_submission(sub1)
     result = json.loads(result.get_data().decode('UTF-8'))
     assert result == {
         'A': 'AAAAAA',
