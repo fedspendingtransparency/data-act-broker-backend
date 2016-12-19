@@ -33,7 +33,6 @@ from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactcore.models.validationModels import RuleSql
 
 
-_exception_logger = logging.getLogger('deprecated.exception')
 logger = logging.getLogger(__name__)
 
 
@@ -241,7 +240,7 @@ class ValidationManager:
 
         error_list = ErrorInterface()
 
-        _exception_logger.info(
+        logger.info(
             'VALIDATOR_INFO: Beginning runValidation on job_id: %s', job_id)
 
         submission_id = job.submission_id
@@ -305,8 +304,9 @@ class ValidationManager:
                 while not reader.is_finished:
                     rowNumber += 1
 
-                    if rowNumber % 10 == 0:
-                        logger.info('loading row %s', rowNumber)
+                    if rowNumber % 100 == 0:
+                        logger.info('loading row %s of submission %s',
+                                    rowNumber, submission_id)
 
                     #
                     # first phase of validations: read record and record a
@@ -351,7 +351,7 @@ class ValidationManager:
                         if self.writeErrors(failures, job, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list):
                             errorRows.append(rowNumber)
 
-                _exception_logger.info(
+                logger.info(
                     'VALIDATOR_INFO: Loading complete on job_id: %s. '
                     'Total rows added to staging: %s', job_id, rowNumber)
 
@@ -390,7 +390,7 @@ class ValidationManager:
         finally:
             # Ensure the file always closes
             reader.close()
-            _exception_logger.info(
+            logger.info(
                 'VALIDATOR_INFO: Completed L1 and SQL rule validations on '
                 'job_id: %s', job_id)
         return True
@@ -458,7 +458,7 @@ class ValidationManager:
         submission_id = job.submission_id
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
-        _exception_logger.info(
+        logger.info(
             'VALIDATOR_INFO: Beginning runCrossValidation on submission_id: '
             '%s', submission_id)
 
@@ -499,7 +499,7 @@ class ValidationManager:
 
         error_list.writeAllRowErrors(job_id)
         mark_job_status(job_id, "finished")
-        _exception_logger.info(
+        logger.info(
             'VALIDATOR_INFO: Completed runCrossValidation on submission_id: '
             '%s', submission_id)
         submission = sess.query(Submission).filter_by(submission_id = submission_id).one()

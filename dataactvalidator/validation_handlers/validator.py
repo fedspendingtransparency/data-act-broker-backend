@@ -7,7 +7,7 @@ from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.interfaces.db import GlobalDB
 
-_exception_logger = logging.getLogger('deprecated.exception')
+logger = logging.getLogger(__name__)
 
 class Validator(object):
     """
@@ -187,7 +187,7 @@ class Validator(object):
              severity id
         """
 
-        _exception_logger.info(
+        logger.info(
             'VALIDATOR_INFO: Beginning SQL validation rules on submissionID '
             '%s, fileType: %s', submission_id, fileType)
         sess = GlobalDB.db().session
@@ -200,7 +200,7 @@ class Validator(object):
 
         # For each rule, execute sql for rule
         for rule in rules:
-            _exception_logger.info(
+            logger.info(
                 'VALIDATOR_INFO: Running query: %s on submissionId %s, '
                 'fileType: %s', rule.query_name, submission_id, fileType)
             failures = sess.execute(rule.rule_sql.format(submission_id))
@@ -232,7 +232,7 @@ class Validator(object):
                     fieldString = ", ".join(fieldList)
                     errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId, rule.target_file_id, rule.rule_severity_id])
 
-            _exception_logger.info(
+            logger.info(
                 'VALIDATOR_INFO: Completed SQL validation rules on '
                 'submissionID: %s, fileType: %s', submission_id, fileType)
 

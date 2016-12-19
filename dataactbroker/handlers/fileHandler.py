@@ -41,8 +41,6 @@ from dataactcore.interfaces.function_bag import (
     mark_job_status, create_submission, create_jobs)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
-_debug_logger = logging.getLogger('deprecated.debug')
-_smx_logger = logging.getLogger('deprecated.smx')
 logger = logging.getLogger(__name__)
 
 
@@ -774,7 +772,7 @@ class FileHandler:
         try:
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
-            _smx_logger.debug('Downloading file...')
+            logger.debug('Downloading file...')
             if not self.download_file(full_file_path, url):
                 # Error occurred while downloading file, mark job as failed and record error message
                 mark_job_status(job_id, "failed")
@@ -793,11 +791,11 @@ class FileHandler:
 
             write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])
 
-            _smx_logger.debug('Marking job id of %s', job_id)
+            logger.debug('Marking job id of %s', job_id)
             mark_job_status(job_id, "finished")
             return {"message": "Success", "file_name": timestamped_name}
         except Exception as e:
-            _smx_logger.exception('Exception caught => %s', e)
+            logger.exception('Exception caught => %s', e)
             # Log the error
             JsonResponse.error(e,500)
             sess.query(Job).filter_by(job_id=job_id).one().error_message = str(e)
@@ -1152,7 +1150,7 @@ class FileHandler:
         callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],
                                                                   CONFIG_SERVICES["broker_api_host"],
                                                                   CONFIG_SERVICES["broker_api_port"], task_key)
-        _debug_logger.debug('Callback URL for %s: %s', FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]], callback)
+        logger.debug('Callback URL for %s: %s', FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]], callback)
         url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
         return url
 

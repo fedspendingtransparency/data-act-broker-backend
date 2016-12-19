@@ -373,8 +373,7 @@ def check_job_dependencies(job_id):
                 # status and added to the queue
                 mark_job_status(dep_job_id, 'ready')
                 # add to the job queue
-                logging.getLogger('deprecated.info').info(
-                    'Sending job %s to job manager', dep_job_id)
+                logger.info('Sending job %s to job manager', dep_job_id)
                 # will move this later
                 from dataactcore.utils.jobQueue import enqueue
                 enqueue.delay(dep_job_id)

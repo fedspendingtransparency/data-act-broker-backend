@@ -18,7 +18,6 @@ from dataactvalidator.filestreaming.csv_selection import write_csv
 
 
 logger = logging.getLogger(__name__)
-_info_logger = logging.getLogger('deprecated.info')
 
 
 def brokerUrl(host):
@@ -40,7 +39,7 @@ celery_app.config_from_object('celeryconfig')
 @celery_app.task(name='jobQueue.enqueue')
 def enqueue(jobID):
     """POST a job to the validator"""
-    _info_logger.info('Adding job %s to the queue', jobID)
+    logger.info('Adding job %s to the queue', jobID)
     validatorUrl = '{validator_host}:{validator_port}'.format(
         **CONFIG_SERVICES)
     if 'http://' not in validatorUrl:
@@ -50,8 +49,8 @@ def enqueue(jobID):
         'job_id': jobID
     }
     response = requests.post(validatorUrl, json=params)
-    _info_logger.info('Job %s has completed validation', jobID)
-    _info_logger.info('Validator response: %s', response.json())
+    logger.info('Job %s has completed validation', jobID)
+    logger.info('Validator response: %s', response.json())
     return response.json()
 
 
