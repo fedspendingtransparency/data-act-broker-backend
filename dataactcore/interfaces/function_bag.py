@@ -224,13 +224,6 @@ def updateLastLogin(user, unlock_user=False):
     user.last_login_date = time.strftime("%c") if not unlock_user else None
     sess.commit()
 
-
-def setUserActive(user, is_active):
-    """ Sets the is_active field for the specified user """
-    sess = GlobalDB.db().session
-    user.is_active = is_active
-    sess.commit()
-
 def get_email_template(email_type):
     """ Get template for specified email type
     Arguments:

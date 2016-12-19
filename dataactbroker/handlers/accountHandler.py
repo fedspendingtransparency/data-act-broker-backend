@@ -207,8 +207,7 @@ class AccountHandler:
         try:
             users = sess.query(User).filter_by(
                 cgac_code=g.user.cgac_code,
-                user_status_id=USER_STATUS_DICT["approved"],
-                is_active=True
+                user_status_id=USER_STATUS_DICT["approved"]
             ).all()
         except ValueError as exc:
             # Client provided a bad status
