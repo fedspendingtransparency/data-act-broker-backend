@@ -467,6 +467,9 @@ def set_max_perms(user, max_group_list):
     or
     {parent-group}-CGAC_SYS to indicate website_admin"""
     prefix = CONFIG_BROKER['parent_group'] + '-CGAC_'
+
+    # Each group name that we care about begins with the prefix, but once we
+    # have that list, we don't need the prefix anymore, so trim it off.
     perms = [group_name[len(prefix):]
              for group_name in max_group_list.split(',')
              if group_name.startswith(prefix)]
