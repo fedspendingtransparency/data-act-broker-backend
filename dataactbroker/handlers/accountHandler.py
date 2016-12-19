@@ -47,13 +47,6 @@ class AccountHandler:
         self.request = request
         self.bcrypt = bcrypt
 
-    def checkPassword(self,password):
-        """Checks to make sure the password is valid"""
-        if( re.search(r"[\[\]\{\}~!@#$%^,.?;<>]", password) is None or len(password) < 8 or re.search(r"\d", password) is None or
-            re.search(r"[A-Z]", password) is None or re.search(r"[a-z]", password) is None) :
-            return False
-        return True
-
     def login(self,session):
         """
 
@@ -225,31 +218,6 @@ class AccountHandler:
             this_info = {"id":user.user_id, "name": user.name, "email": user.email}
             user_info.append(this_info)
         return JsonResponse.create(StatusCode.OK, {"users": user_info})
-
-    def send_reset_password_email(self, user, system_email, email=None, unlock_user=False):
-        sess = GlobalDB.db().session
-        if email is None:
-            email = user.email
-
-        # User must be approved and active to reset password
-        if user.user_status_id != USER_STATUS_DICT["approved"]:
-            raise ResponseException("User must be approved before resetting password", StatusCode.CLIENT_ERROR)
-        elif not unlock_user and not user.is_active:
-            raise ResponseException("User is locked, cannot reset password", StatusCode.CLIENT_ERROR)
-
-        # If unlocking a user, wipe out current password
-        if unlock_user:
-            user.salt = None
-            user.password_hash = None
-
-        sess.commit()
-        # Send email with token
-        email_token = sesEmail.createToken(email, "password_reset")
-        link = "".join([AccountHandler.FRONT_END, '#/forgotpassword/', email_token])
-        email_template = {'[URL]': link}
-        template_type = "unlock_account" if unlock_user else "reset_password"
-        new_email = sesEmail(user.email, system_email, templateType=template_type, parameters=email_template)
-        new_email.send()
 
     def set_skip_guide(self, session):
         """ Set current user's skip guide parameter """
