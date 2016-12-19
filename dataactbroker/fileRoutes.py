@@ -16,7 +16,7 @@ from dataactcore.utils.statusCode import StatusCode
 
 
 # Add the file submission route
-def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
+def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     """ Create routes related to file submission for flask app
 
     """
@@ -91,7 +91,9 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
             raise InvalidUsage("Missing required parameter 'certified'")
         # If certified is none, get all submissions without filtering
         if certified is not None and certified not in ['mixed', 'true', 'false']:
-            raise InvalidUsage("Incorrect value specified for the 'certified' parameter")
+            raise InvalidUsage(
+                "Incorrect value specified for the 'certified' parameter. "
+                "Must be one of 'mixed', 'true', or 'false'")
 
         file_manager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return file_manager.list_submissions(page, limit, certified)

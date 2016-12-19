@@ -10,6 +10,7 @@ from shutil import copyfile
 import requests
 from flask import g, request
 from requests.exceptions import Timeout
+import sqlalchemy as sa
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
@@ -954,7 +955,10 @@ class FileHandler:
 
         offset = limit*(page-1)
 
-        query = sess.query(Submission).filter_by(cgac_code=g.user.cgac_code)
+        cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
+        query = sess.query(Submission).\
+            filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
+                          Submission.user_id == g.user.user_id))
         if certified != 'mixed':
             query = query.filter_by(publishable=certified)
         submissions = query.order_by(Submission.updated_at.desc()).limit(limit).offset(offset).all()

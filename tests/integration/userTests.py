@@ -68,29 +68,6 @@ class UserTests(BaseTestAPI):
         users = response.json["users"]
         self.assertEqual(len(users), 7)
 
-    def test_list_submissions(self):
-        """Test listing user's submissions. The expected values here correspond to the number of submissions within
-         the agency of the user that is logged in """
-        self.logout()
-        self.login_approved_user()
-        response = self.app.get("/v1/list_submissions/?certified=mixed", headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.OK)
-        self.assertIn("submissions", response.json)
-        self.assertEqual(len(response.json["submissions"]), 1)
-        self.logout()
-
-        self.login_agency_user()
-        response = self.app.get("/v1/list_submissions/?certified=mixed", headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.OK)
-        self.assertIn("submissions", response.json)
-        self.assertEqual(len(response.json["submissions"]), 5)
-
-        response = self.app.get("/v1/list_submissions/?certified=mixed", headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.OK)
-        self.assertIn("submissions", response.json)
-        self.assertEqual(len(response.json["submissions"]), 5)
-        self.logout()
-
     def test_finalize_wrong_user(self):
         """Test finalizing a job as the wrong user."""
         # Jobs were submitted with the id for "approved user," so lookup
