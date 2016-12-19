@@ -43,7 +43,8 @@ def database(full_database_setup):
     db, tables_in_drop_order = full_database_setup
     yield db
     db.session.expire_all()
-    db.Session.rollback()
+    # rollback all open transactions
+    db.scoped_session_maker.rollback()
     for table in tables_in_drop_order:
         db.session.query(table).delete(synchronize_session=False)
 
