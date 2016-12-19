@@ -707,8 +707,9 @@ class FileHandler:
 
     def get_xml_response_content(self, api_url):
         """ Retrieve XML Response from the provided API url """
-        logger.debug('Getting XML response')
-        return requests.get(api_url, verify=False, timeout=120).text
+        result = requests.get(api_url, verify=False, timeout=120).text
+        logger.debug('Result for %s: %s', api_url, result)
+        return result
 
     def call_d_file_api(self, file_type_name, cgac_code, start_date, end_date, job):
         """ Call D file API, return True if results found, False otherwise """
