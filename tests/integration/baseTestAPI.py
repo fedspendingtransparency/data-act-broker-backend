@@ -11,7 +11,8 @@ from dataactbroker.app import createApp as createBrokerApp
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
 from dataactcore.models import lookups
-from dataactcore.models.userModel import User, UserStatus
+from dataactcore.models.domainModels import CGAC
+from dataactcore.models.userModel import User, UserAffiliation, UserStatus
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
@@ -77,13 +78,19 @@ class BaseTestAPI(unittest.TestCase):
 
             # get user info and save as class variables for use by tests
             sess = GlobalDB.db().session
+            cgac = CGAC(cgac_code='000', agency_name='Example Agency')
 
             # set up users for status tests
             def add_status_user(email, status_name, website_admin=False):
                 sess.add(UserFactory(
                     email=email, user_status_id=USER_STATUS_DICT[status_name],
                     permission_type_id=PERMISSION_TYPE_DICT['writer'],
-                    website_admin=website_admin))
+                    website_admin=website_admin,
+                    affiliations=[UserAffiliation(
+                        cgac=cgac,
+                        permission_type_id=PERMISSION_TYPE_DICT['writer']
+                    )]
+                ))
             add_status_user('user@agency.gov', 'awaiting_confirmation')
             add_status_user('realEmail@agency.gov', 'email_confirmed')
             add_status_user('waiting@agency.gov', 'awaiting_approval')

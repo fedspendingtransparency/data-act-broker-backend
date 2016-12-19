@@ -1,7 +1,6 @@
 import json
 from unittest.mock import Mock
 
-from flask import Flask
 import pytest
 
 from dataactbroker import domainRoutes
@@ -12,11 +11,9 @@ from tests.unit.dataactcore.factories.user import UserFactory
 
 
 @pytest.fixture
-def domain_app():
-    app = Flask('test-app')
-    domainRoutes.add_domain_routes(app)
-    app.teardown_appcontext(lambda exception: GlobalDB.close())
-    yield app.test_client()
+def domain_app(test_app):
+    domainRoutes.add_domain_routes(test_app.application)
+    yield test_app
 
 
 def test_list_agencies_limits(monkeypatch, user_constants, domain_app):

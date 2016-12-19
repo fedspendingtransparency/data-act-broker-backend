@@ -1,6 +1,7 @@
 from random import randint
 import os.path
 
+from flask import Flask, g
 import pytest
 
 import dataactcore.config
@@ -74,3 +75,13 @@ def mock_broker_config_paths(tmpdir):
 
     for key in keys_to_replace:
         dataactcore.config.CONFIG_BROKER[key] = original[key]
+
+@pytest.fixture
+def test_app(database):
+    """Gets us in the application context, where we can set/use g.
+    Particularly useful if we're checking `g` in multiple modules (and hence
+    Mocking them out would be a pain)"""
+    app = Flask('test-app')
+    with app.app_context():
+        g._db = database
+        yield app.test_client()

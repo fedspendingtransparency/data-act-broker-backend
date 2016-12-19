@@ -16,6 +16,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug import secure_filename
 
+from dataactbroker.permissions import current_user_can_on_submission
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
@@ -368,7 +369,7 @@ class FileHandler:
 
         return start_date, end_date
 
-    def finalize(self, job_id=None):
+    def finalize(self):
         """ Set upload job in job tracker database to finished, allowing dependent jobs to be started
 
         Flask request should include key "upload_id", which holds the job_id for the file_upload job
@@ -379,14 +380,13 @@ class FileHandler:
         sess = GlobalDB.db().session
         response_dict = {}
         try:
-            if job_id is None:
-                input_dictionary = RequestDictionary(self.request)
-                job_id = input_dictionary.getValue("upload_id")
+            input_dictionary = RequestDictionary(self.request)
+            job_id = input_dictionary.getValue("upload_id")
 
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id = job_id).one()
             submission = sess.query(Submission).filter_by(submission_id = job.submission_id).one()
-            if not user_agency_matches(submission):
+            if not current_user_can_on_submission('writer', submission):
                 # This user cannot finalize this job
                 raise ResponseException(
                     "Cannot finalize a job for a different agency",
@@ -875,7 +875,7 @@ class FileHandler:
             return error_response
 
         # Return same response as check generation route
-        return self.checkGeneration(submission_id, file_type)
+        return self.checkGeneration()
 
     def generate_detached_file(self):
         """ Start a file generation job for the specified file type """
@@ -949,7 +949,7 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, response_dict)
 
-    def checkGeneration(self, submission_id=None, file_type=None):
+    def checkGeneration(self):
         """ Return information about file generation jobs
 
         Returns:
@@ -957,8 +957,7 @@ class FileHandler:
             If file_type is D1 or D2, also includes start and end.
         """
         sess = GlobalDB.db().session
-        if submission_id is None or file_type is None:
-            submission_id, file_type = self.get_request_params_for_generate()
+        submission_id, file_type = self.get_request_params_for_generate()
         # Check permission to submission
         self.check_submission_by_id(submission_id, file_type)
 
