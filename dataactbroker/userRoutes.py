@@ -33,7 +33,7 @@ def add_user_routes(app,system_email,bcrypt):
     def set_skip_guide():
         """ Sets skip_guide param for current user """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return accountManager.set_skip_guide(session)
+        return accountManager.set_skip_guide()
 
     @app.route("/v1/email_users/", methods=["POST"])
     @requires_login
@@ -42,4 +42,4 @@ def add_user_routes(app,system_email,bcrypt):
         Sends email notifications to users that their submission is ready for review & publish viewing
         """
         accountManager = AccountHandler(request, bcrypt=bcrypt)
-        return accountManager.email_users(system_email, session)
+        return accountManager.email_users(system_email)

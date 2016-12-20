@@ -168,7 +168,6 @@ class AccountHandler:
         except Exception as e:
             # Return 500
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
-        return self.response
 
     def get_max_dict(self, ticket, service):
         url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
