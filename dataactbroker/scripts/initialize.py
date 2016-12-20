@@ -1,20 +1,16 @@
-from dataactvalidator.app import createApp
 from dataactbroker.scripts.setupEmails import setupEmails
-from dataactcore.models.userModel import User
-from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import createUserWithPassword
+from dataactcore.scripts.initialize import create_admin
 from dataactcore.scripts.setupAllDB import setupAllDB
 from dataactbroker.handlers.aws.session import SessionTable
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import argparse
-from flask_bcrypt import Bcrypt
 
 
 def options():
     """ Run functions based on arguments provided """
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--initialize", action="store_true", help="Runs all of the setup options")
-    parser.add_argument("-a", "--createAdmin", action="store_true", help="Creates admin user")
+    parser.add_argument("-a", "--create_admin", action="store_true", help="Creates admin user")
     parser.add_argument("-s", "--start", action="store_true", help="Starts the broker")
     parser.add_argument("-d", "--deploy", action="store_true", help="Deploy on AWS")
     args = parser.parse_args()
@@ -40,7 +36,7 @@ def initialize():
     print("Setting up databases...")
     setupDB()
     print("Creating admin user...")
-    createAdmin()
+    create_admin()
     print("The broker has been initialized. You may now run the broker with the --start argument.")
 
 
@@ -48,22 +44,6 @@ def setupDB():
     """ Setup all databases used by API """
     setupAllDB()
     setupEmails()
-
-
-def createAdmin():
-    """Create initial admin user."""
-    adminEmail = CONFIG_BROKER['admin_email']
-    adminPass = CONFIG_BROKER['admin_password']
-    with createApp().app_context():
-        sess = GlobalDB.db().session
-        user = sess.query(User).filter(User.email == adminEmail).one_or_none()
-        if not user:
-            # once the rest of the setup scripts are updated to use
-            # GlobalDB instead of databaseSession, move the app_context
-            # creation up to initialize()
-            user = createUserWithPassword(adminEmail, adminPass, Bcrypt(),
-                                          website_admin=True)
-    return user
 
 
 def setupSessionTable():
