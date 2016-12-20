@@ -235,19 +235,19 @@ class AccountHandler:
     def list_user_emails(self):
         """ List user names and emails """
         sess = GlobalDB.db().session
-        try:
-            users = sess.query(User).filter_by(
-                cgac_code=g.user.cgac_code,
-                user_status_id=USER_STATUS_DICT["approved"],
-                is_active=True
-            ).all()
-        except ValueError as exc:
-            # Client provided a bad status
-            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
-        user_info = []
-        for user in users:
-            this_info = {"id":user.user_id, "name": user.name, "email": user.email}
-            user_info.append(this_info)
+        users = sess.query(User).\
+            filter_by(user_status_id=USER_STATUS_DICT['approved']).\
+            filter_by(is_active=True)
+        if not g.user.website_admin:
+            relevant_cgacs = [aff.cgac_id for aff in g.user.affiliations]
+            subquery = sess.query(UserAffiliation.user_id).\
+                filter(UserAffiliation.cgac_id.in_(relevant_cgacs))
+            users = users.filter(User.user_id.in_(subquery))
+
+        user_info = [
+            {"id": user.user_id, "name": user.name, "email": user.email}
+            for user in users
+        ]
         return JsonResponse.create(StatusCode.OK, {"users": user_info})
 
     def send_reset_password_email(self, user, system_email, email=None, unlock_user=False):

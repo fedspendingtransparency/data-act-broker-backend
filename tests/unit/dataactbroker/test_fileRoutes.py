@@ -31,13 +31,8 @@ def test_list_submissions(file_app, database, user_constants):
     the number of submissions within the agency of the user that is logged in
     """
     cgacs = [CGACFactory() for _ in range(3)]
-    user1 = UserFactory(affiliations=[
-        UserAffiliation(cgac=cgacs[0], permission_type_id=1),
-        UserAffiliation(cgac=cgacs[1], permission_type_id=1)
-    ])
-    user2 = UserFactory(affiliations=[
-        UserAffiliation(cgac=cgacs[2], permission_type_id=1),
-    ])
+    user1 = UserFactory.with_cgacs(cgacs[0], cgacs[1])
+    user2 = UserFactory.with_cgacs(cgacs[2])
     database.session.add_all(cgacs + [user1, user2])
     database.session.commit()
     submissions = [     # one submission per CGAC

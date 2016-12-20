@@ -59,15 +59,6 @@ class UserTests(BaseTestAPI):
         super(UserTests, self).setUp()
         self.login_admin_user()
 
-    def test_list_user_emails(self):
-        """Test getting user emails"""
-        self.logout()
-        self.login_agency_user()
-        response = self.app.get("/v1/list_user_emails/", headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.OK)
-        users = response.json["users"]
-        self.assertEqual(len(users), 7)
-
     def test_finalize_wrong_user(self):
         """Test finalizing a job as the wrong user."""
         # Jobs were submitted with the id for "approved user," so lookup
