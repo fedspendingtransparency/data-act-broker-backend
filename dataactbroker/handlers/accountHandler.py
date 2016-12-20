@@ -116,7 +116,7 @@ class AccountHandler:
             service = safeDictionary.getValue('service')
 
             # Call MAX's serviceValidate endpoint and retrieve the response
-            max_dict = self.get_max_dict(ticket, service)
+            max_dict = get_max_dict(ticket, service)
 
             if not 'cas:authenticationSuccess' in max_dict['cas:serviceResponse']:
                 raise ValueError("You have failed to login successfully with MAX")
@@ -169,11 +169,6 @@ class AccountHandler:
             # Return 500
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-    def get_max_dict(self, ticket, service):
-        url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
-        max_xml = requests.get(url).content
-        return xmltodict.parse(max_xml)
-
     @staticmethod
     def create_session_and_response(session, user):
         """Create a session."""
@@ -182,39 +177,6 @@ class AccountHandler:
         data = json_for_user(user)
         data['message'] = 'Login successful'
         return JsonResponse.create(StatusCode.OK, data)
-
-    def logout(self,session):
-        """
-
-        This function removes the session from the session table if currently logged in, and then returns a success message
-
-        arguments:
-
-        session  -- (Session) object from flask
-
-        return the reponse object
-
-        """
-        # Call session handler
-        LoginSession.logout(session)
-        return JsonResponse.create(StatusCode.OK,{"message":"Logout successful"})
-
-    def list_user_emails(self):
-        """ List user names and emails """
-        sess = GlobalDB.db().session
-        try:
-            users = sess.query(User).filter_by(
-                cgac_code=g.user.cgac_code,
-                user_status_id=USER_STATUS_DICT["approved"]
-            ).all()
-        except ValueError as exc:
-            # Client provided a bad status
-            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
-        user_info = []
-        for user in users:
-            this_info = {"id":user.user_id, "name": user.name, "email": user.email}
-            user_info.append(this_info)
-        return JsonResponse.create(StatusCode.OK, {"users": user_info})
 
     def set_skip_guide(self):
         """ Set current user's skip guide parameter """
@@ -369,3 +331,44 @@ def json_for_user(user):
                           "permission": affil.permission_type_name}
                          for affil in user.affiliations]
     }
+
+
+def get_max_dict(ticket, service):
+    url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
+    max_xml = requests.get(url).content
+    return xmltodict.parse(max_xml)
+
+
+def logout(session):
+    """
+
+    This function removes the session from the session table if currently logged in, and then returns a success message
+
+    arguments:
+
+    session  -- (Session) object from flask
+
+    return the reponse object
+
+    """
+    # Call session handler
+    LoginSession.logout(session)
+    return JsonResponse.create(StatusCode.OK, {"message": "Logout successful"})
+
+
+def list_user_emails():
+    """ List user names and emails """
+    sess = GlobalDB.db().session
+    try:
+        users = sess.query(User).filter_by(
+            cgac_code=g.user.cgac_code,
+            user_status_id=USER_STATUS_DICT["approved"]
+        ).all()
+    except ValueError as exc:
+        # Client provided a bad status
+        return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
+    user_info = []
+    for user in users:
+        this_info = {"id": user.user_id, "name": user.name, "email": user.email}
+        user_info.append(this_info)
+    return JsonResponse.create(StatusCode.OK, {"users": user_info})
