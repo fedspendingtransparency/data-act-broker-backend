@@ -12,7 +12,6 @@ class User(Base):
     username = Column(Text)
     email = Column(Text)
     name = Column(Text)
-    cgac_code = Column(Text)
     title = Column(Text)
     user_status_id = Column(Integer, ForeignKey("user_status.user_status_id"))
     password_hash = Column(Text)

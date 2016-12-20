@@ -90,7 +90,6 @@ def test_set_max_perms(database, monkeypatch, user_constants):
     accountHandler.set_max_perms(
         user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_ABC-PERM_S')
     database.session.commit()   # populate ids
-    assert user.cgac_code == 'ABC'
     assert len(user.affiliations) == 1
     affil = user.affiliations[0]
     assert affil.cgac_id == cgac_abc.cgac_id
@@ -98,7 +97,6 @@ def test_set_max_perms(database, monkeypatch, user_constants):
 
     accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_W')
     database.session.commit()   # populate ids
-    assert user.cgac_code == 'ABC'
     assert len(user.affiliations) == 1
     affil = user.affiliations[0]
     assert affil.cgac_id == cgac_abc.cgac_id
@@ -119,15 +117,12 @@ def test_set_max_perms(database, monkeypatch, user_constants):
 def test_create_session_and_response(database, monkeypatch, user_constants):
     cgacs = [CGACFactory(cgac_code=str(i)*3, agency_name=str(i))
              for i in range(3)]
-    user = UserFactory(
-        name="my name", title="my title", cgac_code="000",
-        affiliations=[
-            UserAffiliation(cgac=cgacs[1],
-                            permission_type_id=PERMISSION_TYPE_DICT['reader']),
-            UserAffiliation(cgac=cgacs[2],
-                            permission_type_id=PERMISSION_TYPE_DICT['writer']),
-        ]
-    )
+    user = UserFactory(name="my name", title="my title", affiliations=[
+        UserAffiliation(cgac=cgacs[1],
+                        permission_type_id=PERMISSION_TYPE_DICT['reader']),
+        UserAffiliation(cgac=cgacs[2],
+                        permission_type_id=PERMISSION_TYPE_DICT['writer']),
+    ])
     database.session.add_all(cgacs + [user])
     database.session.commit()
     monkeypatch.setattr(accountHandler, 'LoginSession', Mock())
@@ -139,7 +134,5 @@ def test_create_session_and_response(database, monkeypatch, user_constants):
     assert result['user_id'] == user.user_id
     assert result['name'] == 'my name'
     assert result['title'] == 'my title'
-    assert result['agency_name'] == ['0']   # seems odd?
-    assert result['cgac_code'] == '000'
     assert dict(agency_name='1', permission='reader') in result['affiliations']
     assert dict(agency_name='2', permission='writer') in result['affiliations']

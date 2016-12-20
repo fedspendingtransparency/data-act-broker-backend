@@ -11,7 +11,6 @@ class UserFactory(factory.Factory):
     username = fuzzy.FuzzyText()
     email = fuzzy.FuzzyText()
     name = fuzzy.FuzzyText()
-    cgac_code = fuzzy.FuzzyText()
     title = fuzzy.FuzzyText()
     is_active = True
 

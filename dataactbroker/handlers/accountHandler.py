@@ -443,15 +443,9 @@ def set_max_perms(user, max_group_list):
              if group_name.startswith(prefix)]
     if 'SYS' in perms:
         user.affiliations = []
-        user.cgac_code = 'SYS'
         user.website_admin = True
     else:
         affiliations = list(best_affiliation(perms_to_affiliations(perms)))
-
-        if affiliations:
-            user.cgac_code = affiliations[0].cgac.cgac_code
-        else:
-            user.cgac_code = None
 
         user.affiliations = affiliations
         user.website_admin = False
@@ -459,15 +453,9 @@ def set_max_perms(user, max_group_list):
 
 def json_for_user(user):
     """Convert the provided user to a dictionary (for JSON)"""
-    sess = GlobalDB.db().session
-    agency_name = sess.query(CGAC.agency_name).\
-        filter(CGAC.cgac_code == user.cgac_code).\
-        one_or_none()
     return {
         "user_id": user.user_id,
         "name": user.name,
-        "agency_name": agency_name,
-        "cgac_code": user.cgac_code,
         "title": user.title,
         "skip_guide": user.skip_guide,
         "website_admin": user.website_admin,

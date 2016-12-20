@@ -73,7 +73,10 @@ class UserTests(BaseTestAPI):
         with createApp().app_context():
             sess = GlobalDB.db().session
             submission = sess.query(Submission).filter(Submission.submission_id == self.submission_id).one()
-            submission.cgac_code = sess.query(User).filter(User.email == self.test_users['approved_email']).one().cgac_code
+            user = sess.query(User).\
+                filter_by(email=self.test_users['approved_email']).\
+                one()
+            submission.cgac_code = user.affiliations[0].cgac.cgac_code
             sess.commit()
         response = self.app.post_json("/v1/finalize_job/",
             postJson, expect_errors=True, headers={"x-session-id": self.session_id})
@@ -85,7 +88,6 @@ class UserTests(BaseTestAPI):
         response = self.app.get("/v1/current_user/", headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK)
         assert response.json["name"] == "Mr. Manager"
-        assert response.json["cgac_code"] == "SYS"
         assert response.json["skip_guide"] == False
         assert response.json["website_admin"] == True
 

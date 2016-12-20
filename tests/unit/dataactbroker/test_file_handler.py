@@ -18,8 +18,8 @@ CERTIFIED = "mixed"
 def test_list_submissions_success(database, job_constants, monkeypatch):
     fh = fileHandler.FileHandler(Mock())
 
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1)
     add_models(database, [user, sub])
 
     monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
@@ -29,8 +29,8 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
     delete_models(database, [user, sub])
 
     sess = database.session
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='finished').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
@@ -42,8 +42,8 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
     delete_models(database, [user, sub, job])
 
     sess = database.session
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='running').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
@@ -55,8 +55,8 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
     delete_models(database, [user, sub, job])
 
     sess = database.session
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
@@ -68,8 +68,8 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
     delete_models(database, [user, sub, job])
 
     sess = database.session
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='ready').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
@@ -83,8 +83,8 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
 def test_list_submissions_failure(database, job_constants, monkeypatch):
     fh = fileHandler.FileHandler(Mock())
 
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, number_of_errors=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, number_of_errors=1)
     add_models(database, [user, sub])
 
     monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
@@ -94,8 +94,8 @@ def test_list_submissions_failure(database, job_constants, monkeypatch):
     delete_models(database, [user, sub])
 
     sess = database.session
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='failed').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
@@ -107,8 +107,8 @@ def test_list_submissions_failure(database, job_constants, monkeypatch):
     delete_models(database, [user, sub, job])
 
     sess = database.session
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='invalid').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
