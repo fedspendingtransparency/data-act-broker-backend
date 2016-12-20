@@ -1,6 +1,5 @@
 import logging
 from operator import attrgetter
-import re
 import requests
 import xmltodict
 
@@ -218,7 +217,7 @@ class AccountHandler:
             user_info.append(this_info)
         return JsonResponse.create(StatusCode.OK, {"users": user_info})
 
-    def set_skip_guide(self, session):
+    def set_skip_guide(self):
         """ Set current user's skip guide parameter """
         sess = GlobalDB.db().session
         request_dict = RequestDictionary.derive(self.request)
@@ -244,7 +243,7 @@ class AccountHandler:
              "skip_guide":skip_guide}
         )
 
-    def email_users(self, system_email, session):
+    def email_users(self, system_email):
         """ Send email notification to list of users """
         sess = GlobalDB.db().session
         request_dict = RequestDictionary.derive(self.request)

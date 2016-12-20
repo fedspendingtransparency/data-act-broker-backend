@@ -343,7 +343,7 @@ def create_submission(user_id, submission_values, existing_submission):
     Arguments:
         user_id:  user to associate with this submission
         submission_values: metadata about the submission
-        existing_submission_id: id of existing submission (blank for new submissions)
+        existing_submission: id of existing submission (blank for new submissions)
 
     Returns:
         submission object
