@@ -948,44 +948,6 @@ class FileHandler:
             # Did not find file generation task
             return JsonResponse.error(ResponseException("Generation task key not found", StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
 
-    def list_submissions(self, page, limit, certified):
-        """ List submission based on current page and amount to display. If provided, filter based on
-        certification status """
-        sess = GlobalDB.db().session
-
-        offset = limit*(page-1)
-
-        cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
-        query = sess.query(Submission).\
-            filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
-                          Submission.user_id == g.user.user_id))
-        if certified != 'mixed':
-            query = query.filter_by(publishable=certified)
-        submissions = query.order_by(Submission.updated_at.desc()).limit(limit).offset(offset).all()
-        submission_details = []
-
-        for submission in submissions:
-            total_size = sess.query(func.sum(Job.file_size)).\
-                filter_by(submission_id=submission.submission_id).\
-                scalar() or 0
-
-            status = get_submission_status(submission)
-            if submission.user_id is None:
-                submission_user_name = "No user"
-            else:
-                submission_user_name = sess.query(User).filter_by(user_id=submission.user_id).one().name
-            submission_details.append({"submission_id": submission.submission_id,
-                                       "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
-                                       "size": total_size, "status": status, "errors": submission.number_of_errors,
-                                       "reporting_start_date": str(submission.reporting_start_date),
-                                       "reporting_end_date": str(submission.reporting_end_date),
-                                       "user": {"user_id": submission.user_id,
-                                                "name": submission_user_name}})
-
-        total_submissions = query.from_self().count()
-
-        return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})
-
     @staticmethod
     def get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date):
         """ Compiles the URL to be called in order to generate the D files """
@@ -1183,3 +1145,42 @@ def get_error_metrics(submission):
     except Exception as e:
         # Unexpected exception, this is a 500 server error
         return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+
+
+def list_submissions(page, limit, certified):
+    """ List submission based on current page and amount to display. If provided, filter based on
+    certification status """
+    sess = GlobalDB.db().session
+
+    offset = limit*(page-1)
+
+    cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
+    query = sess.query(Submission).\
+        filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
+                      Submission.user_id == g.user.user_id))
+    if certified != 'mixed':
+        query = query.filter_by(publishable=certified)
+    submissions = query.order_by(Submission.updated_at.desc()).limit(limit).offset(offset).all()
+    submission_details = []
+
+    for submission in submissions:
+        total_size = sess.query(func.sum(Job.file_size)).\
+            filter_by(submission_id=submission.submission_id).\
+            scalar() or 0
+
+        status = get_submission_status(submission)
+        if submission.user_id is None:
+            submission_user_name = "No user"
+        else:
+            submission_user_name = sess.query(User).filter_by(user_id=submission.user_id).one().name
+        submission_details.append({"submission_id": submission.submission_id,
+                                   "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
+                                   "size": total_size, "status": status, "errors": submission.number_of_errors,
+                                   "reporting_start_date": str(submission.reporting_start_date),
+                                   "reporting_end_date": str(submission.reporting_end_date),
+                                   "user": {"user_id": submission.user_id,
+                                            "name": submission_user_name}})
+
+    total_submissions = query.from_self().count()
+
+    return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})

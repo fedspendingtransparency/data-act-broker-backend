@@ -16,14 +16,12 @@ LIMIT = 10
 CERTIFIED = "mixed"
 
 def test_list_submissions_success(database, job_constants, monkeypatch):
-    fh = fileHandler.FileHandler(Mock())
-
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1)
     add_models(database, [user, sub])
 
     monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
+    json_response = fileHandler.list_submissions(PAGE, LIMIT, CERTIFIED)
     assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
     assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "validation_successful_warnings"
     delete_models(database, [user, sub])
@@ -36,7 +34,7 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
                      file_type=sess.query(FileType).filter_by(name='award').one())
     add_models(database, [user, sub, job])
 
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
+    json_response = fileHandler.list_submissions(PAGE, LIMIT, CERTIFIED)
     assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
     assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "validation_successful"
     delete_models(database, [user, sub, job])
@@ -49,7 +47,7 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
                      file_type=sess.query(FileType).filter_by(name='award').one())
     add_models(database, [user, sub, job])
 
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
+    json_response = fileHandler.list_submissions(PAGE, LIMIT, CERTIFIED)
     assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
     assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "running"
     delete_models(database, [user, sub, job])
@@ -62,7 +60,7 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
                      file_type=sess.query(FileType).filter_by(name='award').one())
     add_models(database, [user, sub, job])
 
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
+    json_response = fileHandler.list_submissions(PAGE, LIMIT, CERTIFIED)
     assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
     assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "waiting"
     delete_models(database, [user, sub, job])
@@ -75,20 +73,18 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
                      file_type=sess.query(FileType).filter_by(name='award').one())
     add_models(database, [user, sub, job])
 
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
+    json_response = fileHandler.list_submissions(PAGE, LIMIT, CERTIFIED)
     assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
     assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "ready"
     delete_models(database, [user, sub, job])
 
 def test_list_submissions_failure(database, job_constants, monkeypatch):
-    fh = fileHandler.FileHandler(Mock())
-
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, number_of_errors=1)
     add_models(database, [user, sub])
 
     monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
+    json_response = fileHandler.list_submissions(PAGE, LIMIT, CERTIFIED)
     assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
     assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "validation_errors"
     delete_models(database, [user, sub])
@@ -101,7 +97,7 @@ def test_list_submissions_failure(database, job_constants, monkeypatch):
                      file_type=sess.query(FileType).filter_by(name='award').one())
     add_models(database, [user, sub, job])
 
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
+    json_response = fileHandler.list_submissions(PAGE, LIMIT, CERTIFIED)
     assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
     assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "failed"
     delete_models(database, [user, sub, job])
@@ -114,7 +110,7 @@ def test_list_submissions_failure(database, job_constants, monkeypatch):
                      file_type=sess.query(FileType).filter_by(name='award').one())
     add_models(database, [user, sub, job])
 
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
+    json_response = fileHandler.list_submissions(PAGE, LIMIT, CERTIFIED)
     assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
     assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "file_errors"
     delete_models(database, [user, sub, job])
