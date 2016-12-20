@@ -1160,27 +1160,40 @@ def list_submissions(page, limit, certified):
                       Submission.user_id == g.user.user_id))
     if certified != 'mixed':
         query = query.filter_by(publishable=certified)
-    submissions = query.order_by(Submission.updated_at.desc()).limit(limit).offset(offset).all()
-    submission_details = []
+    submissions = query.order_by(Submission.updated_at.desc()).\
+            limit(limit).offset(offset)
 
-    for submission in submissions:
-        total_size = sess.query(func.sum(Job.file_size)).\
-            filter_by(submission_id=submission.submission_id).\
-            scalar() or 0
+    return JsonResponse.create(StatusCode.OK, {
+        "submissions": [serialize_submission(s) for s in submissions],
+        "total": query.count()
+    })
 
-        status = get_submission_status(submission)
-        if submission.user_id is None:
-            submission_user_name = "No user"
-        else:
-            submission_user_name = sess.query(User).filter_by(user_id=submission.user_id).one().name
-        submission_details.append({"submission_id": submission.submission_id,
-                                   "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
-                                   "size": total_size, "status": status, "errors": submission.number_of_errors,
-                                   "reporting_start_date": str(submission.reporting_start_date),
-                                   "reporting_end_date": str(submission.reporting_end_date),
-                                   "user": {"user_id": submission.user_id,
-                                            "name": submission_user_name}})
 
-    total_submissions = query.from_self().count()
+def serialize_submission(submission):
+    """Convert the provided submission into a dictionary in a schema the
+    frontend expects"""
+    sess = GlobalDB.db().session
+    # @todo these should probably be part of the query rather than spawning n
+    # queries
+    total_size = sess.query(func.sum(Job.file_size)).\
+        filter_by(submission_id=submission.submission_id).\
+        scalar() or 0
 
-    return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})
+    status = get_submission_status(submission)
+    if submission.user_id is None:
+        submission_user_name = "No user"
+    else:
+        submission_user_name = sess.query(User).filter_by(user_id=submission.user_id).one().name
+
+    return {
+        "submission_id": submission.submission_id,
+        "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
+        "size": total_size,
+        "status": status,
+        "errors": submission.number_of_errors,
+        # @todo why are these a different format?
+        "reporting_start_date": str(submission.reporting_start_date),
+        "reporting_end_date": str(submission.reporting_end_date),
+        "user": {"user_id": submission.user_id,
+                 "name": submission_user_name}
+    }
