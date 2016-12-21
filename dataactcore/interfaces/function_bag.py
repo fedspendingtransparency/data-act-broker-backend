@@ -33,15 +33,13 @@ logger = logging.getLogger(__name__)
 HASH_ROUNDS = 12
 
 
-def createUserWithPassword(email, password, bcrypt, permission=1,
-                           cgac_code="SYS", website_admin=False):
+def createUserWithPassword(email, password, bcrypt, website_admin=False):
     """Convenience function to set up fully-baked user (used for setup/testing only)."""
     sess = GlobalDB.db().session
     status = sess.query(UserStatus).filter(UserStatus.name == 'approved').one()
     user = User(
-        email=email, user_status=status, permission_type_id=permission,
-        cgac_code=cgac_code, name='Administrator', title='System Admin',
-        website_admin=website_admin
+        email=email, user_status=status, name='Administrator',
+        title='System Admin', website_admin=website_admin
     )
     user.salt, user.password_hash = getPasswordHash(password, bcrypt)
     sess.add(user)

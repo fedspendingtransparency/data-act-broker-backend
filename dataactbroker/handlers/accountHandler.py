@@ -21,7 +21,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import get_email_template, check_correct_password, updateLastLogin
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import (
-    PERMISSION_SHORT_DICT, PERMISSION_TYPE_DICT, USER_STATUS_DICT)
+    PERMISSION_SHORT_DICT, USER_STATUS_DICT)
 
 
 logger = logging.getLogger(__name__)
@@ -295,18 +295,9 @@ def set_max_perms(user, max_group_list):
              if group_name.startswith(prefix)]
     if 'SYS' in perms:
         user.affiliations = []
-        user.cgac_code = 'SYS'
         user.website_admin = True
-        user.permission_type_id = PERMISSION_TYPE_DICT['writer']
     else:
         affiliations = list(best_affiliation(perms_to_affiliations(perms)))
-
-        if affiliations:
-            user.cgac_code = affiliations[0].cgac.cgac_code
-            user.permission_type_id = affiliations[0].permission_type_id
-        else:
-            user.cgac_code = None
-            user.prmission_type_id = None
 
         user.affiliations = affiliations
         user.website_admin = False
@@ -314,17 +305,10 @@ def set_max_perms(user, max_group_list):
 
 def json_for_user(user):
     """Convert the provided user to a dictionary (for JSON)"""
-    sess = GlobalDB.db().session
-    agency_name = sess.query(CGAC.agency_name).\
-        filter(CGAC.cgac_code == user.cgac_code).\
-        one_or_none()
     return {
         "user_id": user.user_id,
         "name": user.name,
-        "agency_name": agency_name,
-        "cgac_code": user.cgac_code,
         "title": user.title,
-        "permission": user.permission_type_id,
         "skip_guide": user.skip_guide,
         "website_admin": user.website_admin,
         "affiliations": [{"agency_name": affil.cgac.agency_name,
@@ -359,16 +343,15 @@ def logout(session):
 def list_user_emails():
     """ List user names and emails """
     sess = GlobalDB.db().session
-    try:
-        users = sess.query(User).filter_by(
-            cgac_code=g.user.cgac_code,
-            user_status_id=USER_STATUS_DICT["approved"]
-        ).all()
-    except ValueError as exc:
-        # Client provided a bad status
-        return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
-    user_info = []
-    for user in users:
-        this_info = {"id": user.user_id, "name": user.name, "email": user.email}
-        user_info.append(this_info)
+    users = sess.query(User).\
+        filter_by(user_status_id=USER_STATUS_DICT['approved'])
+    if not g.user.website_admin:
+        relevant_cgacs = [aff.cgac_id for aff in g.user.affiliations]
+        subquery = sess.query(UserAffiliation.user_id).\
+            filter(UserAffiliation.cgac_id.in_(relevant_cgacs))
+        users = users.filter(User.user_id.in_(subquery))
+    user_info = [
+        {"id": user.user_id, "name": user.name, "email": user.email}
+        for user in users
+    ]
     return JsonResponse.create(StatusCode.OK, {"users": user_info})

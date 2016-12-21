@@ -86,7 +86,7 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
 ```
 
 #### POST "/v1/login/"
-This route checks the username and password against a credentials file.  Accepts input as json or form-urlencoded, with keys "username" and "password".
+This route checks the username and password against a credentials file. Accepts input as json or form-urlencoded, with keys "username" and "password". See `current_user` docs for details.
 
 Example input:
 
@@ -103,10 +103,13 @@ Example output:
 {
     "message": "Login successful",
     "user_id": 42,
-    "name": "John",
+    "name": "Jill",
     "title":"Developer",
-    "agency": "Department of Labor",
-    "permission" : 1
+    "skip_guide": False,
+    "website_admin": False,
+    "affiliations": [
+        {"agency_name": "Department of Labor", "permission": "writer"}
+    ]
 }
 ```
 
@@ -154,12 +157,18 @@ Example output:
     "user_id": 42,
     "name": "John",
     "title":"Developer",
-    "agency": "Department of Labor",
-    "permission" : 1,
     "skip_guide": False,
-    "website_admin": False
+    "website_admin": False,
+    "affiliations": [
+        {"agency_name": "Department of Labor", "permission": "writer"}
+    ]
+}
 }
 ```
+
+* `skip_guide` indicates whether or not the user has requested to skip introductory materials.
+* `website_admin` describes a super-user status.
+* `affiliations` is a list of objects indicating which agencies this user is a part of and what permissions they have at that agency.
 
 
 #### POST "/v1/set_skip_guide/"

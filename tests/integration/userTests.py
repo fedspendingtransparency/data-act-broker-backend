@@ -59,38 +59,6 @@ class UserTests(BaseTestAPI):
         super(UserTests, self).setUp()
         self.login_admin_user()
 
-    def test_list_user_emails(self):
-        """Test getting user emails"""
-        self.logout()
-        self.login_agency_user()
-        response = self.app.get("/v1/list_user_emails/", headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.OK)
-        users = response.json["users"]
-        self.assertEqual(len(users), 8)
-
-    def test_list_submissions(self):
-        """Test listing user's submissions. The expected values here correspond to the number of submissions within
-         the agency of the user that is logged in """
-        self.logout()
-        self.login_approved_user()
-        response = self.app.get("/v1/list_submissions/?certified=mixed", headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.OK)
-        self.assertIn("submissions", response.json)
-        self.assertEqual(len(response.json["submissions"]), 1)
-        self.logout()
-
-        self.login_agency_user()
-        response = self.app.get("/v1/list_submissions/?certified=mixed", headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.OK)
-        self.assertIn("submissions", response.json)
-        self.assertEqual(len(response.json["submissions"]), 5)
-
-        response = self.app.get("/v1/list_submissions/?certified=mixed", headers={"x-session-id": self.session_id})
-        self.check_response(response, StatusCode.OK)
-        self.assertIn("submissions", response.json)
-        self.assertEqual(len(response.json["submissions"]), 5)
-        self.logout()
-
     def test_finalize_wrong_user(self):
         """Test finalizing a job as the wrong user."""
         # Jobs were submitted with the id for "approved user," so lookup
@@ -105,7 +73,10 @@ class UserTests(BaseTestAPI):
         with createApp().app_context():
             sess = GlobalDB.db().session
             submission = sess.query(Submission).filter(Submission.submission_id == self.submission_id).one()
-            submission.cgac_code = sess.query(User).filter(User.email == self.test_users['approved_email']).one().cgac_code
+            user = sess.query(User).\
+                filter_by(email=self.test_users['approved_email']).\
+                one()
+            submission.cgac_code = user.affiliations[0].cgac.cgac_code
             sess.commit()
         response = self.app.post_json("/v1/finalize_job/",
             postJson, expect_errors=True, headers={"x-session-id": self.session_id})
@@ -117,7 +88,6 @@ class UserTests(BaseTestAPI):
         response = self.app.get("/v1/current_user/", headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK)
         assert response.json["name"] == "Mr. Manager"
-        assert response.json["cgac_code"] == "SYS"
         assert response.json["skip_guide"] == False
         assert response.json["website_admin"] == True
 

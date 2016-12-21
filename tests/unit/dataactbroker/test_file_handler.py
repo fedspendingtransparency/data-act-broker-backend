@@ -8,116 +8,150 @@ from dataactbroker.handlers import fileHandler
 from dataactcore.models.jobModels import JobStatus, JobType, FileType
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
+from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
 from tests.unit.dataactcore.factories.user import UserFactory
 
-PAGE = 1
-LIMIT = 10
-CERTIFIED = "mixed"
+
+def list_submissions_result():
+    json_response = fileHandler.list_submissions(1, 10, "mixed")
+    assert json_response.status_code == 200
+    return json.loads(json_response.get_data().decode('UTF-8'))
+
 
 def test_list_submissions_success(database, job_constants, monkeypatch):
-    fh = fileHandler.FileHandler(Mock())
-
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1)
     add_models(database, [user, sub])
 
     monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
-    assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
-    assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "validation_successful_warnings"
+    result = list_submissions_result()
+    assert result['total'] == 1
+    assert result['submissions'][0]['status'] == "validation_successful_warnings"
     delete_models(database, [user, sub])
 
     sess = database.session
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='finished').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
     add_models(database, [user, sub, job])
 
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
-    assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
-    assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "validation_successful"
+    result = list_submissions_result()
+    assert result['total'] == 1
+    assert result['submissions'][0]['status'] == "validation_successful"
     delete_models(database, [user, sub, job])
 
     sess = database.session
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='running').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
     add_models(database, [user, sub, job])
 
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
-    assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
-    assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "running"
+    result = list_submissions_result()
+    assert result['total'] == 1
+    assert result['submissions'][0]['status'] == "running"
     delete_models(database, [user, sub, job])
 
     sess = database.session
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
     add_models(database, [user, sub, job])
 
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
-    assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
-    assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "waiting"
+    result = list_submissions_result()
+    assert result['total'] == 1
+    assert result['submissions'][0]['status'] == "waiting"
     delete_models(database, [user, sub, job])
 
     sess = database.session
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='ready').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
     add_models(database, [user, sub, job])
 
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
-    assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
-    assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "ready"
+    result = list_submissions_result()
+    assert result['total'] == 1
+    assert result['submissions'][0]['status'] == "ready"
     delete_models(database, [user, sub, job])
 
 def test_list_submissions_failure(database, job_constants, monkeypatch):
-    fh = fileHandler.FileHandler(Mock())
-
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, number_of_errors=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, number_of_errors=1)
     add_models(database, [user, sub])
 
     monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
-    assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
-    assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "validation_errors"
+    result = list_submissions_result()
+    assert result['total'] == 1
+    assert result['submissions'][0]['status'] == "validation_errors"
     delete_models(database, [user, sub])
 
     sess = database.session
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='failed').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
     add_models(database, [user, sub, job])
 
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
-    assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
-    assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "failed"
+    result = list_submissions_result()
+    assert result['total'] == 1
+    assert result['submissions'][0]['status'] == "failed"
     delete_models(database, [user, sub, job])
 
     sess = database.session
-    user = UserFactory(user_id=1, cgac_code='cgac')
-    sub = SubmissionFactory(user_id=1, submission_id=1, cgac_code='cgac')
+    user = UserFactory(user_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='invalid').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
     add_models(database, [user, sub, job])
 
-    json_response = fh.list_submissions(PAGE, LIMIT, CERTIFIED)
-    assert json.loads(json_response.get_data().decode("utf-8"))['total'] == 1
-    assert json.loads(json_response.get_data().decode("utf-8"))['submissions'][0]['status'] == "file_errors"
+    result = list_submissions_result()
+    assert result['total'] == 1
+    assert result['submissions'][0]['status'] == "file_errors"
     delete_models(database, [user, sub, job])
+
+
+@pytest.mark.usefixtures('user_constants')
+def test_list_submissions_permissions(database, monkeypatch):
+    """Verify that the user must be in the same CGAC group, the submission's
+    owner, or website admin to see the submission"""
+    cgac1, cgac2 = CGACFactory(), CGACFactory()
+    user1, user2 = UserFactory.with_cgacs(cgac1), UserFactory()
+    database.session.add_all([cgac1, cgac2, user1, user2])
+    database.session.commit()
+    sub = SubmissionFactory(user_id=user2.user_id, cgac_code=cgac2.cgac_code)
+    database.session.add(sub)
+    database.session.commit()
+
+    monkeypatch.setattr(fileHandler, 'g', Mock(user=user1))
+    assert list_submissions_result()['total'] == 0
+
+    user1.affiliations[0].cgac = cgac2
+    database.session.commit()
+    assert list_submissions_result()['total'] == 1
+    user1.affiliations = []
+    database.session.commit()
+    assert list_submissions_result()['total'] == 0
+
+    sub.user_id = user1.user_id
+    database.session.commit()
+    assert list_submissions_result()['total'] == 1
+    sub.user_id = user2.user_id
+    database.session.commit()
+    assert list_submissions_result()['total'] == 0
+
+    user1.website_admin = True
+    database.session.commit()
+    assert list_submissions_result()['total'] == 1
 
 
 def test_narratives(database, job_constants):
