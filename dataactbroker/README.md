@@ -156,17 +156,10 @@ Example output:
     "title":"Developer",
     "agency": "Department of Labor",
     "permission" : 1,
-    "skip_guide": False
+    "skip_guide": False,
+    "website_admin": False
 }
 ```
-
-Permissions for the DATA Act Broker are list based. Each integer in the list corresponds with a permission.
-
-
-| Permission Type  | Value |
-| ------------- |-------------|
-|User| 0|
-|Admin  |1|
 
 
 #### POST "/v1/set_skip_guide/"
@@ -1104,6 +1097,143 @@ The response is an object that represents that file's state.
 	* If the file is not a D1/D2 file type, return a blank string
 
 * `message` - returns a user-readable error message when the file is `failed`, otherwise returns a blank string
+
+
+## Generate Detached Files (independent from a submission)
+**Route:** `/v1/generate_detached_file`
+
+**Method:** `POST`
+
+This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted.
+
+### Body (JSON)
+
+```
+{
+    "file_type": "D1",
+    "cgac_code": "020",
+    "start": "01/01/2016",
+    "end": "03/31/2016"
+}
+```
+
+### Body Description
+
+* `file_type` - **required** - a string indicating the file type to generate. Allowable values are:
+	* `D1` - generate a D1 file
+	* `D2` - generate a D2 file
+* `cgac_code` - **required for D1/D2 only** - the cgac of the agency for which to generate the files for
+* `start` - **required for D1/D2 only** - the start date of the requested date range, in `MM/DD/YYYY` string format
+* `end` - **required for D1/D2 only** - the end date of the requested date range, in `MM/DD/YYYY` string format
+
+### Response (JSON)
+Response will be the same format as those which are returned in the `/v1/check_detached_generation_status` endpoint
+
+
+## File Status
+**Route:** `/v1/check_detached_generation_status`
+
+**Method:** `POST`
+
+This route returns either a signed S3 URL to the generated file or, if the file is not yet ready or have failed to generate for other reasons, returns a status indicating that.
+
+### Body (JSON)
+
+```
+{
+    "job_id": "1
+}
+```
+
+### Body Description
+
+* `job_id` - **required** - an integer corresponding the job_id for the generation. Provided in the response of the call to `generate_detached_file`
+
+### Response (JSON)
+
+*State:* The file has successfully generated
+
+```
+{
+	"status": "finished",
+	"file_type": "D1",
+	"url": "https://........",
+	"start": "01/01/2016",
+	"end": "03/31/2016",
+	"message": "",
+	"job_id": 1
+}
+```
+
+*State:* The file is not yet ready
+
+```
+{
+	"status": "waiting",
+	"file_type": "D1",
+	"url": "",
+    "start": "01/01/2016",
+    "end": "03/31/2016",
+    "message": "",
+	"job_id": 1
+}
+```
+
+*State:* File generation has failed
+
+```
+{
+	"status": "failed",
+	"file_type": "D1",
+	"url": "",
+	"start": "01/01/2016",
+	"end": "03/31/2016",
+	"message": "The server could not reach the Federal Procurement Data System. Try again later.",
+	"job_id": 1
+}
+```
+
+*State:* No file generation request has been made for this submission ID before
+
+```
+{
+	"status": "invalid",
+	"file_type": "D1",
+	"url": "",
+	"start": "",
+	"end": "",
+	"message": "",
+	"job_id": 1
+}
+```
+
+
+### Response Description
+
+The response is an object that represents that file's state.
+
+* `status` - a string constant indicating the file's status.
+	* Possible values are:
+		* `finished` - file has been generated and is available for download
+		* `failed` - an error occurred and the file generation or S3 upload failed, the generated file is invalid, or any other error
+		* `invalid` - no generation request has ever been made for this submission ID before
+
+* `file_type` - a string indicating the file that the status data refers to. Possible values are:
+	* `D1` - D1 file
+	* `D2` - D2 file
+
+* `url` - a signed S3 URL from which the generated file can be downloaded
+	* Blank string when the file is not `finished`
+
+* `start` - **expected for D1/D2 only** - the file start date, in `MM/DD/YYYY` format
+	* If the file is not a D1/D2 file type, return a blank string
+* `end` - **expected for D1/D2 only** - the file end date, in `MM/DD/YYYY` format
+	* If the file is not a D1/D2 file type, return a blank string
+
+* `message` - returns a user-readable error message when the file is `failed`, otherwise returns a blank string
+
+* `job_id` - job ID of the generation job in question
+
 
 ## Test Cases
 

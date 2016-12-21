@@ -11,34 +11,6 @@ class LoginSession():
     """
     This class is a wrapper for the session object
     """
-
-    @staticmethod
-    def getName(session) :
-
-        """
-        arguments:
-
-        session -- (Session) the session object
-
-        returns the name id (string)
-        """
-        if session.get('name') is not None :
-            return session['name']
-        return ""
-
-    @staticmethod
-    def isLogin(session) :
-        """
-        arguments:
-
-        session -- (Session) the session object
-
-        returns (boolean) the status of the user session
-        """
-        if session.get('login') is not None :
-            return True
-        return False
-
     @staticmethod
     def logout(session) :
         """
@@ -314,4 +286,3 @@ class SessionTable :
             user_session.data = dumps(data)
             user_session.expiration = toUnixTime(expiration)
         sess.commit()
-        

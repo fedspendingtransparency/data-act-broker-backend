@@ -6,7 +6,7 @@ import xmltodict
 from threading import Thread
 
 from dateutil.parser import parse
-from flask import session as flaskSession
+from flask import g
 
 from dataactbroker.handlers.aws.sesEmail import sesEmail
 from dataactbroker.handlers.aws.session import LoginSession
@@ -16,13 +16,15 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.interfaces.db import GlobalDB
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import func
-from dataactcore.models.userModel import User, EmailToken
+
+from dataactcore.models.userModel import EmailToken, User, UserAffiliation
 from dataactcore.models.domainModels import CGAC
 from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import (get_email_template, check_correct_password, set_user_password, updateLastLogin)
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import USER_STATUS_DICT, PERMISSION_TYPE_DICT, PERMISSION_TYPE_DICT_ID, PERMISSION_MAP
+
 
 class AccountHandler:
     """
@@ -155,10 +157,6 @@ class AccountHandler:
 
             cgac_group = [g for g in group_list if g.startswith(parent_group+"-CGAC_")]
 
-            # Deny access if they are not aligned with an agency
-            if not cgac_group:
-                raise ValueError("You have logged in with MAX but do not have permission to access the broker.")
-
             try:
                 sess = GlobalDB.db().session
                 user = sess.query(User).filter(func.lower(User.email) == func.lower(email)).one_or_none()
@@ -185,17 +183,17 @@ class AccountHandler:
                         user.name = first_name + " " + middle_name[0] + ". " + last_name
                     user.user_status_id = user.user_status_id = USER_STATUS_DICT['approved']
 
-                    sess.add(user)
-                    sess.commit()
 
                 # update user's cgac based on their current membership
-                # If part of the SYS agency, use that as the cgac otherwise use the first agency provided
+                # If part of the SYS agency, use that as the cgac otherwise
+                # use the first agency provided
                 if [g for g in cgac_group if g.endswith("SYS")]:
-                    user.cgac_code = "SYS"
+                    grant_superuser(user)
                 else:
-                    user.cgac_code = cgac_group[0][-3:]
+                    grant_highest_permission(user, group_list, cgac_group)
 
-                self.grant_highest_permission(sess, user, group_list, cgac_group[0])
+                sess.add(user)
+                sess.commit()
 
             except MultipleResultsFound:
                 raise ValueError("An error occurred during login.")
@@ -212,25 +210,6 @@ class AccountHandler:
             # Return 500
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
         return self.response
-
-    def grant_highest_permission(self, session, user, group_list, cgac_group):
-        if user.cgac_code == 'SYS':
-            user.permission_type_id = PERMISSION_TYPE_DICT['website_admin']
-        else:
-            permission_group = [g for g in group_list if g.startswith(cgac_group + "-PERM_")]
-            # Check if a user has been placed in a specific group. If not, deny access
-            if not permission_group:
-                user.permission_type_id = None
-            else:
-                perms = [perm[-1].lower() for perm in permission_group]
-                ordered_perms = sorted(PERMISSION_MAP, key=lambda k: PERMISSION_MAP[k]['order'])
-
-                for perm in ordered_perms:
-                    if perm in perms:
-                        user.permission_type_id = PERMISSION_TYPE_DICT[PERMISSION_MAP[perm]['name']]
-                        break
-        session.merge(user)
-        session.commit()
 
     def get_max_dict(self, ticket, service):
         url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
@@ -296,7 +275,7 @@ class AccountHandler:
                 filter(CGAC.cgac_code == cgac_code).\
                 one_or_none()
             agency_name = "Unknown" if agency_name is None else agency_name
-            for user in sess.query(User).filter_by(permission_type_id=PERMISSION_TYPE_DICT['website_admin']):
+            for user in sess.query(User).filter_by(website_admin=True):
                 email_template = {'[REG_NAME]': username, '[REG_TITLE]':title, '[REG_AGENCY_NAME]':agency_name,
                                  '[REG_CGAC_CODE]': cgac_code,'[REG_EMAIL]' : user_email,'[URL]':link}
                 new_email = sesEmail(user.email, system_email,templateType="account_creation",parameters=email_template)
@@ -603,9 +582,12 @@ class AccountHandler:
     def list_user_emails(self):
         """ List user names and emails """
         sess = GlobalDB.db().session
-        user = sess.query(User).filter(User.user_id == LoginSession.getName(flaskSession)).one()
         try:
-            users = sess.query(User).filter(User.cgac_code == user.cgac_code, User.user_status_id == USER_STATUS_DICT["approved"], User.is_active == True).all()
+            users = sess.query(User).filter_by(
+                cgac_code=g.user.cgac_code,
+                user_status_id=USER_STATUS_DICT["approved"],
+                is_active=True
+            ).all()
         except ValueError as exc:
             # Client provided a bad status
             return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
@@ -748,14 +730,19 @@ class AccountHandler:
 
         """
         sess = GlobalDB.db().session
-        uid = session["name"]
-        user = sess.query(User).filter(User.user_id == uid).one()
         agency_name = sess.query(CGAC.agency_name).\
-            filter(CGAC.cgac_code == user.cgac_code).\
+            filter(CGAC.cgac_code == g.user.cgac_code).\
             one_or_none()
-        return JsonResponse.create(StatusCode.OK,{"user_id": int(uid),"name":user.name,"agency_name": agency_name,
-                                                  "cgac_code": user.cgac_code,"title":user.title,
-                                                  "permission": user.permission_type_id, "skip_guide": user.skip_guide})
+        return JsonResponse.create(StatusCode.OK, {
+            "user_id": g.user.user_id,
+            "name": g.user.name,
+            "agency_name": agency_name,
+            "cgac_code": g.user.cgac_code,
+            "title": g.user.title,
+            "permission": g.user.permission_type_id,
+            "skip_guide": g.user.skip_guide,
+            "website_admin": g.user.website_admin
+        })
 
     def isAccountExpired(self, user):
         """ Checks user's last login date against inactivity threshold, marks account as inactive if expired
@@ -811,7 +798,6 @@ class AccountHandler:
     def set_skip_guide(self, session):
         """ Set current user's skip guide parameter """
         sess = GlobalDB.db().session
-        user = sess.query(User).filter(User.user_id == session["name"]).one()
         request_dict = RequestDictionary.derive(self.request)
         try:
             if 'skip_guide' not in request_dict:
@@ -819,23 +805,13 @@ class AccountHandler:
                     "Must include skip_guide parameter",
                     StatusCode.CLIENT_ERROR
                 )
-            skip_guide = request_dict['skip_guide']
-            if isinstance(skip_guide, bool):    # e.g. from JSON
-                user.skip_guide = skip_guide
-            elif isinstance(skip_guide, str):
-                # param is a string, allow "true" or "false"
-                if skip_guide.lower() == "true":
-                    user.skip_guide = True
-                elif skip_guide.lower() == "false":
-                    user.skip_guide = False
-                else:
-                    raise ResponseException(
-                        "skip_guide must be true or false",
-                        StatusCode.CLIENT_ERROR
-                    )
-            else:
+            skip_guide = str(request_dict['skip_guide']).lower()
+            if skip_guide not in ("true", "false"):
                 raise ResponseException(
-                    "skip_guide must be a boolean", StatusCode.CLIENT_ERROR)
+                    "skip_guide must be true or false",
+                    StatusCode.CLIENT_ERROR
+                )
+            g.user.skip_guide = skip_guide == "true"
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
         sess.commit()
@@ -859,8 +835,6 @@ class AccountHandler:
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
 
-        current_user = sess.query(User).filter(User.user_id == session["name"]).one()
-
         user_ids = request_dict['users']
         submission_id = request_dict['submission_id']
         # Check if submission id is valid
@@ -873,7 +847,7 @@ class AccountHandler:
         users = []
 
         link = "".join([AccountHandler.FRONT_END, '#/reviewData/', str(submission_id)])
-        email_template = {'[REV_USER_NAME]': current_user.name, '[REV_URL]': link}
+        email_template = {'[REV_USER_NAME]': g.user.name, '[REV_URL]': link}
 
         for user_id in user_ids:
             # Check if user id is valid, if so add User object to array
@@ -884,3 +858,41 @@ class AccountHandler:
             new_email.send()
 
         return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})
+
+
+def grant_superuser(user):
+    user.cgac_code = 'SYS'
+    user.website_admin = True
+    user.permission_type_id = PERMISSION_TYPE_DICT['writer']
+
+
+def grant_highest_permission(user, group_list, cgac_group_list):
+    """Find the highest permission within the provided cgac_group; set that as
+    the user's permission_type_id"""
+    sess = GlobalDB.db().session
+    user.website_admin = False
+    if not cgac_group_list:
+        user.cgac_code = None
+        user.permission_type_id = None
+        return
+
+    cgac_group = cgac_group_list[0]
+    permission_group = [g for g in group_list
+                        if g.startswith(cgac_group + "-PERM_")]
+    # Check if a user has been placed in a specific group. If not, deny access
+    if not permission_group:
+        user.permission_type_id = None
+    else:
+        user.cgac_code = cgac_group[-3:]
+        perms = [perm[-1].lower() for perm in permission_group]
+        ordered_perms = sorted(
+            PERMISSION_MAP.items(), key=lambda pair: pair[1]['order'])
+        for key, permission in ordered_perms:
+            name = permission['name']
+            if key in perms:
+                user.permission_type_id = PERMISSION_TYPE_DICT[name]
+                break
+    user.affiliations = [UserAffiliation(
+        cgac=sess.query(CGAC).filter_by(cgac_code=user.cgac_code).one(),
+        permission_type_id=user.permission_type_id
+    )]

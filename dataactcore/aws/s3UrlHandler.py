@@ -1,7 +1,12 @@
+import logging
 from datetime import datetime
 import boto
 from boto import sts
 from dataactcore.config import CONFIG_BROKER
+
+
+logger = logging.getLogger(__name__)
+
 
 class s3UrlHandler:
     """
@@ -99,6 +104,7 @@ class s3UrlHandler:
         bucket = s3connection.get_bucket(CONFIG_BROKER['aws_bucket'])
         key = bucket.get_key(filename)
         if key is None:
+            logger.warning("File doesn't exist on AWS: %s", filename)
             return 0
         else:
             return key.size

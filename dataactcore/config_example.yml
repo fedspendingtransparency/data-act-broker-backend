@@ -52,7 +52,7 @@ broker:
     # the broker_files directory specified above
     rss_folder: rss
     rss_file: rss_file.xls
-
+    
     # S3 filenames for SF-133 file, only required if planning to load SF-133 table
     sf_133_folder: config
 

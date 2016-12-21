@@ -239,6 +239,33 @@ python dataactvalidator/scripts/load_sf133.py -f
 
 This will take several minutes to process.
 
+### Loading comparison data:
+
+You may load your own comparison data by replacing the example file for each type of data within `dataactvalidator/config/` and running the initialization script with the appropriate flag. Note that the `use_aws` flag in the configuration must be set to `false` in order to load the data from a local file.
+
+
+#### CGAC, Object Class, and Program Activity data
+
+CGAC file location: `dataactvalidator/config/cgac.csv`
+
+Object Class file location: `dataactvalidator/config/object_class.csv`
+
+Program Activity file location: `dataactvalidator/config/program_activity.csv`
+
+To load these files:
+```bash
+python dataactcore/scripts/initialize.py -d
+```
+
+#### TAS data:
+
+TAS file location: `dataactvalidator/config/cars_tas.csv`
+
+To load TAS data:
+```bash
+python dataactcore/scripts/initialize.py -t
+```
+
 ### Run Broker Backend Applications
 
 After you've initialized the broker API and validator, start the broker API:
