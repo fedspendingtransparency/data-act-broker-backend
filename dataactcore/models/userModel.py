@@ -12,10 +12,7 @@ class User(Base):
     username = Column(Text)
     email = Column(Text)
     name = Column(Text)
-    cgac_code = Column(Text)
     title = Column(Text)
-    permission_type_id = Column(Integer, ForeignKey(column="permission_type.permission_type_id",
-                                                    name="user_permission_type_fk"))
     user_status_id = Column(Integer, ForeignKey("user_status.user_status_id"))
     password_hash = Column(Text)
     salt = Column(Text)
