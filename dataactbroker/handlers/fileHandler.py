@@ -1155,9 +1155,10 @@ def list_submissions(page, limit, certified):
     offset = limit*(page-1)
 
     cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
-    query = sess.query(Submission).\
-        filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
-                      Submission.user_id == g.user.user_id))
+    query = sess.query(Submission)
+    if not g.user.website_admin:
+        query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
+                                    Submission.user_id == g.user.user_id))
     if certified != 'mixed':
         query = query.filter_by(publishable=certified)
     submissions = query.order_by(Submission.updated_at.desc()).\
