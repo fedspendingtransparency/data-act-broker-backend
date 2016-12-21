@@ -5,7 +5,6 @@ from flask import g
 import pytest
 
 from dataactbroker import fileRoutes
-from dataactcore.models.userModel import UserAffiliation
 from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactcore.factories.user import UserFactory
