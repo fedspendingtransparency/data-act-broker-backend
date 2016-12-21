@@ -358,26 +358,6 @@ class FileTests(BaseTestAPI):
         assert response.status_code == 200
         assert "total_obligations" in response.json
         
-    def test_list_submissions(self):
-        """ Check list submissions route on status check submission """
-        response = self.app.get("/v1/list_submissions/?certified=mixed", headers={"x-session-id":self.session_id})
-
-        self.assertEqual(response.status_code, 200, msg=str(response.json))
-        self.assertEqual(
-            response.headers.get("Content-Type"), "application/json")
-        json = response.json
-        errorReportSub = None
-        errorSub = None
-        for submission in json["submissions"]:
-            if submission["submission_id"] == self.error_report_submission_id:
-                errorReportSub = submission
-            elif submission["submission_id"] == self.row_error_submission_id:
-                errorSub = submission
-        self.assertIsNotNone(errorReportSub)
-        self.assertIsNotNone(errorSub)
-        self.assertEqual(errorReportSub["status"], "validation_successful")
-        self.assertEqual(errorSub["status"], "validation_errors")
-
     def test_get_protected_files(self):
         """ Check get_protected_files route """
 

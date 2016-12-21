@@ -145,7 +145,7 @@ def test_list_submissions_permissions(database, monkeypatch):
     sub.user_id = user1.user_id
     database.session.commit()
     assert list_submissions_result()['total'] == 1
-    sub.user_id = 2
+    sub.user_id = user2.user_id
     database.session.commit()
     assert list_submissions_result()['total'] == 0
 
