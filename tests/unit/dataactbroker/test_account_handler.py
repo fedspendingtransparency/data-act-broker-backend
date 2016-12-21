@@ -1,4 +1,5 @@
 import json
+import pytest
 from unittest.mock import Mock
 
 from dataactbroker.handlers import accountHandler
@@ -26,8 +27,8 @@ def make_max_dict(group_str):
         }
     }
 
-
-def test_max_login_success(database, user_constants, monkeypatch):
+@pytest.mark.usefixtures("user_constants")
+def test_max_login_success(monkeypatch):
     ah = accountHandler.AccountHandler(Mock())
 
     mock_dict = Mock()
@@ -35,11 +36,11 @@ def test_max_login_success(database, user_constants, monkeypatch):
     monkeypatch.setattr(accountHandler, 'RequestDictionary', mock_dict)
 
     max_dict= {'cas:serviceResponse': {}}
-    monkeypatch.setattr(ah, 'get_max_dict', Mock(return_value=max_dict))
+    monkeypatch.setattr(accountHandler, 'get_max_dict', Mock(return_value=max_dict))
     config = {'parent_group': 'parent-group'}
     monkeypatch.setattr(accountHandler, 'CONFIG_BROKER', config)
     max_dict = make_max_dict('parent-group,parent-group-CGAC_SYS')
-    monkeypatch.setattr(ah, 'get_max_dict', Mock(return_value=max_dict))
+    monkeypatch.setattr(accountHandler, 'get_max_dict', Mock(return_value=max_dict))
 
     # If it gets to this point, that means the user was in all the right groups aka successful login
     monkeypatch.setattr(ah, 'create_session_and_response',
@@ -49,7 +50,7 @@ def test_max_login_success(database, user_constants, monkeypatch):
     assert "Login successful" == json.loads(json_response.get_data().decode("utf-8"))['message']
 
     max_dict = make_max_dict('')
-    monkeypatch.setattr(ah, 'get_max_dict', Mock(return_value=max_dict))
+    monkeypatch.setattr(accountHandler, 'get_max_dict', Mock(return_value=max_dict))
 
     # If it gets to this point, that means the user was in all the right groups aka successful login
     monkeypatch.setattr(ah, 'create_session_and_response',
@@ -69,15 +70,15 @@ def test_max_login_failure(monkeypatch):
     monkeypatch.setattr(accountHandler, 'RequestDictionary', mock_dict)
 
     max_dict= {'cas:serviceResponse': {}}
-    monkeypatch.setattr(ah, 'get_max_dict', Mock(return_value=max_dict))
+    monkeypatch.setattr(accountHandler, 'get_max_dict', Mock(return_value=max_dict))
     json_response = ah.max_login(Mock())
     error_message = "You have failed to login successfully with MAX"
 
     # Did not get a successful response from MAX
     assert error_message == json.loads(json_response.get_data().decode("utf-8"))['message']
 
-
-def test_set_max_perms(database, monkeypatch, user_constants):
+@pytest.mark.usefixtures("user_constants")
+def test_set_max_perms(database, monkeypatch):
     """Verify that we get the _highest_ permission within our CGAC"""
     cgac_abc = CGACFactory(cgac_code='ABC')
     cgac_def = CGACFactory(cgac_code='DEF')
@@ -114,7 +115,8 @@ def test_set_max_perms(database, monkeypatch, user_constants):
     assert def_aff.cgac.cgac_code == 'DEF'
     assert def_aff.permission_type_id == PERMISSION_TYPE_DICT['submitter']
 
-def test_create_session_and_response(database, monkeypatch, user_constants):
+@pytest.mark.usefixtures("user_constants")
+def test_create_session_and_response(database, monkeypatch):
     cgacs = [CGACFactory(cgac_code=str(i)*3, agency_name=str(i))
              for i in range(3)]
     user = UserFactory(name="my name", title="my title", affiliations=[

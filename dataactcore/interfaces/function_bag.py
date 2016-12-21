@@ -202,31 +202,11 @@ def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
 
 """ USER DB FUNCTIONS """
 
-def clearPassword(user):
-    """ Clear a user's password as part of reset process
-
-    Arguments:
-        user - User object
-
-    """
-    sess = GlobalDB.db().session
-    user.salt = None
-    user.password_hash = None
-    sess.commit()
-
-
 def updateLastLogin(user, unlock_user=False):
     """ This updates the last login date to today's datetime for the user to the current date upon successful login.
     """
     sess = GlobalDB.db().session
     user.last_login_date = time.strftime("%c") if not unlock_user else None
-    sess.commit()
-
-
-def setUserActive(user, is_active):
-    """ Sets the is_active field for the specified user """
-    sess = GlobalDB.db().session
-    user.is_active = is_active
     sess.commit()
 
 def get_email_template(email_type):
@@ -258,27 +238,6 @@ def check_correct_password(user, password, bcrypt):
 
     # Check the password with bcrypt
     return bcrypt.check_password_hash(user.password_hash, password + user.salt)
-
-
-def set_user_password(user, password, bcrypt):
-    """ Given a user and a new password, changes the hashed value in the database to match new password.
-
-    Arguments:
-        user - User object
-        password - password to be set
-        bcrypt - bcrypt to use for password hashing
-    Returns:
-         True if successful
-    """
-    sess = GlobalDB.db().session
-    # Generate hash with bcrypt and store it
-    new_salt = uuid.uuid4().hex
-    user.salt = new_salt
-    password_hash = bcrypt.generate_password_hash(password + new_salt, HASH_ROUNDS)
-    user.password_hash = password_hash.decode("utf-8")
-    sess.commit()
-    return True
-
 
 def get_submission_stats(submission_id):
     """Get summarized dollar amounts by submission."""
@@ -382,7 +341,7 @@ def create_submission(user_id, submission_values, existing_submission):
     Arguments:
         user_id:  user to associate with this submission
         submission_values: metadata about the submission
-        existing_submission_id: id of existing submission (blank for new submissions)
+        existing_submission: id of existing submission (blank for new submissions)
 
     Returns:
         submission object
