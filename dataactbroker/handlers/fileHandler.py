@@ -13,7 +13,7 @@ from requests.exceptions import Timeout
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 
 from dataactbroker.permissions import (
     current_user_can, current_user_can_on_submission)

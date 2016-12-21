@@ -1,11 +1,8 @@
 import logging
 from operator import attrgetter
-import re
 import requests
-import time
 import xmltodict
 
-from dateutil.parser import parse
 from flask import g
 
 from dataactbroker.handlers.aws.sesEmail import sesEmail
@@ -36,8 +33,6 @@ class AccountHandler:
     """
     # Handles login process, compares username and password provided
     FRONT_END = ""
-    INACTIVITY_THRESHOLD = 120 # Days a user's account can be unused before being marked as inactive
-    ALLOWED_PASSWORD_ATTEMPTS = 3 # Number of allowed login attempts before account is locked
     # Instance fields include request, response, logFlag, and logFile
 
     def __init__(self,request, bcrypt=None, isLocal=False):
@@ -50,13 +45,6 @@ class AccountHandler:
         self.isLocal = isLocal
         self.request = request
         self.bcrypt = bcrypt
-
-    def checkPassword(self,password):
-        """Checks to make sure the password is valid"""
-        if( re.search(r"[\[\]\{\}~!@#$%^,.?;<>]", password) is None or len(password) < 8 or re.search(r"\d", password) is None or
-            re.search(r"[A-Z]", password) is None or re.search(r"[a-z]", password) is None) :
-            return False
-        return True
 
     def login(self,session):
         """
@@ -83,32 +71,12 @@ class AccountHandler:
             except Exception:
                 raise ValueError("Invalid username and/or password")
 
-            if user.user_status_id != USER_STATUS_DICT["approved"]:
-                raise ValueError("Invalid username and/or password")
-
-            # Only check if user is active after they've logged in for the first time
-            if user.last_login_date is not None and self.isAccountExpired(user):
-                raise ValueError("Your account has expired. Please contact an administrator.")
-
-            # for whatever reason, your account is not active, therefore it's locked
-            if not user.is_active:
-                raise ValueError("Your account has been locked. Please contact an administrator.")
-
             try:
                 if check_correct_password(user,password,self.bcrypt):
                     # We have a valid login
 
-                    # Reset incorrect password attempt count to 0
-                    self.reset_password_count(user)
-
                     return self.create_session_and_response(session, user)
                 else :
-                    # increase incorrect password attempt count by 1
-                    # if this is the 3rd incorrect attempt, lock account
-                    self.incrementPasswordCount(user)
-                    if user.incorrect_password_attempts == 3:
-                        raise ValueError("Your account has been locked due to too many failed login attempts. Please contact an administrator.")
-
                     raise ValueError("Invalid username and/or password")
             except ValueError as ve:
                 LoginSession.logout(session)
@@ -148,7 +116,7 @@ class AccountHandler:
             service = safeDictionary.getValue('service')
 
             # Call MAX's serviceValidate endpoint and retrieve the response
-            max_dict = self.get_max_dict(ticket, service)
+            max_dict = get_max_dict(ticket, service)
 
             if not 'cas:authenticationSuccess' in max_dict['cas:serviceResponse']:
                 raise ValueError("You have failed to login successfully with MAX")
@@ -200,12 +168,6 @@ class AccountHandler:
         except Exception as e:
             # Return 500
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
-        return self.response
-
-    def get_max_dict(self, ticket, service):
-        url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
-        max_xml = requests.get(url).content
-        return xmltodict.parse(max_xml)
 
     @staticmethod
     def create_session_and_response(session, user):
@@ -216,117 +178,7 @@ class AccountHandler:
         data['message'] = 'Login successful'
         return JsonResponse.create(StatusCode.OK, data)
 
-    def logout(self,session):
-        """
-
-        This function removes the session from the session table if currently logged in, and then returns a success message
-
-        arguments:
-
-        session  -- (Session) object from flask
-
-        return the reponse object
-
-        """
-        # Call session handler
-        LoginSession.logout(session)
-        return JsonResponse.create(StatusCode.OK,{"message":"Logout successful"})
-
-    def list_user_emails(self):
-        """ List user names and emails """
-        sess = GlobalDB.db().session
-        try:
-            users = sess.query(User).filter_by(
-                cgac_code=g.user.cgac_code,
-                user_status_id=USER_STATUS_DICT["approved"],
-                is_active=True
-            ).all()
-        except ValueError as exc:
-            # Client provided a bad status
-            return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
-        user_info = []
-        for user in users:
-            this_info = {"id":user.user_id, "name": user.name, "email": user.email}
-            user_info.append(this_info)
-        return JsonResponse.create(StatusCode.OK, {"users": user_info})
-
-    def send_reset_password_email(self, user, system_email, email=None, unlock_user=False):
-        sess = GlobalDB.db().session
-        if email is None:
-            email = user.email
-
-        # User must be approved and active to reset password
-        if user.user_status_id != USER_STATUS_DICT["approved"]:
-            raise ResponseException("User must be approved before resetting password", StatusCode.CLIENT_ERROR)
-        elif not unlock_user and not user.is_active:
-            raise ResponseException("User is locked, cannot reset password", StatusCode.CLIENT_ERROR)
-
-        # If unlocking a user, wipe out current password
-        if unlock_user:
-            user.salt = None
-            user.password_hash = None
-
-        sess.commit()
-        # Send email with token
-        email_token = sesEmail.createToken(email, "password_reset")
-        link = "".join([AccountHandler.FRONT_END, '#/forgotpassword/', email_token])
-        email_template = {'[URL]': link}
-        template_type = "unlock_account" if unlock_user else "reset_password"
-        new_email = sesEmail(user.email, system_email, templateType=template_type, parameters=email_template)
-        new_email.send()
-
-    def isAccountExpired(self, user):
-        """ Checks user's last login date against inactivity threshold, marks account as inactive if expired
-
-        Args:
-            user: User object to check
-
-        """
-        today = parse(time.strftime("%c"))
-        daysActive = (today-user.last_login_date).days
-        if daysActive >= self.INACTIVITY_THRESHOLD:
-            self.lockAccount(user)
-            return True
-        return False
-
-    def reset_password_count(self, user):
-        """ Resets the number of failed attempts when a user successfully logs in
-
-        Args:
-            user: User object to be changed
-        """
-        if user.incorrect_password_attempts != 0:
-            sess = GlobalDB.db().session
-            user.incorrect_password_attempts = 0
-            sess.commit()
-
-    def incrementPasswordCount(self, user):
-        """ Records a failed attempt to log in.  If number of failed attempts is higher than threshold, locks account.
-
-        Args:
-            user: User object to be changed
-
-        Returns:
-
-        """
-        if user.incorrect_password_attempts < self.ALLOWED_PASSWORD_ATTEMPTS:
-            sess = GlobalDB.db().session
-            user.incorrect_password_attempts += 1
-            if user.incorrect_password_attempts == self.ALLOWED_PASSWORD_ATTEMPTS:
-                self.lockAccount(user)
-            sess.commit()
-
-    def lockAccount(self, user):
-        """ Lock this user's account by marking it as inactive
-
-        Args:
-            user: User object to be locked
-        """
-        sess = GlobalDB.db().session
-        user.is_active = False
-        sess.commit()
-
-    def set_skip_guide(self, session):
+    def set_skip_guide(self):
         """ Set current user's skip guide parameter """
         sess = GlobalDB.db().session
         request_dict = RequestDictionary.derive(self.request)
@@ -352,7 +204,7 @@ class AccountHandler:
              "skip_guide":skip_guide}
         )
 
-    def email_users(self, system_email, session):
+    def email_users(self, system_email):
         """ Send email notification to list of users """
         sess = GlobalDB.db().session
         request_dict = RequestDictionary.derive(self.request)
@@ -479,3 +331,44 @@ def json_for_user(user):
                           "permission": affil.permission_type_name}
                          for affil in user.affiliations]
     }
+
+
+def get_max_dict(ticket, service):
+    url = CONFIG_BROKER['cas_service_url'].format(ticket, service)
+    max_xml = requests.get(url).content
+    return xmltodict.parse(max_xml)
+
+
+def logout(session):
+    """
+
+    This function removes the session from the session table if currently logged in, and then returns a success message
+
+    arguments:
+
+    session  -- (Session) object from flask
+
+    return the reponse object
+
+    """
+    # Call session handler
+    LoginSession.logout(session)
+    return JsonResponse.create(StatusCode.OK, {"message": "Logout successful"})
+
+
+def list_user_emails():
+    """ List user names and emails """
+    sess = GlobalDB.db().session
+    try:
+        users = sess.query(User).filter_by(
+            cgac_code=g.user.cgac_code,
+            user_status_id=USER_STATUS_DICT["approved"]
+        ).all()
+    except ValueError as exc:
+        # Client provided a bad status
+        return JsonResponse.error(exc, StatusCode.CLIENT_ERROR)
+    user_info = []
+    for user in users:
+        this_info = {"id": user.user_id, "name": user.name, "email": user.email}
+        user_info.append(this_info)
+    return JsonResponse.create(StatusCode.OK, {"users": user_info})

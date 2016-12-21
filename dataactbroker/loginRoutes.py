@@ -2,7 +2,7 @@ from flask import g, request, session
 
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
-from dataactbroker.handlers.accountHandler import AccountHandler
+from dataactbroker.handlers.accountHandler import AccountHandler, logout
 
 
 def add_login_routes(app,bcrypt):
@@ -18,9 +18,8 @@ def add_login_routes(app,bcrypt):
         return accountManager.max_login(session)
 
     @app.route("/v1/logout/", methods = ["POST"])
-    def logout():
-        accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return accountManager.logout(session)
+    def logout_user():
+        return logout(session)
 
     @app.route("/v1/session/", methods = ["GET"])
     def sessionCheck():

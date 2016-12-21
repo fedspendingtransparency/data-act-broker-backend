@@ -1,6 +1,6 @@
-from flask import g, request, session
+from flask import g, request
 
-from dataactbroker.handlers.accountHandler import AccountHandler, json_for_user
+from dataactbroker.handlers.accountHandler import AccountHandler, json_for_user, list_user_emails
 from dataactbroker.permissions import requires_login
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
@@ -17,10 +17,9 @@ def add_user_routes(app,system_email,bcrypt):
 
     @app.route("/v1/list_user_emails/", methods=["GET"])
     @requires_login
-    def list_user_emails():
+    def list_user_emails_route():
         """ list all users """
-        accountManager = AccountHandler(request, bcrypt=bcrypt)
-        return accountManager.list_user_emails()
+        return list_user_emails()
 
     @app.route("/v1/current_user/", methods=["GET"])
     @requires_login
@@ -33,7 +32,7 @@ def add_user_routes(app,system_email,bcrypt):
     def set_skip_guide():
         """ Sets skip_guide param for current user """
         accountManager = AccountHandler(request,bcrypt = bcrypt)
-        return accountManager.set_skip_guide(session)
+        return accountManager.set_skip_guide()
 
     @app.route("/v1/email_users/", methods=["POST"])
     @requires_login
@@ -42,4 +41,4 @@ def add_user_routes(app,system_email,bcrypt):
         Sends email notifications to users that their submission is ready for review & publish viewing
         """
         accountManager = AccountHandler(request, bcrypt=bcrypt)
-        return accountManager.email_users(system_email, session)
+        return accountManager.email_users(system_email)

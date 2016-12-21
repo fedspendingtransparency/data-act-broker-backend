@@ -66,7 +66,7 @@ class UserTests(BaseTestAPI):
         response = self.app.get("/v1/list_user_emails/", headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         users = response.json["users"]
-        self.assertEqual(len(users), 7)
+        self.assertEqual(len(users), 8)
 
     def test_list_submissions(self):
         """Test listing user's submissions. The expected values here correspond to the number of submissions within
