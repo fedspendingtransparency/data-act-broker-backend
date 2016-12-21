@@ -182,36 +182,6 @@ Example output:
 }
 ```
 
-#### GET "/v1/list_submissions/"
-List all submissions by currently logged in user. If "?filter_by=agency" is appended to the route, then all submissions for the current user's agency will be returned.
-
-Example input:
-
-None
-
-Example output:
-
-```json
-{
-  "submissions": [
-    {
-      "status": "Validation In Progress",
-      "submission_id": 8,
-      "last_modified": "05/17/2016",
-      "error": 0,
-      "size": 15021
-    },
-    {
-      "status": "Has Errors",
-      "submission_id": 4,
-      "last_modified": "05/16/2016",
-      "error": 0,
-      "size": 0
-    }
-  ]
-}
-```
-
 ### File Routes
 
 #### GET "/"
@@ -239,14 +209,14 @@ Example Output:
 ```
 
 #### POST "/v1/submit_files/"
-This route is used to retrieve S3 URLs to upload files. Data should be JSON with keys: ["appropriations", "award\_financial", "award", "program\_activity"], each with a filename as a value, and submission metadata keys: ["agency_name","reporting_period_start_date","reporting_period_end_date","is_quarter","existing_submission_id"].  If an existing submission ID is provided, all other keys are optional and any data provided will be used to correct information in the existing submission.
+This route is used to retrieve S3 URLs to upload files. Data should be JSON with keys: ["appropriations", "award_financial", "award", "program_activity"], each with a filename as a value, and submission metadata keys: ["agency_name","reporting_period_start_date","reporting_period_end_date","is_quarter","existing_submission_id"].  If an existing submission ID is provided, all other keys are optional and any data provided will be used to correct information in the existing submission.
 
-This route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key\_id containing the job id. A returning submission\_id will also exist which acts as identifier for the submission.
+This route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key_id containing the job id. A returning submission_id will also exist which acts as identifier for the submission.
 
 A credentials object is also part of the returning request. This object provides temporarily access to upload S3 Files using an AWS SDK. It contains the following: SecretAccessKey, SessionToken, Expiration, and AccessKeyId.
 It is important to note that the role used to create the credentials should be limited to just S3 access.
 
-When upload is complete, the finalize\_submission route should be called with the job\_id.
+When upload is complete, the finalize_submission route should be called with the job_id.
 
 Example input:
 
@@ -294,7 +264,7 @@ Example output:
 ```
 
 #### POST "/v1/finalize_job/"
-A call to this route should have JSON or form-urlencoded with a key of "upload\_id" and value of the job id received from the submit_files route. This will change the status of the upload job to finished so that dependent jobs can be started.
+A call to this route should have JSON or form-urlencoded with a key of "upload_id" and value of the job id received from the submit_files route. This will change the status of the upload job to finished so that dependent jobs can be started.
 
 Example input:
 
@@ -312,8 +282,8 @@ Example output:
 }
 ```
 
-#### POST "/v1/submission\_error_reports/"
-A call to this route should have JSON or form-urlencoded with a key of "submission\_id" and value of the submission id received from the submit\_files route.  The response object will be JSON with keys of "job\_X\_error\_url" for each job X that is part of the submission, and the value will be the signed URL of the error report on S3. Note that for failed jobs (i.e. file-level errors), no error reports will be created.
+#### POST "/v1/submission_error_reports/"
+A call to this route should have JSON or form-urlencoded with a key of "submission_id" and value of the submission id received from the submit_files route.  The response object will be JSON with keys of "job_X_error_url" for each job X that is part of the submission, and the value will be the signed URL of the error report on S3. Note that for failed jobs (i.e. file-level errors), no error reports will be created.
 
 Example input:
 
@@ -335,8 +305,8 @@ Example output:
 }
 ```
 
-#### POST "/v1/submission\_warning_reports/"
-A call to this route should have JSON or form-urlencoded with a key of "submission\_id" and value of the submission id received from the submit\_files route.  The response object will be JSON with keys of "job\_X\_warning\_url" for each job X that is part of the submission, and the value will be the signed URL of the error report on S3. Note that for failed jobs (i.e. file-level errors), no error reports will be created.
+#### POST "/v1/submission_warning_reports/"
+A call to this route should have JSON or form-urlencoded with a key of "submission_id" and value of the submission id received from the submit_files route.  The response object will be JSON with keys of "job_X_warning_url" for each job X that is part of the submission, and the value will be the signed URL of the error report on S3. Note that for failed jobs (i.e. file-level errors), no error reports will be created.
 
 Example input:
 
@@ -360,7 +330,7 @@ Example output:
 
 #### POST "/v1/check_status/"
 A call to this route will provide status information on all jobs associated with the specified submission.
-The request should have JSON or form-urlencoded with a key "submission\_id".  The response will contain a list of
+The request should have JSON or form-urlencoded with a key "submission_id".  The response will contain a list of
 status objects for each job under the key "jobs", and other submission-level data.  In error data,
 "original_label" will only be populated when "error_name" is "rule_failed".  List of keys in response:
 - jobs: Holds data for each job in submission, each job is a dict with:
