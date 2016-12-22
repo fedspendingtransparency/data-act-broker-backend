@@ -12,7 +12,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
 from dataactcore.models import lookups
 from dataactcore.models.domainModels import CGAC
-from dataactcore.models.userModel import User, UserAffiliation, UserStatus
+from dataactcore.models.userModel import User, UserAffiliation
 from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
@@ -23,7 +23,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import dataactcore.config
 from dataactbroker.scripts.setupEmails import setupEmails
 from dataactvalidator.app import createApp as createValidatorApp
-from dataactcore.models.lookups import PERMISSION_TYPE_DICT, USER_STATUS_DICT
+from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
@@ -83,8 +83,7 @@ class BaseTestAPI(unittest.TestCase):
             # set up users for status tests
             def add_status_user(email, status_name, website_admin=False):
                 sess.add(UserFactory(
-                    email=email, user_status_id=USER_STATUS_DICT[status_name],
-                    website_admin=website_admin,
+                    email=email, website_admin=website_admin,
                     affiliations=[UserAffiliation(
                         cgac=cgac,
                         permission_type_id=PERMISSION_TYPE_DICT['writer']
@@ -147,7 +146,6 @@ class BaseTestAPI(unittest.TestCase):
             # set up status changed user
             statusChangedUser = sess.query(User).filter(User.email == test_users['change_user_email']).one()
             statusChangedUser.name = "Test User"
-            statusChangedUser.user_status = sess.query(UserStatus).filter(UserStatus.name == 'email_confirmed').one()
             sess.add(statusChangedUser)
             cls.status_change_user_id = statusChangedUser.user_id
 
@@ -161,7 +159,6 @@ class BaseTestAPI(unittest.TestCase):
         cls.ruleSeverityDict = lookups.RULE_SEVERITY_DICT
         cls.errorTypeDict = lookups.ERROR_TYPE_DICT
         cls.publishStatusDict = lookups.PUBLISH_STATUS_DICT
-        cls.userStatusDict = lookups.USER_STATUS_DICT
 
         # set up info needed by the individual test classes
         cls.test_users = test_users

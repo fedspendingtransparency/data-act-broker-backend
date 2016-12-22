@@ -20,8 +20,7 @@ from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import get_email_template, check_correct_password, updateLastLogin
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.lookups import (
-    PERMISSION_SHORT_DICT, USER_STATUS_DICT)
+from dataactcore.models.lookups import PERMISSION_SHORT_DICT
 
 
 logger = logging.getLogger(__name__)
@@ -146,7 +145,6 @@ class AccountHandler:
                         user.name = first_name + " " + last_name
                     else:
                         user.name = first_name + " " + middle_name[0] + ". " + last_name
-                    user.user_status_id = user.user_status_id = USER_STATUS_DICT['approved']
 
 
                 set_max_perms(user, cas_attrs['maxAttribute:GroupList'])
@@ -343,8 +341,7 @@ def logout(session):
 def list_user_emails():
     """ List user names and emails """
     sess = GlobalDB.db().session
-    users = sess.query(User).\
-        filter_by(user_status_id=USER_STATUS_DICT['approved'])
+    users = sess.query(User)
     if not g.user.website_admin:
         relevant_cgacs = [aff.cgac_id for aff in g.user.affiliations]
         subquery = sess.query(UserAffiliation.user_id).\

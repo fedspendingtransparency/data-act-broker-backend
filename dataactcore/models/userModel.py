@@ -13,10 +13,8 @@ class User(Base):
     email = Column(Text)
     name = Column(Text)
     title = Column(Text)
-    user_status_id = Column(Integer, ForeignKey("user_status.user_status_id"))
     password_hash = Column(Text)
     salt = Column(Text)
-    user_status = relationship("UserStatus", uselist=False)
     last_login_date = Column(DateTime)
     skip_guide = Column(Boolean, default=False,nullable=False,server_default="False")
     website_admin = Column(Boolean, default=False, nullable=False,

@@ -5,7 +5,6 @@ from flask import g
 import pytest
 
 from dataactbroker import userRoutes
-from dataactcore.models.lookups import USER_STATUS_DICT
 from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactcore.factories.user import UserFactory
 
@@ -22,8 +21,6 @@ def test_list_user_emails(database, user_constants, user_app):
              UserFactory.with_cgacs(cgacs[0], cgacs[1]),
              UserFactory.with_cgacs(cgacs[1]),
              UserFactory.with_cgacs(cgacs[2])]
-    for user in users:
-        user.user_status_id = USER_STATUS_DICT['approved']
     database.session.add_all(users)
     database.session.commit()
 
