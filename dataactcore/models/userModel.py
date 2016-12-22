@@ -29,16 +29,6 @@ class PermissionType(Base):
     name = Column(Text)
     description = Column(Text)
 
-
-class UserStatus(Base):
-    __tablename__ = 'user_status'
-    STATUS_DICT = None
-
-    user_status_id = Column(Integer, primary_key=True)
-    name = Column(Text)
-    description = Column(Text)
-
-
 class UserAffiliation(Base):
     __tablename__ = 'user_affiliation'
     # composite primary_key
