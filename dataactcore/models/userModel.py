@@ -18,7 +18,6 @@ class User(Base):
     salt = Column(Text)
     user_status = relationship("UserStatus", uselist=False)
     last_login_date = Column(DateTime)
-    incorrect_password_attempts = Column(Integer, default=0, nullable=False, server_default='0')
     skip_guide = Column(Boolean, default=False,nullable=False,server_default="False")
     website_admin = Column(Boolean, default=False, nullable=False,
                            server_default="False")
