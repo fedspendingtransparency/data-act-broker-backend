@@ -151,12 +151,6 @@ class BaseTestAPI(unittest.TestCase):
             sess.add(statusChangedUser)
             cls.status_change_user_id = statusChangedUser.user_id
 
-            # set up deactivated user
-            deactivated_user = sess.query(User).filter(User.email == test_users['inactive_email']).one()
-            deactivated_user.last_login_date = time.strftime("%c")
-            deactivated_user.is_active = False
-            sess.add(deactivated_user)
-
             sess.commit()
 
         # get lookup dictionaries
