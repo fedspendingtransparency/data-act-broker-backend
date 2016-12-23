@@ -201,13 +201,6 @@ def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
 
 """ USER DB FUNCTIONS """
 
-def updateLastLogin(user, unlock_user=False):
-    """ This updates the last login date to today's datetime for the user to the current date upon successful login.
-    """
-    sess = GlobalDB.db().session
-    user.last_login_date = time.strftime("%c") if not unlock_user else None
-    sess.commit()
-
 def get_email_template(email_type):
     """ Get template for specified email type
     Arguments:

@@ -15,7 +15,6 @@ class User(Base):
     title = Column(Text)
     password_hash = Column(Text)
     salt = Column(Text)
-    last_login_date = Column(DateTime)
     skip_guide = Column(Boolean, default=False,nullable=False,server_default="False")
     website_admin = Column(Boolean, default=False, nullable=False,
                            server_default="False")

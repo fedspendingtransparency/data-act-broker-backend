@@ -122,12 +122,6 @@ class BaseTestAPI(unittest.TestCase):
             agencyUser = sess.query(User).filter(User.email == test_users['agency_user']).one()
             cls.agency_user_id = agencyUser.user_id
 
-            # set the specified account to be expired
-            expiredUser = sess.query(User).filter(User.email == test_users['expired_lock_email']).one()
-            today = parse(time.strftime("%c"))
-            expiredUser.last_login_date = (today-timedelta(days=120)).strftime("%c")
-            sess.add(expiredUser)
-
             # set up approved user
             user = sess.query(User).filter(User.email == test_users['approved_email']).one()
             user.username = "approvedUser"

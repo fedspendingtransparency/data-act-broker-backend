@@ -18,7 +18,7 @@ from dataactcore.models.userModel import User, UserAffiliation
 from dataactcore.models.domainModels import CGAC
 from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import get_email_template, check_correct_password, updateLastLogin
+from dataactcore.interfaces.function_bag import get_email_template, check_correct_password
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.lookups import PERMISSION_SHORT_DICT
 
@@ -171,7 +171,6 @@ class AccountHandler:
     def create_session_and_response(session, user):
         """Create a session."""
         LoginSession.login(session, user.user_id)
-        updateLastLogin(user)
         data = json_for_user(user)
         data['message'] = 'Login successful'
         return JsonResponse.create(StatusCode.OK, data)
