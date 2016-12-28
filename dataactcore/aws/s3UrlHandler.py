@@ -85,7 +85,7 @@ class s3UrlHandler:
         stsConnection = sts.connect_to_region(s3UrlHandler.REGION)
         role = stsConnection.assume_role(s3UrlHandler.S3_ROLE,"FileUpload"+str(user),duration_seconds=s3UrlHandler.STS_LIFETIME)
         credentials ={}
-        credentials["AccessKeyId"] =  role.credentials.access_key
+        credentials["AccessKeyId"] = role.credentials.access_key
         credentials["SecretAccessKey"] = role.credentials.secret_key
         credentials["SessionToken"] = role.credentials.session_token
         credentials["Expiration"] = role.credentials.expiration

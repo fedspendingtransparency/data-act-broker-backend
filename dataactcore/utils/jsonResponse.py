@@ -20,7 +20,7 @@ class JsonResponse :
         Creates a JSON response object
         if debugMode is enabled errors are added
         """
-        jsondata  =  flask.Response()
+        jsondata = flask.Response()
         jsondata.headers["Content-Type"] = "application/json"
         jsondata.status_code = code
         jsondata.set_data(json.dumps(dictionaryData))

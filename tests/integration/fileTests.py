@@ -818,7 +818,8 @@ class FileTests(BaseTestAPI):
             type_id=csv_validation,
             submission=submission_id
         )
-        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['complete']) # Everything Is Fine
+        # everything is fine
+        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['complete'])
 
         job = FileTests.insertJob(
             sess,
@@ -827,7 +828,8 @@ class FileTests(BaseTestAPI):
             type_id=csv_validation,
             submission=submission_id
         )
-        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['unknown_error']) # Bad Header
+        # bad header
+        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['unknown_error'])
 
         job = FileTests.insertJob(
             sess,
@@ -836,5 +838,6 @@ class FileTests(BaseTestAPI):
             type_id=csv_validation,
             submission=submission_id
         )
-        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['complete']) # Validation level Errors
+        # validation level errors
+        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['complete'])
         cls.insertRowLevelError(sess, job.job_id)

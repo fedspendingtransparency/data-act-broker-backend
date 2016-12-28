@@ -34,7 +34,7 @@ class LoginSession:
 
         Sets the current session status
         """
-        session["name"] =  username
+        session["name"] = username
         session["login"] = True
 
 
@@ -100,7 +100,7 @@ class UserSessionInterface(SessionInterface):
         sid = request.headers.get("x-session-id")
         if sid and SessionTable.doesSessionExist(sid):
             if SessionTable.getTimeout(sid)> toUnixTime(datetime.utcnow()):
-                session_dict =  UserSession()
+                session_dict = UserSession()
                 # Read data as json
                 data = loads(SessionTable.getData(sid))
                 for key in data.keys():

@@ -211,9 +211,9 @@ class CsvAbstractReader(object):
             return self.lines.pop(0)
         #packets are 8192 bytes in size
         #for packet in self.s3File :
-        while self.packet_counter *  CsvAbstractReader.BUFFER_SIZE <=  self._get_file_size():
+        while self.packet_counter * CsvAbstractReader.BUFFER_SIZE <= self._get_file_size():
 
-            success,packet =  self._get_next_packet()
+            success,packet = self._get_next_packet()
             if not success:
                 break
             self.packet_counter +=1
@@ -230,7 +230,7 @@ class CsvAbstractReader(object):
             self.unprocessed = self.lines.pop()
             if len(self.lines) > 0:
                 #Get the next line
-                return  self.lines.pop(0)
+                return self.lines.pop(0)
         self.is_finished = True
 
         if len(self.unprocessed) < 5:
@@ -246,7 +246,7 @@ class CsvAbstractReader(object):
         returns a list of strings broken by newline
         """
         lines_to_return = []
-        escape_mode =  False
+        escape_mode = False
         current = ""
 
         for index,char in enumerate(packet):

@@ -49,4 +49,4 @@ class sesEmail(object):
                 return connection.send_email(self.fromAddress, self.subject,self.content,self.toAddress,format='html')
         else:
             newEmailText = "\n\n".join(["","Time",str(datetime.datetime.now()),"Subject",self.subject,"From",self.fromAddress,"To",self.toAddress,"Content",self.content])
-            open (sesEmail.emailLog,"a").write(newEmailText)
+            open(sesEmail.emailLog,"a").write(newEmailText)

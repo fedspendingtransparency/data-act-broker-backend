@@ -383,7 +383,7 @@ class FileHandler:
             else:
                 raise ResponseException("Wrong job type for finalize route", StatusCode.CLIENT_ERROR)
 
-        except ( ValueError , TypeError ) as e:
+        except (ValueError, TypeError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ResponseException as e:
             return JsonResponse.error(e, e.status)
@@ -454,7 +454,7 @@ class FileHandler:
             else :
                 raise ResponseException("Route Only Valid For Local Installs",
                                         StatusCode.CLIENT_ERROR)
-        except ( ValueError , TypeError ) as e:
+        except (ValueError, TypeError) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:
             return JsonResponse.error(e,e.status)
@@ -551,7 +551,10 @@ class FileHandler:
         except ValueError as e:
             # Date was not in expected format
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
-            return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
+            return False, JsonResponse.error(
+                exc, exc.status, url="", start="", end="",
+                file_type=file_type
+            )
 
         error = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, job)
 
@@ -1135,9 +1138,9 @@ def get_error_metrics(submission):
             if job.job_type.name == 'csv_record_validation':
                 file_type = job.file_type.name
                 data_list = getErrorMetricsByJobId(job.job_id)
-                return_dict[file_type]  = data_list
+                return_dict[file_type] = data_list
         return JsonResponse.create(StatusCode.OK,return_dict)
-    except ( ValueError , TypeError ) as e:
+    except (ValueError, TypeError) as e:
         return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
     except ResponseException as e:
         return JsonResponse.error(e,e.status)
