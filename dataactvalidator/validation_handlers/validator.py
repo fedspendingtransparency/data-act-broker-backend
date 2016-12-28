@@ -216,7 +216,6 @@ class Validator(object):
                 for flex_row in flex_results:
                     flex_dict[flex_row.row_number] = flex_row
 
-
                 # Build error list
                 for failure in failures:
                     errorMsg = rule.rule_error_message

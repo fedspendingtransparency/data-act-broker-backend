@@ -211,8 +211,8 @@ class FileHandler:
             submission = create_submission(g.user.user_id, submission_data,
                                            existing_submission_obj)
             cant_edit = (
-                existing_submission
-                and not current_user_can_on_submission(
+                existing_submission and
+                not current_user_can_on_submission(
                     'writer', existing_submission_obj)
             )
             cant_create = not current_user_can('writer', submission.cgac_code)
@@ -484,8 +484,8 @@ class FileHandler:
                 start_date = requestDict.getValue("start")
                 end_date = requestDict.getValue("end")
 
-                if not (StringCleaner.isDate(start_date)
-                            and StringCleaner.isDate(end_date)):
+                if not (StringCleaner.isDate(start_date) and
+                        StringCleaner.isDate(end_date)):
                     raise ResponseException(
                         "Start or end date cannot be parsed into a date",
                         StatusCode.CLIENT_ERROR

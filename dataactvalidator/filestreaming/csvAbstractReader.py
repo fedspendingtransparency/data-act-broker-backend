@@ -238,7 +238,6 @@ class CsvAbstractReader(object):
             self.extra_line = True
         return self.unprocessed
 
-
     def _split_lines(self, packet) :
         """
         arguments :

@@ -541,7 +541,6 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["message"], 'No generation job found with the specified ID')
 
-
     @staticmethod
     def insertSubmission(sess, submission_user_id, cgac_code = None, startDate = None, endDate = None, is_quarter = False, number_of_errors=0):
         """Insert one submission into job tracker and get submission ID back."""

@@ -34,7 +34,6 @@ class s3UrlHandler:
         s3UrlHandler.S3_ROLE = CONFIG_BROKER['aws_role']
         s3UrlHandler.REGION = CONFIG_BROKER['aws_region']
 
-
     def _signUrl(self,path,fileName,bucketRoute,method="PUT") :
         """
         Creates the object for signing URLS

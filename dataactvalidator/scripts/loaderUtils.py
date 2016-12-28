@@ -19,7 +19,6 @@ class LoaderUtils:
                 field = ''
         return str(field).strip().zfill(padTo)
 
-
     @classmethod
     def cleanData(cls, data, model, fieldMap, fieldOptions):
         """ Cleans up a dataframe that contains domain values.

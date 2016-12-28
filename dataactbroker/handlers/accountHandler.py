@@ -94,7 +94,6 @@ class AccountHandler:
             # Return 500
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-
     def max_login(self,session):
         """
 
@@ -145,7 +144,6 @@ class AccountHandler:
                         user.name = first_name + " " + last_name
                     else:
                         user.name = first_name + " " + middle_name[0] + ". " + last_name
-
 
                 set_max_perms(user, cas_attrs['maxAttribute:GroupList'])
 

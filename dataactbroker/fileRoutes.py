@@ -23,6 +23,7 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     """
     IS_LOCAL = isLocal
     SERVER_PATH = serverPath
+
     # Keys for the post route will correspond to the four types of files
     @app.route("/v1/submit_files/", methods = ["POST"])
     @requires_login

@@ -37,7 +37,6 @@ class LoginSession:
         session["name"] = username
         session["login"] = True
 
-
     @staticmethod
     def resetID(session):
         """
@@ -78,7 +77,6 @@ class UserSessionInterface(SessionInterface):
 
     """
 
-
     SESSSION_CLEAR_COUNT_LIMIT = 10
 
     CountLimit = 1
@@ -112,7 +110,6 @@ class UserSessionInterface(SessionInterface):
         session_dict = UserSession()
         session_dict["sid"] = sid
         return session_dict
-
 
     def save_session(self, app, session, response):
         """
@@ -185,7 +182,6 @@ class SessionTable :
             return True
         else:
             return False
-
 
     @staticmethod
     def getTimeout(uid) :

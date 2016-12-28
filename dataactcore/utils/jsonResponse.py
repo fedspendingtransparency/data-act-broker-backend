@@ -43,7 +43,6 @@ class JsonResponse :
         for key in kwargs:
             responseDict[key] = kwargs[key]
 
-
         trace = traceback.extract_tb(exception.__traceback__, 10)
         logger.exception('Route Error')
         if JsonResponse.debugMode:

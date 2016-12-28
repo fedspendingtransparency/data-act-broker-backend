@@ -22,7 +22,6 @@ class CsvS3Writer(CsvAbstractWriter):
         self.stream = smart_open.smart_open(conn, 'w', min_part_size=CsvAbstractWriter.BUFFER_SIZE)
         super(CsvS3Writer,self).__init__(filename,header)
 
-
     def _write(self,data):
         """
 
@@ -32,7 +31,6 @@ class CsvS3Writer(CsvAbstractWriter):
 
         """
         self.stream.write(data)
-
 
     def __exit__(self, type, value, traceback) :
         """

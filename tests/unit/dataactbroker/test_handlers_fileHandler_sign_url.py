@@ -13,7 +13,6 @@ def test_get_signed_url_for_submission_file_local(database, monkeypatch):
         return_value={'file': 'file_name'}
     )))
 
-
     json_response = file_handler.get_signed_url_for_submission_file(submission)
     assert json.loads(json_response.get_data().decode("utf-8"))['url'] == "/test/server/path/file_name.csv"
 

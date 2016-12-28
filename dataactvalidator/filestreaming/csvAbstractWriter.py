@@ -7,7 +7,6 @@ class CsvAbstractWriter(object):
     use with the "with" python construct
     """
 
-
     BUFFER_SIZE = (5 * 1024 ** 2)
     BATCH_SIZE = 100
 
