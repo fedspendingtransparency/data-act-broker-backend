@@ -32,7 +32,7 @@ class ValidationError:
     @staticmethod
     def getErrorMessage(errorType):
         """ Retrieve error message for specified error type """
-        if errorType == None:
+        if errorType is None:
             # If no error type is provided, this is an unknown error
             errorType = ValidationError.unknownError
         if(errorType in ValidationError.errorDict):
@@ -44,7 +44,7 @@ class ValidationError:
     @staticmethod
     def getErrorTypeString(errorType):
         """ Get string identifier used in database for specified error type """
-        if errorType == None:
+        if errorType is None:
             # If no error type is provided, this is an unknown error
             errorType = ValidationError.unknownError
         if(errorType in ValidationError.errorTypeDict):

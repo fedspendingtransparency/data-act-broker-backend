@@ -117,7 +117,7 @@ class AccountHandler:
             # Call MAX's serviceValidate endpoint and retrieve the response
             max_dict = get_max_dict(ticket, service)
 
-            if not 'cas:authenticationSuccess' in max_dict['cas:serviceResponse']:
+            if 'cas:authenticationSuccess' not in max_dict['cas:serviceResponse']:
                 raise ValueError("You have failed to login successfully with MAX")
             cas_attrs = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']
 

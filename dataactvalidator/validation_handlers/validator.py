@@ -74,7 +74,7 @@ class Validator(object):
         failed_rules = []
 
         for field_name in csv_schema:
-            if csv_schema[field_name].required and not field_name in record:
+            if csv_schema[field_name].required and field_name not in record:
                 return False, [[field_name, ValidationError.requiredError, "", "", "fatal"]], False
 
         total_fields = 0
@@ -194,8 +194,8 @@ class Validator(object):
 
         # Pull all SQL rules for this file type
         fileId = FILE_TYPE_DICT[fileType]
-        rules = sess.query(RuleSql).filter(RuleSql.file_id == fileId).filter(
-            RuleSql.rule_cross_file_flag == False).all()
+        rules = sess.query(RuleSql).filter_by(
+            file_id=fileId, rule_cross_file_flag=False)
         errors = []
 
         # For each rule, execute sql for rule

@@ -88,8 +88,8 @@ class UserTests(BaseTestAPI):
         response = self.app.get("/v1/current_user/", headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK)
         assert response.json["name"] == "Mr. Manager"
-        assert response.json["skip_guide"] == False
-        assert response.json["website_admin"] == True
+        assert not response.json["skip_guide"]
+        assert response.json["website_admin"]
 
     def test_skip_guide(self):
         """ Set skip guide to True and check value in DB """

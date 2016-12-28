@@ -139,7 +139,7 @@ class UserSessionInterface(SessionInterface):
                 session["session_check"] = False
             else:
                 expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
-        if not "_uid" in session:
+        if "_uid" not in session:
             LoginSession.resetID(session)
         SessionTable.newSession(session["sid"],session,expiration)
         UserSessionInterface.CountLimit += 1

@@ -276,7 +276,7 @@ class FileHandler:
 
             file_job_dict = create_jobs(upload_files, submission, existing_submission)
             for file_type in file_job_dict.keys():
-                if not "submission_id" in file_type:
+                if "submission_id" not in file_type:
                     response_dict[file_type+"_id"] = file_job_dict[file_type]
             if create_credentials and not self.isLocal:
                 self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])

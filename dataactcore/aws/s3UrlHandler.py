@@ -26,7 +26,7 @@ class s3UrlHandler:
         name -- (String) Name of the S3 bucket
 
         """
-        if(name == None):
+        if name is None:
             self.bucketRoute = CONFIG_BROKER['aws_bucket']
         else:
             self.bucketRoute = name

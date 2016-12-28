@@ -236,8 +236,9 @@ def get_submission_stats(submission_id):
     sess = GlobalDB.db().session
     base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
         filter(AwardFinancial.submission_id == submission_id)
-    procurement = base_query.filter(AwardFinancial.piid != None)
-    fin_assist = base_query.filter(or_(AwardFinancial.fain != None, AwardFinancial.uri != None))
+    procurement = base_query.filter(AwardFinancial.piid.isnot(None))
+    fin_assist = base_query.filter(or_(AwardFinancial.fain.isnot(None),
+                                       AwardFinancial.uri.isnot(None)))
     return {
         "total_obligations": float(base_query.scalar() or 0),
         "total_procurement_obligations": float(procurement.scalar() or 0),

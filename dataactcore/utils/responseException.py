@@ -20,7 +20,7 @@ class ResponseException(Exception):
         for key in kwargs:
             # Include extra error info
             self.extraInfo[key] = kwargs[key] # This can be written to the error DB for some error types
-        if(errorClass == None):
+        if errorClass is None:
             self.wrappedException = None # Can be used to wrap another type of exception into a ResponseException
         else:
             try:

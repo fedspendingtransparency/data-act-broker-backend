@@ -466,7 +466,7 @@ class ValidationManager:
         sess.commit()
 
         # get all cross file rules from db
-        crossFileRules = sess.query(RuleSql).filter(RuleSql.rule_cross_file_flag==True)
+        crossFileRules = sess.query(RuleSql).filter_by(rule_cross_file_flag=True)
 
         # for each cross-file combo, run associated rules and create error report
         for c in get_cross_file_pairs():
