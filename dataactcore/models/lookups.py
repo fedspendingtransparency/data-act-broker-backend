@@ -92,8 +92,7 @@ PERMISSION_TYPE = [
 ]
 PERMISSION_TYPE_DICT = {item.name: item.id for item in PERMISSION_TYPE}
 PERMISSION_TYPE_DICT_ID = {item.id: item.name for item in PERMISSION_TYPE}
-PERMISSION_MAP = {'r': {'name': 'reader', 'order': 4}, 'w': {'name': 'writer', 'order': 3},
-                  's': {'name': 'submitter', 'order': 2}}
+PERMISSION_SHORT_DICT = {item.name[0]: item.id for item in PERMISSION_TYPE}
 
 FIELD_TYPE = [
     LookupType(1, 'INT', 'integer type'),

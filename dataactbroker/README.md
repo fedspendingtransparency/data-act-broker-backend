@@ -22,7 +22,7 @@ dataactbroker/
 The `/dataactbroker/scripts` folder contains the install scripts needed to setup the broker API for a local install. For complete instructions on running your own copy of the API and other DATA Act broker components, please refer to the [documentation in the DATA Act core responsitory](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/doc/INSTALL.md "DATA Act broker installation guide").
 
 ### Handlers
-The `dataactbroker/handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py`, `fileRoutes.py`, and 'userRoutes.py' files. Routes defined in these files may include the `@permissions_check` tag to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tag is defined in `dataactbroker/permissions.py`.
+The `dataactbroker/handlers` folder contains the logic to handle requests that are dispatched from the `loginRoutes.py`, `fileRoutes.py`, and 'userRoutes.py' files. Routes defined in these files may include the `@requires_login` and `@requires_submission_perms` tags to the route definition. This tag adds a wrapper that checks if there exists a session for the current user and if the user is logged in, as well as checking the user's permissions to determine if the user has access to this route. If user is not logged in to the system or does not have access to the route, a 401 HTTP error will be returned. This tags are defined in `dataactbroker/permissions.py`.
 
 `accountHandler.py` contains the functions to check logins and to log users out.
 
@@ -86,7 +86,7 @@ Response will be somewhat similar to the original `/login` endpoint. More data w
 ```
 
 #### POST "/v1/login/"
-This route checks the username and password against a credentials file.  Accepts input as json or form-urlencoded, with keys "username" and "password".
+This route checks the username and password against a credentials file. Accepts input as json or form-urlencoded, with keys "username" and "password". See `current_user` docs for details.
 
 Example input:
 
@@ -103,10 +103,13 @@ Example output:
 {
     "message": "Login successful",
     "user_id": 42,
-    "name": "John",
+    "name": "Jill",
     "title":"Developer",
-    "agency": "Department of Labor",
-    "permission" : 1
+    "skip_guide": False,
+    "website_admin": False,
+    "affiliations": [
+        {"agency_name": "Department of Labor", "permission": "writer"}
+    ]
 }
 ```
 
@@ -154,12 +157,18 @@ Example output:
     "user_id": 42,
     "name": "John",
     "title":"Developer",
-    "agency": "Department of Labor",
-    "permission" : 1,
     "skip_guide": False,
-    "website_admin": False
+    "website_admin": False,
+    "affiliations": [
+        {"agency_name": "Department of Labor", "permission": "writer"}
+    ]
+}
 }
 ```
+
+* `skip_guide` indicates whether or not the user has requested to skip introductory materials.
+* `website_admin` describes a super-user status.
+* `affiliations` is a list of objects indicating which agencies this user is a part of and what permissions they have at that agency.
 
 
 #### POST "/v1/set_skip_guide/"
@@ -179,292 +188,6 @@ Example output:
 {
   "message": "skip_guide set successfully",
   "skip_guide": True
-}
-```
-
-#### POST "/v1/register/"
-Registers a user with a confirmed email.  A call to this route should have JSON or form-urlencoded with keys "email", "name", "agency", "title", and "password".  If email does not match an email that has been confirmed, a 400 will be returned.  This route can only be called after the `confirm_email_token` route. After a successful submission this route will require
-`confirm_email_token` to be called again.
-
-
-Example input:
-
-```json
-{
-   "email":"user@agency.gov",
-   "name":"user",
-   "agency":"Data Act Agency",
-   "title":"User Title",
-   "password":"pass"
-}
-```
-
-Example output:
-
-```json
-{
-  "message":"Registration successful"
-}
-```
-
-#### POST "/v1/confirm_email/"
-Create a new user and sends a confirmation email to their email address.  A call to this route should have JSON or form-urlencoded with key "email".
-
-Example input:
-
-```json
-{
-   "email":"user@agency.gov"
-}
-```
-
-Example output:
-
-```json
-{
-  "message":"Email Sent"
-}
-```
-
-#### POST "/v1/confirm_email_token/"
-Checks the token sent by email.  If successful, updates the user to email_confirmed.  A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned along with the error code. The email address will also be returned upon success.
-
-Example input:
-
-```json
-{
-   "token":"longRandomString"
-}
-```
-
-Success Example output:
-
-```json
-{
-  "errorCode":0,
-  "message":"success",
-  "email" : "emailAddress@email.com"
-}
-```
-
-Failure Example output:
-
-```json
-{
-  "errorCode":3,
-  "message":"Link already used"
-}
-```
-
-The following is a table with all of the messages and error code
-
-| ErrorCode  | Value |Message |
-| ------------- |-------------|------------- |
-|INVALID_LINK | 1| Invalid Link|
-| LINK_EXPIRED   |2| Link Expired|
-| LINK_ALREADY_USED  |3|Link already used|
-| LINK_VALID   |0|success|
-
-
-
-
-
-
-#### POST "/v1/confirm_password_token/"
-Checks the token sent by email for password reset. A call to this route should have JSON or form-urlencoded with key "token". If the token is invalid a failure message is returned along with the error code. The email address will also be returned upon success.
-
-Example input:
-
-```json
-{
-   "token":"longRandomString"
-}
-```
-
-Success Example output:
-
-```json
-{
-  "errorCode":0,
-  "message":"success",
-  "email" : "emailAddress@email.com"
-}
-```
-
-Failure Example output:
-
-```json
-{
-  "errorCode":3,
-  "message":"Link already used"
-}
-```
-
-The following is a table with all of the messages and error code
-
-| ErrorCode  | Value |Message |
-| ------------- |-------------|------------- |
-|INVALID_LINK | 1| Invalid Link|
-| LINK_EXPIRED   |2| Link Expired|
-| LINK_ALREADY_USED  |3|Link already used|
-| LINK_VALID   |0|success|
-
-
-#### POST "/v1/list_users/"
-List all users. Requires a website admin login.
-
-```json
-{
-  "users":[
-    {
-      "status": "approved",
-      "name": "user1",
-      "title": "User Title",
-      "permission": "submitter",
-      "agency": "Data Act Agency",
-      "is_active": true,
-      "email": "agency@admin.gov",
-      "id": 1
-    },
-    {
-      "status": "approved",
-      "name": "user2",
-      "title": "User Title",
-      "permission": "reader",
-      "agency": "Data Act Agency",
-      "is_active": true,
-      "email": "agency@user.gov",
-      "id": 2
-    }
-    ]
-}
-```
-
-#### POST "/v1/list_users_with_status/"
-List all users with specified status, typically used to review users that have applied for an account.  Requires an admin login.  A call to this route should have JSON or form-urlencoded with key "status".
-
-Example input:
-
-```json
-{
-   "status":"awaiting_approval"
-}
-```
-
-Example output:
-
-```json
-{
-  "users":[{"uid":1,"name":"user","email":"agency@user.gov","title":"User Title","agency":"Data Act Agency"},{"uid":2,"name":"user2","email":"","title":"","agency":""}]
-}
-```
-
-#### GET "/v1/list_submissions/"
-List all submissions by currently logged in user. If "?filter_by=agency" is appended to the route, then all submissions for the current user's agency will be returned.
-
-Example input:
-
-None
-
-Example output:
-
-```json
-{
-  "submissions": [
-    {
-      "status": "Validation In Progress",
-      "submission_id": 8,
-      "last_modified": "05/17/2016",
-      "error": 0,
-      "size": 15021
-    },
-    {
-      "status": "Has Errors",
-      "submission_id": 4,
-      "last_modified": "05/16/2016",
-      "error": 0,
-      "size": 0
-    }
-  ]
-}
-```
-
-#### POST "/v1/set_password/"
-Change specified user's password to new value.  User must have confirmed the token they received in same session to use this route.  A call to this route should have JSON or form-urlencoded with keys "uid" and "password".
-
-Example input:
-
-```json
-{
-   "token":"longRandomString"
-}
-```
-
-Example output:
-
-```json
-{
-  "message":"Password successfully changed"
-}
-```
-
-#### POST "/v1/reset_password/"
-Remove current password and send password with token for reset.  A call to this route should have JSON or form-urlencoded with key "email".
-
-Example input:
-
-```json
-{
-   "email":"user@agency.gov"
-}
-```
-
-Example output:
-
-```json
-{
-  "message":"Password reset"
-}
-```
-
-#### POST "/v1/update_user/"
-Update editable fields for the specified user. A call to this route should have JSON or form-urlencoded with keys "uid" and at least one from "status", "permissions", "is_active".
-
-Example input:
-
-```json
-{
-    "uid": 1,
-    "status": "approved",
-    "is_active": true
-}
-```
-
-Example output:
-
-```json
-{
-    "message": "User successfully updated"
-}
-```
-
-#### POST "/v1/delete_user/"
-Delete specified user. Calls to this route should include the key "email" to specify user to be deleted, route is only
-accessible for users with website_admin or agency_admin permissions.
-
-Example input:
-
-```json
-{
-    "email": "user@agency.gov"
-}
-```
-
-Example output:
-
-```json
-{
-    "message": "success"
 }
 ```
 
@@ -495,14 +218,14 @@ Example Output:
 ```
 
 #### POST "/v1/submit_files/"
-This route is used to retrieve S3 URLs to upload files. Data should be JSON with keys: ["appropriations", "award\_financial", "award", "program\_activity"], each with a filename as a value, and submission metadata keys: ["agency_name","reporting_period_start_date","reporting_period_end_date","is_quarter","existing_submission_id"].  If an existing submission ID is provided, all other keys are optional and any data provided will be used to correct information in the existing submission.
+This route is used to retrieve S3 URLs to upload files. Data should be JSON with keys: ["appropriations", "award_financial", "award", "program_activity"], each with a filename as a value, and submission metadata keys: ["agency_name","reporting_period_start_date","reporting_period_end_date","is_quarter","existing_submission_id"].  If an existing submission ID is provided, all other keys are optional and any data provided will be used to correct information in the existing submission.
 
-This route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key\_id containing the job id. A returning submission\_id will also exist which acts as identifier for the submission.
+This route will also add jobs to the job tracker DB and return conflict free S3 URLs for uploading. Each key put in the request comes back with an url_key containing the S3 URL and a key_id containing the job id. A returning submission_id will also exist which acts as identifier for the submission.
 
 A credentials object is also part of the returning request. This object provides temporarily access to upload S3 Files using an AWS SDK. It contains the following: SecretAccessKey, SessionToken, Expiration, and AccessKeyId.
 It is important to note that the role used to create the credentials should be limited to just S3 access.
 
-When upload is complete, the finalize\_submission route should be called with the job\_id.
+When upload is complete, the finalize_submission route should be called with the job_id.
 
 Example input:
 
@@ -550,7 +273,7 @@ Example output:
 ```
 
 #### POST "/v1/finalize_job/"
-A call to this route should have JSON or form-urlencoded with a key of "upload\_id" and value of the job id received from the submit_files route. This will change the status of the upload job to finished so that dependent jobs can be started.
+A call to this route should have JSON or form-urlencoded with a key of "upload_id" and value of the job id received from the submit_files route. This will change the status of the upload job to finished so that dependent jobs can be started.
 
 Example input:
 
@@ -568,8 +291,8 @@ Example output:
 }
 ```
 
-#### POST "/v1/submission\_error_reports/"
-A call to this route should have JSON or form-urlencoded with a key of "submission\_id" and value of the submission id received from the submit\_files route.  The response object will be JSON with keys of "job\_X\_error\_url" for each job X that is part of the submission, and the value will be the signed URL of the error report on S3. Note that for failed jobs (i.e. file-level errors), no error reports will be created.
+#### POST "/v1/submission_error_reports/"
+A call to this route should have JSON or form-urlencoded with a key of "submission_id" and value of the submission id received from the submit_files route.  The response object will be JSON with keys of "job_X_error_url" for each job X that is part of the submission, and the value will be the signed URL of the error report on S3. Note that for failed jobs (i.e. file-level errors), no error reports will be created.
 
 Example input:
 
@@ -591,8 +314,8 @@ Example output:
 }
 ```
 
-#### POST "/v1/submission\_warning_reports/"
-A call to this route should have JSON or form-urlencoded with a key of "submission\_id" and value of the submission id received from the submit\_files route.  The response object will be JSON with keys of "job\_X\_warning\_url" for each job X that is part of the submission, and the value will be the signed URL of the error report on S3. Note that for failed jobs (i.e. file-level errors), no error reports will be created.
+#### POST "/v1/submission_warning_reports/"
+A call to this route should have JSON or form-urlencoded with a key of "submission_id" and value of the submission id received from the submit_files route.  The response object will be JSON with keys of "job_X_warning_url" for each job X that is part of the submission, and the value will be the signed URL of the error report on S3. Note that for failed jobs (i.e. file-level errors), no error reports will be created.
 
 Example input:
 
@@ -616,7 +339,7 @@ Example output:
 
 #### POST "/v1/check_status/"
 A call to this route will provide status information on all jobs associated with the specified submission.
-The request should have JSON or form-urlencoded with a key "submission\_id".  The response will contain a list of
+The request should have JSON or form-urlencoded with a key "submission_id".  The response will contain a list of
 status objects for each job under the key "jobs", and other submission-level data.  In error data,
 "original_label" will only be populated when "error_name" is "rule_failed".  List of keys in response:
 - jobs: Holds data for each job in submission, each job is a dict with:

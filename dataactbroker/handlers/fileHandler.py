@@ -2,7 +2,6 @@ import os
 from collections import namedtuple
 from csv import reader
 from datetime import datetime
-from functools import wraps
 import logging
 from dateutil.relativedelta import relativedelta
 from uuid import uuid4
@@ -11,11 +10,14 @@ from shutil import copyfile
 import requests
 from flask import g, request
 from requests.exceptions import Timeout
+import sqlalchemy as sa
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 
+from dataactbroker.permissions import (
+    current_user_can, current_user_can_on_submission)
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
@@ -35,36 +37,13 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    checkNumberOfErrorsByJobId, getErrorType, run_job_checks,
-    getErrorMetricsByJobId, get_submission_stats, get_submission_status,
-    mark_job_status, create_submission, create_jobs)
+    checkNumberOfErrorsByJobId, create_jobs, create_submission,
+    getErrorMetricsByJobId, getErrorType, get_submission_status,
+    mark_job_status, run_job_checks
+)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
-_debug_logger = logging.getLogger('deprecated.debug')
-_smx_logger = logging.getLogger('deprecated.smx')
 logger = logging.getLogger(__name__)
-
-
-def user_agency_matches(submission):
-    """Does the currently logged in user have an agency that matches this
-    submission?"""
-    sess = GlobalDB.db().session
-    submission_cgac = StringCleaner.cleanString(submission.cgac_code)
-    user_cgac = StringCleaner.cleanString(g.user.cgac_code)
-    return (
-        submission_cgac == user_cgac
-        or submission.user_id == g.user.user_id
-        or g.user.website_admin
-    )
-
-
-def user_agency_must_match(submission):
-    """Raise an exception if the logged in user doesn't have an agency match
-    with this submission"""
-    if not user_agency_matches(submission):
-        raise ResponseException(
-            "User does not have permission to view that submission",
-            StatusCode.PERMISSION_DENIED)
 
 
 class FileHandler:
@@ -149,18 +128,13 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def get_signed_url_for_submission_file(self):
+    def get_signed_url_for_submission_file(self, submission):
         """ Gets the signed URL for the specified file """
         try:
             sess = GlobalDB.db().session
             self.s3manager = s3UrlHandler()
-            safe_dictionary = RequestDictionary(self.request)
-            file_name = safe_dictionary.getValue("file") + ".csv"
-            submission_id = safe_dictionary.getValue("submission")
-            submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
-            # Check that user has access to submission
-            # If they don't, throw an exception
-            user_agency_must_match(submission)
+            safe_dictionary = RequestDictionary.derive(self.request)
+            file_name = safe_dictionary["file"] + ".csv"
 
             response_dict = {}
             if self.isLocal:
@@ -237,9 +211,20 @@ class FileHandler:
 
             submission = create_submission(g.user.user_id, submission_data,
                                            existing_submission_obj)
-            if existing_submission:
-                # check if user has permission to specified submission
-                user_agency_must_match(submission)
+            cant_edit = (
+                existing_submission
+                and not current_user_can_on_submission(
+                    'writer', existing_submission_obj)
+            )
+            cant_create = not current_user_can('writer', submission.cgac_code)
+            if cant_edit or cant_create:
+                raise ResponseException(
+                    "User does not have permission to create/modify that "
+                    "submission", StatusCode.PERMISSION_DENIED
+                )
+            else:
+                sess.add(submission)
+                sess.commit()
 
             # build fileNameMap to be used in creating jobs
             for file_type in FileHandler.FILE_TYPES :
@@ -368,7 +353,7 @@ class FileHandler:
 
         return start_date, end_date
 
-    def finalize(self, job_id=None):
+    def finalize(self):
         """ Set upload job in job tracker database to finished, allowing dependent jobs to be started
 
         Flask request should include key "upload_id", which holds the job_id for the file_upload job
@@ -379,14 +364,13 @@ class FileHandler:
         sess = GlobalDB.db().session
         response_dict = {}
         try:
-            if job_id is None:
-                input_dictionary = RequestDictionary(self.request)
-                job_id = input_dictionary.getValue("upload_id")
+            input_dictionary = RequestDictionary(self.request)
+            job_id = input_dictionary.getValue("upload_id")
 
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id = job_id).one()
             submission = sess.query(Submission).filter_by(submission_id = job.submission_id).one()
-            if not user_agency_matches(submission):
+            if not current_user_can_on_submission('writer', submission):
                 # This user cannot finalize this job
                 raise ResponseException(
                     "Cannot finalize a job for a different agency",
@@ -408,7 +392,7 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def check_submission_by_id(self, submission_id, file_type):
+    def submission_error(self, submission_id, file_type):
         """ Check that submission exists and user has permission to it
 
         Args:
@@ -416,13 +400,12 @@ class FileHandler:
             file_type: file type that has been requested
 
         Returns:
-            Tuple of boolean indicating whether submission has passed checks, and http response if not
-
+            A JsonResponse if there's an error, None otherwise
         """
-        error = None
         sess = GlobalDB.db().session
 
-        submission = sess.query(Submission).filter_by(submission_id = submission_id).one_or_none()
+        submission = sess.query(Submission).\
+            filter_by(submission_id=submission_id).one_or_none()
         if submission is None:
             # Submission does not exist, change to 400 in this case since
             # route call specified a bad ID
@@ -436,9 +419,10 @@ class FileHandler:
                 # Add empty start and end dates
                 response_dict["start"] = ""
                 response_dict["end"] = ""
-            error = JsonResponse.error(NoResultFound, StatusCode.CLIENT_ERROR, **response_dict)
+            return JsonResponse.error(
+                NoResultFound, StatusCode.CLIENT_ERROR, **response_dict)
 
-        if not user_agency_matches(submission):
+        if not current_user_can_on_submission('writer', submission):
             response_dict = {
                 "message": ("User does not have permission to view that "
                             "submission"),
@@ -450,141 +434,8 @@ class FileHandler:
                 # Add empty start and end dates
                 response_dict["start"] = ""
                 response_dict["end"] = ""
-            error = JsonResponse.create(StatusCode.PERMISSION_DENIED,
-                                        response_dict)
-        if error:
-            return False, error
-        return True, None
-
-    def getStatus(self):
-        """ Get description and status of all jobs in the submission specified in request object
-
-        Returns:
-            A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding file_type, job_type, status, and filename
-        """
-        try:
-            sess = GlobalDB.db().session
-            input_dictionary = RequestDictionary(self.request)
-
-            # Get submission
-            submission_id = input_dictionary.getValue("submission_id")
-            submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
-
-            user_agency_must_match(submission)
-
-            # Get jobs in this submission
-            jobs = sess.query(Job).filter_by(submission_id=submission_id)
-
-            # Build dictionary of submission info with info about each job
-            submission_info = {}
-            submission_info["jobs"] = []
-            submission_info["cgac_code"] = submission.cgac_code
-            submission_info["created_on"] = submission.datetime_utc.strftime('%m/%d/%Y')
-            # Include number of errors in submission
-            submission_info["number_of_errors"] = submission.number_of_errors
-            submission_info["number_of_rows"] = sess.query(
-                func.sum(Job.number_of_rows)).\
-                filter_by(submission_id = submission_id).\
-                scalar() or 0
-            submission_info["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
-            # Format submission reporting date
-            if submission.is_quarter_format:
-                reporting_date = 'Q{}/{}'.format(
-                    int(submission.reporting_fiscal_period / 3), submission.reporting_fiscal_year)
-            else:
-                reporting_date = submission.reporting_start_date.strftime("%m/%Y")
-            # Broker allows submission for a single quarter or a single month,
-            # so reporting_period start and end dates reported by check_status
-            # are always equal
-            submission_info["reporting_period_start_date"] = submission_info["reporting_period_end_date"] = reporting_date
-
-            for job in jobs:
-                job_info = {}
-                job_type = job.job_type.name
-
-                if job_type != "csv_record_validation" and job_type != "validation":
-                    continue
-
-                job_info["job_id"] = job.job_id
-                job_info["job_status"] = job.job_status.name
-                job_info["job_type"] = job_type
-                job_info["filename"] = job.original_filename
-                job_info["file_size"] = job.file_size
-                job_info["number_of_rows"] = job.number_of_rows
-                if job.file_type:
-                    job_info["file_type"] = job.file_type.name
-                else:
-                    job_info["file_type"] = ''
-
-                try:
-                    file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job.job_id).one()
-                    job_info["file_status"] = file_results.file_status.name
-                except NoResultFound:
-                    # Job ID not in error database, probably did not make it to validation, or has not yet been validated
-                    job_info["file_status"] = ""
-                    job_info["missing_headers"] = []
-                    job_info["duplicated_headers"] = []
-                    job_info["error_type"] = ""
-                    job_info["error_data"] = []
-                    job_info["warning_data"] = []
-                else:
-                    # If job ID was found in file, we should be able to get header error lists and file data
-                    # Get string of missing headers and parse as a list
-                    missing_header_string = file_results.headers_missing
-                    if missing_header_string is not None:
-                        # Split header string into list, excluding empty strings
-                        job_info["missing_headers"] = [n.strip() for n in missing_header_string.split(",") if len(n) > 0]
-                    else:
-                        job_info["missing_headers"] = []
-                    # Get string of duplicated headers and parse as a list
-                    duplicated_header_string = file_results.headers_duplicated
-                    if duplicated_header_string is not None:
-                        # Split header string into list, excluding empty strings
-                        job_info["duplicated_headers"] = [n.strip() for n in duplicated_header_string.split(",") if len(n) > 0]
-                    else:
-                        job_info["duplicated_headers"] = []
-                    job_info["error_type"] = getErrorType(job.job_id)
-                    job_info["error_data"] = getErrorMetricsByJobId(
-                        job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['fatal'])
-                    job_info["warning_data"] = getErrorMetricsByJobId(
-                        job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['warning'])
-
-                submission_info["jobs"].append(job_info)
-
-            # Build response object holding dictionary
-            return JsonResponse.create(StatusCode.OK,submission_info)
-        except ResponseException as e:
-            return JsonResponse.error(e,e.status)
-        except Exception as e:
-            # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
-
-    def get_error_metrics(self) :
-        """ Returns an Http response object containing error information for every validation job in specified submission """
-        sess = GlobalDB.db().session
-        return_dict = {}
-        try:
-            safe_dictionary = RequestDictionary(self.request)
-            submission_id =  safe_dictionary.getValue("submission_id")
-
-            # Check if user has permission to specified submission
-            submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
-            user_agency_must_match(submission)
-
-            jobs = sess.query(Job).filter_by(submission_id=submission_id)
-            for job in jobs :
-                if job.job_type.name == 'csv_record_validation':
-                    file_type = job.file_type.name
-                    data_list = getErrorMetricsByJobId(job.job_id)
-                    return_dict[file_type]  = data_list
-            return JsonResponse.create(StatusCode.OK,return_dict)
-        except ( ValueError , TypeError ) as e:
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
-        except ResponseException as e:
-            return JsonResponse.error(e,e.status)
-        except Exception as e:
-            # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+            return JsonResponse.create(StatusCode.PERMISSION_DENIED,
+                                       response_dict)
 
     def uploadFile(self):
         """ Saves a file and returns the saved path.  Should only be used for local installs. """
@@ -709,8 +560,9 @@ class FileHandler:
 
     def get_xml_response_content(self, api_url):
         """ Retrieve XML Response from the provided API url """
-        logger.debug('Getting XML response')
-        return requests.get(api_url, verify=False, timeout=120).text
+        result = requests.get(api_url, verify=False, timeout=120).text
+        logger.debug('Result for %s: %s', api_url, result)
+        return result
 
     def call_d_file_api(self, file_type_name, cgac_code, start_date, end_date, job):
         """ Call D file API, return True if results found, False otherwise """
@@ -774,7 +626,7 @@ class FileHandler:
         try:
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
-            _smx_logger.debug('Downloading file...')
+            logger.debug('Downloading file...')
             if not self.download_file(full_file_path, url):
                 # Error occurred while downloading file, mark job as failed and record error message
                 mark_job_status(job_id, "failed")
@@ -793,11 +645,11 @@ class FileHandler:
 
             write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])
 
-            _smx_logger.debug('Marking job id of %s', job_id)
+            logger.debug('Marking job id of %s', job_id)
             mark_job_status(job_id, "finished")
             return {"message": "Success", "file_name": timestamped_name}
         except Exception as e:
-            _smx_logger.exception('Exception caught => %s', e)
+            logger.exception('Exception caught => %s', e)
             # Log the error
             JsonResponse.error(e,500)
             sess.query(Job).filter_by(job_id=job_id).one().error_message = str(e)
@@ -805,20 +657,18 @@ class FileHandler:
             sess.commit()
             raise e
 
-    def get_request_params_for_generate(self):
+    def get_file_type(self):
         """ Pull information out of request object and return it
 
         Returns: tuple of submission ID and file type
 
         """
         request_dict = RequestDictionary.derive(self.request)
-        if not {'file_type', 'submission_id'}.issubset(request_dict.keys()):
-            raise ResponseException("Generate file route requires submission_id and file_type",
+        if 'file_type' not in request_dict:
+            raise ResponseException("Generate file route requires file_type",
                                     StatusCode.CLIENT_ERROR)
 
-        submission_id = request_dict['submission_id']
-        file_type = request_dict['file_type']
-        return submission_id, file_type
+        return request_dict['file_type']
 
     def get_request_params_for_generate_detached(self):
         """ Pull information out of request object and return it
@@ -835,10 +685,10 @@ class FileHandler:
                                     StatusCode.CLIENT_ERROR)
         return request_dict['file_type'], request_dict['cgac_code'], request_dict['start'], request_dict['end']
 
-    def generateFile(self):
+    def generate_file(self, submission_id):
         """ Start a file generation job for the specified file type """
         logger.debug('Starting D file generation')
-        submission_id, file_type = self.get_request_params_for_generate()
+        file_type = self.get_file_type()
 
         logger.debug('Submission ID = %s / File type = %s',
                             submission_id, file_type)
@@ -846,9 +696,9 @@ class FileHandler:
         sess = GlobalDB.db().session
 
         # Check permission to submission
-        success, error_response = self.check_submission_by_id(submission_id, file_type)
-        if not success:
-            return error_response
+        error = self.submission_error(submission_id, file_type)
+        if error:
+            return error
 
         job = sess.query(Job).filter_by(
             submission_id = submission_id,
@@ -875,7 +725,10 @@ class FileHandler:
             return error_response
 
         # Return same response as check generation route
-        return self.checkGeneration(submission_id, file_type)
+        submission = sess.query(Submission).\
+            filter_by(submission_id=submission_id).\
+            one()
+        return self.check_generation(submission)
 
     def generate_detached_file(self):
         """ Start a file generation job for the specified file type """
@@ -949,7 +802,7 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, response_dict)
 
-    def checkGeneration(self, submission_id=None, file_type=None):
+    def check_generation(self, submission):
         """ Return information about file generation jobs
 
         Returns:
@@ -957,22 +810,19 @@ class FileHandler:
             If file_type is D1 or D2, also includes start and end.
         """
         sess = GlobalDB.db().session
-        if submission_id is None or file_type is None:
-            submission_id, file_type = self.get_request_params_for_generate()
-        # Check permission to submission
-        self.check_submission_by_id(submission_id, file_type)
+        file_type = self.get_file_type()
 
         uploadJob = sess.query(Job).filter_by(
-            submission_id = submission_id,
-            file_type_id = FILE_TYPE_DICT_LETTER_ID[file_type],
-            job_type_id = JOB_TYPE_DICT['file_upload']
+            submission_id=submission.submission_id,
+            file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
+            job_type_id=JOB_TYPE_DICT['file_upload']
         ).one()
 
         if file_type in ["D1","D2"]:
             validationJob = sess.query(Job).filter_by(
-                submission_id = submission_id,
-                file_type_id = FILE_TYPE_DICT_LETTER_ID[file_type],
-                job_type_id = JOB_TYPE_DICT['csv_record_validation']
+                submission_id=submission.submission_id,
+                file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
+                job_type_id=JOB_TYPE_DICT['csv_record_validation']
             ).one()
         else:
             validationJob = None
@@ -1098,62 +948,13 @@ class FileHandler:
             # Did not find file generation task
             return JsonResponse.error(ResponseException("Generation task key not found", StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
 
-    def getObligations(self):
-        sess = GlobalDB.db().session
-        input_dictionary = RequestDictionary(self.request)
-
-        # Get submission
-        submission_id = input_dictionary.getValue("submission_id")
-        submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
-
-        user_agency_must_match(submission)
-
-        obligations_info = get_submission_stats(submission_id)
-
-        return JsonResponse.create(StatusCode.OK,obligations_info)
-
-    def list_submissions(self, page, limit, certified):
-        """ List submission based on current page and amount to display. If provided, filter based on
-        certification status """
-        sess = GlobalDB.db().session
-
-        offset = limit*(page-1)
-
-        query = sess.query(Submission).filter_by(cgac_code=g.user.cgac_code)
-        if certified != 'mixed':
-            query = query.filter_by(publishable=certified)
-        submissions = query.order_by(Submission.updated_at.desc()).limit(limit).offset(offset).all()
-        submission_details = []
-
-        for submission in submissions:
-            total_size = sess.query(func.sum(Job.file_size)).\
-                filter_by(submission_id=submission.submission_id).\
-                scalar() or 0
-
-            status = get_submission_status(submission)
-            if submission.user_id is None:
-                submission_user_name = "No user"
-            else:
-                submission_user_name = sess.query(User).filter_by(user_id=submission.user_id).one().name
-            submission_details.append({"submission_id": submission.submission_id,
-                                       "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
-                                       "size": total_size, "status": status, "errors": submission.number_of_errors,
-                                       "reporting_start_date": str(submission.reporting_start_date),
-                                       "reporting_end_date": str(submission.reporting_end_date),
-                                       "user": {"user_id": submission.user_id,
-                                                "name": submission_user_name}})
-
-        total_submissions = query.from_self().count()
-
-        return JsonResponse.create(StatusCode.OK, {"submissions": submission_details, "total": total_submissions})
-
     @staticmethod
     def get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date):
         """ Compiles the URL to be called in order to generate the D files """
         callback = "{}://{}:{}/v1/complete_generation/{}/".format(CONFIG_SERVICES["protocol"],
                                                                   CONFIG_SERVICES["broker_api_host"],
                                                                   CONFIG_SERVICES["broker_api_port"], task_key)
-        _debug_logger.debug('Callback URL for %s: %s', FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]], callback)
+        logger.debug('Callback URL for %s: %s', FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]], callback)
         url = CONFIG_BROKER["".join([file_type_name, "_url"])].format(cgac_code, start_date, end_date, callback)
         return url
 
@@ -1193,24 +994,6 @@ class FileHandler:
         return job
 
 
-def requires_submission_perms(fn):
-    """Decorator that checks the current user's permissions and validates that
-    the submission exists."""
-    @wraps(fn)
-    def wrapped(submission_id, *args, **kwargs):
-        sess = GlobalDB.db().session
-        submission = sess.query(Submission).\
-            filter_by(submission_id=submission_id).one_or_none()
-        if submission is None:
-            # @todo - why don't we use 404s?
-            raise ResponseException('No such submission', StatusCode.CLIENT_ERROR)
-        user_agency_must_match(submission)
-
-        return fn(submission, *args, **kwargs)
-    return wrapped
-
-
-@requires_submission_perms
 def narratives_for_submission(submission):
     """Fetch narratives for this submission, indexed by file letter"""
     sess = GlobalDB.db().session
@@ -1223,7 +1006,6 @@ def narratives_for_submission(submission):
     return JsonResponse.create(StatusCode.OK, result)
 
 
-@requires_submission_perms
 def update_narratives(submission, narratives_json):
     """Clear existing narratives and replace them with the provided set. We
     assume narratives_json contains non-empty strings (i.e. that it's been
@@ -1244,3 +1026,175 @@ def update_narratives(submission, narratives_json):
     sess.commit()
 
     return JsonResponse.create(StatusCode.OK, {})
+
+
+def get_status(submission):
+    """ Get description and status of all jobs in the submission specified in request object
+
+    Returns:
+        A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding file_type, job_type, status, and filename
+    """
+    try:
+        sess = GlobalDB.db().session
+
+        # Get jobs in this submission
+        jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
+
+        # Build dictionary of submission info with info about each job
+        submission_info = {}
+        submission_info["jobs"] = []
+        submission_info["cgac_code"] = submission.cgac_code
+        submission_info["created_on"] = submission.datetime_utc.strftime('%m/%d/%Y')
+        # Include number of errors in submission
+        submission_info["number_of_errors"] = submission.number_of_errors
+        submission_info["number_of_rows"] = sess.query(
+            func.sum(Job.number_of_rows)).\
+            filter_by(submission_id=submission.submission_id).\
+            scalar() or 0
+        submission_info["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
+        # Format submission reporting date
+        if submission.is_quarter_format:
+            reporting_date = 'Q{}/{}'.format(
+                int(submission.reporting_fiscal_period / 3), submission.reporting_fiscal_year)
+        else:
+            reporting_date = submission.reporting_start_date.strftime("%m/%Y")
+        # Broker allows submission for a single quarter or a single month,
+        # so reporting_period start and end dates reported by check_status
+        # are always equal
+        submission_info["reporting_period_start_date"] = submission_info["reporting_period_end_date"] = reporting_date
+
+        for job in jobs:
+            job_info = {}
+            job_type = job.job_type.name
+
+            if job_type != "csv_record_validation" and job_type != "validation":
+                continue
+
+            job_info["job_id"] = job.job_id
+            job_info["job_status"] = job.job_status.name
+            job_info["job_type"] = job_type
+            job_info["filename"] = job.original_filename
+            job_info["file_size"] = job.file_size
+            job_info["number_of_rows"] = job.number_of_rows
+            if job.file_type:
+                job_info["file_type"] = job.file_type.name
+            else:
+                job_info["file_type"] = ''
+
+            try:
+                file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job.job_id).one()
+                job_info["file_status"] = file_results.file_status.name
+            except NoResultFound:
+                # Job ID not in error database, probably did not make it to validation, or has not yet been validated
+                job_info["file_status"] = ""
+                job_info["missing_headers"] = []
+                job_info["duplicated_headers"] = []
+                job_info["error_type"] = ""
+                job_info["error_data"] = []
+                job_info["warning_data"] = []
+            else:
+                # If job ID was found in file, we should be able to get header error lists and file data
+                # Get string of missing headers and parse as a list
+                missing_header_string = file_results.headers_missing
+                if missing_header_string is not None:
+                    # Split header string into list, excluding empty strings
+                    job_info["missing_headers"] = [n.strip() for n in missing_header_string.split(",") if len(n) > 0]
+                else:
+                    job_info["missing_headers"] = []
+                # Get string of duplicated headers and parse as a list
+                duplicated_header_string = file_results.headers_duplicated
+                if duplicated_header_string is not None:
+                    # Split header string into list, excluding empty strings
+                    job_info["duplicated_headers"] = [n.strip() for n in duplicated_header_string.split(",") if len(n) > 0]
+                else:
+                    job_info["duplicated_headers"] = []
+                job_info["error_type"] = getErrorType(job.job_id)
+                job_info["error_data"] = getErrorMetricsByJobId(
+                    job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['fatal'])
+                job_info["warning_data"] = getErrorMetricsByJobId(
+                    job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['warning'])
+
+            submission_info["jobs"].append(job_info)
+
+        # Build response object holding dictionary
+        return JsonResponse.create(StatusCode.OK,submission_info)
+    except ResponseException as e:
+        return JsonResponse.error(e,e.status)
+    except Exception as e:
+        # Unexpected exception, this is a 500 server error
+        return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+
+
+def get_error_metrics(submission):
+    """Returns an Http response object containing error information for every
+    validation job in specified submission """
+    sess = GlobalDB.db().session
+    return_dict = {}
+    try:
+        jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
+        for job in jobs :
+            if job.job_type.name == 'csv_record_validation':
+                file_type = job.file_type.name
+                data_list = getErrorMetricsByJobId(job.job_id)
+                return_dict[file_type]  = data_list
+        return JsonResponse.create(StatusCode.OK,return_dict)
+    except ( ValueError , TypeError ) as e:
+        return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+    except ResponseException as e:
+        return JsonResponse.error(e,e.status)
+    except Exception as e:
+        # Unexpected exception, this is a 500 server error
+        return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+
+
+def list_submissions(page, limit, certified):
+    """ List submission based on current page and amount to display. If provided, filter based on
+    certification status """
+    sess = GlobalDB.db().session
+
+    offset = limit*(page-1)
+
+    cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
+    query = sess.query(Submission)
+    if not g.user.website_admin:
+        query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
+                                    Submission.user_id == g.user.user_id))
+    if certified != 'mixed':
+        query = query.filter_by(publishable=certified)
+    submissions = query.order_by(Submission.updated_at.desc()).\
+            limit(limit).offset(offset)
+
+    return JsonResponse.create(StatusCode.OK, {
+        "submissions": [serialize_submission(s) for s in submissions],
+        "total": query.count()
+    })
+
+
+def serialize_submission(submission):
+    """Convert the provided submission into a dictionary in a schema the
+    frontend expects"""
+    sess = GlobalDB.db().session
+    # @todo these should probably be part of the query rather than spawning n
+    # queries
+    total_size = sess.query(func.sum(Job.file_size)).\
+        filter_by(submission_id=submission.submission_id).\
+        scalar() or 0
+
+    status = get_submission_status(submission)
+    if submission.user_id is None:
+        submission_user_name = "No user"
+    else:
+        submission_user_name = sess.query(User).filter_by(user_id=submission.user_id).one().name
+
+    return {
+        "submission_id": submission.submission_id,
+        "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
+        "size": total_size,
+        "status": status,
+        "errors": submission.number_of_errors,
+        # @todo why are these a different format?
+        "reporting_start_date": str(submission.reporting_start_date),
+        "reporting_end_date": str(submission.reporting_end_date),
+        "user": {"user_id": submission.user_id,
+                 "name": submission_user_name}
+    }
