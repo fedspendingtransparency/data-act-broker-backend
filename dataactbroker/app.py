@@ -1,4 +1,5 @@
-import os, os.path
+import os
+import os.path
 
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
