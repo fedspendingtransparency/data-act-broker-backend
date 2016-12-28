@@ -410,7 +410,6 @@ class ValidationManager:
         Returns:
             a list of the row numbers that failed one of the sql-based validations
         """
-        sess = GlobalDB.db().session
         job_id = job.job_id
         error_rows = []
         sql_failures = Validator.validateFileBySql(

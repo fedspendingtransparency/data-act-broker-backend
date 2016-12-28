@@ -129,12 +129,10 @@ class JobTests(BaseTestValidator):
 
     def test_bad_prereq_job(self):
         """Test job with unfinished prerequisites."""
-        jobId = self.jobDict["bad_prereq"]
-        response = self.run_test(
-            jobId, 400, "ready", False, False, "job_error", 0)
+        job_id = self.jobDict["bad_prereq"]
+        self.run_test(job_id, 400, "ready", False, False, "job_error", 0)
 
     def test_bad_type_job(self):
         """Test job with wrong type."""
-        jobId = self.jobDict["wrong_type"]
-        response = self.run_test(
-            jobId, 400, "ready", False, False, "job_error", 0)
+        job_id = self.jobDict["wrong_type"]
+        self.run_test(job_id, 400, "ready", False, False, "job_error", 0)

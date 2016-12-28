@@ -16,8 +16,6 @@ def test_column_headers(database):
 def test_success(database):
     """ Tests that Beginning Period of Availability and Ending Period of Availability are blank
     if Availability Type Code = X """
-    tas = "".join([_TAS, "_success"])
-
     af1 = AwardFinancialFactory(availability_type_code='x', beginning_period_of_availa=None,
                                ending_period_of_availabil=None)
     af2 = AwardFinancialFactory(availability_type_code='X', beginning_period_of_availa=None,
@@ -29,8 +27,6 @@ def test_success(database):
 def test_failure(database):
     """ Tests that Beginning Period of Availability and Ending Period of Availability are not blank
     if Availability Type Code = X """
-    tas = "".join([_TAS, "_failure"])
-
     af1 = AwardFinancialFactory(availability_type_code='x', beginning_period_of_availa='Today',
                                ending_period_of_availabil='Today')
     af2 = AwardFinancialFactory(availability_type_code='x', beginning_period_of_availa='Today',

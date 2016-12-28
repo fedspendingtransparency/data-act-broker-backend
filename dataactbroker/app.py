@@ -47,10 +47,10 @@ def createApp():
     JsonResponse.debugMode = app.debug
 
     if CONFIG_SERVICES['cross_origin_url'] ==  "*":
-        cors = CORS(app, supports_credentials=False, allow_headers = "*", expose_headers = "X-Session-Id")
+        CORS(app, supports_credentials=False, allow_headers = "*", expose_headers = "X-Session-Id")
     else:
-        cors = CORS(app, supports_credentials=False, origins=CONFIG_SERVICES['cross_origin_url'],
-                    allow_headers = "*", expose_headers = "X-Session-Id")
+        CORS(app, supports_credentials=False, origins=CONFIG_SERVICES['cross_origin_url'],
+             allow_headers = "*", expose_headers = "X-Session-Id")
     # Enable DB session table handling
     app.session_interface = UserSessionInterface()
     # Set up bcrypt

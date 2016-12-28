@@ -131,7 +131,6 @@ class FileHandler:
     def get_signed_url_for_submission_file(self, submission):
         """ Gets the signed URL for the specified file """
         try:
-            sess = GlobalDB.db().session
             self.s3manager = s3UrlHandler()
             safe_dictionary = RequestDictionary.derive(self.request)
             file_name = safe_dictionary["file"] + ".csv"
