@@ -21,7 +21,7 @@ class ValidationError:
     jobErrorMsg = "Error occurred in job manager"
     lengthError = 9
     lengthErrorMsg = "Value was longer than maximum length for this field"
-     # Create dict of error types
+    # Create dict of error types
     errorDict = {typeError:typeErrorMsg, requiredError:requiredErrorMsg, valueError:valueErrorMsg, headerError:headerErrorMsg,
                  readError:readErrorMsg, writeError:writeErrorMsg, unknownError:unknownErrorMsg,
                  singleRow:singleRowMsg,jobError:jobErrorMsg, lengthError:lengthErrorMsg}

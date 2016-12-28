@@ -210,7 +210,7 @@ class MixedFileTests(BaseTestValidator):
         """Test mixed job with some rows failing."""
         jobId = self.jobDict["programMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 8268, 5, "complete", 46, 24, 7697)
+            jobId, 200, "finished", 8268, 5, "complete", 46, 24, 7697)
 
     def test_program_mixed_shortcols(self):
         """Test object class/program activity job with some rows failing & short colnames."""
@@ -222,7 +222,7 @@ class MixedFileTests(BaseTestValidator):
         """Test mixed award job with some rows failing."""
         jobId = self.jobDict["awardFinMixed"]
         self.passed = self.run_test(
-        jobId, 200, "finished", 8661, 5, "complete", 51, 32, 7968)
+            jobId, 200, "finished", 8661, 5, "complete", 51, 32, 7968)
 
         with createApp().app_context():
             sess = GlobalDB.db().session

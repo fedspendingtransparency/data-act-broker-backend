@@ -260,8 +260,8 @@ class CsvAbstractReader(object):
                         lines_to_return.append("")
                     current = ""
                 else:
-                  current = "".join([current,char])
-                  if char == '"':
+                    current = "".join([current,char])
+                    if char == '"':
                         escape_mode = True
             else :
                 if char == '"':

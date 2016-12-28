@@ -14,7 +14,7 @@ def test_user_affiliation_fks(database, user_constants):
         user.affiliations = [
             UserAffiliation(cgac=cgacs[idx*2], permission_type_id=permission),
             UserAffiliation(cgac=cgacs[idx*2+1], permission_type_id=permission),
-    ]
+        ]
     sess.add_all(users)
     sess.commit()
     assert sess.query(UserAffiliation).count() == 6

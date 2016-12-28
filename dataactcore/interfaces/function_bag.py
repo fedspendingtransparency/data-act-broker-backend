@@ -98,8 +98,9 @@ def checkNumberOfErrorsByJobId(jobId, errorType='fatal'):
 def getErrorType(job_id):
     """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
     sess = GlobalDB.db().session
-    if sess.query(File).options(joinedload("file_status")).filter(
-                    File.job_id == job_id).one().file_status.name == "header_error":
+    file_status_name = sess.query(File).options(joinedload("file_status")).\
+        filter(File.job_id == job_id).one().file_status.name
+    if file_status_name == "header_error":
         # Header errors occurred, return that
         return "header_errors"
     elif sess.query(Job).filter(Job.job_id == job_id).one().number_of_errors > 0:

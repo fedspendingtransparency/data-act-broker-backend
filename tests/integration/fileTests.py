@@ -109,8 +109,8 @@ class FileTests(BaseTestAPI):
         self.assertIn("credentials", json)
 
         credentials = json["credentials"]
-        for requiredField in ["AccessKeyId", "SecretAccessKey",
-            "SessionToken", "SessionToken"]:
+        for requiredField in ("AccessKeyId", "SecretAccessKey",
+                              "SessionToken", "SessionToken"):
             self.assertIn(requiredField, credentials)
             self.assertTrue(len(credentials[requiredField]))
 
