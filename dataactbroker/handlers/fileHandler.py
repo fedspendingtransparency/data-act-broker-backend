@@ -12,7 +12,6 @@ from flask import g, request
 from requests.exceptions import Timeout
 import sqlalchemy as sa
 from sqlalchemy import func
-from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 
@@ -1028,6 +1027,64 @@ def update_narratives(submission, narratives_json):
     return JsonResponse.create(StatusCode.OK, {})
 
 
+def job_to_dict(job):
+    """Convert a Job model into a dictionary, ready to be converted to JSON"""
+    sess = GlobalDB.db().session
+
+    job_info = {
+        'job_id': job.job_id,
+        'job_status': job.job_status_name,
+        'job_type': job.job_type_name,
+        'filename': job.original_filename,
+        'file_size': job.file_size,
+        'number_of_rows': job.number_of_rows,
+        'file_type': job.file_type_name or '',
+        'missing_headers': [],
+        'duplicated_headers': []
+    }
+
+    # @todo replace with relationships
+    file_results = sess.query(File).filter_by(job_id=job.job_id).one_or_none()
+    if file_results is None:
+        # Job ID not in error database, probably did not make it to
+        # validation, or has not yet been validated
+        job_info.update(
+            file_status="",
+            error_type="",
+            error_data=[],
+            warning_data=[],
+        )
+    else:
+        # If job ID was found in file, we should be able to get header error
+        # lists and file data. Get string of missing headers and parse as a
+        # list
+        job_info['file_status'] = file_results.file_status_name
+        missing_header_string = file_results.headers_missing
+        if missing_header_string is not None:
+            # Split header string into list, excluding empty strings
+            job_info["missing_headers"] = [
+                n.strip() for n in missing_header_string.split(",")
+                if len(n) > 0
+            ]
+        # Get string of duplicated headers and parse as a list
+        if file_results.headers_duplicated is not None:
+            # Split header string into list, excluding empty strings
+            job_info["duplicated_headers"] = [
+                n.strip() for n in file_results.headers_duplicated.split(",")
+                if len(n) > 0
+            ]
+        job_info["error_type"] = getErrorType(job.job_id)
+        job_info["error_data"] = getErrorMetricsByJobId(
+            job.job_id, job.job_type_name=='validation',
+            severity_id=RULE_SEVERITY_DICT['fatal']
+        )
+        job_info["warning_data"] = getErrorMetricsByJobId(
+            job.job_id, job.job_type_name=='validation',
+            severity_id=RULE_SEVERITY_DICT['warning']
+        )
+    return job_info
+
+
 def get_status(submission):
     """ Get description and status of all jobs in the submission specified in request object
 
@@ -1063,58 +1120,10 @@ def get_status(submission):
         # are always equal
         submission_info["reporting_period_start_date"] = submission_info["reporting_period_end_date"] = reporting_date
 
-        for job in jobs:
-            job_info = {}
-            job_type = job.job_type.name
-
-            if job_type != "csv_record_validation" and job_type != "validation":
-                continue
-
-            job_info["job_id"] = job.job_id
-            job_info["job_status"] = job.job_status.name
-            job_info["job_type"] = job_type
-            job_info["filename"] = job.original_filename
-            job_info["file_size"] = job.file_size
-            job_info["number_of_rows"] = job.number_of_rows
-            if job.file_type:
-                job_info["file_type"] = job.file_type.name
-            else:
-                job_info["file_type"] = ''
-
-            try:
-                file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job.job_id).one()
-                job_info["file_status"] = file_results.file_status.name
-            except NoResultFound:
-                # Job ID not in error database, probably did not make it to validation, or has not yet been validated
-                job_info["file_status"] = ""
-                job_info["missing_headers"] = []
-                job_info["duplicated_headers"] = []
-                job_info["error_type"] = ""
-                job_info["error_data"] = []
-                job_info["warning_data"] = []
-            else:
-                # If job ID was found in file, we should be able to get header error lists and file data
-                # Get string of missing headers and parse as a list
-                missing_header_string = file_results.headers_missing
-                if missing_header_string is not None:
-                    # Split header string into list, excluding empty strings
-                    job_info["missing_headers"] = [n.strip() for n in missing_header_string.split(",") if len(n) > 0]
-                else:
-                    job_info["missing_headers"] = []
-                # Get string of duplicated headers and parse as a list
-                duplicated_header_string = file_results.headers_duplicated
-                if duplicated_header_string is not None:
-                    # Split header string into list, excluding empty strings
-                    job_info["duplicated_headers"] = [n.strip() for n in duplicated_header_string.split(",") if len(n) > 0]
-                else:
-                    job_info["duplicated_headers"] = []
-                job_info["error_type"] = getErrorType(job.job_id)
-                job_info["error_data"] = getErrorMetricsByJobId(
-                    job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['fatal'])
-                job_info["warning_data"] = getErrorMetricsByJobId(
-                    job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['warning'])
-
-            submission_info["jobs"].append(job_info)
+        submission_info['jobs'] = [
+            job_to_dict(job) for job in jobs
+            if job.job_type_name in ("csv_record_validation", "validation")
+        ]
 
         # Build response object holding dictionary
         return JsonResponse.create(StatusCode.OK,submission_info)
