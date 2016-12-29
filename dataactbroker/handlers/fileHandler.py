@@ -20,6 +20,7 @@ from dataactbroker.permissions import (
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.domainModels import CGAC
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import (
     FileGenerationTask, Job, Submission, SubmissionNarrative)
@@ -1028,7 +1029,7 @@ def update_narratives(submission, narratives_json):
 
 
 def job_to_dict(job):
-    """Convert a Job model into a dictionary, ready to be converted to JSON"""
+    """Convert a Job model into a dictionary, ready to be serialized as JSON"""
     sess = GlobalDB.db().session
 
     job_info = {
@@ -1085,6 +1086,55 @@ def job_to_dict(job):
     return job_info
 
 
+def reporting_date(submission):
+    """Format submission reporting date"""
+    if submission.is_quarter_format:
+        return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3,
+                               submission.reporting_fiscal_year)
+    else:
+        return submission.reporting_start_date.strftime("%m/%Y")
+
+
+def submission_to_dict(submission):
+    """Convert a Submission model into a dictionary, ready to be serialized as
+    JSON"""
+    sess = GlobalDB.db().session
+
+    number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
+        filter_by(submission_id=submission.submission_id).\
+        scalar() or 0
+
+    # @todo replace with a relationship
+    cgac = sess.query(CGAC).\
+        filter_by(cgac_code=submission.cgac_code).one_or_none()
+    if cgac:
+        agency_name = cgac.agency_name
+    else:
+        agency_name = ''
+
+    relevant_job_types = (JOB_TYPE_DICT['csv_record_validation'],
+                          JOB_TYPE_DICT['validation'])
+    relevant_jobs = sess.query(Job).filter(
+        Job.submission_id == submission.submission_id,
+        Job.job_type_id.in_(relevant_job_types)
+    )
+
+    return {
+        'cgac_code': submission.cgac_code,
+        'agency_name': agency_name,
+        'created_on': submission.datetime_utc.strftime('%m/%d/%Y'),
+        'number_of_errors': submission.number_of_errors,
+        'number_of_rows': number_of_rows,
+        'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
+        # Broker allows submission for a single quarter or a single month,
+        # so reporting_period start and end dates reported by check_status
+        # are always equal
+        'reporting_period_start_date': reporting_date(submission),
+        'reporting_period_end_date': reporting_date(submission),
+        'jobs': [job_to_dict(job) for job in relevant_jobs]
+    }
+
+
 def get_status(submission):
     """ Get description and status of all jobs in the submission specified in request object
 
@@ -1092,43 +1142,8 @@ def get_status(submission):
         A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding file_type, job_type, status, and filename
     """
     try:
-        sess = GlobalDB.db().session
-
-        # Get jobs in this submission
-        jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
-        number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
-            filter_by(submission_id=submission.submission_id).\
-            scalar() or 0
-
-        # Format submission reporting date
-        if submission.is_quarter_format:
-            reporting_date = 'Q{}/{}'.format(
-                int(submission.reporting_fiscal_period / 3),
-                submission.reporting_fiscal_year
-            )
-        else:
-            reporting_date = submission.reporting_start_date.strftime("%m/%Y")
-
-        # Build dictionary of submission info with info about each job
-        submission_info = {
-            'cgac_code': submission.cgac_code,
-            'created_on': submission.datetime_utc.strftime('%m/%d/%Y'),
-            'number_of_errors': submission.number_of_errors,
-            'number_of_rows': number_of_rows,
-            'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
-            # Broker allows submission for a single quarter or a single month,
-            # so reporting_period start and end dates reported by check_status
-            # are always equal
-            'reporting_period_start_date': reporting_date,
-            'reporting_period_end_date': reporting_date,
-            'jobs': [
-                job_to_dict(job) for job in jobs
-                if job.job_type_name in ("csv_record_validation", "validation")
-            ]
-        }
-
-        # Build response object holding dictionary
-        return JsonResponse.create(StatusCode.OK,submission_info)
+        return JsonResponse.create(
+            StatusCode.OK, submission_to_dict(submission))
     except ResponseException as e:
         return JsonResponse.error(e,e.status)
     except Exception as e:
