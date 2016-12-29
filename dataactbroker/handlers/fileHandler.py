@@ -1028,6 +1028,13 @@ def update_narratives(submission, narratives_json):
     return JsonResponse.create(StatusCode.OK, {})
 
 
+def _split_csv(string):
+    """Split string into a list, excluding empty strings"""
+    if string is None:
+        return []
+    return [n.strip() for n in string.split(',') if n]
+
+
 def job_to_dict(job):
     """Convert a Job model into a dictionary, ready to be serialized as JSON"""
     sess = GlobalDB.db().session
@@ -1040,8 +1047,6 @@ def job_to_dict(job):
         'file_size': job.file_size,
         'number_of_rows': job.number_of_rows,
         'file_type': job.file_type_name or '',
-        'missing_headers': [],
-        'duplicated_headers': []
     }
 
     # @todo replace with relationships
@@ -1054,26 +1059,17 @@ def job_to_dict(job):
             error_type="",
             error_data=[],
             warning_data=[],
+            missing_headers=[],
+            duplicated_headers=[],
         )
     else:
         # If job ID was found in file, we should be able to get header error
         # lists and file data. Get string of missing headers and parse as a
         # list
         job_info['file_status'] = file_results.file_status_name
-        missing_header_string = file_results.headers_missing
-        if missing_header_string is not None:
-            # Split header string into list, excluding empty strings
-            job_info["missing_headers"] = [
-                n.strip() for n in missing_header_string.split(",")
-                if len(n) > 0
-            ]
-        # Get string of duplicated headers and parse as a list
-        if file_results.headers_duplicated is not None:
-            # Split header string into list, excluding empty strings
-            job_info["duplicated_headers"] = [
-                n.strip() for n in file_results.headers_duplicated.split(",")
-                if len(n) > 0
-            ]
+        job_info['missing_headers'] = _split_csv(file_results.headers_missing)
+        job_info["duplicated_headers"] = _split_csv(
+            file_results.headers_duplicated)
         job_info["error_type"] = getErrorType(job.job_id)
         job_info["error_data"] = getErrorMetricsByJobId(
             job.job_id, job.job_type_name=='validation',
