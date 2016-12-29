@@ -1091,9 +1091,9 @@ def reporting_date(submission):
         return submission.reporting_start_date.strftime("%m/%Y")
 
 
-def submission_to_dict(submission):
+def submission_to_dict_for_status(submission):
     """Convert a Submission model into a dictionary, ready to be serialized as
-    JSON"""
+    JSON for the get_status function"""
     sess = GlobalDB.db().session
 
     number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
@@ -1139,7 +1139,7 @@ def get_status(submission):
     """
     try:
         return JsonResponse.create(
-            StatusCode.OK, submission_to_dict(submission))
+            StatusCode.OK, submission_to_dict_for_status(submission))
     except ResponseException as e:
         return JsonResponse.error(e,e.status)
     except Exception as e:
