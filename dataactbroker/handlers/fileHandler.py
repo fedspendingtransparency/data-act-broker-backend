@@ -1096,34 +1096,36 @@ def get_status(submission):
 
         # Get jobs in this submission
         jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
-
-        # Build dictionary of submission info with info about each job
-        submission_info = {}
-        submission_info["jobs"] = []
-        submission_info["cgac_code"] = submission.cgac_code
-        submission_info["created_on"] = submission.datetime_utc.strftime('%m/%d/%Y')
-        # Include number of errors in submission
-        submission_info["number_of_errors"] = submission.number_of_errors
-        submission_info["number_of_rows"] = sess.query(
-            func.sum(Job.number_of_rows)).\
+        number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
             filter_by(submission_id=submission.submission_id).\
             scalar() or 0
-        submission_info["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
+
         # Format submission reporting date
         if submission.is_quarter_format:
             reporting_date = 'Q{}/{}'.format(
-                int(submission.reporting_fiscal_period / 3), submission.reporting_fiscal_year)
+                int(submission.reporting_fiscal_period / 3),
+                submission.reporting_fiscal_year
+            )
         else:
             reporting_date = submission.reporting_start_date.strftime("%m/%Y")
-        # Broker allows submission for a single quarter or a single month,
-        # so reporting_period start and end dates reported by check_status
-        # are always equal
-        submission_info["reporting_period_start_date"] = submission_info["reporting_period_end_date"] = reporting_date
 
-        submission_info['jobs'] = [
-            job_to_dict(job) for job in jobs
-            if job.job_type_name in ("csv_record_validation", "validation")
-        ]
+        # Build dictionary of submission info with info about each job
+        submission_info = {
+            'cgac_code': submission.cgac_code,
+            'created_on': submission.datetime_utc.strftime('%m/%d/%Y'),
+            'number_of_errors': submission.number_of_errors,
+            'number_of_rows': number_of_rows,
+            'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
+            # Broker allows submission for a single quarter or a single month,
+            # so reporting_period start and end dates reported by check_status
+            # are always equal
+            'reporting_period_start_date': reporting_date,
+            'reporting_period_end_date': reporting_date,
+            'jobs': [
+                job_to_dict(job) for job in jobs
+                if job.job_type_name in ("csv_record_validation", "validation")
+            ]
+        }
 
         # Build response object holding dictionary
         return JsonResponse.create(StatusCode.OK,submission_info)
