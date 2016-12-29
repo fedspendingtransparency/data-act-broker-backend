@@ -387,12 +387,13 @@ status objects for each job under the key "jobs", and other submission-level dat
         - original_label: Label of the rule as it appears in the practices and procedures document
     * warning_data: Holds the same information as error_data, but for warnings instead of errors
 - agency_name: Which agency this submission is attached to
+- cgac_code: The CGAC code associated with that agency
 - reporting_period_start_date: Specified by user at time of submission
 - reporting_period_end_date: Specified by user at time of submission
 - number_of_errors: Total number of errors that have occurred throughout the submission
-- number_of_warnings: Total number of warnings throughout submission
-- number_of_rows: 446
-- created_on": Date the submission was originally created
+- number_of_rows: Total number of rows in the submission
+- created_on: Date the submission was originally created
+- last_updated: Date + time of last modification to this submission
 
 
 Example input:
@@ -409,70 +410,66 @@ Example output:
 {
   "jobs": [
     {
-    "job_id": 3005,
-    "job_status": "invalid",
-    "file_type": "appropriations",
-    "job_type": "file_upload",
-    "filename": "approp.csv",
-    "file_status" : "header_error",
-    "missing_headers": ["header_1", "header_2"],
-    "duplicated_headers": ["header_3", "header_4"],
-    "file_size": 4508,
-    "number_of_rows": 500,
-    "error_type": "header_error",
-    "error_data": [],
-    "warning_data": []
-    },
-    {
-    "job_id": 3006,
-    "job_status": "finished",
-    "file_type": "appropriations",
-    "job_type": "file_upload",
-    "filename": "approp.csv",
-    "file_status" : "complete",
-    "missing_headers": [],
-    "duplicated_headers": [],
-    "file_size": 4508,
-    "number_of_rows": 500,
-    "error_type": "record_level_error",
-    "error_data":  [
-    {
-    "field_name": "allocationtransferagencyid",
-    "error_name": "type_error",
-    "error_description": "The value provided was of the wrong type",
-    "occurrences": 27,
-    "rule_failed": "",
-    "original_label":""
-    },
-    {
-    "field_name": "availabilitytypecode",
-    "error_name": "rule_failed",
-    "error_description": "Failed rule: Indicator must be X, F, A, or blank",
-    "occurrences": 27,
-    "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
-    "original_label":"A21"
-    }
-    ],
-    "warning_data": [
-    {
-    "field_name": "allocationtransferagencyid",
-    "error_name": "rule_failed",
-    "error_description": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
-    "occurrences": 27,
-    "rule_failed": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
-    "original_label":"A10"
-    },
-    {
-    "field_name": "availabilitytypecode",
-    "error_name": "rule_failed",
-    "error_description": "Failed rule: Indicator must be X, F, A, or blank",
-    "occurrences": 27,
-    "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
-    "original_label":"A21"
-    }
-    ]
-    },
-    {
+      "job_id": 3005,
+      "job_status": "invalid",
+      "file_type": "appropriations",
+      "job_type": "file_upload",
+      "filename": "approp.csv",
+      "file_status" : "header_error",
+      "missing_headers": ["header_1", "header_2"],
+      "duplicated_headers": ["header_3", "header_4"],
+      "file_size": 4508,
+      "number_of_rows": 500,
+      "error_type": "header_error",
+      "error_data": [],
+      "warning_data": []
+    }, {
+      "job_id": 3006,
+      "job_status": "finished",
+      "file_type": "appropriations",
+      "job_type": "file_upload",
+      "filename": "approp.csv",
+      "file_status" : "complete",
+      "missing_headers": [],
+      "duplicated_headers": [],
+      "file_size": 4508,
+      "number_of_rows": 500,
+      "error_type": "record_level_error",
+      "error_data":  [
+        {
+          "field_name": "allocationtransferagencyid",
+          "error_name": "type_error",
+          "error_description": "The value provided was of the wrong type",
+          "occurrences": 27,
+          "rule_failed": "",
+          "original_label":""
+        }, {
+          "field_name": "availabilitytypecode",
+          "error_name": "rule_failed",
+          "error_description": "Failed rule: Indicator must be X, F, A, or blank",
+          "occurrences": 27,
+          "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
+          "original_label":"A21"
+        }
+      ],
+      "warning_data": [
+        {
+          "field_name": "allocationtransferagencyid",
+          "error_name": "rule_failed",
+          "error_description": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
+          "occurrences": 27,
+          "rule_failed": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
+          "original_label":"A10"
+        }, {
+          "field_name": "availabilitytypecode",
+          "error_name": "rule_failed",
+          "error_description": "Failed rule: Indicator must be X, F, A, or blank",
+          "occurrences": 27,
+          "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
+          "original_label":"A21"
+        }
+      ]
+    }, {
       "job_status": "finished",
       "error_data": [
         {
@@ -482,8 +479,7 @@ Example output:
           "occurrences": "11",
           "rule_failed": "Must have either a piid, fain, or uri",
           "original_label":""
-        },
-        {
+        }, {
           "error_description": "A rule failed for this value",
           "error_name": "rule_failed",
           "field_name": "award",
@@ -506,11 +502,13 @@ Example output:
     }
   ],
   "agency_name": "Name of the agency",
+  "cgac_code": "012",
   "reporting_period_start_date": "03/31/2016",
   "reporting_period_end_date": "03/31/2016",
   "number_of_errors": 54,
   "number_of_rows": 446,
   "created_on": "04/01/2016"
+  "last_updated": "2016-04-01T09:10:11"
 }
 ```
 
