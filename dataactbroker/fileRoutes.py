@@ -2,7 +2,7 @@ from functools import wraps
 
 from flask import request
 from webargs import fields as webargs_fields, validate as webargs_validate
-from webargs.flaskparser import use_kwargs
+from webargs.flaskparser import parser as webargs_parser, use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status,
@@ -168,9 +168,12 @@ def convert_to_submission_id(fn):
     @wraps(fn)
     @requires_login     # check login before checking submission_id
     def wrapped(*args, **kwargs):
-        params = RequestDictionary.derive(request)
-        submission_id = params.get('submission')
-        submission_id = submission_id or params.get('submission_id')
+        req_args = webargs_parser.parse({
+            'submission': webargs_fields.Int(),
+            'submission_id': webargs_fields.Int()
+        })
+        submission_id = req_args.get('submission',
+                                     req_args.get('submission_id'))
         if submission_id is None:
             raise ResponseException(
                 "submission_id is required", StatusCode.CLIENT_ERROR)
