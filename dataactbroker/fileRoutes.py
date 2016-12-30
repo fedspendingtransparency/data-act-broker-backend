@@ -1,8 +1,9 @@
 from functools import wraps
 
 from flask import request
+from webargs import fields as webargs_fields, validate as webargs_validate
+from webargs.flaskparser import use_kwargs
 
-from dataactbroker.exceptions.invalid_usage import InvalidUsage
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status,
     list_submissions as list_submissions_handler,
@@ -70,34 +71,14 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
 
     @app.route("/v1/list_submissions/", methods=["GET"])
     @requires_login
-    def list_submissions():
+    @use_kwargs({
+        'page': webargs_fields.Int(missing=1),
+        'limit': webargs_fields.Int(missing=5),
+        'certified': webargs_fields.String(
+            validate=webargs_validate.OneOf(('mixed', 'true', 'false')))
+    })
+    def list_submissions(page, limit, certified):
         """ List submission IDs associated with the current user """
-
-        page = request.args.get('page')
-        limit = request.args.get('limit')
-        certified = request.args.get('certified')
-
-        # convert params and type check
-        try:
-            page = int(page) if page is not None else 1
-        except:
-            raise InvalidUsage("Incorrect type specified for 'page'. Please enter a positive number.")
-
-        try:
-            limit = int(limit) if limit is not None else 5
-        except:
-            raise InvalidUsage("Incorrect type specified for 'limit'. Please enter a positive number.")
-
-        if certified is not None:
-            certified = certified.lower()
-        else:
-            raise InvalidUsage("Missing required parameter 'certified'")
-        # If certified is none, get all submissions without filtering
-        if certified is not None and certified not in ['mixed', 'true', 'false']:
-            raise InvalidUsage(
-                "Incorrect value specified for the 'certified' parameter. "
-                "Must be one of 'mixed', 'true', or 'false'")
-
         return list_submissions_handler(page, limit, certified)
 
     @app.route("/v1/get_protected_files/", methods=["GET"])
@@ -165,19 +146,17 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
         return update_narratives(submission, json)
 
     @app.route("/v1/submission/<int:submission_id>/report_url", methods=['POST'])
+    @use_kwargs({
+        'warning': webargs_fields.Bool(),
+        'file_type': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys())
+        ),
+        'cross_type': webargs_fields.String(
+            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys()))
+    })
     @requires_submission_perms('reader')
-    def post_submission_report_url(submission):
-        json = request.json or {}
-        warning, file_type = json.get('warning'), json.get('file_type')
-        cross_type = json.get('cross_type')
-        if file_type not in FILE_TYPE_DICT:
-            raise InvalidUsage(
-                "file_type must be one of '" +
-                "', '".join(FILE_TYPE_DICT.keys() + "'"))
-        if cross_type and cross_type not in FILE_TYPE_DICT:
-            raise InvalidUsage(
-                "cross_type, if present, must be one of '" +
-                "', '".join(FILE_TYPE_DICT.keys() + "'"))
+    def post_submission_report_url(submission, warning, file_type, cross_type):
         return submission_report_url(
             submission, bool(warning), file_type, cross_type)
 
