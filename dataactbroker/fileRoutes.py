@@ -107,17 +107,26 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
 
     @app.route("/v1/generate_detached_file/", methods=["POST"])
     @requires_login
-    def generate_detached_file():
+    @use_kwargs({
+        'file_type': webargs_fields.String(
+            required=True, validate=webargs_validate.OneOf(('D1', 'D2'))),
+        'cgac_code': webargs_fields.String(required=True),
+        'start': webargs_fields.String(required=True),
+        'end': webargs_fields.String(required=True)
+    })
+    def generate_detached_file(file_type, cgac_code, start, end):
         """ Generate a file from external API, independent from a submission """
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.generate_detached_file()
+        return fileManager.generate_detached_file(
+            file_type, cgac_code, start, end)
 
     @app.route("/v1/check_detached_generation_status/", methods=["POST"])
     @requires_login
-    def check_detached_generation_status():
+    @use_kwargs({'job_id': webargs_fields.Int(required=True)})
+    def check_detached_generation_status(job_id):
         """ Return status of file generation job """
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.check_detached_generation()
+        return fileManager.check_detached_generation(job_id)
 
     @app.route("/v1/check_generation_status/", methods=["POST"])
     @convert_to_submission_id

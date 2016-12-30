@@ -549,8 +549,8 @@ class FileTests(BaseTestAPI):
         postJson = {}
         response = self.app.post_json("/v1/check_detached_generation_status/", postJson,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
-        json = response.json
-        self.assertEqual(json["message"], 'Check detached generation route requires job_id')
+        assert response.json['message'] == (
+            'job_id: Missing data for required field.')
 
         post_json = {'job_id': -1}
         response = self.app.post_json("/v1/check_detached_generation_status/", post_json,

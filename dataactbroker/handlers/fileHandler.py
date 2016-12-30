@@ -648,21 +648,6 @@ class FileHandler:
             sess.commit()
             raise e
 
-    def get_request_params_for_generate_detached(self):
-        """ Pull information out of request object and return it
-        for detached generation
-
-        Returns: tuple of submission ID and file type
-
-        """
-        request_dict = RequestDictionary.derive(self.request)
-
-        if not {'file_type', 'cgac_code', 'start', 'end'}.issubset(request_dict.keys()):
-            raise ResponseException("Generate detached file route for D files requires file_type, cgac_code, "
-                                    "start, and end",
-                                    StatusCode.CLIENT_ERROR)
-        return request_dict['file_type'], request_dict['cgac_code'], request_dict['start'], request_dict['end']
-
     def generate_file(self, submission_id, file_type):
         """ Start a file generation job for the specified file type """
         logger.debug('Starting D file generation')
@@ -706,51 +691,38 @@ class FileHandler:
             one()
         return self.check_generation(submission, file_type)
 
-    def generate_detached_file(self):
+    def generate_detached_file(self, file_type, cgac_code, start, end):
         """ Start a file generation job for the specified file type """
         logger.debug("Starting detached D file generation")
 
-        file_type, cgac_code, start_date, end_date = self.get_request_params_for_generate_detached()
-
-        # check file type
-        if file_type not in ['D1', 'D2']:
-            raise ResponseException("File type must be D1 or D2", StatusCode.CLIENT_ERROR)
-
         # check if date format is MM/DD/YYYY
-        if not (StringCleaner.isDate(start_date) and StringCleaner.isDate(end_date)):
+        if not (StringCleaner.isDate(start) and StringCleaner.isDate(end)):
             raise ResponseException("Start or end date cannot be parsed into a date", StatusCode.CLIENT_ERROR)
 
         # add job info
         file_type_name = FILE_TYPE_DICT_ID[FILE_TYPE_DICT_LETTER_ID[file_type]]
-        new_job = self.add_generation_job_info(file_type_name=file_type_name,
-                                               dates={'start_date': start_date, 'end_date': end_date})
+        new_job = self.add_generation_job_info(
+            file_type_name=file_type_name,
+            dates={'start_date': start, 'end_date': end}
+        )
 
-        result = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, new_job)
+        result = self.call_d_file_api(file_type_name, cgac_code, start, end, new_job)
 
         # Return same response as check generation route
         return result or self.check_detached_generation(new_job.job_id)
 
-    def check_detached_generation(self, job_id=None):
+    def check_detached_generation(self, job_id):
         """ Return information about file generation jobs
 
         Returns:
             Response object with keys job_id, status, file_type, url, message, start, and end.
         """
-
-        if job_id is None:
-            request_dict = RequestDictionary.derive(self.request)
-            if 'job_id' not in request_dict:
-                raise ResponseException("Check detached generation route requires job_id", StatusCode.CLIENT_ERROR)
-
-            job_id = request_dict['job_id']
-
         sess = GlobalDB.db().session
 
         # We want to user first() here so we can see if the job is None so we can mark
         # the status as invalid to indicate that a status request is invoked for a job that
         # isn't created yet
-        upload_job = sess.query(Job).filter_by(
-            job_id=job_id).one_or_none()
+        upload_job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
 
         response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '',
                          'start': '', 'end': ''}
