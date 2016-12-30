@@ -676,11 +676,9 @@ class FileHandler:
                                     StatusCode.CLIENT_ERROR)
         return request_dict['file_type'], request_dict['cgac_code'], request_dict['start'], request_dict['end']
 
-    def generate_file(self, submission_id):
+    def generate_file(self, submission_id, file_type):
         """ Start a file generation job for the specified file type """
         logger.debug('Starting D file generation')
-        file_type = self.get_file_type()
-
         logger.debug('Submission ID = %s / File type = %s',
                      submission_id, file_type)
 

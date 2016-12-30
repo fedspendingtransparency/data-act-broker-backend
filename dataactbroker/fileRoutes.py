@@ -12,6 +12,7 @@ from dataactbroker.handlers.fileHandler import (
 from dataactcore.interfaces.function_bag import get_submission_stats
 from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactbroker.permissions import requires_login, requires_submission_perms
+from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -78,6 +79,7 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
         'page': webargs_fields.Int(missing=1),
         'limit': webargs_fields.Int(missing=5),
         'certified': webargs_fields.String(
+            required=True,
             validate=webargs_validate.OneOf(('mixed', 'true', 'false')))
     })
     def list_submissions(page, limit, certified):
@@ -93,11 +95,16 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
 
     @app.route("/v1/generate_file/", methods=["POST"])
     @convert_to_submission_id
-    def generate_file(submission_id):
+    @use_kwargs({
+        'file_type': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.items()))
+    })
+    def generate_file(submission_id, file_type):
         """ Generate file from external API """
         file_manager = FileHandler(
             request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return file_manager.generate_file(submission_id)
+        return file_manager.generate_file(submission_id, file_type)
 
     @app.route("/v1/generate_detached_file/", methods=["POST"])
     @requires_login
