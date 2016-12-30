@@ -13,7 +13,6 @@ from dataactcore.interfaces.function_bag import get_submission_stats
 from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactbroker.permissions import requires_login, requires_submission_perms
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
@@ -47,15 +46,18 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
 
     @app.route("/v1/submission_error_reports/", methods=["POST"])
     @requires_login
-    def submission_error_reports():
+    @use_kwargs({'submission_id': webargs_fields.Int(required=True)})
+    def submission_error_reports(submission_id):
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.getErrorReportURLsForSubmission()
+        return fileManager.getErrorReportURLsForSubmission(submission_id)
 
     @app.route("/v1/submission_warning_reports/", methods=["POST"])
     @requires_login
-    def submission_warning_reports():
+    @use_kwargs({'submission_id': webargs_fields.Int(required=True)})
+    def submission_warning_reports(submission_id):
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.getErrorReportURLsForSubmission(True)
+        return fileManager.getErrorReportURLsForSubmission(
+            submission_id, is_warning=True)
 
     @app.route("/v1/error_metrics/", methods=["POST"])
     @convert_to_submission_id

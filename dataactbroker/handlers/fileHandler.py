@@ -77,15 +77,13 @@ class FileHandler:
         self.serverPath = serverPath
         self.s3manager = s3UrlHandler()
 
-    def getErrorReportURLsForSubmission(self, is_warning=False):
+    def getErrorReportURLsForSubmission(self, submission_id, is_warning=False):
         """
         Gets the Signed URLs for download based on the submissionId
         """
         sess = GlobalDB.db().session
         try:
             self.s3manager = s3UrlHandler()
-            safe_dictionary = RequestDictionary(self.request)
-            submission_id = safe_dictionary.getValue("submission_id")
             response_dict = {}
             jobs = sess.query(Job).filter_by(submission_id=submission_id)
             for job in jobs:
