@@ -648,19 +648,6 @@ class FileHandler:
             sess.commit()
             raise e
 
-    def get_file_type(self):
-        """ Pull information out of request object and return it
-
-        Returns: tuple of submission ID and file type
-
-        """
-        request_dict = RequestDictionary.derive(self.request)
-        if 'file_type' not in request_dict:
-            raise ResponseException("Generate file route requires file_type",
-                                    StatusCode.CLIENT_ERROR)
-
-        return request_dict['file_type']
-
     def get_request_params_for_generate_detached(self):
         """ Pull information out of request object and return it
         for detached generation
@@ -717,7 +704,7 @@ class FileHandler:
         submission = sess.query(Submission).\
             filter_by(submission_id=submission_id).\
             one()
-        return self.check_generation(submission)
+        return self.check_generation(submission, file_type)
 
     def generate_detached_file(self):
         """ Start a file generation job for the specified file type """
@@ -792,7 +779,7 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, response_dict)
 
-    def check_generation(self, submission):
+    def check_generation(self, submission, file_type):
         """ Return information about file generation jobs
 
         Returns:
@@ -800,7 +787,6 @@ class FileHandler:
             If file_type is D1 or D2, also includes start and end.
         """
         sess = GlobalDB.db().session
-        file_type = self.get_file_type()
 
         uploadJob = sess.query(Job).filter_by(
             submission_id=submission.submission_id,

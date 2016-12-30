@@ -95,11 +95,10 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
 
     @app.route("/v1/generate_file/", methods=["POST"])
     @convert_to_submission_id
-    @use_kwargs({
-        'file_type': webargs_fields.String(
-            required=True,
-            validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.items()))
-    })
+    @use_kwargs({'file_type': webargs_fields.String(
+        required=True,
+        validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values())
+    )})
     def generate_file(submission_id, file_type):
         """ Generate file from external API """
         file_manager = FileHandler(
@@ -123,11 +122,15 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     @app.route("/v1/check_generation_status/", methods=["POST"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    def check_generation_status(submission):
+    @use_kwargs({'file_type': webargs_fields.String(
+        required=True,
+        validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values()))
+    })
+    def check_generation_status(submission, file_type):
         """ Return status of file generation job """
         file_manager = FileHandler(
             request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return file_manager.check_generation(submission)
+        return file_manager.check_generation(submission, file_type)
 
     @app.route("/v1/complete_generation/<generationId>/", methods=["POST"])
     def complete_generation(generationId):
