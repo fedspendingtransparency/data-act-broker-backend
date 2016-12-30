@@ -34,9 +34,10 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
 
     @app.route("/v1/finalize_job/", methods=["POST"])
     @requires_login
-    def finalize_submission():
+    @use_kwargs({'upload_id': webargs_fields.Int(required=True)})
+    def finalize_submission(upload_id):
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.finalize()
+        return fileManager.finalize(upload_id)
 
     @app.route("/v1/check_status/", methods=["POST"])
     @convert_to_submission_id
