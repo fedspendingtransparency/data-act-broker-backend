@@ -15,15 +15,10 @@ def test_success(database):
     """ Unique PIID, ParentAwardId from file D1 exists in file C during the same reporting period, except D1 records
     with zero FederalActionObligation """
 
-    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id', federal_action_obligation='1')
+    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id', federal_action_obligation=1)
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id')
 
     assert number_of_errors(_FILE, database, models=[ap, af]) == 0
-
-    # Rule shouldn't be checked if federal_action_obligation is empty
-    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id', federal_action_obligation='')
-
-    assert number_of_errors(_FILE, database, models=[ap]) == 0
 
     # Rule shouldn't be checked if federal_action_obligation is null
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id', federal_action_obligation=None)
@@ -31,7 +26,7 @@ def test_success(database):
     assert number_of_errors(_FILE, database, models=[ap]) == 0
 
     # Checks null = null
-    ap = AwardProcurementFactory(piid='some_piid', parent_award_id=None, federal_action_obligation='1')
+    ap = AwardProcurementFactory(piid='some_piid', parent_award_id=None, federal_action_obligation=1)
     af = AwardFinancialFactory(piid='some_piid', parent_award_id=None)
 
     assert number_of_errors(_FILE, database, models=[ap, af]) == 0
@@ -41,12 +36,12 @@ def test_failure(database):
     """ Unique PIID, ParentAwardId from file D1 doesn't exist in file C during the same reporting period, except D1 records
     with zero FederalActionObligation """
 
-    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id', federal_action_obligation='1')
+    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id', federal_action_obligation=1)
     af = AwardFinancialFactory(piid='some_other_piid', parent_award_id='some_parent_award_id')
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 1
 
-    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id', federal_action_obligation='1')
+    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_parent_award_id', federal_action_obligation=1)
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 1
