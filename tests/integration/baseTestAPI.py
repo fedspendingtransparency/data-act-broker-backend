@@ -1,7 +1,4 @@
 import unittest
-import time
-from datetime import timedelta
-from dateutil.parser import parse
 from random import randint
 
 from flask_bcrypt import Bcrypt

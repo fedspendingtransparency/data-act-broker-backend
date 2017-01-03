@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the user database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, Boolean, Index
+from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean, Index
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT_ID
