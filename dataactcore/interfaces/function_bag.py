@@ -11,7 +11,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency
 from dataactcore.models.stagingModels import AwardFinancial
-from dataactcore.models.userModel import User, UserStatus, EmailTemplateType, EmailTemplate
+from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
                                         JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PUBLISH_STATUS_DICT)
@@ -36,9 +36,8 @@ HASH_ROUNDS = 12
 def createUserWithPassword(email, password, bcrypt, website_admin=False):
     """Convenience function to set up fully-baked user (used for setup/testing only)."""
     sess = GlobalDB.db().session
-    status = sess.query(UserStatus).filter(UserStatus.name == 'approved').one()
     user = User(
-        email=email, user_status=status, name='Administrator',
+        email=email, name='Administrator',
         title='System Admin', website_admin=website_admin
     )
     user.salt, user.password_hash = getPasswordHash(password, bcrypt)
@@ -201,13 +200,6 @@ def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
     return result_list
 
 """ USER DB FUNCTIONS """
-
-def updateLastLogin(user, unlock_user=False):
-    """ This updates the last login date to today's datetime for the user to the current date upon successful login.
-    """
-    sess = GlobalDB.db().session
-    user.last_login_date = time.strftime("%c") if not unlock_user else None
-    sess.commit()
 
 def get_email_template(email_type):
     """ Get template for specified email type
