@@ -5,6 +5,8 @@ from sqlalchemy import (
     UniqueConstraint) 
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
+from dataactcore.models.lookups import (
+    FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, JOB_TYPE_DICT_ID)
 
 
 def generateFiscalYear(context):
@@ -89,6 +91,19 @@ class Job(Base):
     start_date = Column(Date)
     end_date = Column(Date)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_job_user"), nullable=True)
+
+    @property
+    def job_type_name(self):
+        return JOB_TYPE_DICT_ID.get(self.job_type_id)
+
+    @property
+    def job_status_name(self):
+        return JOB_STATUS_DICT_ID.get(self.job_status_id)
+
+    @property
+    def file_type_name(self):
+        return FILE_TYPE_DICT_ID.get(self.file_type_id)
+
 
 class JobDependency(Base):
     __tablename__ = "job_dependency"

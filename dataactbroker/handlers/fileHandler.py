@@ -12,7 +12,6 @@ from flask import g, request
 from requests.exceptions import Timeout
 import sqlalchemy as sa
 from sqlalchemy import func
-from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 
@@ -21,6 +20,7 @@ from dataactbroker.permissions import (
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.domainModels import CGAC
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import (
     FileGenerationTask, Job, Submission, SubmissionNarrative)
@@ -1030,6 +1030,109 @@ def update_narratives(submission, narratives_json):
     return JsonResponse.create(StatusCode.OK, {})
 
 
+def _split_csv(string):
+    """Split string into a list, excluding empty strings"""
+    if string is None:
+        return []
+    return [n.strip() for n in string.split(',') if n]
+
+
+def job_to_dict(job):
+    """Convert a Job model into a dictionary, ready to be serialized as JSON"""
+    sess = GlobalDB.db().session
+
+    job_info = {
+        'job_id': job.job_id,
+        'job_status': job.job_status_name,
+        'job_type': job.job_type_name,
+        'filename': job.original_filename,
+        'file_size': job.file_size,
+        'number_of_rows': job.number_of_rows,
+        'file_type': job.file_type_name or '',
+    }
+
+    # @todo replace with relationships
+    file_results = sess.query(File).filter_by(job_id=job.job_id).one_or_none()
+    if file_results is None:
+        # Job ID not in error database, probably did not make it to
+        # validation, or has not yet been validated
+        job_info.update(
+            file_status="",
+            error_type="",
+            error_data=[],
+            warning_data=[],
+            missing_headers=[],
+            duplicated_headers=[],
+        )
+    else:
+        # If job ID was found in file, we should be able to get header error
+        # lists and file data. Get string of missing headers and parse as a
+        # list
+        job_info['file_status'] = file_results.file_status_name
+        job_info['missing_headers'] = _split_csv(file_results.headers_missing)
+        job_info["duplicated_headers"] = _split_csv(
+            file_results.headers_duplicated)
+        job_info["error_type"] = getErrorType(job.job_id)
+        job_info["error_data"] = getErrorMetricsByJobId(
+            job.job_id, job.job_type_name=='validation',
+            severity_id=RULE_SEVERITY_DICT['fatal']
+        )
+        job_info["warning_data"] = getErrorMetricsByJobId(
+            job.job_id, job.job_type_name=='validation',
+            severity_id=RULE_SEVERITY_DICT['warning']
+        )
+    return job_info
+
+
+def reporting_date(submission):
+    """Format submission reporting date"""
+    if submission.is_quarter_format:
+        return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3,
+                               submission.reporting_fiscal_year)
+    else:
+        return submission.reporting_start_date.strftime("%m/%Y")
+
+
+def submission_to_dict_for_status(submission):
+    """Convert a Submission model into a dictionary, ready to be serialized as
+    JSON for the get_status function"""
+    sess = GlobalDB.db().session
+
+    number_of_rows = sess.query(func.sum(Job.number_of_rows)).\
+        filter_by(submission_id=submission.submission_id).\
+        scalar() or 0
+
+    # @todo replace with a relationship
+    cgac = sess.query(CGAC).\
+        filter_by(cgac_code=submission.cgac_code).one_or_none()
+    if cgac:
+        agency_name = cgac.agency_name
+    else:
+        agency_name = ''
+
+    relevant_job_types = (JOB_TYPE_DICT['csv_record_validation'],
+                          JOB_TYPE_DICT['validation'])
+    relevant_jobs = sess.query(Job).filter(
+        Job.submission_id == submission.submission_id,
+        Job.job_type_id.in_(relevant_job_types)
+    )
+
+    return {
+        'cgac_code': submission.cgac_code,
+        'agency_name': agency_name,
+        'created_on': submission.datetime_utc.strftime('%m/%d/%Y'),
+        'number_of_errors': submission.number_of_errors,
+        'number_of_rows': number_of_rows,
+        'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
+        # Broker allows submission for a single quarter or a single month,
+        # so reporting_period start and end dates reported by check_status
+        # are always equal
+        'reporting_period_start_date': reporting_date(submission),
+        'reporting_period_end_date': reporting_date(submission),
+        'jobs': [job_to_dict(job) for job in relevant_jobs]
+    }
+
+
 def get_status(submission):
     """ Get description and status of all jobs in the submission specified in request object
 
@@ -1037,89 +1140,8 @@ def get_status(submission):
         A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding file_type, job_type, status, and filename
     """
     try:
-        sess = GlobalDB.db().session
-
-        # Get jobs in this submission
-        jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
-
-        # Build dictionary of submission info with info about each job
-        submission_info = {}
-        submission_info["jobs"] = []
-        submission_info["cgac_code"] = submission.cgac_code
-        submission_info["created_on"] = submission.datetime_utc.strftime('%m/%d/%Y')
-        # Include number of errors in submission
-        submission_info["number_of_errors"] = submission.number_of_errors
-        submission_info["number_of_rows"] = sess.query(
-            func.sum(Job.number_of_rows)).\
-            filter_by(submission_id=submission.submission_id).\
-            scalar() or 0
-        submission_info["last_updated"] = submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
-        # Format submission reporting date
-        if submission.is_quarter_format:
-            reporting_date = 'Q{}/{}'.format(
-                int(submission.reporting_fiscal_period / 3), submission.reporting_fiscal_year)
-        else:
-            reporting_date = submission.reporting_start_date.strftime("%m/%Y")
-        # Broker allows submission for a single quarter or a single month,
-        # so reporting_period start and end dates reported by check_status
-        # are always equal
-        submission_info["reporting_period_start_date"] = submission_info["reporting_period_end_date"] = reporting_date
-
-        for job in jobs:
-            job_info = {}
-            job_type = job.job_type.name
-
-            if job_type != "csv_record_validation" and job_type != "validation":
-                continue
-
-            job_info["job_id"] = job.job_id
-            job_info["job_status"] = job.job_status.name
-            job_info["job_type"] = job_type
-            job_info["filename"] = job.original_filename
-            job_info["file_size"] = job.file_size
-            job_info["number_of_rows"] = job.number_of_rows
-            if job.file_type:
-                job_info["file_type"] = job.file_type.name
-            else:
-                job_info["file_type"] = ''
-
-            try:
-                file_results = sess.query(File).options(joinedload("file_status")).filter(File.job_id == job.job_id).one()
-                job_info["file_status"] = file_results.file_status.name
-            except NoResultFound:
-                # Job ID not in error database, probably did not make it to validation, or has not yet been validated
-                job_info["file_status"] = ""
-                job_info["missing_headers"] = []
-                job_info["duplicated_headers"] = []
-                job_info["error_type"] = ""
-                job_info["error_data"] = []
-                job_info["warning_data"] = []
-            else:
-                # If job ID was found in file, we should be able to get header error lists and file data
-                # Get string of missing headers and parse as a list
-                missing_header_string = file_results.headers_missing
-                if missing_header_string is not None:
-                    # Split header string into list, excluding empty strings
-                    job_info["missing_headers"] = [n.strip() for n in missing_header_string.split(",") if len(n) > 0]
-                else:
-                    job_info["missing_headers"] = []
-                # Get string of duplicated headers and parse as a list
-                duplicated_header_string = file_results.headers_duplicated
-                if duplicated_header_string is not None:
-                    # Split header string into list, excluding empty strings
-                    job_info["duplicated_headers"] = [n.strip() for n in duplicated_header_string.split(",") if len(n) > 0]
-                else:
-                    job_info["duplicated_headers"] = []
-                job_info["error_type"] = getErrorType(job.job_id)
-                job_info["error_data"] = getErrorMetricsByJobId(
-                    job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['fatal'])
-                job_info["warning_data"] = getErrorMetricsByJobId(
-                    job.job_id, job_type=='validation', severity_id=RULE_SEVERITY_DICT['warning'])
-
-            submission_info["jobs"].append(job_info)
-
-        # Build response object holding dictionary
-        return JsonResponse.create(StatusCode.OK,submission_info)
+        return JsonResponse.create(
+            StatusCode.OK, submission_to_dict_for_status(submission))
     except ResponseException as e:
         return JsonResponse.error(e,e.status)
     except Exception as e:

@@ -21,6 +21,7 @@ FILE_STATUS = [
     LookupType(6, 'incomplete', 'File has not yet been validated')
 ]
 FILE_STATUS_DICT = {item.name: item.id for item in FILE_STATUS}
+FILE_STATUS_DICT_ID = {item.id: item.name for item in FILE_STATUS}
 
 ERROR_TYPE = [
     LookupType(1, 'type_error', 'The value provided was of the wrong type'),
@@ -52,6 +53,7 @@ JOB_TYPE = [
     LookupType(5, 'external_validation', 'new information must be validated against external sources')
 ]
 JOB_TYPE_DICT = {item.name: item.id for item in JOB_TYPE}
+JOB_TYPE_DICT_ID = {item.id: item.name for item in JOB_TYPE}
 
 PUBLISH_STATUS = [
     LookupType(1, 'unpublished', 'Has not yet been moved to data store'),

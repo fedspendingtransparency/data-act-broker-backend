@@ -3,6 +3,7 @@
 from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
+from dataactcore.models.lookups import FILE_STATUS_DICT_ID
 
 
 class FileStatus(Base):
@@ -31,6 +32,10 @@ class File(Base):
     file_status = relationship("FileStatus", uselist=False)
     headers_missing = Column(Text, nullable=True)
     headers_duplicated = Column(Text, nullable=True)
+
+    @property
+    def file_status_name(self):
+        return FILE_STATUS_DICT_ID.get(self.file_status_id)
 
 class ErrorMetadata(Base):
     __tablename__ = "error_metadata"
