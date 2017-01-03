@@ -7,7 +7,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.userModel import SessionMap
 
 
-class LoginSession():
+class LoginSession:
     """
     This class is a wrapper for the session object
     """
@@ -22,8 +22,6 @@ class LoginSession():
         """
         session.pop("login", None)
         session.pop("name", None)
-        session.pop("register", None)
-        session.pop("reset", None)
 
     @staticmethod
     def login(session,username) :
@@ -38,62 +36,6 @@ class LoginSession():
         """
         session["name"] =  username
         session["login"] = True
-        session.pop("register", None)
-        session.pop("reset", None)
-
-    @staticmethod
-    def register(session):
-        """
-        arguments:
-
-        session -- (Session) the session object
-
-
-        Marks the session that it has a real email
-        address so it finish registering
-
-        """
-        session["register"] = True
-
-
-    @staticmethod
-    def reset_password(session):
-        """
-        arguments:
-
-        session -- (Session) the session object
-
-        Marks the session that it has a real email
-        address so it finish reseting the password
-
-        """
-        session["reset"] = True
-
-    @staticmethod
-    def isRegistering(session) :
-        """
-        arguments:
-
-        session -- (Session) the session object
-
-        returns (boolean) the status of the user session
-        """
-        if session.get('register') is not None :
-            return True
-        return False
-
-    @staticmethod
-    def isResetingPassword(session) :
-        """
-        arguments:
-
-        session -- (Session) the session object
-
-        returns (boolean) the status of the user session
-        """
-        if session.get('reset') is not None :
-            return True
-        return False
 
 
     @staticmethod
@@ -156,7 +98,7 @@ class UserSessionInterface(SessionInterface):
 
         """
         sid = request.headers.get("x-session-id")
-        if(sid and SessionTable.doesSessionExist(sid)):
+        if sid and SessionTable.doesSessionExist(sid):
             if SessionTable.getTimeout(sid)> toUnixTime(datetime.utcnow()):
                 session_dict =  UserSession()
                 # Read data as json
@@ -197,10 +139,10 @@ class UserSessionInterface(SessionInterface):
                 session["session_check"] = False
             else:
                 expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
-        if(not "_uid" in session):
+        if not "_uid" in session:
             LoginSession.resetID(session)
         SessionTable.newSession(session["sid"],session,expiration)
-        UserSessionInterface.CountLimit = UserSessionInterface.CountLimit + 1
+        UserSessionInterface.CountLimit += 1
         if UserSessionInterface.CountLimit % UserSessionInterface.SESSSION_CLEAR_COUNT_LIMIT == 0 :
             SessionTable.clearSessions()
             UserSessionInterface.CountLimit = 1

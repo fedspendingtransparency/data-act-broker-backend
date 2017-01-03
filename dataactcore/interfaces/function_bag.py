@@ -33,15 +33,13 @@ logger = logging.getLogger(__name__)
 HASH_ROUNDS = 12
 
 
-def createUserWithPassword(email, password, bcrypt, permission=1,
-                           cgac_code="SYS", website_admin=False):
+def createUserWithPassword(email, password, bcrypt, website_admin=False):
     """Convenience function to set up fully-baked user (used for setup/testing only)."""
     sess = GlobalDB.db().session
     status = sess.query(UserStatus).filter(UserStatus.name == 'approved').one()
     user = User(
-        email=email, user_status=status, permission_type_id=permission,
-        cgac_code=cgac_code, name='Administrator', title='System Admin',
-        website_admin=website_admin
+        email=email, user_status=status, name='Administrator',
+        title='System Admin', website_admin=website_admin
     )
     user.salt, user.password_hash = getPasswordHash(password, bcrypt)
     sess.add(user)
@@ -204,31 +202,11 @@ def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
 
 """ USER DB FUNCTIONS """
 
-def clearPassword(user):
-    """ Clear a user's password as part of reset process
-
-    Arguments:
-        user - User object
-
-    """
-    sess = GlobalDB.db().session
-    user.salt = None
-    user.password_hash = None
-    sess.commit()
-
-
 def updateLastLogin(user, unlock_user=False):
     """ This updates the last login date to today's datetime for the user to the current date upon successful login.
     """
     sess = GlobalDB.db().session
     user.last_login_date = time.strftime("%c") if not unlock_user else None
-    sess.commit()
-
-
-def setUserActive(user, is_active):
-    """ Sets the is_active field for the specified user """
-    sess = GlobalDB.db().session
-    user.is_active = is_active
     sess.commit()
 
 def get_email_template(email_type):
@@ -260,27 +238,6 @@ def check_correct_password(user, password, bcrypt):
 
     # Check the password with bcrypt
     return bcrypt.check_password_hash(user.password_hash, password + user.salt)
-
-
-def set_user_password(user, password, bcrypt):
-    """ Given a user and a new password, changes the hashed value in the database to match new password.
-
-    Arguments:
-        user - User object
-        password - password to be set
-        bcrypt - bcrypt to use for password hashing
-    Returns:
-         True if successful
-    """
-    sess = GlobalDB.db().session
-    # Generate hash with bcrypt and store it
-    new_salt = uuid.uuid4().hex
-    user.salt = new_salt
-    password_hash = bcrypt.generate_password_hash(password + new_salt, HASH_ROUNDS)
-    user.password_hash = password_hash.decode("utf-8")
-    sess.commit()
-    return True
-
 
 def get_submission_stats(submission_id):
     """Get summarized dollar amounts by submission."""
@@ -373,8 +330,7 @@ def check_job_dependencies(job_id):
                 # status and added to the queue
                 mark_job_status(dep_job_id, 'ready')
                 # add to the job queue
-                logging.getLogger('deprecated.info').info(
-                    'Sending job %s to job manager', dep_job_id)
+                logger.info('Sending job %s to job manager', dep_job_id)
                 # will move this later
                 from dataactcore.utils.jobQueue import enqueue
                 enqueue.delay(dep_job_id)
@@ -385,18 +341,15 @@ def create_submission(user_id, submission_values, existing_submission):
     Arguments:
         user_id:  user to associate with this submission
         submission_values: metadata about the submission
-        existing_submission_id: id of existing submission (blank for new submissions)
+        existing_submission: id of existing submission (blank for new submissions)
 
     Returns:
         submission object
     """
-    sess = GlobalDB.db().session
-
     if existing_submission is None:
         submission = Submission(datetime_utc = datetime.utcnow(), **submission_values)
         submission.user_id = user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
-        sess.add(submission)
     else:
         submission = existing_submission
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
@@ -407,7 +360,6 @@ def create_submission(user_id, submission_values, existing_submission):
             # update existing submission with any values provided
             setattr(submission, key, submission_values[key])
 
-    sess.commit()
     return submission
 
 def create_jobs(upload_files, submission, existing_submission=False):

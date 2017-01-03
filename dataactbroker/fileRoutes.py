@@ -1,12 +1,23 @@
+from functools import wraps
+
 from flask import request
-from dataactbroker.handlers.fileHandler import (
-    FileHandler, narratives_for_submission, update_narratives)
-from dataactbroker.permissions import permissions_check, requires_login
+
 from dataactbroker.exceptions.invalid_usage import InvalidUsage
+from dataactbroker.handlers.fileHandler import (
+    FileHandler, get_error_metrics, get_status,
+    list_submissions as list_submissions_handler,
+    narratives_for_submission, update_narratives
+)
+from dataactcore.interfaces.function_bag import get_submission_stats
+from dataactbroker.permissions import requires_login, requires_submission_perms
+from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.requestDictionary import RequestDictionary
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
 
 
 # Add the file submission route
-def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
+def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     """ Create routes related to file submission for flask app
 
     """
@@ -14,22 +25,22 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
     SERVER_PATH  = serverPath
     # Keys for the post route will correspond to the four types of files
     @app.route("/v1/submit_files/", methods = ["POST"])
-    @permissions_check(permission="writer")
+    @requires_login
     def submit_files():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.submit(CreateCredentials)
 
     @app.route("/v1/finalize_job/", methods = ["POST"])
-    @permissions_check(permission="writer")
+    @requires_login
     def finalize_submission():
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.finalize()
 
     @app.route("/v1/check_status/", methods = ["POST"])
-    @requires_login
-    def check_status():
-        fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.getStatus()
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def check_status(submission):
+        return get_status(submission)
 
     @app.route("/v1/submission_error_reports/", methods = ["POST"])
     @requires_login
@@ -43,11 +54,11 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.getErrorReportURLsForSubmission(True)
 
-    @app.route("/v1/error_metrics/", methods = ["POST"])
-    @requires_login
-    def submission_error_metrics():
-        fileManager = FileHandler(request,isLocal=IS_LOCAL ,serverPath=SERVER_PATH)
-        return fileManager.get_error_metrics()
+    @app.route("/v1/error_metrics/", methods=["POST"])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def submission_error_metrics(submission):
+        return get_error_metrics(submission)
 
     @app.route("/v1/local_upload/", methods = ["POST"])
     @requires_login
@@ -81,10 +92,11 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
             raise InvalidUsage("Missing required parameter 'certified'")
         # If certified is none, get all submissions without filtering
         if certified is not None and certified not in ['mixed', 'true', 'false']:
-            raise InvalidUsage("Incorrect value specified for the 'certified' parameter")
+            raise InvalidUsage(
+                "Incorrect value specified for the 'certified' parameter. "
+                "Must be one of 'mixed', 'true', or 'false'")
 
-        file_manager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return file_manager.list_submissions(page, limit, certified)
+        return list_submissions_handler(page, limit, certified)
 
     @app.route("/v1/get_protected_files/", methods=["GET"])
     @requires_login
@@ -94,32 +106,35 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return fileManager.getProtectedFiles()
 
     @app.route("/v1/generate_file/", methods=["POST"])
-    @permissions_check(permission="writer")
-    def generate_file():
+    @convert_to_submission_id
+    def generate_file(submission_id):
         """ Generate file from external API """
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.generateFile()
+        file_manager = FileHandler(
+            request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return file_manager.generate_file(submission_id)
 
     @app.route("/v1/generate_detached_file/", methods=["POST"])
-    @permissions_check(permission="reader")
+    @requires_login
     def generate_detached_file():
         """ Generate a file from external API, independent from a submission """
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.generate_detached_file()
 
     @app.route("/v1/check_detached_generation_status/", methods=["POST"])
-    @permissions_check
+    @requires_login
     def check_detached_generation_status():
         """ Return status of file generation job """
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.check_detached_generation()
 
     @app.route("/v1/check_generation_status/", methods=["POST"])
-    @requires_login
-    def check_generation_status():
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def check_generation_status(submission):
         """ Return status of file generation job """
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.checkGeneration()
+        file_manager = FileHandler(
+            request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return file_manager.check_generation(submission)
 
     @app.route("/v1/complete_generation/<generationId>/", methods=["POST"])
     def complete_generation(generationId):
@@ -127,27 +142,47 @@ def add_file_routes(app,CreateCredentials,isLocal,serverPath,bcrypt):
         return fileManager.complete_generation(generationId)
 
     @app.route("/v1/get_obligations/", methods = ["POST"])
-    @requires_login
-    def get_obligations():
-        fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.getObligations()
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def get_obligations(submission):
+        return JsonResponse.create(
+            StatusCode.OK, get_submission_stats(submission.submission_id))
 
-    @app.route("/v1/sign_submission_file", methods = ["POST"])
-    @requires_login
-    def sign_submission_file():
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.get_signed_url_for_submission_file()
+    @app.route("/v1/sign_submission_file", methods=["POST"])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def sign_submission_file(submission):
+        file_handler = FileHandler(
+            request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        return file_handler.get_signed_url_for_submission_file(submission)
 
     @app.route("/v1/submission/<int:submission_id>/narrative", methods=['GET'])
-    @permissions_check(permission='reader')
-    def get_submission_narratives(submission_id):
-        return narratives_for_submission(int(submission_id))
+    @requires_submission_perms('reader')
+    def get_submission_narratives(submission):
+        return narratives_for_submission(submission)
 
     @app.route("/v1/submission/<int:submission_id>/narrative", methods=['POST'])
-    @permissions_check(permission='writer')
-    def post_submission_narratives(submission_id):
+    @requires_submission_perms('writer')
+    def post_submission_narratives(submission):
         json = request.json or {}
         # clean input
         json = {key.upper():value.strip() for key, value in json.items()
                 if isinstance(value, str) and value.strip()}
-        return update_narratives(int(submission_id), json)
+        return update_narratives(submission, json)
+
+
+def convert_to_submission_id(fn):
+    """Decorator which reads the request, looking for a submission key to
+    convert into a submission_id parameter. The provided function should have
+    a submission_id parameter as its first argument."""
+    @wraps(fn)
+    @requires_login     # check login before checking submission_id
+    def wrapped(*args, **kwargs):
+        params = RequestDictionary.derive(request)
+        submission_id = params.get('submission')
+        submission_id = submission_id or params.get('submission_id')
+        if submission_id is None:
+            raise ResponseException(
+                "submission_id is required", StatusCode.CLIENT_ERROR)
+        return fn(submission_id, *args, **kwargs)
+    return wrapped

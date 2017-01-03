@@ -52,6 +52,7 @@ class Submission(Base):
     submission_id = Column(Integer, primary_key=True)
     datetime_utc = Column(DateTime)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_submission_user"), nullable=True)
+    user = relationship("User")
     cgac_code = Column(Text)
     reporting_start_date = Column(Date, nullable=False)
     reporting_end_date = Column(Date, nullable=False)
