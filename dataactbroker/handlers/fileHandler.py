@@ -131,7 +131,6 @@ class FileHandler:
     def get_signed_url_for_submission_file(self, submission):
         """ Gets the signed URL for the specified file """
         try:
-            sess = GlobalDB.db().session
             self.s3manager = s3UrlHandler()
             safe_dictionary = RequestDictionary.derive(self.request)
             file_name = safe_dictionary["file"] + ".csv"
@@ -212,8 +211,8 @@ class FileHandler:
             submission = create_submission(g.user.user_id, submission_data,
                                            existing_submission_obj)
             cant_edit = (
-                existing_submission
-                and not current_user_can_on_submission(
+                existing_submission and
+                not current_user_can_on_submission(
                     'writer', existing_submission_obj)
             )
             cant_create = not current_user_can('writer', submission.cgac_code)
@@ -277,7 +276,7 @@ class FileHandler:
 
             file_job_dict = create_jobs(upload_files, submission, existing_submission)
             for file_type in file_job_dict.keys():
-                if not "submission_id" in file_type:
+                if "submission_id" not in file_type:
                     response_dict[file_type+"_id"] = file_job_dict[file_type]
             if create_credentials and not self.isLocal:
                 self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
@@ -384,7 +383,7 @@ class FileHandler:
             else:
                 raise ResponseException("Wrong job type for finalize route", StatusCode.CLIENT_ERROR)
 
-        except ( ValueError , TypeError ) as e:
+        except (ValueError, TypeError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ResponseException as e:
             return JsonResponse.error(e, e.status)
@@ -455,7 +454,7 @@ class FileHandler:
             else :
                 raise ResponseException("Route Only Valid For Local Installs",
                                         StatusCode.CLIENT_ERROR)
-        except ( ValueError , TypeError ) as e:
+        except (ValueError, TypeError) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:
             return JsonResponse.error(e,e.status)
@@ -485,8 +484,8 @@ class FileHandler:
                 start_date = requestDict.getValue("start")
                 end_date = requestDict.getValue("end")
 
-                if not (StringCleaner.isDate(start_date)
-                            and StringCleaner.isDate(end_date)):
+                if not (StringCleaner.isDate(start_date) and
+                        StringCleaner.isDate(end_date)):
                     raise ResponseException(
                         "Start or end date cannot be parsed into a date",
                         StatusCode.CLIENT_ERROR
@@ -552,7 +551,10 @@ class FileHandler:
         except ValueError as e:
             # Date was not in expected format
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
-            return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
+            return False, JsonResponse.error(
+                exc, exc.status, url="", start="", end="",
+                file_type=file_type
+            )
 
         error = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, job)
 
@@ -1136,9 +1138,9 @@ def get_error_metrics(submission):
             if job.job_type.name == 'csv_record_validation':
                 file_type = job.file_type.name
                 data_list = getErrorMetricsByJobId(job.job_id)
-                return_dict[file_type]  = data_list
+                return_dict[file_type] = data_list
         return JsonResponse.create(StatusCode.OK,return_dict)
-    except ( ValueError , TypeError ) as e:
+    except (ValueError, TypeError) as e:
         return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
     except ResponseException as e:
         return JsonResponse.error(e,e.status)

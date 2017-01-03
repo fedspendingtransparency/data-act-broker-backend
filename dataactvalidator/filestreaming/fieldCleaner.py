@@ -11,7 +11,6 @@ class FieldCleaner(StringCleaner):
     @staticmethod
     def cleanFile(fileIn, fileOut):
         """ Clean input file line by line and create output file """
-        done = False
         # Open CSV file for reading each record as a dictionary
         with open(fileIn, "rU") as csvfile:
             reader = csv.DictReader(csvfile)
@@ -49,7 +48,6 @@ class FieldCleaner(StringCleaner):
     def cleanName(name):
         """ Remove whitespace from name and change to lowercase, also clean up special characters """
         # Convert to lowercase and remove whitespace on ends
-        originalName = name
         name = FieldCleaner.cleanString(name)
         # Remove braces and parantheses
         name = name.replace("{","").replace("}","").replace("(","").replace(")","")

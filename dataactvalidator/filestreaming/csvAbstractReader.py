@@ -91,7 +91,7 @@ class CsvAbstractReader(object):
                     header_value = None
                 else:
                     header_value = submitted_header_value
-                if not header_value in possible_fields:
+                if header_value not in possible_fields:
                     # Add flex headers to flex list
                     if str(submitted_header_value).startswith("flex_"):
                         self.flex_dictionary[current] = submitted_header_value
@@ -211,9 +211,9 @@ class CsvAbstractReader(object):
             return self.lines.pop(0)
         #packets are 8192 bytes in size
         #for packet in self.s3File :
-        while self.packet_counter *  CsvAbstractReader.BUFFER_SIZE <=  self._get_file_size():
+        while self.packet_counter * CsvAbstractReader.BUFFER_SIZE <= self._get_file_size():
 
-            success,packet =  self._get_next_packet()
+            success,packet = self._get_next_packet()
             if not success:
                 break
             self.packet_counter +=1
@@ -230,14 +230,13 @@ class CsvAbstractReader(object):
             self.unprocessed = self.lines.pop()
             if len(self.lines) > 0:
                 #Get the next line
-                return  self.lines.pop(0)
+                return self.lines.pop(0)
         self.is_finished = True
 
         if len(self.unprocessed) < 5:
             # Got an extra line from a line break on the last line
             self.extra_line = True
         return self.unprocessed
-
 
     def _split_lines(self, packet) :
         """
@@ -246,7 +245,7 @@ class CsvAbstractReader(object):
         returns a list of strings broken by newline
         """
         lines_to_return = []
-        escape_mode =  False
+        escape_mode = False
         current = ""
 
         for index,char in enumerate(packet):
@@ -260,8 +259,8 @@ class CsvAbstractReader(object):
                         lines_to_return.append("")
                     current = ""
                 else:
-                  current = "".join([current,char])
-                  if char == '"':
+                    current = "".join([current,char])
+                    if char == '"':
                         escape_mode = True
             else :
                 if char == '"':

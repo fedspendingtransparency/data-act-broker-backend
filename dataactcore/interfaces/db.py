@@ -9,8 +9,8 @@ from dataactcore.config import CONFIG_DB
 logger = logging.getLogger(__name__)
 
 
-class _DB(namedtuple(
-    '_DB', ['engine', 'connection', 'scoped_session_maker', 'session'])):
+class _DB(namedtuple('_DB', ['engine', 'connection', 'scoped_session_maker',
+                             'session'])):
     """Represents a database connection, from engine to session."""
     def close(self):
         self.session.close()

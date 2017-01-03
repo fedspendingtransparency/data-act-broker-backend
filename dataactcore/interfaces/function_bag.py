@@ -98,8 +98,9 @@ def checkNumberOfErrorsByJobId(jobId, errorType='fatal'):
 def getErrorType(job_id):
     """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
     sess = GlobalDB.db().session
-    if sess.query(File).options(joinedload("file_status")).filter(
-                    File.job_id == job_id).one().file_status.name == "header_error":
+    file_status_name = sess.query(File).options(joinedload("file_status")).\
+        filter(File.job_id == job_id).one().file_status.name
+    if file_status_name == "header_error":
         # Header errors occurred, return that
         return "header_errors"
     elif sess.query(Job).filter(Job.job_id == job_id).one().number_of_errors > 0:
@@ -236,8 +237,9 @@ def get_submission_stats(submission_id):
     sess = GlobalDB.db().session
     base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
         filter(AwardFinancial.submission_id == submission_id)
-    procurement = base_query.filter(AwardFinancial.piid != None)
-    fin_assist = base_query.filter(or_(AwardFinancial.fain != None, AwardFinancial.uri != None))
+    procurement = base_query.filter(AwardFinancial.piid.isnot(None))
+    fin_assist = base_query.filter(or_(AwardFinancial.fain.isnot(None),
+                                       AwardFinancial.uri.isnot(None)))
     return {
         "total_obligations": float(base_query.scalar() or 0),
         "total_procurement_obligations": float(procurement.scalar() or 0),

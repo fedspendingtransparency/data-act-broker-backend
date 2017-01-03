@@ -94,7 +94,6 @@ class AccountHandler:
             # Return 500
             return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
-
     def max_login(self,session):
         """
 
@@ -117,7 +116,7 @@ class AccountHandler:
             # Call MAX's serviceValidate endpoint and retrieve the response
             max_dict = get_max_dict(ticket, service)
 
-            if not 'cas:authenticationSuccess' in max_dict['cas:serviceResponse']:
+            if 'cas:authenticationSuccess' not in max_dict['cas:serviceResponse']:
                 raise ValueError("You have failed to login successfully with MAX")
             cas_attrs = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']
 
@@ -145,7 +144,6 @@ class AccountHandler:
                         user.name = first_name + " " + last_name
                     else:
                         user.name = first_name + " " + middle_name[0] + ". " + last_name
-
 
                 set_max_perms(user, cas_attrs['maxAttribute:GroupList'])
 
