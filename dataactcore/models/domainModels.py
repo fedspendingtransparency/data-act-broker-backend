@@ -36,7 +36,8 @@ class TASLookup(Base) :
     main_account_code = Column(Text, nullable=True, index=True)
     sub_account_code = Column(Text, nullable=True, index=True)
     internal_start_date = Column(Date, nullable=False)
-    internal_end_date = Column(Date)
+    internal_end_date = Column(Date, nullable=True)
+    financial_indicator2 = Column(Text, nullable=True)
 
     __table_args__ = (
         UniqueConstraint(
