@@ -182,15 +182,6 @@ class BaseTestAPI(unittest.TestCase):
         self.session_id = response.headers["x-session-id"]
         return response
 
-    def login_agency_user(self):
-        """Log an agency user (non-admin) into broker."""
-        #TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['agency_user'],
-            "password": self.user_password}
-        response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
-        self.session_id = response.headers["x-session-id"]
-        return response
-
     def login_admin_user(self):
         """Log an admin user into broker."""
         #TODO: put user data in pytest fixture; put credentials in config file
@@ -198,54 +189,6 @@ class BaseTestAPI(unittest.TestCase):
             "password": self.admin_password}
         response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
         self.session_id = response.headers["x-session-id"]
-        return response
-
-    def login_agency_admin_user(self):
-        """ Log an agency admin user into broker. """
-        # TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['agency_admin_email'],
-                "password": self.admin_password}
-        response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
-        self.session_id = response.headers["x-session-id"]
-        return response
-
-    def login_inactive_user(self):
-        """Attempt to log in an inactive user"""
-        #TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['inactive_email'],
-            "password": self.user_password}
-        response = self.app.post_json("/v1/login/", user, expect_errors=True, headers={"x-session-id":self.session_id})
-        try:
-            self.session_id = response.headers["x-session-id"]
-        except KeyError:
-            # Session ID doesn't come back for inactive user, set to empty
-            self.session_id = ""
-        return response
-
-    def login_expired_locked_user(self):
-        """Force user to have their account locked then attempt to login again"""
-        # TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['expired_lock_email'], "password": self.user_password}
-        response = self.app.post_json("/v1/login/", user, expect_errors=True, headers={"x-session-id": self.session_id})
-
-        try:
-            self.session_id = response.headers["x-session-id"]
-        except KeyError:
-            # Session ID doesn't come back for inactive user, set to empty
-            self.session_id = ""
-        return response
-
-    def login_password_locked_user(self):
-        """Force user to have their account locked then attempt to login again"""
-        # TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['password_lock_email'], "password": "wrongpassword"}
-        response = self.app.post_json("/v1/login/", user, expect_errors=True, headers={"x-session-id": self.session_id})
-
-        try:
-            self.session_id = response.headers["x-session-id"]
-        except KeyError:
-            # Session ID doesn't come back for inactive user, set to empty
-            self.session_id = ""
         return response
 
     def login_other_user(self, username, password):
