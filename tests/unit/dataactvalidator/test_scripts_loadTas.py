@@ -101,7 +101,7 @@ def test_updateTASLookups(database, monkeypatch):
     t111, t222, t333_new, t333_old, t444, t555 = results
 
     assert t111.account_num == 111
-    assert t111.internal_end_date == None               # active, new entry
+    assert t111.internal_end_date is None               # active, new entry
     assert t111.agency_identifier == 'new-entry-1'
 
     assert t222.account_num == 222

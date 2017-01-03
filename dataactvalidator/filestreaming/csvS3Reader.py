@@ -20,7 +20,6 @@ class CsvS3Reader(CsvAbstractReader):
                 filename, bucket))
         return s3_file
 
-
     def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:

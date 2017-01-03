@@ -76,8 +76,8 @@ class SQLLoader():
                             e, row["target_file"], row["rule_label"]))
 
                     # set cross file flag
-                    if (FieldCleaner.cleanString(row["rule_cross_file_flag"])
-                        in ['true', 't', 'y', 'yes']):
+                    flag = FieldCleaner.cleanString(row["rule_cross_file_flag"])
+                    if flag in ('true', 't', 'y', 'yes'):
                         cross_file_flag = True
                     else:
                         cross_file_flag = False

@@ -258,3 +258,15 @@ def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
     fh = fileHandler.FileHandler(Mock())
     with pytest.raises(ResponseException):
         fh.check_submission_dates(start_date, end_date, quarter_flag, submission)
+
+
+def test_submission_to_dict_for_status(database):
+    cgac = CGACFactory(cgac_code='abcdef', agency_name='Age')
+    sub = SubmissionFactory(cgac_code='abcdef', number_of_errors=1234)
+    database.session.add_all([cgac, sub])
+    database.session.commit()
+
+    result = fileHandler.submission_to_dict_for_status(sub)
+    assert result['cgac_code'] == 'abcdef'
+    assert result['agency_name'] == 'Age'
+    assert result['number_of_errors'] == 1234

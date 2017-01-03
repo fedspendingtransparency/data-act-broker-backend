@@ -109,8 +109,8 @@ class FileTests(BaseTestAPI):
         self.assertIn("credentials", json)
 
         credentials = json["credentials"]
-        for requiredField in ["AccessKeyId", "SecretAccessKey",
-            "SessionToken", "SessionToken"]:
+        for requiredField in ("AccessKeyId", "SecretAccessKey",
+                              "SessionToken", "SessionToken"):
             self.assertIn(requiredField, credentials)
             self.assertTrue(len(credentials[requiredField]))
 
@@ -541,7 +541,6 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["message"], 'No generation job found with the specified ID')
 
-
     @staticmethod
     def insertSubmission(sess, submission_user_id, cgac_code = None, startDate = None, endDate = None, is_quarter = False, number_of_errors=0):
         """Insert one submission into job tracker and get submission ID back."""
@@ -818,7 +817,8 @@ class FileTests(BaseTestAPI):
             type_id=csv_validation,
             submission=submission_id
         )
-        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['complete']) # Everything Is Fine
+        # everything is fine
+        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['complete'])
 
         job = FileTests.insertJob(
             sess,
@@ -827,7 +827,8 @@ class FileTests(BaseTestAPI):
             type_id=csv_validation,
             submission=submission_id
         )
-        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['unknown_error']) # Bad Header
+        # bad header
+        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['unknown_error'])
 
         job = FileTests.insertJob(
             sess,
@@ -836,5 +837,6 @@ class FileTests(BaseTestAPI):
             type_id=csv_validation,
             submission=submission_id
         )
-        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['complete']) # Validation level Errors
+        # validation level errors
+        FileTests.insertFile(sess, job.job_id, cls.fileStatusDict['complete'])
         cls.insertRowLevelError(sess, job.job_id)

@@ -134,7 +134,7 @@ class ValidatorTests(BaseTestValidator):
             "test3": "YES",
             "test4": "1",
             "test5": "1",
-         }
+        }
         self.assertTrue(Validator.validate(record, schema))
         record["test5"] = ""
         self.assertTrue(Validator.validate(record, schema))

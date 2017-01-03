@@ -1,4 +1,5 @@
-import os, os.path
+import os
+import os.path
 
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
@@ -36,7 +37,7 @@ def createApp():
     # Set parameters
     broker_file_path = CONFIG_BROKER['broker_files']
     AccountHandler.FRONT_END = CONFIG_BROKER['full_url']
-    sesEmail.SIGNING_KEY =  CONFIG_BROKER['email_token_key']
+    sesEmail.SIGNING_KEY = CONFIG_BROKER['email_token_key']
     sesEmail.isLocal = local
     if sesEmail.isLocal:
         sesEmail.emailLog = os.path.join(broker_file_path, 'email.log')
@@ -46,11 +47,11 @@ def createApp():
 
     JsonResponse.debugMode = app.debug
 
-    if CONFIG_SERVICES['cross_origin_url'] ==  "*":
-        cors = CORS(app, supports_credentials=False, allow_headers = "*", expose_headers = "X-Session-Id")
+    if CONFIG_SERVICES['cross_origin_url'] == "*":
+        CORS(app, supports_credentials=False, allow_headers = "*", expose_headers = "X-Session-Id")
     else:
-        cors = CORS(app, supports_credentials=False, origins=CONFIG_SERVICES['cross_origin_url'],
-                    allow_headers = "*", expose_headers = "X-Session-Id")
+        CORS(app, supports_credentials=False, origins=CONFIG_SERVICES['cross_origin_url'],
+             allow_headers = "*", expose_headers = "X-Session-Id")
     # Enable DB session table handling
     app.session_interface = UserSessionInterface()
     # Set up bcrypt

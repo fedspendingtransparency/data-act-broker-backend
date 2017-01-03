@@ -20,7 +20,6 @@ class CsvLocalWriter(CsvAbstractWriter):
         self.stream = open(filename,"w", newline = '')
         super(CsvLocalWriter,self).__init__(filename,header)
 
-
     def _write(self,data):
         """
 
@@ -30,7 +29,6 @@ class CsvLocalWriter(CsvAbstractWriter):
 
         """
         self.stream.write(data)
-
 
     def __exit__(self, type, value, traceback) :
         """

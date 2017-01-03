@@ -21,8 +21,9 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     """ Create routes related to file submission for flask app
 
     """
-    IS_LOCAL =isLocal
-    SERVER_PATH  = serverPath
+    IS_LOCAL = isLocal
+    SERVER_PATH = serverPath
+
     # Keys for the post route will correspond to the four types of files
     @app.route("/v1/submit_files/", methods = ["POST"])
     @requires_login

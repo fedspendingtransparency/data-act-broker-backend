@@ -8,6 +8,7 @@ def timeout(timeout, message=None):
         def wrapper(*args, **kwargs):
             defaultMessage = 'function [%s] timeout [%s seconds] exceeded!' % (func.__name__, timeout)
             res = [Exception(message or defaultMessage)]
+
             def newFunc():
                 try:
                     res[0] = func(*args, **kwargs)

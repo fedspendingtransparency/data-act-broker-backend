@@ -34,9 +34,8 @@ class LoginSession:
 
         Sets the current session status
         """
-        session["name"] =  username
+        session["name"] = username
         session["login"] = True
-
 
     @staticmethod
     def resetID(session):
@@ -78,7 +77,6 @@ class UserSessionInterface(SessionInterface):
 
     """
 
-
     SESSSION_CLEAR_COUNT_LIMIT = 10
 
     CountLimit = 1
@@ -100,7 +98,7 @@ class UserSessionInterface(SessionInterface):
         sid = request.headers.get("x-session-id")
         if sid and SessionTable.doesSessionExist(sid):
             if SessionTable.getTimeout(sid)> toUnixTime(datetime.utcnow()):
-                session_dict =  UserSession()
+                session_dict = UserSession()
                 # Read data as json
                 data = loads(SessionTable.getData(sid))
                 for key in data.keys():
@@ -112,7 +110,6 @@ class UserSessionInterface(SessionInterface):
         session_dict = UserSession()
         session_dict["sid"] = sid
         return session_dict
-
 
     def save_session(self, app, session, response):
         """
@@ -139,7 +136,7 @@ class UserSessionInterface(SessionInterface):
                 session["session_check"] = False
             else:
                 expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
-        if not "_uid" in session:
+        if "_uid" not in session:
             LoginSession.resetID(session)
         SessionTable.newSession(session["sid"],session,expiration)
         UserSessionInterface.CountLimit += 1
@@ -185,7 +182,6 @@ class SessionTable :
             return True
         else:
             return False
-
 
     @staticmethod
     def getTimeout(uid) :

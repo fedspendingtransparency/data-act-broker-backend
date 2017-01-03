@@ -22,7 +22,6 @@ def test_success(database):
     assert number_of_errors(_FILE, database, models=[op]) == 0
 
 
-
 def test_failure(database):
     """ Test for USSGL 48XX & 49XX (except 487X & 497X) if any one is provided and
     by_direct_reimbursable_fun is empty the rule fails """
