@@ -1,6 +1,6 @@
 """ These classes define the ORM models to be used by sqlalchemy for the user database """
 
-from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, Boolean, Index
+from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean, Index
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT_ID
@@ -13,13 +13,8 @@ class User(Base):
     email = Column(Text)
     name = Column(Text)
     title = Column(Text)
-    user_status_id = Column(Integer, ForeignKey("user_status.user_status_id"))
     password_hash = Column(Text)
     salt = Column(Text)
-    user_status = relationship("UserStatus", uselist=False)
-    last_login_date = Column(DateTime)
-    is_active = Column(Boolean, default=True, nullable=False, server_default="True")
-    incorrect_password_attempts = Column(Integer, default=0, nullable=False, server_default='0')
     skip_guide = Column(Boolean, default=False,nullable=False,server_default="False")
     website_admin = Column(Boolean, default=False, nullable=False,
                            server_default="False")
@@ -32,16 +27,6 @@ class PermissionType(Base):
     permission_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
-
-
-class UserStatus(Base):
-    __tablename__ = 'user_status'
-    STATUS_DICT = None
-
-    user_status_id = Column(Integer, primary_key=True)
-    name = Column(Text)
-    description = Column(Text)
-
 
 class UserAffiliation(Base):
     __tablename__ = 'user_affiliation'
