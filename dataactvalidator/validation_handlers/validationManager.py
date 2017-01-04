@@ -211,25 +211,6 @@ class ValidationManager:
                                       severity_id=severityId)
         return fatal_error_found
 
-    def write_to_flex(self, flex_cols, job_id, submission_id):
-        """ Write this record to the staging tables
-
-        Args:
-            flex_cols: Record to be written
-            job_id: ID of current job
-            submission_id: ID of current submission
-
-        Returns:
-            Boolean indicating whether to skip current row
-        """
-        sess = GlobalDB.db().session
-
-        flex_cols["job_id"] = job_id
-        flex_cols["submission_id"] = submission_id
-
-        sess.add(FlexField(**flex_cols))
-        sess.commit()
-
     def runValidation(self, job):
         """ Run validations for specified job
         Args:
@@ -347,7 +328,11 @@ class ValidationManager:
                             record, job, submission_id, passedValidations,
                             writer, rowNumber, model, error_list)
                         if flex_cols:
-                            self.write_to_flex(flex_cols, job_id, submission_id)
+                            sess.add(FlexField(
+                                job_id=job_id, submission_id=submission_id,
+                                **flex_cols
+                            ))
+                            sess.commit()
 
                         if skipRow:
                             errorRows.append(rowNumber)
