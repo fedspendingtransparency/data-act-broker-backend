@@ -56,20 +56,12 @@ class BaseTestAPI(unittest.TestCase):
             setupEmails()
 
             # set up default e-mails for tests
-            test_users = {}
-            test_users['admin_email'] = 'data.act.tester.1@gmail.com'
-            test_users['change_user_email'] = 'data.act.tester.2@gmail.com'
-            test_users['password_reset_email'] = 'data.act.tester.3@gmail.com'
-            test_users['inactive_email'] = 'data.act.tester.4@gmail.com'
-            test_users['password_lock_email'] = 'data.act.test.5@gmail.com'
-            test_users['expired_lock_email'] = 'data.act.test.6@gmail.com'
-            test_users['agency_admin_email'] = 'data.act.test.7@gmail.com'
-
-            # this email is for a regular agency_user email that is to be used for
-            # testing functionality expected by a normal, base user
-            test_users['agency_user'] = 'data.act.test.8@gmail.com'
-            test_users['approved_email'] = 'approved@agency.gov'
-            test_users['submission_email'] = 'submission_test@agency.gov'
+            test_users = {
+                'admin_user': 'data.act.tester.1@gmail.com',
+                'agency_user': 'data.act.test.2@gmail.com',
+                'approved_email': 'approved@agency.gov',
+                'no_permissions_user': 'data.act.tester.3@gmail.com'
+            }
             user_password = '!passw0rdUp!'
             admin_password = '@pprovedPassw0rdy'
 
@@ -86,35 +78,28 @@ class BaseTestAPI(unittest.TestCase):
                         permission_type_id=PERMISSION_TYPE_DICT['writer']
                     )]
                 ))
-            add_status_user('user@agency.gov', 'awaiting_confirmation')
-            add_status_user('realEmail@agency.gov', 'email_confirmed')
-            add_status_user('waiting@agency.gov', 'awaiting_approval')
-            add_status_user('impatient@agency.gov', 'awaiting_approval')
-            add_status_user('watchingPaintDry@agency.gov', 'awaiting_approval')
-            add_status_user(test_users['admin_email'], 'approved', True)
             add_status_user(test_users['approved_email'], 'approved')
-            add_status_user('nefarious@agency.gov', 'denied')
 
             # add new users
             createUserWithPassword(
-                test_users["submission_email"], user_password, Bcrypt(),
+                test_users["admin_user"], admin_password, Bcrypt(),
                 website_admin=True
             )
             createUserWithPassword(
-                test_users["change_user_email"], user_password, Bcrypt())
-            createUserWithPassword(
-                test_users["password_reset_email"], user_password, Bcrypt())
-            createUserWithPassword(
-                test_users["inactive_email"], user_password, Bcrypt())
-            createUserWithPassword(
-                test_users["password_lock_email"], user_password, Bcrypt())
-            createUserWithPassword(
-                test_users['expired_lock_email'], user_password, Bcrypt())
-            createUserWithPassword(
-                test_users['agency_admin_email'], admin_password, Bcrypt(),
-                website_admin=True)
-            createUserWithPassword(
-                test_users['agency_user'], user_password, Bcrypt())
+                test_users["no_permissions_user"], user_password, Bcrypt()
+            )
+
+            user = UserFactory(
+                email=test_users['agency_user'], website_admin=False,
+                affiliations=[UserAffiliation(
+                    cgac=cgac,
+                    permission_type_id=PERMISSION_TYPE_DICT['writer']
+                )]
+            )
+            user.salt, user.password_hash = getPasswordHash(user_password, Bcrypt())
+            user.name = "Test User"
+            user.username = "testUser"
+            sess.add(user)
 
             agencyUser = sess.query(User).filter(User.email == test_users['agency_user']).one()
             cls.agency_user_id = agencyUser.user_id
@@ -126,19 +111,6 @@ class BaseTestAPI(unittest.TestCase):
             user.salt, user.password_hash = getPasswordHash(user_password, Bcrypt())
             sess.add(user)
             cls.approved_user_id = user.user_id
-
-            # set up admin user
-            admin = sess.query(User).filter(User.email == test_users['admin_email']).one()
-            admin.salt, admin.password_hash = getPasswordHash(admin_password, Bcrypt())
-            admin.name = "Mr. Manager"
-            admin.cgac_code = "SYS"
-            sess.add(admin)
-
-            # set up status changed user
-            statusChangedUser = sess.query(User).filter(User.email == test_users['change_user_email']).one()
-            statusChangedUser.name = "Test User"
-            sess.add(statusChangedUser)
-            cls.status_change_user_id = statusChangedUser.user_id
 
             sess.commit()
 
@@ -185,7 +157,7 @@ class BaseTestAPI(unittest.TestCase):
     def login_admin_user(self):
         """Log an admin user into broker."""
         #TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['admin_email'],
+        user = {"username": self.test_users['admin_user'],
             "password": self.admin_password}
         response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
         self.session_id = response.headers["x-session-id"]

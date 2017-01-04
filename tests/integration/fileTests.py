@@ -34,11 +34,11 @@ class FileTests(BaseTestAPI):
             sess = GlobalDB.db().session
             cls.session = sess
             submission_user = sess.query(User).filter(
-                User.email == cls.test_users['submission_email']).one()
+                User.email == cls.test_users['admin_user']).one()
             cls.submission_user_id = submission_user.user_id
 
             other_user = sess.query(User).filter(
-                User.email == cls.test_users['inactive_email']).one()
+                User.email == cls.test_users['agency_user']).one()
             cls.other_user_id = other_user.user_id
 
             # setup submission/jobs data for test_check_status
@@ -72,7 +72,7 @@ class FileTests(BaseTestAPI):
         """Test set-up."""
         super(FileTests, self).setUp()
         self.login_other_user(
-            self.test_users["submission_email"], self.user_password)
+            self.test_users["admin_user"], self.admin_password)
 
     def call_file_submission(self):
         """Call the broker file submission route."""

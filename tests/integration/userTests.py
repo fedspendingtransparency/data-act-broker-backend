@@ -87,7 +87,7 @@ class UserTests(BaseTestAPI):
         """Test retrieving current user information."""
         response = self.app.get("/v1/current_user/", headers={"x-session-id":self.session_id})
         self.check_response(response, StatusCode.OK)
-        assert response.json["name"] == "Mr. Manager"
+        assert response.json["name"] == "Administrator"
         assert not response.json["skip_guide"]
         assert response.json["website_admin"]
 
