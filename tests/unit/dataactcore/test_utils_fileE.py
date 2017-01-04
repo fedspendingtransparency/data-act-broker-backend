@@ -56,6 +56,12 @@ def test_sudsToRow_no_compensation():
         'A Duns', 'Par Duns', 'Par Name', '', '', '', '', '', '', '', '',
         '', '')
 
+    del sudsObj.coreData.listOfExecutiveCompensationInformation
+    row = fileE.sudsToRow(sudsObj)
+    assert row == fileE.Row(
+        'A Duns', 'Par Duns', 'Par Name', '', '', '', '', '', '', '', '',
+        '', '')
+
 
 def test_sudsToRow_too_few_compensation():
     sudsObj = make_suds('B Duns', 'Par DunsB', 'Par NameB')
