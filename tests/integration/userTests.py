@@ -4,6 +4,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.userModel import User
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.models.lookups import FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT
 from datetime import datetime
 
 class UserTests(BaseTestAPI):
@@ -33,9 +34,9 @@ class UserTests(BaseTestAPI):
             # Add job to first submission
             job = Job(
                 submission_id=cls.submission_id,
-                job_status_id=cls.jobStatusDict['running'],
-                job_type_id=cls.jobTypeDict['file_upload'],
-                file_type_id=cls.fileTypeDict['appropriations']
+                job_status_id=JOB_STATUS_DICT['running'],
+                job_type_id=JOB_TYPE_DICT['file_upload'],
+                file_type_id=FILE_TYPE_DICT['appropriations']
             )
             sess.add(job)
             sess.commit()

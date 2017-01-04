@@ -7,7 +7,6 @@ from webtest import TestApp
 from dataactbroker.app import createApp as createBrokerApp
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
-from dataactcore.models import lookups
 from dataactcore.models.domainModels import CGAC
 from dataactcore.models.userModel import User, UserAffiliation
 from dataactcore.scripts.databaseSetup import dropDatabase
@@ -99,15 +98,6 @@ class BaseTestAPI(unittest.TestCase):
             cls.agency_user_id = agencyUser.user_id
 
             sess.commit()
-
-        # get lookup dictionaries
-        cls.jobStatusDict = lookups.JOB_STATUS_DICT
-        cls.jobTypeDict = lookups.JOB_TYPE_DICT
-        cls.fileTypeDict = lookups.FILE_TYPE_DICT
-        cls.fileStatusDict = lookups.FILE_STATUS_DICT
-        cls.ruleSeverityDict = lookups.RULE_SEVERITY_DICT
-        cls.errorTypeDict = lookups.ERROR_TYPE_DICT
-        cls.publishStatusDict = lookups.PUBLISH_STATUS_DICT
 
         # set up info needed by the individual test classes
         cls.test_users = test_users
