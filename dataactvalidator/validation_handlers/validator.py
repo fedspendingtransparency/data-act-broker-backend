@@ -1,3 +1,4 @@
+from collections import namedtuple
 from decimal import Decimal, DecimalException
 import logging
 
@@ -8,6 +9,9 @@ from dataactvalidator.validation_handlers.validationError import ValidationError
 from dataactcore.interfaces.db import GlobalDB
 
 logger = logging.getLogger(__name__)
+
+Failure = namedtuple('Failure',
+                     ['field', 'description', 'value', 'label', 'severity'])
 
 
 class Validator(object):
@@ -70,7 +74,7 @@ class Validator(object):
         Returns:
         Tuple of three values:
         True if validation passed, False if failed
-        List of failed rules, each with field, description of failure, value that failed, rule label, and severity
+        List of Failure tuples
         True if type check passed, False if type failed
         """
         record_failed = False
@@ -79,7 +83,12 @@ class Validator(object):
 
         for field_name in csv_schema:
             if csv_schema[field_name].required and field_name not in record:
-                return False, [[field_name, ValidationError.requiredError, "", "", "fatal"]], False
+                return (
+                    False,
+                    [Failure(field_name, ValidationError.requiredError, "",
+                             "", "fatal")],
+                    False
+                )
 
         total_fields = 0
         blank_fields = 0
@@ -100,7 +109,10 @@ class Validator(object):
                 if current_schema.required:
                     # If empty and required return field name and error
                     record_failed = True
-                    failed_rules.append([field_name, ValidationError.requiredError, "", "", "fatal"])
+                    failed_rules.append(Failure(
+                        field_name, ValidationError.requiredError, "", "",
+                        "fatal"
+                    ))
                     continue
                 else:
                     # If field is empty and not required its valid
@@ -111,7 +123,10 @@ class Validator(object):
                                                                    FIELD_TYPE_DICT_ID[current_schema.field_types_id]):
                 record_type_failure = True
                 record_failed = True
-                failed_rules.append([field_name, ValidationError.typeError, current_data, "", "fatal"])
+                failed_rules.append(Failure(
+                    field_name, ValidationError.typeError, current_data, "",
+                    "fatal"
+                ))
                 # Don't check value rules if type failed
                 continue
 
@@ -120,7 +135,10 @@ class Validator(object):
                len(current_data.strip()) > current_schema.length:
                 # Length failure, add to failedRules
                 record_failed = True
-                failed_rules.append([field_name, ValidationError.lengthError, current_data, "", "warning"])
+                failed_rules.append(Failure(
+                    field_name, ValidationError.lengthError, current_data, "",
+                    "warning"
+                ))
 
         # if all columns are blank (empty row), set it so it doesn't add to the error messages or write the line,
         # just ignore it
