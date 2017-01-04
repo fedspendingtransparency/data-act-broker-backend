@@ -94,9 +94,9 @@ class UserTests(BaseTestAPI):
     def test_email_users(self):
         """ Test email users """
         self.login_user()
-        input = {"users": [self.agency_user_id], "submission_id": self.submission_id,
+        contents = {"users": [self.agency_user_id], "submission_id": self.submission_id,
                  "email_template": "review_submission"}
-        response = self.app.post_json("/v1/email_users/", input, headers={"x-session-id": self.session_id})
+        response = self.app.post_json("/v1/email_users/", contents, headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK, "Emails successfully sent")
 
         # missing request params

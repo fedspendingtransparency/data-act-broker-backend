@@ -78,7 +78,7 @@ class FileTests(BaseTestAPI):
     def call_file_submission(self):
         """Call the broker file submission route."""
         if not self.filesSubmitted:
-            if(CONFIG_BROKER["use_aws"]):
+            if CONFIG_BROKER["use_aws"]:
                 self.filenames = {"appropriations":"test1.csv",
                     "award_financial":"test2.csv",
                     "program_activity":"test4.csv", "cgac_code": "SYS",
@@ -433,7 +433,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.status_code, 200)
 
         type_file_length = len(response.json[type_file])
-        if(exists):
+        if exists:
             self.assertGreater(type_file_length, 0)
         else:
             self.assertEqual(type_file_length, 0)
@@ -666,11 +666,12 @@ class FileTests(BaseTestAPI):
     @classmethod
     def setupSubmissionWithError(cls, sess, row_error_submission_id):
         """ Set up a submission that will come back with a status of validation_errors """
-        jobValues = {}
-        jobValues["awardFin"] = [3, 4, 2, "awardFin.csv", 100, 100]
-        jobValues["appropriations"] = [1, 4, 2, "approp.csv", 2345, 567]
-        jobValues["program_activity"] = [2, 4, 2, "programActivity.csv", None, None]
-        jobValues["cross_file"] = [None,4,4,2,None,None,None]
+        jobValues = {
+            'awardFin': [3, 4, 2, "awardFin.csv", 100, 100],
+            'appropriations': [1, 4, 2, "approp.csv", 2345, 567],
+            'program_activity': [2, 4, 2, "programActivity.csv", None, None],
+            'cross_file': [None,4,4,2,None,None,None]
+        }
 
         for jobKey, values in jobValues.items():
             job = FileTests.insertJob(
@@ -695,14 +696,15 @@ class FileTests(BaseTestAPI):
     @classmethod
     def setupJobsForStatusCheck(cls, sess, submission_id):
         """Set up test jobs for job status test."""
-        jobValues = {}
-        jobValues["uploadFinished"] = [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['file_upload'], None, None, None]
-        jobValues["recordRunning"] = [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['running'], JOB_TYPE_DICT['csv_record_validation'], None, None, None]
-        jobValues["externalWaiting"] = [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['waiting'], JOB_TYPE_DICT['external_validation'], None, None, None]
-        jobValues["awardFin"] = [FILE_TYPE_DICT['award_financial'], JOB_STATUS_DICT['ready'], JOB_TYPE_DICT['csv_record_validation'], "awardFin.csv", 100, 100]
-        jobValues["appropriations"] = [FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['ready'], JOB_TYPE_DICT['csv_record_validation'], "approp.csv", 2345, 567]
-        jobValues["program_activity"] = [FILE_TYPE_DICT['program_activity'], JOB_STATUS_DICT['ready'], JOB_TYPE_DICT['csv_record_validation'], "programActivity.csv", None, None]
-        jobValues["cross_file"] = [None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'], 2, None, None, None]
+        jobValues = {
+            'uploadFinished': [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['file_upload'], None, None, None],
+            'recordRunning': [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['running'], JOB_TYPE_DICT['csv_record_validation'], None, None, None],
+            'externalWaiting': [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['waiting'], JOB_TYPE_DICT['external_validation'], None, None, None],
+            'awardFin': [FILE_TYPE_DICT['award_financial'], JOB_STATUS_DICT['ready'], JOB_TYPE_DICT['csv_record_validation'], "awardFin.csv", 100, 100],
+            'appropriations': [FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['ready'], JOB_TYPE_DICT['csv_record_validation'], "approp.csv", 2345, 567],
+            'program_activity': [FILE_TYPE_DICT['program_activity'], JOB_STATUS_DICT['ready'], JOB_TYPE_DICT['csv_record_validation'], "programActivity.csv", None, None],
+            'cross_file': [None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'], 2, None, None, None]
+        }
         jobIdDict = {}
 
         for jobKey, values in jobValues.items():
