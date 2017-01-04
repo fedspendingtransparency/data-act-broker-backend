@@ -32,6 +32,7 @@ def cleanTas(csvPath):
          "epoa": "ending_period_of_availability",
          "main": "main_account_code",
          "sub": "sub_account_code",
+         "financial_indicator_type2": "financial_indicator2",
          },
         {"allocation_transfer_agency": {"pad_to_length": 3, "keep_null": True},
          "agency_identifier": {"pad_to_length": 3},
