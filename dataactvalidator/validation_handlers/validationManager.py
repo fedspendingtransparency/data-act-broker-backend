@@ -133,51 +133,6 @@ class ValidationManager:
             return {}, reduce_row, True, False, row_error_found, {}
         return record, reduce_row, False, False, row_error_found, flex_cols
 
-    def writeErrors(self, failures, job, short_colnames, writer, warning_writer, row_number, error_list):
-        """ Write errors to error database
-
-        Args:
-            failures: List of errors to be written
-            job: Current job
-            short_colnames: Dict mapping short names to long names
-            writer: CsvWriter object
-            warning_writer: CsvWriter object
-            row_number: Current row number
-            error_list: instance of ErrorInterface to keep track of errors
-        Returns:
-            True if any fatal errors were found, False if only warnings are present
-        """
-        job_id = job.job_id
-        fatal_error_found = False
-        # For each failure, record it in error report and metadata
-        for failure in failures:
-            # map short column names back to long names
-            if failure[0] in short_colnames:
-                field_name = short_colnames[failure[0]]
-            else:
-                field_name = failure[0]
-            error = failure[1]
-            failed_value = failure[2]
-            original_rule_label = failure[3]
-
-            severityId = RULE_SEVERITY_DICT[failure[4]]
-            try:
-                # If error is an int, it's one of our prestored messages
-                error_type = int(error)
-                error_msg = ValidationError.getErrorMessage(error_type)
-            except ValueError:
-                # If not, treat it literally
-                error_msg = error
-            if failure[4] == "fatal":
-                fatal_error_found = True
-                writer.write([field_name, error_msg, str(row_number), failed_value, original_rule_label])
-            elif failure[4] == "warning":
-                # write to warnings file
-                warning_writer.write([field_name, error_msg, str(row_number), failed_value, original_rule_label])
-            error_list.recordRowError(job_id, job.filename, field_name, error, row_number, original_rule_label,
-                                      severity_id=severityId)
-        return fatal_error_found
-
     def runValidation(self, job):
         """ Run validations for specified job
         Args:
@@ -311,8 +266,11 @@ class ValidationManager:
                             continue
 
                     if not passed_validations:
-                        if self.writeErrors(failures, job, self.short_to_long_dict, writer, warningWriter,
-                                            row_number, error_list):
+                        fatal = write_errors(
+                            failures, job, self.short_to_long_dict, writer,
+                            warningWriter, row_number, error_list
+                        )
+                        if fatal:
                             errorRows.append(row_number)
 
                 logger.info(
@@ -591,3 +549,50 @@ def insert_staging_model(model, job, writer, error_list):
         )
         return False
     return True
+
+
+def write_errors(failures, job, short_colnames, writer, warning_writer,
+                 row_number, error_list):
+    """ Write errors to error database
+
+    Args:
+        failures: List of Failures to be written
+        job: Current job
+        short_colnames: Dict mapping short names to long names
+        writer: CsvWriter object
+        warning_writer: CsvWriter object
+        row_number: Current row number
+        error_list: instance of ErrorInterface to keep track of errors
+    Returns:
+        True if any fatal errors were found, False if only warnings are present
+    """
+    fatal_error_found = False
+    # For each failure, record it in error report and metadata
+    for failure in failures:
+        # map short column names back to long names
+        if failure.field in short_colnames:
+            field_name = short_colnames[failure.field]
+        else:
+            field_name = failure.field
+
+        severity_id = RULE_SEVERITY_DICT[failure.severity]
+        try:
+            # If error is an int, it's one of our prestored messages
+            error_type = int(failure.description)
+            error_msg = ValidationError.getErrorMessage(error_type)
+        except ValueError:
+            # If not, treat it literally
+            error_msg = failure.description
+        if failure.severity == 'fatal':
+            fatal_error_found = True
+            writer.write([field_name, error_msg, str(row_number),
+                          failure.value, failure.label])
+        elif failure.severity == 'warning':
+            # write to warnings file
+            warning_writer.write([field_name, error_msg, str(row_number),
+                                  failure.value, failure.label])
+        error_list.recordRowError(
+            job.job_id, job.filename, field_name, failure.description,
+            row_number, failure.label, severity_id=severity_id
+        )
+    return fatal_error_found
