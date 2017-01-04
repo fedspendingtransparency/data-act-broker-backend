@@ -59,8 +59,8 @@ class BaseTestAPI(unittest.TestCase):
             test_users = {
                 'admin_user': 'data.act.tester.1@gmail.com',
                 'agency_user': 'data.act.test.2@gmail.com',
-                'approved_email': 'approved@agency.gov',
-                'no_permissions_user': 'data.act.tester.3@gmail.com'
+                'agency_user_2': 'data.act.test.3@gmail.com',
+                'no_permissions_user': 'data.act.tester.4@gmail.com'
             }
             user_password = '!passw0rdUp!'
             admin_password = '@pprovedPassw0rdy'
@@ -70,15 +70,21 @@ class BaseTestAPI(unittest.TestCase):
             cgac = CGAC(cgac_code='000', agency_name='Example Agency')
 
             # set up users for status tests
-            def add_status_user(email, status_name, website_admin=False):
-                sess.add(UserFactory(
+            def add_user(email, name, username, website_admin=False):
+                user = UserFactory(
                     email=email, website_admin=website_admin,
                     affiliations=[UserAffiliation(
                         cgac=cgac,
                         permission_type_id=PERMISSION_TYPE_DICT['writer']
                     )]
-                ))
-            add_status_user(test_users['approved_email'], 'approved')
+                )
+                user.salt, user.password_hash = getPasswordHash(user_password, Bcrypt())
+                user.name = name
+                user.username = username
+                sess.add(user)
+
+            add_user(test_users['agency_user'], "Test User", "testUser")
+            add_user(test_users['agency_user_2'], "Test User 2", "testUser2")
 
             # add new users
             createUserWithPassword(
@@ -89,28 +95,8 @@ class BaseTestAPI(unittest.TestCase):
                 test_users["no_permissions_user"], user_password, Bcrypt()
             )
 
-            user = UserFactory(
-                email=test_users['agency_user'], website_admin=False,
-                affiliations=[UserAffiliation(
-                    cgac=cgac,
-                    permission_type_id=PERMISSION_TYPE_DICT['writer']
-                )]
-            )
-            user.salt, user.password_hash = getPasswordHash(user_password, Bcrypt())
-            user.name = "Test User"
-            user.username = "testUser"
-            sess.add(user)
-
             agencyUser = sess.query(User).filter(User.email == test_users['agency_user']).one()
             cls.agency_user_id = agencyUser.user_id
-
-            # set up approved user
-            user = sess.query(User).filter(User.email == test_users['approved_email']).one()
-            user.username = "approvedUser"
-            user.cgac_code = "000"
-            user.salt, user.password_hash = getPasswordHash(user_password, Bcrypt())
-            sess.add(user)
-            cls.approved_user_id = user.user_id
 
             sess.commit()
 
@@ -145,15 +131,6 @@ class BaseTestAPI(unittest.TestCase):
     def tearDown(self):
         """Tear down broker unit tests."""
 
-    def login_approved_user(self):
-        """Log an agency user (non-admin) into broker."""
-        #TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['approved_email'],
-            "password": self.user_password}
-        response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
-        self.session_id = response.headers["x-session-id"]
-        return response
-
     def login_admin_user(self):
         """Log an admin user into broker."""
         #TODO: put user data in pytest fixture; put credentials in config file
@@ -163,10 +140,21 @@ class BaseTestAPI(unittest.TestCase):
         self.session_id = response.headers["x-session-id"]
         return response
 
-    def login_other_user(self, username, password):
-        """Log a specific user into broker."""
-        user = {"username": username, "password": password}
-        response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
+    def login_user(self):
+        """Log an agency user (non-admin) into broker."""
+        # TODO: put user data in pytest fixture; put credentials in config file
+        user = {"username": self.test_users['agency_user'],
+                "password": self.user_password}
+        response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
+        self.session_id = response.headers["x-session-id"]
+        return response
+
+    def login_extra_user(self):
+        """Log an agency user (non-admin) into broker."""
+        # TODO: put user data in pytest fixture; put credentials in config file
+        user = {"username": self.test_users['agency_user_2'],
+                "password": self.user_password}
+        response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
         self.session_id = response.headers["x-session-id"]
         return response
 

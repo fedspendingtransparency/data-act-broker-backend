@@ -71,8 +71,7 @@ class FileTests(BaseTestAPI):
     def setUp(self):
         """Test set-up."""
         super(FileTests, self).setUp()
-        self.login_other_user(
-            self.test_users["admin_user"], self.admin_password)
+        self.login_admin_user()
 
     def call_file_submission(self):
         """Call the broker file submission route."""
@@ -234,7 +233,7 @@ class FileTests(BaseTestAPI):
         """ Test that other users do not have access to status check submission """
         postJson = {"submission_id": self.status_check_submission_id}
         # Log in as non-admin user
-        self.login_approved_user()
+        self.login_user()
         # Call check status route
         response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True, headers={"x-session-id":self.session_id})
         # Assert 400 status
@@ -499,7 +498,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["message"],"File was invalid")
 
         # Test permission error
-        self.login_approved_user()
+        self.login_user()
         postJson = {"submission_id": self.generation_submission_id, "file_type": "D1", "start":"01/02/2016", "end":"02/03/2016"}
         response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id":self.session_id}, expect_errors = True)
 
