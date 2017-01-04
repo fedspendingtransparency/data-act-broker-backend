@@ -2,6 +2,7 @@ import os
 import logging
 
 from sqlalchemy import and_, or_
+from sqlalchemy.exc import SQLAlchemyError
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
@@ -132,40 +133,6 @@ class ValidationManager:
             return {}, reduce_row, True, False, row_error_found, {}
         return record, reduce_row, False, False, row_error_found, flex_cols
 
-    def writeToStaging(self, record, job, submission_id, passed_validations, writer, row_number, model, error_list):
-        """ Write this record to the staging tables
-
-        Args:
-            record: Record to be written
-            job: Current job
-            submission_id: ID of current submission
-            passed_validations: True if record has not failed first validations
-            writer: CsvWriter object
-            row_number: Current row number
-            model: orm model for the current file
-            error_list: instance of ErrorInterface to keep track of errors
-
-        Returns:
-            Boolean indicating whether to skip current row
-        """
-        sess = GlobalDB.db().session
-        job_id = job.job_id
-        try:
-            record["job_id"] = job_id
-            record["submission_id"] = submission_id
-            record["valid_record"] = passed_validations
-            sess.add(model(**record))
-            sess.commit()
-
-        except ResponseException:
-            # Write failed, move to next record
-            writer.write(["Formatting Error", ValidationError.writeErrorMsg, row_number, ""])
-            error_list.recordRowError(job_id, job.filename,
-                                      "Formatting Error", ValidationError.writeError, row_number,
-                                      severity_id=RULE_SEVERITY_DICT['fatal'])
-            return True
-        return False
-
     def writeErrors(self, failures, job, short_colnames, writer, warning_writer, row_number, error_list):
         """ Write errors to error database
 
@@ -229,7 +196,7 @@ class ValidationManager:
 
         submission_id = job.submission_id
 
-        rowNumber = 1
+        row_number = 1
         fileType = job.file_type.name
         # Get orm model for this file
         model = [ft.model for ft in FILE_TYPE if ft.name == fileType][0]
@@ -288,26 +255,26 @@ class ValidationManager:
             with self.getWriter(regionName, bucketName, errorFileName, self.reportHeaders) as writer, \
                     self.getWriter(regionName, bucketName, warningFileName, self.reportHeaders) as warningWriter:
                 while not reader.is_finished:
-                    rowNumber += 1
+                    row_number += 1
 
-                    if rowNumber % 100 == 0:
+                    if row_number % 100 == 0:
                         logger.info('loading row %s of submission %s',
-                                    rowNumber, submission_id)
+                                    row_number, submission_id)
 
                     #
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
                     #
-                    (record, reduceRow, skipRow, doneReading, rowErrorHere, flex_cols) = \
-                        self.readRecord(reader, writer, rowNumber, job, fields, error_list)
+                    (record, reduceRow, skip_row, doneReading, rowErrorHere, flex_cols) = \
+                        self.readRecord(reader, writer, row_number, job, fields, error_list)
                     if reduceRow:
-                        rowNumber -= 1
+                        row_number -= 1
                     if rowErrorHere:
-                        errorRows.append(rowNumber)
+                        errorRows.append(row_number)
                     if doneReading:
                         # Stop reading from input file
                         break
-                    elif skipRow:
+                    elif skip_row:
                         # Do not write this row to staging, but continue processing future rows
                         continue
 
@@ -319,14 +286,19 @@ class ValidationManager:
                     # validations, so these validations are not repeated here
                     if fileType in ["award", "award_procurement"]:
                         # Skip basic validations for D files, set as valid to trigger write to staging
-                        passedValidations = True
+                        passed_validations = True
                         valid = True
                     else:
-                        passedValidations, failures, valid = Validator.validate(record, csvSchema)
+                        passed_validations, failures, valid = Validator.validate(record, csvSchema)
                     if valid:
-                        skipRow = self.writeToStaging(
-                            record, job, submission_id, passedValidations,
-                            writer, rowNumber, model, error_list)
+                        model_instance = model(
+                            job_id=job.job_id,
+                            submission_id=submission_id,
+                            valid_record=passed_validations,
+                            **record
+                        )
+                        skip_row = not insert_staging_model(
+                            model_instance, job, writer, error_list)
                         if flex_cols:
                             sess.add(FlexField(
                                 job_id=job_id, submission_id=submission_id,
@@ -334,18 +306,18 @@ class ValidationManager:
                             ))
                             sess.commit()
 
-                        if skipRow:
-                            errorRows.append(rowNumber)
+                        if skip_row:
+                            errorRows.append(row_number)
                             continue
 
-                    if not passedValidations:
+                    if not passed_validations:
                         if self.writeErrors(failures, job, self.short_to_long_dict, writer, warningWriter,
-                                            rowNumber, error_list):
-                            errorRows.append(rowNumber)
+                                            row_number, error_list):
+                            errorRows.append(row_number)
 
                 logger.info(
                     'VALIDATOR_INFO: Loading complete on job_id: %s. '
-                    'Total rows added to staging: %s', job_id, rowNumber)
+                    'Total rows added to staging: %s', job_id, row_number)
 
                 if fileType in ('appropriations', 'program_activity',
                                 'award_financial'):
@@ -355,7 +327,8 @@ class ValidationManager:
                 # in the schema guidance. these validations are sql-based.
                 #
                 sqlErrorRows = self.runSqlValidations(
-                    job, fileType, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list)
+                    job, fileType, self.short_to_long_dict, writer,
+                    warningWriter, row_number, error_list)
                 errorRows.extend(sqlErrorRows)
 
                 # Write unfinished batch
@@ -365,11 +338,11 @@ class ValidationManager:
             # Calculate total number of rows in file
             # that passed validations
             errorRowsUnique = set(errorRows)
-            totalRowsExcludingHeader = rowNumber - 1
+            totalRowsExcludingHeader = row_number - 1
             validRows = totalRowsExcludingHeader - len(errorRowsUnique)
 
             # Update job metadata
-            job.number_of_rows = rowNumber
+            job.number_of_rows = row_number
             job.number_of_rows_valid = validRows
             sess.commit()
 
@@ -588,3 +561,33 @@ def update_tas_ids(model_class, submission_id):
         update({getattr(model_class, 'tas_id'): subquery},
                synchronize_session=False)
     sess.commit()
+
+
+def insert_staging_model(model, job, writer, error_list):
+    """ If there is an error during ORM insertion, mark that and continue
+
+    Args:
+        model: ORM model instance for the current row
+        job: Current job
+        writer: CsvWriter object
+        error_list: instance of ErrorInterface to keep track of errors
+
+    Returns:
+        True if insertion was a success, False otherwise
+    """
+    sess = GlobalDB.db().session
+    try:
+        sess.add(model)
+        sess.commit()
+    except SQLAlchemyError:
+        sess.rollback()
+        # Write failed, move to next record
+        writer.write(["Formatting Error", ValidationError.writeErrorMsg,
+                      model.row_number, ""])
+        error_list.recordRowError(
+            job.job_id, job.filename, "Formatting Error",
+            ValidationError.writeError, model.row_number,
+            severity_id=RULE_SEVERITY_DICT['fatal']
+        )
+        return False
+    return True
