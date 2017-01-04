@@ -30,8 +30,10 @@ from dataactcore.models.lookups import (
     JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import (get_report_path, get_cross_report_name,
-                                      get_cross_warning_report_name, get_cross_file_pairs)
+from dataactcore.utils.report import (
+    get_report_path, get_cross_report_name, get_cross_warning_report_name,
+    get_cross_file_pairs, report_file_name
+)
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -1222,3 +1224,14 @@ def serialize_submission(submission):
         "user": {"user_id": submission.user_id,
                  "name": submission_user_name}
     }
+
+
+def submission_report_url(submission, warning, file_type, cross_type):
+    """ Gets the signed URL for the specified file """
+    file_name = report_file_name(
+        submission.submission_id, warning, file_type, cross_type)
+    if CONFIG_BROKER['local']:
+        url = os.path.join(CONFIG_BROKER['broker_files'], file_name)
+    else:
+        url = s3UrlHandler().getSignedUrl("errors", file_name, method="GET")
+    return JsonResponse.create(StatusCode.OK, {"url": url})
