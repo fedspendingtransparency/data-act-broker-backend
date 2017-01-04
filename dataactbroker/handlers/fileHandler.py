@@ -130,25 +130,6 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def get_signed_url_for_submission_file(self, submission):
-        """ Gets the signed URL for the specified file """
-        try:
-            self.s3manager = s3UrlHandler()
-            safe_dictionary = RequestDictionary.derive(self.request)
-            file_name = safe_dictionary["file"] + ".csv"
-
-            response_dict = {}
-            if self.isLocal:
-                response_dict["url"] = os.path.join(self.serverPath, file_name)
-            else:
-                response_dict["url"] = self.s3manager.getSignedUrl("errors", file_name, method="GET")
-            return JsonResponse.create(StatusCode.OK, response_dict)
-        except ResponseException as e:
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
-        except Exception as e:
-            # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
-
     def getCrossReportKey(self,sourceType,targetType,isWarning = False):
         """ Generate a key for cross-file error reports """
         if isWarning:
