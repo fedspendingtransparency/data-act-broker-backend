@@ -72,14 +72,13 @@ class BaseTestAPI(unittest.TestCase):
             def add_user(email, name, username, website_admin=False):
                 user = UserFactory(
                     email=email, website_admin=website_admin,
+                    name=name, username=username,
                     affiliations=[UserAffiliation(
                         cgac=cgac,
                         permission_type_id=PERMISSION_TYPE_DICT['writer']
                     )]
                 )
                 user.salt, user.password_hash = getPasswordHash(user_password, Bcrypt())
-                user.name = name
-                user.username = username
                 sess.add(user)
 
             add_user(test_users['agency_user'], "Test User", "testUser")
@@ -130,19 +129,12 @@ class BaseTestAPI(unittest.TestCase):
         self.session_id = response.headers["x-session-id"]
         return response
 
-    def login_user(self):
+    def login_user(self, username=None):
         """Log an agency user (non-admin) into broker."""
         # TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['agency_user'],
-                "password": self.user_password}
-        response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
-        self.session_id = response.headers["x-session-id"]
-        return response
-
-    def login_extra_user(self):
-        """Log an agency user (non-admin) into broker."""
-        # TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['agency_user_2'],
+        if username is None:
+            username = self.test_users['agency_user']
+        user = {"username": username,
                 "password": self.user_password}
         response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
         self.session_id = response.headers["x-session-id"]

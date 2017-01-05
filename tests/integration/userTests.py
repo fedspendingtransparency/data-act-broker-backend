@@ -52,7 +52,7 @@ class UserTests(BaseTestAPI):
         # Jobs were submitted with the id for "approved user," so lookup
         # as "admin user" should fail.
         self.logout()
-        self.login_extra_user()
+        self.login_user(self.test_users['agency_user_2'])
         postJson = {"upload_id": self.uploadId}
         response = self.app.post_json("/v1/finalize_job/",
             postJson, expect_errors=True, headers={"x-session-id":self.session_id})
