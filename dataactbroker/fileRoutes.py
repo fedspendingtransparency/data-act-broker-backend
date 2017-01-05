@@ -6,9 +6,10 @@ from dataactbroker.exceptions.invalid_usage import InvalidUsage
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status,
     list_submissions as list_submissions_handler,
-    narratives_for_submission, update_narratives
+    narratives_for_submission, submission_report_url, update_narratives
 )
 from dataactcore.interfaces.function_bag import get_submission_stats
+from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactbroker.permissions import requires_login, requires_submission_perms
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -149,14 +150,6 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
         return JsonResponse.create(
             StatusCode.OK, get_submission_stats(submission.submission_id))
 
-    @app.route("/v1/sign_submission_file", methods=["POST"])
-    @convert_to_submission_id
-    @requires_submission_perms('reader')
-    def sign_submission_file(submission):
-        file_handler = FileHandler(
-            request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return file_handler.get_signed_url_for_submission_file(submission)
-
     @app.route("/v1/submission/<int:submission_id>/narrative", methods=['GET'])
     @requires_submission_perms('reader')
     def get_submission_narratives(submission):
@@ -170,6 +163,23 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
         json = {key.upper():value.strip() for key, value in json.items()
                 if isinstance(value, str) and value.strip()}
         return update_narratives(submission, json)
+
+    @app.route("/v1/submission/<int:submission_id>/report_url", methods=['POST'])
+    @requires_submission_perms('reader')
+    def post_submission_report_url(submission):
+        json = request.json or {}
+        warning, file_type = json.get('warning'), json.get('file_type')
+        cross_type = json.get('cross_type')
+        if file_type not in FILE_TYPE_DICT:
+            raise InvalidUsage(
+                "file_type must be one of '" +
+                "', '".join(FILE_TYPE_DICT.keys() + "'"))
+        if cross_type and cross_type not in FILE_TYPE_DICT:
+            raise InvalidUsage(
+                "cross_type, if present, must be one of '" +
+                "', '".join(FILE_TYPE_DICT.keys() + "'"))
+        return submission_report_url(
+            submission, bool(warning), file_type, cross_type)
 
 
 def convert_to_submission_id(fn):
