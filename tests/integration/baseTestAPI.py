@@ -7,7 +7,6 @@ from webtest import TestApp
 from dataactbroker.app import createApp as createBrokerApp
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
-from dataactcore.models import lookups
 from dataactcore.models.domainModels import CGAC
 from dataactcore.models.userModel import User, UserAffiliation
 from dataactcore.scripts.databaseSetup import dropDatabase
@@ -56,20 +55,12 @@ class BaseTestAPI(unittest.TestCase):
             setupEmails()
 
             # set up default e-mails for tests
-            test_users = {}
-            test_users['admin_email'] = 'data.act.tester.1@gmail.com'
-            test_users['change_user_email'] = 'data.act.tester.2@gmail.com'
-            test_users['password_reset_email'] = 'data.act.tester.3@gmail.com'
-            test_users['inactive_email'] = 'data.act.tester.4@gmail.com'
-            test_users['password_lock_email'] = 'data.act.test.5@gmail.com'
-            test_users['expired_lock_email'] = 'data.act.test.6@gmail.com'
-            test_users['agency_admin_email'] = 'data.act.test.7@gmail.com'
-
-            # this email is for a regular agency_user email that is to be used for
-            # testing functionality expected by a normal, base user
-            test_users['agency_user'] = 'data.act.test.8@gmail.com'
-            test_users['approved_email'] = 'approved@agency.gov'
-            test_users['submission_email'] = 'submission_test@agency.gov'
+            test_users = {
+                'admin_user': 'data.act.tester.1@gmail.com',
+                'agency_user': 'data.act.test.2@gmail.com',
+                'agency_user_2': 'data.act.test.3@gmail.com',
+                'no_permissions_user': 'data.act.tester.4@gmail.com'
+            }
             user_password = '!passw0rdUp!'
             admin_password = '@pprovedPassw0rdy'
 
@@ -78,78 +69,34 @@ class BaseTestAPI(unittest.TestCase):
             cgac = CGAC(cgac_code='000', agency_name='Example Agency')
 
             # set up users for status tests
-            def add_status_user(email, status_name, website_admin=False):
-                sess.add(UserFactory(
+            def add_user(email, name, username, website_admin=False):
+                user = UserFactory(
                     email=email, website_admin=website_admin,
+                    name=name, username=username,
                     affiliations=[UserAffiliation(
                         cgac=cgac,
                         permission_type_id=PERMISSION_TYPE_DICT['writer']
                     )]
-                ))
-            add_status_user('user@agency.gov', 'awaiting_confirmation')
-            add_status_user('realEmail@agency.gov', 'email_confirmed')
-            add_status_user('waiting@agency.gov', 'awaiting_approval')
-            add_status_user('impatient@agency.gov', 'awaiting_approval')
-            add_status_user('watchingPaintDry@agency.gov', 'awaiting_approval')
-            add_status_user(test_users['admin_email'], 'approved', True)
-            add_status_user(test_users['approved_email'], 'approved')
-            add_status_user('nefarious@agency.gov', 'denied')
+                )
+                user.salt, user.password_hash = getPasswordHash(user_password, Bcrypt())
+                sess.add(user)
+
+            add_user(test_users['agency_user'], "Test User", "testUser")
+            add_user(test_users['agency_user_2'], "Test User 2", "testUser2")
 
             # add new users
             createUserWithPassword(
-                test_users["submission_email"], user_password, Bcrypt(),
+                test_users["admin_user"], admin_password, Bcrypt(),
                 website_admin=True
             )
             createUserWithPassword(
-                test_users["change_user_email"], user_password, Bcrypt())
-            createUserWithPassword(
-                test_users["password_reset_email"], user_password, Bcrypt())
-            createUserWithPassword(
-                test_users["inactive_email"], user_password, Bcrypt())
-            createUserWithPassword(
-                test_users["password_lock_email"], user_password, Bcrypt())
-            createUserWithPassword(
-                test_users['expired_lock_email'], user_password, Bcrypt())
-            createUserWithPassword(
-                test_users['agency_admin_email'], admin_password, Bcrypt(),
-                website_admin=True)
-            createUserWithPassword(
-                test_users['agency_user'], user_password, Bcrypt())
+                test_users["no_permissions_user"], user_password, Bcrypt()
+            )
 
             agencyUser = sess.query(User).filter(User.email == test_users['agency_user']).one()
             cls.agency_user_id = agencyUser.user_id
 
-            # set up approved user
-            user = sess.query(User).filter(User.email == test_users['approved_email']).one()
-            user.username = "approvedUser"
-            user.cgac_code = "000"
-            user.salt, user.password_hash = getPasswordHash(user_password, Bcrypt())
-            sess.add(user)
-            cls.approved_user_id = user.user_id
-
-            # set up admin user
-            admin = sess.query(User).filter(User.email == test_users['admin_email']).one()
-            admin.salt, admin.password_hash = getPasswordHash(admin_password, Bcrypt())
-            admin.name = "Mr. Manager"
-            admin.cgac_code = "SYS"
-            sess.add(admin)
-
-            # set up status changed user
-            statusChangedUser = sess.query(User).filter(User.email == test_users['change_user_email']).one()
-            statusChangedUser.name = "Test User"
-            sess.add(statusChangedUser)
-            cls.status_change_user_id = statusChangedUser.user_id
-
             sess.commit()
-
-        # get lookup dictionaries
-        cls.jobStatusDict = lookups.JOB_STATUS_DICT
-        cls.jobTypeDict = lookups.JOB_TYPE_DICT
-        cls.fileTypeDict = lookups.FILE_TYPE_DICT
-        cls.fileStatusDict = lookups.FILE_STATUS_DICT
-        cls.ruleSeverityDict = lookups.RULE_SEVERITY_DICT
-        cls.errorTypeDict = lookups.ERROR_TYPE_DICT
-        cls.publishStatusDict = lookups.PUBLISH_STATUS_DICT
 
         # set up info needed by the individual test classes
         cls.test_users = test_users
@@ -173,85 +120,23 @@ class BaseTestAPI(unittest.TestCase):
     def tearDown(self):
         """Tear down broker unit tests."""
 
-    def login_approved_user(self):
-        """Log an agency user (non-admin) into broker."""
-        #TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['approved_email'],
-            "password": self.user_password}
-        response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
-        self.session_id = response.headers["x-session-id"]
-        return response
-
-    def login_agency_user(self):
-        """Log an agency user (non-admin) into broker."""
-        #TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['agency_user'],
-            "password": self.user_password}
-        response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
-        self.session_id = response.headers["x-session-id"]
-        return response
-
     def login_admin_user(self):
         """Log an admin user into broker."""
         #TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['admin_email'],
+        user = {"username": self.test_users['admin_user'],
             "password": self.admin_password}
         response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
         self.session_id = response.headers["x-session-id"]
         return response
 
-    def login_agency_admin_user(self):
-        """ Log an agency admin user into broker. """
+    def login_user(self, username=None):
+        """Log an agency user (non-admin) into broker."""
         # TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['agency_admin_email'],
-                "password": self.admin_password}
+        if username is None:
+            username = self.test_users['agency_user']
+        user = {"username": username,
+                "password": self.user_password}
         response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
-        self.session_id = response.headers["x-session-id"]
-        return response
-
-    def login_inactive_user(self):
-        """Attempt to log in an inactive user"""
-        #TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['inactive_email'],
-            "password": self.user_password}
-        response = self.app.post_json("/v1/login/", user, expect_errors=True, headers={"x-session-id":self.session_id})
-        try:
-            self.session_id = response.headers["x-session-id"]
-        except KeyError:
-            # Session ID doesn't come back for inactive user, set to empty
-            self.session_id = ""
-        return response
-
-    def login_expired_locked_user(self):
-        """Force user to have their account locked then attempt to login again"""
-        # TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['expired_lock_email'], "password": self.user_password}
-        response = self.app.post_json("/v1/login/", user, expect_errors=True, headers={"x-session-id": self.session_id})
-
-        try:
-            self.session_id = response.headers["x-session-id"]
-        except KeyError:
-            # Session ID doesn't come back for inactive user, set to empty
-            self.session_id = ""
-        return response
-
-    def login_password_locked_user(self):
-        """Force user to have their account locked then attempt to login again"""
-        # TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['password_lock_email'], "password": "wrongpassword"}
-        response = self.app.post_json("/v1/login/", user, expect_errors=True, headers={"x-session-id": self.session_id})
-
-        try:
-            self.session_id = response.headers["x-session-id"]
-        except KeyError:
-            # Session ID doesn't come back for inactive user, set to empty
-            self.session_id = ""
-        return response
-
-    def login_other_user(self, username, password):
-        """Log a specific user into broker."""
-        user = {"username": username, "password": password}
-        response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
         self.session_id = response.headers["x-session-id"]
         return response
 
