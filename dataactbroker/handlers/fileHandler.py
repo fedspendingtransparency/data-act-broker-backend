@@ -35,9 +35,10 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    checkNumberOfErrorsByJobId, getErrorType, run_job_checks,
-    getErrorMetricsByJobId, get_submission_stats, get_submission_status,
-    mark_job_status, create_submission, create_jobs, createFileIfNeeded)
+    checkNumberOfErrorsByJobId, create_jobs, create_submission,
+    getErrorMetricsByJobId, getErrorType, get_submission_status,
+    mark_job_status, run_job_checks, get_submission_stats, createFileIfNeeded
+)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 _debug_logger = logging.getLogger('deprecated.debug')
