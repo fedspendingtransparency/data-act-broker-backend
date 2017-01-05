@@ -1,4 +1,4 @@
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from decimal import Decimal, DecimalException
 import logging
 
@@ -12,6 +12,11 @@ logger = logging.getLogger(__name__)
 
 Failure = namedtuple('Failure',
                      ['field', 'description', 'value', 'label', 'severity'])
+ValidationFailure = namedtuple(
+    'ValidationFailure',
+    ['field_name', 'error', 'failed_value', 'row', 'original_label',
+     'file_type_id', 'target_file_id', 'severity_id']
+)
 
 
 class Validator(object):
@@ -191,75 +196,96 @@ class Validator(object):
         raise ValueError("".join(["Data Type Error, Type: ", datatype, ", Value: ", data]))
 
     @classmethod
-    def validateFileBySql(cls, submission_id, fileType, short_to_long_dict):
+    def validateFileBySql(cls, job, fileType, short_to_long_dict):
         """ Check all SQL rules
 
         Args:
-            submission_id: submission to be checked
+            job: the Job which is running
             fileType: file type being checked
             short_to_long_dict: mapping of short to long schema column names
 
         Returns:
-            List of errors found, each element has:
-             field names
-             error message
-             values in fields involved
-             row number
-             rule label
-             source file id
-             target file id
-             severity id
+            List of ValidationFailures
         """
 
         logger.info(
-            'VALIDATOR_INFO: Beginning SQL validation rules on submissionID '
-            '%s, fileType: %s', submission_id, fileType)
+            'VALIDATOR_INFO: Beginning SQL validation rules on job %s,'
+            '(submission: %s, fileType: %s)',
+            job.job_id, job.submission_id, fileType
+        )
         sess = GlobalDB.db().session
 
         # Pull all SQL rules for this file type
-        fileId = FILE_TYPE_DICT[fileType]
+        file_id = FILE_TYPE_DICT[fileType]
         rules = sess.query(RuleSql).filter_by(
-            file_id=fileId, rule_cross_file_flag=False)
+            file_id=file_id, rule_cross_file_flag=False)
         errors = []
 
         # For each rule, execute sql for rule
         for rule in rules:
             logger.info(
-                'VALIDATOR_INFO: Running query: %s on submissionId %s, '
-                'fileType: %s', rule.query_name, submission_id, fileType)
-            failures = sess.execute(rule.rule_sql.format(submission_id))
+                'VALIDATOR_INFO: Running query: %s on job %s',
+                rule.query_name, job.job_id)
+            failures = sess.execute(rule.rule_sql.format(job.submission_id))
             if failures.rowcount:
                 # Create column list (exclude row_number)
                 cols = failures.keys()
                 cols.remove("row_number")
+                col_headers = [short_to_long_dict.get(field, field)
+                               for field in cols]
 
-                # Create flex column list
-                flex_dict = {}
-                flex_results = sess.query(FlexField).filter_by(submission_id=submission_id)
+                # materialize as we'll iterate over the failures twice
+                failures = list(failures)
+                flex_data = relevant_flex_data(failures, job.job_id)
 
-                for flex_row in flex_results:
-                    flex_dict[flex_row.row_number] = flex_row
-
-                # Build error list
-                for failure in failures:
-                    errorMsg = rule.rule_error_message
-                    row = failure["row_number"]
-                    # Create strings for fields and values
-                    valueList = ["{}: {}".format(short_to_long_dict[field], str(failure[field])) if
-                                 field in short_to_long_dict else "{}: {}".format(field, str(failure[field])) for
-                                 field in cols]
-                    if flex_dict and flex_dict[row]:
-                        valueList.append("{}: {}".format(flex_dict[row].header, flex_dict[row].cell))
-                    valueString = ", ".join(valueList)
-                    fieldList = [short_to_long_dict[field] if field in short_to_long_dict else field for field in cols]
-                    if flex_dict and flex_dict[row]:
-                        fieldList.append(flex_dict[row].header)
-                    fieldString = ", ".join(fieldList)
-                    errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId,
-                                   rule.target_file_id, rule.rule_severity_id])
+                errors.extend(
+                    failure_row_to_tuple(
+                        rule, flex_data, cols, col_headers, file_id, failure)
+                    for failure in failures
+                )
 
             logger.info(
-                'VALIDATOR_INFO: Completed SQL validation rules on '
-                'submissionID: %s, fileType: %s', submission_id, fileType)
+                'VALIDATOR_INFO: Completed SQL validation query %s on job %s',
+                rule.query_name, job.job_id
+            )
 
         return errors
+
+
+def relevant_flex_data(failures, job_id):
+    """Create a dictionary mapping row numbers of failures to lists of
+    FlexFields"""
+    sess = GlobalDB.db().session
+    flex_data = defaultdict(list)
+    relevant_rows = {f['row_number'] for f in failures}
+    query = sess.query(FlexField).\
+        filter(FlexField.row_number.in_(relevant_rows),
+               FlexField.job_id == job_id).\
+        order_by(FlexField.flex_field_id)
+    for flex_field in query:
+        flex_data[flex_field.row_number].append(flex_field)
+    return flex_data
+
+
+def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id,
+                         sql_failure):
+    """Convert a failure SQL row into a ValidationFailure"""
+    row = sql_failure["row_number"]
+    # Create strings for fields and values
+    values_list = ["{}: {}".format(header, str(sql_failure[field]))
+                   for field, header in zip(cols, col_headers)]
+    values_list.extend(
+        "{}: {}".format(flex_field.header, flex_field.cell)
+        for flex_field in flex_data[row]
+    )
+    field_list = col_headers + [field.header for field in flex_data[row]]
+    return ValidationFailure(
+        ", ".join(field_list),
+        rule.rule_error_message,
+        ", ".join(values_list),
+        row,
+        rule.rule_label,
+        file_id,
+        rule.target_file_id,
+        rule.rule_severity_id
+    )

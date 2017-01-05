@@ -341,38 +341,42 @@ class ValidationManager:
         job_id = job.job_id
         error_rows = []
         sql_failures = Validator.validateFileBySql(
-            job.submission_id, file_type, self.short_to_long_dict)
+            job, file_type, self.short_to_long_dict)
         for failure in sql_failures:
             # convert shorter, machine friendly column names used in the
             # SQL validation queries back to their long names
-            if failure[0] in short_colnames:
-                field_name = short_colnames[failure[0]]
+            if failure.field_name in short_colnames:
+                field_name = short_colnames[failure.field_name]
             else:
-                field_name = failure[0]
-            error = failure[1]
-            failed_value = failure[2]
-            row = failure[3]
-            original_label = failure[4]
-            file_type_id = failure[5]
-            target_file_id = failure[6]
-            severity_id = failure[7]
-            if severity_id == RULE_SEVERITY_DICT['fatal']:
-                error_rows.append(row)
+                field_name = failure.field_name
+
+            if failure.severity_id == RULE_SEVERITY_DICT['fatal']:
+                error_rows.append(failure.row)
+
             try:
                 # If error is an int, it's one of our prestored messages
-                error_type = int(error)
+                error_type = int(failure.error)
                 error_msg = ValidationError.getErrorMessage(error_type)
             except ValueError:
                 # If not, treat it literally
-                error_msg = error
-            if severity_id == RULE_SEVERITY_DICT['fatal']:
-                writer.write([field_name, error_msg, str(row), failed_value, original_label])
-            elif severity_id == RULE_SEVERITY_DICT['warning']:
+                error_msg = failure.error
+
+            if failure.severity_id == RULE_SEVERITY_DICT['fatal']:
+                writer.write([
+                    field_name, error_msg, str(failure.row),
+                    failure.failed_value, failure.original_label
+                ])
+            elif failure.severity_id == RULE_SEVERITY_DICT['warning']:
                 # write to warnings file
-                warning_writer.write([field_name, error_msg, str(row), failed_value, original_label])
-            error_list.recordRowError(job_id, job.filename, field_name,
-                                      error, row_number, original_label, file_type_id=file_type_id,
-                                      target_file_id=target_file_id, severity_id=severity_id)
+                warning_writer.write([
+                    field_name, error_msg, str(failure.row),
+                    failure.failed_value, failure.original_label
+                ])
+            error_list.recordRowError(
+                job_id, job.filename, field_name, failure.error, row_number,
+                failure.original_label, failure.file_type_id,
+                failure.target_file_id, failure.severity_id
+            )
         return error_rows
 
     def runCrossValidation(self, job):
