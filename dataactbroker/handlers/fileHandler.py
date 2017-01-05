@@ -703,7 +703,7 @@ class FileHandler:
             exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
             return False, JsonResponse.error(exc, exc.status, url = "", start = "", end = "",  file_type = file_type)
 
-        error = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, job)
+        error = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, job, val_job)
 
         return not error, error
 
@@ -712,7 +712,7 @@ class FileHandler:
         logger.debug('Getting XML response')
         return requests.get(api_url, verify=False, timeout=120).text
 
-    def call_d_file_api(self, file_type_name, cgac_code, start_date, end_date, job):
+    def call_d_file_api(self, file_type_name, cgac_code, start_date, end_date, job, val_job=None):
         """ Call D file API, return True if results found, False otherwise """
         file_type = FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]]
         task_key = FileHandler.create_generation_task(job.job_id)
@@ -732,12 +732,6 @@ class FileHandler:
                         delete(synchronize_session='fetch')
                     mark_job_status(job.job_id, "finished")
                     job.filename = None
-
-                    val_job = sess.query(Job).filter_by(
-                        submission_id=job.submission_id,
-                        file_type_id=FILE_TYPE_DICT[file_type_name],
-                        job_type_id=JOB_TYPE_DICT['csv_record_validation']
-                    ).one_or_none()
 
                     if val_job is not None:
                         mark_job_status(val_job.job_id, "finished")
