@@ -30,8 +30,7 @@ from dataactcore.models.lookups import (
     JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import (get_report_path, get_cross_report_name,
-                                      get_cross_warning_report_name, get_cross_file_pairs)
+from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -91,11 +90,11 @@ class FileHandler:
             jobs = sess.query(Job).filter_by(submission_id=submission_id)
             for job in jobs:
                 if job.job_type.name == 'csv_record_validation':
+                    report_name = report_file_name(
+                        job.submission_id, is_warning, job.file_type.name)
                     if is_warning:
-                        report_name = get_report_path(job, 'warning')
                         key = 'job_{}_warning_url'.format(job.job_id)
                     else:
-                        report_name = get_report_path(job, 'error')
                         key = 'job_{}_error_url'.format(job.job_id)
                     if not self.isLocal:
                         response_dict[key] = self.s3manager.getSignedUrl("errors", report_name, method="GET")
@@ -107,12 +106,10 @@ class FileHandler:
             for c in get_cross_file_pairs():
                 first_file = c[0]
                 second_file = c[1]
-                if is_warning:
-                    report_name = get_cross_warning_report_name(
-                        submission_id, first_file.name, second_file.name)
-                else:
-                    report_name = get_cross_report_name(
-                        submission_id, first_file.name, second_file.name)
+                report_name = report_file_name(
+                    submission_id, is_warning, first_file.name,
+                    second_file.name
+                )
                 if self.isLocal:
                     report_path = os.path.join(self.serverPath, report_name)
                 else:
@@ -127,25 +124,6 @@ class FileHandler:
         except Exception as e:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
-
-    def get_signed_url_for_submission_file(self, submission):
-        """ Gets the signed URL for the specified file """
-        try:
-            self.s3manager = s3UrlHandler()
-            safe_dictionary = RequestDictionary.derive(self.request)
-            file_name = safe_dictionary["file"] + ".csv"
-
-            response_dict = {}
-            if self.isLocal:
-                response_dict["url"] = os.path.join(self.serverPath, file_name)
-            else:
-                response_dict["url"] = self.s3manager.getSignedUrl("errors", file_name, method="GET")
-            return JsonResponse.create(StatusCode.OK, response_dict)
-        except ResponseException as e:
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
-        except Exception as e:
-            # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
 
     def getCrossReportKey(self,sourceType,targetType,isWarning = False):
         """ Generate a key for cross-file error reports """
@@ -1222,3 +1200,14 @@ def serialize_submission(submission):
         "user": {"user_id": submission.user_id,
                  "name": submission_user_name}
     }
+
+
+def submission_report_url(submission, warning, file_type, cross_type):
+    """ Gets the signed URL for the specified file """
+    file_name = report_file_name(
+        submission.submission_id, warning, file_type, cross_type)
+    if CONFIG_BROKER['local']:
+        url = os.path.join(CONFIG_BROKER['broker_files'], file_name)
+    else:
+        url = s3UrlHandler().getSignedUrl("errors", file_name, method="GET")
+    return JsonResponse.create(StatusCode.OK, {"url": url})
