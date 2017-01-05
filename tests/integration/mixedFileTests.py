@@ -6,7 +6,7 @@ from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId
 from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import AwardFinancial
-from dataactcore.utils.report import get_cross_warning_report_name, report_file_name
+from dataactcore.utils.report import report_file_name
 from dataactvalidator.app import createApp
 from tests.integration.baseTestValidator import BaseTestValidator
 from tests.integration.fileTypeTests import FileTypeTests
@@ -297,8 +297,10 @@ class MixedFileTests(BaseTestValidator):
                                       "program_activity")),
                 (89, report_file_name(submission_id, False, "award_financial",
                                       "award")),
-                (2363, get_cross_warning_report_name(submission_id, "appropriations", "program_activity")),
-                (89, get_cross_warning_report_name(submission_id, "award_financial", "award")),
+                (2363, report_file_name(submission_id, True, "appropriations",
+                                        "program_activity")),
+                (89, report_file_name(submission_id, True, "award_financial",
+                                      "award")),
             ]
 
         for size, path in size_path_pairs:

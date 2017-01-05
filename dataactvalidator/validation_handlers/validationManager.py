@@ -18,9 +18,7 @@ from dataactcore.models.stagingModels import FlexField
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import (
-    get_report_path, get_cross_warning_report_name, get_cross_file_pairs,
-    report_file_name
-)
+    get_report_path, get_cross_file_pairs, report_file_name)
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
@@ -484,7 +482,8 @@ class ValidationManager:
             # get error file name
             reportFilename = self.getFileName(report_file_name(
                 submission_id, False, first_file.name, second_file.name))
-            warningReportFilename = self.getFileName(get_cross_warning_report_name(submission_id, first_file.name, second_file.name))
+            warningReportFilename = self.getFileName(report_file_name(
+                submission_id, True, first_file.name, second_file.name))
 
             # loop through failures to create the error report
             with self.getWriter(regionName, bucketName, reportFilename, self.crossFileReportHeaders) as writer, \
