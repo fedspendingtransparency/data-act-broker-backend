@@ -42,7 +42,7 @@ class ValidationManager:
     reportHeaders = ["Field name", "Error message", "Row number", "Value provided", "Rule label"]
     crossFileReportHeaders = ["Source File", "Target File", "Field names", "Error message", "Values provided", "Row number", "Rule label"]
 
-    def __init__(self,isLocal =True,directory=""):
+    def __init__(self, isLocal=True, directory=""):
         # Initialize instance variables
         self.isLocal = isLocal
         self.directory = directory
@@ -74,14 +74,14 @@ class ValidationManager:
             return CsvLocalWriter(fileName, header)
         return CsvS3Writer(regionName, bucketName, fileName, header)
 
-    def getFileName(self,path):
+    def getFileName(self, path):
         """ Return full path of error report based on provided name """
         if self.isLocal:
             return os.path.join(self.directory, path)
         # Forcing forward slash here instead of using os.path to write a valid path for S3
         return "".join(["errors/", path])
 
-    def readRecord(self,reader,writer,row_number,job,fields,error_list):
+    def readRecord(self, reader, writer, row_number, job, fields, error_list):
         """ Read and process the next record
 
         Args:
@@ -155,7 +155,7 @@ class ValidationManager:
 
         except ResponseException:
             # Write failed, move to next record
-            writer.write(["Formatting Error", ValidationError.writeErrorMsg, row_number,""])
+            writer.write(["Formatting Error", ValidationError.writeErrorMsg, row_number, ""])
             error_list.recordRowError(job_id, job.filename,
                 "Formatting Error", ValidationError.writeError, row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
             return True
@@ -198,11 +198,11 @@ class ValidationManager:
                 error_msg = error
             if failure[4] == "fatal":
                 fatal_error_found = True
-                writer.write([field_name,error_msg,str(row_number),failed_value,original_rule_label])
+                writer.write([field_name, error_msg, str(row_number), failed_value, original_rule_label])
             elif failure[4] == "warning":
                 # write to warnings file
-                warning_writer.write([field_name,error_msg,str(row_number),failed_value,original_rule_label])
-            error_list.recordRowError(job_id,job.filename,field_name,error,row_number,original_rule_label,severity_id=severityId)
+                warning_writer.write([field_name, error_msg, str(row_number), failed_value, original_rule_label])
+            error_list.recordRowError(job_id, job.filename, field_name, error, row_number, original_rule_label, severity_id=severityId)
         return fatal_error_found
 
     def write_to_flex(self, flex_cols, job_id, submission_id):
@@ -437,12 +437,12 @@ class ValidationManager:
                 # If not, treat it literally
                 error_msg = error
             if severity_id == RULE_SEVERITY_DICT['fatal']:
-                writer.write([field_name,error_msg,str(row),failed_value,original_label])
+                writer.write([field_name, error_msg, str(row), failed_value, original_label])
             elif severity_id == RULE_SEVERITY_DICT['warning']:
                 # write to warnings file
-                warning_writer.write([field_name,error_msg,str(row),failed_value,original_label])
-            error_list.recordRowError(job_id,job.filename,field_name,
-                                          error,row_number,original_label, file_type_id=file_type_id, target_file_id = target_file_id, severity_id=severity_id)
+                warning_writer.write([field_name, error_msg, str(row), failed_value, original_label])
+            error_list.recordRowError(job_id, job.filename, field_name,
+                                          error, row_number, original_label, file_type_id=file_type_id, target_file_id = target_file_id, severity_id=severity_id)
         return error_rows
 
     def runCrossValidation(self, job):
@@ -575,7 +575,7 @@ class ValidationManager:
             raise ResponseException("Bad job type for validator",
                 StatusCode.INTERNAL_ERROR)
 
-        return JsonResponse.create(StatusCode.OK, {"message":"Validation complete"})
+        return JsonResponse.create(StatusCode.OK, {"message": "Validation complete"})
 
 def update_tas_ids(model, submission_id):
     sess = GlobalDB.db().session

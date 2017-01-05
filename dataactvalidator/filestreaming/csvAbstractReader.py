@@ -46,7 +46,7 @@ class CsvAbstractReader(object):
             with self.get_writer(bucket_name, error_filename, ["Error Type"], self.is_local) as writer:
                 writer.write(["No header row"])
                 writer.finishBatch()
-            raise ResponseException("CSV file must have a header",StatusCode.CLIENT_ERROR,ValueError,ValidationError.singleRow)
+            raise ResponseException("CSV file must have a header", StatusCode.CLIENT_ERROR, ValueError, ValidationError.singleRow)
 
         duplicated_headers = []
         #create the header
@@ -123,7 +123,7 @@ class CsvAbstractReader(object):
             with self.get_writer(bucket_name, error_filename, self.header_report_headers, self.is_local) as writer:
                 extra_info = {}
                 if len(duplicated_headers) > 0:
-                    error_string = "".join([error_string, "Duplicated: ",", ".join(duplicated_headers)])
+                    error_string = "".join([error_string, "Duplicated: ", ", ".join(duplicated_headers)])
                     extra_info["duplicated_headers"] = ", ".join(duplicated_headers)
                     for header in duplicated_headers:
                         writer.write(["Duplicated header", header])
@@ -131,12 +131,12 @@ class CsvAbstractReader(object):
                     if len(duplicated_headers):
                         # Separate missing and duplicated headers if both are present
                         error_string += "| "
-                    error_string = "".join([error_string, "Missing: ",", ".join(missing_headers)])
+                    error_string = "".join([error_string, "Missing: ", ", ".join(missing_headers)])
                     extra_info["missing_headers"] = ", ".join(missing_headers)
                     for header in missing_headers:
                         writer.write(["Missing header", header])
                 writer.finishBatch()
-            raise ResponseException("Errors in header row: " + str(error_string), StatusCode.CLIENT_ERROR, ValueError,ValidationError.headerError,**extra_info)
+            raise ResponseException("Errors in header row: " + str(error_string), StatusCode.CLIENT_ERROR, ValueError, ValidationError.headerError, **extra_info)
 
         return long_headers
 
@@ -166,7 +166,7 @@ class CsvAbstractReader(object):
                 raise ResponseException("Wrong number of fields in this row", StatusCode.CLIENT_ERROR, ValueError, ValidationError.readError)
             for current, cell in enumerate(row):
                 if current >= self.column_count:
-                    raise ResponseException("Record contains too many fields",StatusCode.CLIENT_ERROR,ValueError,ValidationError.readError)
+                    raise ResponseException("Record contains too many fields", StatusCode.CLIENT_ERROR, ValueError, ValidationError.readError)
                 if cell == "":
                     # Use None instead of empty strings for sqlalchemy
                     cell = None
@@ -213,7 +213,7 @@ class CsvAbstractReader(object):
         #for packet in self.s3File :
         while self.packet_counter * CsvAbstractReader.BUFFER_SIZE <= self._get_file_size():
 
-            success,packet = self._get_next_packet()
+            success, packet = self._get_next_packet()
             if not success:
                 break
             self.packet_counter += 1
@@ -248,7 +248,7 @@ class CsvAbstractReader(object):
         escape_mode = False
         current = ""
 
-        for index,char in enumerate(packet):
+        for index, char in enumerate(packet):
             if not escape_mode:
                 if char == '\r' or char == '\n' or char == '\r\n':
                     if len(current) > 0:
@@ -259,13 +259,13 @@ class CsvAbstractReader(object):
                         lines_to_return.append("")
                     current = ""
                 else:
-                    current = "".join([current,char])
+                    current = "".join([current, char])
                     if char == '"':
                         escape_mode = True
             else:
                 if char == '"':
                     escape_mode = False
-                current = "".join([current,char])
+                current = "".join([current, char])
         if len(current) > 0:
             lines_to_return.append(current)
         return lines_to_return

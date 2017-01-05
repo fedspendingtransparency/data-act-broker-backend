@@ -24,7 +24,7 @@ def test_success(database):
     ap1 = AppropriationFactory(row_number=1, tas_id=tas1.tas_id)
     ap2 = AppropriationFactory(row_number=2, tas_id=tas2.tas_id)
 
-    assert number_of_errors(_FILE, database, models=[ap1,ap2]) == 0
+    assert number_of_errors(_FILE, database, models=[ap1, ap2]) == 0
 
 
 def test_failure(database):
@@ -35,4 +35,4 @@ def test_failure(database):
 
     ap1 = AppropriationFactory(row_number=1, tas_id=tas.tas_id)
     ap2 = AppropriationFactory(row_number=2, tas_id=tas.tas_id)
-    assert number_of_errors(_FILE, database, models=[ap1,ap2]) == 2
+    assert number_of_errors(_FILE, database, models=[ap1, ap2]) == 2

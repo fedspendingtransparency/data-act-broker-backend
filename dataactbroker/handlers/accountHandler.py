@@ -34,7 +34,7 @@ class AccountHandler:
     FRONT_END = ""
     # Instance fields include request, response, logFlag, and logFile
 
-    def __init__(self,request, bcrypt=None, isLocal=False):
+    def __init__(self, request, bcrypt=None, isLocal=False):
         """ Creates the Login Handler
 
         Args:
@@ -45,7 +45,7 @@ class AccountHandler:
         self.request = request
         self.bcrypt = bcrypt
 
-    def login(self,session):
+    def login(self, session):
         """
 
         Logs a user in if their password matches
@@ -71,7 +71,7 @@ class AccountHandler:
                 raise ValueError("Invalid username and/or password")
 
             try:
-                if check_correct_password(user,password,self.bcrypt):
+                if check_correct_password(user, password, self.bcrypt):
                     # We have a valid login
 
                     return self.create_session_and_response(session, user)
@@ -86,15 +86,15 @@ class AccountHandler:
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ValueError as e:
             # Return a 401 for login denied
-            return JsonResponse.error(e,StatusCode.LOGIN_REQUIRED)
+            return JsonResponse.error(e, StatusCode.LOGIN_REQUIRED)
         except Exception as e:
             # Return 500
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def max_login(self,session):
+    def max_login(self, session):
         """
 
         Logs a user in if their password matches
@@ -157,13 +157,13 @@ class AccountHandler:
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ValueError as e:
             # Return a 401 for login denied
-            return JsonResponse.error(e,StatusCode.LOGIN_REQUIRED)
+            return JsonResponse.error(e, StatusCode.LOGIN_REQUIRED)
         except Exception as e:
             # Return 500
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
     @staticmethod
     def create_session_and_response(session, user):
@@ -196,7 +196,7 @@ class AccountHandler:
         return JsonResponse.create(
             StatusCode.OK,
             {"message": "skip_guide set successfully",
-             "skip_guide":skip_guide}
+             "skip_guide": skip_guide}
         )
 
     def email_users(self, system_email):
@@ -242,7 +242,7 @@ def perms_to_affiliations(perms):
     """Convert a list of perms from MAX to a list of UserAffiliations. Filter
     out and log any malformed perms"""
     available_codes = {
-        cgac.cgac_code:cgac
+        cgac.cgac_code: cgac
         for cgac in GlobalDB.db().session.query(CGAC)
     }
     for perm in perms:

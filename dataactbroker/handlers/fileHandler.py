@@ -56,11 +56,11 @@ class FileHandler:
     s3manager -- instance of s3UrlHandler, manages calls to S3
     """
 
-    FILE_TYPES = ["appropriations","award_financial","program_activity"]
+    FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
     EXTERNAL_FILE_TYPES = ["award", "award_procurement", "awardee_attributes", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
-    STATUS_MAP = {"waiting":"invalid", "ready":"invalid", "running":"waiting", "finished":"finished", "invalid":"failed", "failed":"failed"}
-    VALIDATION_STATUS_MAP = {"waiting":"waiting", "ready":"waiting", "running":"waiting", "finished":"finished", "failed":"failed", "invalid":"failed"}
+    STATUS_MAP = {"waiting": "invalid", "ready": "invalid", "running": "waiting", "finished": "finished", "invalid": "failed", "failed": "failed"}
+    VALIDATION_STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "waiting", "finished": "finished", "failed": "failed", "invalid": "failed"}
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
@@ -125,12 +125,12 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def getCrossReportKey(self,sourceType,targetType,isWarning = False):
+    def getCrossReportKey(self, sourceType, targetType, isWarning = False):
         """ Generate a key for cross-file error reports """
         if isWarning:
-            return "cross_warning_{}-{}".format(sourceType,targetType)
+            return "cross_warning_{}-{}".format(sourceType, targetType)
         else:
-            return "cross_{}-{}".format(sourceType,targetType)
+            return "cross_{}-{}".format(sourceType, targetType)
 
     def submit(self, create_credentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
@@ -235,7 +235,7 @@ class FileHandler:
             if not existing_submission:
                 # don't add external files to existing submission
                 for ext_file_type in FileHandler.EXTERNAL_FILE_TYPES:
-                    filename = CONFIG_BROKER["".join([ext_file_type,"_file_name"])]
+                    filename = CONFIG_BROKER["".join([ext_file_type, "_file_name"])]
 
                     if not self.isLocal:
                         upload_name = "{}/{}".format(
@@ -267,17 +267,17 @@ class FileHandler:
                 response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]
             else:
                 response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
-            return JsonResponse.create(StatusCode.OK,response_dict)
+            return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ResponseException as e:
             # call error route directly, status code depends on exception
-            return JsonResponse.error(e,e.status)
+            return JsonResponse.error(e, e.status)
         except Exception as e:
             # unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
         except:
-            return JsonResponse.error(Exception("Failed to catch exception"),StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(Exception("Failed to catch exception"), StatusCode.INTERNAL_ERROR)
 
     @staticmethod
     def check_submission_dates(start_date, end_date, is_quarter, existing_submission=None):
@@ -420,12 +420,12 @@ class FileHandler:
             if self.isLocal:
                 uploadedFile = request.files['file']
                 if uploadedFile:
-                    seconds = int((datetime.utcnow() - datetime(1970,1,1)).total_seconds())
-                    filename = "".join([str(seconds),"_", secure_filename(uploadedFile.filename)])
+                    seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
+                    filename = "".join([str(seconds), "_", secure_filename(uploadedFile.filename)])
                     path = os.path.join(self.serverPath, filename)
                     uploadedFile.save(path)
-                    returnDict = {"path":path}
-                    return JsonResponse.create(StatusCode.OK,returnDict)
+                    returnDict = {"path": path}
+                    return JsonResponse.create(StatusCode.OK, returnDict)
                 else:
                     raise ResponseException("Failure to read file",
                                             StatusCode.CLIENT_ERROR)
@@ -433,12 +433,12 @@ class FileHandler:
                 raise ResponseException("Route Only Valid For Local Installs",
                                         StatusCode.CLIENT_ERROR)
         except (ValueError, TypeError) as e:
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ResponseException as e:
-            return JsonResponse.error(e,e.status)
+            return JsonResponse.error(e, e.status)
         except Exception as e:
             # Unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
     def start_generation_job(self, job):
         """ Initiates a file generation job
@@ -468,7 +468,7 @@ class FileHandler:
                         "Start or end date cannot be parsed into a date",
                         StatusCode.CLIENT_ERROR
                     )
-            elif file_type not in ["E","F"]:
+            elif file_type not in ["E", "F"]:
                 raise ResponseException(
                     "File type must be either D1, D2, E or F",
                     StatusCode.CLIENT_ERROR
@@ -522,13 +522,13 @@ class FileHandler:
             val_job.filename = upload_file_name
             val_job.original_filename = timestamped_name
             val_job.job_status_id = JOB_STATUS_DICT["waiting"]
-            job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
-            job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
-            val_job.start_date = datetime.strptime(start_date,"%m/%d/%Y").date()
-            val_job.end_date = datetime.strptime(end_date,"%m/%d/%Y").date()
+            job.start_date = datetime.strptime(start_date, "%m/%d/%Y").date()
+            job.end_date = datetime.strptime(end_date, "%m/%d/%Y").date()
+            val_job.start_date = datetime.strptime(start_date, "%m/%d/%Y").date()
+            val_job.end_date = datetime.strptime(end_date, "%m/%d/%Y").date()
         except ValueError as e:
             # Date was not in expected format
-            exc = ResponseException(str(e),StatusCode.CLIENT_ERROR,ValueError)
+            exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, ValueError)
             return False, JsonResponse.error(
                 exc, exc.status, url="", start="", end="",
                 file_type=file_type
@@ -631,7 +631,7 @@ class FileHandler:
         except Exception as e:
             logger.exception('Exception caught => %s', e)
             # Log the error
-            JsonResponse.error(e,500)
+            JsonResponse.error(e, 500)
             sess.query(Job).filter_by(job_id=job_id).one().error_message = str(e)
             mark_job_status(job_id, "failed")
             sess.commit()
@@ -798,7 +798,7 @@ class FileHandler:
             job_type_id=JOB_TYPE_DICT['file_upload']
         ).one()
 
-        if file_type in ["D1","D2"]:
+        if file_type in ["D1", "D2"]:
             validationJob = sess.query(Job).filter_by(
                 submission_id=submission.submission_id,
                 file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
@@ -820,7 +820,7 @@ class FileHandler:
             responseDict["url"] = uploadJob.filename
 
         # Pull start and end from jobs table if D1 or D2
-        if file_type in ["D1","D2"]:
+        if file_type in ["D1", "D2"]:
             responseDict["start"] = uploadJob.start_date.strftime("%m/%d/%Y") if uploadJob.start_date is not None else ""
             responseDict["end"] = uploadJob.end_date.strftime("%m/%d/%Y") if uploadJob.end_date is not None else ""
 
@@ -920,9 +920,9 @@ class FileHandler:
             task = sess.query(FileGenerationTask).filter(FileGenerationTask.generation_task_key == generation_id).one()
             job = sess.query(Job).filter_by(job_id = task.job_id).one()
             logger.debug('Loading D file...')
-            result = self.load_d_file(url,job.filename,job.original_filename,job.job_id,self.isLocal)
+            result = self.load_d_file(url, job.filename, job.original_filename, job.job_id, self.isLocal)
             logger.debug('Load D file result => %s', result)
-            return JsonResponse.create(StatusCode.OK,{"message":"File loaded successfully"})
+            return JsonResponse.create(StatusCode.OK, {"message": "File loaded successfully"})
         except ResponseException as e:
             return JsonResponse.error(e, e.status)
         except NoResultFound:
@@ -1122,10 +1122,10 @@ def get_status(submission):
         return JsonResponse.create(
             StatusCode.OK, submission_to_dict_for_status(submission))
     except ResponseException as e:
-        return JsonResponse.error(e,e.status)
+        return JsonResponse.error(e, e.status)
     except Exception as e:
         # Unexpected exception, this is a 500 server error
-        return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+        return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
 
 def get_error_metrics(submission):
@@ -1140,14 +1140,14 @@ def get_error_metrics(submission):
                 file_type = job.file_type.name
                 data_list = getErrorMetricsByJobId(job.job_id)
                 return_dict[file_type] = data_list
-        return JsonResponse.create(StatusCode.OK,return_dict)
+        return JsonResponse.create(StatusCode.OK, return_dict)
     except (ValueError, TypeError) as e:
-        return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+        return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
     except ResponseException as e:
-        return JsonResponse.error(e,e.status)
+        return JsonResponse.error(e, e.status)
     except Exception as e:
         # Unexpected exception, this is a 500 server error
-        return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+        return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
 
 def list_submissions(page, limit, certified):

@@ -15,7 +15,7 @@ class User(Base):
     title = Column(Text)
     password_hash = Column(Text)
     salt = Column(Text)
-    skip_guide = Column(Boolean, default=False,nullable=False,server_default="False")
+    skip_guide = Column(Boolean, default=False, nullable=False, server_default="False")
     website_admin = Column(Boolean, default=False, nullable=False,
                            server_default="False")
     affiliations = relationship("UserAffiliation",

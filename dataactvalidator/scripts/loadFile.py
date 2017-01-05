@@ -41,7 +41,7 @@ def loadCgac(filename):
     with createApp().app_context():
         sess = GlobalDB.db().session
 
-        models = {cgac.cgac_code:cgac for cgac in sess.query(CGAC)}
+        models = {cgac.cgac_code: cgac for cgac in sess.query(CGAC)}
 
         # read CGAC values from csv
         data = pd.read_csv(filename, dtype=str)
@@ -144,8 +144,8 @@ def loadDomainValues(basePath, localProgramActivity = None):
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
 
     else:
-        cgac_file = os.path.join(basePath,"cgac.csv")
-        object_class_file = os.path.join(basePath,"object_class.csv")
+        cgac_file = os.path.join(basePath, "cgac.csv")
+        object_class_file = os.path.join(basePath, "object_class.csv")
         program_activity_file = os.path.join(basePath, "program_activity.csv") 
 
     logger.info('Loading CGAC')

@@ -13,7 +13,7 @@ def generateFiscalYear(context):
     """ Generate fiscal year based on the date provided """
     reporting_end_date = context.current_parameters['reporting_end_date']
     year = reporting_end_date.year
-    if reporting_end_date.month in [10,11,12]:
+    if reporting_end_date.month in [10, 11, 12]:
         year += 1
     return year
 

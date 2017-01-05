@@ -11,7 +11,7 @@ def test_delete_missing_cgacs(database):
     sess.add_all(cgacs)
     sess.commit()
 
-    models = {cgac.cgac_code:cgac for cgac in cgacs}
+    models = {cgac.cgac_code: cgac for cgac in cgacs}
     new_data = pd.DataFrame([
         {'cgac_code': '0'}, {'cgac_code': '2'}, {'cgac_code': '4'},
         {'cgac_code': 'something-else'}
@@ -32,7 +32,7 @@ def test_update_cgacs(database):
     sess.add_all(cgacs)
     sess.commit()
 
-    models = {cgac.cgac_code:cgac for cgac in cgacs}
+    models = {cgac.cgac_code: cgac for cgac in cgacs}
     new_data = pd.DataFrame([
         {'cgac_code': '0', 'agency_name': 'other'},
         {'cgac_code': '1', 'agency_name': '11111'},

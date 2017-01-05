@@ -7,13 +7,13 @@ class RequestDictionary:
     def __init__(self, request, optional_request=False):
         self.requestDict = self.derive(request, optional_request)
 
-    def getValue(self,value):
+    def getValue(self, value):
         """ Returns value for specified key """
         if value not in self.requestDict:
             raise ValueError(value + " not found")
         return self.requestDict[value]
         
-    def exists(self,value):
+    def exists(self, value):
         """ Returns True if key is in request json """
         if value not in self.requestDict:
             return False

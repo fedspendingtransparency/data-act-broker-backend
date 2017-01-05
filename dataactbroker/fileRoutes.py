@@ -29,13 +29,13 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     @app.route("/v1/submit_files/", methods = ["POST"])
     @requires_login
     def submit_files():
-        fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.submit(CreateCredentials)
 
     @app.route("/v1/finalize_job/", methods = ["POST"])
     @requires_login
     def finalize_submission():
-        fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.finalize()
 
     @app.route("/v1/check_status/", methods = ["POST"])
@@ -47,13 +47,13 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     @app.route("/v1/submission_error_reports/", methods = ["POST"])
     @requires_login
     def submission_error_reports():
-        fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.getErrorReportURLsForSubmission()
 
     @app.route("/v1/submission_warning_reports/", methods = ["POST"])
     @requires_login
     def submission_warning_reports():
-        fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.getErrorReportURLsForSubmission(True)
 
     @app.route("/v1/error_metrics/", methods=["POST"])
@@ -65,7 +65,7 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     @app.route("/v1/local_upload/", methods = ["POST"])
     @requires_login
     def upload_local_file():
-        fileManager = FileHandler(request,isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.uploadFile()
 
     @app.route("/v1/list_submissions/", methods = ["GET"])
@@ -160,7 +160,7 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     def post_submission_narratives(submission):
         json = request.json or {}
         # clean input
-        json = {key.upper():value.strip() for key, value in json.items()
+        json = {key.upper(): value.strip() for key, value in json.items()
                 if isinstance(value, str) and value.strip()}
         return update_narratives(submission, json)
 

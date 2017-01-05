@@ -7,7 +7,7 @@ class CsvLocalWriter(CsvAbstractWriter):
     use with the "with" python construct
     """
 
-    def __init__(self,filename,header):
+    def __init__(self, filename, header):
         """
 
         args
@@ -17,10 +17,10 @@ class CsvLocalWriter(CsvAbstractWriter):
         header - list of strings for the header
 
         """
-        self.stream = open(filename,"w", newline = '')
-        super(CsvLocalWriter,self).__init__(filename,header)
+        self.stream = open(filename, "w", newline = '')
+        super(CsvLocalWriter, self).__init__(filename, header)
 
-    def _write(self,data):
+    def _write(self, data):
         """
 
         args

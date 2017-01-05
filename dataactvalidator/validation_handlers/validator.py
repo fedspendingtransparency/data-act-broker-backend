@@ -13,8 +13,8 @@ class Validator(object):
     """
     Checks individual records against specified validation tests
     """
-    BOOLEAN_VALUES = ["TRUE","FALSE","YES","NO","1","0"]
-    tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op","appropriation":"approp"}
+    BOOLEAN_VALUES = ["TRUE", "FALSE", "YES", "NO", "1", "0"]
+    tableAbbreviations = {"appropriations": "approp", "award_financial_assistance": "afa", "award_financial": "af", "object_class_program_activity": "op", "appropriation": "approp"}
     # Set of metadata fields that should not be directly validated
     META_FIELDS = ["row_number"]
 
@@ -46,7 +46,7 @@ class Validator(object):
                     values = ", ".join(values)
                     targetFileType = FILE_TYPE_DICT_ID[rule.target_file_id]
                     failures.append([rule.file.name, targetFileType, columnString,
-                        str(rule.rule_error_message), values, row['row_number'],str(rule.rule_label),rule.file_id,rule.target_file_id,rule.rule_severity_id])
+                        str(rule.rule_error_message), values, row['row_number'], str(rule.rule_label), rule.file_id, rule.target_file_id, rule.rule_severity_id])
 
         # Return list of cross file validation failures
         return failures
@@ -107,7 +107,7 @@ class Validator(object):
                                                                  FIELD_TYPE_DICT_ID[current_schema.field_types_id]):
                 record_type_failure = True
                 record_failed = True
-                failed_rules.append([field_name, ValidationError.typeError, current_data,"", "fatal"])
+                failed_rules.append([field_name, ValidationError.typeError, current_data, "", "fatal"])
                 # Don't check value rules if type failed
                 continue
 
@@ -115,7 +115,7 @@ class Validator(object):
             if current_schema.length is not None and current_data is not None and len(current_data.strip()) > current_schema.length:
                 # Length failure, add to failedRules
                 record_failed = True
-                failed_rules.append([field_name, ValidationError.lengthError, current_data,"", "warning"])
+                failed_rules.append([field_name, ValidationError.lengthError, current_data, "", "warning"])
 
         # if all columns are blank (empty row), set it so it doesn't add to the error messages or write the line, just ignore it
         if total_fields == blank_fields:
@@ -124,7 +124,7 @@ class Validator(object):
         return (not record_failed), failed_rules, (not record_type_failure)
 
     @staticmethod
-    def checkType(data,datatype):
+    def checkType(data, datatype):
         """ Determine whether data is of the correct type
 
         Args:
@@ -164,7 +164,7 @@ class Validator(object):
                 return True
             except:
                 return False
-        raise ValueError("".join(["Data Type Error, Type: ",datatype,", Value: ",data]))
+        raise ValueError("".join(["Data Type Error, Type: ", datatype, ", Value: ", data]))
 
     @classmethod
     def validateFileBySql(cls, submission_id, fileType, short_to_long_dict):

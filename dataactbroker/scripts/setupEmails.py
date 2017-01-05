@@ -11,7 +11,7 @@ def setupEmails():
 
         # insert email template types
         typeList = [
-            ('review_submission','')
+            ('review_submission', '')
         ]
         for t in typeList:
             email_id = sess.query(

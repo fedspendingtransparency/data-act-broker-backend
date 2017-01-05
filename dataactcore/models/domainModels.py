@@ -67,18 +67,18 @@ Index("ix_tas",
 class CGAC(Base):
     __tablename__ = "cgac"
     cgac_id = Column(Integer, primary_key=True)
-    cgac_code = Column(Text, nullable=False,index=True,unique=True)
+    cgac_code = Column(Text, nullable=False, index=True, unique=True)
     agency_name = Column(Text)
 
 class ObjectClass(Base):
     __tablename__ = "object_class"
     object_class_id = Column(Integer, primary_key=True)
-    object_class_code = Column(Text,nullable=False,index=True,unique=True)
+    object_class_code = Column(Text, nullable=False, index=True, unique=True)
     object_class_name = Column(Text)
 
 class SF133(Base):
     __tablename__ = "sf_133"
-    sf133_id = Column(Integer,primary_key=True)
+    sf133_id = Column(Integer, primary_key=True)
     agency_identifier = Column(Text, nullable=False)
     allocation_transfer_agency = Column(Text)
     availability_type_code = Column(Text)
@@ -89,8 +89,8 @@ class SF133(Base):
     tas = Column(Text, nullable=False, default=concatTas)
     fiscal_year = Column(Integer, nullable=False)
     period = Column(Integer, nullable=False)
-    line = Column(Integer,nullable=False)
-    amount = Column(Numeric,nullable=False,default=0,server_default="0")
+    line = Column(Integer, nullable=False)
+    amount = Column(Numeric, nullable=False, default=0, server_default="0")
     tas_id = Column(
         Integer,
         ForeignKey("tas_lookup.tas_id", name='fk_sf_133_tas_lookup'),
@@ -107,12 +107,12 @@ Index("ix_sf_133_tas",
 class ProgramActivity(Base):
     __tablename__ = "program_activity"
     program_activity_id = Column(Integer, primary_key=True)
-    budget_year = Column(Text,nullable=False)
-    agency_id = Column(Text,nullable=False)
+    budget_year = Column(Text, nullable=False)
+    agency_id = Column(Text, nullable=False)
     allocation_transfer_id = Column(Text)
-    account_number = Column(Text,nullable=False)
-    program_activity_code = Column(Text,nullable=False)
-    program_activity_name = Column(Text,nullable=False)
+    account_number = Column(Text, nullable=False)
+    program_activity_code = Column(Text, nullable=False)
+    program_activity_name = Column(Text, nullable=False)
 
 Index("ix_pa_tas_pa",
       ProgramActivity.budget_year,

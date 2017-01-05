@@ -10,7 +10,7 @@ class CsvAbstractWriter(object):
     BUFFER_SIZE = (5 * 1024 ** 2)
     BATCH_SIZE = 100
 
-    def __init__(self,filename,header):
+    def __init__(self, filename, header):
         """
 
         args
@@ -22,7 +22,7 @@ class CsvAbstractWriter(object):
         self.rows = []
         self.write(header)
 
-    def write(self,dataList):
+    def write(self, dataList):
         """
 
         args
@@ -47,7 +47,7 @@ class CsvAbstractWriter(object):
         self._write(ioStream.getvalue())
         self.rows = []
 
-    def _write(self,data):
+    def _write(self, data):
         """
 
         args

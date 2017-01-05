@@ -1,5 +1,5 @@
 from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityFactory
-from tests.unit.dataactvalidator.utils import number_of_errors,query_columns
+from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
 _FILE = 'a31_object_class_program_activity'

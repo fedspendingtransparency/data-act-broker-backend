@@ -108,7 +108,7 @@ def test_set_max_perms(database, monkeypatch):
     database.session.commit()
     assert len(user.affiliations) == 2
     affiliations = list(sorted(user.affiliations,
-                               key=lambda a:a.cgac.cgac_code))
+                               key=lambda a: a.cgac.cgac_code))
     abc_aff, def_aff = affiliations
     assert abc_aff.cgac.cgac_code == 'ABC'
     assert abc_aff.permission_type_id == PERMISSION_TYPE_DICT['reader']

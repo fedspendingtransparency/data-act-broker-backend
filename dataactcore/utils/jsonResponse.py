@@ -15,7 +15,7 @@ class JsonResponse:
     debugMode = True
 
     @staticmethod
-    def create(code,dictionaryData):
+    def create(code, dictionaryData):
         """
         Creates a JSON response object
         if debugMode is enabled errors are added

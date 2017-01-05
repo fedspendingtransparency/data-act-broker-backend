@@ -125,7 +125,7 @@ class BaseTestAPI(unittest.TestCase):
         #TODO: put user data in pytest fixture; put credentials in config file
         user = {"username": self.test_users['admin_user'],
             "password": self.admin_password}
-        response = self.app.post_json("/v1/login/", user, headers={"x-session-id":self.session_id})
+        response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
         self.session_id = response.headers["x-session-id"]
         return response
 
@@ -142,11 +142,11 @@ class BaseTestAPI(unittest.TestCase):
 
     def logout(self):
         """Log user out of broker."""
-        return self.app.post("/v1/logout/", {}, headers={"x-session-id":self.session_id})
+        return self.app.post("/v1/logout/", {}, headers={"x-session-id": self.session_id})
 
     def session_route(self):
         """Get session."""
-        return self.app.get("/v1/session/", headers={"x-session-id":self.session_id})
+        return self.app.get("/v1/session/", headers={"x-session-id": self.session_id})
 
     def check_response(self, response, status, message=None):
         """Perform common tests on API responses."""

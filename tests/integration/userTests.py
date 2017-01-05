@@ -55,7 +55,7 @@ class UserTests(BaseTestAPI):
         self.login_user(self.test_users['agency_user_2'])
         postJson = {"upload_id": self.uploadId}
         response = self.app.post_json("/v1/finalize_job/",
-            postJson, expect_errors=True, headers={"x-session-id":self.session_id})
+            postJson, expect_errors=True, headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.CLIENT_ERROR, "Cannot finalize a job for a different agency")
         # Give submission this user's cgac code
         with createApp().app_context():
@@ -73,7 +73,7 @@ class UserTests(BaseTestAPI):
 
     def test_current_user(self):
         """Test retrieving current user information."""
-        response = self.app.get("/v1/current_user/", headers={"x-session-id":self.session_id})
+        response = self.app.get("/v1/current_user/", headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         assert response.json["name"] == "Administrator"
         assert not response.json["skip_guide"]
@@ -84,7 +84,7 @@ class UserTests(BaseTestAPI):
         self.login_user()
         params = {"skip_guide": True}
         response = self.app.post_json("/v1/set_skip_guide/", params, headers={"x-session-id": self.session_id})
-        self.check_response(response,StatusCode.OK, "skip_guide set successfully")
+        self.check_response(response, StatusCode.OK, "skip_guide set successfully")
         self.assertTrue(response.json["skip_guide"])
         with createApp().app_context():
             sess = GlobalDB.db().session

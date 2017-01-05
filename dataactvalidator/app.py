@@ -74,7 +74,7 @@ def createApp():
         """Confirm server running."""
         return "Validator is running"
 
-    @app.route("/validate/",methods=["POST"])
+    @app.route("/validate/", methods=["POST"])
     def validate():
         """Start the validation process."""
         if request.is_json:

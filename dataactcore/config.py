@@ -9,8 +9,8 @@ CONFIG_SERVICES = {}
 CONFIG_DB = {}
 CONFIG_LOGGING = {}
 CONFIG_JOB_QUEUE = {}
-CONFIG_CATEGORIES = {"broker":CONFIG_BROKER, "services":CONFIG_SERVICES, "db":CONFIG_DB,
-                     "logging":CONFIG_LOGGING,"job-queue":CONFIG_JOB_QUEUE}
+CONFIG_CATEGORIES = {"broker": CONFIG_BROKER, "services": CONFIG_SERVICES, "db": CONFIG_DB,
+                     "logging": CONFIG_LOGGING, "job-queue": CONFIG_JOB_QUEUE}
 
 # set the location of the DATA Act broker config files
 CONFIG_PATH = os.path.join(dirname(abspath(__file__)), 'config.yml')
@@ -124,8 +124,8 @@ if "values_to_log" in CONFIG_LOGGING:
         category = CONFIG_CATEGORIES[category_yaml_name]
         category_message = "### {}".format(category_yaml_name)
         for key in CONFIG_LOGGING["values_to_log"][category_yaml_name]:
-            value = category.get(key,"Value not provided in config")
-            category_message = "{}, {}: {}".format(category_message, key,value)
+            value = category.get(key, "Value not provided in config")
+            category_message = "{}, {}: {}".format(category_message, key, value)
         log_message = " ".join([log_message, category_message])
 # Log config values along with warnings for missing files
 if log_message:

@@ -5,7 +5,7 @@ from pandas import isnull
 def clean_col_names(field):
     """Define some data-munging functions that can be applied to pandas
     dataframes as necessary"""
-    return str(field).lower().strip().replace(" ","_").replace(",","_")
+    return str(field).lower().strip().replace(" ", "_").replace(",", "_")
 
 
 class LoaderUtils:

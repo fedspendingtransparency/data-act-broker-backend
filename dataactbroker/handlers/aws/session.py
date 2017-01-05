@@ -24,7 +24,7 @@ class LoginSession:
         session.pop("name", None)
 
     @staticmethod
-    def login(session,username):
+    def login(session, username):
         """
         arguments:
 
@@ -46,7 +46,7 @@ class LoginSession:
 
         resets the _uid in cases that the session becomes invalid
         """
-        session["_uid"] = "{}|{}".format(_create_identifier(),uuid4())
+        session["_uid"] = "{}|{}".format(_create_identifier(), uuid4())
 
 
 def toUnixTime(datetimeValue):
@@ -61,7 +61,7 @@ def toUnixTime(datetimeValue):
     """
     if isinstance(datetimeValue, datetime):
         # If argument is a datetime object, convert to timestamp
-        return (datetimeValue - datetime(1970,1,1)).total_seconds()
+        return (datetimeValue - datetime(1970, 1, 1)).total_seconds()
     return datetimeValue
 
 class UserSession(dict, SessionMixin):
@@ -138,7 +138,7 @@ class UserSessionInterface(SessionInterface):
                 expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
         if "_uid" not in session:
             LoginSession.resetID(session)
-        SessionTable.newSession(session["sid"],session,expiration)
+        SessionTable.newSession(session["sid"], session, expiration)
         UserSessionInterface.CountLimit += 1
         if UserSessionInterface.CountLimit % UserSessionInterface.SESSSION_CLEAR_COUNT_LIMIT == 0:
             SessionTable.clearSessions()
@@ -202,7 +202,7 @@ class SessionTable:
         return GlobalDB.db().session.query(SessionMap).filter_by(uid=uid).one().data
 
     @staticmethod
-    def newSession(uid,data,expiration):
+    def newSession(uid, data, expiration):
         """ Updates current session or creates a new one if no session exists
         arguments:
 

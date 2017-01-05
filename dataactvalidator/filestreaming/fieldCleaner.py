@@ -14,8 +14,8 @@ class FieldCleaner(StringCleaner):
         # Open CSV file for reading each record as a dictionary
         with open(fileIn, "rU") as csvfile:
             reader = csv.DictReader(csvfile)
-            fieldnames = ["fieldname","fieldname_short","required","data_type","field_length","rule_labels"]
-            writer = csv.DictWriter(open(fileOut,"w"),fieldnames=fieldnames,lineterminator='\n')
+            fieldnames = ["fieldname", "fieldname_short", "required", "data_type", "field_length", "rule_labels"]
+            writer = csv.DictWriter(open(fileOut, "w"), fieldnames=fieldnames, lineterminator='\n')
             writer.writeheader()
             for record in reader:
                 # Pass record into cleanRecord to sanitize
@@ -50,19 +50,19 @@ class FieldCleaner(StringCleaner):
         # Convert to lowercase and remove whitespace on ends
         name = FieldCleaner.cleanString(name)
         # Remove braces and parantheses
-        name = name.replace("{","").replace("}","").replace("(","").replace(")","")
+        name = name.replace("{", "").replace("}", "").replace("(", "").replace(")", "")
         # Replace problematic characters with underscores
-        name = name.replace(" - ","_").replace("-","_")
-        name = name.replace(",","_")
-        name = name.replace("/","_")
+        name = name.replace(" - ", "_").replace("-", "_")
+        name = name.replace(",", "_")
+        name = name.replace("/", "_")
         # Remove duplicate underscores
-        name = name.replace("__","_")
+        name = name.replace("__", "_")
         return name
 
     @staticmethod
     def cleanRequired(required):
         """ Convert 'required' and '(required)' to True, "optional" and "required if relevant" if False, otherwise raises an exception """
-        required = FieldCleaner.cleanString(required,False)
+        required = FieldCleaner.cleanString(required, False)
         if required[0:3].lower() == "asp":
             # Remove ASP prefix
             required = required[5:]
@@ -76,7 +76,7 @@ class FieldCleaner(StringCleaner):
     @staticmethod
     def cleanType(clean_type):
         """ Interprets all inputs as int, str, or bool.  For unexpected inputs, raises an exception. """
-        clean_type = FieldCleaner.cleanString(clean_type,False)
+        clean_type = FieldCleaner.cleanString(clean_type, False)
         if clean_type == "integer" or clean_type == "int":
             return "int"
         elif clean_type == "numeric" or clean_type == "float":
@@ -97,7 +97,7 @@ class FieldCleaner(StringCleaner):
     @staticmethod
     def cleanLength(length):
         """ Checks that input is a positive integer, otherwise raises an exception. """
-        length = FieldCleaner.cleanString(length,False)
+        length = FieldCleaner.cleanString(length, False)
         if length == "":
             # Empty length is fine, this means there is no length requirement
             return ""
@@ -131,14 +131,14 @@ class FieldCleaner(StringCleaner):
                 # Remove extra whitespace
                 value = value.strip()
                 if field_type in ["INT", "DECIMAL", "LONG"]:
-                    tempValue = value.replace(",","")
+                    tempValue = value.replace(",", "")
                     if FieldCleaner.isNumeric(tempValue):
                         value = tempValue
                 if value == "":
                     # Replace empty strings with null
                     value = None
 
-                row[key] = cls.padField(field,value)
+                row[key] = cls.padField(field, value)
         return row
 
     @staticmethod
@@ -161,8 +161,8 @@ class FieldCleaner(StringCleaner):
 
 if __name__ == '__main__':
     configure_logging()
-    FieldCleaner.cleanFile("../config/awardProcurementFieldsRaw.csv","../config/awardProcurementFields.csv")
-    FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")
-    FieldCleaner.cleanFile("../config/awardFinancialFieldsRaw.csv","../config/awardFinancialFields.csv")
-    FieldCleaner.cleanFile("../config/programActivityFieldsRaw.csv","../config/programActivityFields.csv")
-    FieldCleaner.cleanFile("../config/awardFieldsRaw.csv","../config/awardFields.csv")
+    FieldCleaner.cleanFile("../config/awardProcurementFieldsRaw.csv", "../config/awardProcurementFields.csv")
+    FieldCleaner.cleanFile("../config/appropFieldsRaw.csv", "../config/appropFields.csv")
+    FieldCleaner.cleanFile("../config/awardFinancialFieldsRaw.csv", "../config/awardFinancialFields.csv")
+    FieldCleaner.cleanFile("../config/programActivityFieldsRaw.csv", "../config/programActivityFields.csv")
+    FieldCleaner.cleanFile("../config/awardFieldsRaw.csv", "../config/awardFields.csv")
