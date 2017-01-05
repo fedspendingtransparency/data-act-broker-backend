@@ -12,7 +12,7 @@ class LoginSession:
     This class is a wrapper for the session object
     """
     @staticmethod
-    def logout(session) :
+    def logout(session):
         """
         arguments:
 
@@ -24,7 +24,7 @@ class LoginSession:
         session.pop("name", None)
 
     @staticmethod
-    def login(session,username) :
+    def login(session,username):
         """
         arguments:
 
@@ -49,7 +49,7 @@ class LoginSession:
         session["_uid"] = "{}|{}".format(_create_identifier(),uuid4())
 
 
-def toUnixTime(datetimeValue) :
+def toUnixTime(datetimeValue):
     """
     arguments:
 
@@ -147,7 +147,7 @@ class UserSessionInterface(SessionInterface):
         # Return session ID as header x-session-id
         response.headers["x-session-id"] = session["sid"]
 
-class SessionTable :
+class SessionTable:
     """
     Provides helper functions for session management
 
@@ -159,7 +159,7 @@ class SessionTable :
     TIME_OUT_LIMIT = 604800
 
     @staticmethod
-    def clearSessions() :
+    def clearSessions():
         """
         Removes old sessions that are expired
         """
@@ -169,7 +169,7 @@ class SessionTable :
         sess.commit()
 
     @staticmethod
-    def doesSessionExist(uid) :
+    def doesSessionExist(uid):
         """
         arguments:
 
@@ -184,7 +184,7 @@ class SessionTable :
             return False
 
     @staticmethod
-    def getTimeout(uid) :
+    def getTimeout(uid):
         """
         arguments:
 
@@ -194,7 +194,7 @@ class SessionTable :
         return GlobalDB.db().session.query(SessionMap).filter_by(uid=uid).one().expiration
 
     @staticmethod
-    def getData(uid) :
+    def getData(uid):
         """
         uid -- (String) the uid
         return (Session) the session data
@@ -202,7 +202,7 @@ class SessionTable :
         return GlobalDB.db().session.query(SessionMap).filter_by(uid=uid).one().data
 
     @staticmethod
-    def newSession(uid,data,expiration) :
+    def newSession(uid,data,expiration):
         """ Updates current session or creates a new one if no session exists
         arguments:
 

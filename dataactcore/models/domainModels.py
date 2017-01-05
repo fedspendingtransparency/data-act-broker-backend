@@ -24,7 +24,7 @@ def concatTas(context):
     return tas
 
 
-class TASLookup(Base) :
+class TASLookup(Base):
     __tablename__ = "tas_lookup"
     tas_id = Column(Integer, primary_key=True)
     account_num = Column(Integer, index=True, nullable=False)

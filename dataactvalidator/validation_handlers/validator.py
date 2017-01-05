@@ -79,7 +79,7 @@ class Validator(object):
 
         total_fields = 0
         blank_fields = 0
-        for field_name in record :
+        for field_name in record:
             if field_name in cls.META_FIELDS:
                 # Skip fields that are not user submitted
                 continue
@@ -124,7 +124,7 @@ class Validator(object):
         return (not record_failed), failed_rules, (not record_type_failure)
 
     @staticmethod
-    def checkType(data,datatype) :
+    def checkType(data,datatype):
         """ Determine whether data is of the correct type
 
         Args:

@@ -8,7 +8,7 @@ class CsvS3Writer(CsvAbstractWriter):
     Writes a CSV to an S3 Bucket in a steaming manner
     use with the "with" python construct
     """
-    def __init__(self,region,bucket,filename,header) :
+    def __init__(self,region,bucket,filename,header):
         """
 
         args
@@ -32,7 +32,7 @@ class CsvS3Writer(CsvAbstractWriter):
         """
         self.stream.write(data)
 
-    def __exit__(self, error_type, value, traceback) :
+    def __exit__(self, error_type, value, traceback):
         """
 
         args

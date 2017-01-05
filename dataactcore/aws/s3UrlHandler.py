@@ -34,7 +34,7 @@ class s3UrlHandler:
         s3UrlHandler.S3_ROLE = CONFIG_BROKER['aws_role']
         s3UrlHandler.REGION = CONFIG_BROKER['aws_region']
 
-    def _signUrl(self,path,fileName,bucketRoute,method="PUT") :
+    def _signUrl(self,path,fileName,bucketRoute,method="PUT"):
         """
         Creates the object for signing URLS
 
@@ -70,7 +70,7 @@ class s3UrlHandler:
         return self._signUrl(path,self.s3FileName, bucketRoute, method)
 
     @staticmethod
-    def getTimestampedFilename(filename) :
+    def getTimestampedFilename(filename):
         """
         Gets a Timestamped file name to prevent conflicts on S3 Uploading
         """

@@ -20,7 +20,7 @@ class CsvLocalReader(CsvAbstractReader):
         self.is_local = True
         try:
             self.file = open(filename,"r")
-        except :
+        except:
             raise ValueError("".join(["Filename provided not found : ", str(self.filename)]))
         super(CsvLocalReader,self).open_file(
             region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict)

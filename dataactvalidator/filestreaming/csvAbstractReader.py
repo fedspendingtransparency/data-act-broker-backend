@@ -112,7 +112,7 @@ class CsvAbstractReader(object):
 
         #Check that all required fields exists
         missing_headers = []
-        for schema in csv_schema :
+        for schema in csv_schema:
             if possible_fields[FieldCleaner.cleanString(schema.name_short)] == 0:
                 # return long colname for error reporting
                 missing_headers.append(schema.name)
@@ -238,7 +238,7 @@ class CsvAbstractReader(object):
             self.extra_line = True
         return self.unprocessed
 
-    def _split_lines(self, packet) :
+    def _split_lines(self, packet):
         """
         arguments :
         packet unprocessed string of CSV data
@@ -262,7 +262,7 @@ class CsvAbstractReader(object):
                     current = "".join([current,char])
                     if char == '"':
                         escape_mode = True
-            else :
+            else:
                 if char == '"':
                     escape_mode = False
                 current = "".join([current,char])

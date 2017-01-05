@@ -425,7 +425,7 @@ class FileTests(BaseTestAPI):
         self.assertEqual(len(response.json), 14)
         self.assertIn("cross_warning_appropriations-program_activity", response.json)
 
-    def check_metrics(self, submission_id, exists, type_file) :
+    def check_metrics(self, submission_id, exists, type_file):
         """Get error metrics for specified submission."""
         postJson = {"submission_id": submission_id}
         response = self.app.post_json("/v1/error_metrics/", postJson, headers={"x-session-id":self.session_id})

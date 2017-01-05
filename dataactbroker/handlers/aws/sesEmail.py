@@ -31,7 +31,7 @@ class sesEmail(object):
             self.subject = template.subject
             self.content = template.content
 
-            for key in parameters :
+            for key in parameters:
                 if parameters[key] is not None:
                     self.content = self.content.replace(key,parameters[key])
                 else:

@@ -204,7 +204,7 @@ class FileHandler:
                 sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            for file_type in FileHandler.FILE_TYPES :
+            for file_type in FileHandler.FILE_TYPES:
                 # if filetype not included in request, and this is an update to an existing submission, skip it
                 if not request_params.get(file_type):
                     if existing_submission:
@@ -259,8 +259,8 @@ class FileHandler:
             if create_credentials and not self.isLocal:
                 self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
                 response_dict["credentials"] = self.s3manager.getTemporaryCredentials(g.user.user_id)
-            else :
-                response_dict["credentials"] ={"AccessKeyId" : "local","SecretAccessKey" :"local","SessionToken":"local" ,"Expiration" :"local"}
+            else:
+                response_dict["credentials"] ={"AccessKeyId": "local", "SecretAccessKey": "local", "SessionToken": "local", "Expiration": "local"}
 
             response_dict["submission_id"] = file_job_dict["submission_id"]
             if self.isLocal:
@@ -268,7 +268,7 @@ class FileHandler:
             else:
                 response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
             return JsonResponse.create(StatusCode.OK,response_dict)
-        except (ValueError , TypeError, NotImplementedError) as e:
+        except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
         except ResponseException as e:
             # call error route directly, status code depends on exception
@@ -429,7 +429,7 @@ class FileHandler:
                 else:
                     raise ResponseException("Failure to read file",
                                             StatusCode.CLIENT_ERROR)
-            else :
+            else:
                 raise ResponseException("Route Only Valid For Local Installs",
                                         StatusCode.CLIENT_ERROR)
         except (ValueError, TypeError) as e:
@@ -1135,7 +1135,7 @@ def get_error_metrics(submission):
     return_dict = {}
     try:
         jobs = sess.query(Job).filter_by(submission_id=submission.submission_id)
-        for job in jobs :
+        for job in jobs:
             if job.job_type.name == 'csv_record_validation':
                 file_type = job.file_type.name
                 data_list = getErrorMetricsByJobId(job.job_id)

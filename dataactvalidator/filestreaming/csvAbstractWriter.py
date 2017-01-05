@@ -10,7 +10,7 @@ class CsvAbstractWriter(object):
     BUFFER_SIZE = (5 * 1024 ** 2)
     BATCH_SIZE = 100
 
-    def __init__(self,filename,header) :
+    def __init__(self,filename,header):
         """
 
         args
@@ -22,7 +22,7 @@ class CsvAbstractWriter(object):
         self.rows = []
         self.write(header)
 
-    def write(self,dataList) :
+    def write(self,dataList):
         """
 
         args
@@ -57,10 +57,10 @@ class CsvAbstractWriter(object):
         """
         raise NotImplementedError("Do not instantiate csvAbstractWriter directly.")
 
-    def __enter__(self) :
+    def __enter__(self):
         return self
 
-    def __exit__(self, error_type, value, traceback) :
+    def __exit__(self, error_type, value, traceback):
         """
 
         args

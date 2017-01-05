@@ -10,7 +10,7 @@ from dataactcore.utils.responseException import ResponseException
 logger = logging.getLogger(__name__)
 
 
-class JsonResponse :
+class JsonResponse:
     """ Used to create an http response object containing JSON """
     debugMode = True
 

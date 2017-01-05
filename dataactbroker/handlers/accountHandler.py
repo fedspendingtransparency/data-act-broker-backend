@@ -75,7 +75,7 @@ class AccountHandler:
                     # We have a valid login
 
                     return self.create_session_and_response(session, user)
-                else :
+                else:
                     raise ValueError("Invalid username and/or password")
             except ValueError as ve:
                 LoginSession.logout(session)

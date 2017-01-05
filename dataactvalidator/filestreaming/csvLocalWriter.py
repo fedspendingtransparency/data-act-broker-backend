@@ -7,7 +7,7 @@ class CsvLocalWriter(CsvAbstractWriter):
     use with the "with" python construct
     """
 
-    def __init__(self,filename,header) :
+    def __init__(self,filename,header):
         """
 
         args
@@ -30,7 +30,7 @@ class CsvLocalWriter(CsvAbstractWriter):
         """
         self.stream.write(data)
 
-    def __exit__(self, error_type, value, traceback) :
+    def __exit__(self, error_type, value, traceback):
         """
 
         args
