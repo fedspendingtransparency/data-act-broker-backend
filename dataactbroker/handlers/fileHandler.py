@@ -64,15 +64,15 @@ class FileHandler:
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
-    def __init__(self, request, isLocal=False, serverPath=""):
+    def __init__(self, route_request, isLocal=False, serverPath=""):
         """ Create the File Handler
 
         Arguments:
-            request - HTTP request object for this route
+            route_request - HTTP request object for this route
             isLocal - True if this is a local installation that will not use AWS or Smartronix
             serverPath - If isLocal is True, this is used as the path to local files
         """
-        self.request = request
+        self.request = route_request
         self.isLocal = isLocal
         self.serverPath = serverPath
         self.s3manager = s3UrlHandler()
@@ -417,9 +417,9 @@ class FileHandler:
     def uploadFile(self):
         """ Saves a file and returns the saved path.  Should only be used for local installs. """
         try:
-            if(self.isLocal):
+            if self.isLocal:
                 uploadedFile = request.files['file']
-                if(uploadedFile):
+                if uploadedFile:
                     seconds = int((datetime.utcnow()-datetime(1970,1,1)).total_seconds())
                     filename = "".join([str(seconds),"_", secure_filename(uploadedFile.filename)])
                     path = os.path.join(self.serverPath, filename)
@@ -806,10 +806,11 @@ class FileHandler:
             ).one()
         else:
             validationJob = None
-        responseDict = {}
-        responseDict["status"] = self.mapGenerateStatus(uploadJob, validationJob)
-        responseDict["file_type"] = file_type
-        responseDict["message"] = uploadJob.error_message or ""
+        responseDict = {
+            'status': self.mapGenerateStatus(uploadJob, validationJob),
+            'file_type': file_type,
+            'message': uploadJob.error_message or ""
+        }
         if uploadJob.filename is None:
             responseDict["url"] = "#"
         elif CONFIG_BROKER["use_aws"]:
@@ -924,7 +925,7 @@ class FileHandler:
             return JsonResponse.create(StatusCode.OK,{"message":"File loaded successfully"})
         except ResponseException as e:
             return JsonResponse.error(e, e.status)
-        except NoResultFound as e:
+        except NoResultFound:
             # Did not find file generation task
             return JsonResponse.error(ResponseException("Generation task key not found", StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
 
