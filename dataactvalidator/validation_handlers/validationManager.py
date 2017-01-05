@@ -17,8 +17,7 @@ from dataactcore.models.jobModels import Job
 from dataactcore.models.stagingModels import FlexField
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import (
-    get_report_path, get_cross_file_pairs, report_file_name)
+from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
@@ -262,8 +261,10 @@ class ValidationManager:
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']
 
-        errorFileName = self.getFileName(get_report_path(job, 'error'))
-        warningFileName = self.getFileName(get_report_path(job, 'warning'))
+        errorFileName = self.getFileName(report_file_name(
+            job.submission_id, False, job.file_type.name)) 
+        warningFileName = self.getFileName(report_file_name(
+            job.submission_id, True, job.file_type.name))
 
         # Create File Status object
         createFileIfNeeded(job_id, fileName)

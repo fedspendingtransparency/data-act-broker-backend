@@ -4,15 +4,6 @@ from operator import attrgetter
 from dataactcore.models.lookups import FILE_TYPE
 
 
-def get_report_path(job, report_type):
-    """
-    Return the filename for the error report.
-    Does not include the folder to avoid conflicting with the S3 getSignedUrl method.
-    """
-    return report_file_name(job.submission_id, report_type == 'warning',
-                            job.file_type.name)
-
-
 def report_file_name(submission_id, warning, file_type, cross_type=None):
     """Format the csv file name for the requested file.
     @todo: unify these file names"""

@@ -30,8 +30,7 @@ from dataactcore.models.lookups import (
     JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.report import (
-    get_report_path, get_cross_file_pairs, report_file_name)
+from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -91,11 +90,11 @@ class FileHandler:
             jobs = sess.query(Job).filter_by(submission_id=submission_id)
             for job in jobs:
                 if job.job_type.name == 'csv_record_validation':
+                    report_name = report_file_name(
+                        job.submission_id, is_warning, job.file_type.name)
                     if is_warning:
-                        report_name = get_report_path(job, 'warning')
                         key = 'job_{}_warning_url'.format(job.job_id)
                     else:
-                        report_name = get_report_path(job, 'error')
                         key = 'job_{}_error_url'.format(job.job_id)
                     if not self.isLocal:
                         response_dict[key] = self.s3manager.getSignedUrl("errors", report_name, method="GET")
