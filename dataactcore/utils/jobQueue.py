@@ -113,7 +113,7 @@ def generate_e_file(task, submission_id, job_id, timestamped_name,
 
         rows = []
         for i in range(0, len(dunsList), 100):
-            rows.extend(fileE.retrieveRows(dunsList[i:i+100]))
+            rows.extend(fileE.retrieveRows(dunsList[i:i + 100]))
         write_csv(timestamped_name, upload_file_name, is_local,
                   fileE.Row._fields, rows)
 

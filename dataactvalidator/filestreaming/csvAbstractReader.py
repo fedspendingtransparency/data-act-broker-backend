@@ -36,7 +36,7 @@ class CsvAbstractReader(object):
         self.header_dictionary = {}
         self.packet_counter = 0
         current = 0
-        self.is_finished= False
+        self.is_finished = False
         self.column_count = 0
         line = self._get_line()
         # make sure we have not finished reading the file
@@ -216,14 +216,14 @@ class CsvAbstractReader(object):
             success,packet = self._get_next_packet()
             if not success:
                 break
-            self.packet_counter +=1
+            self.packet_counter += 1
 
             #Get the current lines
             current_bytes = self.unprocessed + packet
             self.lines = self._split_lines(current_bytes)
 
             #edge case if the packet was filled with newlines only try again
-            if len(self.lines) ==0:
+            if len(self.lines) == 0:
                 continue
 
             #last line still needs processing save and reuse
@@ -250,12 +250,12 @@ class CsvAbstractReader(object):
 
         for index,char in enumerate(packet):
             if not escape_mode:
-                if char =='\r' or char =='\n' or char =='\r\n':
-                    if len(current) >0:
+                if char == '\r' or char == '\n' or char == '\r\n':
+                    if len(current) > 0:
                         lines_to_return.append(current)
                         #check the last char if its a new line add extra line
                         # as its at the end of the packet
-                    if index == len(packet)-1:
+                    if index == len(packet) - 1:
                         lines_to_return.append("")
                     current = ""
                 else:
@@ -266,6 +266,6 @@ class CsvAbstractReader(object):
                 if char == '"':
                     escape_mode = False
                 current = "".join([current,char])
-        if len(current)>0:
+        if len(current) > 0:
             lines_to_return.append(current)
         return lines_to_return

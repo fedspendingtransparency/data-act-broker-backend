@@ -108,6 +108,6 @@ if __name__ == '__main__':
     configure_logging()
     runApp()
 
-elif __name__[0:5]=="uwsgi":
+elif __name__[0:5] == "uwsgi":
     configure_logging()
     app = createApp()

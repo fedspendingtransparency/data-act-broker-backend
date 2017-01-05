@@ -376,7 +376,7 @@ def create_jobs(upload_files, submission, existing_submission=False):
     # to ensure that jobs dependent on the awards jobs being present
     # are processed last.
     jobs_required = []
-    upload_dict= {}
+    upload_dict = {}
     sorted_uploads = sorted(upload_files, key=attrgetter('file_letter'))
 
     for upload_file in sorted_uploads:

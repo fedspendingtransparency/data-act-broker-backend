@@ -472,10 +472,10 @@ class ValidationManager:
             first_file = c[0]
             second_file = c[1]
             comboRules = crossFileRules.filter(or_(and_(
-                RuleSql.file_id==first_file.id,
-                RuleSql.target_file_id==second_file.id), and_(
-                RuleSql.file_id==second_file.id,
-                RuleSql.target_file_id==first_file.id)))
+                RuleSql.file_id == first_file.id,
+                RuleSql.target_file_id == second_file.id), and_(
+                RuleSql.file_id == second_file.id,
+                RuleSql.target_file_id == first_file.id)))
             # send comboRules to validator.crossValidate sql
             failures = Validator.crossValidateSql(comboRules.all(), submission_id, self.short_to_long_dict)
             # get error file name

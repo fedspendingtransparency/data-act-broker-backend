@@ -44,11 +44,11 @@ class SQLLoader:
                 for field in rawFieldNames:
                     fieldNames.append(FieldCleaner.cleanString(field))
 
-                unknownFields = set(fieldNames)-set(cls.headers)
+                unknownFields = set(fieldNames) - set(cls.headers)
                 if len(unknownFields) != 0:
                     raise KeyError("".join(["Found unexpected fields: ", str(list(unknownFields))]))
 
-                missingFields = set(cls.headers)-set(fieldNames)
+                missingFields = set(cls.headers) - set(fieldNames)
                 if len(missingFields) != 0:
                     raise ValueError("".join(["Missing required fields: ", str(list(missingFields))]))
 

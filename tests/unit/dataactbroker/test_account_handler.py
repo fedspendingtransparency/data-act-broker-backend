@@ -35,7 +35,7 @@ def test_max_login_success(monkeypatch):
     mock_dict.return_value.safeDictionary.side_effect = {'ticket': '', 'service': ''}
     monkeypatch.setattr(accountHandler, 'RequestDictionary', mock_dict)
 
-    max_dict= {'cas:serviceResponse': {}}
+    max_dict = {'cas:serviceResponse': {}}
     monkeypatch.setattr(accountHandler, 'get_max_dict', Mock(return_value=max_dict))
     config = {'parent_group': 'parent-group'}
     monkeypatch.setattr(accountHandler, 'CONFIG_BROKER', config)
@@ -69,7 +69,7 @@ def test_max_login_failure(monkeypatch):
     mock_dict.return_value.safeDictionary.side_effect = {'ticket': '', 'service': ''}
     monkeypatch.setattr(accountHandler, 'RequestDictionary', mock_dict)
 
-    max_dict= {'cas:serviceResponse': {}}
+    max_dict = {'cas:serviceResponse': {}}
     monkeypatch.setattr(accountHandler, 'get_max_dict', Mock(return_value=max_dict))
     json_response = ah.max_login(Mock())
     error_message = "You have failed to login successfully with MAX"
@@ -117,7 +117,7 @@ def test_set_max_perms(database, monkeypatch):
 
 @pytest.mark.usefixtures("user_constants")
 def test_create_session_and_response(database, monkeypatch):
-    cgacs = [CGACFactory(cgac_code=str(i)*3, agency_name=str(i))
+    cgacs = [CGACFactory(cgac_code=str(i) * 3, agency_name=str(i))
              for i in range(3)]
     user = UserFactory(name="my name", title="my title", affiliations=[
         UserAffiliation(cgac=cgacs[1],

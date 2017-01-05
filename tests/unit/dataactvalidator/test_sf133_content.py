@@ -34,7 +34,7 @@ def test_sf133_files(database):
             validate_two_lines = ['2190', '2490']
             validation_sum_lines = ['1910', '2500']
 
-            data = data[(data.line.isin(validate_one_lines+validate_two_lines+validation_sum_lines) & (data.amount!=0))]
+            data = data[(data.line.isin(validate_one_lines + validate_two_lines + validation_sum_lines) & (data.amount != 0))]
 
             # sort data by unique TAS
             data.sort_values(by=['tas'], inplace=True)
@@ -48,18 +48,18 @@ def test_sf133_files(database):
                 for index, row in tas.iterrows():
                     if row.line in validate_one_lines:
                         sum_one += row.amount
-                    elif row.line=='1910':
+                    elif row.line == '1910':
                         validate_one = float("{0:.2f}".format(row.amount))
                     elif row.line in validate_two_lines:
                         sum_two += row.amount
-                    elif row.line=='2500':
+                    elif row.line == '2500':
                         validate_two = float("{0:.2f}".format(row.amount))
                 sum_one = float("{0:.2f}".format(sum_one))
                 sum_two = float("{0:.2f}".format(sum_two))
 
-                validation_one = sum_one==validate_one
-                validation_two = sum_two==validate_two
-                validation_three = validate_one==validate_two
+                validation_one = sum_one == validate_one
+                validation_two = sum_two == validate_two
+                validation_three = validate_one == validate_two
 
                 current_tas = tas.iloc[0]
                 join_array = [
@@ -69,22 +69,22 @@ def test_sf133_files(database):
                     current_tas['main_account_code'], current_tas['sub_account_code']
                 ]
 
-                if not (validation_one and validation_two) and (not current_tas.empty and not current_tas['availability_type_code']=='X' and int(current_tas['fiscal_year'])>int(current_tas['ending_period_of_availabil'])):
+                if not (validation_one and validation_two) and (not current_tas.empty and not current_tas['availability_type_code'] == 'X' and int(current_tas['fiscal_year']) > int(current_tas['ending_period_of_availabil'])):
                     # line 1910 != line 2500
                     if not validation_three:
-                        failed_validations.append(','.join(join_array+[
+                        failed_validations.append(','.join(join_array + [
                             '1900!=2500', "{0:.2f}".format(validate_one), "{0:.2f}".format(validate_two)
                         ]))
                 else:
                     # line 1910 != sum of validation_one_lines
                     if not validation_one:
-                        failed_validations.append(','.join(join_array+[
+                        failed_validations.append(','.join(join_array + [
                             'sum!=1910', "{0:.2f}".format(sum_one), "{0:.2f}".format(validate_one)
                         ]))
                     # line 2500 != sum of validation_two_lines
                     if not validation_two:
-                        failed_validations.append(','.join(join_array+[
+                        failed_validations.append(','.join(join_array + [
                             'sum!=2500', "{0:.2f}".format(sum_two), "{0:.2f}".format(validate_two)
                         ]))
 
-    assert len(failed_validations)==1, "\n".join(str(failure) for failure in failed_validations)
+    assert len(failed_validations) == 1, "\n".join(str(failure) for failure in failed_validations)

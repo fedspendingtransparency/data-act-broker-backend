@@ -18,7 +18,7 @@ def test_success(database):
 
     value_one = Decimal('100.00')
     value_two = Decimal('200.00')
-    ocpa = ObjectClassProgramActivityFactory(obligations_undelivered_or_cpe = value_one+value_two,
+    ocpa = ObjectClassProgramActivityFactory(obligations_undelivered_or_cpe = value_one + value_two,
                                              ussgl480100_undelivered_or_cpe = value_one,
                                              ussgl488100_upward_adjustm_cpe = value_two)
     ocpa_null = ObjectClassProgramActivityFactory(obligations_undelivered_or_cpe = value_one,

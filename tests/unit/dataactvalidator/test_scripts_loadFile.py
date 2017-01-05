@@ -27,7 +27,7 @@ def test_delete_missing_cgacs(database):
 
 def test_update_cgacs(database):
     sess = database.session
-    cgacs = [CGACFactory(cgac_code=str(i), agency_name=str(i)*5)
+    cgacs = [CGACFactory(cgac_code=str(i), agency_name=str(i) * 5)
              for i in range(2)]
     sess.add_all(cgacs)
     sess.commit()

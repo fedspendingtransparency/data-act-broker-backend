@@ -86,7 +86,7 @@ class FileHandler:
             self.s3manager = s3UrlHandler()
             safe_dictionary = RequestDictionary(self.request)
             submission_id = safe_dictionary.getValue("submission_id")
-            response_dict ={}
+            response_dict = {}
             jobs = sess.query(Job).filter_by(submission_id=submission_id)
             for job in jobs:
                 if job.job_type.name == 'csv_record_validation':
@@ -147,7 +147,7 @@ class FileHandler:
         """
         sess = GlobalDB.db().session
         try:
-            response_dict= {}
+            response_dict = {}
             upload_files = []
             request_params = RequestDictionary.derive(self.request)
 
@@ -221,7 +221,7 @@ class FileHandler:
                         )
                     else:
                         upload_name = filename
-                    response_dict[file_type+"_key"] = upload_name
+                    response_dict[file_type + "_key"] = upload_name
                     upload_files.append(FileHandler.UploadFile(
                         file_type=file_type,
                         upload_name=upload_name,
@@ -255,12 +255,12 @@ class FileHandler:
             file_job_dict = create_jobs(upload_files, submission, existing_submission)
             for file_type in file_job_dict.keys():
                 if "submission_id" not in file_type:
-                    response_dict[file_type+"_id"] = file_job_dict[file_type]
+                    response_dict[file_type + "_id"] = file_job_dict[file_type]
             if create_credentials and not self.isLocal:
                 self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
                 response_dict["credentials"] = self.s3manager.getTemporaryCredentials(g.user.user_id)
             else:
-                response_dict["credentials"] ={"AccessKeyId": "local", "SecretAccessKey": "local", "SessionToken": "local", "Expiration": "local"}
+                response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local", "SessionToken": "local", "Expiration": "local"}
 
             response_dict["submission_id"] = file_job_dict["submission_id"]
             if self.isLocal:
@@ -420,7 +420,7 @@ class FileHandler:
             if self.isLocal:
                 uploadedFile = request.files['file']
                 if uploadedFile:
-                    seconds = int((datetime.utcnow()-datetime(1970,1,1)).total_seconds())
+                    seconds = int((datetime.utcnow() - datetime(1970,1,1)).total_seconds())
                     filename = "".join([str(seconds),"_", secure_filename(uploadedFile.filename)])
                     path = os.path.join(self.serverPath, filename)
                     uploadedFile.save(path)
@@ -613,7 +613,7 @@ class FileHandler:
                 job = sess.query(Job).filter_by(job_id = job_id).one()
                 file_type = job.file_type.name
                 if file_type == "award":
-                    source= "ASP"
+                    source = "ASP"
                 elif file_type == "award_procurement":
                     source = "FPDS"
                 else:
@@ -1053,11 +1053,11 @@ def job_to_dict(job):
             file_results.headers_duplicated)
         job_info["error_type"] = getErrorType(job.job_id)
         job_info["error_data"] = getErrorMetricsByJobId(
-            job.job_id, job.job_type_name=='validation',
+            job.job_id, job.job_type_name == 'validation',
             severity_id=RULE_SEVERITY_DICT['fatal']
         )
         job_info["warning_data"] = getErrorMetricsByJobId(
-            job.job_id, job.job_type_name=='validation',
+            job.job_id, job.job_type_name == 'validation',
             severity_id=RULE_SEVERITY_DICT['warning']
         )
     return job_info
@@ -1155,7 +1155,7 @@ def list_submissions(page, limit, certified):
     certification status """
     sess = GlobalDB.db().session
 
-    offset = limit*(page-1)
+    offset = limit * (page - 1)
 
     cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
     query = sess.query(Submission)

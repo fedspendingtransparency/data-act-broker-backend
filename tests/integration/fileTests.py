@@ -119,7 +119,7 @@ class FileTests(BaseTestAPI):
         self.assertTrue(len(json["bucket_name"]))
 
         fileResults = self.uploadFileByURL(
-            "/"+json["appropriations_key"], "test1.csv")
+            "/" + json["appropriations_key"], "test1.csv")
         self.assertGreater(fileResults['bytesWritten'], 0)
 
         # Test that job ids are returned

@@ -61,7 +61,7 @@ def toUnixTime(datetimeValue):
     """
     if isinstance(datetimeValue, datetime):
         # If argument is a datetime object, convert to timestamp
-        return (datetimeValue-datetime(1970,1,1)).total_seconds()
+        return (datetimeValue - datetime(1970,1,1)).total_seconds()
     return datetimeValue
 
 class UserSession(dict, SessionMixin):
@@ -97,7 +97,7 @@ class UserSessionInterface(SessionInterface):
         """
         sid = request.headers.get("x-session-id")
         if sid and SessionTable.doesSessionExist(sid):
-            if SessionTable.getTimeout(sid)> toUnixTime(datetime.utcnow()):
+            if SessionTable.getTimeout(sid) > toUnixTime(datetime.utcnow()):
                 session_dict = UserSession()
                 # Read data as json
                 data = loads(SessionTable.getData(sid))
