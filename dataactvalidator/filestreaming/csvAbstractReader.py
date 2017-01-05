@@ -1,5 +1,6 @@
 import csv
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.models.stagingModels import FlexField
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactvalidator.validation_handlers.validationError import ValidationError
@@ -80,34 +81,36 @@ class CsvAbstractReader(object):
         """
         Read the next record into a dict and return it
         Returns:
-            dictionary representing this record
+            pair of (dictionary of expected fields, list of FlexFields)
         """
         return_dict = {}
-        flex_dict = {}
+        flex_fields = []
         line = self._get_line()
 
-        for row in csv.reader([line], dialect='excel', delimiter=self.delimiter):
-            if len(row) != self.column_count:
-                raise ResponseException("Wrong number of fields in this row", StatusCode.CLIENT_ERROR, ValueError,
-                                        ValidationError.readError)
-            for current, cell in enumerate(row):
-                if current >= self.column_count:
-                    raise ResponseException("Record contains too many fields", StatusCode.CLIENT_ERROR, ValueError,
-                                            ValidationError.readError)
-                if cell == "":
-                    # Use None instead of empty strings for sqlalchemy
-                    cell = None
-                # self.expected_headers uses the short, machine-readable column names
-                if self.expected_headers[current] is None:
-                    if self.flex_headers[current] is not None:
-                        flex_dict["header"] = self.flex_headers[current]
-                        flex_dict["cell"] = cell
-                    else:
-                        # Skip this column as it is unknown or flex
-                        continue
-                else:
-                    return_dict[self.expected_headers[current]] = cell
-        return return_dict, flex_dict
+        row = next(
+            csv.reader([line], dialect='excel', delimiter=self.delimiter))
+        if len(row) != self.column_count:
+            raise ResponseException(
+                "Wrong number of fields in this row", StatusCode.CLIENT_ERROR,
+                ValueError, ValidationError.readError)
+        for idx, cell in enumerate(row):
+            if idx >= self.column_count:
+                raise ResponseException(
+                    "Record contains too many fields", StatusCode.CLIENT_ERROR,
+                    ValueError, ValidationError.readError)
+            # Use None instead of empty strings for sqlalchemy
+            if cell == "":
+                cell = None
+            # self.expected_headers uses the short, machine-readable column
+            # names
+            if (self.expected_headers[idx] is None and
+                    self.flex_headers[idx] is not None):
+                flex_fields.append(FlexField(
+                    header=self.flex_headers[idx], cell=cell))
+            # We skip headers which aren't expected and aren't flex
+            elif self.expected_headers[idx] is not None:
+                return_dict[self.expected_headers[idx]] = cell
+        return return_dict, flex_fields
 
     def close(self):
         """

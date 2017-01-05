@@ -17,7 +17,6 @@ from dataactcore.interfaces.function_bag import (
 )
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
-from dataactcore.models.stagingModels import FlexField
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
@@ -109,15 +108,18 @@ class ValidationManager:
         row_error_found = False
         job_id = job.job_id
         try:
-            (next_record, flex_cols) = reader.get_next_record()
-            record = FieldCleaner.cleanRow(next_record, self.long_to_short_dict, fields)
+            (next_record, flex_fields) = reader.get_next_record()
+            record = FieldCleaner.cleanRow(
+                next_record, self.long_to_short_dict, fields)
             record["row_number"] = row_number
-            if flex_cols:
-                flex_cols["row_number"] = row_number
+            for flex_field in flex_fields:
+                flex_field.submission_id = job.submission_id
+                flex_field.job_id = job.job_id
+                flex_field.row_number = row_number
 
             if reader.is_finished and len(record) < 2:
                 # This is the last line and is empty, don't record an error
-                return {}, True, True, True, False, {}  # Don't count this row
+                return {}, True, True, True, False, []  # Don't count this row
         except ResponseException:
             if reader.is_finished and reader.extra_line:
                 # Last line may be blank don't record an error,
@@ -125,13 +127,19 @@ class ValidationManager:
                 # Don't count last row if empty
                 reduce_row = True
             else:
-                writer.write(["Formatting Error", ValidationError.readErrorMsg, str(row_number), ""])
-                error_list.recordRowError(job_id, job.filename, "Formatting Error", ValidationError.readError,
-                                          row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
+                writer.write(
+                    ["Formatting Error", ValidationError.readErrorMsg,
+                     str(row_number), ""]
+                )
+                error_list.recordRowError(
+                    job_id, job.filename, "Formatting Error",
+                    ValidationError.readError, row_number,
+                    severity_id=RULE_SEVERITY_DICT['fatal']
+                )
                 row_error_found = True
 
-            return {}, reduce_row, True, False, row_error_found, {}
-        return record, reduce_row, False, False, row_error_found, flex_cols
+            return {}, reduce_row, True, False, row_error_found, []
+        return record, reduce_row, False, False, row_error_found, flex_fields
 
     def runValidation(self, job):
         """ Run validations for specified job
@@ -255,10 +263,7 @@ class ValidationManager:
                         skip_row = not insert_staging_model(
                             model_instance, job, writer, error_list)
                         if flex_cols:
-                            sess.add(FlexField(
-                                job_id=job_id, submission_id=submission_id,
-                                **flex_cols
-                            ))
+                            sess.add_all(flex_cols)
                             sess.commit()
 
                         if skip_row:
