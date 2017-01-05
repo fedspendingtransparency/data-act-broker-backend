@@ -31,8 +31,8 @@ from dataactcore.models.lookups import (
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import (
-    get_report_path, get_cross_report_name, get_cross_warning_report_name,
-    get_cross_file_pairs, report_file_name
+    get_report_path, get_cross_warning_report_name, get_cross_file_pairs,
+    report_file_name
 )
 from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
@@ -113,8 +113,8 @@ class FileHandler:
                     report_name = get_cross_warning_report_name(
                         submission_id, first_file.name, second_file.name)
                 else:
-                    report_name = get_cross_report_name(
-                        submission_id, first_file.name, second_file.name)
+                    report_name = report_file_name(
+                        submission_id, False, first_file.name, second_file.name)
                 if self.isLocal:
                     report_path = os.path.join(self.serverPath, report_name)
                 else:

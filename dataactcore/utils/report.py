@@ -13,11 +13,6 @@ def get_report_path(job, report_type):
                             job.file_type.name)
 
 
-def get_cross_report_name(submission_id, source_file, target_file):
-    """Return filename for a cross file error report."""
-    return report_file_name(submission_id, False, source_file, target_file)
-
-
 def get_cross_warning_report_name(submission_id, source_file, target_file):
     """Return filename for a cross file warning report."""
     return report_file_name(submission_id, True, source_file, target_file)
