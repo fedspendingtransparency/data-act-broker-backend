@@ -9,7 +9,7 @@ from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
-class SQLLoader():
+class SQLLoader:
 
     sql_rules_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "sqlrules")
     headers = ['rule_label', 'rule_description', 'rule_error_message', 'rule_cross_file_flag',

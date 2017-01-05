@@ -36,7 +36,7 @@ class CsvAbstractWriter(object):
                 data = ""
             strList.append(str(data))
         self.rows.append(strList)
-        if(len(self.rows) > self.BATCH_SIZE):
+        if len(self.rows) > self.BATCH_SIZE:
             self.finishBatch()
 
     def finishBatch(self):
@@ -60,11 +60,11 @@ class CsvAbstractWriter(object):
     def __enter__(self) :
         return self
 
-    def __exit__(self, type, value, traceback) :
+    def __exit__(self, error_type, value, traceback) :
         """
 
         args
-        type - the type of error
+        error_type - the type of error
         value - the value of the error
         traceback - the traceback of the error
 

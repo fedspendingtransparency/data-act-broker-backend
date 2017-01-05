@@ -66,39 +66,39 @@ class FieldCleaner(StringCleaner):
         if required[0:3].lower() == "asp":
             # Remove ASP prefix
             required = required[5:]
-        if(required == "required" or required == "(required)" or required == "true"):
+        if required == "required" or required == "(required)" or required == "true":
             return "true"
-        elif(required == "false" or required == "" or required == "optional" or required == "required if relevant" or required == "required if modification" or required == "conditional per validation rule" or required == "conditional per award type" or required == "conditionally required" or required == "derived"):
+        elif required == "false" or required == "" or required == "optional" or required == "required if relevant" or required == "required if modification" or required == "conditional per validation rule" or required == "conditional per award type" or required == "conditionally required" or required == "derived":
             return "false"
         else:
             raise ValueError("".join(["Unknown value for required: ", required]))
 
     @staticmethod
-    def cleanType(type):
+    def cleanType(clean_type):
         """ Interprets all inputs as int, str, or bool.  For unexpected inputs, raises an exception. """
-        type = FieldCleaner.cleanString(type,False)
-        if(type == "integer" or type == "int"):
+        clean_type = FieldCleaner.cleanString(clean_type,False)
+        if clean_type == "integer" or clean_type == "int":
             return "int"
-        elif(type == "numeric" or type == "float"):
+        elif clean_type == "numeric" or clean_type == "float":
             return "float"
-        elif(type == "alphanumeric" or type == "" or type == "str" or type == "string"):
+        elif clean_type == "alphanumeric" or clean_type == "" or clean_type == "str" or clean_type == "string":
             return "str"
-        elif(type == "alphanumeric (logically a boolean)"):
+        elif clean_type == "alphanumeric (logically a boolean)":
             # Some of these are intended to be booleans, but others use this value when they have multiple possible values,
             # so for now we have to treat them as strings
             return "str"
-        elif(type == "boolean" or type == "bool"):
+        elif clean_type == "boolean" or clean_type == "bool":
             return "bool"
-        elif(type == "long"):
+        elif clean_type == "long":
             return "long"
         else:
-            raise ValueError("".join(["Unknown type: ", type]))
+            raise ValueError("".join(["Unknown type: ", clean_type]))
 
     @staticmethod
     def cleanLength(length):
         """ Checks that input is a positive integer, otherwise raises an exception. """
         length = FieldCleaner.cleanString(length,False)
-        if(length == ""):
+        if length == "":
             # Empty length is fine, this means there is no length requirement
             return ""
         try:

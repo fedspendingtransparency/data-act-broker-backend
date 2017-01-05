@@ -24,7 +24,7 @@ def _zipcode_guard(model, field_prefix, match_usa):
         return zipcode
 
 
-class CopyValues():
+class CopyValues:
     """Copy a field value from one of our existing models"""
     # Order to check fields
     MODEL_TYPES = ('subcontract', 'subgrant', 'procurement', 'grant', 'award')
@@ -53,7 +53,7 @@ def copy_prime_field(field_name):
     return CopyValues(procurement=field_name, grant=field_name)
 
 
-class SubawardLogic():
+class SubawardLogic:
     """Perform custom logic relating to the subaward (i.e. subcontract or
     subgrant). Instantiated with two functions: one for subcontracts, one for
     subawards"""

@@ -10,7 +10,7 @@ def clean_col_names(field):
 
 class LoaderUtils:
     @classmethod
-    def padFunction(self, field, padTo, keepNull):
+    def padFunction(cls, field, padTo, keepNull):
         """Pads field to specified length."""
         if isnull(field) or not str(field).strip():
             if keepNull:

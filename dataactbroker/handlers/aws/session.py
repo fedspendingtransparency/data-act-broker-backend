@@ -140,7 +140,7 @@ class UserSessionInterface(SessionInterface):
             LoginSession.resetID(session)
         SessionTable.newSession(session["sid"],session,expiration)
         UserSessionInterface.CountLimit += 1
-        if UserSessionInterface.CountLimit % UserSessionInterface.SESSSION_CLEAR_COUNT_LIMIT == 0 :
+        if UserSessionInterface.CountLimit % UserSessionInterface.SESSSION_CLEAR_COUNT_LIMIT == 0:
             SessionTable.clearSessions()
             UserSessionInterface.CountLimit = 1
 

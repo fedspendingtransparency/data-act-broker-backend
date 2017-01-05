@@ -58,10 +58,10 @@ def load_sql_rules():
     SQLLoader.loadSql("sqlRules.csv")
 
 
-def load_domain_value_files(basePath):
+def load_domain_value_files(base_path):
     """Load domain values (e.g., CGAC codes, object class, SF-133)."""
     logger.info('Loading domain values')
-    loadDomainValues(basePath)
+    loadDomainValues(base_path)
 
 
 def load_sf133():

@@ -35,7 +35,7 @@ class ValidationError:
         if errorType is None:
             # If no error type is provided, this is an unknown error
             errorType = ValidationError.unknownError
-        if(errorType in ValidationError.errorDict):
+        if errorType in ValidationError.errorDict:
             return ValidationError.errorDict[errorType]
         else:
             # Not a valid error type
@@ -47,7 +47,7 @@ class ValidationError:
         if errorType is None:
             # If no error type is provided, this is an unknown error
             errorType = ValidationError.unknownError
-        if(errorType in ValidationError.errorTypeDict):
+        if errorType in ValidationError.errorTypeDict:
             return ValidationError.errorTypeDict[errorType]
         else:
             # Not a valid error type

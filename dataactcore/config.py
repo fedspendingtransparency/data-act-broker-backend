@@ -1,5 +1,4 @@
 import logging
-import os
 import os.path
 from os.path import expanduser, normpath, dirname, abspath
 import yaml

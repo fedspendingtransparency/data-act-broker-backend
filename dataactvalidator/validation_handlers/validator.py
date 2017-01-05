@@ -137,28 +137,28 @@ class Validator(object):
         if datatype is None:
             # If no type specified, don't need to check anything
             return True
-        if(data.strip() == ""):
+        if data.strip() == "":
             # An empty string matches all types
             return True
-        if(datatype == "STRING") :
-            return(len(data) > 0)
-        if(datatype == "BOOLEAN") :
-            if(data.upper() in Validator.BOOLEAN_VALUES) :
+        if datatype == "STRING":
+            return len(data) > 0
+        if datatype == "BOOLEAN":
+            if data.upper() in Validator.BOOLEAN_VALUES:
                 return True
             return False
-        if(datatype == "INT") :
+        if datatype == "INT":
             try:
                 int(data)
                 return True
             except:
                 return False
-        if(datatype == "DECIMAL") :
+        if datatype == "DECIMAL":
             try:
                 Decimal(data)
                 return True
             except:
                 return False
-        if(datatype == "LONG"):
+        if datatype == "LONG":
             try:
                 int(data)
                 return True

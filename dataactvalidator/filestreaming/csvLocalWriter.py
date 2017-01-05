@@ -30,11 +30,11 @@ class CsvLocalWriter(CsvAbstractWriter):
         """
         self.stream.write(data)
 
-    def __exit__(self, type, value, traceback) :
+    def __exit__(self, error_type, value, traceback) :
         """
 
         args
-        type - the type of error
+        error_type - the type of error
         value - the value of the error
         traceback - the traceback of the error
 

@@ -32,11 +32,11 @@ class CsvS3Writer(CsvAbstractWriter):
         """
         self.stream.write(data)
 
-    def __exit__(self, type, value, traceback) :
+    def __exit__(self, error_type, value, traceback) :
         """
 
         args
-        type - the type of error
+        error_type - the type of error
         value - the value of the error
         traceback - the traceback of the error
 
@@ -44,4 +44,4 @@ class CsvS3Writer(CsvAbstractWriter):
         'with' block
 
         """
-        self.stream.__exit__(type, value, traceback)
+        self.stream.__exit__(error_type, value, traceback)

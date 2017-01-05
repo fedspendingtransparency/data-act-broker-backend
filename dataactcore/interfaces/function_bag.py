@@ -52,8 +52,8 @@ def getPasswordHash(password, bcrypt):
     # TODO: handle password hashing/lookup in the User model
     salt = uuid.uuid4().hex
     # number 12 below iw the number of rounds for bcrypt
-    hash = bcrypt.generate_password_hash(password + salt, HASH_ROUNDS)
-    password_hash = hash.decode("utf-8")
+    encoded_hash = bcrypt.generate_password_hash(password + salt, HASH_ROUNDS)
+    password_hash = encoded_hash.decode("utf-8")
     return salt, password_hash
 
 

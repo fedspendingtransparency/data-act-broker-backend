@@ -82,15 +82,14 @@ class ValidationManager:
         # Forcing forward slash here instead of using os.path to write a valid path for S3
         return "".join(["errors/", path])
 
-    def readRecord(self,reader,writer,file_type,row_number,job,fields,error_list):
+    def readRecord(self,reader,writer,row_number,job,fields,error_list):
         """ Read and process the next record
 
         Args:
             reader: CsvReader object
             writer: CsvWriter object
-            file_type: Type of file for current job
             row_number: Next row number to be read
-            job_id: ID of current job
+            job: current job
             fields: List of FileColumn objects for this file type
             error_list: instance of ErrorInterface to keep track of errors
 
@@ -207,14 +206,13 @@ class ValidationManager:
             error_list.recordRowError(job_id,job.filename,field_name,error,row_number,original_rule_label,severity_id=severityId)
         return fatal_error_found
 
-    def write_to_flex(self, flex_cols, job_id, submission_id, file_type):
+    def write_to_flex(self, flex_cols, job_id, submission_id):
         """ Write this record to the staging tables
 
         Args:
             flex_cols: Record to be written
             job_id: ID of current job
             submission_id: ID of current submission
-            file_type: Type of file for current job
 
         Returns:
             Boolean indicating whether to skip current row
@@ -312,7 +310,7 @@ class ValidationManager:
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
                     #
-                    (record, reduceRow, skipRow, doneReading, rowErrorHere, flex_cols) = self.readRecord(reader, writer, fileType, rowNumber, job, fields, error_list)
+                    (record, reduceRow, skipRow, doneReading, rowErrorHere, flex_cols) = self.readRecord(reader, writer, rowNumber, job, fields, error_list)
                     if reduceRow:
                         rowNumber -= 1
                     if rowErrorHere:
@@ -341,7 +339,7 @@ class ValidationManager:
                             record, job, submission_id, passedValidations,
                             writer, rowNumber, model, error_list)
                         if flex_cols:
-                            self.write_to_flex(flex_cols, job_id, submission_id, fileType)
+                            self.write_to_flex(flex_cols, job_id, submission_id)
 
                         if skipRow:
                             errorRows.append(rowNumber)

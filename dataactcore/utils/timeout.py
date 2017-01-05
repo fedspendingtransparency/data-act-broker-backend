@@ -1,12 +1,12 @@
 from threading import Thread
 import functools
 
-def timeout(timeout, message=None):
+def timeout(timeout_length, message=None):
     """ Creates timeout decorator to be attached to functions """
     def deco(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            defaultMessage = 'function [%s] timeout [%s seconds] exceeded!' % (func.__name__, timeout)
+            defaultMessage = 'function [%s] timeout [%s seconds] exceeded!' % (func.__name__, timeout_length)
             res = [Exception(message or defaultMessage)]
 
             def newFunc():
@@ -18,7 +18,7 @@ def timeout(timeout, message=None):
             t.daemon = True
             try:
                 t.start()
-                t.join(timeout)
+                t.join(timeout_length)
             except Exception as je:
                 print('error starting thread')
                 raise je

@@ -1,7 +1,7 @@
 from werkzeug.exceptions import BadRequest
 
 
-class RequestDictionary() :
+class RequestDictionary:
     """ Provides an interface to an http request """
 
     def __init__(self, request, optional_request=False):
@@ -9,13 +9,13 @@ class RequestDictionary() :
 
     def getValue(self,value) :
         """ Returns value for specified key """
-        if(not(value in self.requestDict)):
+        if value not in self.requestDict:
             raise ValueError(value + " not found")
         return self.requestDict[value]
         
     def exists(self,value) :
         """ Returns True if key is in request json """
-        if(not(value in self.requestDict)):
+        if value not in self.requestDict:
             return False
         return True
 
@@ -27,7 +27,6 @@ class RequestDictionary() :
         """Check request header to determine where to fetch arguments from.
         Raise exceptions. @todo - replace this whole class with standard flask
         HTTP argument handling"""
-        result = None
         try:
             if "Content-Type" not in request.headers:
                 raise ValueError("Must include Content-Type header")

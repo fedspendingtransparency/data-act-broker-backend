@@ -25,6 +25,6 @@ class ResponseException(Exception):
         else:
             try:
                 self.wrappedException = errorClass(message)
-            except Exception as e:
+            except Exception:
                 # Some errors cannot be created with just a message, in that case create a string representation
                 self.wrappedException = str(errorClass) + str(message)

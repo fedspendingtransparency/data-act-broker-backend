@@ -15,7 +15,7 @@ class StringCleaner:
             Cleaned version of string
         """
         result = str(data).lower().strip()
-        if(removeSpaces):
+        if removeSpaces:
             result = result.replace(" ","_")
         return result
 

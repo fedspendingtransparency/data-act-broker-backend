@@ -15,7 +15,7 @@ class InvalidUsage(Exception):
     def to_dict(self):
         rv = dict(self.payload or ())
         rv['message'] = self.message
-        if (JsonResponse.debugMode):
+        if JsonResponse.debugMode:
             exception_type, _, trace = sys.exc_info()
             trace = traceback.extract_tb(trace, 10)
             rv['exception_type'], rv['trace'] = str(exception_type), str(trace)

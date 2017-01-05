@@ -6,9 +6,7 @@ import pytest
 
 import dataactcore.config
 # Load all models so we can access them through baseModel.Base.metadata
-from dataactcore.models import (    # noqa
-    baseModel, domainModels, fsrs, errorModels, jobModels, stagingModels,
-    userModel, validationModels)
+from dataactcore.models import baseModel
 from dataactcore.scripts import setupJobTrackerDB, setupUserDB
 from dataactcore.scripts.databaseSetup import (
     createDatabase, dropDatabase, runMigrations)

@@ -104,7 +104,6 @@ class BaseTestValidator(unittest.TestCase):
             stagingRows: Expected number of rows in validation db staging tables. False if no rows are expected
             errorStatus: Expected status in file table of error DB, False if file object should not exist
             numErrors: Expected number of errors
-            rowErrorsPresent: Checks flag for whether row errors occurred, None to skip the check
 
         Returns:
 
@@ -198,7 +197,7 @@ class BaseTestValidator(unittest.TestCase):
             # Create file names for S3
             s3FileName = str(user) + "/" + filename
 
-            if(cls.uploadFiles) :
+            if cls.uploadFiles:
                 # Use boto to put files on S3
                 s3conn = boto.s3.connect_to_region(regionName)
                 key = Key(s3conn.get_bucket(bucketName))

@@ -36,7 +36,7 @@ class SchemaLoader(object):
 
             # get allowable datatypes
             typeQuery = sess.query(FieldType.name, FieldType.field_type_id).all()
-            types = {type.name: type.field_type_id for type in typeQuery}
+            types = {data_type.name: data_type.field_type_id for data_type in typeQuery}
 
             # add schema to database
             with open(schemaFileName, 'rU') as csvfile:
