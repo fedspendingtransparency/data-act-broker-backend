@@ -23,11 +23,11 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import (
-    FileGenerationTask, Job, Submission, SubmissionNarrative)
+    FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID,
-    JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID)
+    JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
@@ -38,7 +38,7 @@ from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     checkNumberOfErrorsByJobId, create_jobs, create_submission,
     getErrorMetricsByJobId, getErrorType, get_submission_status,
-    mark_job_status, run_job_checks
+    mark_job_status, run_job_checks, createFileIfNeeded
 )
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
@@ -534,7 +534,7 @@ class FileHandler:
                 file_type=file_type
             )
 
-        error = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, job)
+        error = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, job, val_job)
 
         return not error, error
 
@@ -544,7 +544,7 @@ class FileHandler:
         logger.debug('Result for %s: %s', api_url, result)
         return result
 
-    def call_d_file_api(self, file_type_name, cgac_code, start_date, end_date, job):
+    def call_d_file_api(self, file_type_name, cgac_code, start_date, end_date, job, val_job=None):
         """ Call D file API, return True if results found, False otherwise """
         file_type = FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]]
         task_key = FileHandler.create_generation_task(job.job_id)
@@ -558,9 +558,24 @@ class FileHandler:
                 # Check for numFound = 0
                 if "numFound='0'" in self.get_xml_response_content(api_url):
                     sess = GlobalDB.db().session
-                    # If the call to the external API wasn't successful, mark the job as failed
-                    job.error_message = "%s data unavailable for the specified date range" % file_type
-                    job.job_status_id = JOB_STATUS_DICT['failed']
+                    # No results found, skip validation and mark as finished
+                    sess.query(JobDependency). \
+                        filter(JobDependency.prerequisite_id == job.job_id). \
+                        delete(synchronize_session='fetch')
+                    mark_job_status(job.job_id, "finished")
+                    job.filename = None
+
+                    if val_job is not None:
+                        mark_job_status(val_job.job_id, "finished")
+                        # Create File object for this validation job
+                        val_file = createFileIfNeeded(val_job.job_id, filename=val_job.filename)
+                        val_file.file_status_id = FILE_STATUS_DICT['complete']
+                        val_job.number_of_rows = 0
+                        val_job.number_of_rows_valid = 0
+                        val_job.file_size = 0
+                        val_job.number_of_errors = 0
+                        val_job.number_of_warnings = 0
+                        val_job.filename = None
                     sess.commit()
             except Timeout as e:
                 exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
