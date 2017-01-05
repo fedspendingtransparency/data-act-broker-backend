@@ -17,7 +17,8 @@ def write_then_read_tas(tmpdir, *rows):
     csv_file = tmpdir.join("cars_tas.csv")
     with open(str(csv_file), 'w') as f:
         writer = DictWriter(
-            f, ['ACCT_NUM', 'ATA', 'AID', 'A', 'BPOA', 'EPOA', 'MAIN', 'SUB']
+            f, ['ACCT_NUM', 'ATA', 'AID', 'A', 'BPOA', 'EPOA', 'MAIN', 'SUB',
+                'FINANCIAL_INDICATOR_TYPE2']
         )
         writer.writeheader()
         for row in rows:
