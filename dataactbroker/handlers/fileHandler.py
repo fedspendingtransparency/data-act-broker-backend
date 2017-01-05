@@ -21,11 +21,11 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import (
-    FileGenerationTask, Job, Submission, SubmissionNarrative)
+    FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID,
-    JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID)
+    JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import (get_report_path, get_cross_report_name,
@@ -37,7 +37,7 @@ from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     checkNumberOfErrorsByJobId, getErrorType, run_job_checks,
     getErrorMetricsByJobId, get_submission_stats, get_submission_status,
-    mark_job_status, create_submission, create_jobs)
+    mark_job_status, create_submission, create_jobs, createFileIfNeeded)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 _debug_logger = logging.getLogger('deprecated.debug')
@@ -726,9 +726,30 @@ class FileHandler:
                 # Check for numFound = 0
                 if "numFound='0'" in self.get_xml_response_content(api_url):
                     sess = GlobalDB.db().session
-                    # If the call to the external API wasn't successful, mark the job as failed
-                    job.error_message = "%s data unavailable for the specified date range" % file_type
-                    job.job_status_id = JOB_STATUS_DICT['failed']
+                    # No results found, skip validation and mark as finished
+                    sess.query(JobDependency). \
+                        filter(JobDependency.prerequisite_id == job.job_id). \
+                        delete(synchronize_session='fetch')
+                    mark_job_status(job.job_id, "finished")
+                    job.filename = None
+
+                    val_job = sess.query(Job).filter_by(
+                        submission_id=job.submission_id,
+                        file_type_id=FILE_TYPE_DICT[file_type_name],
+                        job_type_id=JOB_TYPE_DICT['csv_record_validation']
+                    ).one_or_none()
+
+                    if val_job is not None:
+                        mark_job_status(val_job.job_id, "finished")
+                        # Create File object for this validation job
+                        val_file = createFileIfNeeded(val_job.job_id, filename=val_job.filename)
+                        val_file.file_status_id = FILE_STATUS_DICT['complete']
+                        val_job.number_of_rows = 0
+                        val_job.number_of_rows_valid = 0
+                        val_job.file_size = 0
+                        val_job.number_of_errors = 0
+                        val_job.number_of_warnings = 0
+                        val_job.filename = None
                     sess.commit()
             except Timeout as e:
                 exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
