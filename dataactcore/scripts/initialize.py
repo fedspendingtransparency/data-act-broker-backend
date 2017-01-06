@@ -30,6 +30,7 @@ def setup_db():
     setupAllDB()
     setupEmails()
 
+
 def create_admin():
     """Create initial admin user."""
     logger.info('Creating admin user')
@@ -45,6 +46,7 @@ def create_admin():
             user = createUserWithPassword(
                 admin_email, admin_pass, Bcrypt(), website_admin=True)
     return user
+
 
 def load_tas_lookup():
     """Load/update the TAS table to reflect the latest list."""

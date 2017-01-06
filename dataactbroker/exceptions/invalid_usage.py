@@ -2,6 +2,7 @@ import sys
 import traceback
 from dataactcore.utils.jsonResponse import JsonResponse
 
+
 class InvalidUsage(Exception):
     status_code = 400
 

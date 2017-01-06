@@ -3,6 +3,7 @@ from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'c14_award_financial_1'
 
+
 def test_column_headers(database):
     expected_subset = {'row_number', "fain", "uri", "piid"}
     actual = set(query_columns(_FILE, database))
@@ -25,6 +26,7 @@ def test_success(database):
 
     assert number_of_errors(_FILE, database, models=[award_fin_fain, award_fin_uri, award_fin_piid, award_fin,
                                                      award_fin_no_fain, award_fin_no_uri, award_fin_no_piid]) == 0
+
 
 def test_failure(database):
     """ Test with fain, uri, and piid all absent """

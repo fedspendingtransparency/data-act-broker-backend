@@ -52,10 +52,12 @@ def database(full_database_setup):
 def job_constants(database):
     setupJobTrackerDB.insertCodes(database.session)
 
+
 @pytest.fixture()
 def user_constants(database):
     setupUserDB.insertCodes(database.session)
     database.session.commit()
+
 
 @pytest.fixture()
 def mock_broker_config_paths(tmpdir):
@@ -75,6 +77,7 @@ def mock_broker_config_paths(tmpdir):
 
     for key in keys_to_replace:
         dataactcore.config.CONFIG_BROKER[key] = original[key]
+
 
 @pytest.fixture
 def test_app(database):

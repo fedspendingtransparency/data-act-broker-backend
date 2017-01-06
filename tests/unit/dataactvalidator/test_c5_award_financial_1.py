@@ -26,6 +26,7 @@ def test_success(database):
 
     assert number_of_errors(_FILE, database, models=[award_fin, award_fin_null]) == 0
 
+
 def test_failure(database):
     """ Test that calculation fails for unequal values """
     value_one = Decimal('101.23')

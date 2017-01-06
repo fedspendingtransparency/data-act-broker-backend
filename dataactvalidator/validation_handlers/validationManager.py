@@ -581,6 +581,7 @@ class ValidationManager:
 
         return JsonResponse.create(StatusCode.OK, {"message": "Validation complete"})
 
+
 def update_tas_ids(model, submission_id):
     sess = GlobalDB.db().session
     submission = sess.query(Submission).\

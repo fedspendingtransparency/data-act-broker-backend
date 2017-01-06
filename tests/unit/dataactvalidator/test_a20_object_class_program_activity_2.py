@@ -11,6 +11,7 @@ def test_column_headers(database):
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
+
 def test_success(database):
     """ Test that agency codes are matched against cgac correctly """
     ocpa = ObjectClassProgramActivityFactory()
@@ -19,6 +20,7 @@ def test_success(database):
 
     errors = number_of_errors(_FILE, database, models=[ocpa, ocpa_null, cgac])
     assert errors == 0
+
 
 def test_failure(database):
     """ Test a cgac not present in cgac table """

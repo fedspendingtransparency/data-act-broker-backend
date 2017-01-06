@@ -7,6 +7,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.models.lookups import FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT
 from datetime import datetime
 
+
 class UserTests(BaseTestAPI):
     """ Test user specific functions """
 

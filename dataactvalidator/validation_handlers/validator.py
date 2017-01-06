@@ -9,6 +9,7 @@ from dataactcore.interfaces.db import GlobalDB
 
 logger = logging.getLogger(__name__)
 
+
 class Validator(object):
     """
     Checks individual records against specified validation tests

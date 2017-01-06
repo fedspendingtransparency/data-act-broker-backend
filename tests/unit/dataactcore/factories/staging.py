@@ -34,6 +34,7 @@ class AppropriationFactory(factory.Factory):
     unobligated_balance_cpe = fuzzy.FuzzyDecimal(9999)
     tas = fuzzy.FuzzyText()
 
+
 class AwardFinancialFactory(factory.Factory):
     class Meta:
         model = stagingModels.AwardFinancial

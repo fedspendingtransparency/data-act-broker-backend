@@ -23,6 +23,7 @@ def test_success(database):
 
     assert number_of_errors(_FILE, database, models=[ocpa, ocpa_null]) == 0
 
+
 def test_failure(database):
     """ Test that calculation fails for unequal values """
     ocpa = ObjectClassProgramActivityFactory(obligations_delivered_orde_fyb=Decimal('101.23'),

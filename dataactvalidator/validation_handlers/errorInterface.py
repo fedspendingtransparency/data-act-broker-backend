@@ -5,6 +5,7 @@ from dataactcore.interfaces.db import GlobalDB
 
 from dataactcore.models.lookups import ERROR_TYPE_DICT
 
+
 class ErrorInterface:
     """Manages communication with error database."""
 

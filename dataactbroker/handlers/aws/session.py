@@ -64,11 +64,13 @@ def toUnixTime(datetimeValue):
         return (datetimeValue - datetime(1970, 1, 1)).total_seconds()
     return datetimeValue
 
+
 class UserSession(dict, SessionMixin):
     """
     Class that wraps around normal Flask Session object
     """
     pass
+
 
 class UserSessionInterface(SessionInterface):
     """
@@ -146,6 +148,7 @@ class UserSessionInterface(SessionInterface):
 
         # Return session ID as header x-session-id
         response.headers["x-session-id"] = session["sid"]
+
 
 class SessionTable:
     """

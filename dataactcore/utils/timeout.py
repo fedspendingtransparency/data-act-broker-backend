@@ -1,6 +1,7 @@
 from threading import Thread
 import functools
 
+
 def timeout(timeout_length, message=None):
     """ Creates timeout decorator to be attached to functions """
     def deco(func):

@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT_ID
 
+
 class User(Base):
     __tablename__ = 'users'
 
@@ -21,12 +22,14 @@ class User(Base):
     affiliations = relationship("UserAffiliation",
                                 cascade="all, delete-orphan")
 
+
 class PermissionType(Base):
     __tablename__ = "permission_type"
 
     permission_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
+
 
 class UserAffiliation(Base):
     __tablename__ = 'user_affiliation'
@@ -57,6 +60,7 @@ class EmailTemplateType(Base):
     name = Column(Text)
     description = Column(Text)
 
+
 class EmailTemplate(Base):
     __tablename__ = 'email_template'
 
@@ -65,11 +69,13 @@ class EmailTemplate(Base):
     subject = Column(Text)
     content = Column(Text)
 
+
 class EmailToken(Base):
     __tablename__ = 'email_token'
     email_token_id = Column(Integer, primary_key=True)
     token = Column(Text)
     salt = Column(Text)
+
 
 class SessionMap(Base):
     """ This table maps session IDs to user data """

@@ -7,11 +7,13 @@ from tests.unit.dataactvalidator.utils import number_of_errors, insert_submissio
 
 _FILE = 'a16_object_class_program_activity'
 
+
 def populate_publish_status(database):
     for ps in PUBLISH_STATUS:
         status = PublishStatus(publish_status_id=ps.id, name=ps.name, description=ps.desc)
         database.session.merge(status)
     database.session.commit()
+
 
 def test_value_present(database):
     """gross_outlays_delivered_or_fyb populated does not require a previous submission"""
@@ -19,6 +21,7 @@ def test_value_present(database):
     sub_new = SubmissionFactory()
     ocpa_new = ObjectClassProgramActivityFactory(submission_id=sub_new.submission_id)
     assert number_of_errors(_FILE, database, submission=sub_new, models=[ocpa_new]) == 0
+
 
 def test_previous_published(database):
     """ gross_outlays_delivered_or_fyb can be null if previous published submission shares cgac and fiscal year """
@@ -31,6 +34,7 @@ def test_previous_published(database):
                                                            ussgl480100_undelivered_or_fyb=None)
     assert number_of_errors(_FILE, database, submission=sub_new_published,
                             models=[ocpa_new_published]) == 0
+
 
 def test_previous_publishable(database):
     """ Previous submission marked as publishable also allows null """
@@ -49,6 +53,7 @@ def test_no_previous_submission(database):
     sub_new = SubmissionFactory()
     ocpa_new = ObjectClassProgramActivityFactory(submission_id=sub_new.submission_id, gross_outlays_delivered_or_fyb=None)
     assert number_of_errors(_FILE, database, submission=sub_new, models=[ocpa_new]) == 1
+
 
 def test_previous_unpublished(database):
     """ previous submission exists but is unpublished and has not been marked publishable """

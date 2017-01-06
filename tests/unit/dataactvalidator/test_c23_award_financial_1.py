@@ -12,6 +12,7 @@ def test_column_headers(database):
     actual = set(query_columns(_FILE, database))
     assert expected_subset <= actual
 
+
 def test_success(database):
     """ Test that a four digit object class with no flag is a success, and a three digit object class with a flag is a success"""
     # Create a 12 character random piid

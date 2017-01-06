@@ -14,6 +14,7 @@ class FileStatus(Base):
     name = Column(Text)
     description = Column(Text)
 
+
 class ErrorType(Base):
     __tablename__ = "error_type"
     TYPE_DICT = None
@@ -21,6 +22,7 @@ class ErrorType(Base):
     error_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
+
 
 class File(Base):
     __tablename__ = "file"
@@ -36,6 +38,7 @@ class File(Base):
     @property
     def file_status_name(self):
         return FILE_STATUS_DICT_ID.get(self.file_status_id)
+
 
 class ErrorMetadata(Base):
     __tablename__ = "error_metadata"

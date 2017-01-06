@@ -64,17 +64,20 @@ Index("ix_tas",
       TASLookup.internal_start_date,
       TASLookup.internal_end_date)
 
+
 class CGAC(Base):
     __tablename__ = "cgac"
     cgac_id = Column(Integer, primary_key=True)
     cgac_code = Column(Text, nullable=False, index=True, unique=True)
     agency_name = Column(Text)
 
+
 class ObjectClass(Base):
     __tablename__ = "object_class"
     object_class_id = Column(Integer, primary_key=True)
     object_class_code = Column(Text, nullable=False, index=True, unique=True)
     object_class_name = Column(Text)
+
 
 class SF133(Base):
     __tablename__ = "sf_133"
@@ -103,6 +106,7 @@ Index("ix_sf_133_tas",
       SF133.period,
       SF133.line,
       unique=True)
+
 
 class ProgramActivity(Base):
     __tablename__ = "program_activity"

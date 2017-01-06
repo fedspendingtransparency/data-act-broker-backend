@@ -6,6 +6,7 @@ from dataactvalidator.scripts import load_sf133
 
 SF_RE = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
 
+
 def test_sf133_files(database):
     """Test sums of all TAS's in any unloaded SF-133 files"""
     failed_validations = ['file,aid,ata,availability_type_code,bpoa,epoa,main_account,sub_account,error_type,value1,value2']

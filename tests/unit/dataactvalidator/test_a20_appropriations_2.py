@@ -4,10 +4,12 @@ from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'a20_appropriations_2'
 
+
 def test_column_headers(database):
     expected_subset = {"row_number", "agency_identifier"}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
+
 
 def test_success(database):
     """ Test that agency codes are matched against cgac correctly """
@@ -17,6 +19,7 @@ def test_success(database):
 
     errors = number_of_errors(_FILE, database, models=[approp, approp_null, cgac])
     assert errors == 0
+
 
 def test_failure(database):
     """ Test a cgac not present in cgac table """

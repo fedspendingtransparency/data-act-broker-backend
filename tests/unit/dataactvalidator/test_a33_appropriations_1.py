@@ -64,6 +64,7 @@ def test_failure_populated_ata(database):
     errors = number_of_errors(_FILE, database, models=[sf1, ap], submission=submission)
     assert errors == 1
 
+
 def test_failure_null_ata(database):
     """ Tests that TAS for SF-133 are not present in File A """
     submission_id = randint(1000, 10000)

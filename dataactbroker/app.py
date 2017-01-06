@@ -95,6 +95,7 @@ def createApp():
     add_exception_handlers(app)
     return app
 
+
 def runApp():
     """runs the application"""
     app = createApp()

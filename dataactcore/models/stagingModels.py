@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 from dataactcore.models.domainModels import concatTas, TASLookup
 
+
 class FlexField(Base):
     """Model for the flex field table."""
     __tablename__ = "flex_field"
@@ -14,6 +15,7 @@ class FlexField(Base):
     row_number = Column(Integer, nullable=False)
     header = Column(Text)
     cell = Column(Text)
+
 
 class Appropriation(Base):
     """Model for the appropriation table."""
@@ -53,6 +55,7 @@ class Appropriation(Base):
         # so get rid of any extraneous kwargs before instantiating
         cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(Appropriation, self).__init__(**cleanKwargs)
+
 
 class ObjectClassProgramActivity(Base):
     """Model for the object_class_program_activity table."""
@@ -121,6 +124,7 @@ Index("ix_oc_pa_tas_oc_pa",
       ObjectClassProgramActivity.object_class,
       ObjectClassProgramActivity.program_activity_code,
       unique=False)
+
 
 class AwardFinancial(Base):
     """Corresponds to entries in File C"""
@@ -194,6 +198,7 @@ Index("ix_award_financial_tas_oc_pa",
       AwardFinancial.object_class,
       AwardFinancial.program_activity_code,
       unique=False)
+
 
 class AwardFinancialAssistance(Base):
     """Model for D2-Award (Financial Assistance)."""
@@ -269,6 +274,7 @@ class AwardFinancialAssistance(Base):
         # so get rid of any extraneous kwargs before instantiating
         cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(AwardFinancialAssistance, self).__init__(**cleanKwargs)
+
 
 class AwardProcurement(Base):
     """Model for D1-Award (Procurement)."""

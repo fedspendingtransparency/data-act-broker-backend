@@ -1,6 +1,7 @@
 import io
 import csv
 
+
 class CsvAbstractWriter(object):
     """
     Writes a CSV to a Files System in a steaming manner

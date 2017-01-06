@@ -17,12 +17,14 @@ def generateFiscalYear(context):
         year += 1
     return year
 
+
 def generateFiscalPeriod(context):
     """ Generate fiscal period based on the date provided """
     reporting_end_date = context.current_parameters['reporting_end_date']
     period = (reporting_end_date.month + 3) % 12
     period = 12 if period == 0 else period
     return period
+
 
 class JobStatus(Base):
     __tablename__ = "job_status"
@@ -32,6 +34,7 @@ class JobStatus(Base):
     name = Column(Text)
     description = Column(Text)
 
+
 class JobType(Base):
     __tablename__ = "job_type"
     JOB_TYPE_DICT = None
@@ -40,6 +43,7 @@ class JobType(Base):
     name = Column(Text)
     description = Column(Text)
 
+
 class PublishStatus(Base):
     __tablename__ = "publish_status"
     PUBLISH_STATUS_DICT = None
@@ -47,6 +51,7 @@ class PublishStatus(Base):
     publish_status_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
+
 
 class Submission(Base):
     __tablename__ = "submission"
@@ -67,6 +72,7 @@ class Submission(Base):
     publish_status = relationship("PublishStatus", uselist=False)
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
+
 
 class Job(Base):
     __tablename__ = "job"
@@ -114,6 +120,7 @@ class JobDependency(Base):
     dependent_job = relationship("Job", foreign_keys=[job_id], lazy='joined')
     prerequisite_job = relationship("Job", foreign_keys=[prerequisite_id], lazy='joined')
 
+
 class FileType(Base):
     __tablename__ = "file_type"
     FILE_TYPE_DICT = None
@@ -124,6 +131,7 @@ class FileType(Base):
     letter_name = Column(Text)
     file_order = Column(Integer)
 
+
 class FileGenerationTask(Base):
     __tablename__ = "file_generation_task"
 
@@ -131,6 +139,7 @@ class FileGenerationTask(Base):
     generation_task_key = Column(Text, index=True, unique=True)
     job_id = Column(Integer, ForeignKey("job.job_id", name="fk_generation_job"))
     job = relationship("Job", uselist=False, cascade="delete")
+
 
 class SubmissionNarrative(Base):
     __tablename__ = "submission_narrative"

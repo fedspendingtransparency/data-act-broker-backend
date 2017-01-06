@@ -3,6 +3,7 @@ from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'c17_award_financial'
 
+
 def test_column_headers(database):
     expected_subset = {'row_number', 'transaction_obligated_amou'}
     actual = set(query_columns(_FILE, database))
@@ -99,6 +100,7 @@ def test_success(database):
                                             ussgl498200_upward_adjustm_cpe=None)
 
     assert number_of_errors(_FILE, database, models=[award_fin_amount, award_fin_one, award_fin_two, award_fin_three]) == 0
+
 
 def test_failure(database):
     """ Test with amount missing and no ussgl fields populated, also with some ussgl fields 0 """

@@ -86,6 +86,7 @@ def createApp():
 
     return app
 
+
 def runApp():
     """Run the application."""
     app = createApp()
@@ -94,6 +95,7 @@ def runApp():
         host=CONFIG_SERVICES['validator_host'],
         port=CONFIG_SERVICES['validator_port']
     )
+
 
 def get_current_job():
     """Return the job currently stored in flask.g"""

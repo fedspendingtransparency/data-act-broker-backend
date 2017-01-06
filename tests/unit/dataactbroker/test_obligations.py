@@ -27,6 +27,7 @@ def test_obligationStatsForSubmission_nonzero(database):
         "total_assistance_obligations": 3000
     }
 
+
 def test_obligationStatsForSubmission_zero(database):
     submission = SubmissionFactory()
     # no financials in db

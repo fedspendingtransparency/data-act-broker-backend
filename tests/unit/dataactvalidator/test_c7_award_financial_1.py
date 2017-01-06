@@ -4,6 +4,7 @@ from decimal import Decimal
 
 _FILE = 'c7_award_financial_1'
 
+
 def test_column_headers(database):
     expected_subset = {"row_number", "gross_outlays_delivered_or_cpe", "ussgl490200_delivered_orde_cpe",
                        "ussgl490800_authority_outl_cpe", "ussgl498200_upward_adjustm_cpe"}
@@ -27,6 +28,7 @@ def test_success(database):
                                            ussgl498200_upward_adjustm_cpe=value_two)
 
     assert number_of_errors(_FILE, database, models=[award_fin, award_fin_null]) == 0
+
 
 def test_failure(database):
     """ Test that calculation fails for unequal values """

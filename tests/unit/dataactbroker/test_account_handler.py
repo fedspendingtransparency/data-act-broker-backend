@@ -27,6 +27,7 @@ def make_max_dict(group_str):
         }
     }
 
+
 @pytest.mark.usefixtures("user_constants")
 def test_max_login_success(monkeypatch):
     ah = accountHandler.AccountHandler(Mock())
@@ -77,6 +78,7 @@ def test_max_login_failure(monkeypatch):
     # Did not get a successful response from MAX
     assert error_message == json.loads(json_response.get_data().decode("utf-8"))['message']
 
+
 @pytest.mark.usefixtures("user_constants")
 def test_set_max_perms(database, monkeypatch):
     """Verify that we get the _highest_ permission within our CGAC"""
@@ -114,6 +116,7 @@ def test_set_max_perms(database, monkeypatch):
     assert abc_aff.permission_type_id == PERMISSION_TYPE_DICT['reader']
     assert def_aff.cgac.cgac_code == 'DEF'
     assert def_aff.permission_type_id == PERMISSION_TYPE_DICT['submitter']
+
 
 @pytest.mark.usefixtures("user_constants")
 def test_create_session_and_response(database, monkeypatch):

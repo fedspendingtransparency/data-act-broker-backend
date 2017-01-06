@@ -1,5 +1,6 @@
 from dateutil.parser import parse
 
+
 class StringCleaner:
     """ Provides basic functionality for sanitizing string inputs """
 
