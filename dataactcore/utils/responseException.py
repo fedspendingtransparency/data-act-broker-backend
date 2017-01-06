@@ -1,6 +1,6 @@
 class ResponseException(Exception):
     """ Exception wrapper to be used in an http response, allows exceptions to specify status codes when raised """
-    def __init__(self, message, status = 500, errorClass = None, errorType = None, **kwargs):
+    def __init__(self, message, status=500, errorClass=None, errorType=None, **kwargs):
         """ Create a new ResponseException
 
         Args:

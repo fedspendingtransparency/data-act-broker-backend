@@ -128,7 +128,7 @@ def loadProgramActivity(filename):
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
-def loadDomainValues(basePath, localProgramActivity = None):
+def loadDomainValues(basePath, localProgramActivity=None):
     """Load all domain value files.
 
     Parameters

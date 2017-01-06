@@ -141,7 +141,7 @@ class CsvAbstractReader(object):
         return long_headers
 
     @staticmethod
-    def get_writer(bucket_name, filename, header, is_local, region = None):
+    def get_writer(bucket_name, filename, header, is_local, region=None):
         """
         Gets the write type based on if its a local install or not.
         """

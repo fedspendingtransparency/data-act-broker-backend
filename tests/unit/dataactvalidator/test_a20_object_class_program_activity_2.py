@@ -14,8 +14,8 @@ def test_column_headers(database):
 def test_success(database):
     """ Test that agency codes are matched against cgac correctly """
     ocpa = ObjectClassProgramActivityFactory()
-    ocpa_null = ObjectClassProgramActivityFactory(agency_identifier = None)
-    cgac = CGACFactory(cgac_code = ocpa.agency_identifier)
+    ocpa_null = ObjectClassProgramActivityFactory(agency_identifier=None)
+    cgac = CGACFactory(cgac_code=ocpa.agency_identifier)
 
     errors = number_of_errors(_FILE, database, models=[ocpa, ocpa_null, cgac])
     assert errors == 0
@@ -25,8 +25,8 @@ def test_failure(database):
     # These cgacs are different lengths to avoid being equal
     cgac_one = "cgac_one"
     cgac_two = "cgac_two"
-    ocpa = ObjectClassProgramActivityFactory(agency_identifier = cgac_one)
-    cgac = CGACFactory(cgac_code = cgac_two)
+    ocpa = ObjectClassProgramActivityFactory(agency_identifier=cgac_one)
+    cgac = CGACFactory(cgac_code=cgac_two)
 
     errors = number_of_errors(_FILE, database, models=[ocpa, cgac])
     assert errors == 1

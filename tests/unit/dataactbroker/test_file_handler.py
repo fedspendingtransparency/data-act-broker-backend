@@ -210,7 +210,7 @@ good_dates = [
         reporting_end_date=datetime.strptime('09/2016', '%m/%Y').date())),
     (None, '07/2014', None, SubmissionFactory(
         reporting_start_date=datetime.strptime('08/2013', '%m/%Y').date(),
-        reporting_end_date = datetime.strptime('09/2016', '%m/%Y').date())),
+        reporting_end_date=datetime.strptime('09/2016', '%m/%Y').date())),
     ('01/2010', '03/2010', True, SubmissionFactory(is_quarter_format=False)),
     (None, None, None, SubmissionFactory(
         reporting_start_date=datetime.strptime('09/2016', '%m/%Y').date(),

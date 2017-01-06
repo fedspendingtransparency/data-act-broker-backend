@@ -110,7 +110,7 @@ def getErrorType(job_id):
         # No errors occurred during validation
         return "none"
 
-def createFileIfNeeded(job_id, filename = None):
+def createFileIfNeeded(job_id, filename=None):
     """ Return the existing file object if it exists, or create a new one """
     sess = GlobalDB.db().session
     try:
@@ -303,7 +303,7 @@ def check_job_dependencies(job_id):
         raise ValueError('Current job not finished, unable to check dependencies')
 
     # get the jobs that are dependent on job_id being finished
-    dependencies = sess.query(JobDependency).filter_by(prerequisite_id = job_id).all()
+    dependencies = sess.query(JobDependency).filter_by(prerequisite_id=job_id).all()
     for dependency in dependencies:
         dep_job_id = dependency.job_id
         if dependency.dependent_job.job_status_id != JOB_STATUS_DICT['waiting']:
@@ -341,7 +341,7 @@ def create_submission(user_id, submission_values, existing_submission):
         submission object
     """
     if existing_submission is None:
-        submission = Submission(datetime_utc = datetime.utcnow(), **submission_values)
+        submission = Submission(datetime_utc=datetime.utcnow(), **submission_values)
         submission.user_id = user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
     else:
@@ -393,14 +393,14 @@ def create_jobs(upload_files, submission, existing_submission=False):
         # (note: job_type of 'validation' is a cross-file job)
         val_job = sess.query(Job).\
             filter_by(
-                submission_id = submission_id,
-                job_type_id = JOB_TYPE_DICT["validation"]).\
+                submission_id=submission_id,
+                job_type_id=JOB_TYPE_DICT["validation"]).\
             one()
         val_job.job_status_id = JOB_STATUS_DICT["waiting"]
         ext_job = sess.query(Job).\
             filter_by(
-                submission_id = submission_id,
-                job_type_id = JOB_TYPE_DICT["external_validation"]).\
+                submission_id=submission_id,
+                job_type_id=JOB_TYPE_DICT["external_validation"]).\
             one()
         ext_job.job_status_id = JOB_STATUS_DICT["waiting"]
         submission.updated_at = time.strftime("%c")

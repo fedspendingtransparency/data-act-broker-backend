@@ -217,7 +217,7 @@ class SessionTable:
         user_session = sess.query(SessionMap).filter_by(uid=uid).one_or_none()
         if user_session is None:
             # No existing session found, create a new one
-            new_session = SessionMap(uid = uid, data = dumps(data), expiration = toUnixTime(expiration))
+            new_session = SessionMap(uid=uid, data=dumps(data), expiration=toUnixTime(expiration))
             sess.add(new_session)
         else:
             # Modify existing session

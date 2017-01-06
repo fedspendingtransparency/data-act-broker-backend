@@ -10,16 +10,16 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test that availability type code is either x or absent """
-    ocpa = ObjectClassProgramActivityFactory(availability_type_code = 'X')
-    ocpa_lower = ObjectClassProgramActivityFactory(availability_type_code = 'x')
-    ocpa_null = ObjectClassProgramActivityFactory(availability_type_code = None)
+    ocpa = ObjectClassProgramActivityFactory(availability_type_code='X')
+    ocpa_lower = ObjectClassProgramActivityFactory(availability_type_code='x')
+    ocpa_null = ObjectClassProgramActivityFactory(availability_type_code=None)
 
     errors = number_of_errors(_FILE, database, models=[ocpa, ocpa_null, ocpa_lower])
     assert errors == 0
 
 def test_failure(database):
     """ Test an incorrect availability_type_code """
-    ocpa = ObjectClassProgramActivityFactory(availability_type_code = 'z')
+    ocpa = ObjectClassProgramActivityFactory(availability_type_code='z')
 
     errors = number_of_errors(_FILE, database, models=[ocpa])
     assert errors == 1

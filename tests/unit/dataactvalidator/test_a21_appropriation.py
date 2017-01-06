@@ -10,16 +10,16 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test that availability type code is either x or absent """
-    approp = AppropriationFactory(availability_type_code = 'X')
-    approp_lower = AppropriationFactory(availability_type_code = 'x')
-    approp_null = AppropriationFactory(availability_type_code = None)
+    approp = AppropriationFactory(availability_type_code='X')
+    approp_lower = AppropriationFactory(availability_type_code='x')
+    approp_null = AppropriationFactory(availability_type_code=None)
 
     errors = number_of_errors(_FILE, database, models=[approp, approp_lower, approp_null])
     assert errors == 0
 
 def test_failure(database):
     """ Test an incorrect availability_type_code """
-    approp = AppropriationFactory(availability_type_code = 'z')
+    approp = AppropriationFactory(availability_type_code='z')
 
     errors = number_of_errors(_FILE, database, models=[approp])
     assert errors == 1

@@ -31,7 +31,7 @@ def add_user_routes(app, system_email, bcrypt):
     @requires_login
     def set_skip_guide():
         """ Sets skip_guide param for current user """
-        accountManager = AccountHandler(request, bcrypt = bcrypt)
+        accountManager = AccountHandler(request, bcrypt=bcrypt)
         return accountManager.set_skip_guide()
 
     @app.route("/v1/email_users/", methods=["POST"])

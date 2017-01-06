@@ -11,10 +11,10 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test that TAS values can be found, and null matches work correctly"""
-    approp = AppropriationFactory(other_budgetary_resources_cpe = 600, contract_authority_amount_cpe = 100,
-                                  borrowing_authority_amount_cpe = 200, spending_authority_from_of_cpe = 300)
-    approp_null = AppropriationFactory(other_budgetary_resources_cpe = 300, contract_authority_amount_cpe = 100,
-                                  borrowing_authority_amount_cpe = 200, spending_authority_from_of_cpe = None)
+    approp = AppropriationFactory(other_budgetary_resources_cpe=600, contract_authority_amount_cpe=100,
+                                  borrowing_authority_amount_cpe=200, spending_authority_from_of_cpe=300)
+    approp_null = AppropriationFactory(other_budgetary_resources_cpe=300, contract_authority_amount_cpe=100,
+                                  borrowing_authority_amount_cpe=200, spending_authority_from_of_cpe=None)
 
     errors = number_of_errors(_FILE, database, models=[approp, approp_null])
     assert errors == 0
@@ -22,10 +22,10 @@ def test_success(database):
 def test_failure(database):
     """ Test that tas that does not match is an error"""
 
-    approp = AppropriationFactory(other_budgetary_resources_cpe = 800, contract_authority_amount_cpe = 100,
-                                  borrowing_authority_amount_cpe = 200, spending_authority_from_of_cpe = 300)
-    approp_null = AppropriationFactory(other_budgetary_resources_cpe = 500, contract_authority_amount_cpe = 100,
-                                  borrowing_authority_amount_cpe = 200, spending_authority_from_of_cpe = None)
+    approp = AppropriationFactory(other_budgetary_resources_cpe=800, contract_authority_amount_cpe=100,
+                                  borrowing_authority_amount_cpe=200, spending_authority_from_of_cpe=300)
+    approp_null = AppropriationFactory(other_budgetary_resources_cpe=500, contract_authority_amount_cpe=100,
+                                  borrowing_authority_amount_cpe=200, spending_authority_from_of_cpe=None)
 
     errors = number_of_errors(_FILE, database, models=[approp, approp_null])
     assert errors == 2

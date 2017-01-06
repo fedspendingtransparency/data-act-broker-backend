@@ -60,11 +60,11 @@ class Submission(Base):
     reporting_end_date = Column(Date, nullable=False)
     reporting_fiscal_year = Column(Integer, nullable=False, default=generateFiscalYear, server_default='0')
     reporting_fiscal_period = Column(Integer, nullable=False, default=generateFiscalPeriod, server_default='0')
-    is_quarter_format = Column(Boolean, nullable = False, default = "False", server_default= "False")
+    is_quarter_format = Column(Boolean, nullable=False, default="False", server_default="False")
     jobs = None
-    publishable = Column(Boolean, nullable = False, default = "False", server_default = "False")
-    publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL", name ="fk_publish_status_id"))
-    publish_status = relationship("PublishStatus", uselist = False)
+    publishable = Column(Boolean, nullable=False, default="False", server_default="False")
+    publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL", name="fk_publish_status_id"))
+    publish_status = relationship("PublishStatus", uselist=False)
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
 
@@ -129,7 +129,7 @@ class FileGenerationTask(Base):
 
     file_generation_task_id = Column(Integer, primary_key=True)
     generation_task_key = Column(Text, index=True, unique=True)
-    job_id = Column(Integer, ForeignKey("job.job_id", name = "fk_generation_job"))
+    job_id = Column(Integer, ForeignKey("job.job_id", name="fk_generation_job"))
     job = relationship("Job", uselist=False, cascade="delete")
 
 class SubmissionNarrative(Base):

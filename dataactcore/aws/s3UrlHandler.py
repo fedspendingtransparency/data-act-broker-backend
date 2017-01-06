@@ -18,7 +18,7 @@ class s3UrlHandler:
     STS_LIFETIME = 2000
     S3_ROLE = ""
 
-    def __init__(self, name = None):
+    def __init__(self, name=None):
         """
         Creates the object for signing URLS
 

@@ -77,7 +77,7 @@ class FileHandler:
         self.serverPath = serverPath
         self.s3manager = s3UrlHandler()
 
-    def getErrorReportURLsForSubmission(self, is_warning = False):
+    def getErrorReportURLsForSubmission(self, is_warning=False):
         """
         Gets the Signed URLs for download based on the submissionId
         """
@@ -125,7 +125,7 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def getCrossReportKey(self, sourceType, targetType, isWarning = False):
+    def getCrossReportKey(self, sourceType, targetType, isWarning=False):
         """ Generate a key for cross-file error reports """
         if isWarning:
             return "cross_warning_{}-{}".format(sourceType, targetType)
@@ -345,8 +345,8 @@ class FileHandler:
             job_id = input_dictionary.getValue("upload_id")
 
             # Compare user ID with user who submitted job, if no match return 400
-            job = sess.query(Job).filter_by(job_id = job_id).one()
-            submission = sess.query(Submission).filter_by(submission_id = job.submission_id).one()
+            job = sess.query(Job).filter_by(job_id=job_id).one()
+            submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
             if not current_user_can_on_submission('writer', submission):
                 # This user cannot finalize this job
                 raise ResponseException(
@@ -625,7 +625,7 @@ class FileHandler:
             if not self.download_file(full_file_path, url):
                 # Error occurred while downloading file, mark job as failed and record error message
                 mark_job_status(job_id, "failed")
-                job = sess.query(Job).filter_by(job_id = job_id).one()
+                job = sess.query(Job).filter_by(job_id=job_id).one()
                 file_type = job.file_type.name
                 if file_type == "award":
                     source = "ASP"
@@ -696,9 +696,9 @@ class FileHandler:
             return error
 
         job = sess.query(Job).filter_by(
-            submission_id = submission_id,
-            file_type_id = FILE_TYPE_DICT_LETTER_ID[file_type],
-            job_type_id = JOB_TYPE_DICT['file_upload']
+            submission_id=submission_id,
+            file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
+            job_type_id=JOB_TYPE_DICT['file_upload']
         ).one()
 
         try:
@@ -841,7 +841,7 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, responseDict)
 
-    def mapGenerateStatus(self, uploadJob, validationJob = None):
+    def mapGenerateStatus(self, uploadJob, validationJob=None):
         """ Maps job status to file generation statuses expected by frontend """
         sess = GlobalDB.db().session
         uploadStatus = uploadJob.job_status.name
@@ -933,7 +933,7 @@ class FileHandler:
             #Pull information based on task key
             logger.debug('Pulling information based on task key...')
             task = sess.query(FileGenerationTask).filter(FileGenerationTask.generation_task_key == generation_id).one()
-            job = sess.query(Job).filter_by(job_id = task.job_id).one()
+            job = sess.query(Job).filter_by(job_id=task.job_id).one()
             logger.debug('Loading D file...')
             result = self.load_d_file(url, job.filename, job.original_filename, job.job_id, self.isLocal)
             logger.debug('Load D file result => %s', result)

@@ -12,8 +12,8 @@ def test_column_headers(database):
 def test_success(database):
     """ Test that agency codes are matched against cgac correctly """
     award_fin = AwardFinancialFactory()
-    award_fin_null = AwardFinancialFactory(allocation_transfer_agency = None)
-    cgac = CGACFactory(cgac_code = award_fin.allocation_transfer_agency)
+    award_fin_null = AwardFinancialFactory(allocation_transfer_agency=None)
+    cgac = CGACFactory(cgac_code=award_fin.allocation_transfer_agency)
 
     errors = number_of_errors(_FILE, database, models=[award_fin, award_fin_null, cgac])
     assert errors == 0
@@ -23,8 +23,8 @@ def test_failure(database):
     # These cgacs are different lengths to avoid being equal
     cgac_one = "cgac_one"
     cgac_two = "cgac_two"
-    awardFin = AwardFinancialFactory(allocation_transfer_agency = cgac_one)
-    cgac = CGACFactory(cgac_code = cgac_two)
+    awardFin = AwardFinancialFactory(allocation_transfer_agency=cgac_one)
+    cgac = CGACFactory(cgac_code=cgac_two)
 
     errors = number_of_errors(_FILE, database, models=[awardFin, cgac])
     assert errors == 1

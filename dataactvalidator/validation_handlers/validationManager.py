@@ -442,7 +442,8 @@ class ValidationManager:
                 # write to warnings file
                 warning_writer.write([field_name, error_msg, str(row), failed_value, original_label])
             error_list.recordRowError(job_id, job.filename, field_name,
-                                          error, row_number, original_label, file_type_id=file_type_id, target_file_id = target_file_id, severity_id=severity_id)
+                                        error, row_number, original_label, file_type_id=file_type_id,
+                                        target_file_id=target_file_id, severity_id=severity_id)
         return error_rows
 
     def runCrossValidation(self, job):
@@ -502,7 +503,7 @@ class ValidationManager:
         logger.info(
             'VALIDATOR_INFO: Completed runCrossValidation on submission_id: '
             '%s', submission_id)
-        submission = sess.query(Submission).filter_by(submission_id = submission_id).one()
+        submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
         # Update error info for submission
         submission.number_of_errors = sumNumberOfErrorsForJobList(submission_id)
         submission.number_of_warnings = sumNumberOfErrorsForJobList(submission_id, errorType="warning")

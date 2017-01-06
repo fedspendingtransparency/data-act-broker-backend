@@ -192,7 +192,7 @@ class FileTests(BaseTestAPI):
             "award_financial": "updated.csv",
             "reporting_period_start_date": "12/2016",
             "reporting_period_end_date": "13/2016"}
-        updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id": self.session_id}, expect_errors = True)
+        updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(updateResponse.status_code, 400)
         self.assertIn("Date must be provided as", updateResponse.json["message"])
 
@@ -202,7 +202,7 @@ class FileTests(BaseTestAPI):
             "award_financial": "updated.csv",
             "reporting_period_start_date": "AB/2016",
             "reporting_period_end_date": "CD/2016"}
-        updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id": self.session_id}, expect_errors = True)
+        updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(updateResponse.status_code, 400)
         self.assertIn("Date must be provided as", updateResponse.json["message"])
 
@@ -212,7 +212,7 @@ class FileTests(BaseTestAPI):
             "award_financial": "updated.csv",
             "reporting_period_start_date": "Q1/ABCD",
             "reporting_period_end_date": "Q2/2016"}
-        updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id": self.session_id}, expect_errors = True)
+        updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(updateResponse.status_code, 400)
         self.assertIn("Date must be provided as", updateResponse.json["message"])
 
@@ -502,7 +502,7 @@ class FileTests(BaseTestAPI):
         # Test permission error
         self.login_user()
         postJson = {"submission_id": self.generation_submission_id, "file_type": "D1", "start": "01/02/2016", "end": "02/03/2016"}
-        response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id": self.session_id}, expect_errors = True)
+        response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id": self.session_id}, expect_errors=True)
 
         self.assertEqual(response.status_code, 403)
         json = response.json
@@ -543,14 +543,14 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["message"], 'No generation job found with the specified ID')
 
     @staticmethod
-    def insertSubmission(sess, submission_user_id, cgac_code = None, startDate = None, endDate = None, is_quarter = False, number_of_errors=0):
+    def insertSubmission(sess, submission_user_id, cgac_code=None, startDate=None, endDate=None, is_quarter=False, number_of_errors=0):
         """Insert one submission into job tracker and get submission ID back."""
         sub = Submission(datetime_utc=datetime.utcnow(),
                          user_id=submission_user_id,
-                         cgac_code = cgac_code,
+                         cgac_code=cgac_code,
                          reporting_start_date=datetime.strptime(startDate, '%m/%Y'),
                          reporting_end_date=datetime.strptime(endDate, '%m/%Y'),
-                         is_quarter_format = is_quarter,
+                         is_quarter_format=is_quarter,
                          number_of_errors=number_of_errors)
         sess.add(sub)
         sess.commit()

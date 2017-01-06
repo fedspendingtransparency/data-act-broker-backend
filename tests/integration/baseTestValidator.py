@@ -93,7 +93,7 @@ class BaseTestValidator(unittest.TestCase):
         self.assertLess(actualSize, size + 5)
 
     def run_test(self, jobId, statusId, statusName, fileSize, stagingRows,
-                 errorStatus, numErrors, numWarnings = 0, warningFileSize = None):
+                 errorStatus, numErrors, numWarnings=0, warningFileSize=None):
         """ Runs a validation test
 
         Args:

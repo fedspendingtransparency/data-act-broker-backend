@@ -11,10 +11,10 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test that TAS values can be found, and null matches work correctly"""
-    approp = AppropriationFactory(budget_authority_available_cpe = 1000, budget_authority_appropria_cpe = 100,
-        budget_authority_unobligat_fyb = 200, adjustments_to_unobligated_cpe = 300, other_budgetary_resources_cpe = 400)
-    approp_null = AppropriationFactory(budget_authority_available_cpe = 600, budget_authority_appropria_cpe = 100,
-        budget_authority_unobligat_fyb = 200, adjustments_to_unobligated_cpe = 300, other_budgetary_resources_cpe = None)
+    approp = AppropriationFactory(budget_authority_available_cpe=1000, budget_authority_appropria_cpe=100,
+        budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300, other_budgetary_resources_cpe=400)
+    approp_null = AppropriationFactory(budget_authority_available_cpe=600, budget_authority_appropria_cpe=100,
+        budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300, other_budgetary_resources_cpe=None)
 
     errors = number_of_errors(_FILE, database, models=[approp, approp_null])
     assert errors == 0
@@ -22,10 +22,10 @@ def test_success(database):
 def test_failure(database):
     """ Test that tas that does not match is an error"""
 
-    approp = AppropriationFactory(budget_authority_available_cpe = 1200, budget_authority_appropria_cpe = 100,
-        budget_authority_unobligat_fyb = 200, adjustments_to_unobligated_cpe = 300, other_budgetary_resources_cpe = 400)
-    approp_null = AppropriationFactory(budget_authority_available_cpe = 800, budget_authority_appropria_cpe = 100,
-        budget_authority_unobligat_fyb = 200, adjustments_to_unobligated_cpe = 300, other_budgetary_resources_cpe = None)
+    approp = AppropriationFactory(budget_authority_available_cpe=1200, budget_authority_appropria_cpe=100,
+        budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300, other_budgetary_resources_cpe=400)
+    approp_null = AppropriationFactory(budget_authority_available_cpe=800, budget_authority_appropria_cpe=100,
+        budget_authority_unobligat_fyb=200, adjustments_to_unobligated_cpe=300, other_budgetary_resources_cpe=None)
 
     errors = number_of_errors(_FILE, database, models=[approp, approp_null])
     assert errors == 2

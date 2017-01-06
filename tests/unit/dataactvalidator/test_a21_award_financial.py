@@ -10,16 +10,16 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test that availability type code is either x or absent """
-    award_fin = AwardFinancialFactory(availability_type_code = 'X')
-    award_fin_lower = AwardFinancialFactory(availability_type_code = 'x')
-    award_fin_null = AwardFinancialFactory(availability_type_code = None)
+    award_fin = AwardFinancialFactory(availability_type_code='X')
+    award_fin_lower = AwardFinancialFactory(availability_type_code='x')
+    award_fin_null = AwardFinancialFactory(availability_type_code=None)
 
     errors = number_of_errors(_FILE, database, models=[award_fin, award_fin_null, award_fin_lower])
     assert errors == 0
 
 def test_failure(database):
     """ Test an incorrect availability_type_code """
-    award_fin = AwardFinancialFactory(availability_type_code = 'z')
+    award_fin = AwardFinancialFactory(availability_type_code='z')
 
     errors = number_of_errors(_FILE, database, models=[award_fin])
     assert errors == 1
