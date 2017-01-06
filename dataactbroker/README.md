@@ -199,7 +199,7 @@ This route confirms that the broker is running
 Example input: None
 Example output: "Broker is running"
 
-#### GET "/<filename>"
+#### GET "/\<filename\>"
 This path will return files located in the local folder. This path is only accessible for local installs due
 to security reasons.
 
@@ -556,7 +556,7 @@ Get total obligations and specific obligations. Calls to this route should inclu
 ```
 
 
-#### GET "/v1/submission/<int:submission_id>/narrative"
+#### GET "/v1/submission/\<int:submission_id\>/narrative"
 Retrieve existing submission narratives (explanations/notes for particular
 files). Submission id should be the integer id associated with the submission
 in question. Users must have appropriate permissions to access these
@@ -576,7 +576,7 @@ narratives (write access for the agency of the submission or SYS).
 }
 ```
 
-#### POST "/v1/submission/<int:submission_id>/narrative"
+#### POST "/v1/submission/\<int:submission_id\>/narrative"
 Set the file narratives for a given submission. The input should mirror the
 above output, i.e. an object keyed by file types mapping to strings. Keys may
 be absent. Unexpected keys will be ignored. Users must have appropriate
@@ -600,7 +600,7 @@ permissions (write access for the agency of the submission or SYS).
 {}
 ```
 
-#### POST "/v1/submission/<int:submission_id>/report_url"
+#### POST "/v1/submission/\<int:submission_id\>/report_url"
 This route requests the URL associated with a particular type of submission report. The provided URL will expire after roughly half an hour.
 
 ##### Body (JSON)
@@ -624,10 +624,10 @@ This route requests the URL associated with a particular type of submission repo
 ##### Request Params
   * warning - Whether or not the requested report is a warning (or error)
     report. Defaults to False if this parameter isn't present.
-  * file\_type - One of 'appropriations', 'program\_activity',
-    'award\_financial', 'award', 'award\_procurement', 'awardee\_attributes'
-    or 'sub\_award'. Designates the type of report you're seeking.
-  * cross\_type - If present, indicates that we're looking for a
+  * file_type - One of 'appropriations', 'program_activity',
+    'award_financial', 'award', 'award_procurement', 'awardee_attributes'
+    or 'sub_award'. Designates the type of report you're seeking.
+  * cross_type - If present, indicates that we're looking for a
     cross-validation report between `file_type` and this parameter. It accepts the
     same values as `file_type`
 
@@ -978,7 +978,7 @@ To generate a test coverage report from the command line:
 3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
 
 ## D File Callback
-**Route:** `/v1/complete_generation/<generation_task_key>/`
+**Route:** `/v1/complete_generation/\<generation_task_key\>/`
 
 **Method:** `POST`
 
