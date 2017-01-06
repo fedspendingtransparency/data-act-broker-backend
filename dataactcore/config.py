@@ -59,7 +59,8 @@ if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
                              'missing'.format(k))
 
     help_files_path = CONFIG_BROKER["help_files_path"]
-    CONFIG_BROKER["help_files_path"] = "".join([help_files_path, "/"]) if help_files_path[-1] != "/" else help_files_path
+    CONFIG_BROKER["help_files_path"] = "".join([help_files_path, "/"]) if help_files_path[-1] != "/" \
+        else help_files_path
 else:
     CONFIG_BROKER['local'] = True
     CONFIG_BROKER['aws_bucket'] = None

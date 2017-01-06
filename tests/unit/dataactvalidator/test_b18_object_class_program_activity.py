@@ -43,6 +43,7 @@ def test_mismatch_r_value(database):
 
 
 def check_query(db, model, num_expected_errors):
-    """ Test that a four digit object class with no flag is a success, and a three digit object class with a flag is a success"""
+    """ Test that a four digit object class with no flag is a success, and a three digit object class with
+        a flag is a success """
     errors = number_of_errors(_FILE, db, models=[model])
     assert errors == num_expected_errors

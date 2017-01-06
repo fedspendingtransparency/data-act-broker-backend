@@ -40,7 +40,8 @@ class ValidationManager:
     Outer level class, called by flask route
     """
     reportHeaders = ["Field name", "Error message", "Row number", "Value provided", "Rule label"]
-    crossFileReportHeaders = ["Source File", "Target File", "Field names", "Error message", "Values provided", "Row number", "Rule label"]
+    crossFileReportHeaders = ["Source File", "Target File", "Field names", "Error message", "Values provided",
+                              "Row number", "Rule label"]
 
     def __init__(self, isLocal=True, directory=""):
         # Initialize instance variables
@@ -204,7 +205,8 @@ class ValidationManager:
             elif failure[4] == "warning":
                 # write to warnings file
                 warning_writer.write([field_name, error_msg, str(row_number), failed_value, original_rule_label])
-            error_list.recordRowError(job_id, job.filename, field_name, error, row_number, original_rule_label, severity_id=severityId)
+            error_list.recordRowError(job_id, job.filename, field_name, error, row_number, original_rule_label,
+                                      severity_id=severityId)
         return fatal_error_found
 
     def write_to_flex(self, flex_cols, job_id, submission_id):
@@ -313,7 +315,8 @@ class ValidationManager:
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
                     #
-                    (record, reduceRow, skipRow, doneReading, rowErrorHere, flex_cols) = self.readRecord(reader, writer, rowNumber, job, fields, error_list)
+                    (record, reduceRow, skipRow, doneReading, rowErrorHere, flex_cols) = \
+                        self.readRecord(reader, writer, rowNumber, job, fields, error_list)
                     if reduceRow:
                         rowNumber -= 1
                     if rowErrorHere:
@@ -329,8 +332,8 @@ class ValidationManager:
                     # second phase of validations: do basic schema checks
                     # (e.g., require fields, field length, data type)
                     #
-                    # D files are obtained from upstream systems (ASP and FPDS) that perform their own basic validations,
-                    # so these validations are not repeated here
+                    # D files are obtained from upstream systems (ASP and FPDS) that perform their own basic
+                    # validations, so these validations are not repeated here
                     if fileType in ["award", "award_procurement"]:
                         # Skip basic validations for D files, set as valid to trigger write to staging
                         passedValidations = True
@@ -349,7 +352,8 @@ class ValidationManager:
                             continue
 
                     if not passedValidations:
-                        if self.writeErrors(failures, job, self.short_to_long_dict, writer, warningWriter, rowNumber, error_list):
+                        if self.writeErrors(failures, job, self.short_to_long_dict, writer, warningWriter,
+                                            rowNumber, error_list):
                             errorRows.append(rowNumber)
 
                 logger.info(
@@ -489,7 +493,8 @@ class ValidationManager:
 
             # loop through failures to create the error report
             with self.getWriter(regionName, bucketName, reportFilename, self.crossFileReportHeaders) as writer, \
-                    self.getWriter(regionName, bucketName, warningReportFilename, self.crossFileReportHeaders) as warningWriter:
+                    self.getWriter(regionName, bucketName, warningReportFilename, self.crossFileReportHeaders) as \
+                    warningWriter:
                 for failure in failures:
                     if failure[9] == RULE_SEVERITY_DICT['fatal']:
                         writer.write(failure[0:7])
@@ -511,8 +516,8 @@ class ValidationManager:
         submission.number_of_errors = sumNumberOfErrorsForJobList(submission_id)
         submission.number_of_warnings = sumNumberOfErrorsForJobList(submission_id, errorType="warning")
         # TODO: Remove temporary step below
-        # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their submissions
-        # as publishable
+        # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their
+        # submissions as publishable
         # Publish only if no errors are present
         if submission.number_of_errors == 0:
             submission.publishable = True

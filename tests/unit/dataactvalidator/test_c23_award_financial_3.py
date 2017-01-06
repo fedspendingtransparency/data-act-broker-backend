@@ -15,7 +15,8 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test that a four digit object class with no flag is a success, and a three digit object class with a flag is a success"""
+    """ Test that a four digit object class with no flag is a success, and a three digit object class with
+        a flag is a success """
     # Create a 12 character random fain
     fain = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
     fain_two = ''.join(choice(ascii_uppercase + ascii_lowercase + digits) for _ in range(12))
@@ -69,5 +70,7 @@ def test_failure(database):
     other_fain_loan_afa_row = AwardFinancialAssistanceFactory(fain=fain_two, federal_action_obligation=None,
                                                               original_loan_subsidy_cost=-1000, assistance_type='07')
 
-    errors = number_of_errors(_FILE, database, models=[first_fain_row_one, first_fain_row_two, second_fain_row_one, first_afa_row, second_afa_row, other_fain_afa_row, other_fain_loan_afa_row])
+    errors = number_of_errors(_FILE, database,
+                              models=[first_fain_row_one, first_fain_row_two, second_fain_row_one, first_afa_row,
+                                      second_afa_row, other_fain_afa_row, other_fain_loan_afa_row])
     assert errors == 2

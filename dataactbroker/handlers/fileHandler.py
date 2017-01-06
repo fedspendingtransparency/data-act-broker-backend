@@ -59,8 +59,10 @@ class FileHandler:
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
     EXTERNAL_FILE_TYPES = ["award", "award_procurement", "awardee_attributes", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
-    STATUS_MAP = {"waiting": "invalid", "ready": "invalid", "running": "waiting", "finished": "finished", "invalid": "failed", "failed": "failed"}
-    VALIDATION_STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "waiting", "finished": "finished", "failed": "failed", "invalid": "failed"}
+    STATUS_MAP = {"waiting": "invalid", "ready": "invalid", "running": "waiting", "finished": "finished",
+                  "invalid": "failed", "failed": "failed"}
+    VALIDATION_STATUS_MAP = {"waiting": "waiting", "ready": "waiting", "running": "waiting", "finished": "finished",
+                             "failed": "failed", "invalid": "failed"}
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
@@ -260,7 +262,8 @@ class FileHandler:
                 self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
                 response_dict["credentials"] = self.s3manager.getTemporaryCredentials(g.user.user_id)
             else:
-                response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local", "SessionToken": "local", "Expiration": "local"}
+                response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local",
+                                                "SessionToken": "local", "Expiration": "local"}
 
             response_dict["submission_id"] = file_job_dict["submission_id"]
             if self.isLocal:
@@ -486,7 +489,8 @@ class FileHandler:
 
         if file_type in ["D1", "D2"]:
             logger.debug('Adding job info for job id of %s', job.job_id)
-            return self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job)
+            return self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id, file_type,
+                                                file_type_name, start_date, end_date, cgac_code, job)
         elif file_type == 'E':
             generate_e_file.delay(
                 submission.submission_id, job.job_id, timestamped_name,
@@ -498,7 +502,8 @@ class FileHandler:
 
         return True, None
 
-    def add_job_info_for_d_file(self, upload_file_name, timestamped_name, submission_id, file_type, file_type_name, start_date, end_date, cgac_code, job):
+    def add_job_info_for_d_file(self, upload_file_name, timestamped_name, submission_id, file_type, file_type_name,
+                                start_date, end_date, cgac_code, job):
         """ Populates upload and validation job objects with start and end dates, filenames, and status
 
         Args:
@@ -771,7 +776,8 @@ class FileHandler:
         upload_job = sess.query(Job).filter_by(
             job_id=job_id).one_or_none()
 
-        response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '', 'start': '', 'end': ''}
+        response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '',
+                         'start': '', 'end': ''}
 
         if upload_job is None:
             response_dict['status'] = 'invalid'
@@ -830,14 +836,15 @@ class FileHandler:
             responseDict["url"] = "#"
         elif CONFIG_BROKER["use_aws"]:
             path, file_name = uploadJob.filename.split("/")
-            responseDict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name, bucketRoute=None, method="GET")
+            responseDict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name,
+                                                              bucketRoute=None, method="GET")
         else:
             responseDict["url"] = uploadJob.filename
 
         # Pull start and end from jobs table if D1 or D2
         if file_type in ["D1", "D2"]:
-            responseDict["start"] = uploadJob.start_date.strftime("%m/%d/%Y") if uploadJob.start_date is not None else ""
-            responseDict["end"] = uploadJob.end_date.strftime("%m/%d/%Y") if uploadJob.end_date is not None else ""
+            responseDict["start"] = uploadJob.start_date.strftime("%m/%d/%Y") if uploadJob.start_date else ""
+            responseDict["end"] = uploadJob.end_date.strftime("%m/%d/%Y") if uploadJob.end_date else ""
 
         return JsonResponse.create(StatusCode.OK, responseDict)
 
@@ -892,7 +899,8 @@ class FileHandler:
             response["urls"] = {}
             return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
 
-        response["urls"] = self.s3manager.getFileUrls(bucket_name=CONFIG_BROKER["static_files_bucket"], path=CONFIG_BROKER["help_files_path"])
+        response["urls"] = self.s3manager.getFileUrls(bucket_name=CONFIG_BROKER["static_files_bucket"],
+                                                      path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
 
     def complete_generation(self, generation_id, file_type=None):
@@ -900,9 +908,10 @@ class FileHandler:
         Requires an 'href' key in the request that specifies the URL of the file to be downloaded
 
         Args:
-            generationId - Unique key stored in file_generation_task table, used in callback to identify which submission
-            this file is for.
-            file_type - the type of file to be generated, D1 or D2. Only used when calling complete_generation for local development
+            generationId - Unique key stored in file_generation_task table, used in callback to
+                identify which submission this file is for.
+            file_type - the type of file to be generated, D1 or D2. Only used when calling
+                complete_generation for local development
 
         """
         sess = GlobalDB.db().session
@@ -942,7 +951,8 @@ class FileHandler:
             return JsonResponse.error(e, e.status)
         except NoResultFound:
             # Did not find file generation task
-            return JsonResponse.error(ResponseException("Generation task key not found", StatusCode.CLIENT_ERROR), StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(ResponseException("Generation task key not found", StatusCode.CLIENT_ERROR),
+                                      StatusCode.CLIENT_ERROR)
 
     @staticmethod
     def get_d_file_url(task_key, file_type_name, cgac_code, start_date, end_date):
@@ -1131,7 +1141,8 @@ def get_status(submission):
     """ Get description and status of all jobs in the submission specified in request object
 
     Returns:
-        A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding file_type, job_type, status, and filename
+        A flask response object to be sent back to client, holds a JSON where each job ID has a dictionary holding
+        file_type, job_type, status, and filename
     """
     try:
         return JsonResponse.create(

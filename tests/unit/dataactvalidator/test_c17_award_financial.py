@@ -99,7 +99,8 @@ def test_success(database):
                                             ussgl498100_upward_adjustm_cpe=123,
                                             ussgl498200_upward_adjustm_cpe=None)
 
-    assert number_of_errors(_FILE, database, models=[award_fin_amount, award_fin_one, award_fin_two, award_fin_three]) == 0
+    assert number_of_errors(_FILE, database,
+                            models=[award_fin_amount, award_fin_one, award_fin_two, award_fin_three]) == 0
 
 
 def test_failure(database):

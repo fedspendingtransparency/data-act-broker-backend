@@ -58,7 +58,8 @@ class Submission(Base):
 
     submission_id = Column(Integer, primary_key=True)
     datetime_utc = Column(DateTime)
-    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_submission_user"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_submission_user"),
+                     nullable=True)
     user = relationship("User")
     cgac_code = Column(Text)
     reporting_start_date = Column(Date, nullable=False)
@@ -68,7 +69,8 @@ class Submission(Base):
     is_quarter_format = Column(Boolean, nullable=False, default="False", server_default="False")
     jobs = None
     publishable = Column(Boolean, nullable=False, default="False", server_default="False")
-    publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL", name="fk_publish_status_id"))
+    publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL",
+                                                   name="fk_publish_status_id"))
     publish_status = relationship("PublishStatus", uselist=False)
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
@@ -83,7 +85,8 @@ class Job(Base):
     job_status = relationship("JobStatus", uselist=False, lazy='joined')
     job_type_id = Column(Integer, ForeignKey("job_type.job_type_id", name="fk_job_type_id"))
     job_type = relationship("JobType", uselist=False, lazy='joined')
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_job_submission_id"))
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_job_submission_id"))
     submission = relationship("Submission", uselist=False, cascade="delete")
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"), nullable=True)
     file_type = relationship("FileType", uselist=False, lazy='joined')

@@ -9,10 +9,12 @@ SF_RE = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
 
 def test_sf133_files(database):
     """Test sums of all TAS's in any unloaded SF-133 files"""
-    failed_validations = ['file,aid,ata,availability_type_code,bpoa,epoa,main_account,sub_account,error_type,value1,value2']
+    failed_validations = ['file,aid,ata,availability_type_code,bpoa,epoa,main_account,sub_account,'
+                          'error_type,value1,value2']
 
     # get a list of SF 133 files to test
-    sf133_list = load_sf133.get_sf133_list(os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config', 'to_validate'))
+    sf133_list = load_sf133.get_sf133_list(os.path.join(CONFIG_BROKER['path'], 'dataactvalidator', 'config',
+                                                        'to_validate'))
 
     # test data in each SF 133 file
     for sf133 in sf133_list:
@@ -35,7 +37,8 @@ def test_sf133_files(database):
             validate_two_lines = ['2190', '2490']
             validation_sum_lines = ['1910', '2500']
 
-            data = data[(data.line.isin(validate_one_lines + validate_two_lines + validation_sum_lines) & (data.amount != 0))]
+            data = data[(data.line.isin(validate_one_lines + validate_two_lines + validation_sum_lines) &
+                         (data.amount != 0))]
 
             # sort data by unique TAS
             data.sort_values(by=['tas'], inplace=True)
@@ -70,7 +73,9 @@ def test_sf133_files(database):
                     current_tas['main_account_code'], current_tas['sub_account_code']
                 ]
 
-                if not (validation_one and validation_two) and (not current_tas.empty and not current_tas['availability_type_code'] == 'X' and int(current_tas['fiscal_year']) > int(current_tas['ending_period_of_availabil'])):
+                if not (validation_one and validation_two) and \
+                        (not current_tas.empty and not current_tas['availability_type_code'] == 'X' and
+                            int(current_tas['fiscal_year']) > int(current_tas['ending_period_of_availabil'])):
                     # line 1910 != line 2500
                     if not validation_three:
                         failed_validations.append(','.join(join_array + [

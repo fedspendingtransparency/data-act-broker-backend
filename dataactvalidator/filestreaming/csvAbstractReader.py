@@ -46,7 +46,8 @@ class CsvAbstractReader(object):
             with self.get_writer(bucket_name, error_filename, ["Error Type"], self.is_local) as writer:
                 writer.write(["No header row"])
                 writer.finishBatch()
-            raise ResponseException("CSV file must have a header", StatusCode.CLIENT_ERROR, ValueError, ValidationError.singleRow)
+            raise ResponseException("CSV file must have a header", StatusCode.CLIENT_ERROR,
+                                    ValueError, ValidationError.singleRow)
 
         duplicated_headers = []
         # create the header
@@ -60,7 +61,8 @@ class CsvAbstractReader(object):
             with self.get_writer(bucket_name, error_filename, ["Error Type"], self.is_local) as writer:
                 writer.write(["Cannot use both ',' and '|' as delimiters. Please choose one."])
                 writer.finishBatch()
-            raise ResponseException("Error in header row: CSV file must use only '|' or ',' as the delimiter", StatusCode.CLIENT_ERROR, ValueError, ValidationError.headerError)
+            raise ResponseException("Error in header row: CSV file must use only '|' or ',' as the delimiter",
+                                    StatusCode.CLIENT_ERROR, ValueError, ValidationError.headerError)
 
         self.delimiter = "|" if line.count("|") != 0 else ","
 
@@ -136,7 +138,8 @@ class CsvAbstractReader(object):
                     for header in missing_headers:
                         writer.write(["Missing header", header])
                 writer.finishBatch()
-            raise ResponseException("Errors in header row: " + str(error_string), StatusCode.CLIENT_ERROR, ValueError, ValidationError.headerError, **extra_info)
+            raise ResponseException("Errors in header row: " + str(error_string), StatusCode.CLIENT_ERROR, ValueError,
+                                    ValidationError.headerError, **extra_info)
 
         return long_headers
 
@@ -163,10 +166,12 @@ class CsvAbstractReader(object):
 
         for row in csv.reader([line], dialect='excel', delimiter=self.delimiter):
             if len(row) != self.column_count:
-                raise ResponseException("Wrong number of fields in this row", StatusCode.CLIENT_ERROR, ValueError, ValidationError.readError)
+                raise ResponseException("Wrong number of fields in this row", StatusCode.CLIENT_ERROR, ValueError,
+                                        ValidationError.readError)
             for current, cell in enumerate(row):
                 if current >= self.column_count:
-                    raise ResponseException("Record contains too many fields", StatusCode.CLIENT_ERROR, ValueError, ValidationError.readError)
+                    raise ResponseException("Record contains too many fields", StatusCode.CLIENT_ERROR, ValueError,
+                                            ValidationError.readError)
                 if cell == "":
                     # Use None instead of empty strings for sqlalchemy
                     cell = None

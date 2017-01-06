@@ -7,7 +7,8 @@ class ResponseException(Exception):
             message: Message to be attached to exception
             status: HTTP status code to be returned with this exception
             errorClass: Nested exception will be created of this class if included
-            errorType: Type ID written to error DB, should be one of the values in dataactvalidator.validation_handlers.validationError.py
+            errorType: Type ID written to error DB, should be one of the values in
+            dataactvalidator.validation_handlers.validationError.py
             **kwargs: Additional fields to be attached to exception, primarily used for providing extra data to error DB
 
         Returns:

@@ -20,7 +20,8 @@ def test_success(database):
     # Test fain + uri
     award_fin_no_piid = AwardFinancialFactory(piid=None)
 
-    assert number_of_errors(_FILE, database, models=[award_fin_fain, award_fin_uri, award_fin_piid, award_fin_no_piid]) == 0
+    assert number_of_errors(_FILE, database,
+                            models=[award_fin_fain, award_fin_uri, award_fin_piid, award_fin_no_piid]) == 0
 
 
 def test_failure(database):

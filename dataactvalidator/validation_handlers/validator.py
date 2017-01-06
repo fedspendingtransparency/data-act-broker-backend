@@ -15,7 +15,8 @@ class Validator(object):
     Checks individual records against specified validation tests
     """
     BOOLEAN_VALUES = ["TRUE", "FALSE", "YES", "NO", "1", "0"]
-    tableAbbreviations = {"appropriations": "approp", "award_financial_assistance": "afa", "award_financial": "af", "object_class_program_activity": "op", "appropriation": "approp"}
+    tableAbbreviations = {"appropriations": "approp", "award_financial_assistance": "afa", "award_financial": "af",
+                          "object_class_program_activity": "op", "appropriation": "approp"}
     # Set of metadata fields that should not be directly validated
     META_FIELDS = ["row_number"]
 
@@ -43,7 +44,8 @@ class Validator(object):
                 columnString = ", ".join(short_to_long_dict[c] if c in short_to_long_dict else c for c in cols)
                 for row in failedRows:
                     # get list of values for each column
-                    values = ["{}: {}".format(short_to_long_dict[c], str(row[c])) if c in short_to_long_dict else "{}: {}".format(c, str(row[c])) for c in cols]
+                    values = ["{}: {}".format(short_to_long_dict[c], str(row[c])) if c in short_to_long_dict else
+                              "{}: {}".format(c, str(row[c])) for c in cols]
                     values = ", ".join(values)
                     targetFileType = FILE_TYPE_DICT_ID[rule.target_file_id]
                     failures.append([rule.file.name, targetFileType, columnString,
@@ -114,12 +116,14 @@ class Validator(object):
                 continue
 
             # Check length based on schema
-            if current_schema.length is not None and current_data is not None and len(current_data.strip()) > current_schema.length:
+            if current_schema.length is not None and current_data is not None and \
+               len(current_data.strip()) > current_schema.length:
                 # Length failure, add to failedRules
                 record_failed = True
                 failed_rules.append([field_name, ValidationError.lengthError, current_data, "", "warning"])
 
-        # if all columns are blank (empty row), set it so it doesn't add to the error messages or write the line, just ignore it
+        # if all columns are blank (empty row), set it so it doesn't add to the error messages or write the line,
+        # just ignore it
         if total_fields == blank_fields:
             record_failed = False
             record_type_failure = True
@@ -223,7 +227,9 @@ class Validator(object):
                     errorMsg = rule.rule_error_message
                     row = failure["row_number"]
                     # Create strings for fields and values
-                    valueList = ["{}: {}".format(short_to_long_dict[field], str(failure[field])) if field in short_to_long_dict else "{}: {}".format(field, str(failure[field])) for field in cols]
+                    valueList = ["{}: {}".format(short_to_long_dict[field], str(failure[field])) if
+                                 field in short_to_long_dict else "{}: {}".format(field, str(failure[field])) for
+                                 field in cols]
                     if flex_dict and flex_dict[row]:
                         valueList.append("{}: {}".format(flex_dict[row].header, flex_dict[row].cell))
                     valueString = ", ".join(valueList)
@@ -231,7 +237,8 @@ class Validator(object):
                     if flex_dict and flex_dict[row]:
                         fieldList.append(flex_dict[row].header)
                     fieldString = ", ".join(fieldList)
-                    errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId, rule.target_file_id, rule.rule_severity_id])
+                    errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId,
+                                   rule.target_file_id, rule.rule_severity_id])
 
             logger.info(
                 'VALIDATOR_INFO: Completed SQL validation rules on '

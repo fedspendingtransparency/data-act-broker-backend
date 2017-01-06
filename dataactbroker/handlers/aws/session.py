@@ -127,11 +127,13 @@ class UserSessionInterface(SessionInterface):
         """
         if not session:
             return
-        # Extend the expiration based on either the time out limit set here or the permanent_session_lifetime property of the app
+        # Extend the expiration based on either the time out limit set here or
+        # the permanent_session_lifetime property of the app
         if self.get_expiration_time(app, session):
             expiration = self.get_expiration_time(app, session)
         else:
-            if "session_check" in session and session["session_check"] and SessionTable.doesSessionExist(session["sid"]):
+            if "session_check" in session and session["session_check"] and \
+                    SessionTable.doesSessionExist(session["sid"]):
                 # This is just a session check, don't extend expiration time
                 expiration = SessionTable.getTimeout(session["sid"])
                 # Make sure next route call does not get counted as session check

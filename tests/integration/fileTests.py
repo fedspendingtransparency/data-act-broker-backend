@@ -91,7 +91,8 @@ class FileTests(BaseTestAPI):
                                   "program_activity": os.path.join(filePath, "test4.csv"), "cgac_code": "SYS",
                                   "reporting_period_start_date": "01/2001",
                                   "reporting_period_end_date": "03/2001", "is_quarter": True}
-            self.submitFilesResponse = self.app.post_json("/v1/submit_files/", self.filenames, headers={"x-session-id": self.session_id})
+            self.submitFilesResponse = self.app.post_json("/v1/submit_files/", self.filenames,
+                                                          headers={"x-session-id": self.session_id})
             self.updateSubmissionId = self.submitFilesResponse.json["submission_id"]
         return self.submitFilesResponse
 
@@ -170,7 +171,8 @@ class FileTests(BaseTestAPI):
             updateSubmission = sess.query(Submission).filter(Submission.submission_id == self.updateSubmissionId).one()
             updateSubmission.publish_status_id = PUBLISH_STATUS_DICT['published']
             sess.commit()
-            updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id": self.session_id})
+            updateResponse = self.app.post_json("/v1/submit_files/", updateJson,
+                                                headers={"x-session-id": self.session_id})
             self.assertEqual(updateResponse.status_code, 200)
             self.assertEqual(updateResponse.headers.get("Content-Type"), "application/json")
 
@@ -191,7 +193,8 @@ class FileTests(BaseTestAPI):
             "award_financial": "updated.csv",
             "reporting_period_start_date": "12/2016",
             "reporting_period_end_date": "13/2016"}
-        updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id": self.session_id}, expect_errors=True)
+        updateResponse = self.app.post_json("/v1/submit_files/", updateJson,
+                                            headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(updateResponse.status_code, 400)
         self.assertIn("Date must be provided as", updateResponse.json["message"])
 
@@ -201,7 +204,8 @@ class FileTests(BaseTestAPI):
             "award_financial": "updated.csv",
             "reporting_period_start_date": "AB/2016",
             "reporting_period_end_date": "CD/2016"}
-        updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id": self.session_id}, expect_errors=True)
+        updateResponse = self.app.post_json("/v1/submit_files/", updateJson,
+                                            headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(updateResponse.status_code, 400)
         self.assertIn("Date must be provided as", updateResponse.json["message"])
 
@@ -211,7 +215,8 @@ class FileTests(BaseTestAPI):
             "award_financial": "updated.csv",
             "reporting_period_start_date": "Q1/ABCD",
             "reporting_period_end_date": "Q2/2016"}
-        updateResponse = self.app.post_json("/v1/submit_files/", updateJson, headers={"x-session-id": self.session_id}, expect_errors=True)
+        updateResponse = self.app.post_json("/v1/submit_files/", updateJson,
+                                            headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(updateResponse.status_code, 400)
         self.assertIn("Date must be provided as", updateResponse.json["message"])
 
@@ -219,7 +224,8 @@ class FileTests(BaseTestAPI):
         """ Test response with no login """
         self.logout()
         postJson = {"submission_id": self.status_check_submission_id}
-        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True, headers={"x-session-id": self.session_id})
+        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True,
+                                      headers={"x-session-id": self.session_id})
         # Assert 401 status
         self.assertEqual(response.status_code, 401)
 
@@ -236,7 +242,8 @@ class FileTests(BaseTestAPI):
         # Log in as non-admin user
         self.login_user()
         # Call check status route
-        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True, headers={"x-session-id": self.session_id})
+        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True,
+                                      headers={"x-session-id": self.session_id})
         # Assert 400 status
         self.assertEqual(response.status_code, 403)
 
@@ -246,7 +253,8 @@ class FileTests(BaseTestAPI):
         # Log in as admin user
         self.login_admin_user()
         # Call check status route (also checking case insensitivity of header here)
-        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True, headers={"x-SESSION-id": self.session_id})
+        response = self.app.post_json("/v1/check_status/", postJson, expect_errors=True,
+                                      headers={"x-SESSION-id": self.session_id})
         # Assert 200 status
         self.assertEqual(response.status_code, 200)
 
@@ -354,7 +362,8 @@ class FileTests(BaseTestAPI):
         submission = SubmissionFactory()
         self.session.add(submission)
         self.session.commit()
-        response = self.app.post_json("/v1/get_obligations/", {"submission_id": submission.submission_id}, headers={"x-session-id": self.session_id})
+        response = self.app.post_json("/v1/get_obligations/", {"submission_id": submission.submission_id},
+                                      headers={"x-session-id": self.session_id})
         assert response.status_code == 200
         assert "total_obligations" in response.json
         
@@ -368,7 +377,8 @@ class FileTests(BaseTestAPI):
             json = response.json
             self.assertNotEqual(len(json["urls"]), 0)
         else:
-            response = self.app.get("/v1/get_protected_files/", headers={"x-session-id": self.session_id}, expect_errors=True)
+            response = self.app.get("/v1/get_protected_files/",
+                                    headers={"x-session-id": self.session_id}, expect_errors=True)
             self.assertEqual(response.status_code, 400, msg=str(response.json))
             self.assertEqual(response.headers.get("Content-Type"), "application/json")
             json = response.json
@@ -450,7 +460,8 @@ class FileTests(BaseTestAPI):
     def test_file_generation(self):
         """ Test the generate and check routes for external files """
         # For file generation submission, call generate route for D1 and check results
-        postJson = {"submission_id": self.generation_submission_id, "file_type": "D1", "start": "01/02/2016", "end": "02/03/2016"}
+        postJson = {"submission_id": self.generation_submission_id, "file_type": "D1",
+                    "start": "01/02/2016", "end": "02/03/2016"}
         response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id": self.session_id})
 
         self.assertEqual(response.status_code, 200)
@@ -469,7 +480,8 @@ class FileTests(BaseTestAPI):
 
         # Then call check generation route for D2, E and F and check results
         postJson = {"submission_id": self.generation_submission_id, "file_type": "E"}
-        response = self.app.post_json("/v1/check_generation_status/", postJson, headers={"x-session-id": self.session_id})
+        response = self.app.post_json("/v1/check_generation_status/", postJson,
+                                      headers={"x-session-id": self.session_id})
 
         self.assertEqual(response.status_code, 200)
         json = response.json
@@ -479,7 +491,8 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["message"], "")
 
         postJson = {"submission_id": self.generation_submission_id, "file_type": "D2"}
-        response = self.app.post_json("/v1/check_generation_status/", postJson, headers={"x-session-id": self.session_id})
+        response = self.app.post_json("/v1/check_generation_status/", postJson,
+                                      headers={"x-session-id": self.session_id})
 
         self.assertEqual(response.status_code, 200)
         json = response.json
@@ -489,7 +502,8 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["message"], "Generated file had file-level errors")
 
         postJson = {"submission_id": self.generation_submission_id, "file_type": "F"}
-        response = self.app.post_json("/v1/check_generation_status/", postJson, headers={"x-session-id": self.session_id})
+        response = self.app.post_json("/v1/check_generation_status/", postJson,
+                                      headers={"x-session-id": self.session_id})
 
         self.assertEqual(response.status_code, 200)
         json = response.json
@@ -500,8 +514,10 @@ class FileTests(BaseTestAPI):
 
         # Test permission error
         self.login_user()
-        postJson = {"submission_id": self.generation_submission_id, "file_type": "D1", "start": "01/02/2016", "end": "02/03/2016"}
-        response = self.app.post_json("/v1/generate_file/", postJson, headers={"x-session-id": self.session_id}, expect_errors=True)
+        postJson = {"submission_id": self.generation_submission_id, "file_type": "D1",
+                    "start": "01/02/2016", "end": "02/03/2016"}
+        response = self.app.post_json("/v1/generate_file/", postJson,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
 
         self.assertEqual(response.status_code, 403)
         json = response.json
@@ -516,7 +532,8 @@ class FileTests(BaseTestAPI):
         """ Test the generate and check routes for external files """
         # For file generation submission, call generate route for D1 and check results
         postJson = {'file_type': 'D1', 'start': '01/02/2016', 'end': '02/03/2016', 'cgac_code': '020'}
-        response = self.app.post_json("/v1/generate_detached_file/", postJson, headers={"x-session-id": self.session_id})
+        response = self.app.post_json("/v1/generate_detached_file/", postJson,
+                                      headers={"x-session-id": self.session_id})
 
         self.assertEqual(response.status_code, 200)
         json = response.json
@@ -542,7 +559,8 @@ class FileTests(BaseTestAPI):
         self.assertEqual(json["message"], 'No generation job found with the specified ID')
 
     @staticmethod
-    def insertSubmission(sess, submission_user_id, cgac_code=None, startDate=None, endDate=None, is_quarter=False, number_of_errors=0):
+    def insertSubmission(sess, submission_user_id, cgac_code=None, startDate=None, endDate=None,
+                         is_quarter=False, number_of_errors=0):
         """Insert one submission into job tracker and get submission ID back."""
         sub = Submission(datetime_utc=datetime.utcnow(),
                          user_id=submission_user_id,
@@ -556,7 +574,8 @@ class FileTests(BaseTestAPI):
         return sub.submission_id
 
     @staticmethod
-    def insertJob(sess, filetype, status, type_id, submission, job_id=None, filename=None, file_size=None, num_rows=None):
+    def insertJob(sess, filetype, status, type_id, submission, job_id=None, filename=None,
+                  file_size=None, num_rows=None):
         """Insert one job into job tracker and get ID back."""
         job = Job(
             file_type_id=filetype,
@@ -696,12 +715,18 @@ class FileTests(BaseTestAPI):
     def setupJobsForStatusCheck(cls, sess, submission_id):
         """Set up test jobs for job status test."""
         jobValues = {
-            'uploadFinished': [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['file_upload'], None, None, None],
-            'recordRunning': [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['running'], JOB_TYPE_DICT['csv_record_validation'], None, None, None],
-            'externalWaiting': [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['waiting'], JOB_TYPE_DICT['external_validation'], None, None, None],
-            'awardFin': [FILE_TYPE_DICT['award_financial'], JOB_STATUS_DICT['ready'], JOB_TYPE_DICT['csv_record_validation'], "awardFin.csv", 100, 100],
-            'appropriations': [FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['ready'], JOB_TYPE_DICT['csv_record_validation'], "approp.csv", 2345, 567],
-            'program_activity': [FILE_TYPE_DICT['program_activity'], JOB_STATUS_DICT['ready'], JOB_TYPE_DICT['csv_record_validation'], "programActivity.csv", None, None],
+            'uploadFinished': [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['finished'],
+                               JOB_TYPE_DICT['file_upload'], None, None, None],
+            'recordRunning': [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['running'],
+                              JOB_TYPE_DICT['csv_record_validation'], None, None, None],
+            'externalWaiting': [FILE_TYPE_DICT['award'], JOB_STATUS_DICT['waiting'],
+                                JOB_TYPE_DICT['external_validation'], None, None, None],
+            'awardFin': [FILE_TYPE_DICT['award_financial'], JOB_STATUS_DICT['ready'],
+                         JOB_TYPE_DICT['csv_record_validation'], "awardFin.csv", 100, 100],
+            'appropriations': [FILE_TYPE_DICT['appropriations'], JOB_STATUS_DICT['ready'],
+                               JOB_TYPE_DICT['csv_record_validation'], "approp.csv", 2345, 567],
+            'program_activity': [FILE_TYPE_DICT['program_activity'], JOB_STATUS_DICT['ready'],
+                                 JOB_TYPE_DICT['csv_record_validation'], "programActivity.csv", None, None],
             'cross_file': [None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'], 2, None, None, None]
         }
         jobIdDict = {}

@@ -218,8 +218,10 @@ def get_email_template(email_type):
         EmailTemplate object
     """
     sess = GlobalDB.db().session
-    type_result = sess.query(EmailTemplateType.email_template_type_id).filter(EmailTemplateType.name == email_type).one()
-    template_result = sess.query(EmailTemplate).filter(EmailTemplate.template_type_id == type_result.email_template_type_id).one()
+    type_result = sess.query(EmailTemplateType.email_template_type_id).\
+        filter(EmailTemplateType.name == email_type).one()
+    template_result = sess.query(EmailTemplate).\
+        filter(EmailTemplate.template_type_id == type_result.email_template_type_id).one()
     return template_result
 
 

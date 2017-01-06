@@ -28,8 +28,10 @@ def test_previous_published(database):
     populate_publish_status(database)
     sub_prev_published = SubmissionFactory(publish_status_id=PUBLISH_STATUS_DICT['published'])
     insert_submission(database, sub_prev_published)
-    sub_new_published = SubmissionFactory(cgac_code=sub_prev_published.cgac_code, reporting_fiscal_year=sub_prev_published.reporting_fiscal_year)
-    ap_new_published = AppropriationFactory(submission_id=sub_new_published.submission_id, budget_authority_unobligat_fyb=None)
+    sub_new_published = SubmissionFactory(cgac_code=sub_prev_published.cgac_code,
+                                          reporting_fiscal_year=sub_prev_published.reporting_fiscal_year)
+    ap_new_published = AppropriationFactory(submission_id=sub_new_published.submission_id,
+                                            budget_authority_unobligat_fyb=None)
     assert number_of_errors(_FILE, database, submission=sub_new_published,
                             models=[ap_new_published]) == 0
 
@@ -39,8 +41,10 @@ def test_previous_publishable(database):
     populate_publish_status(database)
     sub_prev_publishable = SubmissionFactory(publishable=True)
     insert_submission(database, sub_prev_publishable)
-    sub_new_publishable = SubmissionFactory(cgac_code=sub_prev_publishable.cgac_code, reporting_fiscal_year=sub_prev_publishable.reporting_fiscal_year)
-    ap_new_publishable = AppropriationFactory(submission_id=sub_new_publishable.submission_id, budget_authority_unobligat_fyb=None)
+    sub_new_publishable = SubmissionFactory(cgac_code=sub_prev_publishable.cgac_code,
+                                            reporting_fiscal_year=sub_prev_publishable.reporting_fiscal_year)
+    ap_new_publishable = AppropriationFactory(submission_id=sub_new_publishable.submission_id,
+                                              budget_authority_unobligat_fyb=None)
     assert number_of_errors(_FILE, database, submission=sub_new_publishable,
                             models=[ap_new_publishable]) == 0
 
@@ -58,7 +62,9 @@ def test_previous_unpublished(database):
     populate_publish_status(database)
     sub_prev_published = SubmissionFactory(publish_status_id=PUBLISH_STATUS_DICT['unpublished'], publishable=False)
     insert_submission(database, sub_prev_published)
-    sub_new_published = SubmissionFactory(cgac_code=sub_prev_published.cgac_code, reporting_fiscal_year=sub_prev_published.reporting_fiscal_year)
-    ap_new_published = AppropriationFactory(submission_id=sub_new_published.submission_id, budget_authority_unobligat_fyb=None)
+    sub_new_published = SubmissionFactory(cgac_code=sub_prev_published.cgac_code,
+                                          reporting_fiscal_year=sub_prev_published.reporting_fiscal_year)
+    ap_new_published = AppropriationFactory(submission_id=sub_new_published.submission_id,
+                                            budget_authority_unobligat_fyb=None)
     assert number_of_errors(_FILE, database, submission=sub_new_published,
                             models=[ap_new_published]) == 1

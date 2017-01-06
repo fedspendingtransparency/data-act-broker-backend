@@ -48,8 +48,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Tests that SF 133 amount sum for line 2104 does not match the calculation from Appropriation based on the fields below
-        for the specified fiscal year and period """
+    """ Tests that SF 133 amount sum for line 2104 does not match the calculation from Appropriation based on
+        the fields below for the specified fiscal year and period """
     tas = "".join([_TAS, "_failure"])
 
     sf = SF133(line=2104, tas=tas, period=1, fiscal_year=2016, amount=5, agency_identifier="sys",

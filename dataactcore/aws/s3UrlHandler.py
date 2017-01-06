@@ -48,8 +48,11 @@ class s3UrlHandler:
         if s3UrlHandler.ENABLE_S3:
             s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
             if method == "PUT":
-                return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method, bucketRoute, "/" + path + "/" + fileName, headers={'Content-Type': 'application/octet-stream'})
-            return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method, bucketRoute, "/" + path + "/" + fileName)
+                return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method,
+                                                 bucketRoute, "/" + path + "/" + fileName,
+                                                 headers={'Content-Type': 'application/octet-stream'})
+            return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method,
+                                             bucketRoute, "/" + path + "/" + fileName)
         return s3UrlHandler.BASE_URL + "/" + self.bucketRoute + "/" + path + "/" + fileName
 
     def getSignedUrl(self, path, fileName, bucketRoute=None, method="PUT"):
@@ -82,7 +85,8 @@ class s3UrlHandler:
         Gets token that allows for S3 Uploads for seconds set in STS_LIFETIME
         """
         stsConnection = sts.connect_to_region(s3UrlHandler.REGION)
-        role = stsConnection.assume_role(s3UrlHandler.S3_ROLE, "FileUpload" + str(user), duration_seconds=s3UrlHandler.STS_LIFETIME)
+        role = stsConnection.assume_role(s3UrlHandler.S3_ROLE, "FileUpload" + str(user),
+                                         duration_seconds=s3UrlHandler.STS_LIFETIME)
         credentials = {
             'AccessKeyId': role.credentials.access_key,
             'SecretAccessKey': role.credentials.secret_key,
