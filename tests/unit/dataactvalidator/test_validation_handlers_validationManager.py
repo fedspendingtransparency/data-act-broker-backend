@@ -22,8 +22,8 @@ def copy_tas_fields(tas):
     return {
         'allocation_transfer_agency': tas.allocation_transfer_agency,
         'agency_identifier': tas.agency_identifier,
-        'beginning_period_of_availa': tas.beginning_period_of_availability,
-        'ending_period_of_availabil': tas.ending_period_of_availability,
+        'beginning_period_of_availa': tas.beginning_period_of_availa,
+        'ending_period_of_availabil': tas.ending_period_of_availabil,
         'availability_type_code': tas.availability_type_code,
         'main_account_code': tas.main_account_code,
         'sub_account_code': tas.sub_account_code

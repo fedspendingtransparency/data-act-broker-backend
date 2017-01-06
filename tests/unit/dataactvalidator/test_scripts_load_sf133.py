@@ -55,8 +55,8 @@ def test_update_tas_ids_fiscal_year(database):
     copied_fields = {   # translate to a slightly different set of fields
         'allocation_transfer_agency': tas.allocation_transfer_agency,
         'agency_identifier': tas.agency_identifier,
-        'beginning_period_of_availa': tas.beginning_period_of_availability,
-        'ending_period_of_availabil': tas.ending_period_of_availability,
+        'beginning_period_of_availa': tas.beginning_period_of_availa,
+        'ending_period_of_availabil': tas.ending_period_of_availabil,
         'availability_type_code': tas.availability_type_code,
         'main_account_code': tas.main_account_code,
         'sub_account_code': tas.sub_account_code

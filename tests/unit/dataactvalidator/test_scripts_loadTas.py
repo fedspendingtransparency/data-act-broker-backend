@@ -43,9 +43,8 @@ def test_cleanTas_multiple(tmpdir):
     assert results['allocation_transfer_agency'].tolist() == ['aaa', '111']
     assert results['agency_identifier'].tolist() == ['bbb', '222']
     assert results['availability_type_code'].tolist() == ['ccc', '333']
-    assert results['beginning_period_of_availability'].tolist() == [
-        'ddd', '444']
-    assert results['ending_period_of_availability'].tolist() == ['eee', '555']
+    assert results['beginning_period_of_availa'].tolist() == ['ddd', '444']
+    assert results['ending_period_of_availabil'].tolist() == ['eee', '555']
     assert results['main_account_code'].tolist() == ['ffff', '6666']
     assert results['sub_account_code'].tolist() == ['ggg', '777']
 
@@ -54,8 +53,8 @@ def test_cleanTas_space_nulls(tmpdir):
     """Verify that spaces are converted into `None`s"""
     results = write_then_read_tas(
         tmpdir, {'BPOA': '', 'EPOA': ' ', 'A': '   '})
-    assert results['beginning_period_of_availability'][0] is None
-    assert results['ending_period_of_availability'][0] is None
+    assert results['beginning_period_of_availa'][0] is None
+    assert results['ending_period_of_availabil'][0] is None
     assert results['availability_type_code'][0] is None
 
 

@@ -28,8 +28,8 @@ def cleanTas(csvPath):
          "acct_num": "account_num",
          "aid": "agency_identifier",
          "ata": "allocation_transfer_agency",
-         "bpoa": "beginning_period_of_availability",
-         "epoa": "ending_period_of_availability",
+         "bpoa": "beginning_period_of_availa",
+         "epoa": "ending_period_of_availabil",
          "main": "main_account_code",
          "sub": "sub_account_code",
          "financial_indicator_type2": "financial_indicator2",
@@ -38,10 +38,8 @@ def cleanTas(csvPath):
          "agency_identifier": {"pad_to_length": 3},
          # Account for " " cells
          "availability_type_code": {"pad_to_length": 0, "keep_null": True},
-         "beginning_period_of_availability": {"pad_to_length": 0,
-                                              "keep_null": True},
-         "ending_period_of_availability": {"pad_to_length": 0,
-                                           "keep_null": True},
+         "beginning_period_of_availa": {"pad_to_length": 0, "keep_null": True},
+         "ending_period_of_availabil": {"pad_to_length": 0, "keep_null": True},
          "main_account_code": {"pad_to_length": 4},
          "sub_account_code": {"pad_to_length": 3},
          }
@@ -130,7 +128,7 @@ def add_existing_id(data):
 
 _MATCH_FIELDS = (
     'allocation_transfer_agency', 'agency_identifier',
-    'beginning_period_of_availability', 'ending_period_of_availability',
+    'beginning_period_of_availa', 'ending_period_of_availabil',
     'availability_type_code', 'main_account_code', 'sub_account_code'
 )
 

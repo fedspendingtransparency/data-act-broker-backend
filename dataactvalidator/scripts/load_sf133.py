@@ -68,7 +68,7 @@ def fill_blank_sf133_lines(data):
 
 _tas_fields_to_match = (
     'allocation_transfer_agency', 'agency_identifier',
-    'beginning_period_of_availability', 'ending_period_of_availability',
+    'beginning_period_of_availa', 'ending_period_of_availabil',
     'availability_type_code', 'main_account_code', 'sub_account_code'
 )
 

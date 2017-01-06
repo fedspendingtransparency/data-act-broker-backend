@@ -603,9 +603,9 @@ def update_tas_ids(model, submission_id):
             AND {table_name}.agency_identifier
                 IS NOT DISTINCT FROM tas.agency_identifier
             AND {table_name}.beginning_period_of_availa
-                IS NOT DISTINCT FROM tas.beginning_period_of_availability
+                IS NOT DISTINCT FROM tas.beginning_period_of_availa
             AND {table_name}.ending_period_of_availabil
-                IS NOT DISTINCT FROM tas.ending_period_of_availability
+                IS NOT DISTINCT FROM tas.ending_period_of_availabil
             AND {table_name}.availability_type_code
                 IS NOT DISTINCT FROM tas.availability_type_code
             AND {table_name}.main_account_code
