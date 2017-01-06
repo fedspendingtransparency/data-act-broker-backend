@@ -234,7 +234,7 @@ def clean_sf133_data(filename, SF133):
     # add concatenated TAS field for internal use (i.e., joining to staging tables)
     data['tas'] = data.apply(lambda row: format_internal_tas(row), axis=1)
     data['amount'] = data['amount'].astype(float)
-    
+
     data = fill_blank_sf133_lines(data)
 
     return data

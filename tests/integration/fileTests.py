@@ -366,7 +366,7 @@ class FileTests(BaseTestAPI):
                                       headers={"x-session-id": self.session_id})
         assert response.status_code == 200
         assert "total_obligations" in response.json
-        
+
     def test_get_protected_files(self):
         """ Check get_protected_files route """
 

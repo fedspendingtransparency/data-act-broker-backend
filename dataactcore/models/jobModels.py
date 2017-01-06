@@ -1,12 +1,9 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
-from sqlalchemy import (
-    Boolean, Column, Date, DateTime, ForeignKey, Integer, Text,
-    UniqueConstraint) 
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
-from dataactcore.models.lookups import (
-    FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, JOB_TYPE_DICT_ID)
+from dataactcore.models.lookups import FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, JOB_TYPE_DICT_ID
 
 
 def generateFiscalYear(context):
@@ -155,7 +152,7 @@ class SubmissionNarrative(Base):
     )
     submission = relationship(Submission, uselist=False)
     file_type_id = Column(
-        Integer, 
+        Integer,
         ForeignKey("file_type.file_type_id", name="fk_file_type"),
         nullable=False
     )

@@ -12,7 +12,7 @@ class RequestDictionary:
         if value not in self.requestDict:
             raise ValueError(value + " not found")
         return self.requestDict[value]
-        
+
     def exists(self, value):
         """ Returns True if key is in request json """
         if value not in self.requestDict:

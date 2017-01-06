@@ -264,7 +264,7 @@ class ValidationManager:
         regionName = CONFIG_BROKER['aws_region']
 
         errorFileName = self.getFileName(report_file_name(
-            job.submission_id, False, job.file_type.name)) 
+            job.submission_id, False, job.file_type.name))
         warningFileName = self.getFileName(report_file_name(
             job.submission_id, True, job.file_type.name))
 
@@ -459,7 +459,7 @@ class ValidationManager:
         # Create File Status object
         createFileIfNeeded(job_id)
         error_list = ErrorInterface()
-        
+
         submission_id = job.submission_id
         bucketName = CONFIG_BROKER['aws_bucket']
         regionName = CONFIG_BROKER['aws_region']

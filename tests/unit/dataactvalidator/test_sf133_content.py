@@ -28,10 +28,10 @@ def test_sf133_files(database):
 
             # remove all lines not included in validation
             validate_one_lines = [
-                '1000', '1010', '1011', '1012', '1013', '1014', '1015', '1016', '1017', 
-                '1018', '1019', '1020', '1021', '1022', '1023', '1024', '1025', '1026', 
-                '1027', '1028', '1029', '1030', '1031', '1032', '1033', '1034', '1035', 
-                '1036', '1037', '1038', '1039', '1040', '1041', '1042', '1160', '1180', 
+                '1000', '1010', '1011', '1012', '1013', '1014', '1015', '1016', '1017',
+                '1018', '1019', '1020', '1021', '1022', '1023', '1024', '1025', '1026',
+                '1027', '1028', '1029', '1030', '1031', '1032', '1033', '1034', '1035',
+                '1036', '1037', '1038', '1039', '1040', '1041', '1042', '1160', '1180',
                 '1260', '1280', '1340', '1440', '1540', '1640', '1750', '1850'
             ]
             validate_two_lines = ['2190', '2490']
@@ -67,9 +67,9 @@ def test_sf133_files(database):
 
                 current_tas = tas.iloc[0]
                 join_array = [
-                    file_index, current_tas['agency_identifier'], 
-                    current_tas['allocation_transfer_agency'], current_tas['availability_type_code'], 
-                    current_tas['beginning_period_of_availa'], current_tas['ending_period_of_availabil'], 
+                    file_index, current_tas['agency_identifier'],
+                    current_tas['allocation_transfer_agency'], current_tas['availability_type_code'],
+                    current_tas['beginning_period_of_availa'], current_tas['ending_period_of_availabil'],
                     current_tas['main_account_code'], current_tas['sub_account_code']
                 ]
 

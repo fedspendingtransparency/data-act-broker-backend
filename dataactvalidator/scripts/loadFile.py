@@ -54,7 +54,7 @@ def loadCgac(filename):
         )
         # de-dupe
         data.drop_duplicates(subset=['cgac_code'], inplace=True)
-        
+
         delete_missing_cgacs(models, data)
         update_cgacs(models, data)
         sess.add_all(models.values())
@@ -146,7 +146,7 @@ def loadDomainValues(basePath, localProgramActivity=None):
     else:
         cgac_file = os.path.join(basePath, "cgac.csv")
         object_class_file = os.path.join(basePath, "object_class.csv")
-        program_activity_file = os.path.join(basePath, "program_activity.csv") 
+        program_activity_file = os.path.join(basePath, "program_activity.csv")
 
     logger.info('Loading CGAC')
     loadCgac(cgac_file)
