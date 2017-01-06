@@ -98,11 +98,11 @@ class SF133(Base):
     tas_obj = relationship(TASLookup)
 
 Index("ix_sf_133_tas",
-  SF133.tas,
-  SF133.fiscal_year,
-  SF133.period,
-  SF133.line,
-  unique=True)
+      SF133.tas,
+      SF133.fiscal_year,
+      SF133.period,
+      SF133.line,
+      unique=True)
 
 class ProgramActivity(Base):
     __tablename__ = "program_activity"

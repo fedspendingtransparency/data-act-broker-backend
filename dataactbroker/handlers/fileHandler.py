@@ -686,7 +686,7 @@ class FileHandler:
         file_type = self.get_file_type()
 
         logger.debug('Submission ID = %s / File type = %s',
-                            submission_id, file_type)
+                     submission_id, file_type)
 
         sess = GlobalDB.db().session
 
@@ -787,7 +787,7 @@ class FileHandler:
         elif CONFIG_BROKER["use_aws"]:
             path, file_name = upload_job.filename.split("/")
             response_dict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name, bucketRoute=None,
-                                                              method="GET")
+                                                               method="GET")
         else:
             response_dict["url"] = upload_job.filename
 
@@ -1180,7 +1180,7 @@ def list_submissions(page, limit, certified):
     if certified != 'mixed':
         query = query.filter_by(publishable=certified)
     submissions = query.order_by(Submission.updated_at.desc()).\
-            limit(limit).offset(offset)
+        limit(limit).offset(offset)
 
     return JsonResponse.create(StatusCode.OK, {
         "submissions": [serialize_submission(s) for s in submissions],

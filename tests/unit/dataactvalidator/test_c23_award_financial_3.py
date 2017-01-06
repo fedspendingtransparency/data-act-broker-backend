@@ -42,8 +42,8 @@ def test_success(database):
     third_fain_ap_row = AwardFinancialAssistanceFactory(fain=fain_three, federal_action_obligation=-9999)
 
     errors = number_of_errors(_FILE, database, models=[first_fain_row_one, first_fain_row_two, second_fain_row_one,
-       first_afa_row, second_afa_row, third_afa_row, wrong_type_afa_row, other_fain_afa_row, third_fain_row_one,
-       third_fain_ap_row])
+                              first_afa_row, second_afa_row, third_afa_row, wrong_type_afa_row, other_fain_afa_row,
+                              third_fain_row_one, third_fain_ap_row])
     assert errors == 0
 
 
@@ -66,7 +66,7 @@ def test_failure(database):
     other_fain_afa_row = AwardFinancialAssistanceFactory(fain=fain_two, federal_action_obligation=-9999,
                                                          original_loan_subsidy_cost=None)
     other_fain_loan_afa_row = AwardFinancialAssistanceFactory(fain=fain_two, federal_action_obligation=None,
-                                                         original_loan_subsidy_cost=-1000, assistance_type='07')
+                                                              original_loan_subsidy_cost=-1000, assistance_type='07')
 
     errors = number_of_errors(_FILE, database, models=[first_fain_row_one, first_fain_row_two, second_fain_row_one, first_afa_row, second_afa_row, other_fain_afa_row, other_fain_loan_afa_row])
     assert errors == 2

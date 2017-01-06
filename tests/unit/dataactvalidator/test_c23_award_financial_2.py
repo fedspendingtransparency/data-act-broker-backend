@@ -35,8 +35,8 @@ def test_success(database):
     third_parent_award_id_ap_row = AwardProcurementFactory(parent_award_id=parent_award_id_three, federal_action_obligation=-9999)
 
     errors = number_of_errors(_FILE, database, models=[first_parent_award_id_row_one, first_parent_award_id_row_two,
-       second_parent_award_id_row_one, first_ap_row, second_ap_row, third_ap_row, other_parent_award_id_ap_row,
-       third_parent_award_id_row_one, third_parent_award_id_ap_row])
+                              second_parent_award_id_row_one, first_ap_row, second_ap_row, third_ap_row,
+                              other_parent_award_id_ap_row, third_parent_award_id_row_one, third_parent_award_id_ap_row])
     assert errors == 0
 
 

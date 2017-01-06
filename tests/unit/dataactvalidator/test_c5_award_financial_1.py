@@ -18,11 +18,11 @@ def test_success(database):
     value_one = Decimal('101.23')
     value_two = Decimal('102.34')
     award_fin = AwardFinancialFactory(gross_outlay_amount_by_awa_cpe=value_one + value_two,
-                                             gross_outlays_undelivered_cpe=value_one,
-                                             gross_outlays_delivered_or_cpe=value_two)
+                                      gross_outlays_undelivered_cpe=value_one,
+                                      gross_outlays_delivered_or_cpe=value_two)
     award_fin_null = AwardFinancialFactory(gross_outlay_amount_by_awa_cpe=value_one,
-                                                  gross_outlays_undelivered_cpe=None,
-                                                  gross_outlays_delivered_or_cpe=value_one)
+                                           gross_outlays_undelivered_cpe=None,
+                                           gross_outlays_delivered_or_cpe=value_one)
 
     assert number_of_errors(_FILE, database, models=[award_fin, award_fin_null]) == 0
 
@@ -31,7 +31,7 @@ def test_failure(database):
     value_one = Decimal('101.23')
     value_two = Decimal('102.34')
     award_fin = AwardFinancialFactory(gross_outlay_amount_by_awa_cpe=value_one,
-                                             gross_outlays_undelivered_cpe=value_two,
-                                             gross_outlays_delivered_or_cpe=value_two)
+                                      gross_outlays_undelivered_cpe=value_two,
+                                      gross_outlays_delivered_or_cpe=value_two)
 
     assert number_of_errors(_FILE, database, models=[award_fin]) == 1

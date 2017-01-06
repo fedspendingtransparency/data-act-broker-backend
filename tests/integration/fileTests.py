@@ -52,8 +52,7 @@ class FileTests(BaseTestAPI):
 
             cls.setupFileGenerationSubmission(sess)
 
-            cls.jobIdDict = cls.setupJobsForStatusCheck(sess,
-                cls.status_check_submission_id)
+            cls.jobIdDict = cls.setupJobsForStatusCheck(sess, cls.status_check_submission_id)
 
             # setup submission/jobs data for test_error_report
             cls.error_report_submission_id = cls.insertSubmission(
@@ -80,18 +79,18 @@ class FileTests(BaseTestAPI):
         if not self.filesSubmitted:
             if CONFIG_BROKER["use_aws"]:
                 self.filenames = {"appropriations": "test1.csv",
-                    "award_financial": "test2.csv",
-                    "program_activity": "test4.csv", "cgac_code": "SYS",
-                    "reporting_period_start_date": "01/2001",
-                    "reporting_period_end_date": "03/2001", "is_quarter": True}
+                                  "award_financial": "test2.csv",
+                                  "program_activity": "test4.csv", "cgac_code": "SYS",
+                                  "reporting_period_start_date": "01/2001",
+                                  "reporting_period_end_date": "03/2001", "is_quarter": True}
             else:
                 # If local must use full destination path
                 filePath = CONFIG_BROKER["broker_files"]
                 self.filenames = {"appropriations": os.path.join(filePath, "test1.csv"),
-                    "award_financial": os.path.join(filePath, "test2.csv"),
-                    "program_activity": os.path.join(filePath, "test4.csv"), "cgac_code": "SYS",
-                    "reporting_period_start_date": "01/2001",
-                    "reporting_period_end_date": "03/2001", "is_quarter": True}
+                                  "award_financial": os.path.join(filePath, "test2.csv"),
+                                  "program_activity": os.path.join(filePath, "test4.csv"), "cgac_code": "SYS",
+                                  "reporting_period_start_date": "01/2001",
+                                  "reporting_period_end_date": "03/2001", "is_quarter": True}
             self.submitFilesResponse = self.app.post_json("/v1/submit_files/", self.filenames, headers={"x-session-id": self.session_id})
             self.updateSubmissionId = self.submitFilesResponse.json["submission_id"]
         return self.submitFilesResponse
@@ -155,16 +154,16 @@ class FileTests(BaseTestAPI):
         # updated dates must still reflect a quarter
         if CONFIG_BROKER["use_aws"]:
             updateJson = {"existing_submission_id": self.updateSubmissionId,
-                "award_financial": "updated.csv",
-                "reporting_period_start_date": "04/2016",
-                "reporting_period_end_date": "06/2016"}
+                          "award_financial": "updated.csv",
+                          "reporting_period_start_date": "04/2016",
+                          "reporting_period_end_date": "06/2016"}
         else:
             # If local must use full destination path
             filePath = CONFIG_BROKER["broker_files"]
             updateJson = {"existing_submission_id": self.updateSubmissionId,
-                "award_financial": os.path.join(filePath, "updated.csv"),
-                "reporting_period_start_date": "04/2016",
-                "reporting_period_end_date": "06/2016"}
+                          "award_financial": os.path.join(filePath, "updated.csv"),
+                          "reporting_period_start_date": "04/2016",
+                          "reporting_period_end_date": "06/2016"}
         # Mark submission as published
         with createApp().app_context():
             sess = GlobalDB.db().session
@@ -442,11 +441,11 @@ class FileTests(BaseTestAPI):
         """Test broker status record handling."""
         # Check the route
         self.check_metrics(self.test_metrics_submission_id,
-            False, "award")
+                           False, "award")
         self.check_metrics(self.test_metrics_submission_id,
-            True, "award_financial")
+                           True, "award_financial")
         self.check_metrics(self.test_metrics_submission_id,
-            True, "appropriations")
+                           True, "appropriations")
 
     def test_file_generation(self):
         """ Test the generate and check routes for external files """
@@ -799,13 +798,13 @@ class FileTests(BaseTestAPI):
         finished = JOB_STATUS_DICT['finished']
         csv_validation = JOB_TYPE_DICT['csv_record_validation']
         FileTests.insertJob(sess, filetype=FILE_TYPE_DICT['award'], status=finished, type_id=csv_validation,
-            submission=error_report_submission_id)
+                            submission=error_report_submission_id)
         FileTests.insertJob(sess, filetype=FILE_TYPE_DICT['award_financial'], status=finished, type_id=csv_validation,
-            submission=error_report_submission_id)
+                            submission=error_report_submission_id)
         FileTests.insertJob(sess, filetype=FILE_TYPE_DICT['appropriations'], status=finished, type_id=csv_validation,
-            submission=error_report_submission_id)
+                            submission=error_report_submission_id)
         FileTests.insertJob(sess, filetype=FILE_TYPE_DICT['program_activity'], status=finished, type_id=csv_validation,
-            submission=error_report_submission_id)
+                            submission=error_report_submission_id)
 
     @classmethod
     def setupFileData(cls, sess, submission_id):

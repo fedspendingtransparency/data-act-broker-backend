@@ -158,7 +158,8 @@ class ValidationManager:
             # Write failed, move to next record
             writer.write(["Formatting Error", ValidationError.writeErrorMsg, row_number, ""])
             error_list.recordRowError(job_id, job.filename,
-                "Formatting Error", ValidationError.writeError, row_number, severity_id=RULE_SEVERITY_DICT['fatal'])
+                                      "Formatting Error", ValidationError.writeError, row_number,
+                                      severity_id=RULE_SEVERITY_DICT['fatal'])
             return True
         return False
 
@@ -300,7 +301,7 @@ class ValidationManager:
             # the Validator
 
             with self.getWriter(regionName, bucketName, errorFileName, self.reportHeaders) as writer, \
-                 self.getWriter(regionName, bucketName, warningFileName, self.reportHeaders) as warningWriter:
+                    self.getWriter(regionName, bucketName, warningFileName, self.reportHeaders) as warningWriter:
                 while not reader.is_finished:
                     rowNumber += 1
 
@@ -443,8 +444,8 @@ class ValidationManager:
                 # write to warnings file
                 warning_writer.write([field_name, error_msg, str(row), failed_value, original_label])
             error_list.recordRowError(job_id, job.filename, field_name,
-                                        error, row_number, original_label, file_type_id=file_type_id,
-                                        target_file_id=target_file_id, severity_id=severity_id)
+                                      error, row_number, original_label, file_type_id=file_type_id,
+                                      target_file_id=target_file_id, severity_id=severity_id)
         return error_rows
 
     def runCrossValidation(self, job):
@@ -488,14 +489,15 @@ class ValidationManager:
 
             # loop through failures to create the error report
             with self.getWriter(regionName, bucketName, reportFilename, self.crossFileReportHeaders) as writer, \
-                 self.getWriter(regionName, bucketName, warningReportFilename, self.crossFileReportHeaders) as warningWriter:
+                    self.getWriter(regionName, bucketName, warningReportFilename, self.crossFileReportHeaders) as warningWriter:
                 for failure in failures:
                     if failure[9] == RULE_SEVERITY_DICT['fatal']:
                         writer.write(failure[0:7])
                     if failure[9] == RULE_SEVERITY_DICT['warning']:
                         warningWriter.write(failure[0:7])
                     error_list.recordRowError(job_id, "cross_file",
-                        failure[0], failure[3], failure[5], failure[6], failure[7], failure[8], severity_id=failure[9])
+                                              failure[0], failure[3], failure[5], failure[6],
+                                              failure[7], failure[8], severity_id=failure[9])
                 writer.finishBatch()
                 warningWriter.finishBatch()
 
@@ -575,7 +577,7 @@ class ValidationManager:
             self.runCrossValidation(job)
         else:
             raise ResponseException("Bad job type for validator",
-                StatusCode.INTERNAL_ERROR)
+                                    StatusCode.INTERNAL_ERROR)
 
         return JsonResponse.create(StatusCode.OK, {"message": "Validation complete"})
 

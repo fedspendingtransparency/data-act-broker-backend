@@ -80,5 +80,5 @@ class SessionMap(Base):
     expiration = Column(Integer)
 
 Index("ix_session_uid",
-    SessionMap.uid,
-    unique=False)
+      SessionMap.uid,
+      unique=False)

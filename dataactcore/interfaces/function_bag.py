@@ -192,8 +192,8 @@ def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
         ErrorMetadata.job_id == job_id, ErrorMetadata.severity_id == severity_id).all()
     for result in query_result:
         record_dict = {"field_name": result.field_name, "error_name": result.error_type.name,
-                      "error_description": result.error_type.description, "occurrences": str(result.occurrences),
-                      "rule_failed": result.rule_failed, "original_label": result.original_rule_label}
+                       "error_description": result.error_type.description, "occurrences": str(result.occurrences),
+                       "rule_failed": result.rule_failed, "original_label": result.original_rule_label}
         if include_file_types:
             record_dict['source_file'] = FILE_TYPE_DICT_ID.get(result.file_type_id, '')
             record_dict['target_file'] = FILE_TYPE_DICT_ID.get(result.target_file_type_id, '')
@@ -308,7 +308,7 @@ def check_job_dependencies(job_id):
         dep_job_id = dependency.job_id
         if dependency.dependent_job.job_status_id != JOB_STATUS_DICT['waiting']:
             logger.error("%s (dependency of %s) is not in a 'waiting' state",
-                dep_job_id, job_id)
+                         dep_job_id, job_id)
         else:
             # find the number of this job's prerequisites that do
             # not have a status of 'finished'.

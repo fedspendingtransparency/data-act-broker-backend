@@ -124,7 +124,7 @@ class BaseTestAPI(unittest.TestCase):
         """Log an admin user into broker."""
         # TODO: put user data in pytest fixture; put credentials in config file
         user = {"username": self.test_users['admin_user'],
-            "password": self.admin_password}
+                "password": self.admin_password}
         response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
         self.session_id = response.headers["x-session-id"]
         return response
@@ -152,7 +152,7 @@ class BaseTestAPI(unittest.TestCase):
         """Perform common tests on API responses."""
         self.assertEqual(response.status_code, status)
         self.assertEqual(response.headers.get("Content-Type"),
-            "application/json")
+                         "application/json")
         try:
             self.assertIsInstance(response.json, dict)
         except AttributeError:

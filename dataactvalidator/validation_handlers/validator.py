@@ -46,7 +46,8 @@ class Validator(object):
                     values = ", ".join(values)
                     targetFileType = FILE_TYPE_DICT_ID[rule.target_file_id]
                     failures.append([rule.file.name, targetFileType, columnString,
-                        str(rule.rule_error_message), values, row['row_number'], str(rule.rule_label), rule.file_id, rule.target_file_id, rule.rule_severity_id])
+                                    str(rule.rule_error_message), values, row['row_number'], str(rule.rule_label),
+                                    rule.file_id, rule.target_file_id, rule.rule_severity_id])
 
         # Return list of cross file validation failures
         return failures
@@ -104,7 +105,7 @@ class Validator(object):
 
             # Always check the type in the schema
             if not check_required_only and not Validator.checkType(current_data,
-                                                                 FIELD_TYPE_DICT_ID[current_schema.field_types_id]):
+                                                                   FIELD_TYPE_DICT_ID[current_schema.field_types_id]):
                 record_type_failure = True
                 record_failed = True
                 failed_rules.append([field_name, ValidationError.typeError, current_data, "", "fatal"])

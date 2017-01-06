@@ -37,8 +37,8 @@ def test_success(database):
     third_piid_ap_row = AwardProcurementFactory(piid=piid_three, federal_action_obligation=-9999)
 
     errors = number_of_errors(_FILE, database, models=[first_piid_row_one, first_piid_row_two, second_piid_row_one,
-       third_piid_row_one, first_ap_row, second_ap_row, third_ap_row, second_piid_ap_row, third_piid_ap_row,
-       third_piid_row_two])
+                              third_piid_row_one, first_ap_row, second_ap_row, third_ap_row, second_piid_ap_row,
+                              third_piid_ap_row, third_piid_row_two])
     assert errors == 0
 
 
