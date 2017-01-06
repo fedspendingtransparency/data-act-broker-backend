@@ -930,7 +930,7 @@ class FileHandler:
                 else:
                     url = CONFIG_SERVICES["d2_file_path"]
 
-            #Pull information based on task key
+            # Pull information based on task key
             logger.debug('Pulling information based on task key...')
             task = sess.query(FileGenerationTask).filter(FileGenerationTask.generation_task_key == generation_id).one()
             job = sess.query(Job).filter_by(job_id=task.job_id).one()

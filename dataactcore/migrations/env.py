@@ -31,8 +31,9 @@ logger = logging.getLogger('alembic.env')
 # databases. In db_dict, the key will = alembic .ini section names and
 # migration method names. Value[0] will = the actual database name as
 # set in the broker config. Value[1] is the corresponding model.
-db_dict = {}
-db_dict['data_broker'] = [CONFIG_DB['db_name'], baseModel]
+db_dict = {
+    'data_broker': [CONFIG_DB['db_name'], baseModel]
+}
 db_names = config.get_main_option('databases')
 for name in re.split(r',\s*', db_names):
     if name not in db_dict:
@@ -51,7 +52,7 @@ for name in re.split(r',\s*', db_names):
 # target_metadata = {
 #       'engine1':mymodel.metadata1,
 #       'engine2':mymodel.metadata2
-#}
+# }
 target_metadata = {key: value[1].Base.metadata for (key, value) in db_dict.items()}
 
 # Set up database URLs based on config file

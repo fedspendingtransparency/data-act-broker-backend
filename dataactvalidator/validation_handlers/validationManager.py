@@ -116,7 +116,8 @@ class ValidationManager:
                 return {}, True, True, True, False, {}  # Don't count this row
         except ResponseException:
             if reader.is_finished and reader.extra_line:
-                #Last line may be blank don't record an error, reader.extra_line indicates a case where the last valid line has extra line breaks
+                # Last line may be blank don't record an error,
+                # reader.extra_line indicates a case where the last valid line has extra line breaks
                 # Don't count last row if empty
                 reduce_row = True
             else:

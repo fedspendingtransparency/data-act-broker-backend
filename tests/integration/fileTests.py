@@ -29,7 +29,7 @@ class FileTests(BaseTestAPI):
     def setUpClass(cls):
         """Set up class-wide resources (test data)"""
         super(FileTests, cls).setUpClass()
-        #TODO: refactor into a pytest fixture
+        # TODO: refactor into a pytest fixture
 
         with createApp().app_context():
             # get the submission test user
@@ -440,7 +440,7 @@ class FileTests(BaseTestAPI):
 
     def test_metrics(self):
         """Test broker status record handling."""
-        #Check the route
+        # Check the route
         self.check_metrics(self.test_metrics_submission_id,
             False, "award")
         self.check_metrics(self.test_metrics_submission_id,

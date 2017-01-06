@@ -49,7 +49,7 @@ class CsvAbstractReader(object):
             raise ResponseException("CSV file must have a header", StatusCode.CLIENT_ERROR, ValueError, ValidationError.singleRow)
 
         duplicated_headers = []
-        #create the header
+        # create the header
 
         # check delimiters in header row
         pipe_count = line.count("|")
@@ -110,7 +110,7 @@ class CsvAbstractReader(object):
 
         self.column_count = current
 
-        #Check that all required fields exists
+        # Check that all required fields exists
         missing_headers = []
         for schema in csv_schema:
             if possible_fields[FieldCleaner.cleanString(schema.name_short)] == 0:
@@ -207,10 +207,10 @@ class CsvAbstractReader(object):
         another request is created to S3 for more data.
         """
         if len(self.lines) > 0:
-            #Get the next line
+            # Get the next line
             return self.lines.pop(0)
-        #packets are 8192 bytes in size
-        #for packet in self.s3File :
+        # packets are 8192 bytes in size
+        # for packet in self.s3File :
         while self.packet_counter * CsvAbstractReader.BUFFER_SIZE <= self._get_file_size():
 
             success, packet = self._get_next_packet()
@@ -218,18 +218,18 @@ class CsvAbstractReader(object):
                 break
             self.packet_counter += 1
 
-            #Get the current lines
+            # Get the current lines
             current_bytes = self.unprocessed + packet
             self.lines = self._split_lines(current_bytes)
 
-            #edge case if the packet was filled with newlines only try again
+            # edge case if the packet was filled with newlines only try again
             if len(self.lines) == 0:
                 continue
 
-            #last line still needs processing save and reuse
+            # last line still needs processing save and reuse
             self.unprocessed = self.lines.pop()
             if len(self.lines) > 0:
-                #Get the next line
+                # Get the next line
                 return self.lines.pop(0)
         self.is_finished = True
 
@@ -253,7 +253,7 @@ class CsvAbstractReader(object):
                 if char == '\r' or char == '\n' or char == '\r\n':
                     if len(current) > 0:
                         lines_to_return.append(current)
-                        #check the last char if its a new line add extra line
+                        # check the last char if its a new line add extra line
                         # as its at the end of the packet
                     if index == len(packet) - 1:
                         lines_to_return.append("")

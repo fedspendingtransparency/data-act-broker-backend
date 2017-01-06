@@ -122,7 +122,7 @@ class BaseTestAPI(unittest.TestCase):
 
     def login_admin_user(self):
         """Log an admin user into broker."""
-        #TODO: put user data in pytest fixture; put credentials in config file
+        # TODO: put user data in pytest fixture; put credentials in config file
         user = {"username": self.test_users['admin_user'],
             "password": self.admin_password}
         response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
