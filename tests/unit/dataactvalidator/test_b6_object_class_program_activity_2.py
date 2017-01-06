@@ -30,4 +30,3 @@ def test_failure(database):
                                            ussgl488200_upward_adjustm_cpe=1)
 
     assert number_of_errors(_FILE, database, models=[op]) == 1
-

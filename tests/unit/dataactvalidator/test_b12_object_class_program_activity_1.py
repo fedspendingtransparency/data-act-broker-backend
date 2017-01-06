@@ -51,5 +51,3 @@ def test_failure(database):
 
     op = ObjectClassProgramActivityFactory(by_direct_reimbursable_fun=None, object_class=123)
     assert number_of_errors(_FILE, database, models=[op]) == 1
-
-

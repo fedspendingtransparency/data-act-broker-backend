@@ -26,4 +26,3 @@ parser.add_argument(
     'version', help="Version to set the Alembic migration table to.")
 v = vars(parser.parse_args())['version']
 reset_alembic(v)
-
