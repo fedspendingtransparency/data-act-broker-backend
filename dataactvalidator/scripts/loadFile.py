@@ -7,7 +7,7 @@ import boto
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import CGAC, ObjectClass, ProgramActivity
+from dataactcore.models.domainModels import CGAC, SubTierAgency, ObjectClass, ProgramActivity
 from dataactvalidator.app import createApp
 from dataactvalidator.scripts.loaderUtils import LoaderUtils
 
@@ -36,7 +36,7 @@ def update_cgacs(models, new_data):
             setattr(models[cgac_code], field, value)
 
 
-def loadCgac(filename):
+def load_cgac(file_name):
     """Load CGAC (high-level agency names) lookup table."""
     with createApp().app_context():
         sess = GlobalDB.db().session
@@ -44,12 +44,12 @@ def loadCgac(filename):
         models = {cgac.cgac_code:cgac for cgac in sess.query(CGAC)}
 
         # read CGAC values from csv
-        data = pd.read_csv(filename, dtype=str)
+        data = pd.read_csv(file_name, dtype=str)
         # clean data
         data = LoaderUtils.cleanData(
             data,
             CGAC,
-            {"cgac": "cgac_code", "agency": "agency_name"},
+            {"cgac_agency_code": "cgac_code", "agency_name": "agency_name"},
             {"cgac_code": {"pad_to_length": 3}}
         )
         # de-dupe
@@ -61,6 +61,64 @@ def loadCgac(filename):
         sess.commit()
 
         logger.info('%s CGAC records inserted', len(models))
+
+
+def delete_missing_sub_tier_agencies(models, new_data):
+    """If the new file doesn't contain Sub Tier Agencies we had before, we 
+    should delete the non-existent ones"""
+    to_delete = set(models.keys()) - set(new_data['sub_tier_agency_code'])
+    sess = GlobalDB.db().session
+    if to_delete:
+        sess.query(SubTierAgency).filter(SubTierAgency.sub_tier_agency_code.in_(to_delete)).delete(
+            synchronize_session=False)
+    for sub_tier_agency_code in to_delete:
+        del models[sub_tier_agency_code]
+
+
+def update_sub_tier_agencies(models, new_data):
+    """Modify existing models or create new ones"""
+    for _, row in new_data.iterrows():
+        sub_tier_agency_code = row['sub_tier_agency_code']
+        if sub_tier_agency_code not in models:
+            models[sub_tier_agency_code] = SubTierAgency()
+        for field, value in row.items():
+            setattr(models[sub_tier_agency_code], field, value)
+
+
+def load_sub_tier_agencies(file_name):
+    """Load Sub Tier Agency (sub_tier-level agency names) lookup table."""
+    with createApp().app_context():
+        sess = GlobalDB.db().session
+
+        models = {sub_tier_agency.sub_tier_agency_code:sub_tier_agency for sub_tier_agency in sess.query(SubTierAgency)}
+
+        # read Sub Tier Agency values from csv
+        data = pd.read_csv(file_name, dtype=str)
+        # clean data
+        data = LoaderUtils.cleanData(
+            data,
+            SubTierAgency,
+            {
+                "cgac_agency_code": "cgac_code", 
+                "sub_tier_code": "sub_tier_agency_code",
+                "sub_tier_name": "sub_tier_agency_name",
+            },{
+                "cgac_code": {"pad_to_length": 3},
+                "sub_tier_agency_code": {"pad_to_length": 4}
+            }
+        )
+        # de-dupe
+        data.drop_duplicates(subset=['sub_tier_agency_code'], inplace=True)
+        # add foreign key relations
+        print(data["cgac_code"].unique())
+        data["cgac_id"] = sess.query(CGAC).filter_by(cgac_code=str(data["cgac_code"])).one()
+        
+        delete_missing_sub_tier_agencies(models, data)
+        update_sub_tier_agencies(models, data)
+        sess.add_all(models.values())
+        sess.commit()
+
+        logger.info('%s Sub Tier Agency records inserted', len(models))
 
 
 def loadObjectClass(filename):
@@ -139,25 +197,27 @@ def loadDomainValues(basePath, localProgramActivity = None):
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-        cgac_file = s3bucket.get_key("cgac.csv").generate_url(expires_in=600)
+        agency_list_file = s3bucket.get_key("agency_list.csv").generate_url(expires_in=600)
         object_class_file = s3bucket.get_key("object_class.csv").generate_url(expires_in=600)
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
 
     else:
-        cgac_file = os.path.join(basePath,"cgac.csv")
+        agency_list_file = os.path.join(basePath,"agency_list.csv")
         object_class_file = os.path.join(basePath,"object_class.csv")
         program_activity_file = os.path.join(basePath, "program_activity.csv") 
 
     logger.info('Loading CGAC')
-    loadCgac(cgac_file)
-    logger.info('Loading object class')
-    loadObjectClass(object_class_file)
-    logger.info('Loading program activity')
+    load_cgac(agency_list_file)
+    logger.info('Loading Sub Tier Agencies')
+    load_sub_tier_agencies(agency_list_file)
+    # logger.info('Loading object class')
+    # loadObjectClass(object_class_file)
+    # logger.info('Loading program activity')
 
-    if localProgramActivity is not None:
-        loadProgramActivity(localProgramActivity)
-    else:
-        loadProgramActivity(program_activity_file)
+    # if localProgramActivity is not None:
+    #     loadProgramActivity(localProgramActivity)
+    # else:
+    #     loadProgramActivity(program_activity_file)
 
 
 if __name__ == '__main__':
