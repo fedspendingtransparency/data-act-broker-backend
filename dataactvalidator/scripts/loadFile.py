@@ -75,9 +75,10 @@ def delete_missing_sub_tier_agencies(models, new_data):
         del models[sub_tier_agency_code]
 
 
-def update_sub_tier_agencies(models, new_data):
+def update_sub_tier_agencies(models, new_data, cgac_dict):
     """Modify existing models or create new ones"""
     for _, row in new_data.iterrows():
+        row['cgac_id'] = cgac_dict[row['cgac_code']]
         sub_tier_agency_code = row['sub_tier_agency_code']
         if sub_tier_agency_code not in models:
             models[sub_tier_agency_code] = SubTierAgency()
@@ -109,12 +110,11 @@ def load_sub_tier_agencies(file_name):
         )
         # de-dupe
         data.drop_duplicates(subset=['sub_tier_agency_code'], inplace=True)
-        # add foreign key relations
-        print(data["cgac_code"].unique())
-        data["cgac_id"] = sess.query(CGAC).filter_by(cgac_code=str(data["cgac_code"])).one()
+        # create foreign key dict
+        cgac_dict = {str(cgac.cgac_code):cgac.cgac_id for cgac in sess.query(CGAC).filter(CGAC.cgac_code.in_(data["cgac_code"])).all()}
         
         delete_missing_sub_tier_agencies(models, data)
-        update_sub_tier_agencies(models, data)
+        update_sub_tier_agencies(models, data, cgac_dict)
         sess.add_all(models.values())
         sess.commit()
 
@@ -210,14 +210,14 @@ def loadDomainValues(basePath, localProgramActivity = None):
     load_cgac(agency_list_file)
     logger.info('Loading Sub Tier Agencies')
     load_sub_tier_agencies(agency_list_file)
-    # logger.info('Loading object class')
-    # loadObjectClass(object_class_file)
-    # logger.info('Loading program activity')
+    logger.info('Loading object class')
+    loadObjectClass(object_class_file)
+    logger.info('Loading program activity')
 
-    # if localProgramActivity is not None:
-    #     loadProgramActivity(localProgramActivity)
-    # else:
-    #     loadProgramActivity(program_activity_file)
+    if localProgramActivity is not None:
+        loadProgramActivity(localProgramActivity)
+    else:
+        loadProgramActivity(program_activity_file)
 
 
 if __name__ == '__main__':
