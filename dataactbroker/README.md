@@ -600,15 +600,16 @@ permissions (write access for the agency of the submission or SYS).
 {}
 ```
 
-#### POST "/v1/sign_submission_file/"
-This route sends a request to the backend with the submission ID and file name that is desired. The backend generates a signed S3 URL or the path to the local location of the file and returns a JSON response containing that url.
+#### POST "/v1/submission/<int:submission_id>/report_url"
+This route requests the URL associated with a particular type of submission report. The provided URL will expire after roughly half an hour.
 
 ##### Body (JSON)
 
 ```
 {
-    "submission": 123,
-    "file": "file_name"
+    "warning": True,
+    "file_type": "appropriations",
+    "cross_type": "award_financial"
 }
 ```
 
@@ -621,9 +622,15 @@ This route sends a request to the backend with the submission ID and file name t
 ```
 
 ##### Request Params
-  * file - a string indicating the file to generate (file name without extension)
-  * submission - the integer submission ID
-  
+  * warning - Whether or not the requested report is a warning (or error)
+    report. Defaults to False if this parameter isn't present.
+  * file\_type - One of 'appropriations', 'program\_activity',
+    'award\_financial', 'award', 'award\_procurement', 'awardee\_attributes'
+    or 'sub\_award'. Designates the type of report you're seeking.
+  * cross\_type - If present, indicates that we're looking for a
+    cross-validation report between `file_type` and this parameter. It accepts the
+    same values as `file_type`
+
 ##### Response
 File download or redirect to signed URL
 
