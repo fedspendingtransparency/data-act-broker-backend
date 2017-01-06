@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import SF133, TASLookup
+from dataactcore.models.domainModels import SF133, TAS_COMPONENTS, TASLookup
 from dataactvalidator.app import createApp
 from dataactvalidator.scripts.loaderUtils import LoaderUtils
 
@@ -66,13 +66,6 @@ def fill_blank_sf133_lines(data):
     return data
 
 
-_tas_fields_to_match = (
-    'allocation_transfer_agency', 'agency_identifier',
-    'beginning_period_of_availa', 'ending_period_of_availabil',
-    'availability_type_code', 'main_account_code', 'sub_account_code'
-)
-
-
 def tas_time_overlaps(fiscal_year, fiscal_period):
     """Derive a sqlalchemy filter against the requested fiscal period. Uses
     the postgres OVERLAPS operator"""
@@ -117,11 +110,9 @@ def update_tas_id(fiscal_year, fiscal_period):
     subquery = sess.query(sa.func.min(TASLookup.tas_id))
 
     # Filter to matching TAS components, accounting for NULLs
-    for field in _tas_fields_to_match:
-        tas_col = getattr(TASLookup, field)
-        # The SF133 column names are truncated versions of the tas columns.
-        # See DB-1354 for a potential solution
-        sf133_col = getattr(SF133, field[:26])
+    for field_name in TAS_COMPONENTS:
+        tas_col = getattr(TASLookup, field_name)
+        sf133_col = getattr(SF133, field_name)
         subquery = subquery.filter(is_not_distinct_from(tas_col, sf133_col))
 
     subquery = subquery.filter(tas_time_overlaps(fiscal_year, fiscal_period))

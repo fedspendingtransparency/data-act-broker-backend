@@ -24,6 +24,13 @@ def concatTas(context):
     return tas
 
 
+TAS_COMPONENTS = (
+    'allocation_transfer_agency', 'agency_identifier',
+    'beginning_period_of_availa', 'ending_period_of_availabil',
+    'availability_type_code', 'main_account_code', 'sub_account_code'
+)
+
+
 class TASLookup(Base) :
     __tablename__ = "tas_lookup"
     tas_id = Column(Integer, primary_key=True)
@@ -52,6 +59,12 @@ class TASLookup(Base) :
             name='tas_lookup_sanity_check'
         ),
     )
+
+    def component_dict(self):
+        """We'll often want to copy TAS component fields; this method returns
+        a dictionary of field_name to value"""
+        return {field_name: getattr(self, field_name)
+                for field_name in TAS_COMPONENTS}
 
 Index("ix_tas",
       TASLookup.allocation_transfer_agency,

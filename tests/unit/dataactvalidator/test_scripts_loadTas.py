@@ -6,7 +6,7 @@ from freezegun import freeze_time
 import pandas as pd
 import pytest
 
-from dataactcore.models.domainModels import TASLookup
+from dataactcore.models.domainModels import TAS_COMPONENTS, TASLookup
 from dataactvalidator.scripts import loadTas
 from tests.unit.dataactcore.factories.domain import TASFactory
 
@@ -66,7 +66,8 @@ def test_updateTASLookups(database, monkeypatch):
         # TAS present in both csv and db
         TASFactory(
             account_num=222,
-            **{field: 'still-active' for field in loadTas._MATCH_FIELDS}),
+            **{field: 'still-active' for field in TAS_COMPONENTS}
+        ),
         # Example of TAS being modified
         TASFactory(account_num=333, agency_identifier='to-close-1'),
         # Example unrelated to anything of these entries
@@ -79,11 +80,11 @@ def test_updateTASLookups(database, monkeypatch):
     sess.commit()
 
     incoming_tas_data = pd.DataFrame(
-        columns=('account_num',) + loadTas._MATCH_FIELDS,
+        columns=('account_num',) + TAS_COMPONENTS,
         data=[
-            [111] + ['new-entry-1'] * len(loadTas._MATCH_FIELDS),
-            [222] + ['still-active'] * len(loadTas._MATCH_FIELDS),
-            [333] + ['new-entry-2'] * len(loadTas._MATCH_FIELDS)
+            [111] + ['new-entry-1'] * len(TAS_COMPONENTS),
+            [222] + ['still-active'] * len(TAS_COMPONENTS),
+            [333] + ['new-entry-2'] * len(TAS_COMPONENTS),
         ]
     )
     monkeypatch.setattr(loadTas, 'cleanTas',
