@@ -8,10 +8,13 @@ from dataactcore.config import CONFIG_SERVICES
 def add_exception_handlers(app):
     @app.errorhandler(422)
     def handle_invalid_usage(error):
+        """We receive 422s from the webargs library. Clean up their message
+        and convert them to 400s"""
         if hasattr(error, 'data'):
             message = ' '.join(
                 field_name + ': ' + '; '.join(messages)
-                for field_name, messages in error.data['messages'].items()
+                for field_name, messages
+                in sorted(error.data['messages'].items())
             )
         else:
             message = 'Invalid request'
