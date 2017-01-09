@@ -19,24 +19,24 @@ logger = logging.getLogger(__name__)
 
 def createApp():
     """Create the Flask app."""
-    uwsgi_app = Flask(__name__.split('.')[0])
-    uwsgi_app.debug = CONFIG_SERVICES['debug']
+    flask_app = Flask(__name__.split('.')[0])
+    flask_app.debug = CONFIG_SERVICES['debug']
     local = CONFIG_BROKER['local']
     error_report_path = CONFIG_SERVICES['error_report_path']
-    uwsgi_app.config.from_object(__name__)
+    flask_app.config.from_object(__name__)
 
     # Future: Override config w/ environment variable, if set
-    uwsgi_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
+    flask_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
-    @uwsgi_app.teardown_appcontext
+    @flask_app.teardown_appcontext
     def teardown_appcontext(exception):
         GlobalDB.close()
 
-    @uwsgi_app.before_request
+    @flask_app.before_request
     def before_request():
         GlobalDB.db()
 
-    @uwsgi_app.errorhandler(ResponseException)
+    @flask_app.errorhandler(ResponseException)
     def handle_response_exception(error):
         """Handle exceptions explicitly raised during validation."""
         logger.error(str(error))
@@ -52,7 +52,7 @@ def createApp():
                 mark_job_status(job.job_id, 'invalid')
         return JsonResponse.error(error, error.status)
 
-    @uwsgi_app.errorhandler(Exception)
+    @flask_app.errorhandler(Exception)
     def handle_validation_exception(error):
         """Handle uncaught exceptions in validation process."""
         logger.error(str(error))
@@ -69,12 +69,12 @@ def createApp():
             mark_job_status(job.job_id, job_status)
         return JsonResponse.error(error, response_code)
 
-    @uwsgi_app.route("/", methods=["GET"])
+    @flask_app.route("/", methods=["GET"])
     def testApp():
         """Confirm server running."""
         return "Validator is running"
 
-    @uwsgi_app.route("/validate/", methods=["POST"])
+    @flask_app.route("/validate/", methods=["POST"])
     def validate():
         """Start the validation process."""
         if request.is_json:
@@ -82,15 +82,15 @@ def createApp():
         validation_manager = ValidationManager(local, error_report_path)
         return validation_manager.validate_job(request)
 
-    JsonResponse.debugMode = uwsgi_app.debug
+    JsonResponse.debugMode = flask_app.debug
 
-    return uwsgi_app
+    return flask_app
 
 
 def runApp():
     """Run the application."""
-    uwsgi_app = createApp()
-    uwsgi_app.run(
+    flask_app = createApp()
+    flask_app.run(
         threaded=True,
         host=CONFIG_SERVICES['validator_host'],
         port=CONFIG_SERVICES['validator_port']

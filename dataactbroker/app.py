@@ -24,15 +24,15 @@ from dataactcore.utils.statusCode import StatusCode
 
 def createApp():
     """Set up the application."""
-    uwsgi_app = Flask(__name__.split('.')[0])
+    flask_app = Flask(__name__.split('.')[0])
     local = CONFIG_BROKER['local']
-    uwsgi_app.config.from_object(__name__)
-    uwsgi_app.config['LOCAL'] = local
-    uwsgi_app.debug = CONFIG_SERVICES['debug']
-    uwsgi_app.config['SYSTEM_EMAIL'] = CONFIG_BROKER['reply_to_email']
+    flask_app.config.from_object(__name__)
+    flask_app.config['LOCAL'] = local
+    flask_app.debug = CONFIG_SERVICES['debug']
+    flask_app.config['SYSTEM_EMAIL'] = CONFIG_BROKER['reply_to_email']
 
     # Future: Override config w/ environment variable, if set
-    uwsgi_app.config.from_envvar('BROKER_SETTINGS', silent=True)
+    flask_app.config.from_envvar('BROKER_SETTINGS', silent=True)
 
     # Set parameters
     broker_file_path = CONFIG_BROKER['broker_files']
@@ -45,23 +45,23 @@ def createApp():
     if local and not os.path.exists(broker_file_path):
         os.makedirs(broker_file_path)
 
-    JsonResponse.debugMode = uwsgi_app.debug
+    JsonResponse.debugMode = flask_app.debug
 
     if CONFIG_SERVICES['cross_origin_url'] == "*":
-        CORS(uwsgi_app, supports_credentials=False, allow_headers="*", expose_headers="X-Session-Id")
+        CORS(flask_app, supports_credentials=False, allow_headers="*", expose_headers="X-Session-Id")
     else:
-        CORS(uwsgi_app, supports_credentials=False, origins=CONFIG_SERVICES['cross_origin_url'],
+        CORS(flask_app, supports_credentials=False, origins=CONFIG_SERVICES['cross_origin_url'],
              allow_headers="*", expose_headers="X-Session-Id")
     # Enable DB session table handling
-    uwsgi_app.session_interface = UserSessionInterface()
+    flask_app.session_interface = UserSessionInterface()
     # Set up bcrypt
-    bcrypt = Bcrypt(uwsgi_app)
+    bcrypt = Bcrypt(flask_app)
 
-    @uwsgi_app.teardown_appcontext
+    @flask_app.teardown_appcontext
     def teardown_appcontext(exception):
         GlobalDB.close()
 
-    @uwsgi_app.before_request
+    @flask_app.before_request
     def before_request():
         sess = GlobalDB.db().session
         # setup user
@@ -71,35 +71,35 @@ def createApp():
                 one_or_none()
 
     # Root will point to index.html
-    @uwsgi_app.route("/", methods=["GET"])
+    @flask_app.route("/", methods=["GET"])
     def root():
         return "Broker is running"
 
-    @uwsgi_app.errorhandler(ResponseException)
+    @flask_app.errorhandler(ResponseException)
     def handle_response_exception(exception):
         return JsonResponse.error(exception, exception.status)
 
-    @uwsgi_app.errorhandler(Exception)
+    @flask_app.errorhandler(Exception)
     def handle_exception(exception):
         wrapped = ResponseException(str(exception), StatusCode.INTERNAL_ERROR,
                                     type(exception))
         return JsonResponse.error(wrapped, wrapped.status)
 
     # Add routes for modules here
-    add_login_routes(uwsgi_app, bcrypt)
+    add_login_routes(flask_app, bcrypt)
 
-    add_file_routes(uwsgi_app, CONFIG_BROKER['aws_create_temp_credentials'],
+    add_file_routes(flask_app, CONFIG_BROKER['aws_create_temp_credentials'],
                     local, broker_file_path)
-    add_user_routes(uwsgi_app, uwsgi_app.config['SYSTEM_EMAIL'], bcrypt)
-    add_domain_routes(uwsgi_app)
-    add_exception_handlers(uwsgi_app)
-    return uwsgi_app
+    add_user_routes(flask_app, flask_app.config['SYSTEM_EMAIL'], bcrypt)
+    add_domain_routes(flask_app)
+    add_exception_handlers(flask_app)
+    return flask_app
 
 
 def runApp():
     """runs the application"""
-    uwsgi_app = createApp()
-    uwsgi_app.run(
+    flask_app = createApp()
+    flask_app.run(
         threaded=True,
         host=CONFIG_SERVICES['broker_api_host'],
         port=CONFIG_SERVICES['broker_api_port']
