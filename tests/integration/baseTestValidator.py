@@ -104,6 +104,8 @@ class BaseTestValidator(unittest.TestCase):
             stagingRows: Expected number of rows in validation db staging tables. False if no rows are expected
             errorStatus: Expected status in file table of error DB, False if file object should not exist
             numErrors: Expected number of errors
+            numWarnings: Expected number of warnings
+            warningFileSize: Expected size of warning file
 
         Returns:
 

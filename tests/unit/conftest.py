@@ -5,7 +5,6 @@ from flask import Flask, g
 import pytest
 
 import dataactcore.config
-# Load all models so we can access them through baseModel.Base.metadata
 from dataactcore.models import baseModel
 from dataactcore.scripts import setupJobTrackerDB, setupUserDB
 from dataactcore.scripts.databaseSetup import (

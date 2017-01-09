@@ -40,13 +40,13 @@ class RequestDictionary:
                     # @todo: this shouldn't be a type error
                     raise TypeError(
                         "Failed to create a dictionary out of json")
+                return result
             elif content_type == "application/x-www-form-urlencoded":
-                result = request.form
+                return request.form
             else:
-                raise ValueError("Invaild Content-Type : " + content_type)
+                raise ValueError("Invalid Content-Type : " + content_type)
         except BadRequest as br:
             if optional_request:
-                result = {}
+                return {}
             else:
                 raise br
-        return result
