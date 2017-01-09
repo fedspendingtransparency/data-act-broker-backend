@@ -69,7 +69,7 @@ def test_failure_program_activity_code(database):
     assert number_of_errors(_FILE, database, models=[af, pa]) == 1
 
 
-def test_failure_program_activity_null(database):
+def test_success_null_program_activity(database):
     """program activity name/code as null"""
     af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test_wrong',
                                allocation_transfer_agency='test', main_account_code='test',
