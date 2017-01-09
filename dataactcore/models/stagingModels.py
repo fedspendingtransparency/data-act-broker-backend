@@ -45,7 +45,7 @@ class Appropriation(Base):
     status_of_budgetary_resour_cpe = Column(Numeric)
     sub_account_code = Column(Text)
     unobligated_balance_cpe = Column(Numeric)
-    tas = Column(Text, index=True, nullable=False, default=concatTas, onupdate=concatTas)
+    tas = Column(Text, index=True, nullable=False, default=concatTas)
     tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'),
                     nullable=True)
     tas_obj = relationship(TASLookup)
@@ -108,7 +108,7 @@ class ObjectClassProgramActivity(Base):
     ussgl497200_downward_adjus_cpe = Column(Numeric)
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
-    tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
+    tas = Column(Text, nullable=False, default=concatTas)
     tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'),
                     nullable=True)
     tas_obj = relationship(TASLookup)
@@ -182,7 +182,7 @@ class AwardFinancial(Base):
     ussgl497200_downward_adjus_cpe = Column(Numeric)
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
-    tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
+    tas = Column(Text, nullable=False, default=concatTas)
     tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'),
                     nullable=True)
     tas_obj = relationship(TASLookup)

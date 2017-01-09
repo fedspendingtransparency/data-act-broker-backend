@@ -9,7 +9,7 @@ import boto
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import TASLookup
+from dataactcore.models.domainModels import TAS_COMPONENTS, TASLookup
 from dataactvalidator.app import createApp
 from dataactvalidator.scripts.loaderUtils import LoaderUtils
 
@@ -28,8 +28,8 @@ def cleanTas(csvPath):
          "acct_num": "account_num",
          "aid": "agency_identifier",
          "ata": "allocation_transfer_agency",
-         "bpoa": "beginning_period_of_availability",
-         "epoa": "ending_period_of_availability",
+         "bpoa": "beginning_period_of_availa",
+         "epoa": "ending_period_of_availabil",
          "main": "main_account_code",
          "sub": "sub_account_code",
          "financial_indicator_type2": "financial_indicator2",
@@ -38,10 +38,8 @@ def cleanTas(csvPath):
          "agency_identifier": {"pad_to_length": 3},
          # Account for " " cells
          "availability_type_code": {"pad_to_length": 0, "keep_null": True},
-         "beginning_period_of_availability": {"pad_to_length": 0,
-                                              "keep_null": True},
-         "ending_period_of_availability": {"pad_to_length": 0,
-                                           "keep_null": True},
+         "beginning_period_of_availa": {"pad_to_length": 0, "keep_null": True},
+         "ending_period_of_availabil": {"pad_to_length": 0, "keep_null": True},
          "main_account_code": {"pad_to_length": 4},
          "sub_account_code": {"pad_to_length": 3},
          }
@@ -128,13 +126,6 @@ def add_existing_id(data):
     data['existing_id'] = data.apply(existing_id, axis=1, existing=existing)
 
 
-_MATCH_FIELDS = (
-    'allocation_transfer_agency', 'agency_identifier',
-    'beginning_period_of_availability', 'ending_period_of_availability',
-    'availability_type_code', 'main_account_code', 'sub_account_code'
-)
-
-
 def existing_id(row, existing):
     """ Check for a TASLookup which matches this `row` in the `existing` data.
         Args:
@@ -142,7 +133,7 @@ def existing_id(row, existing):
             existing: Dict[account_num, List[TASLookup]]
     """
     for potential_match in existing[row['account_num']]:
-        if all(row[f] == getattr(potential_match, f) for f in _MATCH_FIELDS):
+        if all(row[f] == getattr(potential_match, f) for f in TAS_COMPONENTS):
             return potential_match.tas_id
 
 

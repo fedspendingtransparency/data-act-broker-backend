@@ -15,19 +15,6 @@ with_factory_parameters = pytest.mark.parametrize('factory', (
 ))
 
 
-def copy_tas_fields(tas):
-    """The TAS fields are slightly different than model fields. Translate."""
-    return {
-        'allocation_transfer_agency': tas.allocation_transfer_agency,
-        'agency_identifier': tas.agency_identifier,
-        'beginning_period_of_availa': tas.beginning_period_of_availability,
-        'ending_period_of_availabil': tas.ending_period_of_availability,
-        'availability_type_code': tas.availability_type_code,
-        'main_account_code': tas.main_account_code,
-        'sub_account_code': tas.sub_account_code
-    }
-
-
 @with_factory_parameters
 def test_update_tas_ids_has_match_open_ended(database, factory):
     """If there are models which match the TAS (with an undefined end date),
@@ -39,7 +26,7 @@ def test_update_tas_ids_has_match_open_ended(database, factory):
     sess.flush()
     tas = TASFactory(internal_start_date=date(2010, 9, 1))
     model = factory(submission_id=submission.submission_id,
-                    **copy_tas_fields(tas))
+                    **tas.component_dict())
     assert model.tas_id is None
     sess.add_all([tas, model])
     sess.commit()
@@ -63,7 +50,7 @@ def test_update_tas_ids_has_match_closed(database, factory):
     tas = TASFactory(internal_start_date=date(2010, 9, 1),
                      internal_end_date=date(2010, 10, 15))
     model = factory(submission_id=submission.submission_id,
-                    **copy_tas_fields(tas))
+                    **tas.component_dict())
     assert model.tas_id is None
     sess.add_all([tas, model])
     sess.commit()
@@ -108,7 +95,7 @@ def test_update_tas_ids_bad_dates(database, factory):
     sess.flush()
     tas = TASFactory(internal_start_date=date(2011, 1, 1))
     model = factory(submission_id=submission.submission_id,
-                    **copy_tas_fields(tas))
+                    **tas.component_dict())
     assert model.tas_id is None
     sess.add_all([tas, model])
     sess.commit()
