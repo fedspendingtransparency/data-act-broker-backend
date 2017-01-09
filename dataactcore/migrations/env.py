@@ -7,9 +7,7 @@ import sys
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-# Load all DB tables into metadata object
-# @todo - load these dynamically
-from dataactcore.models import baseModel, domainModels, fsrs, errorModels, jobModels, stagingModels, userModel, validationModels # noqa
+from dataactcore.models import baseModel
 from dataactcore.config import CONFIG_DB
 from dataactcore.interfaces.db import dbURI
 from dataactcore.logging import configure_logging
@@ -84,21 +82,21 @@ def run_migrations_offline():
     # individual files.
 
     engines = {}
-    for name in re.split(r',\s*', db_names):
-        engines[name] = rec = {}
-        rec['url'] = context.config.get_section_option(name,
+    for db_name in re.split(r',\s*', db_names):
+        engines[db_name] = rec = {}
+        rec['url'] = context.config.get_section_option(db_name,
                                                        "sqlalchemy.url")
 
-    for name, rec in engines.items():
-        logger.info("Migrating database %s" % name)
-        file_ = "%s.sql" % name
+    for db_name, rec in engines.items():
+        logger.info("Migrating database %s" % db_name)
+        file_ = "%s.sql" % db_name
         logger.info("Writing output to %s" % file_)
         with open(file_, 'w') as buffer:
             context.configure(url=rec['url'], output_buffer=buffer,
-                              target_metadata=target_metadata.get(name),
+                              target_metadata=target_metadata.get(db_name),
                               literal_binds=True)
             with context.begin_transaction():
-                context.run_migrations(engine_name=name)
+                context.run_migrations(engine_name=db_name)
 
 
 def run_migrations_online():
@@ -113,14 +111,14 @@ def run_migrations_online():
     # engines, then run all migrations, then commit all transactions.
 
     engines = {}
-    for name in re.split(r',\s*', db_names):
-        engines[name] = rec = {}
+    for db_name in re.split(r',\s*', db_names):
+        engines[db_name] = rec = {}
         rec['engine'] = engine_from_config(
-            context.config.get_section(name),
+            context.config.get_section(db_name),
             prefix='sqlalchemy.',
             poolclass=pool.NullPool)
 
-    for name, rec in engines.items():
+    for db_name, rec in engines.items():
         engine = rec['engine']
         rec['connection'] = conn = engine.connect()
 
@@ -130,16 +128,16 @@ def run_migrations_online():
             rec['transaction'] = conn.begin()
 
     try:
-        for name, rec in engines.items():
-            logger.info("Migrating database %s" % name)
+        for db_name, rec in engines.items():
+            logger.info("Migrating database %s" % db_name)
             context.configure(
                 connection=rec['connection'],
-                upgrade_token="%s_upgrades" % name,
-                downgrade_token="%s_downgrades" % name,
-                target_metadata=target_metadata.get(name),
+                upgrade_token="%s_upgrades" % db_name,
+                downgrade_token="%s_downgrades" % db_name,
+                target_metadata=target_metadata.get(db_name),
                 compare_type=True  # instruct autogen to detect col type changes
             )
-            context.run_migrations(engine_name=name)
+            context.run_migrations(engine_name=db_name)
 
         if USE_TWOPHASE:
             for rec in engines.values():

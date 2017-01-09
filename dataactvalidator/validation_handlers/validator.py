@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, DecimalException
 import logging
 
 from dataactcore.models.lookups import (FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT)
@@ -156,19 +156,19 @@ class Validator(object):
             try:
                 int(data)
                 return True
-            except:
+            except ValueError:
                 return False
         if datatype == "DECIMAL":
             try:
                 Decimal(data)
                 return True
-            except:
+            except DecimalException:
                 return False
         if datatype == "LONG":
             try:
                 int(data)
                 return True
-            except:
+            except ValueError:
                 return False
         raise ValueError("".join(["Data Type Error, Type: ", datatype, ", Value: ", data]))
 

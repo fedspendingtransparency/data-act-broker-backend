@@ -15,15 +15,13 @@ from sqlalchemy import func
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 
-from dataactbroker.permissions import (
-    current_user_can, current_user_can_on_submission)
+from dataactbroker.permissions import current_user_can, current_user_can_on_submission
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC
 from dataactcore.models.errorModels import File
-from dataactcore.models.jobModels import (
-    FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency)
+from dataactcore.models.jobModels import FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID,
@@ -279,8 +277,6 @@ class FileHandler:
         except Exception as e:
             # unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
-        except:
-            return JsonResponse.error(Exception("Failed to catch exception"), StatusCode.INTERNAL_ERROR)
 
     @staticmethod
     def check_submission_dates(start_date, end_date, is_quarter, existing_submission=None):

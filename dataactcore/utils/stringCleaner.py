@@ -25,7 +25,7 @@ class StringCleaner:
         try:
             float(data)
             return True
-        except:
+        except ValueError:
             return False
 
     @staticmethod
@@ -33,5 +33,5 @@ class StringCleaner:
         try:
             parse(data)
             return True
-        except:
+        except (ValueError, OverflowError):
             return False

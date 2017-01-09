@@ -18,7 +18,7 @@ class CsvLocalWriter(CsvAbstractWriter):
 
         """
         self.stream = open(filename, "w", newline='')
-        super(CsvLocalWriter, self).__init__(filename, header)
+        super(CsvLocalWriter, self).__init__(header)
 
     def _write(self, data):
         """

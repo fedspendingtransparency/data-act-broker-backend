@@ -58,9 +58,9 @@ def test_generate_e_file_query(monkeypatch, mock_broker_config_paths,
     # submission_id as well
     model = AwardProcurementFactory()
     aps = [AwardProcurementFactory(submission_id=model.submission_id)
-           for i in range(4)]
+           for _ in range(4)]
     afas = [AwardFinancialAssistanceFactory(submission_id=model.submission_id)
-            for i in range(5)]
+            for _ in range(5)]
     same_duns = AwardProcurementFactory(
         submission_id=model.submission_id,
         awardee_or_recipient_uniqu=model.awardee_or_recipient_uniqu)
