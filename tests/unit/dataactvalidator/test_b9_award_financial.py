@@ -78,4 +78,4 @@ def test_failure_program_activity_null(database):
     pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
                                 account_number='test')
 
-    assert number_of_errors(_FILE, database, models=[af, pa]) == 1
+    assert number_of_errors(_FILE, database, models=[af, pa]) == 0
