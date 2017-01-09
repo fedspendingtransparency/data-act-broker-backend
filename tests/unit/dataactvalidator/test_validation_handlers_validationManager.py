@@ -5,10 +5,8 @@ import pytest
 from dataactvalidator.validation_handlers import validationManager
 from tests.unit.dataactcore.factories.domain import TASFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
-from tests.unit.dataactcore.factories.staging import (
-    AppropriationFactory, AwardFinancialFactory,
-    ObjectClassProgramActivityFactory
-)
+from tests.unit.dataactcore.factories.staging import (AppropriationFactory, AwardFinancialFactory,
+                                                      ObjectClassProgramActivityFactory)
 
 
 with_factory_parameters = pytest.mark.parametrize('factory', (
@@ -32,7 +30,7 @@ def test_update_tas_ids_has_match_open_ended(database, factory):
     assert model.tas_id is None
     sess.add_all([tas, model])
     sess.commit()
-        
+
     validationManager.update_tas_ids(
         model.__class__, submission.submission_id)
 
@@ -56,7 +54,7 @@ def test_update_tas_ids_has_match_closed(database, factory):
     assert model.tas_id is None
     sess.add_all([tas, model])
     sess.commit()
-        
+
     validationManager.update_tas_ids(
         model.__class__, submission.submission_id)
 
@@ -78,7 +76,7 @@ def test_update_tas_ids_no_match(database, factory):
     assert model.tas_id is None
     sess.add_all([tas, model])
     sess.commit()
-        
+
     validationManager.update_tas_ids(
         model.__class__, submission.submission_id)
 
@@ -101,7 +99,7 @@ def test_update_tas_ids_bad_dates(database, factory):
     assert model.tas_id is None
     sess.add_all([tas, model])
     sess.commit()
-        
+
     validationManager.update_tas_ids(
         model.__class__, submission.submission_id)
 

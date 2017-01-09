@@ -36,7 +36,7 @@ class SchemaLoader(object):
 
             # get allowable datatypes
             typeQuery = sess.query(FieldType.name, FieldType.field_type_id).all()
-            types = {type.name: type.field_type_id for type in typeQuery}
+            types = {data_type.name: data_type.field_type_id for data_type in typeQuery}
 
             # add schema to database
             with open(schemaFileName, 'rU') as csvfile:
@@ -134,11 +134,11 @@ class SchemaLoader(object):
         sess.add(newColumn)
 
     @classmethod
-    def loadAllFromPath(cls,path):
+    def loadAllFromPath(cls, path):
         # Load field definitions into validation DB
         for key in cls.fieldFiles:
-            filepath = os.path.join(path,cls.fieldFiles[key])
-            cls.loadFields(key,filepath)
+            filepath = os.path.join(path, cls.fieldFiles[key])
+            cls.loadFields(key, filepath)
 
 if __name__ == '__main__':
     configure_logging()

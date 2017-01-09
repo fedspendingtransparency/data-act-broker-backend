@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, DecimalException
 import logging
 
 from dataactcore.models.lookups import (FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT)
@@ -9,12 +9,14 @@ from dataactcore.interfaces.db import GlobalDB
 
 logger = logging.getLogger(__name__)
 
+
 class Validator(object):
     """
     Checks individual records against specified validation tests
     """
-    BOOLEAN_VALUES = ["TRUE","FALSE","YES","NO","1","0"]
-    tableAbbreviations = {"appropriations":"approp","award_financial_assistance":"afa","award_financial":"af","object_class_program_activity":"op","appropriation":"approp"}
+    BOOLEAN_VALUES = ["TRUE", "FALSE", "YES", "NO", "1", "0"]
+    tableAbbreviations = {"appropriations": "approp", "award_financial_assistance": "afa", "award_financial": "af",
+                          "object_class_program_activity": "op", "appropriation": "approp"}
     # Set of metadata fields that should not be directly validated
     META_FIELDS = ["row_number"]
 
@@ -42,11 +44,13 @@ class Validator(object):
                 columnString = ", ".join(short_to_long_dict[c] if c in short_to_long_dict else c for c in cols)
                 for row in failedRows:
                     # get list of values for each column
-                    values = ["{}: {}".format(short_to_long_dict[c], str(row[c])) if c in short_to_long_dict else "{}: {}".format(c, str(row[c])) for c in cols]
+                    values = ["{}: {}".format(short_to_long_dict[c], str(row[c])) if c in short_to_long_dict else
+                              "{}: {}".format(c, str(row[c])) for c in cols]
                     values = ", ".join(values)
                     targetFileType = FILE_TYPE_DICT_ID[rule.target_file_id]
                     failures.append([rule.file.name, targetFileType, columnString,
-                        str(rule.rule_error_message), values, row['row_number'],str(rule.rule_label),rule.file_id,rule.target_file_id,rule.rule_severity_id])
+                                    str(rule.rule_error_message), values, row['row_number'], str(rule.rule_label),
+                                    rule.file_id, rule.target_file_id, rule.rule_severity_id])
 
         # Return list of cross file validation failures
         return failures
@@ -79,7 +83,7 @@ class Validator(object):
 
         total_fields = 0
         blank_fields = 0
-        for field_name in record :
+        for field_name in record:
             if field_name in cls.META_FIELDS:
                 # Skip fields that are not user submitted
                 continue
@@ -104,27 +108,29 @@ class Validator(object):
 
             # Always check the type in the schema
             if not check_required_only and not Validator.checkType(current_data,
-                                                                 FIELD_TYPE_DICT_ID[current_schema.field_types_id]):
+                                                                   FIELD_TYPE_DICT_ID[current_schema.field_types_id]):
                 record_type_failure = True
                 record_failed = True
-                failed_rules.append([field_name, ValidationError.typeError, current_data,"", "fatal"])
+                failed_rules.append([field_name, ValidationError.typeError, current_data, "", "fatal"])
                 # Don't check value rules if type failed
                 continue
 
             # Check length based on schema
-            if current_schema.length is not None and current_data is not None and len(current_data.strip()) > current_schema.length:
+            if current_schema.length is not None and current_data is not None and \
+               len(current_data.strip()) > current_schema.length:
                 # Length failure, add to failedRules
                 record_failed = True
-                failed_rules.append([field_name, ValidationError.lengthError, current_data,"", "warning"])
+                failed_rules.append([field_name, ValidationError.lengthError, current_data, "", "warning"])
 
-        # if all columns are blank (empty row), set it so it doesn't add to the error messages or write the line, just ignore it
+        # if all columns are blank (empty row), set it so it doesn't add to the error messages or write the line,
+        # just ignore it
         if total_fields == blank_fields:
             record_failed = False
             record_type_failure = True
         return (not record_failed), failed_rules, (not record_type_failure)
 
     @staticmethod
-    def checkType(data,datatype) :
+    def checkType(data, datatype):
         """ Determine whether data is of the correct type
 
         Args:
@@ -137,34 +143,34 @@ class Validator(object):
         if datatype is None:
             # If no type specified, don't need to check anything
             return True
-        if(data.strip() == ""):
+        if data.strip() == "":
             # An empty string matches all types
             return True
-        if(datatype == "STRING") :
-            return(len(data) > 0)
-        if(datatype == "BOOLEAN") :
-            if(data.upper() in Validator.BOOLEAN_VALUES) :
+        if datatype == "STRING":
+            return len(data) > 0
+        if datatype == "BOOLEAN":
+            if data.upper() in Validator.BOOLEAN_VALUES:
                 return True
             return False
-        if(datatype == "INT") :
+        if datatype == "INT":
             try:
                 int(data)
                 return True
-            except:
+            except ValueError:
                 return False
-        if(datatype == "DECIMAL") :
+        if datatype == "DECIMAL":
             try:
                 Decimal(data)
                 return True
-            except:
+            except DecimalException:
                 return False
-        if(datatype == "LONG"):
+        if datatype == "LONG":
             try:
                 int(data)
                 return True
-            except:
+            except ValueError:
                 return False
-        raise ValueError("".join(["Data Type Error, Type: ",datatype,", Value: ",data]))
+        raise ValueError("".join(["Data Type Error, Type: ", datatype, ", Value: ", data]))
 
     @classmethod
     def validateFileBySql(cls, submission_id, fileType, short_to_long_dict):
@@ -221,7 +227,9 @@ class Validator(object):
                     errorMsg = rule.rule_error_message
                     row = failure["row_number"]
                     # Create strings for fields and values
-                    valueList = ["{}: {}".format(short_to_long_dict[field], str(failure[field])) if field in short_to_long_dict else "{}: {}".format(field, str(failure[field])) for field in cols]
+                    valueList = ["{}: {}".format(short_to_long_dict[field], str(failure[field])) if
+                                 field in short_to_long_dict else "{}: {}".format(field, str(failure[field])) for
+                                 field in cols]
                     if flex_dict and flex_dict[row]:
                         valueList.append("{}: {}".format(flex_dict[row].header, flex_dict[row].cell))
                     valueString = ", ".join(valueList)
@@ -229,7 +237,8 @@ class Validator(object):
                     if flex_dict and flex_dict[row]:
                         fieldList.append(flex_dict[row].header)
                     fieldString = ", ".join(fieldList)
-                    errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId, rule.target_file_id, rule.rule_severity_id])
+                    errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId,
+                                   rule.target_file_id, rule.rule_severity_id])
 
             logger.info(
                 'VALIDATOR_INFO: Completed SQL validation rules on '

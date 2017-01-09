@@ -10,7 +10,7 @@ class ValidatorTests(BaseTestValidator):
     def setUpClass(cls):
         """Set up class-wide resources (test data)"""
         super(ValidatorTests, cls).setUpClass()
-        #TODO: refactor into a pytest fixture
+        # TODO: refactor into a pytest fixture
 
         # create test schema
         stringType = FieldType()

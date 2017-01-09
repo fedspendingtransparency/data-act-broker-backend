@@ -8,8 +8,8 @@ _FILE = 'a32_appropriations'
 
 def test_column_headers(database):
     expected_subset = {'row_number', 'allocation_transfer_agency', 'agency_identifier',
-        'beginning_period_of_availa', 'ending_period_of_availabil',
-        'availability_type_code', 'main_account_code', 'sub_account_code'}
+                       'beginning_period_of_availa', 'ending_period_of_availabil',
+                       'availability_type_code', 'main_account_code', 'sub_account_code'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
@@ -24,7 +24,7 @@ def test_success(database):
     ap1 = AppropriationFactory(row_number=1, tas_id=tas1.tas_id)
     ap2 = AppropriationFactory(row_number=2, tas_id=tas2.tas_id)
 
-    assert number_of_errors(_FILE, database, models=[ap1,ap2]) == 0
+    assert number_of_errors(_FILE, database, models=[ap1, ap2]) == 0
 
 
 def test_failure(database):
@@ -35,4 +35,4 @@ def test_failure(database):
 
     ap1 = AppropriationFactory(row_number=1, tas_id=tas.tas_id)
     ap2 = AppropriationFactory(row_number=2, tas_id=tas.tas_id)
-    assert number_of_errors(_FILE, database, models=[ap1,ap2]) == 2
+    assert number_of_errors(_FILE, database, models=[ap1, ap2]) == 2

@@ -18,7 +18,7 @@ class s3UrlHandler:
     STS_LIFETIME = 2000
     S3_ROLE = ""
 
-    def __init__(self,name = None):
+    def __init__(self, name=None):
         """
         Creates the object for signing URLS
 
@@ -34,7 +34,7 @@ class s3UrlHandler:
         s3UrlHandler.S3_ROLE = CONFIG_BROKER['aws_role']
         s3UrlHandler.REGION = CONFIG_BROKER['aws_region']
 
-    def _signUrl(self,path,fileName,bucketRoute,method="PUT") :
+    def _signUrl(self, path, fileName, bucketRoute, method="PUT"):
         """
         Creates the object for signing URLS
 
@@ -45,14 +45,17 @@ class s3UrlHandler:
         returns signed url (String)
 
         """
-        if(s3UrlHandler.ENABLE_S3) :
+        if s3UrlHandler.ENABLE_S3:
             s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
-            if(method=="PUT") :
-                return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method, bucketRoute, "/"+path+"/" +fileName,headers={'Content-Type': 'application/octet-stream'})
-            return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method, bucketRoute, "/"+path+"/" +fileName)
-        return s3UrlHandler.BASE_URL + "/"+self.bucketRoute +"/"+path+"/" +fileName
+            if method == "PUT":
+                return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method,
+                                                 bucketRoute, "/" + path + "/" + fileName,
+                                                 headers={'Content-Type': 'application/octet-stream'})
+            return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method,
+                                             bucketRoute, "/" + path + "/" + fileName)
+        return s3UrlHandler.BASE_URL + "/" + self.bucketRoute + "/" + path + "/" + fileName
 
-    def getSignedUrl(self,path,fileName, bucketRoute=None, method="PUT"):
+    def getSignedUrl(self, path, fileName, bucketRoute=None, method="PUT"):
         """
         Signs a URL for PUT requests
 
@@ -63,31 +66,33 @@ class s3UrlHandler:
         """
         bucketRoute = self.bucketRoute if bucketRoute is None else bucketRoute
 
-        if(method=="PUT"):
+        if method == "PUT":
             self.s3FileName = s3UrlHandler.getTimestampedFilename(fileName)
         else:
             self.s3FileName = fileName
-        return self._signUrl(path,self.s3FileName, bucketRoute, method)
+        return self._signUrl(path, self.s3FileName, bucketRoute, method)
 
     @staticmethod
-    def getTimestampedFilename(filename) :
+    def getTimestampedFilename(filename):
         """
         Gets a Timestamped file name to prevent conflicts on S3 Uploading
         """
-        seconds = int((datetime.utcnow()-datetime(1970,1,1)).total_seconds())
-        return str(seconds)+"_"+filename
+        seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
+        return str(seconds) + "_" + filename
 
-    def getTemporaryCredentials(self,user):
+    def getTemporaryCredentials(self, user):
         """
         Gets token that allows for S3 Uploads for seconds set in STS_LIFETIME
         """
         stsConnection = sts.connect_to_region(s3UrlHandler.REGION)
-        role = stsConnection.assume_role(s3UrlHandler.S3_ROLE,"FileUpload"+str(user),duration_seconds=s3UrlHandler.STS_LIFETIME)
-        credentials ={}
-        credentials["AccessKeyId"] = role.credentials.access_key
-        credentials["SecretAccessKey"] = role.credentials.secret_key
-        credentials["SessionToken"] = role.credentials.session_token
-        credentials["Expiration"] = role.credentials.expiration
+        role = stsConnection.assume_role(s3UrlHandler.S3_ROLE, "FileUpload" + str(user),
+                                         duration_seconds=s3UrlHandler.STS_LIFETIME)
+        credentials = {
+            'AccessKeyId': role.credentials.access_key,
+            'SecretAccessKey': role.credentials.secret_key,
+            'SessionToken': role.credentials.session_token,
+            'Expiration': role.credentials.expiration
+        }
         return credentials
 
     @staticmethod
@@ -97,7 +102,7 @@ class s3UrlHandler:
         # Get key
         try:
             s3UrlHandler.REGION
-        except AttributeError as e:
+        except AttributeError:
             s3UrlHandler.REGION = CONFIG_BROKER["aws_region"]
         s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
         bucket = s3connection.get_bucket(CONFIG_BROKER['aws_bucket'])
@@ -111,7 +116,7 @@ class s3UrlHandler:
     def getFileUrls(self, bucket_name, path):
         try:
             s3UrlHandler.REGION
-        except AttributeError as e:
+        except AttributeError:
             s3UrlHandler.REGION = CONFIG_BROKER["aws_region"]
 
         s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)

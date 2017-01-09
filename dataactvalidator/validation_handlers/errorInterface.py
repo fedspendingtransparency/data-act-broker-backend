@@ -5,6 +5,7 @@ from dataactcore.interfaces.db import GlobalDB
 
 from dataactcore.models.lookups import ERROR_TYPE_DICT
 
+
 class ErrorInterface:
     """Manages communication with error database."""
 
@@ -20,7 +21,8 @@ class ErrorInterface:
             job_id: ID of job in job tracker
             filename: name of error report in S3
             field_name: name of field where error occurred
-            error_type: type of error, value will be mapped to ValidationError class, for rule failures this will hold entire message
+            error_type: type of error, value will be mapped to ValidationError class,
+                for rule failures this will hold entire message
             row: Row number error occurred on
             original_label: Label of rule
             file_type_id: Id of source file type

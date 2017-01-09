@@ -22,6 +22,7 @@ def test_success_fy2015(database):
 
     assert number_of_errors(_FILE, database, models=[sf, ap]) == 0
 
+
 def test_success_fy2016(database):
     """If data for the end of the last fiscal year isn't present, the
     validation should still pass since it only looks for a specific fiscal

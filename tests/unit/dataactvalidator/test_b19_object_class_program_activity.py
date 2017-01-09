@@ -73,19 +73,19 @@ def test_success(database):
                                      program_activity_code='1', by_direct_reimbursable_fun='r')
 
     op10 = ObjectClassProgramActivity(job_id=1, row_number=1, beginning_period_of_availa='1',
-                                     ending_period_of_availabil='1', agency_identifier='1',
-                                     allocation_transfer_agency='1', availability_type_code='1',
-                                     main_account_code='1', sub_account_code='1', object_class='1',
-                                     program_activity_code='2', by_direct_reimbursable_fun='r')
+                                      ending_period_of_availabil='1', agency_identifier='1',
+                                      allocation_transfer_agency='1', availability_type_code='1',
+                                      main_account_code='1', sub_account_code='1', object_class='1',
+                                      program_activity_code='2', by_direct_reimbursable_fun='r')
 
     op11 = ObjectClassProgramActivity(job_id=1, row_number=1, beginning_period_of_availa='1',
-                                     ending_period_of_availabil='1', agency_identifier='1',
-                                     allocation_transfer_agency='1', availability_type_code='1',
-                                     main_account_code='1', sub_account_code='1', object_class='1',
-                                     program_activity_code='1', by_direct_reimbursable_fun='d')
+                                      ending_period_of_availabil='1', agency_identifier='1',
+                                      allocation_transfer_agency='1', availability_type_code='1',
+                                      main_account_code='1', sub_account_code='1', object_class='1',
+                                      program_activity_code='1', by_direct_reimbursable_fun='d')
 
     assert number_of_errors(_FILE, database, models=[op1, op2, op3, op4, op5, op6,
-                                                               op7, op8, op9, op10, op11]) == 0
+                                                     op7, op8, op9, op10, op11]) == 0
 
 
 def test_optionals(database):

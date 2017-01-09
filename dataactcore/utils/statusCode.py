@@ -1,4 +1,4 @@
-class StatusCode() :
+class StatusCode:
     """
     Constants for the status code
     """

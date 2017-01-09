@@ -17,8 +17,8 @@ def insertCodes(sess):
     """Create job tracker tables from model metadata."""
     # insert user permission types
     for t in lookups.PERMISSION_TYPE:
-        type = PermissionType(permission_type_id=t.id, name=t.name, description=t.desc)
-        sess.merge(type)
+        permission_type = PermissionType(permission_type_id=t.id, name=t.name, description=t.desc)
+        sess.merge(permission_type)
 
 
 if __name__ == '__main__':

@@ -28,7 +28,7 @@ def test_success_populated_ata(database):
     sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year,
                        allocation_transfer_agency=code, agency_identifier='some-other-code')
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
-                                    reporting_fiscal_year=year, cgac_code=code)
+                                   reporting_fiscal_year=year, cgac_code=code)
     ap = AppropriationFactory(tas=tas, submission_id=submission_id)
 
     assert error_rows(
@@ -43,7 +43,7 @@ def test_success_null_ata(database):
     sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year,
                        allocation_transfer_agency=None, agency_identifier=code)
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
-                                    reporting_fiscal_year=year, cgac_code=code)
+                                   reporting_fiscal_year=year, cgac_code=code)
     ap = AppropriationFactory(tas=tas, submission_id=submission_id)
 
     assert error_rows(
@@ -58,11 +58,12 @@ def test_failure_populated_ata(database):
     sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year,
                        allocation_transfer_agency=code, agency_identifier=code)
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
-                                    reporting_fiscal_year=year, cgac_code=code)
+                                   reporting_fiscal_year=year, cgac_code=code)
     ap = AppropriationFactory(tas='a-different-tas', submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[sf1, ap], submission=submission)
     assert errors == 1
+
 
 def test_failure_null_ata(database):
     """ Tests that TAS for SF-133 are not present in File A """
@@ -72,7 +73,7 @@ def test_failure_null_ata(database):
     sf1 = SF133Factory(tas=tas, period=period, fiscal_year=year,
                        allocation_transfer_agency=None, agency_identifier=code)
     submission = SubmissionFactory(submission_id=submission_id, reporting_fiscal_period=period,
-                                    reporting_fiscal_year=year, cgac_code=code)
+                                   reporting_fiscal_year=year, cgac_code=code)
     ap = AppropriationFactory(tas='a-different-tas', submission_id=submission_id)
 
     errors = number_of_errors(_FILE, database, models=[sf1, ap], submission=submission)

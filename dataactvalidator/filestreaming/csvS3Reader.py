@@ -23,8 +23,13 @@ class CsvS3Reader(CsvAbstractReader):
     def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
         """ Opens file and prepares to read each record, mapping entries to specified column names
         Args:
-            bucket : the S3 Bucket
+            region: AWS region where the bucket is located (not used if instantiated as CsvLocalReader)
+            bucket: the S3 Bucket (not used if instantiated as CsvLocalReader)
             filename: The file path for the CSV file in S3
+            csv_schema: list of FileColumn objects for this file type
+            bucket_name: bucket to send errors to
+            error_filename: filename for error report
+            long_to_short_dict: mapping of long to short schema column names
         Returns:
         """
         self.s3_file = self.initialize_file(region, bucket, filename)

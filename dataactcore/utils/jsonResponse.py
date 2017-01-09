@@ -10,12 +10,12 @@ from dataactcore.utils.responseException import ResponseException
 logger = logging.getLogger(__name__)
 
 
-class JsonResponse :
+class JsonResponse:
     """ Used to create an http response object containing JSON """
     debugMode = True
 
     @staticmethod
-    def create(code,dictionaryData):
+    def create(code, dictionaryData):
         """
         Creates a JSON response object
         if debugMode is enabled errors are added
