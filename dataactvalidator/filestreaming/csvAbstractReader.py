@@ -1,5 +1,6 @@
 import csv
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.models.stagingModels import FlexField
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.responseException import ResponseException
 from dataactvalidator.validation_handlers.validationError import ValidationError
@@ -32,13 +33,10 @@ class CsvAbstractReader(object):
         self.unprocessed = ''
         self.extra_line = False
         self.lines = []
-        self.flex_dictionary = {}
-        self.header_dictionary = {}
         self.packet_counter = 0
-        current = 0
         self.is_finished = False
         self.column_count = 0
-        line = self._get_line()
+        header_line = self._get_line()
         # make sure we have not finished reading the file
 
         if self.is_finished:
@@ -49,97 +47,22 @@ class CsvAbstractReader(object):
             raise ResponseException("CSV file must have a header", StatusCode.CLIENT_ERROR,
                                     ValueError, ValidationError.singleRow)
 
-        duplicated_headers = []
         # create the header
+        self.set_csv_delimiter(header_line, bucket_name, error_filename)
 
-        # check delimiters in header row
-        pipe_count = line.count("|")
-        comma_count = line.count(",")
+        header_row = next(csv.reader([header_line], dialect='excel',
+                                     delimiter=self.delimiter))
+        long_headers = use_long_headers(header_row, long_to_short_dict)
+        header_row = list(normalize_headers(
+            header_row, long_headers, long_to_short_dict))
 
-        if pipe_count != 0 and comma_count != 0:
-            # Write header error for mixed delimiter use
-            with self.get_writer(bucket_name, error_filename, ["Error Type"], self.is_local) as writer:
-                writer.write(["Cannot use both ',' and '|' as delimiters. Please choose one."])
-                writer.finishBatch()
-            raise ResponseException("Error in header row: CSV file must use only '|' or ',' as the delimiter",
-                                    StatusCode.CLIENT_ERROR, ValueError, ValidationError.headerError)
+        expected_header_counts = self.count_and_set_headers(
+            csv_schema, header_row)
 
-        self.delimiter = "|" if line.count("|") != 0 else ","
+        self.column_count = len(header_row)
 
-        # Set the list of possible_fields, using  the shorter,
-        # machine-readable column names
-        possible_fields = {}
-        for schema in csv_schema:
-            possible_fields[FieldCleaner.cleanString(schema.name_short)] = 0
-
-        for row in csv.reader([line], dialect='excel', delimiter=self.delimiter):
-            # check to see if header contains long or short column names
-            col_matches = 0
-            for value in row:
-                if FieldCleaner.cleanString(value) in long_to_short_dict:
-                    col_matches += 1
-            # if most of column headers are in the long format,
-            # we'll treat the file as having long headers
-            if col_matches > .5 * len(row):
-                long_headers = True
-            else:
-                long_headers = False
-
-            for cell in row:
-                submitted_header_value = FieldCleaner.cleanString(cell)
-                if long_headers and submitted_header_value in long_to_short_dict:
-                    header_value = FieldCleaner.cleanString(long_to_short_dict[submitted_header_value])
-                elif long_headers:
-                    header_value = None
-                else:
-                    header_value = submitted_header_value
-                if header_value not in possible_fields:
-                    # Add flex headers to flex list
-                    if str(submitted_header_value).startswith("flex_"):
-                        self.flex_dictionary[current] = submitted_header_value
-                    else:
-                        self.flex_dictionary[current] = None
-                    # Allow unexpected headers, just mark the header as None so we skip it when reading
-                    self.header_dictionary[current] = None
-                    current += 1
-                elif possible_fields[header_value] == 1:
-                    # Add header value (as submitted) to duplicated header list
-                    duplicated_headers.append(submitted_header_value)
-                else:
-                    self.header_dictionary[current] = header_value
-                    possible_fields[header_value] = 1
-                    current += 1
-
-        self.column_count = current
-
-        # Check that all required fields exists
-        missing_headers = []
-        for schema in csv_schema:
-            if possible_fields[FieldCleaner.cleanString(schema.name_short)] == 0:
-                # return long colname for error reporting
-                missing_headers.append(schema.name)
-
-        if len(missing_headers) > 0 or len(duplicated_headers) > 0:
-            # Write header errors if any occurred and raise a header_error exception
-            error_string = ""
-            with self.get_writer(bucket_name, error_filename, self.header_report_headers, self.is_local) as writer:
-                extra_info = {}
-                if len(duplicated_headers) > 0:
-                    error_string = "".join([error_string, "Duplicated: ", ", ".join(duplicated_headers)])
-                    extra_info["duplicated_headers"] = ", ".join(duplicated_headers)
-                    for header in duplicated_headers:
-                        writer.write(["Duplicated header", header])
-                if len(missing_headers) > 0:
-                    if len(duplicated_headers):
-                        # Separate missing and duplicated headers if both are present
-                        error_string += "| "
-                    error_string = "".join([error_string, "Missing: ", ", ".join(missing_headers)])
-                    extra_info["missing_headers"] = ", ".join(missing_headers)
-                    for header in missing_headers:
-                        writer.write(["Missing header", header])
-                writer.finishBatch()
-            raise ResponseException("Errors in header row: " + str(error_string), StatusCode.CLIENT_ERROR, ValueError,
-                                    ValidationError.headerError, **extra_info)
+        self.handle_missing_duplicate_headers(
+            expected_header_counts, bucket_name, error_filename)
 
         return long_headers
 
@@ -158,34 +81,36 @@ class CsvAbstractReader(object):
         """
         Read the next record into a dict and return it
         Returns:
-            dictionary representing this record
+            pair of (dictionary of expected fields, list of FlexFields)
         """
         return_dict = {}
-        flex_dict = {}
+        flex_fields = []
         line = self._get_line()
 
-        for row in csv.reader([line], dialect='excel', delimiter=self.delimiter):
-            if len(row) != self.column_count:
-                raise ResponseException("Wrong number of fields in this row", StatusCode.CLIENT_ERROR, ValueError,
-                                        ValidationError.readError)
-            for current, cell in enumerate(row):
-                if current >= self.column_count:
-                    raise ResponseException("Record contains too many fields", StatusCode.CLIENT_ERROR, ValueError,
-                                            ValidationError.readError)
-                if cell == "":
-                    # Use None instead of empty strings for sqlalchemy
-                    cell = None
-                # self.header_dictionary uses the short, machine-readable column names
-                if self.header_dictionary[current] is None:
-                    if self.flex_dictionary[current] is not None:
-                        flex_dict["header"] = self.flex_dictionary[current]
-                        flex_dict["cell"] = cell
-                    else:
-                        # Skip this column as it is unknown or flex
-                        continue
-                else:
-                    return_dict[self.header_dictionary[current]] = cell
-        return return_dict, flex_dict
+        row = next(
+            csv.reader([line], dialect='excel', delimiter=self.delimiter))
+        if len(row) != self.column_count:
+            raise ResponseException(
+                "Wrong number of fields in this row", StatusCode.CLIENT_ERROR,
+                ValueError, ValidationError.readError)
+        for idx, cell in enumerate(row):
+            if idx >= self.column_count:
+                raise ResponseException(
+                    "Record contains too many fields", StatusCode.CLIENT_ERROR,
+                    ValueError, ValidationError.readError)
+            # Use None instead of empty strings for sqlalchemy
+            if cell == "":
+                cell = None
+            # self.expected_headers uses the short, machine-readable column
+            # names
+            if (self.expected_headers[idx] is None and
+                    self.flex_headers[idx] is not None):
+                flex_fields.append(FlexField(
+                    header=self.flex_headers[idx], cell=cell))
+            # We skip headers which aren't expected and aren't flex
+            elif self.expected_headers[idx] is not None:
+                return_dict[self.expected_headers[idx]] = cell
+        return return_dict, flex_fields
 
     def close(self):
         """
@@ -242,6 +167,130 @@ class CsvAbstractReader(object):
             # Got an extra line from a line break on the last line
             self.extra_line = True
         return self.unprocessed
+
+    def set_csv_delimiter(self, header_line, bucket_name, error_filename):
+        """Try to determine the delimiter type, raising exceptions if we
+        cannot figure it out."""
+        pipe_count = header_line.count("|")
+        comma_count = header_line.count(",")
+
+        if pipe_count != 0 and comma_count != 0:
+            # Write header error for mixed delimiter use
+            with self.get_writer(bucket_name, error_filename, ["Error Type"],
+                                 self.is_local) as writer:
+                writer.write(["Cannot use both ',' and '|' as delimiters. "
+                              "Please choose one."])
+                writer.finishBatch()
+            raise ResponseException(
+                "Error in header row: CSV file must use only '|' or ',' "
+                "as the delimiter", StatusCode.CLIENT_ERROR, ValueError,
+                ValidationError.headerError
+            )
+
+        self.delimiter = "|" if header_line.count("|") != 0 else ","
+
+    def handle_missing_duplicate_headers(self, expected_fields, bucket_name,
+                                         error_filename):
+        """Check for missing or duplicated headers. If present, raise an
+        exceptions with a meaningful message"""
+        missing_headers = [cell for cell, count in expected_fields.items()
+                           if count == 0]
+        duplicated_headers = [cell for cell, count in expected_fields.items()
+                              if count > 1]
+
+        if missing_headers or duplicated_headers:
+            self.write_missing_duplicated_headers(
+                missing_headers, duplicated_headers, bucket_name,
+                error_filename
+            )
+            raise_missing_duplicated_exception(
+                missing_headers, duplicated_headers)
+
+    def write_missing_duplicated_headers(
+            self, missing_headers, duplicated_headers, bucket_name,
+            error_filename):
+        """Write header errors if any occurred and raise a header_error
+        exception"""
+        with self.get_writer(
+                bucket_name, error_filename, self.header_report_headers,
+                self.is_local) as writer:
+            for header in duplicated_headers:
+                writer.write(["Duplicated header", header])
+            for header in missing_headers:
+                writer.write(["Missing header", header])
+            writer.finishBatch()
+
+    def count_and_set_headers(self, csv_schema, header_row):
+        """Track how many times we've seen a field we were expecting and set
+        self.expected_headers and self.flex_headers"""
+        self.expected_headers = []
+        self.flex_headers = []
+
+        # Track how many times we've seen a field we were expecting. Keyed by
+        # the shorter, machine-readable column names
+        expected_fields = {}
+
+        for schema in csv_schema:
+            expected_fields[FieldCleaner.cleanString(schema.name_short)] = 0
+
+        for header_value in header_row:
+            if header_value not in expected_fields:
+                # Add flex headers to flex list
+                if str(header_value).startswith("flex_"):
+                    self.flex_headers.append(header_value)
+                else:
+                    self.flex_headers.append(None)
+                # Allow unexpected headers, just mark the header as None so we
+                # skip it when reading
+                self.expected_headers.append(None)
+            else:
+                self.flex_headers.append(None)
+                self.expected_headers.append(header_value)
+                expected_fields[header_value] += 1
+        return expected_fields
+
+
+def use_long_headers(header_row, long_to_short_dict):
+    """Check to see if header contains long or short column names"""
+    col_matches = 0
+    for value in header_row:
+        if FieldCleaner.cleanString(value) in long_to_short_dict:
+            col_matches += 1
+    # if most of column headers are in the long format,
+    # we'll treat the file as having long headers
+    return col_matches > .5 * len(header_row)
+
+
+def normalize_headers(header_row, long_headers, long_to_short_dict):
+    for header in header_row:
+        header = FieldCleaner.cleanString(header)
+        if long_headers and header in long_to_short_dict:
+            yield FieldCleaner.cleanString(long_to_short_dict[header])
+        else:
+            yield header
+
+
+def raise_missing_duplicated_exception(missing_headers, duplicated_headers):
+    """Construct and raise an exception about missing and/or duplicated
+    headers"""
+    error_string, extra_info = '', {}
+    duplicated_str = ', '.join(duplicated_headers)
+    missing_str = ', '.join(missing_headers)
+    if duplicated_str:
+        error_string = "Duplicated: " + duplicated_str
+        extra_info['duplicated_headers'] = duplicated_str
+    if missing_str:
+        error_string = "Missing: " + missing_str
+        extra_info['missing_headers'] = missing_str
+
+    if error_string:
+        raise ResponseException(
+            "Errors in header row: " + str(error_string),
+            StatusCode.CLIENT_ERROR,
+            ValueError,
+            ValidationError.headerError,
+            **extra_info
+        )
 
 
 def _split_lines(packet):

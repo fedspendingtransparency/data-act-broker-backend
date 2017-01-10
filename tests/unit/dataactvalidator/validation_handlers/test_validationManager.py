@@ -1,10 +1,12 @@
 from datetime import date
+from unittest.mock import Mock
 
 import pytest
 
 from dataactvalidator.validation_handlers import validationManager
+from dataactvalidator.validation_handlers.errorInterface import ErrorInterface
 from tests.unit.dataactcore.factories.domain import TASFactory
-from tests.unit.dataactcore.factories.job import SubmissionFactory
+from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
 from tests.unit.dataactcore.factories.staging import (AppropriationFactory, AwardFinancialFactory,
                                                       ObjectClassProgramActivityFactory)
 
@@ -105,3 +107,25 @@ def test_update_tas_ids_bad_dates(database, factory):
 
     model = sess.query(model.__class__).one()   # we'll only have one entry
     assert model.tas_id is None
+
+
+@pytest.mark.usefixtures('database')
+def test_insert_staging_model_failure():
+    writer = Mock()
+    error_list = ErrorInterface()
+    model = AppropriationFactory(
+        row_number=1234,
+        adjustments_to_unobligated_cpe='shoulda-been-a-number'
+    )
+    job = JobFactory()
+    assert not validationManager.insert_staging_model(
+        model, job, writer, error_list)
+    assert writer.write.call_args[0] == (
+        ['Formatting Error',
+         'Could not write this record into the staging table', 1234, ''],
+    )
+    assert len(error_list.rowErrors) == 1
+    error = list(error_list.rowErrors.values())[0]
+    assert error['firstRow'] == 1234
+    assert error['fieldName'] == 'Formatting Error'
+    assert error['filename'] == job.filename
