@@ -6,7 +6,7 @@ from webtest import TestApp
 
 from dataactbroker.app import create_app as createBrokerApp
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
+from dataactcore.interfaces.function_bag import create_user_with_password, get_password_hash
 from dataactcore.models.domainModels import CGAC
 from dataactcore.models.userModel import User, UserAffiliation
 from dataactcore.scripts.databaseSetup import dropDatabase
@@ -78,20 +78,15 @@ class BaseTestAPI(unittest.TestCase):
                         permission_type_id=PERMISSION_TYPE_DICT['writer']
                     )]
                 )
-                user.salt, user.password_hash = getPasswordHash(user_password, Bcrypt())
+                user.salt, user.password_hash = get_password_hash(user_password, Bcrypt())
                 sess.add(user)
 
             add_user(test_users['agency_user'], "Test User", "testUser")
             add_user(test_users['agency_user_2'], "Test User 2", "testUser2")
 
             # add new users
-            createUserWithPassword(
-                test_users["admin_user"], admin_password, Bcrypt(),
-                website_admin=True
-            )
-            createUserWithPassword(
-                test_users["no_permissions_user"], user_password, Bcrypt()
-            )
+            create_user_with_password(test_users["admin_user"], admin_password, Bcrypt(), website_admin=True)
+            create_user_with_password(test_users["no_permissions_user"], user_password, Bcrypt())
 
             agencyUser = sess.query(User).filter(User.email == test_users['agency_user']).one()
             cls.agency_user_id = agencyUser.user_id

@@ -33,21 +33,21 @@ logger = logging.getLogger(__name__)
 HASH_ROUNDS = 12
 
 
-def createUserWithPassword(email, password, bcrypt, website_admin=False):
+def create_user_with_password(email, password, bcrypt, website_admin=False):
     """Convenience function to set up fully-baked user (used for setup/testing only)."""
     sess = GlobalDB.db().session
     user = User(
         email=email, name='Administrator',
         title='System Admin', website_admin=website_admin
     )
-    user.salt, user.password_hash = getPasswordHash(password, bcrypt)
+    user.salt, user.password_hash = get_password_hash(password, bcrypt)
     sess.add(user)
     sess.commit()
 
     return user
 
 
-def getPasswordHash(password, bcrypt):
+def get_password_hash(password, bcrypt):
     """Generate password hash."""
     # TODO: handle password hashing/lookup in the User model
     salt = uuid.uuid4().hex
@@ -57,37 +57,36 @@ def getPasswordHash(password, bcrypt):
     return salt, password_hash
 
 
-def populateSubmissionErrorInfo(submissionId):
+def populate_submission_error_info(submission_id):
     """Set number of errors and warnings for submission."""
     sess = GlobalDB.db().session
-    submission = sess.query(Submission).filter(Submission.submission_id == submissionId).one()
-    submission.number_of_errors = sumNumberOfErrorsForJobList(submissionId)
-    submission.number_of_warnings = sumNumberOfErrorsForJobList(submissionId, errorType='warning')
+    submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
+    submission.number_of_errors = sum_number_of_errors_for_job_list(submission_id)
+    submission.number_of_warnings = sum_number_of_errors_for_job_list(submission_id, error_type='warning')
     sess.commit()
 
 
-def sumNumberOfErrorsForJobList(submissionId, errorType='fatal'):
+def sum_number_of_errors_for_job_list(submission_id, error_type='fatal'):
     """Add number of errors for all jobs in list."""
     sess = GlobalDB.db().session
-    errorSum = 0
-    jobs = sess.query(Job).filter(Job.submission_id == submissionId).all()
+    error_sum = 0
+    jobs = sess.query(Job).filter(Job.submission_id == submission_id).all()
     for job in jobs:
-        jobErrors = checkNumberOfErrorsByJobId(job.job_id, errorType)
-        if errorType == 'fatal':
-            job.number_of_errors = jobErrors
-        elif errorType == 'warning':
-            job.number_of_warnings = jobErrors
-        errorSum += jobErrors
+        job_errors = check_number_of_errors_by_job_id(job.job_id, error_type)
+        if error_type == 'fatal':
+            job.number_of_errors = job_errors
+        elif error_type == 'warning':
+            job.number_of_warnings = job_errors
+        error_sum += job_errors
     sess.commit()
-    return errorSum
+    return error_sum
 
 
-def checkNumberOfErrorsByJobId(jobId, errorType='fatal'):
+def check_number_of_errors_by_job_id(job_id, error_type='fatal'):
     """Get the number of errors for a specified job and severity."""
     sess = GlobalDB.db().session
-    errors = sess.query(func.sum(ErrorMetadata.occurrences)).\
-        join(ErrorMetadata.severity).\
-        filter(ErrorMetadata.job_id == jobId, RuleSeverity.name == errorType).scalar()
+    errors = sess.query(func.sum(ErrorMetadata.occurrences)).join(ErrorMetadata.severity).\
+        filter(ErrorMetadata.job_id == job_id, RuleSeverity.name == error_type).scalar()
     # error_metadata table tallies total errors by job/file/field/error type. jobs that
     # don't have errors or warnings won't be in the table at all. thus, if the above query
     # returns an empty value that means the job didn't have any errors that matched
@@ -97,7 +96,7 @@ def checkNumberOfErrorsByJobId(jobId, errorType='fatal'):
 """ ERROR DB FUNCTIONS """
 
 
-def getErrorType(job_id):
+def get_error_type(job_id):
     """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
     sess = GlobalDB.db().session
     file_status_name = sess.query(File).options(joinedload("file_status")).\
@@ -113,19 +112,19 @@ def getErrorType(job_id):
         return "none"
 
 
-def createFileIfNeeded(job_id, filename=None):
+def create_file_if_needed(job_id, filename=None):
     """ Return the existing file object if it exists, or create a new one """
     sess = GlobalDB.db().session
     try:
-        fileRec = sess.query(File).filter(File.job_id == job_id).one()
+        file_rec = sess.query(File).filter(File.job_id == job_id).one()
         # Set new filename for changes to an existing submission
-        fileRec.filename = filename
+        file_rec.filename = filename
     except NoResultFound:
-        fileRec = createFile(job_id, filename)
-    return fileRec
+        file_rec = create_file(job_id, filename)
+    return file_rec
 
 
-def createFile(job_id, filename):
+def create_file(job_id, filename):
     """ Create a new file object for specified job and filename """
     sess = GlobalDB.db().session
     try:
@@ -133,15 +132,13 @@ def createFile(job_id, filename):
     except:
         raise ValueError("".join(["Bad job_id: ", str(job_id)]))
 
-    fileRec = File(job_id=job_id,
-                   filename=filename,
-                   file_status_id=FILE_STATUS_DICT['incomplete'])
-    sess.add(fileRec)
+    file_rec = File(job_id=job_id, filename=filename, file_status_id=FILE_STATUS_DICT['incomplete'])
+    sess.add(file_rec)
     sess.commit()
-    return fileRec
+    return file_rec
 
 
-def writeFileError(job_id, filename, error_type, extra_info=None):
+def write_file_error(job_id, filename, error_type, extra_info=None):
     """ Write a file-level error to the file table
 
     Args:
@@ -157,21 +154,21 @@ def writeFileError(job_id, filename, error_type, extra_info=None):
         raise ValueError("".join(["Bad jobId: ", str(job_id)]))
 
     # Get File object for this job ID or create it if it doesn't exist
-    fileRec = createFileIfNeeded(job_id, filename)
+    file_rec = create_file_if_needed(job_id, filename)
 
     # Mark error type and add header info if present
-    fileRec.file_status_id = FILE_STATUS_DICT[ValidationError.getErrorTypeString(error_type)]
+    file_rec.file_status_id = FILE_STATUS_DICT[ValidationError.getErrorTypeString(error_type)]
     if extra_info is not None:
         if "missing_headers" in extra_info:
-            fileRec.headers_missing = extra_info["missing_headers"]
+            file_rec.headers_missing = extra_info["missing_headers"]
         if "duplicated_headers" in extra_info:
-            fileRec.headers_duplicated = extra_info["duplicated_headers"]
+            file_rec.headers_duplicated = extra_info["duplicated_headers"]
 
-    sess.add(fileRec)
+    sess.add(file_rec)
     sess.commit()
 
 
-def markFileComplete(job_id, filename=None):
+def mark_file_complete(job_id, filename=None):
     """ Marks file's status as complete
 
     Args:
@@ -179,12 +176,12 @@ def markFileComplete(job_id, filename=None):
         filename: name of error report in S3
     """
     sess = GlobalDB.db().session
-    fileComplete = createFileIfNeeded(job_id, filename)
-    fileComplete.file_status_id = FILE_STATUS_DICT['complete']
+    file_complete = create_file_if_needed(job_id, filename)
+    file_complete.file_status_id = FILE_STATUS_DICT['complete']
     sess.commit()
 
 
-def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
+def get_error_metrics_by_job_jd(job_id, include_file_types=False, severity_id=None):
     """ Get error metrics for specified job, including number of errors for each field name and error type """
     sess = GlobalDB.db().session
     result_list = []

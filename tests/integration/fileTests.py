@@ -8,7 +8,7 @@ from boto.s3.key import Key
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.integration.baseTestAPI import BaseTestAPI
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import populateSubmissionErrorInfo
+from dataactcore.interfaces.function_bag import populate_submission_error_info
 from dataactcore.models.jobModels import Submission, Job, JobDependency
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.userModel import User
@@ -265,7 +265,7 @@ class FileTests(BaseTestAPI):
 
         with createApp().app_context():
             sess = GlobalDB.db().session
-            populateSubmissionErrorInfo(self.status_check_submission_id)
+            populate_submission_error_info(self.status_check_submission_id)
 
             response = self.app.post_json("/v1/check_status/", postJson, headers={"x-session-id": self.session_id})
 

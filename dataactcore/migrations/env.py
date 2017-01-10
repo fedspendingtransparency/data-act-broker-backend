@@ -9,7 +9,7 @@ from sqlalchemy import engine_from_config, pool
 
 from dataactcore.models import baseModel
 from dataactcore.config import CONFIG_DB
-from dataactcore.interfaces.db import dbURI
+from dataactcore.interfaces.db import db_uri
 from dataactcore.logging import configure_logging
 
 USE_TWOPHASE = False
@@ -57,7 +57,7 @@ target_metadata = {key: value[1].Base.metadata for (key, value) in db_dict.items
 for (key, value) in db_dict.items():
     # key = db-related names expected by Alembic config/scripts
     # value[0] = actual db names as set in broker config file
-    baseUrl = dbURI(value[0])
+    baseUrl = db_uri(value[0])
     config.set_section_option(key, 'sqlalchemy.url', baseUrl)
 
 # other values from the config, defined by the needs of env.py,

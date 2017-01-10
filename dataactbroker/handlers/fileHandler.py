@@ -34,8 +34,8 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    checkNumberOfErrorsByJobId, create_jobs, create_submission, getErrorMetricsByJobId, getErrorType,
-    get_submission_status, mark_job_status, run_job_checks, createFileIfNeeded)
+    check_number_of_errors_by_job_id, create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type,
+    get_submission_status, mark_job_status, run_job_checks, create_file_if_needed)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 logger = logging.getLogger(__name__)
@@ -505,7 +505,7 @@ class FileHandler:
                     if val_job is not None:
                         mark_job_status(val_job.job_id, "finished")
                         # Create File object for this validation job
-                        val_file = createFileIfNeeded(val_job.job_id, filename=val_job.filename)
+                        val_file = create_file_if_needed(val_job.job_id, filename=val_job.filename)
                         val_file.file_status_id = FILE_STATUS_DICT['complete']
                         val_job.number_of_rows = 0
                         val_job.number_of_rows_valid = 0
@@ -914,12 +914,12 @@ def job_to_dict(job):
         job_info['missing_headers'] = _split_csv(file_results.headers_missing)
         job_info["duplicated_headers"] = _split_csv(
             file_results.headers_duplicated)
-        job_info["error_type"] = getErrorType(job.job_id)
-        job_info["error_data"] = getErrorMetricsByJobId(
+        job_info["error_type"] = get_error_type(job.job_id)
+        job_info["error_data"] = get_error_metrics_by_job_jd(
             job.job_id, job.job_type_name == 'validation',
             severity_id=RULE_SEVERITY_DICT['fatal']
         )
-        job_info["warning_data"] = getErrorMetricsByJobId(
+        job_info["warning_data"] = get_error_metrics_by_job_jd(
             job.job_id, job.job_type_name == 'validation',
             severity_id=RULE_SEVERITY_DICT['warning']
         )
@@ -1002,7 +1002,7 @@ def get_error_metrics(submission):
         for job in jobs:
             if job.job_type.name == 'csv_record_validation':
                 file_type = job.file_type.name
-                data_list = getErrorMetricsByJobId(job.job_id)
+                data_list = get_error_metrics_by_job_jd(job.job_id)
                 return_dict[file_type] = data_list
         return JsonResponse.create(StatusCode.OK, return_dict)
     except (ValueError, TypeError) as e:
@@ -1153,7 +1153,7 @@ def map_generate_status(upload_job, validation_job=None):
         validation_status = None
     else:
         validation_status = validation_job.job_status.name
-        if checkNumberOfErrorsByJobId(validation_job.job_id) > 0:
+        if check_number_of_errors_by_job_id(validation_job.job_id) > 0:
             errors_present = True
         else:
             errors_present = False

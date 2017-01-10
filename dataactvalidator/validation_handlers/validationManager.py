@@ -11,8 +11,8 @@ from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
 from dataactcore.interfaces.function_bag import (
-    createFileIfNeeded, writeFileError, markFileComplete, run_job_checks,
-    mark_job_status, sumNumberOfErrorsForJobList, populateSubmissionErrorInfo
+    create_file_if_needed, write_file_error, mark_file_complete, run_job_checks,
+    mark_job_status, sum_number_of_errors_for_job_list, populate_submission_error_info
 )
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
@@ -181,7 +181,7 @@ class ValidationManager:
             job.submission_id, True, job.file_type.name))
 
         # Create File Status object
-        createFileIfNeeded(job_id, fileName)
+        create_file_if_needed(job_id, fileName)
 
         reader = self.getReader()
 
@@ -310,10 +310,10 @@ class ValidationManager:
 
             error_list.writeAllRowErrors(job_id)
             # Update error info for submission
-            populateSubmissionErrorInfo(submission_id)
+            populate_submission_error_info(submission_id)
             # Mark validation as finished in job tracker
             mark_job_status(job_id, "finished")
-            markFileComplete(job_id, fileName)
+            mark_file_complete(job_id, fileName)
         finally:
             # Ensure the file always closes
             reader.close()
@@ -382,7 +382,7 @@ class ValidationManager:
         sess = GlobalDB.db().session
         job_id = job.job_id
         # Create File Status object
-        createFileIfNeeded(job_id)
+        create_file_if_needed(job_id)
         error_list = ErrorInterface()
 
         submission_id = job.submission_id
@@ -438,8 +438,8 @@ class ValidationManager:
             '%s', submission_id)
         submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
         # Update error info for submission
-        submission.number_of_errors = sumNumberOfErrorsForJobList(submission_id)
-        submission.number_of_warnings = sumNumberOfErrorsForJobList(submission_id, errorType="warning")
+        submission.number_of_errors = sum_number_of_errors_for_job_list(submission_id)
+        submission.number_of_warnings = sum_number_of_errors_for_job_list(submission_id, error_type="warning")
         # TODO: Remove temporary step below
         # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their
         # submissions as publishable
@@ -449,7 +449,7 @@ class ValidationManager:
         sess.commit()
 
         # Mark validation complete
-        markFileComplete(job_id)
+        mark_file_complete(job_id)
 
     def validate_job(self, request):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
@@ -475,7 +475,7 @@ class ValidationManager:
         job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
         if job is None:
             validation_error_type = ValidationError.jobError
-            writeFileError(job_id, None, validation_error_type)
+            write_file_error(job_id, None, validation_error_type)
             raise ResponseException('Job ID {} not found in database'.format(job_id),
                                     StatusCode.CLIENT_ERROR, None,
                                     validation_error_type)
@@ -483,7 +483,7 @@ class ValidationManager:
         # Make sure job's prerequisites are complete
         if not run_job_checks(job_id):
             validation_error_type = ValidationError.jobError
-            writeFileError(job_id, None, validation_error_type)
+            write_file_error(job_id, None, validation_error_type)
             raise ResponseException('Prerequisites for Job ID {} are not complete'.format(job_id),
                                     StatusCode.CLIENT_ERROR, None,
                                     validation_error_type)
@@ -493,7 +493,7 @@ class ValidationManager:
             job_type_name = job.job_type.name
         else:
             validation_error_type = ValidationError.jobError
-            writeFileError(job_id, None, validation_error_type)
+            write_file_error(job_id, None, validation_error_type)
             raise ResponseException(
                 'Job ID {} is not a validation job (job type is {})'.format(job_id, job.job_type.name),
                 StatusCode.CLIENT_ERROR, None,

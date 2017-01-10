@@ -2,7 +2,7 @@ from datetime import datetime
 
 from dataactcore.aws.s3UrlHandler import S3UrlHandler
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId
+from dataactcore.interfaces.function_bag import check_number_of_errors_by_job_id
 from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import AwardFinancial
@@ -286,8 +286,8 @@ class MixedFileTests(BaseTestValidator):
             job = sess.query(Job).filter(Job.job_id == cross_id).one()
 
             # Check number of cross file validation errors in DB for this job
-            self.assertEqual(checkNumberOfErrorsByJobId(cross_id, "fatal"), 0)
-            self.assertEqual(checkNumberOfErrorsByJobId(cross_id, "warning"), 3)
+            self.assertEqual(check_number_of_errors_by_job_id(cross_id, "fatal"), 0)
+            self.assertEqual(check_number_of_errors_by_job_id(cross_id, "warning"), 3)
             self.assertEqual(job.job_status_id, JOB_STATUS_DICT['finished'])
 
             # Check that cross file validation report exists and is the right size

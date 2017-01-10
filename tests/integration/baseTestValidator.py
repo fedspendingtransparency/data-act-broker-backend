@@ -8,7 +8,7 @@ from webtest import TestApp
 from boto.s3.key import Key
 
 from dataactvalidator.app import createApp
-from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId
+from dataactcore.interfaces.function_bag import check_number_of_errors_by_job_id
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import JOB_STATUS_DICT, FILE_STATUS_DICT
 from dataactcore.scripts.databaseSetup import dropDatabase
@@ -133,8 +133,8 @@ class BaseTestValidator(unittest.TestCase):
                     sess.query(File).filter(File.job_id == jobId).one().file_status_id,
                     FILE_STATUS_DICT[errorStatus]
                 )
-                self.assertEqual(checkNumberOfErrorsByJobId(jobId, 'fatal'), numErrors)
-                self.assertEqual(checkNumberOfErrorsByJobId(jobId, 'warning'), numWarnings)
+                self.assertEqual(check_number_of_errors_by_job_id(jobId, 'fatal'), numErrors)
+                self.assertEqual(check_number_of_errors_by_job_id(jobId, 'warning'), numWarnings)
 
             if fileSize is not False:
                 reportPath = report_file_name(

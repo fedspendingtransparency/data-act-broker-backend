@@ -8,7 +8,7 @@ from flask_bcrypt import Bcrypt
 from dataactbroker.scripts.setupEmails import setup_emails
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import createUserWithPassword
+from dataactcore.interfaces.function_bag import create_user_with_password
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import User
 from dataactcore.scripts.setupAllDB import setupAllDB
@@ -43,8 +43,7 @@ def create_admin():
             # once the rest of the setup scripts are updated to use
             # GlobalDB instead of databaseSession, move the app_context
             # creation up to initialize()
-            user = createUserWithPassword(
-                admin_email, admin_pass, Bcrypt(), website_admin=True)
+            user = create_user_with_password(admin_email, admin_pass, Bcrypt(), website_admin=True)
     return user
 
 
