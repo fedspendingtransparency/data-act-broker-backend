@@ -5,7 +5,7 @@ from dataactcore.models.validationModels import FieldType, RuleSeverity
 from dataactvalidator.app import createApp
 
 
-def setupValidationDB():
+def setup_validation_db():
     """Create validation tables from model metadata and do initial inserts."""
     with createApp().app_context():
         sess = GlobalDB.db().session
@@ -29,4 +29,4 @@ def insertCodes(sess):
 
 if __name__ == '__main__':
     configure_logging()
-    setupValidationDB()
+    setup_validation_db()

@@ -9,12 +9,12 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import create_user_with_password, get_password_hash
 from dataactcore.models.domainModels import CGAC
 from dataactcore.models.userModel import User, UserAffiliation
-from dataactcore.scripts.databaseSetup import dropDatabase
-from dataactcore.scripts.setupUserDB import setupUserDB
-from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
-from dataactcore.scripts.setupErrorDB import setupErrorDB
-from dataactcore.scripts.setupValidationDB import setupValidationDB
-from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
+from dataactcore.scripts.databaseSetup import drop_database
+from dataactcore.scripts.setupUserDB import setup_user_db
+from dataactcore.scripts.setupJobTrackerDB import setup_job_tracker_db
+from dataactcore.scripts.setupErrorDB import setup_error_db
+from dataactcore.scripts.setupValidationDB import setup_validation_db
+from dataactcore.scripts.databaseSetup import create_database, run_migrations
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import dataactcore.config
 from dataactbroker.scripts.setupEmails import setup_emails
@@ -40,17 +40,17 @@ class BaseTestAPI(unittest.TestCase):
             config['db_name'] = 'unittest{}_{}_data_broker'.format(
                 cls.num, suite)
             dataactcore.config.CONFIG_DB = config
-            createDatabase(CONFIG_DB['db_name'])
-            runMigrations()
+            create_database(CONFIG_DB['db_name'])
+            run_migrations()
 
             # drop and re-create test user db/tables
-            setupUserDB()
+            setup_user_db()
             # drop and re-create test job db/tables
-            setupJobTrackerDB()
+            setup_job_tracker_db()
             # drop and re-create test error db/tables
-            setupErrorDB()
+            setup_error_db()
             # drop and re-create test validation db/tables
-            setupValidationDB()
+            setup_validation_db()
             # load e-mail templates
             setup_emails()
 
@@ -110,7 +110,7 @@ class BaseTestAPI(unittest.TestCase):
     def tearDownClass(cls):
         """Tear down class-level resources."""
         GlobalDB.close()
-        dropDatabase(CONFIG_DB['db_name'])
+        drop_database(CONFIG_DB['db_name'])
 
     def tearDown(self):
         """Tear down broker unit tests."""

@@ -5,16 +5,16 @@ from dataactcore.models import lookups
 from dataactvalidator.app import createApp
 
 
-def setupErrorDB():
+def setup_error_db():
     """Create error tables from model metadata."""
 
     with createApp().app_context():
         sess = GlobalDB.db().session
-        insertCodes(sess)
+        insert_codes(sess)
         sess.commit()
 
 
-def insertCodes(sess):
+def insert_codes(sess):
     """Insert static data."""
 
     # insert file status types
@@ -30,4 +30,4 @@ def insertCodes(sess):
 
 if __name__ == '__main__':
     configure_logging()
-    setupErrorDB()
+    setup_error_db()

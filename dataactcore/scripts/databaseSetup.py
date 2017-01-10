@@ -7,21 +7,21 @@ from sqlalchemy.exc import ProgrammingError
 from dataactcore.interfaces.db import db_uri
 
 
-def createDatabase(dbName):
+def create_database(db_name):
     """Create specified database if it doesn't exist."""
-    connectString = db_uri(dbName)
-    if not sqlalchemy_utils.database_exists(connectString):
-        sqlalchemy_utils.create_database(connectString)
+    connect_string = db_uri(db_name)
+    if not sqlalchemy_utils.database_exists(connect_string):
+        sqlalchemy_utils.create_database(connect_string)
 
 
-def dropDatabase(dbName):
+def drop_database(db_name):
     """Drop specified database."""
-    connectString = db_uri(dbName)
-    if sqlalchemy_utils.database_exists(connectString):
-        sqlalchemy_utils.drop_database(connectString)
+    connect_string = db_uri(db_name)
+    if sqlalchemy_utils.database_exists(connect_string):
+        sqlalchemy_utils.drop_database(connect_string)
 
 
-def runMigrations():
+def run_migrations():
     """Run Alembic migrations for a specific database/model set."""
     logging.disable(logging.WARN)
     alembic_cfg = Config(ALEMBIC_PATH)

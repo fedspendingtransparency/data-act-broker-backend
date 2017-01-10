@@ -11,16 +11,16 @@ from dataactvalidator.app import createApp
 from dataactcore.interfaces.function_bag import check_number_of_errors_by_job_id
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import JOB_STATUS_DICT, FILE_STATUS_DICT
-from dataactcore.scripts.databaseSetup import dropDatabase
-from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
-from dataactcore.scripts.setupErrorDB import setupErrorDB
-from dataactcore.scripts.setupValidationDB import setupValidationDB
+from dataactcore.scripts.databaseSetup import drop_database
+from dataactcore.scripts.setupJobTrackerDB import setup_job_tracker_db
+from dataactcore.scripts.setupErrorDB import setup_error_db
+from dataactcore.scripts.setupValidationDB import setup_validation_db
 from dataactcore.utils.report import report_file_name
 from dataactcore.aws.s3UrlHandler import S3UrlHandler
 from dataactcore.models.jobModels import Job, Submission
 from dataactcore.models.errorModels import File
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
-from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
+from dataactcore.scripts.databaseSetup import create_database, run_migrations
 import dataactcore.config
 
 
@@ -39,8 +39,8 @@ class BaseTestValidator(unittest.TestCase):
         config['db_name'] = 'unittest{}_{}_data_broker'.format(
             cls.num, suite)
         dataactcore.config.CONFIG_DB = config
-        createDatabase(CONFIG_DB['db_name'])
-        runMigrations()
+        create_database(CONFIG_DB['db_name'])
+        run_migrations()
 
         app = createApp()
         app.config['TESTING'] = True
@@ -57,11 +57,11 @@ class BaseTestValidator(unittest.TestCase):
         cls.local_file_directory = CONFIG_SERVICES['error_report_path']
 
         # drop and re-create test job db/tables
-        setupJobTrackerDB()
+        setup_job_tracker_db()
         # drop and re-create test error db/tables
-        setupErrorDB()
+        setup_error_db()
         # drop and re-create test validation db
-        setupValidationDB()
+        setup_validation_db()
 
         cls.userId = None
         # constants to use for default submission start and end dates
@@ -72,7 +72,7 @@ class BaseTestValidator(unittest.TestCase):
     def tearDownClass(cls):
         """Tear down class-level resources."""
         GlobalDB.close()
-        dropDatabase(CONFIG_DB['db_name'])
+        drop_database(CONFIG_DB['db_name'])
 
     def tearDown(self):
         """Tear down broker unit tests."""

@@ -11,7 +11,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import create_user_with_password
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import User
-from dataactcore.scripts.setupAllDB import setupAllDB
+from dataactcore.scripts.setupAllDB import setup_all_db
 from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
@@ -27,7 +27,7 @@ validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
 def setup_db():
     """Set up broker database and initialize data."""
     logger.info('Setting up db')
-    setupAllDB()
+    setup_all_db()
     setup_emails()
 
 
