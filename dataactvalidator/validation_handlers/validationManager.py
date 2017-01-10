@@ -21,7 +21,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.requestDictionary import RequestDictionary
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
+from dataactcore.aws.s3UrlHandler import S3UrlHandler
 from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
 from dataactvalidator.filestreaming.csvLocalReader import CsvLocalReader
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
@@ -187,7 +187,7 @@ class ValidationManager:
 
         # Get file size and write to jobs table
         if CONFIG_BROKER["use_aws"]:
-            fileSize = s3UrlHandler.getFileSize(fileName)
+            fileSize = S3UrlHandler.get_file_size(fileName)
         else:
             fileSize = os.path.getsize(fileName)
         job.file_size = fileSize

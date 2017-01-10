@@ -16,7 +16,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
+from dataactcore.aws.s3UrlHandler import S3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC
@@ -49,7 +49,7 @@ class FileHandler:
 
     Instance fields:
     request -- A flask request object, comes with the request
-    s3manager -- instance of s3UrlHandler, manages calls to S3
+    s3manager -- instance of S3UrlHandler, manages calls to S3
     """
 
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
@@ -73,7 +73,7 @@ class FileHandler:
         self.request = route_request
         self.isLocal = is_local
         self.serverPath = server_path
-        self.s3manager = s3UrlHandler()
+        self.s3manager = S3UrlHandler()
 
     def get_error_report_urls_for_submission(self, submission_id, is_warning=False):
         """
@@ -81,7 +81,7 @@ class FileHandler:
         """
         sess = GlobalDB.db().session
         try:
-            self.s3manager = s3UrlHandler()
+            self.s3manager = S3UrlHandler()
             response_dict = {}
             jobs = sess.query(Job).filter_by(submission_id=submission_id)
             for job in jobs:
@@ -93,7 +93,7 @@ class FileHandler:
                     else:
                         key = 'job_{}_error_url'.format(job.job_id)
                     if not self.isLocal:
-                        response_dict[key] = self.s3manager.getSignedUrl("errors", report_name, method="GET")
+                        response_dict[key] = self.s3manager.get_signed_url("errors", report_name, method="GET")
                     else:
                         path = os.path.join(self.serverPath, report_name)
                         response_dict[key] = path
@@ -109,7 +109,7 @@ class FileHandler:
                 if self.isLocal:
                     report_path = os.path.join(self.serverPath, report_name)
                 else:
-                    report_path = self.s3manager.getSignedUrl("errors", report_name, method="GET")
+                    report_path = self.s3manager.get_signed_url("errors", report_name, method="GET")
                 # Assign to key based on source and target
                 response_dict[get_cross_report_key(first_file.name, second_file.name, is_warning)] = report_path
 
@@ -206,7 +206,7 @@ class FileHandler:
                     if not self.isLocal:
                         upload_name = "{}/{}".format(
                             g.user.user_id,
-                            s3UrlHandler.getTimestampedFilename(filename)
+                            S3UrlHandler.get_timestamped_filename(filename)
                         )
                     else:
                         upload_name = filename
@@ -229,7 +229,7 @@ class FileHandler:
                     if not self.isLocal:
                         upload_name = "{}/{}".format(
                             g.user.user_id,
-                            s3UrlHandler.getTimestampedFilename(filename)
+                            S3UrlHandler.get_timestamped_filename(filename)
                         )
                     else:
                         upload_name = filename
@@ -246,8 +246,8 @@ class FileHandler:
                 if "submission_id" not in file_type:
                     response_dict[file_type + "_id"] = file_job_dict[file_type]
             if create_credentials and not self.isLocal:
-                self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
-                response_dict["credentials"] = self.s3manager.getTemporaryCredentials(g.user.user_id)
+                self.s3manager = S3UrlHandler(CONFIG_BROKER["aws_bucket"])
+                response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
             else:
                 response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local",
                                                 "SessionToken": "local", "Expiration": "local"}
@@ -674,8 +674,8 @@ class FileHandler:
             response_dict["url"] = "#"
         elif CONFIG_BROKER["use_aws"]:
             path, file_name = upload_job.filename.split("/")
-            response_dict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name, bucketRoute=None,
-                                                               method="GET")
+            response_dict["url"] = S3UrlHandler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
+                                                                 method="GET")
         else:
             response_dict["url"] = upload_job.filename
 
@@ -718,8 +718,8 @@ class FileHandler:
             response_dict["url"] = "#"
         elif CONFIG_BROKER["use_aws"]:
             path, file_name = upload_job.filename.split("/")
-            response_dict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name,
-                                                               bucketRoute=None, method="GET")
+            response_dict["url"] = S3UrlHandler().get_signed_url(path=path, file_name=file_name,
+                                                                 bucket_route=None, method="GET")
         else:
             response_dict["url"] = upload_job.filename
 
@@ -737,8 +737,8 @@ class FileHandler:
             response["urls"] = {}
             return JsonResponse.create(StatusCode.CLIENT_ERROR, response)
 
-        response["urls"] = self.s3manager.getFileUrls(bucket_name=CONFIG_BROKER["static_files_bucket"],
-                                                      path=CONFIG_BROKER["help_files_path"])
+        response["urls"] = self.s3manager.get_file_urls(bucket_name=CONFIG_BROKER["static_files_bucket"],
+                                                        path=CONFIG_BROKER["help_files_path"])
         return JsonResponse.create(StatusCode.OK, response)
 
     def complete_generation(self, generation_id, file_type=None):
@@ -816,7 +816,7 @@ class FileHandler:
         sess = GlobalDB.db().session
         user_id = g.user.user_id
 
-        timestamped_name = s3UrlHandler.getTimestampedFilename(
+        timestamped_name = S3UrlHandler.get_timestamped_filename(
             CONFIG_BROKER["".join([str(file_type_name), "_file_name"])])
         if self.isLocal:
             upload_file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
@@ -1074,7 +1074,7 @@ def submission_report_url(submission, warning, file_type, cross_type):
     if CONFIG_BROKER['local']:
         url = os.path.join(CONFIG_BROKER['broker_files'], file_name)
     else:
-        url = s3UrlHandler().getSignedUrl("errors", file_name, method="GET")
+        url = S3UrlHandler().get_signed_url("errors", file_name, method="GET")
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 

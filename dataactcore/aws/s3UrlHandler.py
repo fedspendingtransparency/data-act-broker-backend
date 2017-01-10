@@ -8,7 +8,7 @@ from dataactcore.config import CONFIG_BROKER
 logger = logging.getLogger(__name__)
 
 
-class s3UrlHandler:
+class S3UrlHandler:
     """
     This class acts a wrapper for S3 URL Signing
     """
@@ -31,10 +31,10 @@ class s3UrlHandler:
         else:
             self.bucketRoute = name
 
-        s3UrlHandler.S3_ROLE = CONFIG_BROKER['aws_role']
-        s3UrlHandler.REGION = CONFIG_BROKER['aws_region']
+        S3UrlHandler.S3_ROLE = CONFIG_BROKER['aws_role']
+        S3UrlHandler.REGION = CONFIG_BROKER['aws_region']
 
-    def _signUrl(self, path, fileName, bucketRoute, method="PUT"):
+    def _sign_url(self, path, file_name, bucket_route, method="PUT"):
         """
         Creates the object for signing URLS
 
@@ -45,35 +45,35 @@ class s3UrlHandler:
         returns signed url (String)
 
         """
-        if s3UrlHandler.ENABLE_S3:
-            s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
+        if S3UrlHandler.ENABLE_S3:
+            s3connection = boto.s3.connect_to_region(S3UrlHandler.REGION)
             if method == "PUT":
-                return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method,
-                                                 bucketRoute, "/" + path + "/" + fileName,
+                return s3connection.generate_url(S3UrlHandler.URL_LIFETIME, method,
+                                                 bucket_route, "/" + path + "/" + file_name,
                                                  headers={'Content-Type': 'application/octet-stream'})
-            return s3connection.generate_url(s3UrlHandler.URL_LIFETIME, method,
-                                             bucketRoute, "/" + path + "/" + fileName)
-        return s3UrlHandler.BASE_URL + "/" + self.bucketRoute + "/" + path + "/" + fileName
+            return s3connection.generate_url(S3UrlHandler.URL_LIFETIME, method,
+                                             bucket_route, "/" + path + "/" + file_name)
+        return S3UrlHandler.BASE_URL + "/" + self.bucketRoute + "/" + path + "/" + file_name
 
-    def getSignedUrl(self, path, fileName, bucketRoute=None, method="PUT"):
+    def get_signed_url(self, path, file_name, bucket_route=None, method="PUT"):
         """
         Signs a URL for PUT requests
 
         arguments:
-        fileName -- (String) File name of file to be uploaded to S3.
+        file_name -- (String) File name of file to be uploaded to S3.
 
         returns signed url (String)
         """
-        bucketRoute = self.bucketRoute if bucketRoute is None else bucketRoute
+        bucket_route = self.bucketRoute if bucket_route is None else bucket_route
 
         if method == "PUT":
-            self.s3FileName = s3UrlHandler.getTimestampedFilename(fileName)
+            self.s3FileName = S3UrlHandler.get_timestamped_filename(file_name)
         else:
-            self.s3FileName = fileName
-        return self._signUrl(path, self.s3FileName, bucketRoute, method)
+            self.s3FileName = file_name
+        return self._sign_url(path, self.s3FileName, bucket_route, method)
 
     @staticmethod
-    def getTimestampedFilename(filename):
+    def get_timestamped_filename(filename):
         """
         Gets a Timestamped file name to prevent conflicts on S3 Uploading
         """
@@ -81,13 +81,13 @@ class s3UrlHandler:
         return str(seconds) + "_" + filename
 
     @staticmethod
-    def getTemporaryCredentials(user):
+    def get_temporary_credentials(user):
         """
         Gets token that allows for S3 Uploads for seconds set in STS_LIFETIME
         """
-        stsConnection = sts.connect_to_region(s3UrlHandler.REGION)
-        role = stsConnection.assume_role(s3UrlHandler.S3_ROLE, "FileUpload" + str(user),
-                                         duration_seconds=s3UrlHandler.STS_LIFETIME)
+        sts_connection = sts.connect_to_region(S3UrlHandler.REGION)
+        role = sts_connection.assume_role(S3UrlHandler.S3_ROLE, "FileUpload" + str(user),
+                                          duration_seconds=S3UrlHandler.STS_LIFETIME)
         credentials = {
             'AccessKeyId': role.credentials.access_key,
             'SecretAccessKey': role.credentials.secret_key,
@@ -97,15 +97,15 @@ class s3UrlHandler:
         return credentials
 
     @staticmethod
-    def getFileSize(filename):
+    def get_file_size(filename):
         """ Returns file size in number of bytes for specified filename, or False if file doesn't exist """
 
         # Get key
         try:
-            s3UrlHandler.REGION
+            S3UrlHandler.REGION
         except AttributeError:
-            s3UrlHandler.REGION = CONFIG_BROKER["aws_region"]
-        s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
+            S3UrlHandler.REGION = CONFIG_BROKER["aws_region"]
+        s3connection = boto.s3.connect_to_region(S3UrlHandler.REGION)
         bucket = s3connection.get_bucket(CONFIG_BROKER['aws_bucket'])
         key = bucket.get_key(filename)
         if key is None:
@@ -114,13 +114,13 @@ class s3UrlHandler:
         else:
             return key.size
 
-    def getFileUrls(self, bucket_name, path):
+    def get_file_urls(self, bucket_name, path):
         try:
-            s3UrlHandler.REGION
+            S3UrlHandler.REGION
         except AttributeError:
-            s3UrlHandler.REGION = CONFIG_BROKER["aws_region"]
+            S3UrlHandler.REGION = CONFIG_BROKER["aws_region"]
 
-        s3connection = boto.s3.connect_to_region(s3UrlHandler.REGION)
+        s3connection = boto.s3.connect_to_region(S3UrlHandler.REGION)
         bucket = s3connection.get_bucket(bucket_name)
 
         urls = {}
@@ -128,7 +128,7 @@ class s3UrlHandler:
         for key in bucket.list(prefix=path):
             if key.name != path:
                 file_name = key.name[len(path):]
-                url = self.getSignedUrl(path=path, fileName=file_name, bucketRoute=bucket_name, method="GET")
+                url = self.get_signed_url(path=path, file_name=file_name, bucket_route=bucket_name, method="GET")
                 urls[file_name] = url
 
         return urls

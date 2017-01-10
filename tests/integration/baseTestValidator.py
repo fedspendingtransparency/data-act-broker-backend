@@ -16,7 +16,7 @@ from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.scripts.setupValidationDB import setupValidationDB
 from dataactcore.utils.report import report_file_name
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
+from dataactcore.aws.s3UrlHandler import S3UrlHandler
 from dataactcore.models.jobModels import Job, Submission
 from dataactcore.models.errorModels import File
 from dataactcore.config import CONFIG_SERVICES, CONFIG_BROKER, CONFIG_DB
@@ -142,10 +142,8 @@ class BaseTestValidator(unittest.TestCase):
                 if self.local:
                     self.assertFileSizeAppxy(fileSize, reportPath)
                 else:
-                    self.assertGreater(s3UrlHandler.getFileSize(
-                        'errors/{}'.format(reportPath)), fileSize - 5)
-                    self.assertLess(s3UrlHandler.getFileSize(
-                        'errors/{}'.format(reportPath)), fileSize + 5)
+                    self.assertGreater(S3UrlHandler.get_file_size('errors/{}'.format(reportPath)), fileSize - 5)
+                    self.assertLess(S3UrlHandler.get_file_size('errors/{}'.format(reportPath)), fileSize + 5)
 
             if warningFileSize is not None and warningFileSize is not False:
                 reportPath = report_file_name(
@@ -153,10 +151,8 @@ class BaseTestValidator(unittest.TestCase):
                 if self.local:
                     self.assertFileSizeAppxy(warningFileSize, reportPath)
                 else:
-                    self.assertGreater(s3UrlHandler.getFileSize(
-                        'errors/{}'.format(reportPath)), warningFileSize - 5)
-                    self.assertLess(s3UrlHandler.getFileSize(
-                        'errors/{}'.format(reportPath)), warningFileSize + 5)
+                    self.assertGreater(S3UrlHandler.get_file_size('errors/{}'.format(reportPath)), warningFileSize - 5)
+                    self.assertLess(S3UrlHandler.get_file_size('errors/{}'.format(reportPath)), warningFileSize + 5)
 
         return response
 

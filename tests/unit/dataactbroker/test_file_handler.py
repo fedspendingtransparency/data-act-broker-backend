@@ -293,13 +293,13 @@ def test_submission_report_url_local(monkeypatch, tmpdir):
 def test_submission_report_url_s3(monkeypatch):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
     s3UrlHandler = Mock()
-    s3UrlHandler.return_value.getSignedUrl.return_value = 'some/url/here.csv'
-    monkeypatch.setattr(fileHandler, 's3UrlHandler', s3UrlHandler)
+    s3UrlHandler.return_value.get_signed_url.return_value = 'some/url/here.csv'
+    monkeypatch.setattr(fileHandler, 'S3UrlHandler', s3UrlHandler)
     json_response = fileHandler.submission_report_url(
         SubmissionFactory(submission_id=2), False, 'some_file', None)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == 'some/url/here.csv'
-    assert s3UrlHandler.return_value.getSignedUrl.call_args == (
+    assert s3UrlHandler.return_value.get_signed_url.call_args == (
         ('errors', 'submission_2_some_file_error_report.csv'),
         {'method': 'GET'}
     )

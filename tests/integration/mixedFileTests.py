@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from dataactcore.aws.s3UrlHandler import s3UrlHandler
+from dataactcore.aws.s3UrlHandler import S3UrlHandler
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import checkNumberOfErrorsByJobId
 from dataactcore.models.jobModels import Job
@@ -308,6 +308,6 @@ class MixedFileTests(BaseTestValidator):
                 self.assertFileSizeAppxy(size, path)
             else:
                 self.assertGreater(
-                    s3UrlHandler.getFileSize("errors/" + path), size - 5)
+                    S3UrlHandler.get_file_size("errors/" + path), size - 5)
                 self.assertLess(
-                    s3UrlHandler.getFileSize("errors/" + path), size + 5)
+                    S3UrlHandler.get_file_size("errors/" + path), size + 5)
