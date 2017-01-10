@@ -3,8 +3,7 @@ import sys
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactbroker.fsrs import (
-    configValid, fetchAndReplaceBatch, GRANT, PROCUREMENT)
+from dataactbroker.fsrs import configValid, fetchAndReplaceBatch, GRANT, PROCUREMENT
 from dataactvalidator.app import createApp
 
 

@@ -5,7 +5,7 @@ import os
 from flask_bcrypt import Bcrypt
 
 
-from dataactbroker.scripts.setupEmails import setupEmails
+from dataactbroker.scripts.setupEmails import setup_emails
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword
@@ -28,7 +28,7 @@ def setup_db():
     """Set up broker database and initialize data."""
     logger.info('Setting up db')
     setupAllDB()
-    setupEmails()
+    setup_emails()
 
 
 def create_admin():

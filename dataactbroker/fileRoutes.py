@@ -29,13 +29,13 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     @app.route("/v1/submit_files/", methods=["POST"])
     @requires_login
     def submit_files():
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        fileManager = FileHandler(request, is_local=IS_LOCAL, server_path=SERVER_PATH)
         return fileManager.submit(CreateCredentials)
 
     @app.route("/v1/finalize_job/", methods=["POST"])
     @requires_login
     def finalize_submission():
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        fileManager = FileHandler(request, is_local=IS_LOCAL, server_path=SERVER_PATH)
         return fileManager.finalize()
 
     @app.route("/v1/check_status/", methods=["POST"])
@@ -47,14 +47,14 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     @app.route("/v1/submission_error_reports/", methods=["POST"])
     @requires_login
     def submission_error_reports():
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.getErrorReportURLsForSubmission()
+        fileManager = FileHandler(request, is_local=IS_LOCAL, server_path=SERVER_PATH)
+        return fileManager.get_error_report_urls_for_submission()
 
     @app.route("/v1/submission_warning_reports/", methods=["POST"])
     @requires_login
     def submission_warning_reports():
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.getErrorReportURLsForSubmission(True)
+        fileManager = FileHandler(request, is_local=IS_LOCAL, server_path=SERVER_PATH)
+        return fileManager.get_error_report_urls_for_submission(True)
 
     @app.route("/v1/error_metrics/", methods=["POST"])
     @convert_to_submission_id
@@ -65,8 +65,8 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     @app.route("/v1/local_upload/", methods=["POST"])
     @requires_login
     def upload_local_file():
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.uploadFile()
+        fileManager = FileHandler(request, is_local=IS_LOCAL, server_path=SERVER_PATH)
+        return fileManager.upload_file()
 
     @app.route("/v1/list_submissions/", methods=["GET"])
     @requires_login
@@ -104,29 +104,28 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     @requires_login
     def get_protected_files():
         """ Return signed URLs for all help page files """
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
-        return fileManager.getProtectedFiles()
+        fileManager = FileHandler(request, is_local=IS_LOCAL, server_path=SERVER_PATH)
+        return fileManager.get_protected_files()
 
     @app.route("/v1/generate_file/", methods=["POST"])
     @convert_to_submission_id
     def generate_file(submission_id):
         """ Generate file from external API """
-        file_manager = FileHandler(
-            request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        file_manager = FileHandler(request, is_local=IS_LOCAL, server_path=SERVER_PATH)
         return file_manager.generate_file(submission_id)
 
     @app.route("/v1/generate_detached_file/", methods=["POST"])
     @requires_login
     def generate_detached_file():
         """ Generate a file from external API, independent from a submission """
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        fileManager = FileHandler(request, is_local=IS_LOCAL, server_path=SERVER_PATH)
         return fileManager.generate_detached_file()
 
     @app.route("/v1/check_detached_generation_status/", methods=["POST"])
     @requires_login
     def check_detached_generation_status():
         """ Return status of file generation job """
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        fileManager = FileHandler(request, is_local=IS_LOCAL, server_path=SERVER_PATH)
         return fileManager.check_detached_generation()
 
     @app.route("/v1/check_generation_status/", methods=["POST"])
@@ -134,13 +133,12 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
     @requires_submission_perms('reader')
     def check_generation_status(submission):
         """ Return status of file generation job """
-        file_manager = FileHandler(
-            request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        file_manager = FileHandler(request, is_local=IS_LOCAL, server_path=SERVER_PATH)
         return file_manager.check_generation(submission)
 
     @app.route("/v1/complete_generation/<generationId>/", methods=["POST"])
     def complete_generation(generationId):
-        fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
+        fileManager = FileHandler(request, is_local=IS_LOCAL, server_path=SERVER_PATH)
         return fileManager.complete_generation(generationId)
 
     @app.route("/v1/get_obligations/", methods=["POST"])

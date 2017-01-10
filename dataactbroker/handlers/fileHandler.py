@@ -34,10 +34,8 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    checkNumberOfErrorsByJobId, create_jobs, create_submission,
-    getErrorMetricsByJobId, getErrorType, get_submission_status,
-    mark_job_status, run_job_checks, createFileIfNeeded
-)
+    checkNumberOfErrorsByJobId, create_jobs, create_submission, getErrorMetricsByJobId, getErrorType,
+    get_submission_status, mark_job_status, run_job_checks, createFileIfNeeded)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 logger = logging.getLogger(__name__)
@@ -64,7 +62,7 @@ class FileHandler:
 
     UploadFile = namedtuple('UploadFile', ['file_type', 'upload_name', 'file_name', 'file_letter'])
 
-    def __init__(self, route_request, isLocal=False, serverPath=""):
+    def __init__(self, route_request, is_local=False, server_path=""):
         """ Create the File Handler
 
         Arguments:
@@ -73,11 +71,11 @@ class FileHandler:
             serverPath - If isLocal is True, this is used as the path to local files
         """
         self.request = route_request
-        self.isLocal = isLocal
-        self.serverPath = serverPath
+        self.isLocal = is_local
+        self.serverPath = server_path
         self.s3manager = s3UrlHandler()
 
-    def getErrorReportURLsForSubmission(self, is_warning=False):
+    def get_error_report_urls_for_submission(self, is_warning=False):
         """
         Gets the Signed URLs for download based on the submissionId
         """
@@ -115,7 +113,7 @@ class FileHandler:
                 else:
                     report_path = self.s3manager.getSignedUrl("errors", report_name, method="GET")
                 # Assign to key based on source and target
-                response_dict[getCrossReportKey(first_file.name, second_file.name, is_warning)] = report_path
+                response_dict[get_cross_report_key(first_file.name, second_file.name, is_warning)] = report_path
 
             return JsonResponse.create(StatusCode.OK, response_dict)
 
@@ -361,18 +359,18 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def uploadFile(self):
+    def upload_file(self):
         """ Saves a file and returns the saved path.  Should only be used for local installs. """
         try:
             if self.isLocal:
-                uploadedFile = request.files['file']
-                if uploadedFile:
+                uploaded_file = request.files['file']
+                if uploaded_file:
                     seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
-                    filename = "".join([str(seconds), "_", secure_filename(uploadedFile.filename)])
+                    filename = "".join([str(seconds), "_", secure_filename(uploaded_file.filename)])
                     path = os.path.join(self.serverPath, filename)
-                    uploadedFile.save(path)
-                    returnDict = {"path": path}
-                    return JsonResponse.create(StatusCode.OK, returnDict)
+                    uploaded_file.save(path)
+                    return_dict = {"path": path}
+                    return JsonResponse.create(StatusCode.OK, return_dict)
                 else:
                     raise ResponseException("Failure to read file",
                                             StatusCode.CLIENT_ERROR)
@@ -405,9 +403,9 @@ class FileHandler:
             if file_type in ['D1', 'D2']:
                 # Populate start and end dates, these should be provided in
                 # MM/DD/YYYY format, using calendar year (not fiscal year)
-                requestDict = RequestDictionary(self.request)
-                start_date = requestDict.getValue("start")
-                end_date = requestDict.getValue("end")
+                request_dict = RequestDictionary(self.request)
+                start_date = request_dict.getValue("start")
+                end_date = request_dict.getValue("end")
 
                 if not (StringCleaner.isDate(start_date) and
                         StringCleaner.isDate(end_date)):
@@ -550,7 +548,7 @@ class FileHandler:
             copyfile(file_url, local_file_path)
             return True
 
-    def load_d_file(self, url, upload_name, timestamped_name, job_id, isLocal):
+    def load_d_file(self, url, upload_name, timestamped_name, job_id, is_local):
         """ Pull D file from specified URL and write to S3 """
         sess = GlobalDB.db().session
         try:
@@ -573,7 +571,7 @@ class FileHandler:
                 raise ResponseException(job.error_message, StatusCode.CLIENT_ERROR)
             lines = get_lines_from_csv(full_file_path)
 
-            write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])
+            write_csv(timestamped_name, upload_name, is_local, lines[0], lines[1:])
 
             logger.debug('Marking job id of %s', job_id)
             mark_job_status(job_id, "finished")
@@ -743,42 +741,42 @@ class FileHandler:
         sess = GlobalDB.db().session
         file_type = self.get_file_type()
 
-        uploadJob = sess.query(Job).filter_by(
+        upload_job = sess.query(Job).filter_by(
             submission_id=submission.submission_id,
             file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
             job_type_id=JOB_TYPE_DICT['file_upload']
         ).one()
 
         if file_type in ["D1", "D2"]:
-            validationJob = sess.query(Job).filter_by(
+            validation_job = sess.query(Job).filter_by(
                 submission_id=submission.submission_id,
                 file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
                 job_type_id=JOB_TYPE_DICT['csv_record_validation']
             ).one()
         else:
-            validationJob = None
-        responseDict = {
-            'status': mapGenerateStatus(uploadJob, validationJob),
+            validation_job = None
+        response_dict = {
+            'status': map_generate_status(upload_job, validation_job),
             'file_type': file_type,
-            'message': uploadJob.error_message or ""
+            'message': upload_job.error_message or ""
         }
-        if uploadJob.filename is None:
-            responseDict["url"] = "#"
+        if upload_job.filename is None:
+            response_dict["url"] = "#"
         elif CONFIG_BROKER["use_aws"]:
-            path, file_name = uploadJob.filename.split("/")
-            responseDict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name,
-                                                              bucketRoute=None, method="GET")
+            path, file_name = upload_job.filename.split("/")
+            response_dict["url"] = s3UrlHandler().getSignedUrl(path=path, fileName=file_name,
+                                                               bucketRoute=None, method="GET")
         else:
-            responseDict["url"] = uploadJob.filename
+            response_dict["url"] = upload_job.filename
 
         # Pull start and end from jobs table if D1 or D2
         if file_type in ["D1", "D2"]:
-            responseDict["start"] = uploadJob.start_date.strftime("%m/%d/%Y") if uploadJob.start_date else ""
-            responseDict["end"] = uploadJob.end_date.strftime("%m/%d/%Y") if uploadJob.end_date else ""
+            response_dict["start"] = upload_job.start_date.strftime("%m/%d/%Y") if upload_job.start_date else ""
+            response_dict["end"] = upload_job.end_date.strftime("%m/%d/%Y") if upload_job.end_date else ""
 
-        return JsonResponse.create(StatusCode.OK, responseDict)
+        return JsonResponse.create(StatusCode.OK, response_dict)
 
-    def getProtectedFiles(self):
+    def get_protected_files(self):
         """ Returns a set of urls to protected files on the help page """
         response = {}
         if self.isLocal:
@@ -1126,12 +1124,12 @@ def submission_report_url(submission, warning, file_type, cross_type):
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 
-def getCrossReportKey(sourceType, targetType, isWarning=False):
+def get_cross_report_key(source_type, target_type, is_warning=False):
     """ Generate a key for cross-file error reports """
-    if isWarning:
-        return "cross_warning_{}-{}".format(sourceType, targetType)
+    if is_warning:
+        return "cross_warning_{}-{}".format(source_type, target_type)
     else:
-        return "cross_{}-{}".format(sourceType, targetType)
+        return "cross_{}-{}".format(source_type, target_type)
 
 
 def submission_error(submission_id, file_type):
@@ -1192,46 +1190,46 @@ def get_lines_from_csv(file_path):
     return lines
 
 
-def mapGenerateStatus(uploadJob, validationJob=None):
+def map_generate_status(upload_job, validation_job=None):
     """ Maps job status to file generation statuses expected by frontend """
     sess = GlobalDB.db().session
-    uploadStatus = uploadJob.job_status.name
-    if validationJob is None:
-        errorsPresent = False
-        validationStatus = None
+    upload_status = upload_job.job_status.name
+    if validation_job is None:
+        errors_present = False
+        validation_status = None
     else:
-        validationStatus = validationJob.job_status.name
-        if checkNumberOfErrorsByJobId(validationJob.job_id) > 0:
-            errorsPresent = True
+        validation_status = validation_job.job_status.name
+        if checkNumberOfErrorsByJobId(validation_job.job_id) > 0:
+            errors_present = True
         else:
-            errorsPresent = False
+            errors_present = False
 
-    responseStatus = FileHandler.STATUS_MAP[uploadStatus]
-    if responseStatus == "failed" and uploadJob.error_message is None:
+    response_status = FileHandler.STATUS_MAP[upload_status]
+    if response_status == "failed" and upload_job.error_message is None:
         # Provide an error message if none present
-        uploadJob.error_message = "Upload job failed without error message"
+        upload_job.error_message = "Upload job failed without error message"
 
-    if validationJob is None:
+    if validation_job is None:
         # No validation job, so don't need to check it
         sess.commit()
-        return responseStatus
+        return response_status
 
-    if responseStatus == "finished":
+    if response_status == "finished":
         # Check status of validation job if present
-        responseStatus = FileHandler.VALIDATION_STATUS_MAP[validationStatus]
-        if responseStatus == "finished" and errorsPresent:
+        response_status = FileHandler.VALIDATION_STATUS_MAP[validation_status]
+        if response_status == "finished" and errors_present:
             # If validation completed with errors, mark as failed
-            responseStatus = "failed"
-            uploadJob.error_message = "Validation completed but row-level errors were found"
+            response_status = "failed"
+            upload_job.error_message = "Validation completed but row-level errors were found"
 
-    if responseStatus == "failed":
-        if uploadJob.error_message is None and validationJob.error_message is None:
-            if validationStatus == "invalid":
-                uploadJob.error_message = "Generated file had file-level errors"
+    if response_status == "failed":
+        if upload_job.error_message is None and validation_job.error_message is None:
+            if validation_status == "invalid":
+                upload_job.error_message = "Generated file had file-level errors"
             else:
-                uploadJob.error_message = "Validation job had an internal error"
+                upload_job.error_message = "Validation job had an internal error"
 
-        elif uploadJob.error_message is None:
-            uploadJob.error_message = validationJob.error_message
+        elif upload_job.error_message is None:
+            upload_job.error_message = validation_job.error_message
     sess.commit()
-    return responseStatus
+    return response_status

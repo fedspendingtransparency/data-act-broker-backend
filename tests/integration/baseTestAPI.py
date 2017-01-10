@@ -17,7 +17,7 @@ from dataactcore.scripts.setupValidationDB import setupValidationDB
 from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import dataactcore.config
-from dataactbroker.scripts.setupEmails import setupEmails
+from dataactbroker.scripts.setupEmails import setup_emails
 from dataactvalidator.app import createApp as createValidatorApp
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 from tests.unit.dataactcore.factories.user import UserFactory
@@ -52,7 +52,7 @@ class BaseTestAPI(unittest.TestCase):
             # drop and re-create test validation db/tables
             setupValidationDB()
             # load e-mail templates
-            setupEmails()
+            setup_emails()
 
             # set up default e-mails for tests
             test_users = {
