@@ -33,3 +33,26 @@ def test_get_next_record_flex():
     assert flex_fields[0].cell == 'D'
     assert flex_fields[1].header == 'flex_e'
     assert flex_fields[1].cell == 'E'
+
+
+def test_normalize_headers():
+    """Verify we return the transformed headers depending on the long_headers
+    parameter"""
+    headers = [
+        'AllocationTransferAgencyIdentifier',
+        'BeginningPeriodOfAvailability',
+        'flex_mycol',
+        'FLEX_ANOTHER'
+    ]
+    mapping = {'allocationtransferagencyidentifier': 'ata',
+               'beginningperiodofavailability': 'boa'}
+
+    result = csvAbstractReader.normalize_headers(headers, False, mapping)
+    assert list(result) == [
+        'allocationtransferagencyidentifier',
+        'beginningperiodofavailability',
+        'flex_mycol',
+        'flex_another'
+    ]
+    result = csvAbstractReader.normalize_headers(headers, True, mapping)
+    assert list(result) == ['ata', 'boa', 'flex_mycol', 'flex_another']

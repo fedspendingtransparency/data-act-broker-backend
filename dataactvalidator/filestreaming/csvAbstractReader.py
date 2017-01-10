@@ -298,8 +298,6 @@ def normalize_headers(header_row, long_headers, long_to_short_dict):
         header = FieldCleaner.cleanString(header)
         if long_headers and header in long_to_short_dict:
             yield FieldCleaner.cleanString(long_to_short_dict[header])
-        elif long_headers:
-            yield None
         else:
             yield header
 
