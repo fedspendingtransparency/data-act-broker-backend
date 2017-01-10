@@ -22,7 +22,7 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
 
-def createApp():
+def create_app():
     """Set up the application."""
     flask_app = Flask(__name__.split('.')[0])
     local = CONFIG_BROKER['local']
@@ -67,8 +67,7 @@ def createApp():
         # setup user
         g.user = None
         if session.get('name') is not None:
-            g.user = sess.query(User).filter_by(user_id=session['name']).\
-                one_or_none()
+            g.user = sess.query(User).filter_by(user_id=session['name']).one_or_none()
 
     # Root will point to index.html
     @flask_app.route("/", methods=["GET"])
@@ -81,24 +80,22 @@ def createApp():
 
     @flask_app.errorhandler(Exception)
     def handle_exception(exception):
-        wrapped = ResponseException(str(exception), StatusCode.INTERNAL_ERROR,
-                                    type(exception))
+        wrapped = ResponseException(str(exception), StatusCode.INTERNAL_ERROR, type(exception))
         return JsonResponse.error(wrapped, wrapped.status)
 
     # Add routes for modules here
     add_login_routes(flask_app, bcrypt)
 
-    add_file_routes(flask_app, CONFIG_BROKER['aws_create_temp_credentials'],
-                    local, broker_file_path)
+    add_file_routes(flask_app, CONFIG_BROKER['aws_create_temp_credentials'], local, broker_file_path)
     add_user_routes(flask_app, flask_app.config['SYSTEM_EMAIL'], bcrypt)
     add_domain_routes(flask_app)
     add_exception_handlers(flask_app)
     return flask_app
 
 
-def runApp():
+def run_app():
     """runs the application"""
-    flask_app = createApp()
+    flask_app = create_app()
     flask_app.run(
         threaded=True,
         host=CONFIG_SERVICES['broker_api_host'],
@@ -107,8 +104,8 @@ def runApp():
 
 if __name__ == '__main__':
     configure_logging()
-    runApp()
+    run_app()
 
 elif __name__[0:5] == "uwsgi":
     configure_logging()
-    app = createApp()
+    app = create_app()

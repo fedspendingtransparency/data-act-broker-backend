@@ -1,5 +1,5 @@
 from tests.integration.baseTestAPI import BaseTestAPI
-from dataactbroker.app import createApp
+from dataactbroker.app import create_app
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import Submission, Job
 from dataactcore.models.userModel import User
@@ -16,7 +16,7 @@ class UserTests(BaseTestAPI):
         """Set up class-wide resources like submissions and jobs."""
         super(UserTests, cls).setUpClass()
 
-        with createApp().app_context():
+        with create_app().app_context():
             sess = GlobalDB.db().session
 
             # Add submissions for agency user
@@ -59,7 +59,7 @@ class UserTests(BaseTestAPI):
                                       postJson, expect_errors=True, headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.CLIENT_ERROR, "Cannot finalize a job for a different agency")
         # Give submission this user's cgac code
-        with createApp().app_context():
+        with create_app().app_context():
             sess = GlobalDB.db().session
             submission = sess.query(Submission).filter(Submission.submission_id == self.submission_id).one()
             user = sess.query(User).\
@@ -87,7 +87,7 @@ class UserTests(BaseTestAPI):
         response = self.app.post_json("/v1/set_skip_guide/", params, headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK, "skip_guide set successfully")
         self.assertTrue(response.json["skip_guide"])
-        with createApp().app_context():
+        with create_app().app_context():
             sess = GlobalDB.db().session
             user = sess.query(User).filter(User.email == self.test_users['agency_user']).one()
         self.assertTrue(user.skip_guide)

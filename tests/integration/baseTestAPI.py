@@ -4,7 +4,7 @@ from random import randint
 from flask_bcrypt import Bcrypt
 from webtest import TestApp
 
-from dataactbroker.app import createApp as createBrokerApp
+from dataactbroker.app import create_app as createBrokerApp
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import createUserWithPassword, getPasswordHash
 from dataactcore.models.domainModels import CGAC

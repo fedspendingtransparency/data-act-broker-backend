@@ -64,4 +64,4 @@ xmlrunner==1.7.7
 xmltodict==0.10.2
 # suds is outdated but more compatible with FSRS than other libs. Pin a
 # version here
--e git+https://github.com/andersinno/suds-jurko.git@44e27560b328ec6482459ea2d75516849dc209ff#egg=suds_jurko
+-e git+https://github.com/andersinno/suds-jurko.git@44e27560b328ec6482459ea2d75516849dc209ff#egg=suds

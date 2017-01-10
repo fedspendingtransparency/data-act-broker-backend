@@ -12,19 +12,19 @@ from tests.unit.dataactcore.factories.fsrs import (
 
 
 def newClient_call_args(monkeypatch, **config):
-    """Set up and create a newClient request with the provided config. Return
+    """Set up and create a new_client request with the provided config. Return
     the arguments which were sent to the suds client"""
     mock_client = Mock()
     monkeypatch.setattr(fsrs, 'Client', mock_client)
     config = {'fsrs': {'subconfig': config}}
     monkeypatch.setattr(fsrs, 'CONFIG_BROKER', config)
-    fsrs.newClient('subconfig')
+    fsrs.new_client('subconfig')
     args, kwargs = mock_client.call_args
     return kwargs
 
 
 def test_newClient_wsdl(monkeypatch):
-    """newClient will strip trailing '?wsdl's"""
+    """new_client will strip trailing '?wsdl's"""
     call_args = newClient_call_args(
         monkeypatch, wsdl='https://example.com/some?wsdl')
     assert call_args['location'] == 'https://example.com/some'
@@ -32,7 +32,7 @@ def test_newClient_wsdl(monkeypatch):
 
 
 def test_newClient_no_wsdl(monkeypatch):
-    """newClient won't modify urls without the trailing '?wsdl'"""
+    """new_client won't modify urls without the trailing '?wsdl'"""
     url = 'https://example.com/no_wsdl'
     call_args = newClient_call_args(monkeypatch, wsdl=url)
     assert 'location' not in call_args
@@ -40,7 +40,7 @@ def test_newClient_no_wsdl(monkeypatch):
 
 
 def test_newClient_import_fix(monkeypatch):
-    """newClient should set an 'ImportDoctor' derived from the wsdl"""
+    """new_client should set an 'ImportDoctor' derived from the wsdl"""
     call_args = newClient_call_args(
         monkeypatch, wsdl='https://rando-domain.gov/some/where?wsdl')
     doctor = call_args['doctor']
@@ -49,7 +49,7 @@ def test_newClient_import_fix(monkeypatch):
 
 
 def test_newClient_auth(monkeypatch):
-    """newClient should add http auth if _both_ username and password are
+    """new_client should add http auth if _both_ username and password are
     configured"""
     call_args = newClient_call_args(monkeypatch)
     assert 'transport' not in call_args
@@ -66,7 +66,7 @@ def test_newClient_auth(monkeypatch):
 
 
 def test_newClient_filters(monkeypatch):
-    """newClient should add the ControlFilter and ZeroDateFilter plugins.
+    """new_client should add the ControlFilter and ZeroDateFilter plugins.
     Those plugins should work."""
     call_args = newClient_call_args(monkeypatch)
     assert 'plugins' in call_args
@@ -104,7 +104,7 @@ def test_soap2Dict():
         ]
     )
 
-    assert fsrs.soap2Dict(root) == expected
+    assert fsrs.soap_to_dict(root) == expected
 
 
 def test_flattenSoapDict():
@@ -138,11 +138,11 @@ def test_flattenSoapDict():
         top_paid_fullname_4='full4', top_paid_amount_4='4',
         top_paid_fullname_5='full5', top_paid_amount_5='5'
     )
-    result = fsrs.flattenSoapDict(
-        simpleFields=('duns', 'recovery_model_q1'),
-        addressFields=('company_address', 'principle_place'),
-        commaField='bus_types',
-        soapDict=obj)
+    result = fsrs.flatten_soap_dict(
+        simple_fields=('duns', 'recovery_model_q1'),
+        address_fields=('company_address', 'principle_place'),
+        comma_field='bus_types',
+        soap_dict=obj)
     assert result == expected
 
 
@@ -179,11 +179,10 @@ def test_fetchAndReplaceBatch_saves_data(no_award_db, monkeypatch):
     award1.subawards = [FSRSSubcontractFactory() for _ in range(4)]
     award2 = FSRSProcurementFactory()
     award2.subawards = [FSRSSubcontractFactory()]
-    monkeypatch.setattr(fsrs, 'retrieveBatch',
-                        Mock(return_value=[award1, award2]))
+    monkeypatch.setattr(fsrs, 'retrieve_batch', Mock(return_value=[award1, award2]))
 
     assert no_award_db.query(FSRSProcurement).count() == 0
-    fsrs.fetchAndReplaceBatch(no_award_db, fsrs.PROCUREMENT)
+    fsrs.fetch_and_replace_batch(no_award_db, fsrs.PROCUREMENT)
     assert no_award_db.query(FSRSProcurement).count() == 2
     assert no_award_db.query(FSRSSubcontract).count() == 5
 
@@ -197,10 +196,9 @@ def test_fetchAndReplaceBatch_overrides_data(no_award_db, monkeypatch):
     award1.subawards = [FSRSSubgrantFactory() for _ in range(4)]
     award2 = FSRSGrantFactory(id=2, duns='Not Altered')
     award2.subawards = [FSRSSubgrantFactory()]
-    monkeypatch.setattr(fsrs, 'retrieveBatch',
-                        Mock(return_value=[award1, award2]))
+    monkeypatch.setattr(fsrs, 'retrieve_batch', Mock(return_value=[award1, award2]))
 
-    fsrs.fetchAndReplaceBatch(no_award_db, fsrs.GRANT)
+    fsrs.fetch_and_replace_batch(no_award_db, fsrs.GRANT)
     assert fetch_duns(1) == 'To Be Replaced'
     assert fetch_duns(2) == 'Not Altered'
     # 5 subawards, 4 from award1 and 1 from award2
@@ -210,8 +208,8 @@ def test_fetchAndReplaceBatch_overrides_data(no_award_db, monkeypatch):
 
     award3 = FSRSGrantFactory(id=1, duns='Replaced')
     award3.subawards = [FSRSSubgrantFactory() for _ in range(2)]
-    monkeypatch.setattr(fsrs, 'retrieveBatch', Mock(return_value=[award3]))
-    fsrs.fetchAndReplaceBatch(no_award_db, fsrs.GRANT)
+    monkeypatch.setattr(fsrs, 'retrieve_batch', Mock(return_value=[award3]))
+    fsrs.fetch_and_replace_batch(no_award_db, fsrs.GRANT)
     assert fetch_duns(1) == 'Replaced'
     assert fetch_duns(2) == 'Not Altered'
     # 3 subawards, 4 from award1/award3 and 1 from award2
