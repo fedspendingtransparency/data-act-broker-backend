@@ -197,7 +197,7 @@ def clean_sf133_data(filename, SF133_data):
 
 def format_internal_tas(row):
     """Concatenate TAS components into a single field for internal use."""
-    # This formatting should match formatting in dataactcore.models.stagingModels concatTas
+    # This formatting should match formatting in dataactcore.models.stagingModels concat_tas
     tas = ''.join([
         row['allocation_transfer_agency'] if row['allocation_transfer_agency'] else '000',
         row['agency_identifier'] if row['agency_identifier'] else '000',
