@@ -7,7 +7,11 @@ import sys
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from dataactcore.models import baseModel
+# Load all DB tables into metadata object
+# @todo - load these dynamically
+from dataactcore.models import (baseModel, domainModels, fsrs, errorModels, jobModels, stagingModels, # noqa
+                                userModel, validationModels)
+
 from dataactcore.config import CONFIG_DB
 from dataactcore.interfaces.db import dbURI
 from dataactcore.logging import configure_logging
