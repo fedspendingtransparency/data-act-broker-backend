@@ -56,7 +56,7 @@ def load_tas_lookup():
 def load_sql_rules():
     """Load the SQL-based validation rules."""
     logger.info('Loading SQL-based validation rules')
-    SQLLoader.loadSql("sqlRules.csv")
+    SQLLoader.load_sql("sqlRules.csv")
 
 
 def load_domain_value_files(base_path):
@@ -80,7 +80,7 @@ def load_sf133():
 def load_validator_schema():
     """Load file-level .csv schemas into the broker database."""
     logger.info('Loading validator schemas')
-    SchemaLoader.loadAllFromPath(validator_config_path)
+    SchemaLoader.load_all_from_path(validator_config_path)
 
 
 def main():

@@ -109,8 +109,8 @@ class FileTypeTests(BaseTestValidator):
         validator_config_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
         integration_test_data_path = os.path.join(CONFIG_BROKER["path"], "tests", "integration", "data")
 
-        SchemaLoader.loadAllFromPath(validator_config_path)
-        SQLLoader.loadSql("sqlRules.csv")
+        SchemaLoader.load_all_from_path(validator_config_path)
+        SQLLoader.load_sql("sqlRules.csv")
 
         if ruleList is not None:
             # If rule list provided, drop all other rules

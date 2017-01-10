@@ -10,22 +10,22 @@ class FieldCleaner(StringCleaner):
         producing a field definition file that can be read by schemaLoader """
 
     @staticmethod
-    def cleanFile(fileIn, fileOut):
+    def clean_file(file_in, file_out):
         """ Clean input file line by line and create output file """
         # Open CSV file for reading each record as a dictionary
-        with open(fileIn, "rU") as csvfile:
+        with open(file_in, "rU") as csvfile:
             reader = csv.DictReader(csvfile)
             fieldnames = ["fieldname", "fieldname_short", "required", "data_type", "field_length", "rule_labels"]
-            writer = csv.DictWriter(open(fileOut, "w"), fieldnames=fieldnames, lineterminator='\n')
+            writer = csv.DictWriter(open(file_out, "w"), fieldnames=fieldnames, lineterminator='\n')
             writer.writeheader()
             for record in reader:
-                # Pass record into cleanRecord to sanitize
-                record = FieldCleaner.cleanRecord(record)
+                # Pass record into clean_record to sanitize
+                record = FieldCleaner.clean_record(record)
                 # Write new row to output file
                 writer.writerow(record)
 
     @staticmethod
-    def cleanRecord(record):
+    def clean_record(record):
         """ Clean up an individual record, and write to output file.
 
         Args:
@@ -36,21 +36,21 @@ class FieldCleaner(StringCleaner):
         """
 
         # Clean name, required, type, and length
-        record['fieldname'] = FieldCleaner.cleanName(record['fieldname'])
+        record['fieldname'] = FieldCleaner.clean_name(record['fieldname'])
         # fieldname_short is the machine-friendly name provided with the
         # schema, so the only change we'll make to it is stripping whitespace
         record['fieldname_short'] = record['fieldname_short'].strip()
-        record['required'] = FieldCleaner.cleanRequired(record['required'])
-        record['data_type'] = FieldCleaner.cleanType(record['data_type'])
-        record['field_length'] = FieldCleaner.cleanLength(record['field_length'])
+        record['required'] = FieldCleaner.clean_required(record['required'])
+        record['data_type'] = FieldCleaner.clean_type(record['data_type'])
+        record['field_length'] = FieldCleaner.clean_length(record['field_length'])
         return record
 
     @staticmethod
-    def cleanName(name):
+    def clean_name(name):
         """ Remove whitespace from name and change to lowercase, also clean up special characters """
         # Convert to lowercase and remove whitespace on ends
         name = FieldCleaner.clean_string(name)
-        # Remove braces and parantheses
+        # Remove braces and parentheses
         name = name.replace("{", "").replace("}", "").replace("(", "").replace(")", "")
         # Replace problematic characters with underscores
         name = name.replace(" - ", "_").replace("-", "_")
@@ -61,7 +61,7 @@ class FieldCleaner(StringCleaner):
         return name
 
     @staticmethod
-    def cleanRequired(required):
+    def clean_required(required):
         """ Convert 'required' and '(required)' to True, "optional" and "required if relevant" if False,
             otherwise raises an exception """
         required = FieldCleaner.clean_string(required, False)
@@ -79,7 +79,7 @@ class FieldCleaner(StringCleaner):
             raise ValueError("".join(["Unknown value for required: ", required]))
 
     @staticmethod
-    def cleanType(clean_type):
+    def clean_type(clean_type):
         """ Interprets all inputs as int, str, or bool.  For unexpected inputs, raises an exception. """
         clean_type = FieldCleaner.clean_string(clean_type, False)
         if clean_type == "integer" or clean_type == "int":
@@ -101,7 +101,7 @@ class FieldCleaner(StringCleaner):
             raise ValueError("".join(["Unknown type: ", clean_type]))
 
     @staticmethod
-    def cleanLength(length):
+    def clean_length(length):
         """ Checks that input is a positive integer, otherwise raises an exception. """
         length = FieldCleaner.clean_string(length, False)
         if length == "":
@@ -117,12 +117,12 @@ class FieldCleaner(StringCleaner):
         return length
 
     @classmethod
-    def cleanRow(cls, row, longToShortDict, fields):
+    def clean_row(cls, row, long_to_short_dict, fields):
         """ Strips whitespace, replaces empty strings with None, and pads fields that need it
 
         Args:
             row: Record in this row
-            longToShortDict: Maps long column names to short
+            long_to_short_dict: Maps long column names to short
             fields: List of FileColumn objects for this file type
 
         Returns:
@@ -130,25 +130,25 @@ class FieldCleaner(StringCleaner):
         """
 
         for field in fields:
-            key = longToShortDict[field.name]
+            key = long_to_short_dict[field.name]
             field_type = FIELD_TYPE_DICT_ID[field.field_types_id]
             value = row[key]
             if value is not None:
                 # Remove extra whitespace
                 value = value.strip()
                 if field_type in ["INT", "DECIMAL", "LONG"]:
-                    tempValue = value.replace(",", "")
-                    if FieldCleaner.is_numeric(tempValue):
-                        value = tempValue
+                    temp_value = value.replace(",", "")
+                    if FieldCleaner.is_numeric(temp_value):
+                        value = temp_value
                 if value == "":
                     # Replace empty strings with null
                     value = None
 
-                row[key] = cls.padField(field, value)
+                row[key] = cls.pad_field(field, value)
         return row
 
     @staticmethod
-    def padField(field, value):
+    def pad_field(field, value):
         """ Pad value with appropriate number of leading zeros if needed
 
         Args:
@@ -167,8 +167,8 @@ class FieldCleaner(StringCleaner):
 
 if __name__ == '__main__':
     configure_logging()
-    FieldCleaner.cleanFile("../config/awardProcurementFieldsRaw.csv", "../config/awardProcurementFields.csv")
-    FieldCleaner.cleanFile("../config/appropFieldsRaw.csv", "../config/appropFields.csv")
-    FieldCleaner.cleanFile("../config/awardFinancialFieldsRaw.csv", "../config/awardFinancialFields.csv")
-    FieldCleaner.cleanFile("../config/programActivityFieldsRaw.csv", "../config/programActivityFields.csv")
-    FieldCleaner.cleanFile("../config/awardFieldsRaw.csv", "../config/awardFields.csv")
+    FieldCleaner.clean_file("../config/awardProcurementFieldsRaw.csv", "../config/awardProcurementFields.csv")
+    FieldCleaner.clean_file("../config/appropFieldsRaw.csv", "../config/appropFields.csv")
+    FieldCleaner.clean_file("../config/awardFinancialFieldsRaw.csv", "../config/awardFinancialFields.csv")
+    FieldCleaner.clean_file("../config/programActivityFieldsRaw.csv", "../config/programActivityFields.csv")
+    FieldCleaner.clean_file("../config/awardFieldsRaw.csv", "../config/awardFields.csv")

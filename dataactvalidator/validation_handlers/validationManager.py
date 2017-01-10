@@ -108,8 +108,7 @@ class ValidationManager:
         job_id = job.job_id
         try:
             (next_record, flex_fields) = reader.get_next_record()
-            record = FieldCleaner.cleanRow(
-                next_record, self.long_to_short_dict, fields)
+            record = FieldCleaner.clean_row(next_record, self.long_to_short_dict, fields)
             record["row_number"] = row_number
             for flex_field in flex_fields:
                 flex_field.submission_id = job.submission_id
@@ -294,8 +293,8 @@ class ValidationManager:
                 errorRows.extend(sqlErrorRows)
 
                 # Write unfinished batch
-                writer.finishBatch()
-                warningWriter.finishBatch()
+                writer.finish_batch()
+                warningWriter.finish_batch()
 
             # Calculate total number of rows in file
             # that passed validations
@@ -428,8 +427,8 @@ class ValidationManager:
                     error_list.recordRowError(job_id, "cross_file",
                                               failure[0], failure[3], failure[5], failure[6],
                                               failure[7], failure[8], severity_id=failure[9])
-                writer.finishBatch()
-                warningWriter.finishBatch()
+                writer.finish_batch()
+                warningWriter.finish_batch()
 
         error_list.writeAllRowErrors(job_id)
         mark_job_status(job_id, "finished")

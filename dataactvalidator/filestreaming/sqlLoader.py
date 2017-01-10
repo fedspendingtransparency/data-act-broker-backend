@@ -16,14 +16,14 @@ class SQLLoader:
                'file_type', 'severity_name', 'query_name', 'target_file']
 
     @classmethod
-    def readSqlStr(cls, filename):
+    def read_sql_str(cls, filename):
         """Read and clean lines from a .sql file"""
         full_path = os.path.join(cls.sql_rules_path, filename + ".sql")
         with open(full_path, 'rU') as f:
             return f.read()
 
     @classmethod
-    def loadSql(cls, filename):
+    def load_sql(cls, filename):
         """Load SQL-based validation rules to db."""
         with createApp().app_context():
             sess = GlobalDB.db().session
@@ -38,23 +38,23 @@ class SQLLoader:
                 # read header
                 header = csvfile.readline()
                 # split header into filed names
-                rawFieldNames = header.split(',')
-                fieldNames = []
+                raw_field_names = header.split(',')
+                field_names = []
                 # clean field names
-                for field in rawFieldNames:
-                    fieldNames.append(FieldCleaner.clean_string(field))
+                for field in raw_field_names:
+                    field_names.append(FieldCleaner.clean_string(field))
 
-                unknownFields = set(fieldNames) - set(cls.headers)
-                if len(unknownFields) != 0:
-                    raise KeyError("".join(["Found unexpected fields: ", str(list(unknownFields))]))
+                unknown_fields = set(field_names) - set(cls.headers)
+                if len(unknown_fields) != 0:
+                    raise KeyError("".join(["Found unexpected fields: ", str(list(unknown_fields))]))
 
-                missingFields = set(cls.headers) - set(fieldNames)
-                if len(missingFields) != 0:
-                    raise ValueError("".join(["Missing required fields: ", str(list(missingFields))]))
+                missing_fields = set(cls.headers) - set(field_names)
+                if len(missing_fields) != 0:
+                    raise ValueError("".join(["Missing required fields: ", str(list(missing_fields))]))
 
-                reader = csv.DictReader(csvfile, fieldnames=fieldNames)
+                reader = csv.DictReader(csvfile, fieldnames=field_names)
                 for row in reader:
-                    sql = cls.readSqlStr(row['query_name'])
+                    sql = cls.read_sql_str(row['query_name'])
 
                     rule_sql = RuleSql(rule_sql=sql, rule_label=row['rule_label'],
                                        rule_description=row['rule_description'],
@@ -62,16 +62,16 @@ class SQLLoader:
 
                     # look up file type id
                     try:
-                        fileId = FILE_TYPE_DICT[row["file_type"]]
+                        file_id = FILE_TYPE_DICT[row["file_type"]]
                     except Exception as e:
                         raise Exception("{}: file type={}, rule label={}. Rule not loaded.".format(
                             e, row["file_type"], row["rule_label"]))
                     try:
                         if row["target_file"].strip() == "":
                             # No target file provided
-                            targetFileId = None
+                            target_file_id = None
                         else:
-                            targetFileId = FILE_TYPE_DICT[row["target_file"]]
+                            target_file_id = FILE_TYPE_DICT[row["target_file"]]
                     except Exception as e:
                         raise Exception("{}: file type={}, rule label={}. Rule not loaded.".format(
                             e, row["target_file"], row["rule_label"]))
@@ -84,8 +84,8 @@ class SQLLoader:
                         cross_file_flag = False
 
                     rule_sql.rule_severity_id = RULE_SEVERITY_DICT[row['severity_name']]
-                    rule_sql.file_id = fileId
-                    rule_sql.target_file_id = targetFileId
+                    rule_sql.file_id = file_id
+                    rule_sql.target_file_id = target_file_id
                     rule_sql.rule_cross_file_flag = cross_file_flag
 
                     sess.merge(rule_sql)
@@ -93,4 +93,4 @@ class SQLLoader:
 
 if __name__ == '__main__':
     configure_logging()
-    SQLLoader.loadSql("sqlRules.csv")
+    SQLLoader.load_sql("sqlRules.csv")
