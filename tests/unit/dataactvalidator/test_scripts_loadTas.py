@@ -13,7 +13,7 @@ from tests.unit.dataactcore.factories.domain import TASFactory
 
 def write_then_read_tas(tmpdir, *rows):
     """Helper function to write the provided rows to a CSV, then read them in
-    via `loadTas.cleanTas`"""
+    via `loadTas.clean_tas`"""
     csv_file = tmpdir.join("cars_tas.csv")
     with open(str(csv_file), 'w') as f:
         writer = DictWriter(
@@ -26,11 +26,11 @@ def write_then_read_tas(tmpdir, *rows):
             data.update(row)
             writer.writerow(data)
 
-    return loadTas.cleanTas(str(csv_file))
+    return loadTas.clean_tas(str(csv_file))
 
 
 def test_cleanTas_multiple(tmpdir):
-    """Happy path test that cleanTas will correctly read in a written CSV as a
+    """Happy path test that clean_tas will correctly read in a written CSV as a
     pandas dataframe"""
     results = write_then_read_tas(
         tmpdir,
@@ -87,13 +87,13 @@ def test_updateTASLookups(database, monkeypatch):
             [333] + ['new-entry-2'] * len(TAS_COMPONENTS),
         ]
     )
-    monkeypatch.setattr(loadTas, 'cleanTas',
+    monkeypatch.setattr(loadTas, 'clean_tas',
                         Mock(return_value=incoming_tas_data))
 
     # Initial state
     assert sess.query(TASLookup).count() == 4
 
-    loadTas.updateTASLookups('file-name-ignored-due-to-mock')
+    loadTas.update_tas_lookups('file-name-ignored-due-to-mock')
 
     # Post-"import" state
     results = sess.query(TASLookup).\

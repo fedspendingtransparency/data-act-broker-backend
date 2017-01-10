@@ -11,8 +11,8 @@ from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
-from dataactvalidator.scripts.loadFile import loadDomainValues
-from dataactvalidator.scripts.loadTas import loadTas
+from dataactvalidator.scripts.loadFile import load_domain_values
+from dataactvalidator.scripts.loadTas import load_tas
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
 from tests.integration.baseTestValidator import BaseTestValidator
 
@@ -119,12 +119,12 @@ class FileTypeTests(BaseTestValidator):
             sess.commit()
 
         # Load domain values tables
-        loadDomainValues(
+        load_domain_values(
             validator_config_path,
             os.path.join(integration_test_data_path, "program_activity.csv"))
         if sess.query(TASLookup).count() == 0 or force_tas_load:
             # TAS table is empty, load it
-            loadTas(tasFile=os.path.join(integration_test_data_path, "cars_tas.csv"))
+            load_tas(tas_file=os.path.join(integration_test_data_path, "cars_tas.csv"))
 
         # Load test SF-133
         load_all_sf133(integration_test_data_path)

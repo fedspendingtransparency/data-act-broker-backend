@@ -9,7 +9,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CGAC, ObjectClass, ProgramActivity
 from dataactvalidator.app import createApp
-from dataactvalidator.scripts.loaderUtils import cleanData, insertDataframe
+from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ def update_cgacs(models, new_data):
             setattr(models[cgac_code], field, value)
 
 
-def loadCgac(filename):
+def load_cgac(filename):
     """Load CGAC (high-level agency names) lookup table."""
     with createApp().app_context():
         sess = GlobalDB.db().session
@@ -46,7 +46,7 @@ def loadCgac(filename):
         # read CGAC values from csv
         data = pd.read_csv(filename, dtype=str)
         # clean data
-        data = cleanData(
+        data = clean_data(
             data,
             CGAC,
             {"cgac": "cgac_code", "agency": "agency_name"},
@@ -63,7 +63,7 @@ def loadCgac(filename):
         logger.info('%s CGAC records inserted', len(models))
 
 
-def loadObjectClass(filename):
+def load_object_class(filename):
     """Load object class lookup table."""
     model = ObjectClass
 
@@ -73,7 +73,7 @@ def loadObjectClass(filename):
         sess.query(model).delete()
 
         data = pd.read_csv(filename, dtype=str)
-        data = cleanData(
+        data = clean_data(
             data,
             model,
             {"max_oc_code": "object_class_code", "max_object_class_name": "object_class_name"},
@@ -83,13 +83,13 @@ def loadObjectClass(filename):
         data.drop_duplicates(subset=['object_class_code'], inplace=True)
         # insert to db
         table_name = model.__table__.name
-        num = insertDataframe(data, table_name, sess.connection())
+        num = insert_dataframe(data, table_name, sess.connection())
         sess.commit()
 
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
-def loadProgramActivity(filename):
+def load_program_activity(filename):
     """Load program activity lookup table."""
     model = ProgramActivity
 
@@ -100,7 +100,7 @@ def loadProgramActivity(filename):
         sess.query(model).delete()
 
         data = pd.read_csv(filename, dtype=str)
-        data = cleanData(
+        data = clean_data(
             data,
             model,
             {"year": "budget_year", "agency_id": "agency_id", "alloc_id": "allocation_transfer_id",
@@ -114,19 +114,19 @@ def loadProgramActivity(filename):
         data.drop_duplicates(inplace=True)
         # insert to db
         table_name = model.__table__.name
-        num = insertDataframe(data, table_name, sess.connection())
+        num = insert_dataframe(data, table_name, sess.connection())
         sess.commit()
 
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
-def loadDomainValues(basePath, localProgramActivity=None):
+def load_domain_values(base_path, local_program_activity=None):
     """Load all domain value files.
 
     Parameters
     ----------
-        basePath : directory that contains the domain values files.
-        localProgramActivity : optional location of the program activity file (None = use basePath)
+        base_path : directory that contains the domain values files.
+        local_program_activity : optional location of the program activity file (None = use basePath)
     """
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
@@ -136,24 +136,22 @@ def loadDomainValues(basePath, localProgramActivity=None):
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
 
     else:
-        cgac_file = os.path.join(basePath, "cgac.csv")
-        object_class_file = os.path.join(basePath, "object_class.csv")
-        program_activity_file = os.path.join(basePath, "program_activity.csv")
+        cgac_file = os.path.join(base_path, "cgac.csv")
+        object_class_file = os.path.join(base_path, "object_class.csv")
+        program_activity_file = os.path.join(base_path, "program_activity.csv")
 
     logger.info('Loading CGAC')
-    loadCgac(cgac_file)
+    load_cgac(cgac_file)
     logger.info('Loading object class')
-    loadObjectClass(object_class_file)
+    load_object_class(object_class_file)
     logger.info('Loading program activity')
 
-    if localProgramActivity is not None:
-        loadProgramActivity(localProgramActivity)
+    if local_program_activity is not None:
+        load_program_activity(local_program_activity)
     else:
-        loadProgramActivity(program_activity_file)
+        load_program_activity(program_activity_file)
 
 
 if __name__ == '__main__':
     configure_logging()
-    loadDomainValues(
-        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
-    )
+    load_domain_values(os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"))

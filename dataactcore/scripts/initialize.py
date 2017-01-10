@@ -15,9 +15,9 @@ from dataactcore.scripts.setupAllDB import setup_all_db
 from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
-from dataactvalidator.scripts.loadFile import loadDomainValues
+from dataactvalidator.scripts.loadFile import load_domain_values
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
-from dataactvalidator.scripts.loadTas import loadTas
+from dataactvalidator.scripts.loadTas import load_tas
 
 logger = logging.getLogger(__name__)
 basePath = CONFIG_BROKER["path"]
@@ -50,7 +50,7 @@ def create_admin():
 def load_tas_lookup():
     """Load/update the TAS table to reflect the latest list."""
     logger.info('Loading TAS')
-    loadTas()
+    load_tas()
 
 
 def load_sql_rules():
@@ -62,7 +62,7 @@ def load_sql_rules():
 def load_domain_value_files(base_path):
     """Load domain values (e.g., CGAC codes, object class, SF-133)."""
     logger.info('Loading domain values')
-    loadDomainValues(base_path)
+    load_domain_values(base_path)
 
 
 def load_sf133():

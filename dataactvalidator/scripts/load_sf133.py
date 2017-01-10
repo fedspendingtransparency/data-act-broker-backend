@@ -14,7 +14,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import matching_cars_subquery, SF133
 from dataactvalidator.app import createApp
-from dataactvalidator.scripts.loaderUtils import cleanData, insertDataframe
+from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +23,11 @@ def load_all_sf133(sf133_path=None, force_sf133_load=False):
     """Load any SF-133 files that are not yet in the database."""
     # get a list of SF 133 files to load
     sf133_list = get_sf133_list(sf133_path)
-    SF_RE = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
+    sf_re = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
     for sf133 in sf133_list:
         # for each SF file, parse out fiscal year and period
         # and call the SF 133 loader
-        file_match = SF_RE.match(sf133.file)
+        file_match = sf_re.match(sf133.file)
         if not file_match:
             logger.info('Skipping SF 133 file with invalid name: %s',
                         sf133.full_file)
@@ -137,18 +137,18 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False):
 
         # insert to db
         table_name = SF133.__table__.name
-        num = insertDataframe(data, table_name, sess.connection())
+        num = insert_dataframe(data, table_name, sess.connection())
         update_tas_id(int(fiscal_year), int(fiscal_period))
         sess.commit()
 
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
-def clean_sf133_data(filename, SF133_data):
+def clean_sf133_data(filename, sf133_data):
     data = pd.read_csv(filename, dtype=str)
-    data = cleanData(
+    data = clean_data(
         data,
-        SF133_data,
+        sf133_data,
         {"ata": "allocation_transfer_agency",
          "aid": "agency_identifier",
          "availability_type_code": "availability_type_code",
