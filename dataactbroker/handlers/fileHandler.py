@@ -318,7 +318,8 @@ class FileHandler:
 
         return start_date, end_date
 
-    def finalize(self, job_id):
+    @staticmethod
+    def finalize(job_id):
         """ Set upload job in job tracker database to finished, allowing dependent jobs to be started
 
         Flask request should include key "upload_id", which holds the job_id for the file_upload job
@@ -643,7 +644,8 @@ class FileHandler:
         # Return same response as check generation route
         return result or self.check_detached_generation(new_job.job_id)
 
-    def check_detached_generation(self, job_id):
+    @staticmethod
+    def check_detached_generation(job_id):
         """ Return information about file generation jobs
 
         Returns:
@@ -683,7 +685,8 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, response_dict)
 
-    def check_generation(self, submission, file_type):
+    @staticmethod
+    def check_generation(submission, file_type):
         """ Return information about file generation jobs
 
         Returns:
