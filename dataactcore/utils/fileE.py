@@ -10,42 +10,40 @@ from dataactcore.config import CONFIG_BROKER
 logger = logging.getLogger(__name__)
 
 
-def configValid():
+def config_valid():
     """Does the config have the necessary bits for talking to the SAM SOAP
     API"""
     sam = CONFIG_BROKER.get('sam') or {}
-    hasWsdl = bool(sam.get('wsdl'))
-    hasUser = bool(sam.get('username'))
-    hasPass = bool(sam.get('password'))
-    return hasWsdl and hasUser and hasPass
+    has_wsdl = bool(sam.get('wsdl'))
+    has_user = bool(sam.get('username'))
+    has_pass = bool(sam.get('password'))
+    return has_wsdl and has_user and has_pass
 
 
-def createAuth(client):
+def create_auth(client):
     auth = client.factory.create('userAuthenticationKeyType')
     auth.userID = CONFIG_BROKER['sam']['username']
     auth.password = CONFIG_BROKER['sam']['password']
     return auth
 
 
-def createSearch(client, dunsList):
+def create_search(client, duns_list):
     search = client.factory.create('entitySearchCriteriaType')
     search.DUNSList = client.factory.create('DUNSList')
-    search.DUNSList.DUNSNumber = dunsList
+    search.DUNSList.DUNSNumber = duns_list
     return search
 
 
-def getEntities(client, dunsList):
+def get_entities(client, duns_list):
     """Hit the SAM SOAP API, searching for the provided DUNS numbers. Return
     the results as a list of Suds objects"""
     params = client.factory.create('requestedData')
     params.coreData.value = 'Y'
 
-    result = client.service.getEntities(
-        createAuth(client), createSearch(client, dunsList), params)
+    result = client.service.getEntities(create_auth(client), create_search(client, duns_list), params)
 
     if result.transactionInformation.transactionMessage:
-        logger.warning("Message from SAM API: %s",
-                       result.transactionInformation.transactionMessage)
+        logger.warning("Message from SAM API: %s", result.transactionInformation.transactionMessage)
 
     if result.listOfEntities:
         return result.listOfEntities.entity
@@ -69,10 +67,10 @@ Row = namedtuple('Row', (
     'HighCompOfficer5Amount'))
 
 
-def sudsToRow(sudsObj):
+def suds_to_row(suds_obj):
     """Convert a Suds result object into a Row tuple. This accounts for the
     presence/absence of top-paid officers"""
-    comp = getattr(sudsObj.coreData, 'listOfExecutiveCompensationInformation',
+    comp = getattr(suds_obj.coreData, 'listOfExecutiveCompensationInformation',
                    '')
     officers = []
     officer_data = getattr(comp, 'executiveCompensationDetail', [])
@@ -88,19 +86,19 @@ def sudsToRow(sudsObj):
     officers.extend([''] * (10 - len(officers)))
 
     return Row(
-        sudsObj.entityIdentification.DUNS,
-        sudsObj.coreData.DUNSInformation.globalParentDUNS.DUNSNumber,
-        sudsObj.coreData.DUNSInformation.globalParentDUNS.legalBusinessName,
+        suds_obj.entityIdentification.DUNS,
+        suds_obj.coreData.DUNSInformation.globalParentDUNS.DUNSNumber,
+        suds_obj.coreData.DUNSInformation.globalParentDUNS.legalBusinessName,
         *officers
     )
 
 
-def retrieveRows(dunsList):
+def retrieve_rows(duns_list):
     """Soup-to-nuts creates a list of Row tuples from a set of DUNS
     numbers."""
-    if configValid():
+    if config_valid():
         client = Client(CONFIG_BROKER['sam']['wsdl'])
-        return [sudsToRow(e) for e in getEntities(client, dunsList)]
+        return [suds_to_row(e) for e in get_entities(client, duns_list)]
     else:
         logger.error("Invalid sam config")
         return []

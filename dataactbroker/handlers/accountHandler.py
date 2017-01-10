@@ -61,9 +61,9 @@ class AccountHandler:
             sess = GlobalDB.db().session
             safe_dictionary = RequestDictionary(self.request)
 
-            username = safe_dictionary.getValue('username')
+            username = safe_dictionary.get_value('username')
 
-            password = safe_dictionary.getValue('password')
+            password = safe_dictionary.get_value('password')
 
             try:
                 user = sess.query(User).filter(func.lower(User.email) == func.lower(username)).one()
@@ -110,8 +110,8 @@ class AccountHandler:
             safe_dictionary = RequestDictionary(self.request)
 
             # Obtain POST content
-            ticket = safe_dictionary.getValue("ticket")
-            service = safe_dictionary.getValue('service')
+            ticket = safe_dictionary.get_value("ticket")
+            service = safe_dictionary.get_value('service')
 
             # Call MAX's serviceValidate endpoint and retrieve the response
             max_dict = get_max_dict(ticket, service)
@@ -193,11 +193,7 @@ class AccountHandler:
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
         sess.commit()
-        return JsonResponse.create(
-            StatusCode.OK,
-            {"message": "skip_guide set successfully",
-             "skip_guide": skip_guide}
-        )
+        return JsonResponse.create(StatusCode.OK, {"message": "skip_guide set successfully", "skip_guide": skip_guide})
 
     def email_users(self, system_email):
         """ Send email notification to list of users """

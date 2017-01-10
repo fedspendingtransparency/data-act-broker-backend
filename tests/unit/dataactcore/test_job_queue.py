@@ -69,14 +69,14 @@ def test_generate_e_file_query(monkeypatch, mock_broker_config_paths,
     database.session.commit()
 
     monkeypatch.setattr(jobQueue, 'mark_job_status', Mock())
-    monkeypatch.setattr(jobQueue.fileE, 'retrieveRows', Mock(return_value=[]))
+    monkeypatch.setattr(jobQueue.fileE, 'retrieve_rows', Mock(return_value=[]))
 
     jobQueue.generate_e_file(
         model.submission_id, 1, 'uniq', 'uniq',
         is_local=True)
 
     # [0][0] gives us the first, non-keyword args
-    call_args = jobQueue.fileE.retrieveRows.call_args[0][0]
+    call_args = jobQueue.fileE.retrieve_rows.call_args[0][0]
     expected = [ap.awardee_or_recipient_uniqu for ap in aps]
     expected.append(model.awardee_or_recipient_uniqu)
     expected.extend(afa.awardee_or_recipient_uniqu for afa in afas)
@@ -92,8 +92,8 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
     sess.add(ap)
     sess.commit()
 
-    monkeypatch.setattr(jobQueue.fileE, 'retrieveRows', Mock())
-    jobQueue.fileE.retrieveRows.return_value = [
+    monkeypatch.setattr(jobQueue.fileE, 'retrieve_rows', Mock())
+    jobQueue.fileE.retrieve_rows.return_value = [
         fileE.Row('a', 'b', 'c', '1a', '1b', '2a', '2b', '3a', '3b',
                   '4a', '4b', '5a', '5b'),
         fileE.Row('A', 'B', 'C', '1A', '1B', '2A', '2B', '3A', '3B',

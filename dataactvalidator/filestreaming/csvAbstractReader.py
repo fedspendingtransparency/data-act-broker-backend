@@ -231,7 +231,7 @@ class CsvAbstractReader(object):
         expected_fields = {}
 
         for schema in csv_schema:
-            expected_fields[FieldCleaner.cleanString(schema.name_short)] = 0
+            expected_fields[FieldCleaner.clean_string(schema.name_short)] = 0
 
         for header_value in header_row:
             if header_value not in expected_fields:
@@ -254,7 +254,7 @@ def use_long_headers(header_row, long_to_short_dict):
     """Check to see if header contains long or short column names"""
     col_matches = 0
     for value in header_row:
-        if FieldCleaner.cleanString(value) in long_to_short_dict:
+        if FieldCleaner.clean_string(value) in long_to_short_dict:
             col_matches += 1
     # if most of column headers are in the long format,
     # we'll treat the file as having long headers
@@ -263,9 +263,9 @@ def use_long_headers(header_row, long_to_short_dict):
 
 def normalize_headers(header_row, long_headers, long_to_short_dict):
     for header in header_row:
-        header = FieldCleaner.cleanString(header)
+        header = FieldCleaner.clean_string(header)
         if long_headers and header in long_to_short_dict:
-            yield FieldCleaner.cleanString(long_to_short_dict[header])
+            yield FieldCleaner.clean_string(long_to_short_dict[header])
         else:
             yield header
 

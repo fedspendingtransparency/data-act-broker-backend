@@ -400,11 +400,10 @@ class FileHandler:
                 # Populate start and end dates, these should be provided in
                 # MM/DD/YYYY format, using calendar year (not fiscal year)
                 request_dict = RequestDictionary(self.request)
-                start_date = request_dict.getValue("start")
-                end_date = request_dict.getValue("end")
+                start_date = request_dict.get_value("start")
+                end_date = request_dict.get_value("end")
 
-                if not (StringCleaner.isDate(start_date) and
-                        StringCleaner.isDate(end_date)):
+                if not (StringCleaner.is_date(start_date) and StringCleaner.is_date(end_date)):
                     raise ResponseException(
                         "Start or end date cannot be parsed into a date",
                         StatusCode.CLIENT_ERROR
@@ -415,8 +414,7 @@ class FileHandler:
                     StatusCode.CLIENT_ERROR
                 )
         except ResponseException as e:
-            return False, JsonResponse.error(
-                e, e.status, file_type=file_type, status='failed')
+            return False, JsonResponse.error(e, e.status, file_type=file_type, status='failed')
 
         submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
         cgac_code = submission.cgac_code
@@ -629,7 +627,7 @@ class FileHandler:
         logger.debug("Starting detached D file generation")
 
         # check if date format is MM/DD/YYYY
-        if not (StringCleaner.isDate(start) and StringCleaner.isDate(end)):
+        if not (StringCleaner.is_date(start) and StringCleaner.is_date(end)):
             raise ResponseException("Start or end date cannot be parsed into a date", StatusCode.CLIENT_ERROR)
 
         # add job info
@@ -983,8 +981,7 @@ def get_status(submission):
         file_type, job_type, status, and filename
     """
     try:
-        return JsonResponse.create(
-            StatusCode.OK, submission_to_dict_for_status(submission))
+        return JsonResponse.create(StatusCode.OK, submission_to_dict_for_status(submission))
     except ResponseException as e:
         return JsonResponse.error(e, e.status)
     except Exception as e:

@@ -42,7 +42,7 @@ class SQLLoader:
                 fieldNames = []
                 # clean field names
                 for field in rawFieldNames:
-                    fieldNames.append(FieldCleaner.cleanString(field))
+                    fieldNames.append(FieldCleaner.clean_string(field))
 
                 unknownFields = set(fieldNames) - set(cls.headers)
                 if len(unknownFields) != 0:
@@ -77,7 +77,7 @@ class SQLLoader:
                             e, row["target_file"], row["rule_label"]))
 
                     # set cross file flag
-                    flag = FieldCleaner.cleanString(row["rule_cross_file_flag"])
+                    flag = FieldCleaner.clean_string(row["rule_cross_file_flag"])
                     if flag in ('true', 't', 'y', 'yes'):
                         cross_file_flag = True
                     else:

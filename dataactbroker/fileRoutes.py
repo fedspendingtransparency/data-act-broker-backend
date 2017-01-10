@@ -140,8 +140,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @convert_to_submission_id
     @requires_submission_perms('reader')
     def get_obligations(submission):
-        return JsonResponse.create(
-            StatusCode.OK, get_submission_stats(submission.submission_id))
+        return JsonResponse.create(StatusCode.OK, get_submission_stats(submission.submission_id))
 
     @app.route("/v1/submission/<int:submission_id>/narrative", methods=['GET'])
     @requires_submission_perms('reader')

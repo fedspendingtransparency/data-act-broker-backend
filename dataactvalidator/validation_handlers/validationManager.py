@@ -463,7 +463,7 @@ class ValidationManager:
 
         requestDict = RequestDictionary(request)
         if requestDict.exists('job_id'):
-            job_id = requestDict.getValue('job_id')
+            job_id = requestDict.get_value('job_id')
         else:
             # Request does not have a job ID, can't validate
             validation_error_type = ValidationError.jobError

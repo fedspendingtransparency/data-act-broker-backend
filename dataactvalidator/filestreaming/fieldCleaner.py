@@ -49,7 +49,7 @@ class FieldCleaner(StringCleaner):
     def cleanName(name):
         """ Remove whitespace from name and change to lowercase, also clean up special characters """
         # Convert to lowercase and remove whitespace on ends
-        name = FieldCleaner.cleanString(name)
+        name = FieldCleaner.clean_string(name)
         # Remove braces and parantheses
         name = name.replace("{", "").replace("}", "").replace("(", "").replace(")", "")
         # Replace problematic characters with underscores
@@ -64,7 +64,7 @@ class FieldCleaner(StringCleaner):
     def cleanRequired(required):
         """ Convert 'required' and '(required)' to True, "optional" and "required if relevant" if False,
             otherwise raises an exception """
-        required = FieldCleaner.cleanString(required, False)
+        required = FieldCleaner.clean_string(required, False)
         if required[0:3].lower() == "asp":
             # Remove ASP prefix
             required = required[5:]
@@ -81,7 +81,7 @@ class FieldCleaner(StringCleaner):
     @staticmethod
     def cleanType(clean_type):
         """ Interprets all inputs as int, str, or bool.  For unexpected inputs, raises an exception. """
-        clean_type = FieldCleaner.cleanString(clean_type, False)
+        clean_type = FieldCleaner.clean_string(clean_type, False)
         if clean_type == "integer" or clean_type == "int":
             return "int"
         elif clean_type == "numeric" or clean_type == "float":
@@ -103,7 +103,7 @@ class FieldCleaner(StringCleaner):
     @staticmethod
     def cleanLength(length):
         """ Checks that input is a positive integer, otherwise raises an exception. """
-        length = FieldCleaner.cleanString(length, False)
+        length = FieldCleaner.clean_string(length, False)
         if length == "":
             # Empty length is fine, this means there is no length requirement
             return ""
@@ -138,7 +138,7 @@ class FieldCleaner(StringCleaner):
                 value = value.strip()
                 if field_type in ["INT", "DECIMAL", "LONG"]:
                     tempValue = value.replace(",", "")
-                    if FieldCleaner.isNumeric(tempValue):
+                    if FieldCleaner.is_numeric(tempValue):
                         value = tempValue
                 if value == "":
                     # Replace empty strings with null

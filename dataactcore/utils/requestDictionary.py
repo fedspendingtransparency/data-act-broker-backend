@@ -7,7 +7,7 @@ class RequestDictionary:
     def __init__(self, request, optional_request=False):
         self.requestDict = self.derive(request, optional_request)
 
-    def getValue(self, value):
+    def get_value(self, value):
         """ Returns value for specified key """
         if value not in self.requestDict:
             raise ValueError(value + " not found")

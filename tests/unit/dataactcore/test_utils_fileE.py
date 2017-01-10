@@ -10,33 +10,33 @@ _VALID_CONFIG = {'sam': {
 
 def test_configValid_empty(monkeypatch):
     monkeypatch.setattr(fileE, 'CONFIG_BROKER', {})
-    assert not fileE.configValid()
+    assert not fileE.config_valid()
 
 
 def test_configValid_complete(monkeypatch):
     monkeypatch.setattr(fileE, 'CONFIG_BROKER', _VALID_CONFIG)
-    assert fileE.configValid()
+    assert fileE.config_valid()
 
 
 def test_configValid_missing_wsdl(monkeypatch):
     config = deepcopy(_VALID_CONFIG)
     del config['sam']['wsdl']
     monkeypatch.setattr(fileE, 'CONFIG_BROKER', config)
-    assert not fileE.configValid()
+    assert not fileE.config_valid()
 
 
 def test_configValid_empty_username(monkeypatch):
     config = deepcopy(_VALID_CONFIG)
     config['sam']['username'] = ''
     monkeypatch.setattr(fileE, 'CONFIG_BROKER', config)
-    assert not fileE.configValid()
+    assert not fileE.config_valid()
 
 
 def test_configValid_password_None(monkeypatch):
     config = deepcopy(_VALID_CONFIG)
     config['sam']['password'] = None
     monkeypatch.setattr(fileE, 'CONFIG_BROKER', config)
-    assert not fileE.configValid()
+    assert not fileE.config_valid()
 
 
 def make_suds(duns, parent_duns, parent_name):
@@ -51,13 +51,13 @@ def make_suds(duns, parent_duns, parent_name):
 def test_sudsToRow_no_compensation():
     sudsObj = make_suds('A Duns', 'Par Duns', 'Par Name')
     sudsObj.coreData.listOfExecutiveCompensationInformation = ''
-    row = fileE.sudsToRow(sudsObj)
+    row = fileE.suds_to_row(sudsObj)
     assert row == fileE.Row(
         'A Duns', 'Par Duns', 'Par Name', '', '', '', '', '', '', '', '',
         '', '')
 
     del sudsObj.coreData.listOfExecutiveCompensationInformation
-    row = fileE.sudsToRow(sudsObj)
+    row = fileE.suds_to_row(sudsObj)
     assert row == fileE.Row(
         'A Duns', 'Par Duns', 'Par Name', '', '', '', '', '', '', '', '',
         '', '')
@@ -75,7 +75,7 @@ def test_sudsToRow_too_few_compensation():
     bottom.name = 'Bottom Person'
 
     info.executiveCompensationDetail = [middle, top, bottom]
-    row = fileE.sudsToRow(sudsObj)
+    row = fileE.suds_to_row(sudsObj)
     assert row == fileE.Row(
         'B Duns', 'Par DunsB', 'Par NameB',
         'Top Person', 222.22,
@@ -93,7 +93,7 @@ def test_sudsToRow_too_many_compensation():
         # Can't do this in the constructor as "name" is a reserved word
         person.name = "Person {}".format(idx + 1)
 
-    row = fileE.sudsToRow(sudsObj)
+    row = fileE.suds_to_row(sudsObj)
     assert row == fileE.Row(
         'B Duns', 'Par DunsB', 'Par NameB',
         'Person 9', 99.99, 'Person 8', 88.88, 'Person 7', 77.77,
@@ -144,7 +144,7 @@ def test_retrieveRows(monkeypatch):
     mock_Client.return_value.service.getEntities.return_value = mock_result
     monkeypatch.setattr(fileE, 'Client', mock_Client)
 
-    rows = fileE.retrieveRows(['duns1', 'duns2'])
+    rows = fileE.retrieve_rows(['duns1', 'duns2'])
     assert len(rows) == 2
     assert rows[0].AwardeeOrRecipientUniqueIdentifier == 'entity1'
     assert rows[0].HighCompOfficer1Amount == 234.56
