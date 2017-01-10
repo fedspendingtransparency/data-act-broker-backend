@@ -77,15 +77,13 @@ class FileHandler:
         self.serverPath = serverPath
         self.s3manager = s3UrlHandler()
 
-    def getErrorReportURLsForSubmission(self, is_warning=False):
+    def getErrorReportURLsForSubmission(self, submission_id, is_warning=False):
         """
         Gets the Signed URLs for download based on the submissionId
         """
         sess = GlobalDB.db().session
         try:
             self.s3manager = s3UrlHandler()
-            safe_dictionary = RequestDictionary(self.request)
-            submission_id = safe_dictionary.getValue("submission_id")
             response_dict = {}
             jobs = sess.query(Job).filter_by(submission_id=submission_id)
             for job in jobs:
@@ -329,7 +327,7 @@ class FileHandler:
 
         return start_date, end_date
 
-    def finalize(self):
+    def finalize(self, job_id):
         """ Set upload job in job tracker database to finished, allowing dependent jobs to be started
 
         Flask request should include key "upload_id", which holds the job_id for the file_upload job
@@ -340,9 +338,6 @@ class FileHandler:
         sess = GlobalDB.db().session
         response_dict = {}
         try:
-            input_dictionary = RequestDictionary(self.request)
-            job_id = input_dictionary.getValue("upload_id")
-
             # Compare user ID with user who submitted job, if no match return 400
             job = sess.query(Job).filter_by(job_id=job_id).one()
             submission = sess.query(Submission).filter_by(submission_id=job.submission_id).one()
@@ -653,39 +648,9 @@ class FileHandler:
             sess.commit()
             raise e
 
-    def get_file_type(self):
-        """ Pull information out of request object and return it
-
-        Returns: tuple of submission ID and file type
-
-        """
-        request_dict = RequestDictionary.derive(self.request)
-        if 'file_type' not in request_dict:
-            raise ResponseException("Generate file route requires file_type",
-                                    StatusCode.CLIENT_ERROR)
-
-        return request_dict['file_type']
-
-    def get_request_params_for_generate_detached(self):
-        """ Pull information out of request object and return it
-        for detached generation
-
-        Returns: tuple of submission ID and file type
-
-        """
-        request_dict = RequestDictionary.derive(self.request)
-
-        if not {'file_type', 'cgac_code', 'start', 'end'}.issubset(request_dict.keys()):
-            raise ResponseException("Generate detached file route for D files requires file_type, cgac_code, "
-                                    "start, and end",
-                                    StatusCode.CLIENT_ERROR)
-        return request_dict['file_type'], request_dict['cgac_code'], request_dict['start'], request_dict['end']
-
-    def generate_file(self, submission_id):
+    def generate_file(self, submission_id, file_type):
         """ Start a file generation job for the specified file type """
         logger.debug('Starting D file generation')
-        file_type = self.get_file_type()
-
         logger.debug('Submission ID = %s / File type = %s',
                      submission_id, file_type)
 
@@ -724,53 +689,40 @@ class FileHandler:
         submission = sess.query(Submission).\
             filter_by(submission_id=submission_id).\
             one()
-        return self.check_generation(submission)
+        return self.check_generation(submission, file_type)
 
-    def generate_detached_file(self):
+    def generate_detached_file(self, file_type, cgac_code, start, end):
         """ Start a file generation job for the specified file type """
         logger.debug("Starting detached D file generation")
 
-        file_type, cgac_code, start_date, end_date = self.get_request_params_for_generate_detached()
-
-        # check file type
-        if file_type not in ['D1', 'D2']:
-            raise ResponseException("File type must be D1 or D2", StatusCode.CLIENT_ERROR)
-
         # check if date format is MM/DD/YYYY
-        if not (StringCleaner.isDate(start_date) and StringCleaner.isDate(end_date)):
+        if not (StringCleaner.isDate(start) and StringCleaner.isDate(end)):
             raise ResponseException("Start or end date cannot be parsed into a date", StatusCode.CLIENT_ERROR)
 
         # add job info
         file_type_name = FILE_TYPE_DICT_ID[FILE_TYPE_DICT_LETTER_ID[file_type]]
-        new_job = self.add_generation_job_info(file_type_name=file_type_name,
-                                               dates={'start_date': start_date, 'end_date': end_date})
+        new_job = self.add_generation_job_info(
+            file_type_name=file_type_name,
+            dates={'start_date': start, 'end_date': end}
+        )
 
-        result = self.call_d_file_api(file_type_name, cgac_code, start_date, end_date, new_job)
+        result = self.call_d_file_api(file_type_name, cgac_code, start, end, new_job)
 
         # Return same response as check generation route
         return result or self.check_detached_generation(new_job.job_id)
 
-    def check_detached_generation(self, job_id=None):
+    def check_detached_generation(self, job_id):
         """ Return information about file generation jobs
 
         Returns:
             Response object with keys job_id, status, file_type, url, message, start, and end.
         """
-
-        if job_id is None:
-            request_dict = RequestDictionary.derive(self.request)
-            if 'job_id' not in request_dict:
-                raise ResponseException("Check detached generation route requires job_id", StatusCode.CLIENT_ERROR)
-
-            job_id = request_dict['job_id']
-
         sess = GlobalDB.db().session
 
         # We want to user first() here so we can see if the job is None so we can mark
         # the status as invalid to indicate that a status request is invoked for a job that
         # isn't created yet
-        upload_job = sess.query(Job).filter_by(
-            job_id=job_id).one_or_none()
+        upload_job = sess.query(Job).filter_by(job_id=job_id).one_or_none()
 
         response_dict = {'job_id': job_id, 'status': '', 'file_type': '', 'message': '', 'url': '',
                          'start': '', 'end': ''}
@@ -799,7 +751,7 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, response_dict)
 
-    def check_generation(self, submission):
+    def check_generation(self, submission, file_type):
         """ Return information about file generation jobs
 
         Returns:
@@ -807,7 +759,6 @@ class FileHandler:
             If file_type is D1 or D2, also includes start and end.
         """
         sess = GlobalDB.db().session
-        file_type = self.get_file_type()
 
         uploadJob = sess.query(Job).filter_by(
             submission_id=submission.submission_id,
