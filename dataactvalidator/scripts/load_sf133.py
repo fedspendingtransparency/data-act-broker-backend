@@ -14,7 +14,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import matching_cars_subquery, SF133
 from dataactvalidator.app import createApp
-from dataactvalidator.scripts.loaderUtils import LoaderUtils
+from dataactvalidator.scripts.loaderUtils import cleanData, insertDataframe
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +137,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False):
 
         # insert to db
         table_name = SF133.__table__.name
-        num = LoaderUtils.insertDataframe(data, table_name, sess.connection())
+        num = insertDataframe(data, table_name, sess.connection())
         update_tas_id(int(fiscal_year), int(fiscal_period))
         sess.commit()
 
@@ -146,7 +146,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False):
 
 def clean_sf133_data(filename, SF133_data):
     data = pd.read_csv(filename, dtype=str)
-    data = LoaderUtils.cleanData(
+    data = cleanData(
         data,
         SF133_data,
         {"ata": "allocation_transfer_agency",

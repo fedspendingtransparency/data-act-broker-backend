@@ -11,7 +11,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import TAS_COMPONENTS, TASLookup
 from dataactvalidator.app import createApp
-from dataactvalidator.scripts.loaderUtils import LoaderUtils
+from dataactvalidator.scripts.loaderUtils import cleanData
 
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ def cleanTas(csvPath):
     """Read a CSV into a dataframe, then use a configured `cleanData` and
     return the results"""
     data = pd.read_csv(csvPath, dtype=str)
-    data = LoaderUtils.cleanData(
+    data = cleanData(
         data,
         TASLookup,
         {"a": "availability_type_code",

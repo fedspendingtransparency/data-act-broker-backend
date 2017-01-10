@@ -21,41 +21,6 @@ class Validator(object):
     META_FIELDS = ["row_number"]
 
     @classmethod
-    def crossValidateSql(cls, rules, submissionId, short_to_long_dict):
-        """ Evaluate all sql-based rules for cross file validation
-
-        Args:
-            rules -- List of Rule objects
-            submissionId -- ID of submission to run cross-file validation
-        """
-        failures = []
-        # Put each rule through evaluate, appending all failures into list
-        conn = GlobalDB.db().connection
-
-        for rule in rules:
-            failedRows = conn.execute(
-                rule.rule_sql.format(submissionId))
-            if failedRows.rowcount:
-                # get list of fields involved in this validation
-                # note: row_number is metadata, not a field being
-                # validated, so exclude it
-                cols = failedRows.keys()
-                cols.remove('row_number')
-                columnString = ", ".join(short_to_long_dict[c] if c in short_to_long_dict else c for c in cols)
-                for row in failedRows:
-                    # get list of values for each column
-                    values = ["{}: {}".format(short_to_long_dict[c], str(row[c])) if c in short_to_long_dict else
-                              "{}: {}".format(c, str(row[c])) for c in cols]
-                    values = ", ".join(values)
-                    targetFileType = FILE_TYPE_DICT_ID[rule.target_file_id]
-                    failures.append([rule.file.name, targetFileType, columnString,
-                                    str(rule.rule_error_message), values, row['row_number'], str(rule.rule_label),
-                                    rule.file_id, rule.target_file_id, rule.rule_severity_id])
-
-        # Return list of cross file validation failures
-        return failures
-
-    @classmethod
     def validate(cls, record, csv_schema):
         """
         Run initial set of single file validation:
@@ -172,76 +137,107 @@ class Validator(object):
                 return False
         raise ValueError("".join(["Data Type Error, Type: ", datatype, ", Value: ", data]))
 
-    @classmethod
-    def validateFileBySql(cls, submission_id, fileType, short_to_long_dict):
-        """ Check all SQL rules
 
-        Args:
-            submission_id: submission to be checked
-            fileType: file type being checked
-            short_to_long_dict: mapping of short to long schema column names
+def crossValidateSql(rules, submissionId, short_to_long_dict):
+    """ Evaluate all sql-based rules for cross file validation
 
-        Returns:
-            List of errors found, each element has:
-             field names
-             error message
-             values in fields involved
-             row number
-             rule label
-             source file id
-             target file id
-             severity id
-        """
+    Args:
+        rules -- List of Rule objects
+        submissionId -- ID of submission to run cross-file validation
+    """
+    failures = []
+    # Put each rule through evaluate, appending all failures into list
+    conn = GlobalDB.db().connection
 
-        logger.info(
-            'VALIDATOR_INFO: Beginning SQL validation rules on submissionID '
-            '%s, fileType: %s', submission_id, fileType)
-        sess = GlobalDB.db().session
+    for rule in rules:
+        failedRows = conn.execute(
+            rule.rule_sql.format(submissionId))
+        if failedRows.rowcount:
+            # get list of fields involved in this validation
+            # note: row_number is metadata, not a field being
+            # validated, so exclude it
+            cols = failedRows.keys()
+            cols.remove('row_number')
+            columnString = ", ".join(short_to_long_dict[c] if c in short_to_long_dict else c for c in cols)
+            for row in failedRows:
+                # get list of values for each column
+                values = ["{}: {}".format(short_to_long_dict[c], str(row[c])) if c in short_to_long_dict else
+                          "{}: {}".format(c, str(row[c])) for c in cols]
+                values = ", ".join(values)
+                targetFileType = FILE_TYPE_DICT_ID[rule.target_file_id]
+                failures.append([rule.file.name, targetFileType, columnString,
+                                str(rule.rule_error_message), values, row['row_number'], str(rule.rule_label),
+                                rule.file_id, rule.target_file_id, rule.rule_severity_id])
 
-        # Pull all SQL rules for this file type
-        fileId = FILE_TYPE_DICT[fileType]
-        rules = sess.query(RuleSql).filter_by(
-            file_id=fileId, rule_cross_file_flag=False)
-        errors = []
+    # Return list of cross file validation failures
+    return failures
 
-        # For each rule, execute sql for rule
-        for rule in rules:
-            logger.info(
-                'VALIDATOR_INFO: Running query: %s on submissionId %s, '
-                'fileType: %s', rule.query_name, submission_id, fileType)
-            failures = sess.execute(rule.rule_sql.format(submission_id))
-            if failures.rowcount:
-                # Create column list (exclude row_number)
-                cols = failures.keys()
-                cols.remove("row_number")
 
-                # Create flex column list
-                flex_dict = {}
-                flex_results = sess.query(FlexField).filter_by(submission_id=submission_id)
+def validateFileBySql(submission_id, fileType, short_to_long_dict):
+    """ Check all SQL rules
 
-                for flex_row in flex_results:
-                    flex_dict[flex_row.row_number] = flex_row
+    Args:
+        submission_id: submission to be checked
+        fileType: file type being checked
+        short_to_long_dict: mapping of short to long schema column names
 
-                # Build error list
-                for failure in failures:
-                    errorMsg = rule.rule_error_message
-                    row = failure["row_number"]
-                    # Create strings for fields and values
-                    valueList = ["{}: {}".format(short_to_long_dict[field], str(failure[field])) if
-                                 field in short_to_long_dict else "{}: {}".format(field, str(failure[field])) for
-                                 field in cols]
-                    if flex_dict and flex_dict[row]:
-                        valueList.append("{}: {}".format(flex_dict[row].header, flex_dict[row].cell))
-                    valueString = ", ".join(valueList)
-                    fieldList = [short_to_long_dict[field] if field in short_to_long_dict else field for field in cols]
-                    if flex_dict and flex_dict[row]:
-                        fieldList.append(flex_dict[row].header)
-                    fieldString = ", ".join(fieldList)
-                    errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId,
-                                   rule.target_file_id, rule.rule_severity_id])
+    Returns:
+        List of errors found, each element has:
+         field names
+         error message
+         values in fields involved
+         row number
+         rule label
+         source file id
+         target file id
+         severity id
+    """
 
-            logger.info(
-                'VALIDATOR_INFO: Completed SQL validation rules on '
-                'submissionID: %s, fileType: %s', submission_id, fileType)
+    logger.info('VALIDATOR_INFO: Beginning SQL validation rules on submissionID %s, fileType: %s',
+                submission_id, fileType)
+    sess = GlobalDB.db().session
 
-        return errors
+    # Pull all SQL rules for this file type
+    fileId = FILE_TYPE_DICT[fileType]
+    rules = sess.query(RuleSql).filter_by(file_id=fileId, rule_cross_file_flag=False)
+    errors = []
+
+    # For each rule, execute sql for rule
+    for rule in rules:
+        logger.info('VALIDATOR_INFO: Running query: %s on submissionId %s, fileType: %s',
+                    rule.query_name, submission_id, fileType)
+        failures = sess.execute(rule.rule_sql.format(submission_id))
+        if failures.rowcount:
+            # Create column list (exclude row_number)
+            cols = failures.keys()
+            cols.remove("row_number")
+
+            # Create flex column list
+            flex_dict = {}
+            flex_results = sess.query(FlexField).filter_by(submission_id=submission_id)
+
+            for flex_row in flex_results:
+                flex_dict[flex_row.row_number] = flex_row
+
+            # Build error list
+            for failure in failures:
+                errorMsg = rule.rule_error_message
+                row = failure["row_number"]
+                # Create strings for fields and values
+                valueList = ["{}: {}".format(short_to_long_dict[field], str(failure[field])) if
+                             field in short_to_long_dict else "{}: {}".format(field, str(failure[field])) for
+                             field in cols]
+                if flex_dict and flex_dict[row]:
+                    valueList.append("{}: {}".format(flex_dict[row].header, flex_dict[row].cell))
+                valueString = ", ".join(valueList)
+                fieldList = [short_to_long_dict[field] if field in short_to_long_dict else field for field in cols]
+                if flex_dict and flex_dict[row]:
+                    fieldList.append(flex_dict[row].header)
+                fieldString = ", ".join(fieldList)
+                errors.append([fieldString, errorMsg, valueString, row, rule.rule_label, fileId,
+                               rule.target_file_id, rule.rule_severity_id])
+
+        logger.info('VALIDATOR_INFO: Completed SQL validation rules on submissionID: %s, fileType: %s',
+                    submission_id, fileType)
+
+    return errors

@@ -80,7 +80,8 @@ class s3UrlHandler:
         seconds = int((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds())
         return str(seconds) + "_" + filename
 
-    def getTemporaryCredentials(self, user):
+    @staticmethod
+    def getTemporaryCredentials(user):
         """
         Gets token that allows for S3 Uploads for seconds set in STS_LIFETIME
         """

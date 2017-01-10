@@ -225,7 +225,7 @@ class CsvAbstractReader(object):
 
             # Get the current lines
             current_bytes = self.unprocessed + packet
-            self.lines = self._split_lines(current_bytes)
+            self.lines = _split_lines(current_bytes)
 
             # edge case if the packet was filled with newlines only try again
             if len(self.lines) == 0:
@@ -243,34 +243,35 @@ class CsvAbstractReader(object):
             self.extra_line = True
         return self.unprocessed
 
-    def _split_lines(self, packet):
-        """
-        arguments :
-        packet unprocessed string of CSV data
-        returns a list of strings broken by newline
-        """
-        lines_to_return = []
-        escape_mode = False
-        current = ""
 
-        for index, char in enumerate(packet):
-            if not escape_mode:
-                if char == '\r' or char == '\n' or char == '\r\n':
-                    if len(current) > 0:
-                        lines_to_return.append(current)
-                        # check the last char if its a new line add extra line
-                        # as its at the end of the packet
-                    if index == len(packet) - 1:
-                        lines_to_return.append("")
-                    current = ""
-                else:
-                    current = "".join([current, char])
-                    if char == '"':
-                        escape_mode = True
+def _split_lines(packet):
+    """
+    arguments :
+    packet unprocessed string of CSV data
+    returns a list of strings broken by newline
+    """
+    lines_to_return = []
+    escape_mode = False
+    current = ""
+
+    for index, char in enumerate(packet):
+        if not escape_mode:
+            if char == '\r' or char == '\n' or char == '\r\n':
+                if len(current) > 0:
+                    lines_to_return.append(current)
+                    # check the last char if its a new line add extra line
+                    # as its at the end of the packet
+                if index == len(packet) - 1:
+                    lines_to_return.append("")
+                current = ""
             else:
-                if char == '"':
-                    escape_mode = False
                 current = "".join([current, char])
-        if len(current) > 0:
-            lines_to_return.append(current)
-        return lines_to_return
+                if char == '"':
+                    escape_mode = True
+        else:
+            if char == '"':
+                escape_mode = False
+            current = "".join([current, char])
+    if len(current) > 0:
+        lines_to_return.append(current)
+    return lines_to_return

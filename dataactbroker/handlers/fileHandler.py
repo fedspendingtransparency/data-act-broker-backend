@@ -115,7 +115,7 @@ class FileHandler:
                 else:
                     report_path = self.s3manager.getSignedUrl("errors", report_name, method="GET")
                 # Assign to key based on source and target
-                response_dict[self.getCrossReportKey(first_file.name, second_file.name, is_warning)] = report_path
+                response_dict[getCrossReportKey(first_file.name, second_file.name, is_warning)] = report_path
 
             return JsonResponse.create(StatusCode.OK, response_dict)
 
@@ -124,13 +124,6 @@ class FileHandler:
         except Exception as e:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
-
-    def getCrossReportKey(self, sourceType, targetType, isWarning=False):
-        """ Generate a key for cross-file error reports """
-        if isWarning:
-            return "cross_warning_{}-{}".format(sourceType, targetType)
-        else:
-            return "cross_{}-{}".format(sourceType, targetType)
 
     def submit(self, create_credentials):
         """ Builds S3 URLs for a set of files and adds all related jobs to job tracker database
@@ -368,51 +361,6 @@ class FileHandler:
             # Unexpected exception, this is a 500 server error
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-    def submission_error(self, submission_id, file_type):
-        """ Check that submission exists and user has permission to it
-
-        Args:
-            submission_id:  ID of submission to check
-            file_type: file type that has been requested
-
-        Returns:
-            A JsonResponse if there's an error, None otherwise
-        """
-        sess = GlobalDB.db().session
-
-        submission = sess.query(Submission).\
-            filter_by(submission_id=submission_id).one_or_none()
-        if submission is None:
-            # Submission does not exist, change to 400 in this case since
-            # route call specified a bad ID
-            response_dict = {
-                "message": "Submission does not exist",
-                "file_type": file_type,
-                "url": "#",
-                "status": "failed"
-            }
-            if file_type in ('D1', 'D2'):
-                # Add empty start and end dates
-                response_dict["start"] = ""
-                response_dict["end"] = ""
-            return JsonResponse.error(
-                NoResultFound, StatusCode.CLIENT_ERROR, **response_dict)
-
-        if not current_user_can_on_submission('writer', submission):
-            response_dict = {
-                "message": ("User does not have permission to view that "
-                            "submission"),
-                "file_type": file_type,
-                "url": "#",
-                "status": "failed"
-            }
-            if file_type in ('D1', 'D2'):
-                # Add empty start and end dates
-                response_dict["start"] = ""
-                response_dict["end"] = ""
-            return JsonResponse.create(StatusCode.PERMISSION_DENIED,
-                                       response_dict)
-
     def uploadFile(self):
         """ Saves a file and returns the saved path.  Should only be used for local installs. """
         try:
@@ -539,12 +487,6 @@ class FileHandler:
 
         return not error, error
 
-    def get_xml_response_content(self, api_url):
-        """ Retrieve XML Response from the provided API url """
-        result = requests.get(api_url, verify=False, timeout=120).text
-        logger.debug('Result for %s: %s', api_url, result)
-        return result
-
     def call_d_file_api(self, file_type_name, cgac_code, start_date, end_date, job, val_job=None):
         """ Call D file API, return True if results found, False otherwise """
         file_type = FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type_name]]
@@ -557,7 +499,7 @@ class FileHandler:
             logger.debug('Calling D file API => %s', api_url)
             try:
                 # Check for numFound = 0
-                if "numFound='0'" in self.get_xml_response_content(api_url):
+                if "numFound='0'" in get_xml_response_content(api_url):
                     sess = GlobalDB.db().session
                     # No results found, skip validation and mark as finished
                     sess.query(JobDependency). \
@@ -608,14 +550,6 @@ class FileHandler:
             copyfile(file_url, local_file_path)
             return True
 
-    def get_lines_from_csv(self, file_path):
-        """ Retrieve all lines from specified CSV file """
-        lines = []
-        with open(file_path) as file:
-            for line in reader(file):
-                lines.append(line)
-        return lines
-
     def load_d_file(self, url, upload_name, timestamped_name, job_id, isLocal):
         """ Pull D file from specified URL and write to S3 """
         sess = GlobalDB.db().session
@@ -637,7 +571,7 @@ class FileHandler:
                 job.error_message = "A problem occurred receiving data from {}".format(source)
 
                 raise ResponseException(job.error_message, StatusCode.CLIENT_ERROR)
-            lines = self.get_lines_from_csv(full_file_path)
+            lines = get_lines_from_csv(full_file_path)
 
             write_csv(timestamped_name, upload_name, isLocal, lines[0], lines[1:])
 
@@ -692,7 +626,7 @@ class FileHandler:
         sess = GlobalDB.db().session
 
         # Check permission to submission
-        error = self.submission_error(submission_id, file_type)
+        error = submission_error(submission_id, file_type)
         if error:
             return error
 
@@ -824,7 +758,7 @@ class FileHandler:
         else:
             validationJob = None
         responseDict = {
-            'status': self.mapGenerateStatus(uploadJob, validationJob),
+            'status': mapGenerateStatus(uploadJob, validationJob),
             'file_type': file_type,
             'message': uploadJob.error_message or ""
         }
@@ -843,50 +777,6 @@ class FileHandler:
             responseDict["end"] = uploadJob.end_date.strftime("%m/%d/%Y") if uploadJob.end_date else ""
 
         return JsonResponse.create(StatusCode.OK, responseDict)
-
-    def mapGenerateStatus(self, uploadJob, validationJob=None):
-        """ Maps job status to file generation statuses expected by frontend """
-        sess = GlobalDB.db().session
-        uploadStatus = uploadJob.job_status.name
-        if validationJob is None:
-            errorsPresent = False
-            validationStatus = None
-        else:
-            validationStatus = validationJob.job_status.name
-            if checkNumberOfErrorsByJobId(validationJob.job_id) > 0:
-                errorsPresent = True
-            else:
-                errorsPresent = False
-
-        responseStatus = FileHandler.STATUS_MAP[uploadStatus]
-        if responseStatus == "failed" and uploadJob.error_message is None:
-            # Provide an error message if none present
-            uploadJob.error_message = "Upload job failed without error message"
-
-        if validationJob is None:
-            # No validation job, so don't need to check it
-            sess.commit()
-            return responseStatus
-
-        if responseStatus == "finished":
-            # Check status of validation job if present
-            responseStatus = FileHandler.VALIDATION_STATUS_MAP[validationStatus]
-            if responseStatus == "finished" and errorsPresent:
-                # If validation completed with errors, mark as failed
-                responseStatus = "failed"
-                uploadJob.error_message = "Validation completed but row-level errors were found"
-
-        if responseStatus == "failed":
-            if uploadJob.error_message is None and validationJob.error_message is None:
-                if validationStatus == "invalid":
-                    uploadJob.error_message = "Generated file had file-level errors"
-                else:
-                    uploadJob.error_message = "Validation job had an internal error"
-
-            elif uploadJob.error_message is None:
-                uploadJob.error_message = validationJob.error_message
-        sess.commit()
-        return responseStatus
 
     def getProtectedFiles(self):
         """ Returns a set of urls to protected files on the help page """
@@ -1234,3 +1124,114 @@ def submission_report_url(submission, warning, file_type, cross_type):
     else:
         url = s3UrlHandler().getSignedUrl("errors", file_name, method="GET")
     return JsonResponse.create(StatusCode.OK, {"url": url})
+
+
+def getCrossReportKey(sourceType, targetType, isWarning=False):
+    """ Generate a key for cross-file error reports """
+    if isWarning:
+        return "cross_warning_{}-{}".format(sourceType, targetType)
+    else:
+        return "cross_{}-{}".format(sourceType, targetType)
+
+
+def submission_error(submission_id, file_type):
+    """ Check that submission exists and user has permission to it
+
+    Args:
+        submission_id:  ID of submission to check
+        file_type: file type that has been requested
+
+    Returns:
+        A JsonResponse if there's an error, None otherwise
+    """
+    sess = GlobalDB.db().session
+
+    submission = sess.query(Submission).filter_by(submission_id=submission_id).one_or_none()
+    if submission is None:
+        # Submission does not exist, change to 400 in this case since
+        # route call specified a bad ID
+        response_dict = {
+            "message": "Submission does not exist",
+            "file_type": file_type,
+            "url": "#",
+            "status": "failed"
+        }
+        if file_type in ('D1', 'D2'):
+            # Add empty start and end dates
+            response_dict["start"] = ""
+            response_dict["end"] = ""
+        return JsonResponse.error(NoResultFound, StatusCode.CLIENT_ERROR, **response_dict)
+
+    if not current_user_can_on_submission('writer', submission):
+        response_dict = {
+            "message": "User does not have permission to view that submission",
+            "file_type": file_type,
+            "url": "#",
+            "status": "failed"
+        }
+        if file_type in ('D1', 'D2'):
+            # Add empty start and end dates
+            response_dict["start"] = ""
+            response_dict["end"] = ""
+        return JsonResponse.create(StatusCode.PERMISSION_DENIED, response_dict)
+
+
+def get_xml_response_content(api_url):
+    """ Retrieve XML Response from the provided API url """
+    result = requests.get(api_url, verify=False, timeout=120).text
+    logger.debug('Result for %s: %s', api_url, result)
+    return result
+
+
+def get_lines_from_csv(file_path):
+    """ Retrieve all lines from specified CSV file """
+    lines = []
+    with open(file_path) as file:
+        for line in reader(file):
+            lines.append(line)
+    return lines
+
+
+def mapGenerateStatus(uploadJob, validationJob=None):
+    """ Maps job status to file generation statuses expected by frontend """
+    sess = GlobalDB.db().session
+    uploadStatus = uploadJob.job_status.name
+    if validationJob is None:
+        errorsPresent = False
+        validationStatus = None
+    else:
+        validationStatus = validationJob.job_status.name
+        if checkNumberOfErrorsByJobId(validationJob.job_id) > 0:
+            errorsPresent = True
+        else:
+            errorsPresent = False
+
+    responseStatus = FileHandler.STATUS_MAP[uploadStatus]
+    if responseStatus == "failed" and uploadJob.error_message is None:
+        # Provide an error message if none present
+        uploadJob.error_message = "Upload job failed without error message"
+
+    if validationJob is None:
+        # No validation job, so don't need to check it
+        sess.commit()
+        return responseStatus
+
+    if responseStatus == "finished":
+        # Check status of validation job if present
+        responseStatus = FileHandler.VALIDATION_STATUS_MAP[validationStatus]
+        if responseStatus == "finished" and errorsPresent:
+            # If validation completed with errors, mark as failed
+            responseStatus = "failed"
+            uploadJob.error_message = "Validation completed but row-level errors were found"
+
+    if responseStatus == "failed":
+        if uploadJob.error_message is None and validationJob.error_message is None:
+            if validationStatus == "invalid":
+                uploadJob.error_message = "Generated file had file-level errors"
+            else:
+                uploadJob.error_message = "Validation job had an internal error"
+
+        elif uploadJob.error_message is None:
+            uploadJob.error_message = validationJob.error_message
+    sess.commit()
+    return responseStatus
