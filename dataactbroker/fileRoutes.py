@@ -1,16 +1,17 @@
 from functools import wraps
 
 from flask import request
+from webargs import fields as webargs_fields, validate as webargs_validate
+from webargs.flaskparser import parser as webargs_parser, use_kwargs
 
-from dataactbroker.exceptions.invalid_usage import InvalidUsage
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler,
     narratives_for_submission, submission_report_url, update_narratives)
 from dataactcore.interfaces.function_bag import get_submission_stats
 from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactbroker.permissions import requires_login, requires_submission_perms
+from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER
 from dataactcore.utils.jsonResponse import JsonResponse
-from dataactcore.utils.requestDictionary import RequestDictionary
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 
@@ -28,9 +29,10 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/finalize_job/", methods=["POST"])
     @requires_login
-    def finalize_submission():
+    @use_kwargs({'upload_id': webargs_fields.Int(required=True)})
+    def finalize_submission(upload_id):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.finalize()
+        return file_manager.finalize(upload_id)
 
     @app.route("/v1/check_status/", methods=["POST"])
     @convert_to_submission_id
@@ -40,15 +42,17 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/submission_error_reports/", methods=["POST"])
     @requires_login
-    def submission_error_reports():
+    @use_kwargs({'submission_id': webargs_fields.Int(required=True)})
+    def submission_error_reports(submission_id):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.get_error_report_urls_for_submission()
+        return file_manager.get_error_report_urls_for_submission(submission_id)
 
     @app.route("/v1/submission_warning_reports/", methods=["POST"])
     @requires_login
-    def submission_warning_reports():
+    @use_kwargs({'submission_id': webargs_fields.Int(required=True)})
+    def submission_warning_reports(submission_id):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.get_error_report_urls_for_submission(True)
+        return file_manager.get_error_report_urls_for_submission(submission_id, is_warning=True)
 
     @app.route("/v1/error_metrics/", methods=["POST"])
     @convert_to_submission_id
@@ -64,34 +68,15 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/list_submissions/", methods=["GET"])
     @requires_login
-    def list_submissions():
+    @use_kwargs({
+        'page': webargs_fields.Int(missing=1),
+        'limit': webargs_fields.Int(missing=5),
+        'certified': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.OneOf(('mixed', 'true', 'false')))
+    })
+    def list_submissions(page, limit, certified):
         """ List submission IDs associated with the current user """
-
-        page = request.args.get('page')
-        limit = request.args.get('limit')
-        certified = request.args.get('certified')
-
-        # convert params and type check
-        try:
-            page = int(page) if page is not None else 1
-        except:
-            raise InvalidUsage("Incorrect type specified for 'page'. Please enter a positive number.")
-
-        try:
-            limit = int(limit) if limit is not None else 5
-        except:
-            raise InvalidUsage("Incorrect type specified for 'limit'. Please enter a positive number.")
-
-        if certified is not None:
-            certified = certified.lower()
-        else:
-            raise InvalidUsage("Missing required parameter 'certified'")
-        # If certified is none, get all submissions without filtering
-        if certified is not None and certified not in ['mixed', 'true', 'false']:
-            raise InvalidUsage(
-                "Incorrect value specified for the 'certified' parameter. "
-                "Must be one of 'mixed', 'true', or 'false'")
-
         return list_submissions_handler(page, limit, certified)
 
     @app.route("/v1/get_protected_files/", methods=["GET"])
@@ -103,32 +88,48 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/generate_file/", methods=["POST"])
     @convert_to_submission_id
-    def generate_file(submission_id):
+    @use_kwargs({'file_type': webargs_fields.String(
+        required=True,
+        validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values())
+    )})
+    def generate_file(submission_id, file_type):
         """ Generate file from external API """
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.generate_file(submission_id)
+        return file_manager.generate_file(submission_id, file_type)
 
     @app.route("/v1/generate_detached_file/", methods=["POST"])
     @requires_login
-    def generate_detached_file():
+    @use_kwargs({
+        'file_type': webargs_fields.String(
+            required=True, validate=webargs_validate.OneOf(('D1', 'D2'))),
+        'cgac_code': webargs_fields.String(required=True),
+        'start': webargs_fields.String(required=True),
+        'end': webargs_fields.String(required=True)
+    })
+    def generate_detached_file(file_type, cgac_code, start, end):
         """ Generate a file from external API, independent from a submission """
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.generate_detached_file()
+        return file_manager.generate_detached_file(file_type, cgac_code, start, end)
 
     @app.route("/v1/check_detached_generation_status/", methods=["POST"])
     @requires_login
-    def check_detached_generation_status():
+    @use_kwargs({'job_id': webargs_fields.Int(required=True)})
+    def check_detached_generation_status(job_id):
         """ Return status of file generation job """
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.check_detached_generation()
+        return file_manager.check_detached_generation(job_id)
 
     @app.route("/v1/check_generation_status/", methods=["POST"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    def check_generation_status(submission):
+    @use_kwargs({'file_type': webargs_fields.String(
+        required=True,
+        validate=webargs_validate.OneOf(FILE_TYPE_DICT_LETTER.values()))
+    })
+    def check_generation_status(submission, file_type):
         """ Return status of file generation job """
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-        return file_manager.check_generation(submission)
+        return file_manager.check_generation(submission, file_type)
 
     @app.route("/v1/complete_generation/<generationId>/", methods=["POST"])
     def complete_generation(generation_id):
@@ -157,19 +158,26 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         return update_narratives(submission, json)
 
     @app.route("/v1/submission/<int:submission_id>/report_url", methods=['POST'])
+    @use_kwargs({
+        'warning': webargs_fields.Bool(),
+        'file_type': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys())
+        ),
+        'cross_type': webargs_fields.String(
+            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys()))
+    })
     @requires_submission_perms('reader')
-    def post_submission_report_url(submission):
-        json = request.json or {}
-        warning, file_type = json.get('warning'), json.get('file_type')
-        cross_type = json.get('cross_type')
-        if file_type not in FILE_TYPE_DICT:
-            raise InvalidUsage(
-                "file_type must be one of '" +
-                "', '".join(FILE_TYPE_DICT.keys() + "'"))
-        if cross_type and cross_type not in FILE_TYPE_DICT:
-            raise InvalidUsage(
-                "cross_type, if present, must be one of '" +
-                "', '".join(FILE_TYPE_DICT.keys() + "'"))
+    @use_kwargs({
+        'warning': webargs_fields.Bool(),
+        'file_type': webargs_fields.String(
+            required=True,
+            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys())
+        ),
+        'cross_type': webargs_fields.String(
+            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys()))
+    })
+    def post_submission_report_url(submission, warning, file_type, cross_type):
         return submission_report_url(
             submission, bool(warning), file_type, cross_type)
 
@@ -181,9 +189,12 @@ def convert_to_submission_id(fn):
     @wraps(fn)
     @requires_login     # check login before checking submission_id
     def wrapped(*args, **kwargs):
-        params = RequestDictionary.derive(request)
-        submission_id = params.get('submission')
-        submission_id = submission_id or params.get('submission_id')
+        req_args = webargs_parser.parse({
+            'submission': webargs_fields.Int(),
+            'submission_id': webargs_fields.Int()
+        })
+        submission_id = req_args.get('submission',
+                                     req_args.get('submission_id'))
         if submission_id is None:
             raise ResponseException(
                 "submission_id is required", StatusCode.CLIENT_ERROR)
