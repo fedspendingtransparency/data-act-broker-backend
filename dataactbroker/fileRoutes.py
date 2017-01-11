@@ -143,6 +143,11 @@ def add_file_routes(app, CreateCredentials, isLocal, serverPath):
         fileManager = FileHandler(request, isLocal=IS_LOCAL, serverPath=SERVER_PATH)
         return fileManager.complete_generation(generationId)
 
+    @app.route("/v1/upload_detached_file/", methods = ["POST"])
+    def upload_detached_file():
+        fileManager = FileHandler(request,isLocal=IS_LOCAL,serverPath=SERVER_PATH)
+        return fileManager.upload_detached_file(CreateCredentials)
+
     @app.route("/v1/get_obligations/", methods = ["POST"])
     @convert_to_submission_id
     @requires_submission_perms('reader')

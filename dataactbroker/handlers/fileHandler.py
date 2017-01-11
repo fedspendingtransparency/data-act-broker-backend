@@ -749,6 +749,163 @@ class FileHandler:
         # Return same response as check generation route
         return result or self.check_detached_generation(new_job.job_id)
 
+    def upload_detached_file(self, create_credentials):
+        """HEY ALISA
+        This function is basically just a stolen submit() function that is formatted for an individual D2 file.
+        
+        Currently, it is failing because of a Access Key issue, which is what I was planning on talking to Nipun about,
+        as (locally at least) this information is basically ignored and return just "local" for each attribute.
+
+        I haven't got to entering in the SubTierAgency models yet.
+        """
+
+        """ Builds S3 URLs for a set of detached files and adds all related jobs to job tracker database
+
+        Flask request should include keys from FILE_TYPES class variable above
+
+        Arguments:
+            create_credentials - If True, will create temporary credentials for S3 uploads
+
+        Returns:
+        Flask response returned will have key_url and key_id for each key in the request
+        key_url is the S3 URL for uploading
+        key_id is the job id to be passed to the finalize_submission route
+        """
+        logger.debug("Starting detached D file upload")
+        sess = GlobalDB.db().session
+        try:
+            response_dict= {}
+            upload_files = []
+            request_params = RequestDictionary.derive(self.request)
+
+            # unfortunately, field names in the request don't match
+            # field names in the db/response. create a mapping here.
+            request_submission_mapping = {
+                "cgac_code": "cgac_code",
+                "reporting_period_start_date": "reporting_start_date",
+                "reporting_period_end_date": "reporting_end_date"
+            }
+
+            submission_data = {}
+            existing_submission = None
+            existing_submission_obj = None
+            for request_field, submission_field in request_submission_mapping.items():
+                if request_field in request_params:
+                    request_value = request_params[request_field]
+                    submission_data[submission_field] = request_value
+                # all of those fields are required
+                elif 'existing_submission_id' not in request_params:
+                    raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
+
+            # convert submission start/end dates from the request into Python date objects
+            date_format = '%d/%m/%Y'
+            try:
+                submission_data['reporting_start_date'] = datetime.strptime(submission_data['reporting_start_date'], 
+                    date_format).date()
+                submission_data['reporting_end_date'] = datetime.strptime(submission_data['reporting_end_date'], 
+                    date_format).date()
+            except ValueError:
+                raise ResponseException("Date must be provided as DD/MM/YYYY", StatusCode.CLIENT_ERROR, ValueError)
+
+            # the front-end is doing date checks, but we'll also do a few server side to ensure everything is correct
+            # when clients call the API directly
+            if submission_data.get('reporting_start_date') > submission_data.get('reporting_end_date'):
+                raise ResponseException(
+                    "Submission start date {} is after the end date {}".format(
+                        submission_data.get('reporting_start_date'), submission_data.get('reporting_end_date')),
+                        StatusCode.CLIENT_ERROR)
+
+            submission = create_submission(g.user.user_id, submission_data, existing_submission_obj)
+            cant_edit = (
+                existing_submission and not current_user_can_on_submission('writer', existing_submission_obj)
+            )
+            cant_create = not current_user_can('writer', submission.cgac_code)
+            if cant_edit or cant_create:
+                raise ResponseException("User does not have permission to create/modify that submission", 
+                    StatusCode.PERMISSION_DENIED)
+            else:
+                sess.add(submission)
+                sess.commit()
+            
+            # build fileNameMap to be used in creating jobs
+            for file_type in ['award']:
+                # if file_type not included in request, and this is an update to an existing submission, skip it
+                if not request_params.get(file_type):
+                    if existing_submission:
+                        continue
+                    # this is a new submission, all files are required
+                    raise ResponseException("Must include all required files for new submission", 
+                        StatusCode.CLIENT_ERROR)
+
+                file_name = request_params.get(file_type)
+                if file_name:
+                    if not self.isLocal:
+                        upload_name = "{}/{}".format(
+                            g.user.user_id,
+                            s3UrlHandler.getTimestampedFilename(file_name)
+                        )
+                    else:
+                        upload_name = file_name
+                    response_dict[file_type+"_key"] = upload_name
+                    upload_files.append(FileHandler.UploadFile(
+                        file_type=file_type,
+                        upload_name=upload_name,
+                        file_name=file_name,
+                        file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type]]
+                    ))
+
+            if not upload_files and existing_submission:
+                raise ResponseException("Must include at least one file for an existing submission",
+                                        StatusCode.CLIENT_ERROR)
+            if not existing_submission:
+                # don't add external files to existing submission
+                for ext_file_type in ['award']:
+                    file_name = CONFIG_BROKER["".join([ext_file_type,"_file_name"])]
+
+                    if not self.isLocal:
+                        upload_name = "{}/{}".format(
+                            g.user.user_id,
+                            s3UrlHandler.getTimestampedFilename(file_name)
+                        )
+                    else:
+                        upload_name = file_name
+                    response_dict[ext_file_type + "_key"] = upload_name
+                    upload_files.append(FileHandler.UploadFile(
+                        file_type=ext_file_type,
+                        upload_name=upload_name,
+                        file_name=file_name,
+                        file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[ext_file_type]]
+                    ))
+
+            file_job_dict = create_jobs(upload_files, submission, existing_submission)
+            for file_type in file_job_dict.keys():
+                if "submission_id" not in file_type:
+                    response_dict[file_type+"_id"] = file_job_dict[file_type]
+            if create_credentials and not self.isLocal:
+                self.s3manager = s3UrlHandler(CONFIG_BROKER["aws_bucket"])
+                response_dict["credentials"] = self.s3manager.getTemporaryCredentials(g.user.user_id)
+            else:
+                response_dict["credentials"] ={"AccessKeyId": "local", "SecretAccessKey": "local", 
+                                                "SessionToken": "local", "Expiration": "local"}
+
+            print(response_dict)
+            response_dict["submission_id"] = file_job_dict["submission_id"]
+            if self.isLocal:
+                response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]
+            else:
+                response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
+            return JsonResponse.create(StatusCode.OK,response_dict)
+        except (ValueError , TypeError, NotImplementedError) as e:
+            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+        except ResponseException as e:
+            # call error route directly, status code depends on exception
+            return JsonResponse.error(e,e.status)
+        except Exception as e:
+            # unexpected exception, this is a 500 server error
+            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+        except:
+            return JsonResponse.error(Exception("Failed to catch exception"),StatusCode.INTERNAL_ERROR)
+
     def check_detached_generation(self, job_id=None):
         """ Return information about file generation jobs
 
