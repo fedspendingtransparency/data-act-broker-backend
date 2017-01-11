@@ -8,7 +8,7 @@ from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.validationModels import RuleSql
 from dataactcore.config import CONFIG_BROKER
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.loadFile import load_domain_values
@@ -29,7 +29,7 @@ class FileTypeTests(BaseTestValidator):
         # TODO: get rid of this flag once we're using a tempdb for test fixtures
         force_tas_load = False
 
-        with createApp().app_context():
+        with create_app().app_context():
             sess = GlobalDB.db().session
 
             # Create submissions and jobs, also uploading

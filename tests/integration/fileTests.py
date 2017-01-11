@@ -15,7 +15,7 @@ from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, ERROR_TYPE_DICT, RULE_SEVERITY_DICT,
                                         FILE_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT)
 from dataactcore.config import CONFIG_BROKER
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 
 
 class FileTests(BaseTestAPI):
@@ -31,7 +31,7 @@ class FileTests(BaseTestAPI):
         super(FileTests, cls).setUpClass()
         # TODO: refactor into a pytest fixture
 
-        with createApp().app_context():
+        with create_app().app_context():
             # get the submission test user
             sess = GlobalDB.db().session
             cls.session = sess
@@ -125,7 +125,7 @@ class FileTests(BaseTestAPI):
         # Test that job ids are returned
         responseDict = json
         fileKeys = ["program_activity", "award_financial", "appropriations"]
-        with createApp().app_context():
+        with create_app().app_context():
             sess = GlobalDB.db().session
             for key in fileKeys:
                 idKey = '{}_id'.format(key)
@@ -166,7 +166,7 @@ class FileTests(BaseTestAPI):
                           "reporting_period_start_date": "04/2016",
                           "reporting_period_end_date": "06/2016"}
         # Mark submission as published
-        with createApp().app_context():
+        with create_app().app_context():
             sess = GlobalDB.db().session
             updateSubmission = sess.query(Submission).filter(Submission.submission_id == self.updateSubmissionId).one()
             updateSubmission.publish_status_id = PUBLISH_STATUS_DICT['published']
@@ -263,7 +263,7 @@ class FileTests(BaseTestAPI):
         postJson = {"submission_id": self.status_check_submission_id}
         # Populating error info before calling route to avoid changing last update time
 
-        with createApp().app_context():
+        with create_app().app_context():
             sess = GlobalDB.db().session
             populate_submission_error_info(self.status_check_submission_id)
 

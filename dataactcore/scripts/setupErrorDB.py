@@ -2,13 +2,13 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.errorModels import FileStatus, ErrorType
 from dataactcore.models import lookups
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 
 
 def setup_error_db():
     """Create error tables from model metadata."""
 
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
         insert_codes(sess)
         sess.commit()

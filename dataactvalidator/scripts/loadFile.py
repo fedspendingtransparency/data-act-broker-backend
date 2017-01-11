@@ -8,7 +8,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CGAC, ObjectClass, ProgramActivity
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ def update_cgacs(models, new_data):
 
 def load_cgac(filename):
     """Load CGAC (high-level agency names) lookup table."""
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
 
         models = {cgac.cgac_code: cgac for cgac in sess.query(CGAC)}
@@ -67,7 +67,7 @@ def load_object_class(filename):
     """Load object class lookup table."""
     model = ObjectClass
 
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
         # for object class, delete and replace values
         sess.query(model).delete()
@@ -93,7 +93,7 @@ def load_program_activity(filename):
     """Load program activity lookup table."""
     model = ProgramActivity
 
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
 
         # for program activity, delete and replace values??

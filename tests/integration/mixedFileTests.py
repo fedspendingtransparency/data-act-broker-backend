@@ -7,7 +7,7 @@ from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.utils.report import report_file_name
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 from tests.integration.baseTestValidator import BaseTestValidator
 from tests.integration.fileTypeTests import FileTypeTests
 
@@ -24,7 +24,7 @@ class MixedFileTests(BaseTestValidator):
         user = cls.userId
         force_tas_load = False
 
-        with createApp().app_context():
+        with create_app().app_context():
             # get the submission test user
             sess = GlobalDB.db().session
 
@@ -224,7 +224,7 @@ class MixedFileTests(BaseTestValidator):
         self.passed = self.run_test(
             job_id, 200, "finished", 8661, 5, "complete", 51, 32, 7968)
 
-        with createApp().app_context():
+        with create_app().app_context():
             sess = GlobalDB.db().session
             job = sess.query(Job).filter_by(job_id=job_id).one()
             # todo: these whitespace and comma cases probably belong in unit tests
@@ -280,7 +280,7 @@ class MixedFileTests(BaseTestValidator):
         cross_file_resp = self.validateJob(cross_id)
         self.assertEqual(cross_file_resp.status_code, 200, msg=str(cross_file_resp.json))
 
-        with createApp().app_context():
+        with create_app().app_context():
             sess = GlobalDB.db().session
 
             job = sess.query(Job).filter(Job.job_id == cross_id).one()

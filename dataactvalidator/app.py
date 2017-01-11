@@ -17,7 +17,7 @@ from dataactvalidator.validation_handlers.validationManager import ValidationMan
 logger = logging.getLogger(__name__)
 
 
-def createApp():
+def create_app():
     """Create the Flask app."""
     flask_app = Flask(__name__.split('.')[0])
     flask_app.debug = CONFIG_SERVICES['debug']
@@ -70,7 +70,7 @@ def createApp():
         return JsonResponse.error(error, response_code)
 
     @flask_app.route("/", methods=["GET"])
-    def testApp():
+    def test_app():
         """Confirm server running."""
         return "Validator is running"
 
@@ -87,14 +87,10 @@ def createApp():
     return flask_app
 
 
-def runApp():
+def run_app():
     """Run the application."""
-    flask_app = createApp()
-    flask_app.run(
-        threaded=True,
-        host=CONFIG_SERVICES['validator_host'],
-        port=CONFIG_SERVICES['validator_port']
-    )
+    flask_app = create_app()
+    flask_app.run(threaded=True, host=CONFIG_SERVICES['validator_host'], port=CONFIG_SERVICES['validator_port'])
 
 
 def get_current_job():
@@ -109,7 +105,7 @@ def get_current_job():
 
 if __name__ == "__main__":
     configure_logging()
-    runApp()
+    run_app()
 elif __name__[0:5] == "uwsgi":
     configure_logging()
-    app = createApp()
+    app = create_app()

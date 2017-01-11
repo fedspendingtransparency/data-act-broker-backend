@@ -2,12 +2,12 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models import lookups
 from dataactcore.models.userModel import PermissionType
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 
 
 def setup_user_db():
     """Create user tables from model metadata."""
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
         insert_codes(sess)
         sess.commit()

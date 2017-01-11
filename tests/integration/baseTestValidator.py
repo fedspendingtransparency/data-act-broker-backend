@@ -7,7 +7,7 @@ import boto.s3
 from webtest import TestApp
 from boto.s3.key import Key
 
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 from dataactcore.interfaces.function_bag import check_number_of_errors_by_job_id
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import JOB_STATUS_DICT, FILE_STATUS_DICT
@@ -42,7 +42,7 @@ class BaseTestValidator(unittest.TestCase):
         create_database(CONFIG_DB['db_name'])
         run_migrations()
 
-        app = createApp()
+        app = create_app()
         app.config['TESTING'] = True
         app.config['DEBUG'] = False
         cls.app = TestApp(app)
@@ -110,7 +110,7 @@ class BaseTestValidator(unittest.TestCase):
         Returns:
 
         """
-        with createApp().app_context():
+        with create_app().app_context():
             sess = GlobalDB.db().session
 
             response = self.validateJob(jobId)

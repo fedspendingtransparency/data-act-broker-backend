@@ -12,7 +12,7 @@ from dataactcore.interfaces.function_bag import create_user_with_password
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import User
 from dataactcore.scripts.setupAllDB import setup_all_db
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.scripts.loadFile import load_domain_values
@@ -36,7 +36,7 @@ def create_admin():
     logger.info('Creating admin user')
     admin_email = CONFIG_BROKER['admin_email']
     admin_pass = CONFIG_BROKER['admin_password']
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
         user = sess.query(User).filter(User.email == admin_email).one_or_none()
         if not user:

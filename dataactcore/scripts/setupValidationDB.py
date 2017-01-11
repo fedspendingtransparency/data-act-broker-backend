@@ -2,12 +2,12 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models import lookups
 from dataactcore.models.validationModels import FieldType, RuleSeverity
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 
 
 def setup_validation_db():
     """Create validation tables from model metadata and do initial inserts."""
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
         insertCodes(sess)
         sess.commit()

@@ -4,7 +4,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.jobModels import JobDependency, Job
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT, FIELD_TYPE_DICT
 from dataactcore.models.validationModels import FileColumn
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 from tests.integration.baseTestValidator import BaseTestValidator
 
 
@@ -19,7 +19,7 @@ class JobTests(BaseTestValidator):
         # Flag for testing a million+ errors (can take ~30 min to run)
         cls.includeLongTests = False
 
-        with createApp().app_context():
+        with create_app().app_context():
             # get the submission test user
             sess = GlobalDB.db().session
 

@@ -4,7 +4,7 @@ import sys
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 if __name__ == '__main__':
     configure_logging()
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
         if not config_valid():
             logger.error("No config for broker/fsrs/[service]/wsdl")

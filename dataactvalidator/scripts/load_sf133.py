@@ -13,7 +13,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import matching_cars_subquery, SF133
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ def update_tas_id(fiscal_year, fiscal_period):
 def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False):
     """Load SF 133 (budget execution report) lookup table."""
 
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
 
         existing_records = sess.query(SF133).filter(

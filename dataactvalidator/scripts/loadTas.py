@@ -10,7 +10,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import TAS_COMPONENTS, TASLookup
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data
 
 
@@ -96,7 +96,7 @@ def load_tas(tas_file=None):
                 "config",
                 "cars_tas.csv")
 
-    with createApp().app_context():
+    with create_app().app_context():
         update_tas_lookups(tas_file)
 
 
