@@ -16,8 +16,5 @@ class UserFactory(factory.Factory):
     @classmethod
     def with_cgacs(cls, *cgacs, **kwargs):
         perm = PERMISSION_TYPE_DICT['reader']
-        kwargs['affiliations'] = [
-            userModel.UserAffiliation(cgac=cgac, permission_type_id=perm)
-            for cgac in cgacs
-        ]
+        kwargs['affiliations'] = [userModel.UserAffiliation(cgac=cgac, permission_type_id=perm) for cgac in cgacs]
         return cls(**kwargs)
