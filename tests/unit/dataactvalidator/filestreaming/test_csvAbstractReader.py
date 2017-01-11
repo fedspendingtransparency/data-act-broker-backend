@@ -7,15 +7,12 @@ def test_count_and_set_headers_flex():
     """Verify that we are setting the correct flex headers"""
     reader = csvAbstractReader.CsvAbstractReader()
     csv_schema = [Mock(name_short='some_col'), Mock(name_short='other')]
-    header_row = ['ignored', 'flex_my_col', 'some_col', 'flex_other',
-                  'some_col']
+    header_row = ['ignored', 'flex_my_col', 'some_col', 'flex_other', 'some_col']
 
     result = reader.count_and_set_headers(csv_schema, header_row)
     assert result == {'some_col': 2, 'other': 0}
-    assert reader.expected_headers == [
-        None, None, 'some_col', None, 'some_col']
-    assert reader.flex_headers == [
-        None, 'flex_my_col', None, 'flex_other', None]
+    assert reader.expected_headers == [None, None, 'some_col', None, 'some_col']
+    assert reader.flex_headers == [None, 'flex_my_col', None, 'flex_other', None]
 
 
 def test_get_next_record_flex():
@@ -39,20 +36,13 @@ def test_normalize_headers():
     """Verify we return the transformed headers depending on the long_headers
     parameter"""
     headers = [
-        'AllocationTransferAgencyIdentifier',
-        'BeginningPeriodOfAvailability',
-        'flex_mycol',
-        'FLEX_ANOTHER'
+        'AllocationTransferAgencyIdentifier', 'BeginningPeriodOfAvailability', 'flex_mycol', 'FLEX_ANOTHER'
     ]
-    mapping = {'allocationtransferagencyidentifier': 'ata',
-               'beginningperiodofavailability': 'boa'}
+    mapping = {'allocationtransferagencyidentifier': 'ata', 'beginningperiodofavailability': 'boa'}
 
     result = csvAbstractReader.normalize_headers(headers, False, mapping)
     assert list(result) == [
-        'allocationtransferagencyidentifier',
-        'beginningperiodofavailability',
-        'flex_mycol',
-        'flex_another'
+        'allocationtransferagencyidentifier', 'beginningperiodofavailability', 'flex_mycol', 'flex_another'
     ]
     result = csvAbstractReader.normalize_headers(headers, True, mapping)
     assert list(result) == ['ata', 'boa', 'flex_mycol', 'flex_another']

@@ -17,8 +17,7 @@ def write_then_read_tas(tmpdir, *rows):
     csv_file = tmpdir.join("cars_tas.csv")
     with open(str(csv_file), 'w') as f:
         writer = DictWriter(
-            f, ['ACCT_NUM', 'ATA', 'AID', 'A', 'BPOA', 'EPOA', 'MAIN', 'SUB',
-                'FINANCIAL_INDICATOR_TYPE2']
+            f, ['ACCT_NUM', 'ATA', 'AID', 'A', 'BPOA', 'EPOA', 'MAIN', 'SUB', 'FINANCIAL_INDICATOR_TYPE2']
         )
         writer.writeheader()
         for row in rows:
@@ -29,7 +28,7 @@ def write_then_read_tas(tmpdir, *rows):
     return loadTas.clean_tas(str(csv_file))
 
 
-def test_cleanTas_multiple(tmpdir):
+def test_clean_tas_multiple(tmpdir):
     """Happy path test that clean_tas will correctly read in a written CSV as a
     pandas dataframe"""
     results = write_then_read_tas(
@@ -49,32 +48,27 @@ def test_cleanTas_multiple(tmpdir):
     assert results['sub_account_code'].tolist() == ['ggg', '777']
 
 
-def test_cleanTas_space_nulls(tmpdir):
+def test_clean_tas_space_nulls(tmpdir):
     """Verify that spaces are converted into `None`s"""
-    results = write_then_read_tas(
-        tmpdir, {'BPOA': '', 'EPOA': ' ', 'A': '   '})
+    results = write_then_read_tas(tmpdir, {'BPOA': '', 'EPOA': ' ', 'A': '   '})
     assert results['beginning_period_of_availa'][0] is None
     assert results['ending_period_of_availabil'][0] is None
     assert results['availability_type_code'][0] is None
 
 
-def test_updateTASLookups(database, monkeypatch):
+def test_update_tas_lookups(database, monkeypatch):
     """Verify that TAS with the same account_num can be modified, that we
     "close" any non-present TASes, and that we add new entries"""
     sess = database.session
     existing_tas_entries = [
         # TAS present in both csv and db
-        TASFactory(
-            account_num=222,
-            **{field: 'still-active' for field in TAS_COMPONENTS}
-        ),
+        TASFactory(account_num=222, **{field: 'still-active' for field in TAS_COMPONENTS}),
         # Example of TAS being modified
         TASFactory(account_num=333, agency_identifier='to-close-1'),
         # Example unrelated to anything of these entries
         TASFactory(account_num=444, agency_identifier='to-close-2'),
         # Example of an existing, closed TAS
-        TASFactory(account_num=555, agency_identifier='already-closed',
-                   internal_end_date=date(2015, 2, 2))
+        TASFactory(account_num=555, agency_identifier='already-closed', internal_end_date=date(2015, 2, 2))
     ]
     sess.add_all(existing_tas_entries)
     sess.commit()
@@ -87,8 +81,7 @@ def test_updateTASLookups(database, monkeypatch):
             [333] + ['new-entry-2'] * len(TAS_COMPONENTS),
         ]
     )
-    monkeypatch.setattr(loadTas, 'clean_tas',
-                        Mock(return_value=incoming_tas_data))
+    monkeypatch.setattr(loadTas, 'clean_tas', Mock(return_value=incoming_tas_data))
 
     # Initial state
     assert sess.query(TASLookup).count() == 4
@@ -96,8 +89,7 @@ def test_updateTASLookups(database, monkeypatch):
     loadTas.update_tas_lookups('file-name-ignored-due-to-mock')
 
     # Post-"import" state
-    results = sess.query(TASLookup).\
-        order_by(TASLookup.account_num, TASLookup.agency_identifier).all()
+    results = sess.query(TASLookup).order_by(TASLookup.account_num, TASLookup.agency_identifier).all()
     assert len(results) == 6
     t111, t222, t333_new, t333_old, t444, t555 = results
 

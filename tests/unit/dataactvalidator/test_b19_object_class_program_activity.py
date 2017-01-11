@@ -84,8 +84,7 @@ def test_success(database):
                                       main_account_code='1', sub_account_code='1', object_class='1',
                                       program_activity_code='1', by_direct_reimbursable_fun='d')
 
-    assert number_of_errors(_FILE, database, models=[op1, op2, op3, op4, op5, op6,
-                                                     op7, op8, op9, op10, op11]) == 0
+    assert number_of_errors(_FILE, database, models=[op1, op2, op3, op4, op5, op6, op7, op8, op9, op10, op11]) == 0
 
 
 def test_optionals(database):

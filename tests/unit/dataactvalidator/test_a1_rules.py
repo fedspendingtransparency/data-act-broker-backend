@@ -4,8 +4,7 @@ import pytest
 
 from tests.unit.dataactcore.factories.domain import TASFactory
 from tests.unit.dataactcore.factories.staging import (
-    AppropriationFactory, AwardFinancialFactory,
-    ObjectClassProgramActivityFactory
+    AppropriationFactory, AwardFinancialFactory, ObjectClassProgramActivityFactory
 )
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 

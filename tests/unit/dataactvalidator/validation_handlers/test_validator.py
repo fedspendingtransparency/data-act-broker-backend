@@ -12,14 +12,12 @@ def test_relevant_flex_data(database):
     sess.add_all(subs)
     sess.commit()
     # Three jobs per submission
-    jobs = [JobFactory(submission_id=sub.submission_id)
-            for sub in subs for _ in range(3)]
+    jobs = [JobFactory(submission_id=sub.submission_id) for sub in subs for _ in range(3)]
     sess.add_all(jobs)
     sess.commit()
     # Set up ten rows of three fields per job
     sess.add_all([
-        FlexField(submission_id=job.submission_id, job_id=job.job_id,
-                  row_number=row_number, header=str(idx),
+        FlexField(submission_id=job.submission_id, job_id=job.job_id, row_number=row_number, header=str(idx),
                   cell="cell"*row_number)
         for job in jobs for idx in range(3) for row_number in range(1, 11)
     ])
@@ -44,7 +42,6 @@ def test_failure_row_to_tuple_flex():
         4: [FlexField(header='A', cell='c'), FlexField(header='B', cell='d')],
     }
 
-    result = validator.failure_row_to_tuple(
-        Mock(), flex_data, [], [], Mock(), {'row_number': 2})
+    result = validator.failure_row_to_tuple(Mock(), flex_data, [], [], Mock(), {'row_number': 2})
     assert result.field_name == 'A, B'
     assert result.failed_value == 'A: a, B: b'
