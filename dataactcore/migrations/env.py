@@ -9,7 +9,8 @@ from sqlalchemy import engine_from_config, pool
 
 # Load all DB tables into metadata object
 # @todo - load these dynamically
-from dataactcore.models import baseModel, domainModels, fsrs, errorModels, jobModels, stagingModels, userModel, validationModels  # noqa
+from dataactcore.models import (baseModel, domainModels, fsrs, errorModels, jobModels, stagingModels, # noqa
+                                userModel, validationModels)
 from dataactcore.config import CONFIG_DB
 from dataactcore.interfaces.db import db_uri
 from dataactcore.logging import configure_logging
