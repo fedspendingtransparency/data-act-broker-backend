@@ -88,10 +88,8 @@ def test_set_max_perms(database, monkeypatch):
     database.session.add_all([cgac_abc, cgac_def, user])
     database.session.commit()
 
-    monkeypatch.setitem(accountHandler.CONFIG_BROKER, 'parent_group',
-                        'prefix')
-    accountHandler.set_max_perms(
-        user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_ABC-PERM_S')
+    monkeypatch.setitem(accountHandler.CONFIG_BROKER, 'parent_group', 'prefix')
+    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_ABC-PERM_S')
     database.session.commit()   # populate ids
     assert len(user.affiliations) == 1
     affil = user.affiliations[0]
@@ -105,12 +103,10 @@ def test_set_max_perms(database, monkeypatch):
     assert affil.cgac_id == cgac_abc.cgac_id
     assert affil.permission_type_id == PERMISSION_TYPE_DICT['writer']
 
-    accountHandler.set_max_perms(
-        user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_DEF-PERM_S')
+    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_DEF-PERM_S')
     database.session.commit()
     assert len(user.affiliations) == 2
-    affiliations = list(sorted(user.affiliations,
-                               key=lambda a: a.cgac.cgac_code))
+    affiliations = list(sorted(user.affiliations, key=lambda a: a.cgac.cgac_code))
     abc_aff, def_aff = affiliations
     assert abc_aff.cgac.cgac_code == 'ABC'
     assert abc_aff.permission_type_id == PERMISSION_TYPE_DICT['reader']
@@ -120,20 +116,16 @@ def test_set_max_perms(database, monkeypatch):
 
 @pytest.mark.usefixtures("user_constants")
 def test_create_session_and_response(database, monkeypatch):
-    cgacs = [CGACFactory(cgac_code=str(i) * 3, agency_name=str(i))
-             for i in range(3)]
+    cgacs = [CGACFactory(cgac_code=str(i) * 3, agency_name=str(i)) for i in range(3)]
     user = UserFactory(name="my name", title="my title", affiliations=[
-        UserAffiliation(cgac=cgacs[1],
-                        permission_type_id=PERMISSION_TYPE_DICT['reader']),
-        UserAffiliation(cgac=cgacs[2],
-                        permission_type_id=PERMISSION_TYPE_DICT['writer']),
+        UserAffiliation(cgac=cgacs[1], permission_type_id=PERMISSION_TYPE_DICT['reader']),
+        UserAffiliation(cgac=cgacs[2], permission_type_id=PERMISSION_TYPE_DICT['writer']),
     ])
     database.session.add_all(cgacs + [user])
     database.session.commit()
     monkeypatch.setattr(accountHandler, 'LoginSession', Mock())
 
-    result = accountHandler.AccountHandler.create_session_and_response(
-        Mock(), user)
+    result = accountHandler.AccountHandler.create_session_and_response(Mock(), user)
     result = json.loads(result.data.decode('utf-8'))
     assert result['message'] == 'Login successful'
     assert result['user_id'] == user.user_id

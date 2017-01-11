@@ -3,7 +3,7 @@ from tests.unit.dataactcore.factories.staging import AwardFinancialFactory
 from dataactcore.interfaces.function_bag import get_submission_stats
 
 
-def test_obligationStatsForSubmission_nonzero(database):
+def test_obligation_stats_for_submission_nonzero(database):
     submission = SubmissionFactory()
     database.session.add(submission)
     database.session.commit()
@@ -28,7 +28,7 @@ def test_obligationStatsForSubmission_nonzero(database):
     }
 
 
-def test_obligationStatsForSubmission_zero(database):
+def test_obligation_stats_for_submission_zero(database):
     submission = SubmissionFactory()
     # no financials in db
     database.session.add(submission)

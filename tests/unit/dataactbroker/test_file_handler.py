@@ -164,8 +164,7 @@ def test_narratives(database, job_constants):
     database.session.commit()
 
     # Write some narratives
-    result = fileHandler.update_narratives(
-        sub1, {'B': 'BBBBBB', 'E': 'EEEEEE'})
+    result = fileHandler.update_narratives(sub1, {'B': 'BBBBBB', 'E': 'EEEEEE'})
     assert result.status_code == 200
     result = fileHandler.update_narratives(sub2, {'A': 'Submission2'})
     assert result.status_code == 200
@@ -184,8 +183,7 @@ def test_narratives(database, job_constants):
     }
 
     # Replace the narratives
-    result = fileHandler.update_narratives(
-        sub1, {'A': 'AAAAAA', 'E': 'E2E2E2'})
+    result = fileHandler.update_narratives(sub1, {'A': 'AAAAAA', 'E': 'E2E2E2'})
     assert result.status_code == 200
 
     # Verify the change worked
@@ -280,26 +278,23 @@ def test_submission_to_dict_for_status(database):
 
 def test_submission_report_url_local(monkeypatch, tmpdir):
     file_path = str(tmpdir) + os.path.sep
-    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {
-        'local': True, 'broker_files': file_path
-    })
+    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': True, 'broker_files': file_path})
     json_response = fileHandler.submission_report_url(
         SubmissionFactory(submission_id=4), True, 'some_file', 'another_file')
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
-    assert url == os.path.join(
-        file_path, 'submission_4_cross_warning_some_file_another_file.csv')
+    assert url == os.path.join(file_path, 'submission_4_cross_warning_some_file_another_file.csv')
 
 
 def test_submission_report_url_s3(monkeypatch):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
-    s3UrlHandler = Mock()
-    s3UrlHandler.return_value.get_signed_url.return_value = 'some/url/here.csv'
-    monkeypatch.setattr(fileHandler, 'S3UrlHandler', s3UrlHandler)
+    s3_url_handler = Mock()
+    s3_url_handler.return_value.get_signed_url.return_value = 'some/url/here.csv'
+    monkeypatch.setattr(fileHandler, 'S3UrlHandler', s3_url_handler)
     json_response = fileHandler.submission_report_url(
         SubmissionFactory(submission_id=2), False, 'some_file', None)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
     assert url == 'some/url/here.csv'
-    assert s3UrlHandler.return_value.get_signed_url.call_args == (
+    assert s3_url_handler.return_value.get_signed_url.call_args == (
         ('errors', 'submission_2_some_file_error_report.csv'),
         {'method': 'GET'}
     )

@@ -7,11 +7,10 @@ from suds import sudsobject
 from dataactcore.models.fsrs import FSRSGrant, FSRSProcurement, FSRSSubcontract, FSRSSubgrant
 from dataactbroker import fsrs
 from tests.unit.dataactcore.factories.fsrs import (
-    FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory,
-    FSRSSubgrantFactory)
+    FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory, FSRSSubgrantFactory)
 
 
-def newClient_call_args(monkeypatch, **config):
+def new_client_call_args(monkeypatch, **config):
     """Set up and create a new_client request with the provided config. Return
     the arguments which were sent to the suds client"""
     mock_client = Mock()
@@ -23,52 +22,50 @@ def newClient_call_args(monkeypatch, **config):
     return kwargs
 
 
-def test_newClient_wsdl(monkeypatch):
+def test_new_client_wsdl(monkeypatch):
     """new_client will strip trailing '?wsdl's"""
-    call_args = newClient_call_args(
-        monkeypatch, wsdl='https://example.com/some?wsdl')
+    call_args = new_client_call_args(monkeypatch, wsdl='https://example.com/some?wsdl')
     assert call_args['location'] == 'https://example.com/some'
     assert call_args['url'] == 'https://example.com/some?wsdl'
 
 
-def test_newClient_no_wsdl(monkeypatch):
+def test_new_client_no_wsdl(monkeypatch):
     """new_client won't modify urls without the trailing '?wsdl'"""
     url = 'https://example.com/no_wsdl'
-    call_args = newClient_call_args(monkeypatch, wsdl=url)
+    call_args = new_client_call_args(monkeypatch, wsdl=url)
     assert 'location' not in call_args
     assert call_args['url'] == url
 
 
-def test_newClient_import_fix(monkeypatch):
+def test_new_client_import_fix(monkeypatch):
     """new_client should set an 'ImportDoctor' derived from the wsdl"""
-    call_args = newClient_call_args(
-        monkeypatch, wsdl='https://rando-domain.gov/some/where?wsdl')
+    call_args = new_client_call_args(monkeypatch, wsdl='https://rando-domain.gov/some/where?wsdl')
     doctor = call_args['doctor']
     assert 'xmlsoap' in doctor.imports[0].ns
     assert doctor.imports[0].filter.tns[0] == 'https://rando-domain.gov/'
 
 
-def test_newClient_auth(monkeypatch):
+def test_new_client_auth(monkeypatch):
     """new_client should add http auth if _both_ username and password are
     configured"""
-    call_args = newClient_call_args(monkeypatch)
+    call_args = new_client_call_args(monkeypatch)
     assert 'transport' not in call_args
 
-    call_args = newClient_call_args(monkeypatch, username='incomplete')
+    call_args = new_client_call_args(monkeypatch, username='incomplete')
     assert 'transport' not in call_args
 
-    call_args = newClient_call_args(monkeypatch, password='incomplete')
+    call_args = new_client_call_args(monkeypatch, password='incomplete')
     assert 'transport' not in call_args
 
-    call_args = newClient_call_args(monkeypatch, username='u1', password='p2')
+    call_args = new_client_call_args(monkeypatch, username='u1', password='p2')
     assert call_args['transport'].options.username == 'u1'
     assert call_args['transport'].options.password == 'p2'
 
 
-def test_newClient_filters(monkeypatch):
+def test_new_client_filters(monkeypatch):
     """new_client should add the ControlFilter and ZeroDateFilter plugins.
     Those plugins should work."""
-    call_args = newClient_call_args(monkeypatch)
+    call_args = new_client_call_args(monkeypatch)
     assert 'plugins' in call_args
     assert len(call_args['plugins']) == 2
 
@@ -80,7 +77,7 @@ def test_newClient_filters(monkeypatch):
     assert input_value == b'Some  thing here. Date: 0001-01-01 stuff'
 
 
-def test_soap2Dict():
+def test_soap_to_dict():
     today = date.today()
 
     root = sudsobject.Object()
@@ -107,7 +104,7 @@ def test_soap2Dict():
     assert fsrs.soap_to_dict(root) == expected
 
 
-def test_flattenSoapDict():
+def test_flatten_soap_dict():
     """Spot check that data's imported to the proper fields"""
     obj = dict(
         duns='DuNs', recovery_model_q1=True, bus_types=['a', 'b', 'c'],
@@ -160,21 +157,19 @@ def no_award_db(database):
     sess.commit()
 
 
-def test_nextId_default(no_award_db):
+def test_next_id_default(no_award_db):
     assert FSRSProcurement.nextId(no_award_db) == 0
 
 
-def test_nextId(no_award_db):
-    no_award_db.add_all([FSRSProcurementFactory(id=5),
-                         FSRSProcurementFactory(id=3),
-                         FSRSGrantFactory(id=2)])
+def test_next_id(no_award_db):
+    no_award_db.add_all([FSRSProcurementFactory(id=5), FSRSProcurementFactory(id=3), FSRSGrantFactory(id=2)])
     no_award_db.commit()
 
     assert 6 == FSRSProcurement.nextId(no_award_db)
     assert 3 == FSRSGrant.nextId(no_award_db)
 
 
-def test_fetchAndReplaceBatch_saves_data(no_award_db, monkeypatch):
+def test_fetch_and_replace_batch_saves_data(no_award_db, monkeypatch):
     award1 = FSRSProcurementFactory()
     award1.subawards = [FSRSSubcontractFactory() for _ in range(4)]
     award2 = FSRSProcurementFactory()
@@ -187,7 +182,7 @@ def test_fetchAndReplaceBatch_saves_data(no_award_db, monkeypatch):
     assert no_award_db.query(FSRSSubcontract).count() == 5
 
 
-def test_fetchAndReplaceBatch_overrides_data(no_award_db, monkeypatch):
+def test_fetch_and_replace_batch_overrides_data(no_award_db, monkeypatch):
     def fetch_duns(award_id):
         return no_award_db.query(FSRSGrant.duns).filter(
             FSRSGrant.id == award_id).one()[0]
