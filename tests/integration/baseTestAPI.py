@@ -4,7 +4,7 @@ from random import randint
 from flask_bcrypt import Bcrypt
 from webtest import TestApp
 
-from dataactbroker.app import create_app as createBrokerApp
+from dataactbroker.app import create_app as create_broker_app
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import create_user_with_password, get_password_hash
 from dataactcore.models.domainModels import CGAC
@@ -18,7 +18,7 @@ from dataactcore.scripts.databaseSetup import create_database, run_migrations
 from dataactcore.config import CONFIG_BROKER, CONFIG_DB
 import dataactcore.config
 from dataactbroker.scripts.setupEmails import setup_emails
-from dataactvalidator.app import create_app as createValidatorApp
+from dataactvalidator.app import create_app as create_validator_app
 from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 from tests.unit.dataactcore.factories.user import UserFactory
 
@@ -31,14 +31,13 @@ class BaseTestAPI(unittest.TestCase):
         """Set up resources to be shared within a test class"""
         cls.session_id = ""
 
-        with createValidatorApp().app_context():
+        with create_validator_app().app_context():
             # update application's db config options so unittests
             # run against test databases
             suite = cls.__name__.lower()
             config = dataactcore.config.CONFIG_DB
             cls.num = randint(1, 9999)
-            config['db_name'] = 'unittest{}_{}_data_broker'.format(
-                cls.num, suite)
+            config['db_name'] = 'unittest{}_{}_data_broker'.format(cls.num, suite)
             dataactcore.config.CONFIG_DB = config
             create_database(CONFIG_DB['db_name'])
             run_migrations()
@@ -88,8 +87,8 @@ class BaseTestAPI(unittest.TestCase):
             create_user_with_password(test_users["admin_user"], admin_password, Bcrypt(), website_admin=True)
             create_user_with_password(test_users["no_permissions_user"], user_password, Bcrypt())
 
-            agencyUser = sess.query(User).filter(User.email == test_users['agency_user']).one()
-            cls.agency_user_id = agencyUser.user_id
+            agency_user = sess.query(User).filter(User.email == test_users['agency_user']).one()
+            cls.agency_user_id = agency_user.user_id
 
             sess.commit()
 
@@ -101,7 +100,7 @@ class BaseTestAPI(unittest.TestCase):
 
     def setUp(self):
         """Set up broker unit tests."""
-        app = createBrokerApp()
+        app = create_broker_app()
         app.config['TESTING'] = True
         app.config['DEBUG'] = False
         self.app = TestApp(app)
@@ -118,8 +117,7 @@ class BaseTestAPI(unittest.TestCase):
     def login_admin_user(self):
         """Log an admin user into broker."""
         # TODO: put user data in pytest fixture; put credentials in config file
-        user = {"username": self.test_users['admin_user'],
-                "password": self.admin_password}
+        user = {"username": self.test_users['admin_user'], "password": self.admin_password}
         response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
         self.session_id = response.headers["x-session-id"]
         return response
@@ -129,8 +127,7 @@ class BaseTestAPI(unittest.TestCase):
         # TODO: put user data in pytest fixture; put credentials in config file
         if username is None:
             username = self.test_users['agency_user']
-        user = {"username": username,
-                "password": self.user_password}
+        user = {"username": username, "password": self.user_password}
         response = self.app.post_json("/v1/login/", user, headers={"x-session-id": self.session_id})
         self.session_id = response.headers["x-session-id"]
         return response
@@ -146,8 +143,7 @@ class BaseTestAPI(unittest.TestCase):
     def check_response(self, response, status, message=None):
         """Perform common tests on API responses."""
         self.assertEqual(response.status_code, status)
-        self.assertEqual(response.headers.get("Content-Type"),
-                         "application/json")
+        self.assertEqual(response.headers.get("Content-Type"), "application/json")
         try:
             self.assertIsInstance(response.json, dict)
         except AttributeError:

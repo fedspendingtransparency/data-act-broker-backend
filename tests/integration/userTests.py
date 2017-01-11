@@ -54,21 +54,19 @@ class UserTests(BaseTestAPI):
         # as "admin user" should fail.
         self.logout()
         self.login_user(self.test_users['agency_user_2'])
-        postJson = {"upload_id": self.uploadId}
+        post_json = {"upload_id": self.uploadId}
         response = self.app.post_json("/v1/finalize_job/",
-                                      postJson, expect_errors=True, headers={"x-session-id": self.session_id})
+                                      post_json, expect_errors=True, headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.CLIENT_ERROR, "Cannot finalize a job for a different agency")
         # Give submission this user's cgac code
         with create_app().app_context():
             sess = GlobalDB.db().session
             submission = sess.query(Submission).filter(Submission.submission_id == self.submission_id).one()
-            user = sess.query(User).\
-                filter_by(email=self.test_users['agency_user_2']).\
-                one()
+            user = sess.query(User).filter_by(email=self.test_users['agency_user_2']).one()
             submission.cgac_code = user.affiliations[0].cgac.cgac_code
             sess.commit()
         response = self.app.post_json("/v1/finalize_job/",
-                                      postJson, expect_errors=True, headers={"x-session-id": self.session_id})
+                                      post_json, expect_errors=True, headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.OK)
         self.logout()
 
@@ -101,27 +99,26 @@ class UserTests(BaseTestAPI):
         self.check_response(response, StatusCode.OK, "Emails successfully sent")
 
         # missing request params
-        badInput = {"users": [self.agency_user_id]}
-        response = self.app.post_json("/v1/email_users/", badInput, expect_errors=True,
+        bad_input = {"users": [self.agency_user_id]}
+        response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
                                       headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.CLIENT_ERROR)
 
         # invalid submission id
-        badInput = {"users": [self.agency_user_id], "submission_id": -1}
-        response = self.app.post_json("/v1/email_users/", badInput, expect_errors=True,
+        bad_input = {"users": [self.agency_user_id], "submission_id": -1}
+        response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
                                       headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.CLIENT_ERROR)
 
         # invalid user id
-        badInput = {"users": [-1], "submission_id": self.submission_id,
-                    "email_template": "review_submission"}
-        response = self.app.post_json("/v1/email_users/", badInput, expect_errors=True,
+        bad_input = {"users": [-1], "submission_id": self.submission_id, "email_template": "review_submission"}
+        response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
                                       headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.INTERNAL_ERROR)
 
         # invalid email template
-        badInput = {"users": [self.agency_user_id], "submission_id": self.submission_id,
-                    "email_template": "not_a_real_template"}
-        response = self.app.post_json("/v1/email_users/", badInput, expect_errors=True,
+        bad_input = {"users": [self.agency_user_id], "submission_id": self.submission_id,
+                     "email_template": "not_a_real_template"}
+        response = self.app.post_json("/v1/email_users/", bad_input, expect_errors=True,
                                       headers={"x-session-id": self.session_id})
         self.check_response(response, StatusCode.INTERNAL_ERROR)

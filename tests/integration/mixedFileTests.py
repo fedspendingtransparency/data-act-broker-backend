@@ -36,9 +36,9 @@ class MixedFileTests(BaseTestValidator):
 
             # next three jobs belong to the same submission and are tests
             # for single-file validations that contain failing rows
-            submission_id = cls.insertSubmission(sess, user)
+            submission_id = cls.insert_submission(sess, user)
             job_info = Job(
-                filename=cls.uploadFile("appropMixed.csv", user),
+                filename=cls.upload_file("appropMixed.csv", user),
                 job_status_id=status_ready_id,
                 job_type_id=job_type_csv_id,
                 file_type_id=FILE_TYPE_DICT['appropriations'],
@@ -48,7 +48,7 @@ class MixedFileTests(BaseTestValidator):
             job_dict['mixed'] = job_info.job_id
 
             job_info = Job(
-                filename=cls.uploadFile("programActivityMixed.csv", user),
+                filename=cls.upload_file("programActivityMixed.csv", user),
                 job_status_id=status_ready_id,
                 job_type_id=job_type_csv_id,
                 file_type_id=FILE_TYPE_DICT['program_activity'],
@@ -58,7 +58,7 @@ class MixedFileTests(BaseTestValidator):
             job_dict['programMixed'] = job_info.job_id
 
             job_info = Job(
-                filename=cls.uploadFile("awardMixed.csv", user),
+                filename=cls.upload_file("awardMixed.csv", user),
                 job_status_id=status_ready_id,
                 job_type_id=job_type_csv_id,
                 file_type_id=FILE_TYPE_DICT['award'],
@@ -69,9 +69,9 @@ class MixedFileTests(BaseTestValidator):
 
             # next job tests single-file validations for award_financial
             # (submission has a non-Q1 end date)
-            submission_id = cls.insertSubmission(sess, user, datetime(2015, 3, 15))
+            submission_id = cls.insert_submission(sess, user, datetime(2015, 3, 15))
             job_info = Job(
-                filename=cls.uploadFile("awardFinancialMixed.csv", user),
+                filename=cls.upload_file("awardFinancialMixed.csv", user),
                 job_status_id=status_ready_id,
                 job_type_id=job_type_csv_id,
                 file_type_id=FILE_TYPE_DICT['award_financial'],
@@ -81,9 +81,9 @@ class MixedFileTests(BaseTestValidator):
             job_dict['awardFinMixed'] = job_info.job_id
 
             # job below tests a file that has a mixed-delimiter heading
-            submission_id = cls.insertSubmission(sess, user)
+            submission_id = cls.insert_submission(sess, user)
             job_info = Job(
-                filename=cls.uploadFile("awardMixedDelimiter.csv", user),
+                filename=cls.upload_file("awardMixedDelimiter.csv", user),
                 job_status_id=status_ready_id,
                 job_type_id=job_type_csv_id,
                 file_type_id=FILE_TYPE_DICT['award'],
@@ -93,9 +93,9 @@ class MixedFileTests(BaseTestValidator):
             job_dict['awardMixedDelimiter'] = job_info.job_id
 
             # next five jobs are cross-file and belong to the same submission
-            submission_id = cls.insertSubmission(sess, user)
+            submission_id = cls.insert_submission(sess, user)
             job_info = Job(
-                filename=cls.uploadFile("cross_file_A.csv", user),
+                filename=cls.upload_file("cross_file_A.csv", user),
                 job_status_id=status_ready_id,
                 job_type_id=job_type_csv_id,
                 file_type_id=FILE_TYPE_DICT['appropriations'],
@@ -105,7 +105,7 @@ class MixedFileTests(BaseTestValidator):
             job_dict['crossApprop'] = job_info.job_id
 
             job_info = Job(
-                filename=cls.uploadFile("cross_file_B.csv", user),
+                filename=cls.upload_file("cross_file_B.csv", user),
                 job_status_id=status_ready_id,
                 job_type_id=job_type_csv_id,
                 file_type_id=FILE_TYPE_DICT['program_activity'],
@@ -115,7 +115,7 @@ class MixedFileTests(BaseTestValidator):
             job_dict['crossPgmAct'] = job_info.job_id
 
             job_info = Job(
-                filename=cls.uploadFile("cross_file_C.csv", user),
+                filename=cls.upload_file("cross_file_C.csv", user),
                 job_status_id=status_ready_id,
                 job_type_id=job_type_csv_id,
                 file_type_id=FILE_TYPE_DICT['award_financial'],
@@ -125,7 +125,7 @@ class MixedFileTests(BaseTestValidator):
             job_dict['crossAwardFin'] = job_info.job_id
 
             job_info = Job(
-                filename=cls.uploadFile("cross_file_D2.csv", user),
+                filename=cls.upload_file("cross_file_D2.csv", user),
                 job_status_id=status_ready_id,
                 job_type_id=job_type_csv_id,
                 file_type_id=FILE_TYPE_DICT['award'],
@@ -143,9 +143,9 @@ class MixedFileTests(BaseTestValidator):
             job_dict['crossFile'] = job_info.job_id
 
             # next four jobs test short columns names and belong to the same submission
-            submission_id = cls.insertSubmission(sess, user)
+            submission_id = cls.insert_submission(sess, user)
             job_info = Job(
-                filename=cls.uploadFile("appropValidShortcols.csv", user),
+                filename=cls.upload_file("appropValidShortcols.csv", user),
                 job_status_id=status_ready_id,
                 job_type_id=job_type_csv_id,
                 file_type_id=FILE_TYPE_DICT['appropriations'],
@@ -155,7 +155,7 @@ class MixedFileTests(BaseTestValidator):
             job_dict['appropValidShortcols'] = job_info.job_id
 
             job_info = Job(
-                filename=cls.uploadFile("programActivityMixedShortcols.csv", user),
+                filename=cls.upload_file("programActivityMixedShortcols.csv", user),
                 job_status_id=status_ready_id,
                 job_type_id=job_type_csv_id,
                 file_type_id=FILE_TYPE_DICT['program_activity'],
@@ -165,7 +165,7 @@ class MixedFileTests(BaseTestValidator):
             job_dict['programMixedShortcols'] = job_info.job_id
 
             job_info = Job(
-                filename=cls.uploadFile("awardFinancialMixedShortcols.csv", user),
+                filename=cls.upload_file("awardFinancialMixedShortcols.csv", user),
                 job_status_id=status_ready_id,
                 job_type_id=job_type_csv_id,
                 file_type_id=FILE_TYPE_DICT['award_financial'],
@@ -175,7 +175,7 @@ class MixedFileTests(BaseTestValidator):
             job_dict['awardFinMixedShortcols'] = job_info.job_id
 
             job_info = Job(
-                filename=cls.uploadFile("awardValidShortcols.csv", user),
+                filename=cls.upload_file("awardValidShortcols.csv", user),
                 job_status_id=status_ready_id,
                 job_type_id=job_type_csv_id,
                 file_type_id=FILE_TYPE_DICT['award'],
@@ -197,32 +197,27 @@ class MixedFileTests(BaseTestValidator):
     def test_approp_valid_shortcol(self):
         """Test valid approp job with short colnames."""
         job_id = self.job_dict["appropValidShortcols"]
-        self.passed = self.run_test(
-            job_id, 200, "finished", 63, 10, "complete", 0)
+        self.passed = self.run_test(job_id, 200, "finished", 63, 10, "complete", 0)
 
     def test_approp_mixed(self):
         """Test mixed job with some rows failing."""
         job_id = self.job_dict["mixed"]
-        self.passed = self.run_test(
-            job_id, 200, "finished", 6681, 5, "complete", 27, 7, 656)
+        self.passed = self.run_test(job_id, 200, "finished", 6681, 5, "complete", 27, 7, 656)
 
     def test_program_mixed(self):
         """Test mixed job with some rows failing."""
         job_id = self.job_dict["programMixed"]
-        self.passed = self.run_test(
-            job_id, 200, "finished", 8268, 5, "complete", 46, 24, 7697)
+        self.passed = self.run_test(job_id, 200, "finished", 8268, 5, "complete", 46, 24, 7697)
 
     def test_program_mixed_shortcols(self):
         """Test object class/program activity job with some rows failing & short colnames."""
         job_id = self.job_dict["programMixedShortcols"]
-        self.passed = self.run_test(
-            job_id, 200, "finished", 8268, 5, "complete", 46, 24, 7697)
+        self.passed = self.run_test(job_id, 200, "finished", 8268, 5, "complete", 46, 24, 7697)
 
     def test_award_fin_mixed(self):
         """Test mixed award job with some rows failing."""
         job_id = self.job_dict["awardFinMixed"]
-        self.passed = self.run_test(
-            job_id, 200, "finished", 8661, 5, "complete", 51, 32, 7968)
+        self.passed = self.run_test(job_id, 200, "finished", 8661, 5, "complete", 51, 32, 7968)
 
         with create_app().app_context():
             sess = GlobalDB.db().session
@@ -243,41 +238,37 @@ class MixedFileTests(BaseTestValidator):
     def test_award_fin_mixed_shortcols(self):
         """Test award financial job with some rows failing & short colnames."""
         job_id = self.job_dict["awardFinMixedShortcols"]
-        self.passed = self.run_test(
-            job_id, 200, "finished", 8661, 5, "complete", 51, 32, 7968)
+        self.passed = self.run_test(job_id, 200, "finished", 8661, 5, "complete", 51, 32, 7968)
 
     def test_award_valid_shortcols(self):
         """Test valid award (financial assistance) job with short colnames."""
         job_id = self.job_dict["awardValidShortcols"]
-        self.passed = self.run_test(
-            job_id, 200, "finished", 63, 10, "complete", 0)
+        self.passed = self.run_test(job_id, 200, "finished", 63, 10, "complete", 0)
 
     def test_award_mixed(self):
         """Test mixed job with some rows failing."""
         job_id = self.job_dict["awardMixed"]
-        self.passed = self.run_test(
-            job_id, 200, "finished", 123, 10, "complete", 1, 0, 63)
+        self.passed = self.run_test(job_id, 200, "finished", 123, 10, "complete", 1, 0, 63)
 
     def test_award_mixed_delimiter(self):
         """Test mixed job with mixed delimiter"""
         job_id = self.job_dict["awardMixedDelimiter"]
-        self.passed = self.run_test(
-            job_id, 400, "invalid", False, False, "header_error", 0)
+        self.passed = self.run_test(job_id, 400, "invalid", False, False, "header_error", 0)
 
     def test_cross_file(self):
         cross_id = self.job_dict["crossFile"]
         # Run jobs for A, B, C, and D2, then cross file validation job
         # Note: test files used for cross validation use the short column names
         # as a way to ensure those are handled correctly by the validator
-        award_fin_resp = self.validateJob(self.job_dict["crossAwardFin"])
+        award_fin_resp = self.validate_job(self.job_dict["crossAwardFin"])
         self.assertEqual(award_fin_resp.status_code, 200, msg=str(award_fin_resp.json))
-        award_resp = self.validateJob(self.job_dict["crossAward"])
+        award_resp = self.validate_job(self.job_dict["crossAward"])
         self.assertEqual(award_resp.status_code, 200, msg=str(award_resp.json))
-        approp_resp = self.validateJob(self.job_dict["crossApprop"])
+        approp_resp = self.validate_job(self.job_dict["crossApprop"])
         self.assertEqual(approp_resp.status_code, 200, msg=str(approp_resp.json))
-        pgm_act_resp = self.validateJob(self.job_dict["crossPgmAct"])
+        pgm_act_resp = self.validate_job(self.job_dict["crossPgmAct"])
         self.assertEqual(pgm_act_resp.status_code, 200, msg=str(pgm_act_resp.json))
-        cross_file_resp = self.validateJob(cross_id)
+        cross_file_resp = self.validate_job(cross_id)
         self.assertEqual(cross_file_resp.status_code, 200, msg=str(cross_file_resp.json))
 
         with create_app().app_context():
@@ -293,19 +284,15 @@ class MixedFileTests(BaseTestValidator):
             # Check that cross file validation report exists and is the right size
             submission_id = job.submission_id
             size_path_pairs = [
-                (89, report_file_name(submission_id, False, "appropriations",
-                                      "program_activity")),
-                (89, report_file_name(submission_id, False, "award_financial",
-                                      "award")),
-                (2363, report_file_name(submission_id, True, "appropriations",
-                                        "program_activity")),
-                (89, report_file_name(submission_id, True, "award_financial",
-                                      "award")),
+                (89, report_file_name(submission_id, False, "appropriations", "program_activity")),
+                (89, report_file_name(submission_id, False, "award_financial", "award")),
+                (2363, report_file_name(submission_id, True, "appropriations", "program_activity")),
+                (89, report_file_name(submission_id, True, "award_financial", "award")),
             ]
 
         for size, path in size_path_pairs:
             if self.local:
-                self.assertFileSizeAppxy(size, path)
+                self.assert_file_size_appxy(size, path)
             else:
                 self.assertGreater(
                     S3UrlHandler.get_file_size("errors/" + path), size - 5)
