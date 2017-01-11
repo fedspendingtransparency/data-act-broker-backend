@@ -101,29 +101,29 @@ class ValidatorTests(BaseTestValidator):
 
     def test_types(self):
         """Test data type checks."""
-        self.assertTrue(Validator.checkType("1234Test", "STRING"))
-        self.assertFalse(Validator.checkType("1234Test", "INT"))
-        self.assertFalse(Validator.checkType("1234Test", "DECIMAL"))
-        self.assertFalse(Validator.checkType("1234Test", "BOOLEAN"))
-        self.assertFalse(Validator.checkType("1234Test", "LONG"))
+        self.assertTrue(Validator.check_type("1234Test", "STRING"))
+        self.assertFalse(Validator.check_type("1234Test", "INT"))
+        self.assertFalse(Validator.check_type("1234Test", "DECIMAL"))
+        self.assertFalse(Validator.check_type("1234Test", "BOOLEAN"))
+        self.assertFalse(Validator.check_type("1234Test", "LONG"))
 
-        self.assertTrue(Validator.checkType("", "STRING"))
-        self.assertTrue(Validator.checkType("", "INT"))
-        self.assertTrue(Validator.checkType("", "DECIMAL"))
-        self.assertTrue(Validator.checkType("", "BOOLEAN"))
-        self.assertTrue(Validator.checkType("", "LONG"))
+        self.assertTrue(Validator.check_type("", "STRING"))
+        self.assertTrue(Validator.check_type("", "INT"))
+        self.assertTrue(Validator.check_type("", "DECIMAL"))
+        self.assertTrue(Validator.check_type("", "BOOLEAN"))
+        self.assertTrue(Validator.check_type("", "LONG"))
 
-        self.assertTrue(Validator.checkType("01234", "STRING"))
-        self.assertTrue(Validator.checkType("01234", "INT"))
-        self.assertTrue(Validator.checkType("01234", "DECIMAL"))
-        self.assertTrue(Validator.checkType("01234", "LONG"))
-        self.assertFalse(Validator.checkType("01234", "BOOLEAN"))
+        self.assertTrue(Validator.check_type("01234", "STRING"))
+        self.assertTrue(Validator.check_type("01234", "INT"))
+        self.assertTrue(Validator.check_type("01234", "DECIMAL"))
+        self.assertTrue(Validator.check_type("01234", "LONG"))
+        self.assertFalse(Validator.check_type("01234", "BOOLEAN"))
 
-        self.assertTrue(Validator.checkType("1234.0", "STRING"))
-        self.assertFalse(Validator.checkType("1234.0", "INT"))
-        self.assertTrue(Validator.checkType("1234.00", "DECIMAL"))
-        self.assertFalse(Validator.checkType("1234.0", "LONG"))
-        self.assertFalse(Validator.checkType("1234.0", "BOOLEAN"))
+        self.assertTrue(Validator.check_type("1234.0", "STRING"))
+        self.assertFalse(Validator.check_type("1234.0", "INT"))
+        self.assertTrue(Validator.check_type("1234.00", "DECIMAL"))
+        self.assertFalse(Validator.check_type("1234.0", "LONG"))
+        self.assertFalse(Validator.check_type("1234.0", "BOOLEAN"))
 
     def test_schema_optional_field(self):
         """Test optional fields."""

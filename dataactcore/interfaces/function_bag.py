@@ -157,7 +157,7 @@ def write_file_error(job_id, filename, error_type, extra_info=None):
     file_rec = create_file_if_needed(job_id, filename)
 
     # Mark error type and add header info if present
-    file_rec.file_status_id = FILE_STATUS_DICT[ValidationError.getErrorTypeString(error_type)]
+    file_rec.file_status_id = FILE_STATUS_DICT[ValidationError.get_error_type_string(error_type)]
     if extra_info is not None:
         if "missing_headers" in extra_info:
             file_rec.headers_missing = extra_info["missing_headers"]
