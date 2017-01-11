@@ -158,15 +158,15 @@ def no_award_db(database):
 
 
 def test_next_id_default(no_award_db):
-    assert FSRSProcurement.nextId(no_award_db) == 0
+    assert FSRSProcurement.next_id(no_award_db) == 0
 
 
 def test_next_id(no_award_db):
     no_award_db.add_all([FSRSProcurementFactory(id=5), FSRSProcurementFactory(id=3), FSRSGrantFactory(id=2)])
     no_award_db.commit()
 
-    assert 6 == FSRSProcurement.nextId(no_award_db)
-    assert 3 == FSRSGrant.nextId(no_award_db)
+    assert 6 == FSRSProcurement.next_id(no_award_db)
+    assert 3 == FSRSGrant.next_id(no_award_db)
 
 
 def test_fetch_and_replace_batch_saves_data(no_award_db, monkeypatch):

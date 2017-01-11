@@ -195,7 +195,7 @@ def fetch_and_replace_batch(sess, service_type, min_id=None):
     Returns the award models"""
     model = SERVICE_MODEL[service_type]
     if min_id is None:
-        min_id = model.nextId(sess)
+        min_id = model.next_id(sess)
 
     awards = list(retrieve_batch(service_type, min_id))
     ids = [a.id for a in awards]

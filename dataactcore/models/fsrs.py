@@ -72,7 +72,7 @@ class _PrimeAwardAttributes:
     report_period_year = Column(String)
 
     @classmethod
-    def nextId(cls, sess):
+    def next_id(cls, sess):
         """We'll often want to load "new" data -- anything with a later id
         than the awards we have. Return that max id"""
         current = sess.query(func.max(cls.id)).one()[0] or -1
