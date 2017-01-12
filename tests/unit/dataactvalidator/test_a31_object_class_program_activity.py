@@ -1,5 +1,5 @@
 from tests.unit.dataactcore.factories.staging import ObjectClassProgramActivityFactory
-from tests.unit.dataactvalidator.utils import number_of_errors,query_columns
+from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
 _FILE = 'a31_object_class_program_activity'
@@ -17,9 +17,9 @@ def test_success(database):
     """ Tests that Beginning Period of Availability and Ending Period of Availability are blank
     if Availability Type Code = X """
     op1 = ObjectClassProgramActivityFactory(availability_type_code='x', beginning_period_of_availa=None,
-                                ending_period_of_availabil=None)
+                                            ending_period_of_availabil=None)
     op2 = ObjectClassProgramActivityFactory(availability_type_code='X', beginning_period_of_availa=None,
-                                ending_period_of_availabil=None)
+                                            ending_period_of_availabil=None)
 
     assert number_of_errors(_FILE, database, models=[op1, op2]) == 0
 
@@ -28,16 +28,16 @@ def test_failure(database):
     """ Tests that Beginning Period of Availability and Ending Period of Availability are not blank
     if Availability Type Code = X """
     op1 = ObjectClassProgramActivityFactory(availability_type_code='x', beginning_period_of_availa='Today',
-                                ending_period_of_availabil='Today')
+                                            ending_period_of_availabil='Today')
     op2 = ObjectClassProgramActivityFactory(availability_type_code='x', beginning_period_of_availa='Today',
-                                ending_period_of_availabil=None)
+                                            ending_period_of_availabil=None)
     op3 = ObjectClassProgramActivityFactory(availability_type_code='x', beginning_period_of_availa=None,
-                                ending_period_of_availabil='Today')
+                                            ending_period_of_availabil='Today')
     op4 = ObjectClassProgramActivityFactory(availability_type_code='X', beginning_period_of_availa='Today',
-                                ending_period_of_availabil='Today')
+                                            ending_period_of_availabil='Today')
     op5 = ObjectClassProgramActivityFactory(availability_type_code='X', beginning_period_of_availa='Today',
-                                ending_period_of_availabil=None)
+                                            ending_period_of_availabil=None)
     op6 = ObjectClassProgramActivityFactory(availability_type_code='X', beginning_period_of_availa=None,
-                                ending_period_of_availabil='Today')
+                                            ending_period_of_availabil='Today')
 
     assert number_of_errors(_FILE, database, models=[op1, op2, op3, op4, op5, op6]) == 6

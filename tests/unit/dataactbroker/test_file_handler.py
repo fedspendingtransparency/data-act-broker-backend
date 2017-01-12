@@ -83,6 +83,7 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
     assert result['submissions'][0]['status'] == "ready"
     delete_models(database, [user, sub, job])
 
+
 def test_list_submissions_failure(database, job_constants, monkeypatch):
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, number_of_errors=1)
@@ -210,7 +211,7 @@ good_dates = [
         reporting_end_date=datetime.strptime('09/2016', '%m/%Y').date())),
     (None, '07/2014', None, SubmissionFactory(
         reporting_start_date=datetime.strptime('08/2013', '%m/%Y').date(),
-        reporting_end_date = datetime.strptime('09/2016', '%m/%Y').date())),
+        reporting_end_date=datetime.strptime('09/2016', '%m/%Y').date())),
     ('01/2010', '03/2010', True, SubmissionFactory(is_quarter_format=False)),
     (None, None, None, SubmissionFactory(
         reporting_start_date=datetime.strptime('09/2016', '%m/%Y').date(),
@@ -222,6 +223,8 @@ good_dates = [
         reporting_end_date=datetime.strptime('12/2016', '%m/%Y').date()
     ))
 ]
+
+
 @pytest.mark.parametrize("start_date, end_date, quarter_flag, submission", good_dates)
 def test_submission_good_dates(start_date, end_date, quarter_flag, submission):
     fh = fileHandler.FileHandler(Mock())
@@ -249,6 +252,8 @@ bad_dates = [
     ('01/2016', '07/2016', True, None),
     (None, '01/1930', False, SubmissionFactory())
 ]
+
+
 @pytest.mark.parametrize("start_date, end_date, quarter_flag, submission", bad_dates)
 def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
     """Verify that submission date checks fail on bad input"""

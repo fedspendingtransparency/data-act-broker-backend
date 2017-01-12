@@ -1,6 +1,7 @@
 import io
 import csv
 
+
 class CsvAbstractWriter(object):
     """
     Writes a CSV to a Files System in a steaming manner
@@ -10,7 +11,7 @@ class CsvAbstractWriter(object):
     BUFFER_SIZE = (5 * 1024 ** 2)
     BATCH_SIZE = 100
 
-    def __init__(self,filename,header) :
+    def __init__(self, header):
         """
 
         args
@@ -22,7 +23,7 @@ class CsvAbstractWriter(object):
         self.rows = []
         self.write(header)
 
-    def write(self,dataList) :
+    def write(self, dataList):
         """
 
         args
@@ -36,7 +37,7 @@ class CsvAbstractWriter(object):
                 data = ""
             strList.append(str(data))
         self.rows.append(strList)
-        if(len(self.rows) > self.BATCH_SIZE):
+        if len(self.rows) > self.BATCH_SIZE:
             self.finishBatch()
 
     def finishBatch(self):
@@ -47,7 +48,7 @@ class CsvAbstractWriter(object):
         self._write(ioStream.getvalue())
         self.rows = []
 
-    def _write(self,data):
+    def _write(self, data):
         """
 
         args
@@ -57,14 +58,14 @@ class CsvAbstractWriter(object):
         """
         raise NotImplementedError("Do not instantiate csvAbstractWriter directly.")
 
-    def __enter__(self) :
+    def __enter__(self):
         return self
 
-    def __exit__(self, type, value, traceback) :
+    def __exit__(self, error_type, value, traceback):
         """
 
         args
-        type - the type of error
+        error_type - the type of error
         value - the value of the error
         traceback - the traceback of the error
 

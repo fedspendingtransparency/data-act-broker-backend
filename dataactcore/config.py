@@ -1,5 +1,4 @@
 import logging
-import os
 import os.path
 from os.path import expanduser, normpath, dirname, abspath
 import yaml
@@ -10,8 +9,8 @@ CONFIG_SERVICES = {}
 CONFIG_DB = {}
 CONFIG_LOGGING = {}
 CONFIG_JOB_QUEUE = {}
-CONFIG_CATEGORIES = {"broker":CONFIG_BROKER, "services":CONFIG_SERVICES, "db":CONFIG_DB,
-                     "logging":CONFIG_LOGGING,"job-queue":CONFIG_JOB_QUEUE}
+CONFIG_CATEGORIES = {"broker": CONFIG_BROKER, "services": CONFIG_SERVICES, "db": CONFIG_DB,
+                     "logging": CONFIG_LOGGING, "job-queue": CONFIG_JOB_QUEUE}
 
 # set the location of the DATA Act broker config files
 CONFIG_PATH = os.path.join(dirname(abspath(__file__)), 'config.yml')
@@ -35,7 +34,7 @@ for config_path in path_list:
             CONFIG_ALL = yaml.load(c) or {}
     except IOError:
         raise IOError('Error reading a config file. Please make sure this file exists'
-           ' before starting the DATA Act broker: {}'.format(config_path))
+                      ' before starting the DATA Act broker: {}'.format(config_path))
 
     for category_name in CONFIG_CATEGORIES:
         CONFIG_CATEGORIES[category_name].update(CONFIG_ALL.get(category_name, {}))
@@ -54,13 +53,14 @@ if CONFIG_BROKER['use_aws'] is True or CONFIG_BROKER['use_aws'] == "true":
             CONFIG_BROKER[k]
         except KeyError as e:
             raise KeyError('Config error: use_aws is True, but the {} key is'
-                ' missing from the config.yml file'.format(k))
+                           ' missing from the config.yml file'.format(k))
         if not CONFIG_BROKER[k]:
             raise ValueError('Config error: use_aws is True but {} value is '
-                 'missing'.format(k))
+                             'missing'.format(k))
 
     help_files_path = CONFIG_BROKER["help_files_path"]
-    CONFIG_BROKER["help_files_path"] = "".join([help_files_path, "/"]) if help_files_path[-1] != "/" else help_files_path
+    CONFIG_BROKER["help_files_path"] = "".join([help_files_path, "/"]) if help_files_path[-1] != "/" \
+        else help_files_path
 else:
     CONFIG_BROKER['local'] = True
     CONFIG_BROKER['aws_bucket'] = None
@@ -125,8 +125,8 @@ if "values_to_log" in CONFIG_LOGGING:
         category = CONFIG_CATEGORIES[category_yaml_name]
         category_message = "### {}".format(category_yaml_name)
         for key in CONFIG_LOGGING["values_to_log"][category_yaml_name]:
-            value = category.get(key,"Value not provided in config")
-            category_message = "{}, {}: {}".format(category_message, key,value)
+            value = category.get(key, "Value not provided in config")
+            category_message = "{}, {}: {}".format(category_message, key, value)
         log_message = " ".join([log_message, category_message])
 # Log config values along with warnings for missing files
 if log_message:

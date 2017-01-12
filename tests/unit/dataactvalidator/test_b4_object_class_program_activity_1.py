@@ -16,16 +16,17 @@ def test_success(database):
     """ Test that calculation passes with equal values and with a null """
 
     value = Decimal('101.23')
-    ocpa = ObjectClassProgramActivityFactory(obligations_delivered_orde_fyb = value,
-                                             ussgl490100_delivered_orde_fyb = value)
-    ocpa_null = ObjectClassProgramActivityFactory(obligations_delivered_orde_fyb = 0,
-                                                  ussgl490100_delivered_orde_fyb = None)
+    ocpa = ObjectClassProgramActivityFactory(obligations_delivered_orde_fyb=value,
+                                             ussgl490100_delivered_orde_fyb=value)
+    ocpa_null = ObjectClassProgramActivityFactory(obligations_delivered_orde_fyb=0,
+                                                  ussgl490100_delivered_orde_fyb=None)
 
     assert number_of_errors(_FILE, database, models=[ocpa, ocpa_null]) == 0
 
+
 def test_failure(database):
     """ Test that calculation fails for unequal values """
-    ocpa = ObjectClassProgramActivityFactory(obligations_delivered_orde_fyb = Decimal('101.23'),
-                                             ussgl490100_delivered_orde_fyb = Decimal('102.34'))
+    ocpa = ObjectClassProgramActivityFactory(obligations_delivered_orde_fyb=Decimal('101.23'),
+                                             ussgl490100_delivered_orde_fyb=Decimal('102.34'))
 
     assert number_of_errors(_FILE, database, models=[ocpa]) == 1

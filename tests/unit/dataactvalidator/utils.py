@@ -11,7 +11,7 @@ def insert_submission(db, submission):
     return submission.submission_id
 
 
-def error_rows(rule_file, staging_db, submission=None, models=None, assert_num = None):
+def error_rows(rule_file, staging_db, submission=None, models=None, assert_num=None):
     """Insert the models into the database, then run the rule SQL against
     those models. Return the resulting (invalid) rows"""
     if submission is None:
@@ -37,7 +37,7 @@ def error_rows(rule_file, staging_db, submission=None, models=None, assert_num =
     return result
 
 
-def number_of_errors(rule_file, staging_db, submission=None, models=None, assert_num = None):
+def number_of_errors(rule_file, staging_db, submission=None, models=None, assert_num=None):
     return len(error_rows(rule_file, staging_db, submission, models, assert_num))
 
 

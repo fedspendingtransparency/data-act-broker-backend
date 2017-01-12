@@ -19,9 +19,9 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 # Get path from current file location
 dirPath = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-requirementsPath = os.path.join(dirPath,"requirements.txt")
+requirementsPath = os.path.join(dirPath, "requirements.txt")
 # parse_requirements() returns generator of pip.req.InstallRequirement objects
-install_reqs = parse_requirements(requirementsPath,session=PipSession())
+install_reqs = parse_requirements(requirementsPath, session=PipSession())
 
 # Create the list of requirements
 reqs = [str(ir.req) for ir in install_reqs]

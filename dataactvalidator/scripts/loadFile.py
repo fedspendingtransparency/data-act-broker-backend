@@ -41,7 +41,7 @@ def load_cgac(file_name):
     with createApp().app_context():
         sess = GlobalDB.db().session
 
-        models = {cgac.cgac_code:cgac for cgac in sess.query(CGAC)}
+        models = {cgac.cgac_code: cgac for cgac in sess.query(CGAC)}
 
         # read CGAC values from csv
         data = pd.read_csv(file_name, dtype=str)
@@ -54,7 +54,7 @@ def load_cgac(file_name):
         )
         # de-dupe
         data.drop_duplicates(subset=['cgac_code'], inplace=True)
-        
+
         delete_missing_cgacs(models, data)
         update_cgacs(models, data)
         sess.add_all(models.values())
@@ -186,7 +186,7 @@ def loadProgramActivity(filename):
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
-def loadDomainValues(basePath, localProgramActivity = None):
+def loadDomainValues(basePath, localProgramActivity=None):
     """Load all domain value files.
 
     Parameters
@@ -203,8 +203,8 @@ def loadDomainValues(basePath, localProgramActivity = None):
 
     else:
         agency_list_file = os.path.join(basePath,"agency_list.csv")
-        object_class_file = os.path.join(basePath,"object_class.csv")
-        program_activity_file = os.path.join(basePath, "program_activity.csv") 
+        object_class_file = os.path.join(basePath, "object_class.csv")
+        program_activity_file = os.path.join(basePath, "program_activity.csv")
 
     logger.info('Loading CGAC')
     load_cgac(agency_list_file)

@@ -9,8 +9,8 @@ from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.app import createApp
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
-class SQLLoader():
 
+class SQLLoader:
     sql_rules_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "sqlrules")
     headers = ['rule_label', 'rule_description', 'rule_error_message', 'rule_cross_file_flag',
                'file_type', 'severity_name', 'query_name', 'target_file']
@@ -44,11 +44,11 @@ class SQLLoader():
                 for field in rawFieldNames:
                     fieldNames.append(FieldCleaner.cleanString(field))
 
-                unknownFields = set(fieldNames)-set(cls.headers)
+                unknownFields = set(fieldNames) - set(cls.headers)
                 if len(unknownFields) != 0:
                     raise KeyError("".join(["Found unexpected fields: ", str(list(unknownFields))]))
 
-                missingFields = set(cls.headers)-set(fieldNames)
+                missingFields = set(cls.headers) - set(fieldNames)
                 if len(missingFields) != 0:
                     raise ValueError("".join(["Missing required fields: ", str(list(missingFields))]))
 
@@ -56,7 +56,8 @@ class SQLLoader():
                 for row in reader:
                     sql = cls.readSqlStr(row['query_name'])
 
-                    rule_sql = RuleSql(rule_sql=sql, rule_label=row['rule_label'], rule_description=row['rule_description'],
+                    rule_sql = RuleSql(rule_sql=sql, rule_label=row['rule_label'],
+                                       rule_description=row['rule_description'],
                                        rule_error_message=row['rule_error_message'], query_name=row['query_name'])
 
                     # look up file type id

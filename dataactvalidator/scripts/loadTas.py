@@ -127,8 +127,11 @@ def add_existing_id(data):
 
 
 def existing_id(row, existing):
-    """Check for a TASLookup which matches this `row` in the `existing` data.
-    :param existing: Dict[account_num, List[TASLookup]]"""
+    """ Check for a TASLookup which matches this `row` in the `existing` data.
+        Args:
+            row: row to check in
+            existing: Dict[account_num, List[TASLookup]]
+    """
     for potential_match in existing[row['account_num']]:
         if all(row[f] == getattr(potential_match, f) for f in TAS_COMPONENTS):
             return potential_match.tas_id

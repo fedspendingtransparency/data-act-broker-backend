@@ -7,6 +7,7 @@ from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupUserDB import setupUserDB
 from dataactcore.scripts.setupValidationDB import setupValidationDB
 
+
 def setupAllDB():
     """Sets up all databases"""
     createDatabase(CONFIG_DB['db_name'])

@@ -13,9 +13,9 @@ def test_success(database):
     tas = "".join([_TAS, "_success"])
 
     sf_1 = SF133(line=1021, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000")
+                 main_account_code="000", sub_account_code="000")
     sf_2 = SF133(line=1033, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000")
+                 main_account_code="000", sub_account_code="000")
     ap = Appropriation(job_id=1, row_number=1, tas=tas, deobligations_recoveries_r_cpe=2)
 
     models = [sf_1, sf_2, ap]
@@ -29,9 +29,9 @@ def test_failure(database):
     tas = "".join([_TAS, "_failure"])
 
     sf_1 = SF133(line=1021, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000")
+                 main_account_code="000", sub_account_code="000")
     sf_2 = SF133(line=1033, tas=tas, period=1, fiscal_year=2016, amount=1, agency_identifier="sys",
-               main_account_code="000", sub_account_code="000")
+                 main_account_code="000", sub_account_code="000")
     ap = Appropriation(job_id=1, row_number=1, tas=tas, deobligations_recoveries_r_cpe=1)
 
     models = [sf_1, sf_2, ap]

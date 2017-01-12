@@ -5,10 +5,7 @@ from flask import Flask, g
 import pytest
 
 import dataactcore.config
-# Load all models so we can access them through baseModel.Base.metadata
-from dataactcore.models import (    # noqa
-    baseModel, domainModels, fsrs, errorModels, jobModels, stagingModels,
-    userModel, validationModels)
+from dataactcore.models import baseModel
 from dataactcore.scripts import setupJobTrackerDB, setupUserDB
 from dataactcore.scripts.databaseSetup import (
     createDatabase, dropDatabase, runMigrations)
@@ -54,10 +51,12 @@ def database(full_database_setup):
 def job_constants(database):
     setupJobTrackerDB.insertCodes(database.session)
 
+
 @pytest.fixture()
 def user_constants(database):
     setupUserDB.insertCodes(database.session)
     database.session.commit()
+
 
 @pytest.fixture()
 def mock_broker_config_paths(tmpdir):
@@ -77,6 +76,7 @@ def mock_broker_config_paths(tmpdir):
 
     for key in keys_to_replace:
         dataactcore.config.CONFIG_BROKER[key] = original[key]
+
 
 @pytest.fixture
 def test_app(database):
