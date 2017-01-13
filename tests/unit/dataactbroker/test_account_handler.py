@@ -27,6 +27,7 @@ def make_max_dict(group_str):
         }
     }
 
+
 @pytest.mark.usefixtures("user_constants")
 def test_max_login_success(monkeypatch):
     ah = accountHandler.AccountHandler(Mock())
@@ -35,7 +36,7 @@ def test_max_login_success(monkeypatch):
     mock_dict.return_value.safeDictionary.side_effect = {'ticket': '', 'service': ''}
     monkeypatch.setattr(accountHandler, 'RequestDictionary', mock_dict)
 
-    max_dict= {'cas:serviceResponse': {}}
+    max_dict = {'cas:serviceResponse': {}}
     monkeypatch.setattr(accountHandler, 'get_max_dict', Mock(return_value=max_dict))
     config = {'parent_group': 'parent-group'}
     monkeypatch.setattr(accountHandler, 'CONFIG_BROKER', config)
@@ -69,13 +70,14 @@ def test_max_login_failure(monkeypatch):
     mock_dict.return_value.safeDictionary.side_effect = {'ticket': '', 'service': ''}
     monkeypatch.setattr(accountHandler, 'RequestDictionary', mock_dict)
 
-    max_dict= {'cas:serviceResponse': {}}
+    max_dict = {'cas:serviceResponse': {}}
     monkeypatch.setattr(accountHandler, 'get_max_dict', Mock(return_value=max_dict))
     json_response = ah.max_login(Mock())
     error_message = "You have failed to login successfully with MAX"
 
     # Did not get a successful response from MAX
     assert error_message == json.loads(json_response.get_data().decode("utf-8"))['message']
+
 
 @pytest.mark.usefixtures("user_constants")
 def test_set_max_perms(database, monkeypatch):
@@ -108,16 +110,17 @@ def test_set_max_perms(database, monkeypatch):
     database.session.commit()
     assert len(user.affiliations) == 2
     affiliations = list(sorted(user.affiliations,
-                               key=lambda a:a.cgac.cgac_code))
+                               key=lambda a: a.cgac.cgac_code))
     abc_aff, def_aff = affiliations
     assert abc_aff.cgac.cgac_code == 'ABC'
     assert abc_aff.permission_type_id == PERMISSION_TYPE_DICT['reader']
     assert def_aff.cgac.cgac_code == 'DEF'
     assert def_aff.permission_type_id == PERMISSION_TYPE_DICT['submitter']
 
+
 @pytest.mark.usefixtures("user_constants")
 def test_create_session_and_response(database, monkeypatch):
-    cgacs = [CGACFactory(cgac_code=str(i)*3, agency_name=str(i))
+    cgacs = [CGACFactory(cgac_code=str(i) * 3, agency_name=str(i))
              for i in range(3)]
     user = UserFactory(name="my name", title="my title", affiliations=[
         UserAffiliation(cgac=cgacs[1],

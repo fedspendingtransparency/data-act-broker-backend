@@ -12,7 +12,6 @@ class UserFactory(factory.Factory):
     email = fuzzy.FuzzyText()
     name = fuzzy.FuzzyText()
     title = fuzzy.FuzzyText()
-    is_active = True
 
     @classmethod
     def with_cgacs(cls, *cgacs, **kwargs):

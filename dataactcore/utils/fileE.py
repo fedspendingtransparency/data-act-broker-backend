@@ -72,14 +72,15 @@ Row = namedtuple('Row', (
 def sudsToRow(sudsObj):
     """Convert a Suds result object into a Row tuple. This accounts for the
     presence/absence of top-paid officers"""
-    comp = sudsObj.coreData.listOfExecutiveCompensationInformation
+    comp = getattr(sudsObj.coreData, 'listOfExecutiveCompensationInformation',
+                   '')
     officers = []
     officer_data = getattr(comp, 'executiveCompensationDetail', [])
     officer_data = sorted(officer_data, key=attrgetter('compensation'),
                           reverse=True)
     for data in officer_data:
-        officers.append(data.name)
-        officers.append(data.compensation)
+        officers.append(getattr(data, 'name', ''))
+        officers.append(getattr(data, 'compensation', ''))
 
     # Only top 5
     officers = officers[:10]

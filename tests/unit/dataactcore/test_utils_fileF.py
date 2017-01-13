@@ -12,7 +12,7 @@ def test_CopyValues_procurement():
                                FSRSSubcontractFactory(duns='DUNS SUB'),
                                None, None)
     mapper = fileF.CopyValues(procurement='duns')
-    assert mapper(model_row) =='DUNS'
+    assert mapper(model_row) == 'DUNS'
     mapper = fileF.CopyValues(subcontract='duns')
     assert mapper(model_row) == 'DUNS SUB'
     mapper = fileF.CopyValues(grant='duns')

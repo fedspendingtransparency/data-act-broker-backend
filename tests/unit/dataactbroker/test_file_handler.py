@@ -1,5 +1,6 @@
 from datetime import date, datetime
 import json
+import os.path
 from unittest.mock import Mock
 
 import pytest
@@ -81,6 +82,7 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
     assert result['total'] == 1
     assert result['submissions'][0]['status'] == "ready"
     delete_models(database, [user, sub, job])
+
 
 def test_list_submissions_failure(database, job_constants, monkeypatch):
     user = UserFactory(user_id=1)
@@ -209,7 +211,7 @@ good_dates = [
         reporting_end_date=datetime.strptime('09/2016', '%m/%Y').date())),
     (None, '07/2014', None, SubmissionFactory(
         reporting_start_date=datetime.strptime('08/2013', '%m/%Y').date(),
-        reporting_end_date = datetime.strptime('09/2016', '%m/%Y').date())),
+        reporting_end_date=datetime.strptime('09/2016', '%m/%Y').date())),
     ('01/2010', '03/2010', True, SubmissionFactory(is_quarter_format=False)),
     (None, None, None, SubmissionFactory(
         reporting_start_date=datetime.strptime('09/2016', '%m/%Y').date(),
@@ -221,6 +223,8 @@ good_dates = [
         reporting_end_date=datetime.strptime('12/2016', '%m/%Y').date()
     ))
 ]
+
+
 @pytest.mark.parametrize("start_date, end_date, quarter_flag, submission", good_dates)
 def test_submission_good_dates(start_date, end_date, quarter_flag, submission):
     fh = fileHandler.FileHandler(Mock())
@@ -248,6 +252,8 @@ bad_dates = [
     ('01/2016', '07/2016', True, None),
     (None, '01/1930', False, SubmissionFactory())
 ]
+
+
 @pytest.mark.parametrize("start_date, end_date, quarter_flag, submission", bad_dates)
 def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
     """Verify that submission date checks fail on bad input"""
@@ -258,3 +264,42 @@ def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
     fh = fileHandler.FileHandler(Mock())
     with pytest.raises(ResponseException):
         fh.check_submission_dates(start_date, end_date, quarter_flag, submission)
+
+
+def test_submission_to_dict_for_status(database):
+    cgac = CGACFactory(cgac_code='abcdef', agency_name='Age')
+    sub = SubmissionFactory(cgac_code='abcdef', number_of_errors=1234)
+    database.session.add_all([cgac, sub])
+    database.session.commit()
+
+    result = fileHandler.submission_to_dict_for_status(sub)
+    assert result['cgac_code'] == 'abcdef'
+    assert result['agency_name'] == 'Age'
+    assert result['number_of_errors'] == 1234
+
+
+def test_submission_report_url_local(monkeypatch, tmpdir):
+    file_path = str(tmpdir) + os.path.sep
+    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {
+        'local': True, 'broker_files': file_path
+    })
+    json_response = fileHandler.submission_report_url(
+        SubmissionFactory(submission_id=4), True, 'some_file', 'another_file')
+    url = json.loads(json_response.get_data().decode('utf-8'))['url']
+    assert url == os.path.join(
+        file_path, 'submission_4_cross_warning_some_file_another_file.csv')
+
+
+def test_submission_report_url_s3(monkeypatch):
+    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
+    s3UrlHandler = Mock()
+    s3UrlHandler.return_value.getSignedUrl.return_value = 'some/url/here.csv'
+    monkeypatch.setattr(fileHandler, 's3UrlHandler', s3UrlHandler)
+    json_response = fileHandler.submission_report_url(
+        SubmissionFactory(submission_id=2), False, 'some_file', None)
+    url = json.loads(json_response.get_data().decode('utf-8'))['url']
+    assert url == 'some/url/here.csv'
+    assert s3UrlHandler.return_value.getSignedUrl.call_args == (
+        ('errors', 'submission_2_some_file_error_report.csv'),
+        {'method': 'GET'}
+    )

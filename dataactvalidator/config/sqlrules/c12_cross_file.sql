@@ -5,9 +5,7 @@ SELECT
 FROM award_procurement AS ap
 WHERE ap.submission_id = {}
     AND ap.piid IS NOT NULL
-    AND (ap.federal_action_obligation IS NOT NULL
-        AND ap.federal_action_obligation <> ''
-        AND ap.federal_action_obligation <> '0')
+    AND COALESCE(ap.federal_action_obligation, 0) <> 0
     AND NOT EXISTS (
 		SELECT 1
 		FROM award_financial AS af

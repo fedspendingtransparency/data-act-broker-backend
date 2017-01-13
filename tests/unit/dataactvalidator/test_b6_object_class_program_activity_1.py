@@ -26,4 +26,3 @@ def test_failure(database):
     op = ObjectClassProgramActivityFactory(gross_outlays_undelivered_fyb=1, ussgl480200_undelivered_or_fyb=0)
 
     assert number_of_errors(_FILE, database, models=[op]) == 1
-

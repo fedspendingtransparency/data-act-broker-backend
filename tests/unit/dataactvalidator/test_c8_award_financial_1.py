@@ -78,7 +78,3 @@ def test_valid_allocation_transfer_agency(database):
 
     errors = number_of_errors(_FILE, database, models=[af, cgac])
     assert errors == 0
-
-
-
-

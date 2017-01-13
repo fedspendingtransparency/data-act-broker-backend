@@ -41,7 +41,7 @@ def loadCgac(filename):
     with createApp().app_context():
         sess = GlobalDB.db().session
 
-        models = {cgac.cgac_code:cgac for cgac in sess.query(CGAC)}
+        models = {cgac.cgac_code: cgac for cgac in sess.query(CGAC)}
 
         # read CGAC values from csv
         data = pd.read_csv(filename, dtype=str)
@@ -54,7 +54,7 @@ def loadCgac(filename):
         )
         # de-dupe
         data.drop_duplicates(subset=['cgac_code'], inplace=True)
-        
+
         delete_missing_cgacs(models, data)
         update_cgacs(models, data)
         sess.add_all(models.values())
@@ -128,7 +128,7 @@ def loadProgramActivity(filename):
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
-def loadDomainValues(basePath, localProgramActivity = None):
+def loadDomainValues(basePath, localProgramActivity=None):
     """Load all domain value files.
 
     Parameters
@@ -144,9 +144,9 @@ def loadDomainValues(basePath, localProgramActivity = None):
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
 
     else:
-        cgac_file = os.path.join(basePath,"cgac.csv")
-        object_class_file = os.path.join(basePath,"object_class.csv")
-        program_activity_file = os.path.join(basePath, "program_activity.csv") 
+        cgac_file = os.path.join(basePath, "cgac.csv")
+        object_class_file = os.path.join(basePath, "object_class.csv")
+        program_activity_file = os.path.join(basePath, "program_activity.csv")
 
     logger.info('Loading CGAC')
     loadCgac(cgac_file)

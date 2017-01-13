@@ -18,10 +18,9 @@ from dataactcore.models.userModel import User, UserAffiliation
 from dataactcore.models.domainModels import CGAC
 from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
-from dataactcore.interfaces.function_bag import get_email_template, check_correct_password, updateLastLogin
+from dataactcore.interfaces.function_bag import get_email_template, check_correct_password
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.lookups import (
-    PERMISSION_SHORT_DICT, USER_STATUS_DICT)
+from dataactcore.models.lookups import PERMISSION_SHORT_DICT
 
 
 logger = logging.getLogger(__name__)
@@ -35,7 +34,7 @@ class AccountHandler:
     FRONT_END = ""
     # Instance fields include request, response, logFlag, and logFile
 
-    def __init__(self,request, bcrypt=None, isLocal=False):
+    def __init__(self, request, bcrypt=None, isLocal=False):
         """ Creates the Login Handler
 
         Args:
@@ -46,7 +45,7 @@ class AccountHandler:
         self.request = request
         self.bcrypt = bcrypt
 
-    def login(self,session):
+    def login(self, session):
         """
 
         Logs a user in if their password matches
@@ -72,11 +71,11 @@ class AccountHandler:
                 raise ValueError("Invalid username and/or password")
 
             try:
-                if check_correct_password(user,password,self.bcrypt):
+                if check_correct_password(user, password, self.bcrypt):
                     # We have a valid login
 
                     return self.create_session_and_response(session, user)
-                else :
+                else:
                     raise ValueError("Invalid username and/or password")
             except ValueError as ve:
                 LoginSession.logout(session)
@@ -87,16 +86,15 @@ class AccountHandler:
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ValueError as e:
             # Return a 401 for login denied
-            return JsonResponse.error(e,StatusCode.LOGIN_REQUIRED)
+            return JsonResponse.error(e, StatusCode.LOGIN_REQUIRED)
         except Exception as e:
             # Return 500
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
-
-    def max_login(self,session):
+    def max_login(self, session):
         """
 
         Logs a user in if their password matches
@@ -118,7 +116,7 @@ class AccountHandler:
             # Call MAX's serviceValidate endpoint and retrieve the response
             max_dict = get_max_dict(ticket, service)
 
-            if not 'cas:authenticationSuccess' in max_dict['cas:serviceResponse']:
+            if 'cas:authenticationSuccess' not in max_dict['cas:serviceResponse']:
                 raise ValueError("You have failed to login successfully with MAX")
             cas_attrs = max_dict['cas:serviceResponse']['cas:authenticationSuccess']['cas:attributes']
 
@@ -146,8 +144,6 @@ class AccountHandler:
                         user.name = first_name + " " + last_name
                     else:
                         user.name = first_name + " " + middle_name[0] + ". " + last_name
-                    user.user_status_id = user.user_status_id = USER_STATUS_DICT['approved']
-
 
                 set_max_perms(user, cas_attrs['maxAttribute:GroupList'])
 
@@ -161,19 +157,18 @@ class AccountHandler:
 
         except (TypeError, KeyError, NotImplementedError) as e:
             # Return a 400 with appropriate message
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ValueError as e:
             # Return a 401 for login denied
-            return JsonResponse.error(e,StatusCode.LOGIN_REQUIRED)
+            return JsonResponse.error(e, StatusCode.LOGIN_REQUIRED)
         except Exception as e:
             # Return 500
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
     @staticmethod
     def create_session_and_response(session, user):
         """Create a session."""
         LoginSession.login(session, user.user_id)
-        updateLastLogin(user)
         data = json_for_user(user)
         data['message'] = 'Login successful'
         return JsonResponse.create(StatusCode.OK, data)
@@ -201,7 +196,7 @@ class AccountHandler:
         return JsonResponse.create(
             StatusCode.OK,
             {"message": "skip_guide set successfully",
-             "skip_guide":skip_guide}
+             "skip_guide": skip_guide}
         )
 
     def email_users(self, system_email):
@@ -247,7 +242,7 @@ def perms_to_affiliations(perms):
     """Convert a list of perms from MAX to a list of UserAffiliations. Filter
     out and log any malformed perms"""
     available_codes = {
-        cgac.cgac_code:cgac
+        cgac.cgac_code: cgac
         for cgac in GlobalDB.db().session.query(CGAC)
     }
     for perm in perms:
@@ -343,8 +338,7 @@ def logout(session):
 def list_user_emails():
     """ List user names and emails """
     sess = GlobalDB.db().session
-    users = sess.query(User).\
-        filter_by(user_status_id=USER_STATUS_DICT['approved'])
+    users = sess.query(User)
     if not g.user.website_admin:
         relevant_cgacs = [aff.cgac_id for aff in g.user.affiliations]
         subquery = sess.query(UserAffiliation.user_id).\

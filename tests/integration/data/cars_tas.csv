@@ -1,4 +1,4 @@
-ACCT_NUM,ATA,AID,BPOA,EPOA,A,MAIN,SUB,GWA_TAS,GWA_TAS NAME,Agency AID,Agency Name,ADMIN_ORG, Admin Org Name,FR Entity Type Code,FR Entity Description,FIN Type 2,FIN Type 2 Description,Function Code,Function Description,Sub Function Code,Sub Function Description
+ACCT_NUM,ATA,AID,BPOA,EPOA,A,MAIN,SUB,GWA_TAS,GWA_TAS NAME,Agency AID,Agency Name,ADMIN_ORG, Admin Org Name,FR Entity Type Code,FR Entity Description,Financial Indicator Type2,FIN Type 2 Description,Function Code,Function Description,Sub Function Code,Sub Function Description
 0,,19,2016,2016,,113,0,19160113,"Diplomatic and Consular Programs, State",,Department of State,,,,,,800,General Government,801,Legislative functions
 1,,28,,,X,406,0,28X0406,"Supplemental Security Income Program, Social Security Administration",,Social Security Administration,,,,,,800,General Government,801,Legislative functions
 2,,28,,,X,406,0,28X0406,"Supplemental Security Income Program, Social Security Administration",,Social Security Administration,,,,,,800,General Government,801,Legislative functions

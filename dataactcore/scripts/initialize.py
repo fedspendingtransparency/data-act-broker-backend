@@ -30,6 +30,7 @@ def setup_db():
     setupAllDB()
     setupEmails()
 
+
 def create_admin():
     """Create initial admin user."""
     logger.info('Creating admin user')
@@ -46,6 +47,7 @@ def create_admin():
                 admin_email, admin_pass, Bcrypt(), website_admin=True)
     return user
 
+
 def load_tas_lookup():
     """Load/update the TAS table to reflect the latest list."""
     logger.info('Loading TAS')
@@ -58,10 +60,10 @@ def load_sql_rules():
     SQLLoader.loadSql("sqlRules.csv")
 
 
-def load_domain_value_files(basePath):
+def load_domain_value_files(base_path):
     """Load domain values (e.g., CGAC codes, object class, SF-133)."""
     logger.info('Loading domain values')
-    loadDomainValues(basePath)
+    loadDomainValues(base_path)
 
 
 def load_sf133():
@@ -88,7 +90,8 @@ def main():
     parser.add_argument('-db', '--setup_db', help='Create broker database and helper tables', action='store_true')
     parser.add_argument('-a', '--create_admin', help='Create an admin user', action='store_true')
     parser.add_argument('-r', '--load_rules', help='Load SQL-based validation rules', action='store_true')
-    parser.add_argument('-d', '--update_domain', help='load slowly changing domain values such s object class', action='store_true')
+    parser.add_argument('-d', '--update_domain', help='load slowly changing domain values such s object class',
+                        action='store_true')
     parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
     parser.add_argument('-s', '--update_sf133', help='Update broker SF-133 reports', action='store_true')
     parser.add_argument('-v', '--update_validator', help='Update validator schema', action='store_true')

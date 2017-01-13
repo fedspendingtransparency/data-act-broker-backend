@@ -4,6 +4,7 @@ from sqlalchemy import Column, Integer, Text, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 
+
 class FieldType(Base):
     __tablename__ = "field_type"
 
@@ -12,6 +13,7 @@ class FieldType(Base):
     description = Column(Text)
 
     TYPE_DICT = None
+
 
 class FileColumn(Base):
     __tablename__ = "file_columns"
@@ -28,6 +30,7 @@ class FileColumn(Base):
     padded_flag = Column(Boolean, default=False, server_default="False", nullable=False)
     length = Column(Integer)
 
+
 class RuleSeverity(Base):
     __tablename__ = "rule_severity"
 
@@ -36,6 +39,7 @@ class RuleSeverity(Base):
     description = Column(Text, nullable=False)
 
     SEVERITY_DICT = None
+
 
 class RuleSql(Base):
     __tablename__ = "rule_sql"

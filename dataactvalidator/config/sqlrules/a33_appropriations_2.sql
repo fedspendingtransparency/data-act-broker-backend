@@ -1,3 +1,4 @@
+-- Verify that all of the submitted data (from file A) has an associated GTAS
 SELECT DISTINCT approp.row_number,
     approp.allocation_transfer_agency,
 	approp.agency_identifier,

@@ -11,7 +11,7 @@ def setupEmails():
 
         # insert email template types
         typeList = [
-            ('review_submission','')
+            ('review_submission', '')
         ]
         for t in typeList:
             email_id = sess.query(
@@ -25,8 +25,10 @@ def setupEmails():
 
         # insert email templates
 
-        #Submission Review
-        template = "[REV_USER_NAME] has shared a DATA Act broker submission with you. Click <a href='[REV_URL]'>here</a> to review their submission. For questions or comments, please email the DATA Act Broker Helpdesk (DATABroker@fiscal.treasury.gov)."
+        # Submission Review
+        template = ("[REV_USER_NAME] has shared a DATA Act broker submission with you. Click "
+                    "<a href='[REV_URL]'>here</a> to review their submission. For questions or comments, please email "
+                    "the DATA Act Broker Helpdesk (DATABroker@fiscal.treasury.gov).")
         load_email_template(sess, "DATA Act Broker - Submission Ready for Review", template, "review_submission")
 
 

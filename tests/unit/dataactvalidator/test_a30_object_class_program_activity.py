@@ -9,8 +9,8 @@ _FILE = 'a30_object_class_program_activity'
 
 def test_column_headers(database):
     expected_subset = {'row_number', 'allocation_transfer_agency', 'agency_identifier',
-        'beginning_period_of_availa', 'ending_period_of_availabil',
-        'availability_type_code', 'main_account_code', 'sub_account_code'}
+                       'beginning_period_of_availa', 'ending_period_of_availabil',
+                       'availability_type_code', 'main_account_code', 'sub_account_code'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
