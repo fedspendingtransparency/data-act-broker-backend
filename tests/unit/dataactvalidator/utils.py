@@ -22,7 +22,7 @@ def error_rows(rule_file, staging_db, submission=None, models=None, assert_num=N
         models = []
 
     submission_id = insert_submission(staging_db, submission)
-    sql = SQLLoader.readSqlStr(rule_file).format(submission_id)
+    sql = SQLLoader.read_sql_str(rule_file).format(submission_id)
 
     for model in models:
         model.submission_id = submission_id
@@ -42,5 +42,5 @@ def number_of_errors(rule_file, staging_db, submission=None, models=None, assert
 
 
 def query_columns(rule_file, staging_db):
-    sql = SQLLoader.readSqlStr(rule_file).format(randint(1, 9999))
+    sql = SQLLoader.read_sql_str(rule_file).format(randint(1, 9999))
     return staging_db.connection.execute(sql).keys()

@@ -2,7 +2,7 @@ from collections import defaultdict, namedtuple
 from decimal import Decimal, DecimalException
 import logging
 
-from dataactcore.models.lookups import (FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT)
+from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import FlexField
 from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.validation_handlers.validationError import ValidationError
@@ -10,13 +10,9 @@ from dataactcore.interfaces.db import GlobalDB
 
 logger = logging.getLogger(__name__)
 
-Failure = namedtuple('Failure',
-                     ['field', 'description', 'value', 'label', 'severity'])
-ValidationFailure = namedtuple(
-    'ValidationFailure',
-    ['field_name', 'error', 'failed_value', 'row', 'original_label',
-     'file_type_id', 'target_file_id', 'severity_id']
-)
+Failure = namedtuple('Failure', ['field', 'description', 'value', 'label', 'severity'])
+ValidationFailure = namedtuple('ValidationFailure', ['field_name', 'error', 'failed_value', 'row', 'original_label',
+                                                     'file_type_id', 'target_file_id', 'severity_id'])
 
 
 class Validator(object):
@@ -28,41 +24,6 @@ class Validator(object):
                           "object_class_program_activity": "op", "appropriation": "approp"}
     # Set of metadata fields that should not be directly validated
     META_FIELDS = ["row_number"]
-
-    @classmethod
-    def crossValidateSql(cls, rules, submissionId, short_to_long_dict):
-        """ Evaluate all sql-based rules for cross file validation
-
-        Args:
-            rules -- List of Rule objects
-            submissionId -- ID of submission to run cross-file validation
-        """
-        failures = []
-        # Put each rule through evaluate, appending all failures into list
-        conn = GlobalDB.db().connection
-
-        for rule in rules:
-            failedRows = conn.execute(
-                rule.rule_sql.format(submissionId))
-            if failedRows.rowcount:
-                # get list of fields involved in this validation
-                # note: row_number is metadata, not a field being
-                # validated, so exclude it
-                cols = failedRows.keys()
-                cols.remove('row_number')
-                columnString = ", ".join(short_to_long_dict[c] if c in short_to_long_dict else c for c in cols)
-                for row in failedRows:
-                    # get list of values for each column
-                    values = ["{}: {}".format(short_to_long_dict[c], str(row[c])) if c in short_to_long_dict else
-                              "{}: {}".format(c, str(row[c])) for c in cols]
-                    values = ", ".join(values)
-                    targetFileType = FILE_TYPE_DICT_ID[rule.target_file_id]
-                    failures.append([rule.file.name, targetFileType, columnString,
-                                    str(rule.rule_error_message), values, row['row_number'], str(rule.rule_label),
-                                    rule.file_id, rule.target_file_id, rule.rule_severity_id])
-
-        # Return list of cross file validation failures
-        return failures
 
     @classmethod
     def validate(cls, record, csv_schema):
@@ -90,8 +51,7 @@ class Validator(object):
             if csv_schema[field_name].required and field_name not in record:
                 return (
                     False,
-                    [Failure(field_name, ValidationError.requiredError, "",
-                             "", "fatal")],
+                    [Failure(field_name, ValidationError.requiredError, "", "", "fatal")],
                     False
                 )
 
@@ -114,24 +74,18 @@ class Validator(object):
                 if current_schema.required:
                     # If empty and required return field name and error
                     record_failed = True
-                    failed_rules.append(Failure(
-                        field_name, ValidationError.requiredError, "", "",
-                        "fatal"
-                    ))
+                    failed_rules.append(Failure(field_name, ValidationError.requiredError, "", "", "fatal"))
                     continue
                 else:
                     # If field is empty and not required its valid
                     check_required_only = True
 
             # Always check the type in the schema
-            if not check_required_only and not Validator.checkType(current_data,
-                                                                   FIELD_TYPE_DICT_ID[current_schema.field_types_id]):
+            if not check_required_only and not Validator.check_type(current_data,
+                                                                    FIELD_TYPE_DICT_ID[current_schema.field_types_id]):
                 record_type_failure = True
                 record_failed = True
-                failed_rules.append(Failure(
-                    field_name, ValidationError.typeError, current_data, "",
-                    "fatal"
-                ))
+                failed_rules.append(Failure(field_name, ValidationError.typeError, current_data, "", "fatal"))
                 # Don't check value rules if type failed
                 continue
 
@@ -140,10 +94,7 @@ class Validator(object):
                len(current_data.strip()) > current_schema.length:
                 # Length failure, add to failedRules
                 record_failed = True
-                failed_rules.append(Failure(
-                    field_name, ValidationError.lengthError, current_data, "",
-                    "warning"
-                ))
+                failed_rules.append(Failure(field_name, ValidationError.lengthError, current_data, "", "warning"))
 
         # if all columns are blank (empty row), set it so it doesn't add to the error messages or write the line,
         # just ignore it
@@ -153,7 +104,7 @@ class Validator(object):
         return (not record_failed), failed_rules, (not record_type_failure)
 
     @staticmethod
-    def checkType(data, datatype):
+    def check_type(data, datatype):
         """ Determine whether data is of the correct type
 
         Args:
@@ -195,61 +146,83 @@ class Validator(object):
                 return False
         raise ValueError("".join(["Data Type Error, Type: ", datatype, ", Value: ", data]))
 
-    @classmethod
-    def validateFileBySql(cls, job, fileType, short_to_long_dict):
-        """ Check all SQL rules
 
-        Args:
-            job: the Job which is running
-            fileType: file type being checked
-            short_to_long_dict: mapping of short to long schema column names
+def cross_validate_sql(rules, submission_id, short_to_long_dict):
+    """ Evaluate all sql-based rules for cross file validation
 
-        Returns:
-            List of ValidationFailures
-        """
+    Args:
+        rules -- List of Rule objects
+        submission_id -- ID of submission to run cross-file validation
+    """
+    failures = []
+    # Put each rule through evaluate, appending all failures into list
+    conn = GlobalDB.db().connection
 
-        logger.info(
-            'VALIDATOR_INFO: Beginning SQL validation rules on job %s,'
-            '(submission: %s, fileType: %s)',
-            job.job_id, job.submission_id, fileType
-        )
-        sess = GlobalDB.db().session
+    for rule in rules:
+        failed_rows = conn.execute(
+            rule.rule_sql.format(submission_id))
+        if failed_rows.rowcount:
+            # get list of fields involved in this validation
+            # note: row_number is metadata, not a field being
+            # validated, so exclude it
+            cols = failed_rows.keys()
+            cols.remove('row_number')
+            column_string = ", ".join(short_to_long_dict[c] if c in short_to_long_dict else c for c in cols)
+            for row in failed_rows:
+                # get list of values for each column
+                values = ["{}: {}".format(short_to_long_dict[c], str(row[c])) if c in short_to_long_dict else
+                          "{}: {}".format(c, str(row[c])) for c in cols]
+                values = ", ".join(values)
+                target_file_type = FILE_TYPE_DICT_ID[rule.target_file_id]
+                failures.append([rule.file.name, target_file_type, column_string,
+                                str(rule.rule_error_message), values, row['row_number'], str(rule.rule_label),
+                                rule.file_id, rule.target_file_id, rule.rule_severity_id])
 
-        # Pull all SQL rules for this file type
-        file_id = FILE_TYPE_DICT[fileType]
-        rules = sess.query(RuleSql).filter_by(
-            file_id=file_id, rule_cross_file_flag=False)
-        errors = []
+    # Return list of cross file validation failures
+    return failures
 
-        # For each rule, execute sql for rule
-        for rule in rules:
-            logger.info(
-                'VALIDATOR_INFO: Running query: %s on job %s',
-                rule.query_name, job.job_id)
-            failures = sess.execute(rule.rule_sql.format(job.submission_id))
-            if failures.rowcount:
-                # Create column list (exclude row_number)
-                cols = failures.keys()
-                cols.remove("row_number")
-                col_headers = [short_to_long_dict.get(field, field)
-                               for field in cols]
 
-                # materialize as we'll iterate over the failures twice
-                failures = list(failures)
-                flex_data = relevant_flex_data(failures, job.job_id)
+def validate_file_by_sql(job, file_type, short_to_long_dict):
+    """ Check all SQL rules
 
-                errors.extend(
-                    failure_row_to_tuple(
-                        rule, flex_data, cols, col_headers, file_id, failure)
-                    for failure in failures
-                )
+    Args:
+        job: the Job which is running
+        file_type: file type being checked
+        short_to_long_dict: mapping of short to long schema column names
 
-            logger.info(
-                'VALIDATOR_INFO: Completed SQL validation query %s on job %s',
-                rule.query_name, job.job_id
-            )
+    Returns:
+        List of ValidationFailures
+    """
 
-        return errors
+    logger.info('VALIDATOR_INFO: Beginning SQL validation rules on job %s, (submission: %s, fileType: %s)',
+                job.job_id, job.submission_id, file_type)
+    sess = GlobalDB.db().session
+
+    # Pull all SQL rules for this file type
+    file_id = FILE_TYPE_DICT[file_type]
+    rules = sess.query(RuleSql).filter_by(file_id=file_id, rule_cross_file_flag=False)
+    errors = []
+
+    # For each rule, execute sql for rule
+    for rule in rules:
+        logger.info('VALIDATOR_INFO: Running query: %s on job %s', rule.query_name, job.job_id)
+        failures = sess.execute(rule.rule_sql.format(job.submission_id))
+        if failures.rowcount:
+            # Create column list (exclude row_number)
+            cols = failures.keys()
+            cols.remove("row_number")
+            col_headers = [short_to_long_dict.get(field, field) for field in cols]
+
+            # materialize as we'll iterate over the failures twice
+            failures = list(failures)
+            flex_data = relevant_flex_data(failures, job.job_id)
+
+            errors.extend(failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, failure)
+                          for failure in failures)
+
+        logger.info('VALIDATOR_INFO: Completed SQL validation query %s on job %s', rule.query_name, job.job_id)
+
+    return errors
 
 
 def relevant_flex_data(failures, job_id):
@@ -258,26 +231,19 @@ def relevant_flex_data(failures, job_id):
     sess = GlobalDB.db().session
     flex_data = defaultdict(list)
     relevant_rows = {f['row_number'] for f in failures}
-    query = sess.query(FlexField).\
-        filter(FlexField.row_number.in_(relevant_rows),
-               FlexField.job_id == job_id).\
+    query = sess.query(FlexField).filter(FlexField.row_number.in_(relevant_rows), FlexField.job_id == job_id).\
         order_by(FlexField.flex_field_id)
     for flex_field in query:
         flex_data[flex_field.row_number].append(flex_field)
     return flex_data
 
 
-def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id,
-                         sql_failure):
+def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failure):
     """Convert a failure SQL row into a ValidationFailure"""
     row = sql_failure["row_number"]
     # Create strings for fields and values
-    values_list = ["{}: {}".format(header, str(sql_failure[field]))
-                   for field, header in zip(cols, col_headers)]
-    values_list.extend(
-        "{}: {}".format(flex_field.header, flex_field.cell)
-        for flex_field in flex_data[row]
-    )
+    values_list = ["{}: {}".format(header, str(sql_failure[field])) for field, header in zip(cols, col_headers)]
+    values_list.extend("{}: {}".format(flex_field.header, flex_field.cell) for flex_field in flex_data[row])
     field_list = col_headers + [field.header for field in flex_data[row]]
     return ValidationFailure(
         ", ".join(field_list),

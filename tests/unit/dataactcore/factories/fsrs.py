@@ -64,8 +64,7 @@ class _GrantAttributes(_FSRSAttributes):
 
 class _PrimeAwardAttributes(factory.Factory):
     internal_id = fuzzy.FuzzyText()
-    date_submitted = fuzzy.FuzzyDateTime(
-        datetime(2010, 1, 1, tzinfo=timezone.utc))
+    date_submitted = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
     report_period_mon = fuzzy.FuzzyText()
     report_period_year = fuzzy.FuzzyText()
 

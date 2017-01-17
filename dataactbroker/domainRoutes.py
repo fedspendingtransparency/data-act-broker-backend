@@ -19,8 +19,7 @@ def add_domain_routes(app):
             {'agency_name': cgac.agency_name, 'cgac_code': cgac.cgac_code}
             for cgac in cgacs
         ]
-        return JsonResponse.create(StatusCode.OK,
-                                   {'cgac_agency_list': agency_list})
+        return JsonResponse.create(StatusCode.OK, {'cgac_agency_list': agency_list})
 
     @app.route("/v1/list_sub_tier_agencies/", methods=["GET"])
     @get_cgacs
@@ -39,8 +38,8 @@ def add_domain_routes(app):
                 'agency_code': sub_tier_agency.sub_tier_agency_code
             } for sub_tier_agency in sub_tier_agencies
         ]
-        return JsonResponse.create(StatusCode.OK,
-                                   {'sub_tier_agency_list': sub_tier_agency_list})
+        return JsonResponse.create(StatusCode.OK, {'sub_tier_agency_list': sub_tier_agency_list})
+
 
 def get_cgacs(fn):
     """Decorator which provides a list of all CGAC Agencies. The function 

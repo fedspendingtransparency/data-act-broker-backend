@@ -8,8 +8,8 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CGAC, SubTierAgency, ObjectClass, ProgramActivity
-from dataactvalidator.app import createApp
-from dataactvalidator.scripts.loaderUtils import LoaderUtils
+from dataactvalidator.app import create_app
+from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ def update_cgacs(models, new_data):
 
 def load_cgac(file_name):
     """Load CGAC (high-level agency names) lookup table."""
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
 
         models = {cgac.cgac_code: cgac for cgac in sess.query(CGAC)}
@@ -46,7 +46,7 @@ def load_cgac(file_name):
         # read CGAC values from csv
         data = pd.read_csv(file_name, dtype=str)
         # clean data
-        data = LoaderUtils.cleanData(
+        data = clean_data(
             data,
             CGAC,
             {"cgac_agency_code": "cgac_code", "agency_name": "agency_name"},
@@ -88,7 +88,7 @@ def update_sub_tier_agencies(models, new_data, cgac_dict):
 
 def load_sub_tier_agencies(file_name):
     """Load Sub Tier Agency (sub_tier-level agency names) lookup table."""
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
 
         models = {sub_tier_agency.sub_tier_agency_code:sub_tier_agency for sub_tier_agency in sess.query(SubTierAgency)}
@@ -96,7 +96,7 @@ def load_sub_tier_agencies(file_name):
         # read Sub Tier Agency values from csv
         data = pd.read_csv(file_name, dtype=str)
         # clean data
-        data = LoaderUtils.cleanData(
+        data = clean_data(
             data,
             SubTierAgency,
             {
@@ -121,58 +121,50 @@ def load_sub_tier_agencies(file_name):
         logger.info('%s Sub Tier Agency records inserted', len(models))
 
 
-def loadObjectClass(filename):
+def load_object_class(filename):
     """Load object class lookup table."""
     model = ObjectClass
 
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
         # for object class, delete and replace values
         sess.query(model).delete()
 
         data = pd.read_csv(filename, dtype=str)
-        data = LoaderUtils.cleanData(
+        data = clean_data(
             data,
             model,
-            {"max_oc_code": "object_class_code",
-             "max_object_class_name": "object_class_name"},
+            {"max_oc_code": "object_class_code", "max_object_class_name": "object_class_name"},
             {}
         )
         # de-dupe
         data.drop_duplicates(subset=['object_class_code'], inplace=True)
         # insert to db
         table_name = model.__table__.name
-        num = LoaderUtils.insertDataframe(data, table_name, sess.connection())
+        num = insert_dataframe(data, table_name, sess.connection())
         sess.commit()
 
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
-def loadProgramActivity(filename):
+def load_program_activity(filename):
     """Load program activity lookup table."""
     model = ProgramActivity
 
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
 
         # for program activity, delete and replace values??
         sess.query(model).delete()
 
         data = pd.read_csv(filename, dtype=str)
-        data = LoaderUtils.cleanData(
+        data = clean_data(
             data,
             model,
-            {"year": "budget_year",
-             "agency_id": "agency_id",
-             "alloc_id": "allocation_transfer_id",
-             "account": "account_number",
-             "pa_code": "program_activity_code",
-             "pa_name": "program_activity_name"},
-            {"program_activity_code": {"pad_to_length": 4},
-             "agency_id": {"pad_to_length": 3},
-             "allocation_transfer_id": {"pad_to_length": 3, "keep_null": True},
-             "account_number": {"pad_to_length": 4}
-             }
+            {"year": "budget_year", "agency_id": "agency_id", "alloc_id": "allocation_transfer_id",
+             "account": "account_number", "pa_code": "program_activity_code", "pa_name": "program_activity_name"},
+            {"program_activity_code": {"pad_to_length": 4}, "agency_id": {"pad_to_length": 3},
+             "allocation_transfer_id": {"pad_to_length": 3, "keep_null": True}, "account_number": {"pad_to_length": 4}}
         )
         # because we're only loading a subset of program activity info,
         # there will be duplicate records in the dataframe. this is ok,
@@ -180,19 +172,19 @@ def loadProgramActivity(filename):
         data.drop_duplicates(inplace=True)
         # insert to db
         table_name = model.__table__.name
-        num = LoaderUtils.insertDataframe(data, table_name, sess.connection())
+        num = insert_dataframe(data, table_name, sess.connection())
         sess.commit()
 
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
-def loadDomainValues(basePath, localProgramActivity=None):
+def load_domain_values(base_path, local_program_activity=None):
     """Load all domain value files.
 
     Parameters
     ----------
-        basePath : directory that contains the domain values files.
-        localProgramActivity : optional location of the program activity file (None = use basePath)
+        base_path : directory that contains the domain values files.
+        local_program_activity : optional location of the program activity file (None = use basePath)
     """
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
@@ -202,26 +194,24 @@ def loadDomainValues(basePath, localProgramActivity=None):
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
 
     else:
-        agency_list_file = os.path.join(basePath,"agency_list.csv")
-        object_class_file = os.path.join(basePath, "object_class.csv")
-        program_activity_file = os.path.join(basePath, "program_activity.csv")
+        agency_list_file = os.path.join(base_path,"agency_list.csv")
+        object_class_file = os.path.join(base_path, "object_class.csv")
+        program_activity_file = os.path.join(base_path, "program_activity.csv")
 
     logger.info('Loading CGAC')
     load_cgac(agency_list_file)
     logger.info('Loading Sub Tier Agencies')
     load_sub_tier_agencies(agency_list_file)
     logger.info('Loading object class')
-    loadObjectClass(object_class_file)
+    load_object_class(object_class_file)
     logger.info('Loading program activity')
 
-    if localProgramActivity is not None:
-        loadProgramActivity(localProgramActivity)
+    if local_program_activity is not None:
+        load_program_activity(local_program_activity)
     else:
-        loadProgramActivity(program_activity_file)
+        load_program_activity(program_activity_file)
 
 
 if __name__ == '__main__':
     configure_logging()
-    loadDomainValues(
-        os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
-    )
+    load_domain_values(os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config"))

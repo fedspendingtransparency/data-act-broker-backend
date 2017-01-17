@@ -1,24 +1,24 @@
 from dataactcore.config import CONFIG_DB
 from dataactcore.logging import configure_logging
-from dataactcore.scripts.databaseSetup import createDatabase, runMigrations
-from dataactcore.scripts.setupErrorDB import setupErrorDB
-from dataactcore.scripts.setupJobQueueDB import setupJobQueueDB
-from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
-from dataactcore.scripts.setupUserDB import setupUserDB
-from dataactcore.scripts.setupValidationDB import setupValidationDB
+from dataactcore.scripts.databaseSetup import create_database, run_migrations
+from dataactcore.scripts.setupErrorDB import setup_error_db
+from dataactcore.scripts.setupJobQueueDB import setup_job_queue_db
+from dataactcore.scripts.setupJobTrackerDB import setup_job_tracker_db
+from dataactcore.scripts.setupUserDB import setup_user_db
+from dataactcore.scripts.setupValidationDB import setup_validation_db
 
 
-def setupAllDB():
+def setup_all_db():
     """Sets up all databases"""
-    createDatabase(CONFIG_DB['db_name'])
-    runMigrations()
-    setupJobTrackerDB()
-    setupErrorDB()
-    setupUserDB()
-    setupJobQueueDB()
-    setupValidationDB()
+    create_database(CONFIG_DB['db_name'])
+    run_migrations()
+    setup_job_tracker_db()
+    setup_error_db()
+    setup_user_db()
+    setup_job_queue_db()
+    setup_validation_db()
 
 
 if __name__ == '__main__':
     configure_logging()
-    setupAllDB()
+    setup_all_db()
