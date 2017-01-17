@@ -131,7 +131,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.check_generation(submission, file_type)
 
-    @app.route("/v1/complete_generation/<generationId>/", methods=["POST"])
+    @app.route("/v1/complete_generation/<generation_id>/", methods=["POST"])
     def complete_generation(generation_id):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.complete_generation(generation_id)

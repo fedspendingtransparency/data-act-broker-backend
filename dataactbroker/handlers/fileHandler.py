@@ -744,7 +744,7 @@ class FileHandler:
         Requires an 'href' key in the request that specifies the URL of the file to be downloaded
 
         Args:
-            generationId - Unique key stored in file_generation_task table, used in callback to
+            generation_id - Unique key stored in file_generation_task table, used in callback to
                 identify which submission this file is for.
             file_type - the type of file to be generated, D1 or D2. Only used when calling
                 complete_generation for local development
@@ -753,8 +753,7 @@ class FileHandler:
         sess = GlobalDB.db().session
         try:
             if generation_id is None:
-                raise ResponseException(
-                    "Must include a generation ID", StatusCode.CLIENT_ERROR)
+                raise ResponseException("Must include a generation ID", StatusCode.CLIENT_ERROR)
 
             if not self.isLocal:
                 # Pull url from request
@@ -762,10 +761,7 @@ class FileHandler:
                 logger.debug('Request content => %s', request_dict)
 
                 if 'href' not in request_dict:
-                    raise ResponseException(
-                        "Request must include href key with URL of D file",
-                        StatusCode.CLIENT_ERROR
-                    )
+                    raise ResponseException("Request must include href key with URL of D file", StatusCode.CLIENT_ERROR)
 
                 url = request_dict['href']
                 logger.debug('Download URL => %s', url)
