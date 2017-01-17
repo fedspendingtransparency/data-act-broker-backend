@@ -64,8 +64,7 @@ def load_cgac(file_name):
 
 
 def delete_missing_sub_tier_agencies(models, new_data):
-    """If the new file doesn't contain Sub Tier Agencies we had before, we 
-    should delete the non-existent ones"""
+    """If the new file doesn't contain Sub Tier Agencies we had before, we should delete the non-existent ones"""
     to_delete = set(models.keys()) - set(new_data['sub_tier_agency_code'])
     sess = GlobalDB.db().session
     if to_delete:
@@ -91,7 +90,8 @@ def load_sub_tier_agencies(file_name):
     with create_app().app_context():
         sess = GlobalDB.db().session
 
-        models = {sub_tier_agency.sub_tier_agency_code:sub_tier_agency for sub_tier_agency in sess.query(SubTierAgency)}
+        models = {sub_tier_agency.sub_tier_agency_code: sub_tier_agency for
+                  sub_tier_agency in sess.query(SubTierAgency)}
 
         # read Sub Tier Agency values from csv
         data = pd.read_csv(file_name, dtype=str)
@@ -100,10 +100,10 @@ def load_sub_tier_agencies(file_name):
             data,
             SubTierAgency,
             {
-                "cgac_agency_code": "cgac_code", 
+                "cgac_agency_code": "cgac_code",
                 "sub_tier_code": "sub_tier_agency_code",
                 "sub_tier_name": "sub_tier_agency_name",
-            },{
+            }, {
                 "cgac_code": {"pad_to_length": 3},
                 "sub_tier_agency_code": {"pad_to_length": 4}
             }
@@ -111,8 +111,9 @@ def load_sub_tier_agencies(file_name):
         # de-dupe
         data.drop_duplicates(subset=['sub_tier_agency_code'], inplace=True)
         # create foreign key dict
-        cgac_dict = {str(cgac.cgac_code):cgac.cgac_id for cgac in sess.query(CGAC).filter(CGAC.cgac_code.in_(data["cgac_code"])).all()}
-        
+        cgac_dict = {str(cgac.cgac_code): cgac.cgac_id for
+                     cgac in sess.query(CGAC).filter(CGAC.cgac_code.in_(data["cgac_code"])).all()}
+
         delete_missing_sub_tier_agencies(models, data)
         update_sub_tier_agencies(models, data, cgac_dict)
         sess.add_all(models.values())
@@ -194,7 +195,7 @@ def load_domain_values(base_path, local_program_activity=None):
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
 
     else:
-        agency_list_file = os.path.join(base_path,"agency_list.csv")
+        agency_list_file = os.path.join(base_path, "agency_list.csv")
         object_class_file = os.path.join(base_path, "object_class.csv")
         program_activity_file = os.path.join(base_path, "program_activity.csv")
 

@@ -119,17 +119,15 @@ class CGAC(Base):
     cgac_code = Column(Text, nullable=False, index=True, unique=True)
     agency_name = Column(Text)
 
+
 class SubTierAgency(Base):
     __tablename__ = "sub_tier_agency"
     sub_tier_agency_id = Column(Integer, primary_key=True)
-    sub_tier_agency_code = Column(Text, nullable=False,index=True,unique=True)
+    sub_tier_agency_code = Column(Text, nullable=False, index=True, unique=True)
     sub_tier_agency_name = Column(Text)
-    cgac_id = Column(
-        Integer,
-        ForeignKey("cgac.cgac_id", name='fk_sub_tier_agency_cgac'),
-        nullable=False
-    )
+    cgac_id = Column(Integer, ForeignKey("cgac.cgac_id", name='fk_sub_tier_agency_cgac'), nullable=False)
     cgac = relationship('CGAC', foreign_keys='SubTierAgency.cgac_id')
+
 
 class ObjectClass(Base):
     __tablename__ = "object_class"

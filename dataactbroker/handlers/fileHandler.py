@@ -645,7 +645,7 @@ class FileHandler:
     def upload_detached_file(self, create_credentials):
         """HEY ALISA
         This function is basically just a stolen submit() function that is formatted for an individual D2 file.
-        
+
         Currently, it is failing because of a Access Key issue, which is what I was planning on talking to Nipun about,
         as (locally at least) this information is basically ignored and return just "local" for each attribute.
 
@@ -693,33 +693,30 @@ class FileHandler:
             # convert submission start/end dates from the request into Python date objects
             date_format = '%d/%m/%Y'
             try:
-                submission_data['reporting_start_date'] = datetime.strptime(submission_data['reporting_start_date'], 
-                    date_format).date()
-                submission_data['reporting_end_date'] = datetime.strptime(submission_data['reporting_end_date'], 
-                    date_format).date()
+                submission_data['reporting_start_date'] = datetime.strptime(submission_data['reporting_start_date'],
+                                                                            date_format).date()
+                submission_data['reporting_end_date'] = datetime.strptime(submission_data['reporting_end_date'],
+                                                                          date_format).date()
             except ValueError:
                 raise ResponseException("Date must be provided as DD/MM/YYYY", StatusCode.CLIENT_ERROR, ValueError)
 
             # the front-end is doing date checks, but we'll also do a few server side to ensure everything is correct
             # when clients call the API directly
             if submission_data.get('reporting_start_date') > submission_data.get('reporting_end_date'):
-                raise ResponseException(
-                    "Submission start date {} is after the end date {}".format(
+                raise ResponseException("Submission start date {} is after the end date {}".format(
                         submission_data.get('reporting_start_date'), submission_data.get('reporting_end_date')),
                         StatusCode.CLIENT_ERROR)
 
             submission = create_submission(g.user.user_id, submission_data, existing_submission_obj)
-            cant_edit = (
-                existing_submission and not current_user_can_on_submission('writer', existing_submission_obj)
-            )
+            cant_edit = (existing_submission and not current_user_can_on_submission('writer', existing_submission_obj))
             cant_create = not current_user_can('writer', submission.cgac_code)
             if cant_edit or cant_create:
-                raise ResponseException("User does not have permission to create/modify that submission", 
-                    StatusCode.PERMISSION_DENIED)
+                raise ResponseException("User does not have permission to create/modify that submission",
+                                        StatusCode.PERMISSION_DENIED)
             else:
                 sess.add(submission)
                 sess.commit()
-            
+
             # build fileNameMap to be used in creating jobs
             for file_type in ['award']:
                 # if file_type not included in request, and this is an update to an existing submission, skip it
@@ -727,8 +724,8 @@ class FileHandler:
                     if existing_submission:
                         continue
                     # this is a new submission, all files are required
-                    raise ResponseException("Must include all required files for new submission", 
-                        StatusCode.CLIENT_ERROR)
+                    raise ResponseException("Must include all required files for new submission",
+                                            StatusCode.CLIENT_ERROR)
 
                 file_name = request_params.get(file_type)
                 if file_name:
@@ -753,7 +750,7 @@ class FileHandler:
             if not existing_submission:
                 # don't add external files to existing submission
                 for ext_file_type in ['award']:
-                    file_name = CONFIG_BROKER["".join([ext_file_type,"_file_name"])]
+                    file_name = CONFIG_BROKER["".join([ext_file_type, "_file_name"])]
 
                     if not self.isLocal:
                         upload_name = "{}/{}".format(
@@ -778,7 +775,7 @@ class FileHandler:
                 self.s3manager = S3UrlHandler(CONFIG_BROKER["aws_bucket"])
                 response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
             else:
-                response_dict["credentials"] ={"AccessKeyId": "local", "SecretAccessKey": "local", 
+                response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local",
                                                 "SessionToken": "local", "Expiration": "local"}
 
             print(response_dict)
@@ -787,17 +784,17 @@ class FileHandler:
                 response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]
             else:
                 response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
-            return JsonResponse.create(StatusCode.OK,response_dict)
-        except (ValueError , TypeError, NotImplementedError) as e:
-            return JsonResponse.error(e,StatusCode.CLIENT_ERROR)
+            return JsonResponse.create(StatusCode.OK, response_dict)
+        except (ValueError, TypeError, NotImplementedError) as e:
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
         except ResponseException as e:
             # call error route directly, status code depends on exception
-            return JsonResponse.error(e,e.status)
+            return JsonResponse.error(e, e.status)
         except Exception as e:
             # unexpected exception, this is a 500 server error
-            return JsonResponse.error(e,StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
         except:
-            return JsonResponse.error(Exception("Failed to catch exception"),StatusCode.INTERNAL_ERROR)
+            return JsonResponse.error(Exception("Failed to catch exception"), StatusCode.INTERNAL_ERROR)
 
     @staticmethod
     def check_detached_generation(job_id):

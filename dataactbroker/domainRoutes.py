@@ -34,16 +34,15 @@ def add_domain_routes(app):
             sub_tier_agencies.extend(sess.query(SubTierAgency).filter_by(cgac_id=cgac_id))
 
         sub_tier_agency_list = [
-            {   'agency_name': '{}: {}'.format(sub_tier_agency.cgac.agency_name, sub_tier_agency.sub_tier_agency_name),
-                'agency_code': sub_tier_agency.sub_tier_agency_code
-            } for sub_tier_agency in sub_tier_agencies
+            {'agency_name': '{}: {}'.format(sub_tier_agency.cgac.agency_name, sub_tier_agency.sub_tier_agency_name),
+             'agency_code': sub_tier_agency.sub_tier_agency_code} for sub_tier_agency in sub_tier_agencies
         ]
         return JsonResponse.create(StatusCode.OK, {'sub_tier_agency_list': sub_tier_agency_list})
 
 
 def get_cgacs(fn):
-    """Decorator which provides a list of all CGAC Agencies. The function 
-    should have a cgacs parameter as its first argument.""" 
+    """ Decorator which provides a list of all CGAC Agencies. The function
+    should have a cgacs parameter as its first argument. """
     @wraps(fn)
     def wrapped(*args, **kwargs):
         sess = GlobalDB.db().session
@@ -53,5 +52,6 @@ def get_cgacs(fn):
             cgacs = sess.query(CGAC).all()
         else:
             cgacs = [affil.cgac for affil in g.user.affiliations]
+        print(len(cgacs))
         return fn(cgacs, *args, **kwargs)
     return wrapped
