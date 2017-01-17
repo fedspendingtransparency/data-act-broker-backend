@@ -1,14 +1,13 @@
 from datetime import timedelta
 
 import sqlalchemy as sa
-from sqlalchemy import (
-    Column, Date, ForeignKey, Index, Integer, Numeric, Text, UniqueConstraint)
+from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
 
 
-def concatTas(context):
+def concat_tas(context):
     """Create a concatenated TAS string for insert into database."""
     tas1 = context.current_parameters['allocation_transfer_agency']
     tas1 = tas1 if tas1 else '000'
@@ -29,8 +28,7 @@ def concatTas(context):
 
 
 TAS_COMPONENTS = (
-    'allocation_transfer_agency', 'agency_identifier',
-    'beginning_period_of_availa', 'ending_period_of_availabil',
+    'allocation_transfer_agency', 'agency_identifier', 'beginning_period_of_availa', 'ending_period_of_availabil',
     'availability_type_code', 'main_account_code', 'sub_account_code'
 )
 
@@ -70,8 +68,7 @@ class TASLookup(Base):
     def component_dict(self):
         """We'll often want to copy TAS component fields; this method returns
         a dictionary of field_name to value"""
-        return {field_name: getattr(self, field_name)
-                for field_name in TAS_COMPONENTS}
+        return {field_name: getattr(self, field_name) for field_name in TAS_COMPONENTS}
 
 Index("ix_tas",
       TASLookup.allocation_transfer_agency,
@@ -111,9 +108,7 @@ def matching_cars_subquery(sess, model_class, start_date, end_date):
 
     day_after_end = end_date + timedelta(days=1)
     model_dates = sa.tuple_(start_date, end_date)
-    tas_dates = sa.tuple_(TASLookup.internal_start_date,
-                          sa.func.coalesce(TASLookup.internal_end_date,
-                                           day_after_end))
+    tas_dates = sa.tuple_(TASLookup.internal_start_date, sa.func.coalesce(TASLookup.internal_end_date, day_after_end))
     subquery = subquery.filter(model_dates.op('OVERLAPS')(tas_dates))
     return subquery.as_scalar()
 
@@ -143,15 +138,12 @@ class SF133(Base):
     ending_period_of_availabil = Column(Text)
     main_account_code = Column(Text, nullable=False)
     sub_account_code = Column(Text, nullable=False)
-    tas = Column(Text, nullable=False, default=concatTas)
+    tas = Column(Text, nullable=False, default=concat_tas)
     fiscal_year = Column(Integer, nullable=False)
     period = Column(Integer, nullable=False)
     line = Column(Integer, nullable=False)
     amount = Column(Numeric, nullable=False, default=0, server_default="0")
-    tas_id = Column(
-        Integer,
-        ForeignKey("tas_lookup.tas_id", name='fk_sf_133_tas_lookup'),
-        nullable=True)
+    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_sf_133_tas_lookup'), nullable=True)
     tas_obj = relationship(TASLookup)
 
 Index("ix_sf_133_tas",

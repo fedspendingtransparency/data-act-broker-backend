@@ -28,9 +28,7 @@ def test_list_agencies_limits(monkeypatch, user_constants, domain_app):
 
     result = domain_app.get('/v1/list_agencies/').data.decode('UTF-8')
     result = json.loads(result)
-    assert result['cgac_agency_list'] == [
-        {'agency_name': cgacs[0].agency_name,
-         'cgac_code': cgacs[0].cgac_code}]
+    assert result['cgac_agency_list'] == [{'agency_name': cgacs[0].agency_name, 'cgac_code': cgacs[0].cgac_code}]
 
 
 def test_list_agencies_superuser(database, monkeypatch, domain_app):

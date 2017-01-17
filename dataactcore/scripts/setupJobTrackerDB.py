@@ -2,18 +2,18 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models import lookups
 from dataactcore.models.jobModels import JobStatus, JobType, FileType, PublishStatus
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 
 
-def setupJobTrackerDB():
+def setup_job_tracker_db():
     """Create job tracker tables from model metadata."""
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
-        insertCodes(sess)
+        insert_codes(sess)
         sess.commit()
 
 
-def insertCodes(sess):
+def insert_codes(sess):
     """Create job tracker tables from model metadata."""
 
     # TODO: define these codes as enums in the data model?
@@ -24,8 +24,8 @@ def insertCodes(sess):
 
     # insert job types
     for t in lookups.JOB_TYPE:
-        thisType = JobType(job_type_id=t.id, name=t.name, description=t.desc)
-        sess.merge(thisType)
+        this_type = JobType(job_type_id=t.id, name=t.name, description=t.desc)
+        sess.merge(this_type)
 
     # insert publish status
     for ps in lookups.PUBLISH_STATUS:
@@ -34,16 +34,16 @@ def insertCodes(sess):
 
     # insert file types
     for ft in lookups.FILE_TYPE:
-        fileType = FileType(
+        file_type = FileType(
             file_type_id=ft.id,
             name=ft.name,
             description=ft.desc,
             letter_name=ft.letter,
             file_order=ft.order
         )
-        sess.merge(fileType)
+        sess.merge(file_type)
 
 
 if __name__ == '__main__':
     configure_logging()
-    setupJobTrackerDB()
+    setup_job_tracker_db()

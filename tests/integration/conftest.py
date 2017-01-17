@@ -1,9 +1,9 @@
 from unittest.mock import Mock
 
-from dataactbroker.handlers.aws.sesEmail import sesEmail
+from dataactbroker.handlers.aws.sesEmail import SesEmail
 
 
 def pytest_runtest_setup(item):
-    """Big-ol hack. For the sake of our integration tests, mock out sesEmail.
+    """Big-ol hack. For the sake of our integration tests, mock out SesEmail.
     Ideally, we can be pin-point our mocks in the future"""
-    sesEmail.send = Mock()
+    SesEmail.send = Mock()

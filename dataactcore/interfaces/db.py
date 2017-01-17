@@ -9,8 +9,7 @@ from dataactcore.config import CONFIG_DB
 logger = logging.getLogger(__name__)
 
 
-class _DB(namedtuple('_DB', ['engine', 'connection', 'scoped_session_maker',
-                             'session'])):
+class _DB(namedtuple('_DB', ['engine', 'connection', 'scoped_session_maker', 'session'])):
     """Represents a database connection, from engine to session."""
     def close(self):
         self.session.close()
@@ -28,8 +27,7 @@ class GlobalDB:
         if flask.current_app:
             return flask.g
         else:
-            logger.warning("No current_app, falling back to non-threadsafe "
-                           "database connection")
+            logger.warning("No current_app, falling back to non-threadsafe database connection")
             return cls
 
     @classmethod
@@ -37,7 +35,7 @@ class GlobalDB:
         """Build or retrieve the database information"""
         holder = cls._holder()
         if not getattr(holder, '_db', None):
-            holder._db = dbConnection()
+            holder._db = db_connection()
         return holder._db
 
     @classmethod
@@ -49,24 +47,23 @@ class GlobalDB:
             del holder._db
 
 
-def dbConnection():
+def db_connection():
     """Use the config to set up a database engine and connection."""
     if not CONFIG_DB:
         raise ValueError("Database configuration is not defined")
 
-    dbName = CONFIG_DB['db_name']
-    if not dbName:
+    db_name = CONFIG_DB['db_name']
+    if not db_name:
         raise ValueError("Need dbName defined")
 
     # Create sqlalchemy connection and session
-    uri = dbURI(dbName)
+    uri = db_uri(db_name)
     engine = sqlalchemy.create_engine(uri, pool_size=100, max_overflow=50)
     connection = engine.connect()
     scoped_session_maker = scoped_session(sessionmaker(bind=engine))
     return _DB(engine, connection, scoped_session_maker, scoped_session_maker())
 
 
-def dbURI(dbName):
-    uri = "postgresql://{username}:{password}@{host}:{port}/{}".format(
-        dbName, **CONFIG_DB)
+def db_uri(db_name):
+    uri = "postgresql://{username}:{password}@{host}:{port}/{}".format(db_name, **CONFIG_DB)
     return uri

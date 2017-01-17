@@ -5,19 +5,19 @@ import os
 from flask_bcrypt import Bcrypt
 
 
-from dataactbroker.scripts.setupEmails import setupEmails
+from dataactbroker.scripts.setupEmails import setup_emails
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import createUserWithPassword
+from dataactcore.interfaces.function_bag import create_user_with_password
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import User
-from dataactcore.scripts.setupAllDB import setupAllDB
-from dataactvalidator.app import createApp
+from dataactcore.scripts.setupAllDB import setup_all_db
+from dataactvalidator.app import create_app
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
-from dataactvalidator.scripts.loadFile import loadDomainValues
+from dataactvalidator.scripts.loadFile import load_domain_values
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
-from dataactvalidator.scripts.loadTas import loadTas
+from dataactvalidator.scripts.loadTas import load_tas
 
 logger = logging.getLogger(__name__)
 basePath = CONFIG_BROKER["path"]
@@ -27,8 +27,8 @@ validator_config_path = os.path.join(basePath, "dataactvalidator", "config")
 def setup_db():
     """Set up broker database and initialize data."""
     logger.info('Setting up db')
-    setupAllDB()
-    setupEmails()
+    setup_all_db()
+    setup_emails()
 
 
 def create_admin():
@@ -36,34 +36,33 @@ def create_admin():
     logger.info('Creating admin user')
     admin_email = CONFIG_BROKER['admin_email']
     admin_pass = CONFIG_BROKER['admin_password']
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
         user = sess.query(User).filter(User.email == admin_email).one_or_none()
         if not user:
             # once the rest of the setup scripts are updated to use
             # GlobalDB instead of databaseSession, move the app_context
             # creation up to initialize()
-            user = createUserWithPassword(
-                admin_email, admin_pass, Bcrypt(), website_admin=True)
+            user = create_user_with_password(admin_email, admin_pass, Bcrypt(), website_admin=True)
     return user
 
 
 def load_tas_lookup():
     """Load/update the TAS table to reflect the latest list."""
     logger.info('Loading TAS')
-    loadTas()
+    load_tas()
 
 
 def load_sql_rules():
     """Load the SQL-based validation rules."""
     logger.info('Loading SQL-based validation rules')
-    SQLLoader.loadSql("sqlRules.csv")
+    SQLLoader.load_sql("sqlRules.csv")
 
 
 def load_domain_value_files(base_path):
     """Load domain values (e.g., CGAC codes, object class, SF-133)."""
     logger.info('Loading domain values')
-    loadDomainValues(base_path)
+    load_domain_values(base_path)
 
 
 def load_sf133():
@@ -81,7 +80,7 @@ def load_sf133():
 def load_validator_schema():
     """Load file-level .csv schemas into the broker database."""
     logger.info('Loading validator schemas')
-    SchemaLoader.loadAllFromPath(validator_config_path)
+    SchemaLoader.load_all_from_path(validator_config_path)
 
 
 def main():

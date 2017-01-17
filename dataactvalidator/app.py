@@ -5,7 +5,7 @@ from flask import Flask, request, g
 
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.interfaces.function_bag import writeFileError, mark_job_status
+from dataactcore.interfaces.function_bag import write_file_error, mark_job_status
 from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import Job
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -17,7 +17,7 @@ from dataactvalidator.validation_handlers.validationManager import ValidationMan
 logger = logging.getLogger(__name__)
 
 
-def createApp():
+def create_app():
     """Create the Flask app."""
     flask_app = Flask(__name__.split('.')[0])
     flask_app.debug = CONFIG_SERVICES['debug']
@@ -45,7 +45,7 @@ def createApp():
         if job:
             if job.filename is not None:
                 # insert file-level error info to the database
-                writeFileError(job.job_id, job.filename, error.errorType, error.extraInfo)
+                write_file_error(job.job_id, job.filename, error.errorType, error.extraInfo)
             if error.errorType != ValidationError.jobError:
                 # job pass prerequisites for validation, but an error
                 # happened somewhere. mark job as 'invalid'
@@ -65,12 +65,12 @@ def createApp():
         job = get_current_job()
         if job:
             if job.filename is not None:
-                writeFileError(job.job_id, job.filename, ValidationError.unknownError)
+                write_file_error(job.job_id, job.filename, ValidationError.unknownError)
             mark_job_status(job.job_id, job_status)
         return JsonResponse.error(error, response_code)
 
     @flask_app.route("/", methods=["GET"])
-    def testApp():
+    def test_app():
         """Confirm server running."""
         return "Validator is running"
 
@@ -87,14 +87,10 @@ def createApp():
     return flask_app
 
 
-def runApp():
+def run_app():
     """Run the application."""
-    flask_app = createApp()
-    flask_app.run(
-        threaded=True,
-        host=CONFIG_SERVICES['validator_host'],
-        port=CONFIG_SERVICES['validator_port']
-    )
+    flask_app = create_app()
+    flask_app.run(threaded=True, host=CONFIG_SERVICES['validator_host'], port=CONFIG_SERVICES['validator_port'])
 
 
 def get_current_job():
@@ -109,7 +105,7 @@ def get_current_job():
 
 if __name__ == "__main__":
     configure_logging()
-    runApp()
+    run_app()
 elif __name__[0:5] == "uwsgi":
     configure_logging()
-    app = createApp()
+    app = create_app()

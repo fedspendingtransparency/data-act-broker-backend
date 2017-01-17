@@ -38,7 +38,7 @@ class LoginSession:
         session["login"] = True
 
     @staticmethod
-    def resetID(session):
+    def reset_id(session):
         """
         arguments:
 
@@ -49,20 +49,20 @@ class LoginSession:
         session["_uid"] = "{}|{}".format(_create_identifier(), uuid4())
 
 
-def toUnixTime(datetimeValue):
+def to_unix_time(datetime_value):
     """
     arguments:
 
-    datetimeValue -- (DateTime)
+    datetime_value -- (DateTime)
 
-    Converts datetimeValue to time in seconds ince 1970
+    Converts datetime_value to time in seconds since 1970
 
     returns int
     """
-    if isinstance(datetimeValue, datetime):
+    if isinstance(datetime_value, datetime):
         # If argument is a datetime object, convert to timestamp
-        return (datetimeValue - datetime(1970, 1, 1)).total_seconds()
-    return datetimeValue
+        return (datetime_value - datetime(1970, 1, 1)).total_seconds()
+    return datetime_value
 
 
 class UserSession(dict, SessionMixin):
@@ -79,7 +79,7 @@ class UserSessionInterface(SessionInterface):
 
     """
 
-    SESSSION_CLEAR_COUNT_LIMIT = 10
+    SESSION_CLEAR_COUNT_LIMIT = 10
 
     CountLimit = 1
 
@@ -91,18 +91,18 @@ class UserSessionInterface(SessionInterface):
 
         arguments:
 
-        app -- (Flask) the Flask applcation
+        app -- (Flask) the Flask application
         request -- (Request)  the request object
 
         implements the open_session method that pulls or creates a new UserSession object
 
         """
         sid = request.headers.get("x-session-id")
-        if sid and SessionTable.doesSessionExist(sid):
-            if SessionTable.getTimeout(sid) > toUnixTime(datetime.utcnow()):
+        if sid and SessionTable.does_session_exist(sid):
+            if SessionTable.get_timeout(sid) > to_unix_time(datetime.utcnow()):
                 session_dict = UserSession()
                 # Read data as json
-                data = loads(SessionTable.getData(sid))
+                data = loads(SessionTable.get_data(sid))
                 for key in data.keys():
                     session_dict[key] = data[key]
                 return session_dict
@@ -117,7 +117,7 @@ class UserSessionInterface(SessionInterface):
         """
         arguments:
 
-        app -- (Flask) the Flask applcation
+        app -- (Flask) the Flask application
         request -- (Request)  the request object
         session -- (Session)  the session object
 
@@ -133,19 +133,19 @@ class UserSessionInterface(SessionInterface):
             expiration = self.get_expiration_time(app, session)
         else:
             if "session_check" in session and session["session_check"] and \
-                    SessionTable.doesSessionExist(session["sid"]):
+                    SessionTable.does_session_exist(session["sid"]):
                 # This is just a session check, don't extend expiration time
-                expiration = SessionTable.getTimeout(session["sid"])
+                expiration = SessionTable.get_timeout(session["sid"])
                 # Make sure next route call does not get counted as session check
                 session["session_check"] = False
             else:
                 expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
         if "_uid" not in session:
-            LoginSession.resetID(session)
-        SessionTable.newSession(session["sid"], session, expiration)
+            LoginSession.reset_id(session)
+        SessionTable.new_session(session["sid"], session, expiration)
         UserSessionInterface.CountLimit += 1
-        if UserSessionInterface.CountLimit % UserSessionInterface.SESSSION_CLEAR_COUNT_LIMIT == 0:
-            SessionTable.clearSessions()
+        if UserSessionInterface.CountLimit % UserSessionInterface.SESSION_CLEAR_COUNT_LIMIT == 0:
+            SessionTable.clear_sessions()
             UserSessionInterface.CountLimit = 1
 
         # Return session ID as header x-session-id
@@ -164,17 +164,17 @@ class SessionTable:
     TIME_OUT_LIMIT = 604800
 
     @staticmethod
-    def clearSessions():
+    def clear_sessions():
         """
         Removes old sessions that are expired
         """
-        newTime = toUnixTime(datetime.utcnow())
+        new_time = to_unix_time(datetime.utcnow())
         sess = GlobalDB.db().session
-        sess.query(SessionMap).filter(SessionMap.expiration < newTime).delete()
+        sess.query(SessionMap).filter(SessionMap.expiration < new_time).delete()
         sess.commit()
 
     @staticmethod
-    def doesSessionExist(uid):
+    def does_session_exist(uid):
         """
         arguments:
 
@@ -189,7 +189,7 @@ class SessionTable:
             return False
 
     @staticmethod
-    def getTimeout(uid):
+    def get_timeout(uid):
         """
         arguments:
 
@@ -199,7 +199,7 @@ class SessionTable:
         return GlobalDB.db().session.query(SessionMap).filter_by(uid=uid).one().expiration
 
     @staticmethod
-    def getData(uid):
+    def get_data(uid):
         """
         uid -- (String) the uid
         return (Session) the session data
@@ -207,7 +207,7 @@ class SessionTable:
         return GlobalDB.db().session.query(SessionMap).filter_by(uid=uid).one().data
 
     @staticmethod
-    def newSession(uid, data, expiration):
+    def new_session(uid, data, expiration):
         """ Updates current session or creates a new one if no session exists
         arguments:
 
@@ -215,17 +215,17 @@ class SessionTable:
         data -- (String) the data for the session
         expiration -- (int) the time in seconds from 1970 when the session is no longer active
 
-        Updates the exsiting session or creates a new one
+        Updates the existing session or creates a new one
         """
         # Try converting session to json
         sess = GlobalDB.db().session
         user_session = sess.query(SessionMap).filter_by(uid=uid).one_or_none()
         if user_session is None:
             # No existing session found, create a new one
-            new_session = SessionMap(uid=uid, data=dumps(data), expiration=toUnixTime(expiration))
+            new_session = SessionMap(uid=uid, data=dumps(data), expiration=to_unix_time(expiration))
             sess.add(new_session)
         else:
             # Modify existing session
             user_session.data = dumps(data)
-            user_session.expiration = toUnixTime(expiration)
+            user_session.expiration = to_unix_time(expiration)
         sess.commit()

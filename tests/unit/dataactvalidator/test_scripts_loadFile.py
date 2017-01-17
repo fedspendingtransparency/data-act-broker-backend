@@ -13,22 +13,19 @@ def test_delete_missing_cgacs(database):
 
     models = {cgac.cgac_code: cgac for cgac in cgacs}
     new_data = pd.DataFrame([
-        {'cgac_code': '0'}, {'cgac_code': '2'}, {'cgac_code': '4'},
-        {'cgac_code': 'something-else'}
+        {'cgac_code': '0'}, {'cgac_code': '2'}, {'cgac_code': '4'}, {'cgac_code': 'something-else'}
     ])
 
     assert set(models.keys()) == {'0', '1', '2', '3', '4'}
     loadFile.delete_missing_cgacs(models, new_data)
     assert set(models.keys()) == {'0', '2', '4'}
 
-    assert {'0', '2', '4'} == {res.cgac_code
-                               for res in sess.query(CGAC.cgac_code)}
+    assert {'0', '2', '4'} == {res.cgac_code for res in sess.query(CGAC.cgac_code)}
 
 
 def test_update_cgacs(database):
     sess = database.session
-    cgacs = [CGACFactory(cgac_code=str(i), agency_name=str(i) * 5)
-             for i in range(2)]
+    cgacs = [CGACFactory(cgac_code=str(i), agency_name=str(i) * 5) for i in range(2)]
     sess.add_all(cgacs)
     sess.commit()
 

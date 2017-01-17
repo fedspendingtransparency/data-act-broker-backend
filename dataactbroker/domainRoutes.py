@@ -25,5 +25,4 @@ def add_domain_routes(app):
             {'agency_name': cgac.agency_name, 'cgac_code': cgac.cgac_code}
             for cgac in cgacs
         ]
-        return JsonResponse.create(StatusCode.OK,
-                                   {'cgac_agency_list': agency_list})
+        return JsonResponse.create(StatusCode.OK, {'cgac_agency_list': agency_list})
