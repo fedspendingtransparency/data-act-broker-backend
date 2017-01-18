@@ -19,7 +19,7 @@ from dataactbroker.permissions import current_user_can, current_user_can_on_subm
 from dataactcore.aws.s3UrlHandler import S3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC
+from dataactcore.models.domainModels import CGAC, SubTierAgency
 from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency
 from dataactcore.models.userModel import User
@@ -673,56 +673,52 @@ class FileHandler:
 
             # unfortunately, field names in the request don't match
             # field names in the db/response. create a mapping here.
-            request_submission_mapping = {
-                "cgac_code": "cgac_code",
+            request_job_mapping = {
                 "reporting_period_start_date": "reporting_start_date",
                 "reporting_period_end_date": "reporting_end_date"
             }
 
-            submission_data = {}
-            existing_submission = None
-            existing_submission_obj = None
-            for request_field, submission_field in request_submission_mapping.items():
+            job_data = {}
+            for request_field, submission_field in request_job_mapping.items():
                 if request_field in request_params:
-                    request_value = request_params[request_field]
-                    submission_data[submission_field] = request_value
+                    job_data[submission_field] = request_params[request_field]
                 # all of those fields are required
-                elif 'existing_submission_id' not in request_params:
+                else:
                     raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
+
+            # get the cgac code associated with this sub tier agency
+            job_data["cgac_code"] = sess.query(SubTierAgency).\
+                filter_by(sub_tier_agency_code=request_params["agency_code"]).one().cgac.cgac_code
 
             # convert submission start/end dates from the request into Python date objects
             date_format = '%d/%m/%Y'
             try:
-                submission_data['reporting_start_date'] = datetime.strptime(submission_data['reporting_start_date'],
-                                                                            date_format).date()
-                submission_data['reporting_end_date'] = datetime.strptime(submission_data['reporting_end_date'],
-                                                                          date_format).date()
+                job_data['reporting_start_date'] = datetime.strptime(job_data['reporting_start_date'],
+                                                                     date_format).date()
+                job_data['reporting_end_date'] = datetime.strptime(job_data['reporting_end_date'],
+                                                                   date_format).date()
             except ValueError:
                 raise ResponseException("Date must be provided as DD/MM/YYYY", StatusCode.CLIENT_ERROR, ValueError)
 
             # the front-end is doing date checks, but we'll also do a few server side to ensure everything is correct
             # when clients call the API directly
-            if submission_data.get('reporting_start_date') > submission_data.get('reporting_end_date'):
+            if job_data.get('reporting_start_date') > job_data.get('reporting_end_date'):
                 raise ResponseException("Submission start date {} is after the end date {}".format(
-                        submission_data.get('reporting_start_date'), submission_data.get('reporting_end_date')),
+                        job_data.get('reporting_start_date'), job_data.get('reporting_end_date')),
                         StatusCode.CLIENT_ERROR)
 
-            submission = create_submission(g.user.user_id, submission_data, existing_submission_obj)
-            cant_edit = (existing_submission and not current_user_can_on_submission('writer', existing_submission_obj))
-            cant_create = not current_user_can('writer', submission.cgac_code)
-            if cant_edit or cant_create:
-                raise ResponseException("User does not have permission to create/modify that submission",
+            if not current_user_can('writer', job_data["cgac_code"]):
+                raise ResponseException("User does not have permission to create jobs for this agency",
                                         StatusCode.PERMISSION_DENIED)
-            else:
-                sess.add(submission)
-                sess.commit()
+
+            submission = create_submission(g.user.user_id, job_data, None)
+            sess.add(submission)
+            sess.commit()
 
             # build fileNameMap to be used in creating jobs
             for file_type in ['award']:
                 # if file_type not included in request, and this is an update to an existing submission, skip it
                 if not request_params.get(file_type):
-                    if existing_submission:
-                        continue
                     # this is a new submission, all files are required
                     raise ResponseException("Must include all required files for new submission",
                                             StatusCode.CLIENT_ERROR)
@@ -736,6 +732,7 @@ class FileHandler:
                         )
                     else:
                         upload_name = file_name
+
                     response_dict[file_type+"_key"] = upload_name
                     upload_files.append(FileHandler.UploadFile(
                         file_type=file_type,
@@ -744,30 +741,7 @@ class FileHandler:
                         file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type]]
                     ))
 
-            if not upload_files and existing_submission:
-                raise ResponseException("Must include at least one file for an existing submission",
-                                        StatusCode.CLIENT_ERROR)
-            if not existing_submission:
-                # don't add external files to existing submission
-                for ext_file_type in ['award']:
-                    file_name = CONFIG_BROKER["".join([ext_file_type, "_file_name"])]
-
-                    if not self.isLocal:
-                        upload_name = "{}/{}".format(
-                            g.user.user_id,
-                            S3UrlHandler.get_timestamped_filename(file_name)
-                        )
-                    else:
-                        upload_name = file_name
-                    response_dict[ext_file_type + "_key"] = upload_name
-                    upload_files.append(FileHandler.UploadFile(
-                        file_type=ext_file_type,
-                        upload_name=upload_name,
-                        file_name=file_name,
-                        file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[ext_file_type]]
-                    ))
-
-            file_job_dict = create_jobs(upload_files, submission, existing_submission)
+            file_job_dict = create_jobs(upload_files, submission, False)
             for file_type in file_job_dict.keys():
                 if "submission_id" not in file_type:
                     response_dict[file_type+"_id"] = file_job_dict[file_type]
@@ -778,7 +752,6 @@ class FileHandler:
                 response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local",
                                                 "SessionToken": "local", "Expiration": "local"}
 
-            print(response_dict)
             response_dict["submission_id"] = file_job_dict["submission_id"]
             if self.isLocal:
                 response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]

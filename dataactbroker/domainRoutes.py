@@ -30,7 +30,6 @@ def add_domain_routes(app):
         cgac_ids = [cgac.cgac_id for cgac in cgacs]
         sub_tier_agencies = []
         for cgac_id in cgac_ids:
-            # agencies = sess.query(SubTierAgency).filter_by(cgac_id=cgac_id)
             sub_tier_agencies.extend(sess.query(SubTierAgency).filter_by(cgac_id=cgac_id))
 
         sub_tier_agency_list = [
@@ -52,6 +51,5 @@ def get_cgacs(fn):
             cgacs = sess.query(CGAC).all()
         else:
             cgacs = [affil.cgac for affil in g.user.affiliations]
-        print(len(cgacs))
         return fn(cgacs, *args, **kwargs)
     return wrapped
