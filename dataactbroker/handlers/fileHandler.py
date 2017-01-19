@@ -21,7 +21,8 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, SubTierAgency
 from dataactcore.models.errorModels import File
-from dataactcore.models.jobModels import FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency
+from dataactcore.models.jobModels import (
+    FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID,
@@ -643,15 +644,6 @@ class FileHandler:
         return result or self.check_detached_generation(new_job.job_id)
 
     def upload_detached_file(self, create_credentials):
-        """HEY ALISA
-        This function is basically just a stolen submit() function that is formatted for an individual D2 file.
-
-        Currently, it is failing because of a Access Key issue, which is what I was planning on talking to Nipun about,
-        as (locally at least) this information is basically ignored and return just "local" for each attribute.
-
-        I haven't got to entering in the SubTierAgency models yet.
-        """
-
         """ Builds S3 URLs for a set of detached files and adds all related jobs to job tracker database
 
         Flask request should include keys from FILE_TYPES class variable above
@@ -687,8 +679,10 @@ class FileHandler:
                     raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
 
             # get the cgac code associated with this sub tier agency
-            job_data["cgac_code"] = sess.query(SubTierAgency).\
-                filter_by(sub_tier_agency_code=request_params["agency_code"]).one().cgac.cgac_code
+            sub_tier_agency = sess.query(SubTierAgency).\
+                filter_by(sub_tier_agency_code=request_params["agency_code"]).one()
+            job_data["cgac_code"] = sub_tier_agency.cgac.cgac_code
+            job_data["d2_submission"] = True
 
             # convert submission start/end dates from the request into Python date objects
             date_format = '%d/%m/%Y'
@@ -713,6 +707,10 @@ class FileHandler:
 
             submission = create_submission(g.user.user_id, job_data, None)
             sess.add(submission)
+            sess.commit()
+            sub_tier_affiliation = SubmissionSubTierAffiliation(submission_id=submission.submission_id,
+                                                                sub_tier_agency_id=sub_tier_agency.sub_tier_agency_id)
+            sess.add(sub_tier_affiliation)
             sess.commit()
 
             # build fileNameMap to be used in creating jobs
@@ -1142,10 +1140,10 @@ def list_submissions(page, limit, certified):
     offset = limit * (page - 1)
 
     cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
-    query = sess.query(Submission)
+    query = sess.query(Submission).filter_by(d2_submission=False)
     if not g.user.website_admin:
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
-                                    Submission.user_id == g.user.user_id))
+                                    Submission.user_id == g.user.user_id),)
     if certified != 'mixed':
         query = query.filter_by(publishable=certified)
     submissions = query.order_by(Submission.updated_at.desc()).\
