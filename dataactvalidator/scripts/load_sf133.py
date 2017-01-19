@@ -1,5 +1,5 @@
 from collections import namedtuple
-from datetime import date, timedelta
+from datetime import date
 import glob
 import logging
 import os
@@ -8,19 +8,18 @@ import sys
 
 import boto
 import pandas as pd
-import sqlalchemy as sa
 
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import SF133, TASLookup
+from dataactcore.models.domainModels import matching_cars_subquery, SF133
 from dataactvalidator.app import createApp
 from dataactvalidator.scripts.loaderUtils import LoaderUtils
 
 logger = logging.getLogger(__name__)
 
 
-def load_all_sf133(sf133_path=None, force_load=False):
+def load_all_sf133(sf133_path=None, force_sf133_load=False):
     """Load any SF-133 files that are not yet in the database."""
     # get a list of SF 133 files to load
     sf133_list = get_sf133_list(sf133_path)
@@ -36,7 +35,7 @@ def load_all_sf133(sf133_path=None, force_load=False):
         logger.info('Starting %s...', sf133.full_file)
         load_sf133(
             sf133.full_file, file_match.group('year'), file_match.group('period'),
-            force_load=force_load
+            force_sf133_load=force_sf133_load
         )
 
 
@@ -66,17 +65,11 @@ def fill_blank_sf133_lines(data):
     return data
 
 
-_tas_fields_to_match = (
-    'allocation_transfer_agency', 'agency_identifier',
-    'beginning_period_of_availability', 'ending_period_of_availability',
-    'availability_type_code', 'main_account_code', 'sub_account_code'
-)
-
-
-def tas_time_overlaps(fiscal_year, fiscal_period):
-    """Derive a sqlalchemy filter against the requested fiscal period. Uses
-    the postgres OVERLAPS operator"""
-
+def update_tas_id(fiscal_year, fiscal_period):
+    """Set the tas_id on newly SF133 entries. We use raw SQL as sqlalchemy
+    doesn't have operators like OVERLAPS and IS NOT DISTINCT FROM built in
+    (resulting in a harder to understand query)."""
+    sess = GlobalDB.db().session
     # number of months since 0AD for this fiscal period
     zero_based_period = fiscal_period - 1
     absolute_fiscal_month = 12 * fiscal_year + zero_based_period - 3
@@ -87,46 +80,8 @@ def tas_time_overlaps(fiscal_year, fiscal_period):
     end_date = date(absolute_following_month // 12,
                     (absolute_following_month % 12) + 1,    # 1-based
                     1)
-    day_after_end = end_date + timedelta(days=1)
 
-    sf133_dates = sa.tuple_(start_date, end_date)
-    tas_dates = sa.tuple_(TASLookup.internal_start_date,
-                          sa.func.coalesce(TASLookup.internal_end_date,
-                                           day_after_end))
-    return sf133_dates.op('OVERLAPS')(tas_dates)
-
-
-def is_not_distinct_from(left, right):
-    """Postgres' IS NOT DISTINCT FROM is an equality check that accounts for
-    NULLs. Unfortunately, it doesn't make use of indexes. Instead, we'll
-    imitate it here"""
-    return sa.or_(left == right, sa.and_(left.is_(None), right.is_(None)))
-
-
-def update_tas_id(fiscal_year, fiscal_period):
-    """Set the tas_id on newly SF133 entries. We use raw SQL as sqlalchemy
-    doesn't have operators like OVERLAPS and IS NOT DISTINCT FROM built in
-    (resulting in a harder to understand query)."""
-    sess = GlobalDB.db().session
-
-    # Why min()?
-    # Our data schema doesn't prevent two TAS history entries with the same
-    # TAS components (ATA, AI, etc.) from being valid at the same time. When
-    # that happens (unlikely), we select the minimum (i.e. older) of the
-    # potential TAS history entries.
-    subquery = sess.query(sa.func.min(TASLookup.tas_id))
-
-    # Filter to matching TAS components, accounting for NULLs
-    for field in _tas_fields_to_match:
-        tas_col = getattr(TASLookup, field)
-        # The SF133 column names are truncated versions of the tas columns.
-        # See DB-1354 for a potential solution
-        sf133_col = getattr(SF133, field[:26])
-        subquery = subquery.filter(is_not_distinct_from(tas_col, sf133_col))
-
-    subquery = subquery.filter(tas_time_overlaps(fiscal_year, fiscal_period))
-    subquery = subquery.as_scalar()
-
+    subquery = matching_cars_subquery(sess, SF133, start_date, end_date)
     logger.info("Updating tas_ids for Fiscal %s-%s", fiscal_year,
                 fiscal_period)
     sess.query(SF133).\
@@ -135,7 +90,7 @@ def update_tas_id(fiscal_year, fiscal_period):
     sess.commit()
 
 
-def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
+def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False):
     """Load SF 133 (budget execution report) lookup table."""
 
     with createApp().app_context():
@@ -143,7 +98,7 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
 
         existing_records = sess.query(SF133).filter(
             SF133.fiscal_year == fiscal_year, SF133.period == fiscal_period)
-        if force_load:
+        if force_sf133_load:
             # force a reload of this period's current data
             logger.info('Force SF 133 load: deleting existing records for {} {}'.format(
                 fiscal_year, fiscal_period))
@@ -189,11 +144,11 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_load=False):
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
-def clean_sf133_data(filename, SF133):
+def clean_sf133_data(filename, SF133_data):
     data = pd.read_csv(filename, dtype=str)
     data = LoaderUtils.cleanData(
         data,
-        SF133,
+        SF133_data,
         {"ata": "allocation_transfer_agency",
          "aid": "agency_identifier",
          "availability_type_code": "availability_type_code",
@@ -234,7 +189,7 @@ def clean_sf133_data(filename, SF133):
     # add concatenated TAS field for internal use (i.e., joining to staging tables)
     data['tas'] = data.apply(lambda row: format_internal_tas(row), axis=1)
     data['amount'] = data['amount'].astype(float)
-    
+
     data = fill_blank_sf133_lines(data)
 
     return data

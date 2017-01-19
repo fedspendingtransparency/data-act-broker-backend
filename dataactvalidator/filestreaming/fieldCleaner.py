@@ -6,17 +6,17 @@ from dataactcore.models.lookups import FIELD_TYPE_DICT_ID
 
 
 class FieldCleaner(StringCleaner):
-    """ This class takes a field definition file and cleans it, producing a field definition file that can be read by schemaLoader """
+    """ This class takes a field definition file and cleans it,
+        producing a field definition file that can be read by schemaLoader """
 
     @staticmethod
     def cleanFile(fileIn, fileOut):
         """ Clean input file line by line and create output file """
-        done = False
         # Open CSV file for reading each record as a dictionary
         with open(fileIn, "rU") as csvfile:
             reader = csv.DictReader(csvfile)
-            fieldnames = ["fieldname","fieldname_short","required","data_type","field_length","rule_labels"]
-            writer = csv.DictWriter(open(fileOut,"w"),fieldnames=fieldnames,lineterminator='\n')
+            fieldnames = ["fieldname", "fieldname_short", "required", "data_type", "field_length", "rule_labels"]
+            writer = csv.DictWriter(open(fileOut, "w"), fieldnames=fieldnames, lineterminator='\n')
             writer.writeheader()
             for record in reader:
                 # Pass record into cleanRecord to sanitize
@@ -49,58 +49,62 @@ class FieldCleaner(StringCleaner):
     def cleanName(name):
         """ Remove whitespace from name and change to lowercase, also clean up special characters """
         # Convert to lowercase and remove whitespace on ends
-        originalName = name
         name = FieldCleaner.cleanString(name)
         # Remove braces and parantheses
-        name = name.replace("{","").replace("}","").replace("(","").replace(")","")
+        name = name.replace("{", "").replace("}", "").replace("(", "").replace(")", "")
         # Replace problematic characters with underscores
-        name = name.replace(" - ","_").replace("-","_")
-        name = name.replace(",","_")
-        name = name.replace("/","_")
+        name = name.replace(" - ", "_").replace("-", "_")
+        name = name.replace(",", "_")
+        name = name.replace("/", "_")
         # Remove duplicate underscores
-        name = name.replace("__","_")
+        name = name.replace("__", "_")
         return name
 
     @staticmethod
     def cleanRequired(required):
-        """ Convert 'required' and '(required)' to True, "optional" and "required if relevant" if False, otherwise raises an exception """
-        required = FieldCleaner.cleanString(required,False)
+        """ Convert 'required' and '(required)' to True, "optional" and "required if relevant" if False,
+            otherwise raises an exception """
+        required = FieldCleaner.cleanString(required, False)
         if required[0:3].lower() == "asp":
             # Remove ASP prefix
             required = required[5:]
-        if(required == "required" or required == "(required)" or required == "true"):
+        if required == "required" or required == "(required)" or required == "true":
             return "true"
-        elif(required == "false" or required == "" or required == "optional" or required == "required if relevant" or required == "required if modification" or required == "conditional per validation rule" or required == "conditional per award type" or required == "conditionally required" or required == "derived"):
+        elif required == "false" or required == "" or required == "optional" or required == "required if relevant" or \
+                required == "required if modification" or required == "conditional per validation rule" or \
+                required == "conditional per award type" or required == "conditionally required" or \
+                required == "derived":
             return "false"
         else:
             raise ValueError("".join(["Unknown value for required: ", required]))
 
     @staticmethod
-    def cleanType(type):
+    def cleanType(clean_type):
         """ Interprets all inputs as int, str, or bool.  For unexpected inputs, raises an exception. """
-        type = FieldCleaner.cleanString(type,False)
-        if(type == "integer" or type == "int"):
+        clean_type = FieldCleaner.cleanString(clean_type, False)
+        if clean_type == "integer" or clean_type == "int":
             return "int"
-        elif(type == "numeric" or type == "float"):
+        elif clean_type == "numeric" or clean_type == "float":
             return "float"
-        elif(type == "alphanumeric" or type == "" or type == "str" or type == "string"):
+        elif clean_type == "alphanumeric" or clean_type == "" or clean_type == "str" or clean_type == "string":
             return "str"
-        elif(type == "alphanumeric (logically a boolean)"):
-            # Some of these are intended to be booleans, but others use this value when they have multiple possible values,
+        elif clean_type == "alphanumeric (logically a boolean)":
+            # Some of these are intended to be booleans,
+            # but others use this value when they have multiple possible values,
             # so for now we have to treat them as strings
             return "str"
-        elif(type == "boolean" or type == "bool"):
+        elif clean_type == "boolean" or clean_type == "bool":
             return "bool"
-        elif(type == "long"):
+        elif clean_type == "long":
             return "long"
         else:
-            raise ValueError("".join(["Unknown type: ", type]))
+            raise ValueError("".join(["Unknown type: ", clean_type]))
 
     @staticmethod
     def cleanLength(length):
         """ Checks that input is a positive integer, otherwise raises an exception. """
-        length = FieldCleaner.cleanString(length,False)
-        if(length == ""):
+        length = FieldCleaner.cleanString(length, False)
+        if length == "":
             # Empty length is fine, this means there is no length requirement
             return ""
         try:
@@ -133,14 +137,14 @@ class FieldCleaner(StringCleaner):
                 # Remove extra whitespace
                 value = value.strip()
                 if field_type in ["INT", "DECIMAL", "LONG"]:
-                    tempValue = value.replace(",","")
+                    tempValue = value.replace(",", "")
                     if FieldCleaner.isNumeric(tempValue):
                         value = tempValue
                 if value == "":
                     # Replace empty strings with null
                     value = None
 
-                row[key] = cls.padField(field,value)
+                row[key] = cls.padField(field, value)
         return row
 
     @staticmethod
@@ -163,8 +167,8 @@ class FieldCleaner(StringCleaner):
 
 if __name__ == '__main__':
     configure_logging()
-    FieldCleaner.cleanFile("../config/awardProcurementFieldsRaw.csv","../config/awardProcurementFields.csv")
-    FieldCleaner.cleanFile("../config/appropFieldsRaw.csv","../config/appropFields.csv")
-    FieldCleaner.cleanFile("../config/awardFinancialFieldsRaw.csv","../config/awardFinancialFields.csv")
-    FieldCleaner.cleanFile("../config/programActivityFieldsRaw.csv","../config/programActivityFields.csv")
-    FieldCleaner.cleanFile("../config/awardFieldsRaw.csv","../config/awardFields.csv")
+    FieldCleaner.cleanFile("../config/awardProcurementFieldsRaw.csv", "../config/awardProcurementFields.csv")
+    FieldCleaner.cleanFile("../config/appropFieldsRaw.csv", "../config/appropFields.csv")
+    FieldCleaner.cleanFile("../config/awardFinancialFieldsRaw.csv", "../config/awardFinancialFields.csv")
+    FieldCleaner.cleanFile("../config/programActivityFieldsRaw.csv", "../config/programActivityFields.csv")
+    FieldCleaner.cleanFile("../config/awardFieldsRaw.csv", "../config/awardFields.csv")

@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
 from dataactcore.models.domainModels import concatTas, TASLookup
 
+
 class FlexField(Base):
     """Model for the flex field table."""
     __tablename__ = "flex_field"
@@ -14,6 +15,7 @@ class FlexField(Base):
     row_number = Column(Integer, nullable=False)
     header = Column(Text)
     cell = Column(Text)
+
 
 class Appropriation(Base):
     """Model for the appropriation table."""
@@ -43,7 +45,7 @@ class Appropriation(Base):
     status_of_budgetary_resour_cpe = Column(Numeric)
     sub_account_code = Column(Text)
     unobligated_balance_cpe = Column(Numeric)
-    tas = Column(Text, index=True, nullable=False, default=concatTas, onupdate=concatTas)
+    tas = Column(Text, index=True, nullable=False, default=concatTas)
     tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'),
                     nullable=True)
     tas_obj = relationship(TASLookup)
@@ -53,6 +55,7 @@ class Appropriation(Base):
         # so get rid of any extraneous kwargs before instantiating
         cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(Appropriation, self).__init__(**cleanKwargs)
+
 
 class ObjectClassProgramActivity(Base):
     """Model for the object_class_program_activity table."""
@@ -105,7 +108,7 @@ class ObjectClassProgramActivity(Base):
     ussgl497200_downward_adjus_cpe = Column(Numeric)
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
-    tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
+    tas = Column(Text, nullable=False, default=concatTas)
     tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'),
                     nullable=True)
     tas_obj = relationship(TASLookup)
@@ -121,6 +124,7 @@ Index("ix_oc_pa_tas_oc_pa",
       ObjectClassProgramActivity.object_class,
       ObjectClassProgramActivity.program_activity_code,
       unique=False)
+
 
 class AwardFinancial(Base):
     """Corresponds to entries in File C"""
@@ -178,7 +182,7 @@ class AwardFinancial(Base):
     ussgl497200_downward_adjus_cpe = Column(Numeric)
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
-    tas = Column(Text, nullable=False, default=concatTas, onupdate=concatTas)
+    tas = Column(Text, nullable=False, default=concatTas)
     tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'),
                     nullable=True)
     tas_obj = relationship(TASLookup)
@@ -194,6 +198,7 @@ Index("ix_award_financial_tas_oc_pa",
       AwardFinancial.object_class,
       AwardFinancial.program_activity_code,
       unique=False)
+
 
 class AwardFinancialAssistance(Base):
     """Model for D2-Award (Financial Assistance)."""
@@ -223,7 +228,7 @@ class AwardFinancialAssistance(Base):
     correction_late_delete_ind = Column(Text)
     face_value_loan_guarantee = Column(Text)
     fain = Column(Text, index=True)
-    federal_action_obligation = Column(Text)
+    federal_action_obligation = Column(Numeric)
     fiscal_year_and_quarter_co = Column(Text)
     funding_agency_code = Column(Text)
     funding_agency_name = Column(Text)
@@ -270,6 +275,7 @@ class AwardFinancialAssistance(Base):
         cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(AwardFinancialAssistance, self).__init__(**cleanKwargs)
 
+
 class AwardProcurement(Base):
     """Model for D1-Award (Procurement)."""
     __tablename__ = "award_procurement"
@@ -310,7 +316,7 @@ class AwardProcurement(Base):
     ordering_period_end_date = Column(Text)
     action_date = Column(Text)
     action_type = Column(Text)
-    federal_action_obligation = Column(Text)
+    federal_action_obligation = Column(Numeric)
     current_total_value_award = Column(Text)
     potential_total_value_awar = Column(Text)
     funding_sub_tier_agency_co = Column(Text)

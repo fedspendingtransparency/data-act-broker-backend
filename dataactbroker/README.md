@@ -199,7 +199,7 @@ This route confirms that the broker is running
 Example input: None
 Example output: "Broker is running"
 
-#### GET "/<filename>"
+#### GET "/\<filename\>"
 This path will return files located in the local folder. This path is only accessible for local installs due
 to security reasons.
 
@@ -387,12 +387,13 @@ status objects for each job under the key "jobs", and other submission-level dat
         - original_label: Label of the rule as it appears in the practices and procedures document
     * warning_data: Holds the same information as error_data, but for warnings instead of errors
 - agency_name: Which agency this submission is attached to
+- cgac_code: The CGAC code associated with that agency
 - reporting_period_start_date: Specified by user at time of submission
 - reporting_period_end_date: Specified by user at time of submission
 - number_of_errors: Total number of errors that have occurred throughout the submission
-- number_of_warnings: Total number of warnings throughout submission
-- number_of_rows: 446
-- created_on": Date the submission was originally created
+- number_of_rows: Total number of rows in the submission
+- created_on: Date the submission was originally created
+- last_updated: Date + time of last modification to this submission
 
 
 Example input:
@@ -409,70 +410,66 @@ Example output:
 {
   "jobs": [
     {
-    "job_id": 3005,
-    "job_status": "invalid",
-    "file_type": "appropriations",
-    "job_type": "file_upload",
-    "filename": "approp.csv",
-    "file_status" : "header_error",
-    "missing_headers": ["header_1", "header_2"],
-    "duplicated_headers": ["header_3", "header_4"],
-    "file_size": 4508,
-    "number_of_rows": 500,
-    "error_type": "header_error",
-    "error_data": [],
-    "warning_data": []
-    },
-    {
-    "job_id": 3006,
-    "job_status": "finished",
-    "file_type": "appropriations",
-    "job_type": "file_upload",
-    "filename": "approp.csv",
-    "file_status" : "complete",
-    "missing_headers": [],
-    "duplicated_headers": [],
-    "file_size": 4508,
-    "number_of_rows": 500,
-    "error_type": "record_level_error",
-    "error_data":  [
-    {
-    "field_name": "allocationtransferagencyid",
-    "error_name": "type_error",
-    "error_description": "The value provided was of the wrong type",
-    "occurrences": 27,
-    "rule_failed": "",
-    "original_label":""
-    },
-    {
-    "field_name": "availabilitytypecode",
-    "error_name": "rule_failed",
-    "error_description": "Failed rule: Indicator must be X, F, A, or blank",
-    "occurrences": 27,
-    "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
-    "original_label":"A21"
-    }
-    ],
-    "warning_data": [
-    {
-    "field_name": "allocationtransferagencyid",
-    "error_name": "rule_failed",
-    "error_description": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
-    "occurrences": 27,
-    "rule_failed": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
-    "original_label":"A10"
-    },
-    {
-    "field_name": "availabilitytypecode",
-    "error_name": "rule_failed",
-    "error_description": "Failed rule: Indicator must be X, F, A, or blank",
-    "occurrences": 27,
-    "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
-    "original_label":"A21"
-    }
-    ]
-    },
-    {
+      "job_id": 3005,
+      "job_status": "invalid",
+      "file_type": "appropriations",
+      "job_type": "file_upload",
+      "filename": "approp.csv",
+      "file_status" : "header_error",
+      "missing_headers": ["header_1", "header_2"],
+      "duplicated_headers": ["header_3", "header_4"],
+      "file_size": 4508,
+      "number_of_rows": 500,
+      "error_type": "header_error",
+      "error_data": [],
+      "warning_data": []
+    }, {
+      "job_id": 3006,
+      "job_status": "finished",
+      "file_type": "appropriations",
+      "job_type": "file_upload",
+      "filename": "approp.csv",
+      "file_status" : "complete",
+      "missing_headers": [],
+      "duplicated_headers": [],
+      "file_size": 4508,
+      "number_of_rows": 500,
+      "error_type": "record_level_error",
+      "error_data":  [
+        {
+          "field_name": "allocationtransferagencyid",
+          "error_name": "type_error",
+          "error_description": "The value provided was of the wrong type",
+          "occurrences": 27,
+          "rule_failed": "",
+          "original_label":""
+        }, {
+          "field_name": "availabilitytypecode",
+          "error_name": "rule_failed",
+          "error_description": "Failed rule: Indicator must be X, F, A, or blank",
+          "occurrences": 27,
+          "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
+          "original_label":"A21"
+        }
+      ],
+      "warning_data": [
+        {
+          "field_name": "allocationtransferagencyid",
+          "error_name": "rule_failed",
+          "error_description": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
+          "occurrences": 27,
+          "rule_failed": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
+          "original_label":"A10"
+        }, {
+          "field_name": "availabilitytypecode",
+          "error_name": "rule_failed",
+          "error_description": "Failed rule: Indicator must be X, F, A, or blank",
+          "occurrences": 27,
+          "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
+          "original_label":"A21"
+        }
+      ]
+    }, {
       "job_status": "finished",
       "error_data": [
         {
@@ -482,8 +479,7 @@ Example output:
           "occurrences": "11",
           "rule_failed": "Must have either a piid, fain, or uri",
           "original_label":""
-        },
-        {
+        }, {
           "error_description": "A rule failed for this value",
           "error_name": "rule_failed",
           "field_name": "award",
@@ -506,11 +502,13 @@ Example output:
     }
   ],
   "agency_name": "Name of the agency",
+  "cgac_code": "012",
   "reporting_period_start_date": "03/31/2016",
   "reporting_period_end_date": "03/31/2016",
   "number_of_errors": 54,
   "number_of_rows": 446,
   "created_on": "04/01/2016"
+  "last_updated": "2016-04-01T09:10:11"
 }
 ```
 
@@ -558,7 +556,7 @@ Get total obligations and specific obligations. Calls to this route should inclu
 ```
 
 
-#### GET "/v1/submission/<int:submission_id>/narrative"
+#### GET "/v1/submission/\<int:submission_id\>/narrative"
 Retrieve existing submission narratives (explanations/notes for particular
 files). Submission id should be the integer id associated with the submission
 in question. Users must have appropriate permissions to access these
@@ -578,7 +576,7 @@ narratives (write access for the agency of the submission or SYS).
 }
 ```
 
-#### POST "/v1/submission/<int:submission_id>/narrative"
+#### POST "/v1/submission/\<int:submission_id\>/narrative"
 Set the file narratives for a given submission. The input should mirror the
 above output, i.e. an object keyed by file types mapping to strings. Keys may
 be absent. Unexpected keys will be ignored. Users must have appropriate
@@ -602,15 +600,16 @@ permissions (write access for the agency of the submission or SYS).
 {}
 ```
 
-#### POST "/v1/sign_submission_file/"
-This route sends a request to the backend with the submission ID and file name that is desired. The backend generates a signed S3 URL or the path to the local location of the file and returns a JSON response containing that url.
+#### POST "/v1/submission/\<int:submission_id\>/report_url"
+This route requests the URL associated with a particular type of submission report. The provided URL will expire after roughly half an hour.
 
 ##### Body (JSON)
 
 ```
 {
-    "submission": 123,
-    "file": "file_name"
+    "warning": True,
+    "file_type": "appropriations",
+    "cross_type": "award_financial"
 }
 ```
 
@@ -623,9 +622,15 @@ This route sends a request to the backend with the submission ID and file name t
 ```
 
 ##### Request Params
-  * file - a string indicating the file to generate (file name without extension)
-  * submission - the integer submission ID
-  
+  * warning - Whether or not the requested report is a warning (or error)
+    report. Defaults to False if this parameter isn't present.
+  * file_type - One of 'appropriations', 'program_activity',
+    'award_financial', 'award', 'award_procurement', 'awardee_attributes'
+    or 'sub_award'. Designates the type of report you're seeking.
+  * cross_type - If present, indicates that we're looking for a
+    cross-validation report between `file_type` and this parameter. It accepts the
+    same values as `file_type`
+
 ##### Response
 File download or redirect to signed URL
 
@@ -973,7 +978,7 @@ To generate a test coverage report from the command line:
 3. After the tests are done running, view the coverage report by typing `coverage report`. To exclude third-party libraries from the report, you can tell it to ignore the `site-packages` folder: `coverage report --omit=*/site-packages*`.
 
 ## D File Callback
-**Route:** `/v1/complete_generation/<generation_task_key>/`
+**Route:** `/v1/complete_generation/\<generation_task_key\>/`
 
 **Method:** `POST`
 

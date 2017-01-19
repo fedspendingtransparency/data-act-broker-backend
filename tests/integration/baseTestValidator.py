@@ -15,7 +15,7 @@ from dataactcore.scripts.databaseSetup import dropDatabase
 from dataactcore.scripts.setupJobTrackerDB import setupJobTrackerDB
 from dataactcore.scripts.setupErrorDB import setupErrorDB
 from dataactcore.scripts.setupValidationDB import setupValidationDB
-from dataactcore.utils.report import get_report_path
+from dataactcore.utils.report import report_file_name
 from dataactcore.aws.s3UrlHandler import s3UrlHandler
 from dataactcore.models.jobModels import Job, Submission
 from dataactcore.models.errorModels import File
@@ -30,7 +30,7 @@ class BaseTestValidator(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up resources to be shared within a test class"""
-        #TODO: refactor into a pytest class fixtures and inject as necessary
+        # TODO: refactor into a pytest class fixtures and inject as necessary
         # update application's db config options so unittests
         # run against test databases
         suite = cls.__name__.lower()
@@ -93,7 +93,7 @@ class BaseTestValidator(unittest.TestCase):
         self.assertLess(actualSize, size + 5)
 
     def run_test(self, jobId, statusId, statusName, fileSize, stagingRows,
-                 errorStatus, numErrors, numWarnings = 0, warningFileSize = None):
+                 errorStatus, numErrors, numWarnings=0, warningFileSize=None):
         """ Runs a validation test
 
         Args:
@@ -104,7 +104,8 @@ class BaseTestValidator(unittest.TestCase):
             stagingRows: Expected number of rows in validation db staging tables. False if no rows are expected
             errorStatus: Expected status in file table of error DB, False if file object should not exist
             numErrors: Expected number of errors
-            rowErrorsPresent: Checks flag for whether row errors occurred, None to skip the check
+            numWarnings: Expected number of warnings
+            warningFileSize: Expected size of warning file
 
         Returns:
 
@@ -136,7 +137,8 @@ class BaseTestValidator(unittest.TestCase):
                 self.assertEqual(checkNumberOfErrorsByJobId(jobId, 'warning'), numWarnings)
 
             if fileSize is not False:
-                reportPath = get_report_path(job, 'error')
+                reportPath = report_file_name(
+                    job.submission_id, False, job.file_type.name)
                 if self.local:
                     self.assertFileSizeAppxy(fileSize, reportPath)
                 else:
@@ -146,7 +148,8 @@ class BaseTestValidator(unittest.TestCase):
                         'errors/{}'.format(reportPath)), fileSize + 5)
 
             if warningFileSize is not None and warningFileSize is not False:
-                reportPath = get_report_path(job, 'warning')
+                reportPath = report_file_name(
+                    job.submission_id, True, job.file_type.name)
                 if self.local:
                     self.assertFileSizeAppxy(warningFileSize, reportPath)
                 else:
@@ -198,7 +201,7 @@ class BaseTestValidator(unittest.TestCase):
             # Create file names for S3
             s3FileName = str(user) + "/" + filename
 
-            if(cls.uploadFiles) :
+            if cls.uploadFiles:
                 # Use boto to put files on S3
                 s3conn = boto.s3.connect_to_region(regionName)
                 key = Key(s3conn.get_bucket(bucketName))

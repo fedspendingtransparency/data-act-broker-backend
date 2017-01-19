@@ -11,7 +11,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency
 from dataactcore.models.stagingModels import AwardFinancial
-from dataactcore.models.userModel import User, UserStatus, EmailTemplateType, EmailTemplate
+from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
 from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TYPE_DICT,
                                         JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PUBLISH_STATUS_DICT)
@@ -36,9 +36,8 @@ HASH_ROUNDS = 12
 def createUserWithPassword(email, password, bcrypt, website_admin=False):
     """Convenience function to set up fully-baked user (used for setup/testing only)."""
     sess = GlobalDB.db().session
-    status = sess.query(UserStatus).filter(UserStatus.name == 'approved').one()
     user = User(
-        email=email, user_status=status, name='Administrator',
+        email=email, name='Administrator',
         title='System Admin', website_admin=website_admin
     )
     user.salt, user.password_hash = getPasswordHash(password, bcrypt)
@@ -53,8 +52,8 @@ def getPasswordHash(password, bcrypt):
     # TODO: handle password hashing/lookup in the User model
     salt = uuid.uuid4().hex
     # number 12 below iw the number of rounds for bcrypt
-    hash = bcrypt.generate_password_hash(password + salt, HASH_ROUNDS)
-    password_hash = hash.decode("utf-8")
+    encoded_hash = bcrypt.generate_password_hash(password + salt, HASH_ROUNDS)
+    password_hash = encoded_hash.decode("utf-8")
     return salt, password_hash
 
 
@@ -96,11 +95,14 @@ def checkNumberOfErrorsByJobId(jobId, errorType='fatal'):
     return errors or 0
 
 """ ERROR DB FUNCTIONS """
+
+
 def getErrorType(job_id):
     """ Returns either "none", "header_errors", or "row_errors" depending on what errors occurred during validation """
     sess = GlobalDB.db().session
-    if sess.query(File).options(joinedload("file_status")).filter(
-                    File.job_id == job_id).one().file_status.name == "header_error":
+    file_status_name = sess.query(File).options(joinedload("file_status")).\
+        filter(File.job_id == job_id).one().file_status.name
+    if file_status_name == "header_error":
         # Header errors occurred, return that
         return "header_errors"
     elif sess.query(Job).filter(Job.job_id == job_id).one().number_of_errors > 0:
@@ -110,7 +112,8 @@ def getErrorType(job_id):
         # No errors occurred during validation
         return "none"
 
-def createFileIfNeeded(job_id, filename = None):
+
+def createFileIfNeeded(job_id, filename=None):
     """ Return the existing file object if it exists, or create a new one """
     sess = GlobalDB.db().session
     try:
@@ -120,6 +123,7 @@ def createFileIfNeeded(job_id, filename = None):
     except NoResultFound:
         fileRec = createFile(job_id, filename)
     return fileRec
+
 
 def createFile(job_id, filename):
     """ Create a new file object for specified job and filename """
@@ -135,6 +139,7 @@ def createFile(job_id, filename):
     sess.add(fileRec)
     sess.commit()
     return fileRec
+
 
 def writeFileError(job_id, filename, error_type, extra_info=None):
     """ Write a file-level error to the file table
@@ -165,6 +170,7 @@ def writeFileError(job_id, filename, error_type, extra_info=None):
     sess.add(fileRec)
     sess.commit()
 
+
 def markFileComplete(job_id, filename=None):
     """ Marks file's status as complete
 
@@ -176,6 +182,7 @@ def markFileComplete(job_id, filename=None):
     fileComplete = createFileIfNeeded(job_id, filename)
     fileComplete.file_status_id = FILE_STATUS_DICT['complete']
     sess.commit()
+
 
 def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
     """ Get error metrics for specified job, including number of errors for each field name and error type """
@@ -192,8 +199,8 @@ def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
         ErrorMetadata.job_id == job_id, ErrorMetadata.severity_id == severity_id).all()
     for result in query_result:
         record_dict = {"field_name": result.field_name, "error_name": result.error_type.name,
-                      "error_description": result.error_type.description, "occurrences": str(result.occurrences),
-                      "rule_failed": result.rule_failed, "original_label": result.original_rule_label}
+                       "error_description": result.error_type.description, "occurrences": str(result.occurrences),
+                       "rule_failed": result.rule_failed, "original_label": result.original_rule_label}
         if include_file_types:
             record_dict['source_file'] = FILE_TYPE_DICT_ID.get(result.file_type_id, '')
             record_dict['target_file'] = FILE_TYPE_DICT_ID.get(result.target_file_type_id, '')
@@ -202,12 +209,6 @@ def getErrorMetricsByJobId(job_id, include_file_types=False, severity_id=None):
 
 """ USER DB FUNCTIONS """
 
-def updateLastLogin(user, unlock_user=False):
-    """ This updates the last login date to today's datetime for the user to the current date upon successful login.
-    """
-    sess = GlobalDB.db().session
-    user.last_login_date = time.strftime("%c") if not unlock_user else None
-    sess.commit()
 
 def get_email_template(email_type):
     """ Get template for specified email type
@@ -217,8 +218,10 @@ def get_email_template(email_type):
         EmailTemplate object
     """
     sess = GlobalDB.db().session
-    type_result = sess.query(EmailTemplateType.email_template_type_id).filter(EmailTemplateType.name == email_type).one()
-    template_result = sess.query(EmailTemplate).filter(EmailTemplate.template_type_id == type_result.email_template_type_id).one()
+    type_result = sess.query(EmailTemplateType.email_template_type_id).\
+        filter(EmailTemplateType.name == email_type).one()
+    template_result = sess.query(EmailTemplate).\
+        filter(EmailTemplate.template_type_id == type_result.email_template_type_id).one()
     return template_result
 
 
@@ -239,13 +242,15 @@ def check_correct_password(user, password, bcrypt):
     # Check the password with bcrypt
     return bcrypt.check_password_hash(user.password_hash, password + user.salt)
 
+
 def get_submission_stats(submission_id):
     """Get summarized dollar amounts by submission."""
     sess = GlobalDB.db().session
     base_query = sess.query(func.sum(AwardFinancial.transaction_obligated_amou)).\
         filter(AwardFinancial.submission_id == submission_id)
-    procurement = base_query.filter(AwardFinancial.piid != None)
-    fin_assist = base_query.filter(or_(AwardFinancial.fain != None, AwardFinancial.uri != None))
+    procurement = base_query.filter(AwardFinancial.piid.isnot(None))
+    fin_assist = base_query.filter(or_(AwardFinancial.fain.isnot(None),
+                                       AwardFinancial.uri.isnot(None)))
     return {
         "total_obligations": float(base_query.scalar() or 0),
         "total_procurement_obligations": float(procurement.scalar() or 0),
@@ -272,6 +277,7 @@ def run_job_checks(job_id):
         return False
     else:
         return True
+
 
 def mark_job_status(job_id, status_name):
     """
@@ -309,12 +315,12 @@ def check_job_dependencies(job_id):
         raise ValueError('Current job not finished, unable to check dependencies')
 
     # get the jobs that are dependent on job_id being finished
-    dependencies = sess.query(JobDependency).filter_by(prerequisite_id = job_id).all()
+    dependencies = sess.query(JobDependency).filter_by(prerequisite_id=job_id).all()
     for dependency in dependencies:
         dep_job_id = dependency.job_id
         if dependency.dependent_job.job_status_id != JOB_STATUS_DICT['waiting']:
             logger.error("%s (dependency of %s) is not in a 'waiting' state",
-                dep_job_id, job_id)
+                         dep_job_id, job_id)
         else:
             # find the number of this job's prerequisites that do
             # not have a status of 'finished'.
@@ -335,6 +341,7 @@ def check_job_dependencies(job_id):
                 from dataactcore.utils.jobQueue import enqueue
                 enqueue.delay(dep_job_id)
 
+
 def create_submission(user_id, submission_values, existing_submission):
     """ Create a new submission
 
@@ -347,7 +354,7 @@ def create_submission(user_id, submission_values, existing_submission):
         submission object
     """
     if existing_submission is None:
-        submission = Submission(datetime_utc = datetime.utcnow(), **submission_values)
+        submission = Submission(datetime_utc=datetime.utcnow(), **submission_values)
         submission.user_id = user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
     else:
@@ -361,6 +368,7 @@ def create_submission(user_id, submission_values, existing_submission):
             setattr(submission, key, submission_values[key])
 
     return submission
+
 
 def create_jobs(upload_files, submission, existing_submission=False):
     """Create the set of jobs associated with the specified submission
@@ -382,7 +390,7 @@ def create_jobs(upload_files, submission, existing_submission=False):
     # to ensure that jobs dependent on the awards jobs being present
     # are processed last.
     jobs_required = []
-    upload_dict= {}
+    upload_dict = {}
     sorted_uploads = sorted(upload_files, key=attrgetter('file_letter'))
 
     for upload_file in sorted_uploads:
@@ -399,14 +407,14 @@ def create_jobs(upload_files, submission, existing_submission=False):
         # (note: job_type of 'validation' is a cross-file job)
         val_job = sess.query(Job).\
             filter_by(
-                submission_id = submission_id,
-                job_type_id = JOB_TYPE_DICT["validation"]).\
+                submission_id=submission_id,
+                job_type_id=JOB_TYPE_DICT["validation"]).\
             one()
         val_job.job_status_id = JOB_STATUS_DICT["waiting"]
         ext_job = sess.query(Job).\
             filter_by(
-                submission_id = submission_id,
-                job_type_id = JOB_TYPE_DICT["external_validation"]).\
+                submission_id=submission_id,
+                job_type_id=JOB_TYPE_DICT["external_validation"]).\
             one()
         ext_job.job_status_id = JOB_STATUS_DICT["waiting"]
         submission.updated_at = time.strftime("%c")
@@ -434,6 +442,7 @@ def create_jobs(upload_files, submission, existing_submission=False):
     sess.commit()
     upload_dict["submission_id"] = submission_id
     return upload_dict
+
 
 def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
     """ Add upload and validation jobs for a single filetype
@@ -556,6 +565,7 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
     sess.commit()
 
     return validation_job_id, upload_job.job_id
+
 
 def get_submission_status(submission):
     """Return the status of a submission."""

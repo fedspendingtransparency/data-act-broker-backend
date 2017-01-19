@@ -1,10 +1,11 @@
 from dateutil.parser import parse
 
+
 class StringCleaner:
     """ Provides basic functionality for sanitizing string inputs """
 
     @staticmethod
-    def cleanString(data,removeSpaces = True):
+    def cleanString(data, removeSpaces=True):
         """ Change to lowercase, trim whitespace on ends, and replace internal spaces with underscores if desired
 
         Args:
@@ -15,8 +16,8 @@ class StringCleaner:
             Cleaned version of string
         """
         result = str(data).lower().strip()
-        if(removeSpaces):
-            result = result.replace(" ","_")
+        if removeSpaces:
+            result = result.replace(" ", "_")
         return result
 
     @staticmethod
@@ -24,7 +25,7 @@ class StringCleaner:
         try:
             float(data)
             return True
-        except:
+        except ValueError:
             return False
 
     @staticmethod
@@ -32,5 +33,5 @@ class StringCleaner:
         try:
             parse(data)
             return True
-        except:
+        except (ValueError, OverflowError):
             return False

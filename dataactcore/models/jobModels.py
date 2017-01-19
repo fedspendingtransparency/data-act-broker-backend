@@ -1,19 +1,19 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
 
-from sqlalchemy import (
-    Boolean, Column, Date, DateTime, ForeignKey, Integer, Text,
-    UniqueConstraint) 
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
+from dataactcore.models.lookups import FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, JOB_TYPE_DICT_ID
 
 
 def generateFiscalYear(context):
     """ Generate fiscal year based on the date provided """
     reporting_end_date = context.current_parameters['reporting_end_date']
     year = reporting_end_date.year
-    if reporting_end_date.month in [10,11,12]:
+    if reporting_end_date.month in [10, 11, 12]:
         year += 1
     return year
+
 
 def generateFiscalPeriod(context):
     """ Generate fiscal period based on the date provided """
@@ -21,6 +21,7 @@ def generateFiscalPeriod(context):
     period = (reporting_end_date.month + 3) % 12
     period = 12 if period == 0 else period
     return period
+
 
 class JobStatus(Base):
     __tablename__ = "job_status"
@@ -30,6 +31,7 @@ class JobStatus(Base):
     name = Column(Text)
     description = Column(Text)
 
+
 class JobType(Base):
     __tablename__ = "job_type"
     JOB_TYPE_DICT = None
@@ -37,6 +39,7 @@ class JobType(Base):
     job_type_id = Column(Integer, primary_key=True)
     name = Column(Text)
     description = Column(Text)
+
 
 class PublishStatus(Base):
     __tablename__ = "publish_status"
@@ -46,25 +49,29 @@ class PublishStatus(Base):
     name = Column(Text)
     description = Column(Text)
 
+
 class Submission(Base):
     __tablename__ = "submission"
 
     submission_id = Column(Integer, primary_key=True)
     datetime_utc = Column(DateTime)
-    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_submission_user"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_submission_user"),
+                     nullable=True)
     user = relationship("User")
     cgac_code = Column(Text)
     reporting_start_date = Column(Date, nullable=False)
     reporting_end_date = Column(Date, nullable=False)
     reporting_fiscal_year = Column(Integer, nullable=False, default=generateFiscalYear, server_default='0')
     reporting_fiscal_period = Column(Integer, nullable=False, default=generateFiscalPeriod, server_default='0')
-    is_quarter_format = Column(Boolean, nullable = False, default = "False", server_default= "False")
+    is_quarter_format = Column(Boolean, nullable=False, default="False", server_default="False")
     jobs = None
-    publishable = Column(Boolean, nullable = False, default = "False", server_default = "False")
-    publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL", name ="fk_publish_status_id"))
-    publish_status = relationship("PublishStatus", uselist = False)
+    publishable = Column(Boolean, nullable=False, default="False", server_default="False")
+    publish_status_id = Column(Integer, ForeignKey("publish_status.publish_status_id", ondelete="SET NULL",
+                                                   name="fk_publish_status_id"))
+    publish_status = relationship("PublishStatus", uselist=False)
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
+
 
 class Job(Base):
     __tablename__ = "job"
@@ -75,7 +82,8 @@ class Job(Base):
     job_status = relationship("JobStatus", uselist=False, lazy='joined')
     job_type_id = Column(Integer, ForeignKey("job_type.job_type_id", name="fk_job_type_id"))
     job_type = relationship("JobType", uselist=False, lazy='joined')
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_job_submission_id"))
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE", name="fk_job_submission_id"))
     submission = relationship("Submission", uselist=False, cascade="delete")
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id"), nullable=True)
     file_type = relationship("FileType", uselist=False, lazy='joined')
@@ -90,6 +98,19 @@ class Job(Base):
     end_date = Column(Date)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_job_user"), nullable=True)
 
+    @property
+    def job_type_name(self):
+        return JOB_TYPE_DICT_ID.get(self.job_type_id)
+
+    @property
+    def job_status_name(self):
+        return JOB_STATUS_DICT_ID.get(self.job_status_id)
+
+    @property
+    def file_type_name(self):
+        return FILE_TYPE_DICT_ID.get(self.file_type_id)
+
+
 class JobDependency(Base):
     __tablename__ = "job_dependency"
 
@@ -98,6 +119,7 @@ class JobDependency(Base):
     prerequisite_id = Column(Integer, ForeignKey("job.job_id", name="fk_prereq_job_id"))
     dependent_job = relationship("Job", foreign_keys=[job_id], lazy='joined')
     prerequisite_job = relationship("Job", foreign_keys=[prerequisite_id], lazy='joined')
+
 
 class FileType(Base):
     __tablename__ = "file_type"
@@ -109,13 +131,15 @@ class FileType(Base):
     letter_name = Column(Text)
     file_order = Column(Integer)
 
+
 class FileGenerationTask(Base):
     __tablename__ = "file_generation_task"
 
     file_generation_task_id = Column(Integer, primary_key=True)
     generation_task_key = Column(Text, index=True, unique=True)
-    job_id = Column(Integer, ForeignKey("job.job_id", name = "fk_generation_job"))
+    job_id = Column(Integer, ForeignKey("job.job_id", name="fk_generation_job"))
     job = relationship("Job", uselist=False, cascade="delete")
+
 
 class SubmissionNarrative(Base):
     __tablename__ = "submission_narrative"
@@ -128,7 +152,7 @@ class SubmissionNarrative(Base):
     )
     submission = relationship(Submission, uselist=False)
     file_type_id = Column(
-        Integer, 
+        Integer,
         ForeignKey("file_type.file_type_id", name="fk_file_type"),
         nullable=False
     )

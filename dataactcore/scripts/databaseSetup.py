@@ -22,12 +22,7 @@ def dropDatabase(dbName):
 
 
 def runMigrations():
-    """Run Alembic migrations for a specific database/model set.
-
-    Args:
-        alembicDbName: the database to target (must match one of the
-        default databases in alembic.ini.
-    """
+    """Run Alembic migrations for a specific database/model set."""
     logging.disable(logging.WARN)
     alembic_cfg = Config(ALEMBIC_PATH)
     alembic_cfg.set_main_option("script_location", MIGRATION_PATH)

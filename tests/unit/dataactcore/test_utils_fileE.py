@@ -56,6 +56,12 @@ def test_sudsToRow_no_compensation():
         'A Duns', 'Par Duns', 'Par Name', '', '', '', '', '', '', '', '',
         '', '')
 
+    del sudsObj.coreData.listOfExecutiveCompensationInformation
+    row = fileE.sudsToRow(sudsObj)
+    assert row == fileE.Row(
+        'A Duns', 'Par Duns', 'Par Name', '', '', '', '', '', '', '', '',
+        '', '')
+
 
 def test_sudsToRow_too_few_compensation():
     sudsObj = make_suds('B Duns', 'Par DunsB', 'Par NameB')
@@ -82,7 +88,7 @@ def test_sudsToRow_too_many_compensation():
     sudsObj = make_suds('B Duns', 'Par DunsB', 'Par NameB')
     info = sudsObj.coreData.listOfExecutiveCompensationInformation
     info.executiveCompensationDetail = [
-        Mock(compensation=i*11.11) for i in range(1, 10)]
+        Mock(compensation=i * 11.11) for i in range(1, 10)]
     for idx, person in enumerate(info.executiveCompensationDetail):
         # Can't do this in the constructor as "name" is a reserved word
         person.name = "Person {}".format(idx + 1)

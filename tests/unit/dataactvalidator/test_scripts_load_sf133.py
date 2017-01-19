@@ -52,16 +52,7 @@ def test_update_tas_ids_fiscal_year(database):
     sess = database.session
     tas = TASFactory(internal_start_date=date(2010, 1, 1),
                      internal_end_date=date(2010, 8, 31))
-    copied_fields = {   # translate to a slightly different set of fields
-        'allocation_transfer_agency': tas.allocation_transfer_agency,
-        'agency_identifier': tas.agency_identifier,
-        'beginning_period_of_availa': tas.beginning_period_of_availability,
-        'ending_period_of_availabil': tas.ending_period_of_availability,
-        'availability_type_code': tas.availability_type_code,
-        'main_account_code': tas.main_account_code,
-        'sub_account_code': tas.sub_account_code
-    }
-    sf_133 = SF133Factory(fiscal_year=2011, period=1, **copied_fields)
+    sf_133 = SF133Factory(fiscal_year=2011, period=1, **tas.component_dict())
     sess.add_all([tas, sf_133])
     sess.commit()
 
@@ -80,4 +71,3 @@ def test_update_tas_ids_fiscal_year(database):
     load_sf133.update_tas_id(2011, 1)
     sess.refresh(sf_133)
     assert sf_133.tas_id is tas.tas_id
-

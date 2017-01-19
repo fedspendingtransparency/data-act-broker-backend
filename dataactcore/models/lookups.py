@@ -21,6 +21,7 @@ FILE_STATUS = [
     LookupType(6, 'incomplete', 'File has not yet been validated')
 ]
 FILE_STATUS_DICT = {item.name: item.id for item in FILE_STATUS}
+FILE_STATUS_DICT_ID = {item.id: item.name for item in FILE_STATUS}
 
 ERROR_TYPE = [
     LookupType(1, 'type_error', 'The value provided was of the wrong type'),
@@ -52,6 +53,7 @@ JOB_TYPE = [
     LookupType(5, 'external_validation', 'new information must be validated against external sources')
 ]
 JOB_TYPE_DICT = {item.name: item.id for item in JOB_TYPE}
+JOB_TYPE_DICT_ID = {item.id: item.name for item in JOB_TYPE}
 
 PUBLISH_STATUS = [
     LookupType(1, 'unpublished', 'Has not yet been moved to data store'),
@@ -73,16 +75,6 @@ FILE_TYPE_DICT = {item.name: item.id for item in FILE_TYPE}
 FILE_TYPE_DICT_ID = {item.id: item.name for item in FILE_TYPE}
 FILE_TYPE_DICT_LETTER = {item.id: item.letter for item in FILE_TYPE}
 FILE_TYPE_DICT_LETTER_ID = {item.letter: item.id for item in FILE_TYPE}
-
-
-USER_STATUS = [
-    LookupType(1, 'awaiting_confirmation', 'User has entered email but not confirmed'),
-    LookupType(2, 'email_confirmed', 'User email has been confirmed'),
-    LookupType(3, 'awaiting_approval', 'User has registered their information and is waiting for approval'),
-    LookupType(4, 'approved', 'User has been approved'),
-    LookupType(5, 'denied', 'User registration was denied')
-]
-USER_STATUS_DICT = {item.name: item.id for item in USER_STATUS}
 
 PERMISSION_TYPE = [
     LookupType(1, 'reader', 'This user is allowed to view any submission for their agency'),

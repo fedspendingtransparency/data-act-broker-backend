@@ -46,8 +46,8 @@ def current_user_can(permission, cgac_code):
     level) for the given cgac_code?"""
     admin = hasattr(g, 'user') and g.user.website_admin
     has_affil = hasattr(g, 'user') and any(
-        aff.cgac.cgac_code == cgac_code
-        and aff.permission_type_id >= PERMISSION_TYPE_DICT[permission]
+        aff.cgac.cgac_code == cgac_code and
+        aff.permission_type_id >= PERMISSION_TYPE_DICT[permission]
         for aff in g.user.affiliations
     )
     return admin or has_affil

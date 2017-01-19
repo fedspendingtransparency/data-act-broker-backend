@@ -23,7 +23,7 @@ class FileTypeTests(BaseTestValidator):
     def setUpClass(cls):
         """Set up class-wide resources."""
         super(FileTypeTests, cls).setUpClass()
-        #TODO: refactor into a pytest fixture
+        # TODO: refactor into a pytest fixture
 
         user = cls.userId
         # TODO: get rid of this flag once we're using a tempdb for test fixtures

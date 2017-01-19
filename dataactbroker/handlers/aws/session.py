@@ -12,7 +12,7 @@ class LoginSession:
     This class is a wrapper for the session object
     """
     @staticmethod
-    def logout(session) :
+    def logout(session):
         """
         arguments:
 
@@ -24,7 +24,7 @@ class LoginSession:
         session.pop("name", None)
 
     @staticmethod
-    def login(session,username) :
+    def login(session, username):
         """
         arguments:
 
@@ -34,9 +34,8 @@ class LoginSession:
 
         Sets the current session status
         """
-        session["name"] =  username
+        session["name"] = username
         session["login"] = True
-
 
     @staticmethod
     def resetID(session):
@@ -47,10 +46,10 @@ class LoginSession:
 
         resets the _uid in cases that the session becomes invalid
         """
-        session["_uid"] = "{}|{}".format(_create_identifier(),uuid4())
+        session["_uid"] = "{}|{}".format(_create_identifier(), uuid4())
 
 
-def toUnixTime(datetimeValue) :
+def toUnixTime(datetimeValue):
     """
     arguments:
 
@@ -62,8 +61,9 @@ def toUnixTime(datetimeValue) :
     """
     if isinstance(datetimeValue, datetime):
         # If argument is a datetime object, convert to timestamp
-        return (datetimeValue-datetime(1970,1,1)).total_seconds()
+        return (datetimeValue - datetime(1970, 1, 1)).total_seconds()
     return datetimeValue
+
 
 class UserSession(dict, SessionMixin):
     """
@@ -71,13 +71,13 @@ class UserSession(dict, SessionMixin):
     """
     pass
 
+
 class UserSessionInterface(SessionInterface):
     """
 
     Class That implements the SessionInterface and uses SessionTable to store data
 
     """
-
 
     SESSSION_CLEAR_COUNT_LIMIT = 10
 
@@ -99,8 +99,8 @@ class UserSessionInterface(SessionInterface):
         """
         sid = request.headers.get("x-session-id")
         if sid and SessionTable.doesSessionExist(sid):
-            if SessionTable.getTimeout(sid)> toUnixTime(datetime.utcnow()):
-                session_dict =  UserSession()
+            if SessionTable.getTimeout(sid) > toUnixTime(datetime.utcnow()):
+                session_dict = UserSession()
                 # Read data as json
                 data = loads(SessionTable.getData(sid))
                 for key in data.keys():
@@ -112,7 +112,6 @@ class UserSessionInterface(SessionInterface):
         session_dict = UserSession()
         session_dict["sid"] = sid
         return session_dict
-
 
     def save_session(self, app, session, response):
         """
@@ -128,29 +127,32 @@ class UserSessionInterface(SessionInterface):
         """
         if not session:
             return
-        # Extend the expiration based on either the time out limit set here or the permanent_session_lifetime property of the app
+        # Extend the expiration based on either the time out limit set here or
+        # the permanent_session_lifetime property of the app
         if self.get_expiration_time(app, session):
             expiration = self.get_expiration_time(app, session)
         else:
-            if "session_check" in session and session["session_check"] and SessionTable.doesSessionExist(session["sid"]):
+            if "session_check" in session and session["session_check"] and \
+                    SessionTable.doesSessionExist(session["sid"]):
                 # This is just a session check, don't extend expiration time
                 expiration = SessionTable.getTimeout(session["sid"])
                 # Make sure next route call does not get counted as session check
                 session["session_check"] = False
             else:
                 expiration = datetime.utcnow() + timedelta(seconds=SessionTable.TIME_OUT_LIMIT)
-        if not "_uid" in session:
+        if "_uid" not in session:
             LoginSession.resetID(session)
-        SessionTable.newSession(session["sid"],session,expiration)
+        SessionTable.newSession(session["sid"], session, expiration)
         UserSessionInterface.CountLimit += 1
-        if UserSessionInterface.CountLimit % UserSessionInterface.SESSSION_CLEAR_COUNT_LIMIT == 0 :
+        if UserSessionInterface.CountLimit % UserSessionInterface.SESSSION_CLEAR_COUNT_LIMIT == 0:
             SessionTable.clearSessions()
             UserSessionInterface.CountLimit = 1
 
         # Return session ID as header x-session-id
         response.headers["x-session-id"] = session["sid"]
 
-class SessionTable :
+
+class SessionTable:
     """
     Provides helper functions for session management
 
@@ -162,7 +164,7 @@ class SessionTable :
     TIME_OUT_LIMIT = 604800
 
     @staticmethod
-    def clearSessions() :
+    def clearSessions():
         """
         Removes old sessions that are expired
         """
@@ -172,7 +174,7 @@ class SessionTable :
         sess.commit()
 
     @staticmethod
-    def doesSessionExist(uid) :
+    def doesSessionExist(uid):
         """
         arguments:
 
@@ -186,9 +188,8 @@ class SessionTable :
         else:
             return False
 
-
     @staticmethod
-    def getTimeout(uid) :
+    def getTimeout(uid):
         """
         arguments:
 
@@ -198,7 +199,7 @@ class SessionTable :
         return GlobalDB.db().session.query(SessionMap).filter_by(uid=uid).one().expiration
 
     @staticmethod
-    def getData(uid) :
+    def getData(uid):
         """
         uid -- (String) the uid
         return (Session) the session data
@@ -206,7 +207,7 @@ class SessionTable :
         return GlobalDB.db().session.query(SessionMap).filter_by(uid=uid).one().data
 
     @staticmethod
-    def newSession(uid,data,expiration) :
+    def newSession(uid, data, expiration):
         """ Updates current session or creates a new one if no session exists
         arguments:
 
@@ -221,7 +222,7 @@ class SessionTable :
         user_session = sess.query(SessionMap).filter_by(uid=uid).one_or_none()
         if user_session is None:
             # No existing session found, create a new one
-            new_session = SessionMap(uid = uid, data = dumps(data), expiration = toUnixTime(expiration))
+            new_session = SessionMap(uid=uid, data=dumps(data), expiration=toUnixTime(expiration))
             sess.add(new_session)
         else:
             # Modify existing session

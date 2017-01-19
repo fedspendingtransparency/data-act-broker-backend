@@ -1,6 +1,7 @@
 from datetime import datetime
 from sqlalchemy import Column, DateTime, event
 
+
 class TimeStampMixin(object):
     """ Timestamping mixin
     """
@@ -14,6 +15,7 @@ class TimeStampMixin(object):
     @classmethod
     def __declare_last__(cls):
         event.listen(cls, 'before_update', cls._updated_at)
+
 
 class TimeStampBase(TimeStampMixin):
     pass

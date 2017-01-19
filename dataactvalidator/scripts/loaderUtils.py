@@ -2,14 +2,15 @@ from datetime import datetime
 from pandas import isnull
 
 
+def clean_col_names(field):
+    """Define some data-munging functions that can be applied to pandas
+    dataframes as necessary"""
+    return str(field).lower().strip().replace(" ", "_").replace(",", "_")
+
+
 class LoaderUtils:
-
-    # define some data-munging functions that can be applied to
-    # pandas dataframes as necessary
-    cleanColNamesFunction = lambda field: str(field).lower().strip().replace(" ","_").replace(",","_")
-
     @classmethod
-    def padFunction(self, field, padTo, keepNull):
+    def padFunction(cls, field, padTo, keepNull):
         """Pads field to specified length."""
         if isnull(field) or not str(field).strip():
             if keepNull:
@@ -17,7 +18,6 @@ class LoaderUtils:
             else:
                 field = ''
         return str(field).strip().zfill(padTo)
-
 
     @classmethod
     def cleanData(cls, data, model, fieldMap, fieldOptions):
@@ -40,7 +40,7 @@ class LoaderUtils:
         data.dropna(inplace=True, how='all')
 
         # clean the dataframe column names
-        data.rename(columns=lambda x: cls.cleanColNamesFunction(x), inplace=True)
+        data.rename(columns=clean_col_names, inplace=True)
         # make sure all values in fieldMap parameter are in the dataframe/csv file
         for field in fieldMap:
             if field not in list(data.columns):

@@ -24,6 +24,7 @@ class SF133Factory(factory.Factory):
     line = fuzzy.FuzzyInteger(1, 9999)
     amount = 0
 
+
 class CGACFactory(factory.Factory):
     class Meta:
         model = domainModels.CGAC
@@ -31,6 +32,7 @@ class CGACFactory(factory.Factory):
     cgac_id = None
     cgac_code = fuzzy.FuzzyText()
     agency_name = fuzzy.FuzzyText()
+
 
 class TASFactory(factory.Factory):
     class Meta:
@@ -40,8 +42,8 @@ class TASFactory(factory.Factory):
     account_num = fuzzy.FuzzyInteger(1, 9999)
     allocation_transfer_agency = fuzzy.FuzzyText()
     agency_identifier = fuzzy.FuzzyText()
-    beginning_period_of_availability = fuzzy.FuzzyText()
-    ending_period_of_availability = fuzzy.FuzzyText()
+    beginning_period_of_availa = fuzzy.FuzzyText()
+    ending_period_of_availabil = fuzzy.FuzzyText()
     availability_type_code = fuzzy.FuzzyText()
     main_account_code = fuzzy.FuzzyText()
     sub_account_code = fuzzy.FuzzyText()

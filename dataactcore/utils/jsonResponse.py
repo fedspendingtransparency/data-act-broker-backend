@@ -10,17 +10,17 @@ from dataactcore.utils.responseException import ResponseException
 logger = logging.getLogger(__name__)
 
 
-class JsonResponse :
+class JsonResponse:
     """ Used to create an http response object containing JSON """
     debugMode = True
 
     @staticmethod
-    def create(code,dictionaryData):
+    def create(code, dictionaryData):
         """
         Creates a JSON response object
         if debugMode is enabled errors are added
         """
-        jsondata  =  flask.Response()
+        jsondata = flask.Response()
         jsondata.headers["Content-Type"] = "application/json"
         jsondata.status_code = code
         jsondata.set_data(json.dumps(dictionaryData))
@@ -42,7 +42,6 @@ class JsonResponse :
         responseDict = {}
         for key in kwargs:
             responseDict[key] = kwargs[key]
-
 
         trace = traceback.extract_tb(exception.__traceback__, 10)
         logger.exception('Route Error')

@@ -34,6 +34,7 @@ class AppropriationFactory(factory.Factory):
     unobligated_balance_cpe = fuzzy.FuzzyDecimal(9999)
     tas = fuzzy.FuzzyText()
 
+
 class AwardFinancialFactory(factory.Factory):
     class Meta:
         model = stagingModels.AwardFinancial
@@ -175,7 +176,7 @@ class AwardFinancialAssistanceFactory(factory.Factory):
     correction_late_delete_ind = fuzzy.FuzzyText()
     face_value_loan_guarantee = fuzzy.FuzzyText()
     fain = fuzzy.FuzzyText()
-    federal_action_obligation = fuzzy.FuzzyText()
+    federal_action_obligation = fuzzy.FuzzyDecimal(9999)
     fiscal_year_and_quarter_co = fuzzy.FuzzyText()
     funding_agency_code = fuzzy.FuzzyText()
     funding_agency_name = fuzzy.FuzzyText()
@@ -258,7 +259,7 @@ class AwardProcurementFactory(factory.Factory):
     ordering_period_end_date = fuzzy.FuzzyText()
     action_date = fuzzy.FuzzyText()
     action_type = fuzzy.FuzzyText()
-    federal_action_obligation = fuzzy.FuzzyText()
+    federal_action_obligation = fuzzy.FuzzyDecimal(9999)
     current_total_value_award = fuzzy.FuzzyText()
     potential_total_value_awar = fuzzy.FuzzyText()
     funding_sub_tier_agency_co = fuzzy.FuzzyText()
