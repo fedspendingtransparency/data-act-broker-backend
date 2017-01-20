@@ -15,7 +15,7 @@ from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, ERROR_TYPE_DICT, RULE_SEVERITY_DICT,
                                         FILE_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT)
 from dataactcore.config import CONFIG_BROKER
-from dataactvalidator.app import create_app
+from dataactvalidator.health_check import create_app
 
 
 class FileTests(BaseTestAPI):

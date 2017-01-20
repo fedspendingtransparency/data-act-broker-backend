@@ -7,7 +7,7 @@ from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.utils.report import report_file_name
-from dataactvalidator.app import create_app
+from dataactvalidator.health_check import create_app
 from tests.integration.baseTestValidator import BaseTestValidator
 from tests.integration.fileTypeTests import FileTypeTests
 

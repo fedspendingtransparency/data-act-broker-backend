@@ -8,7 +8,7 @@ from dataactcore.models.jobModels import Job
 from dataactcore.models.lookups import JOB_STATUS_DICT, JOB_TYPE_DICT, FILE_TYPE_DICT
 from dataactcore.models.validationModels import RuleSql
 from dataactcore.config import CONFIG_BROKER
-from dataactvalidator.app import create_app
+from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.scripts.loadFile import load_domain_values

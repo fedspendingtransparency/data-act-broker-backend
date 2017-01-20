@@ -7,7 +7,7 @@ import boto.s3
 from webtest import TestApp
 from boto.s3.key import Key
 
-from dataactvalidator.app import create_app
+from dataactvalidator.health_check import create_app
 from dataactcore.interfaces.function_bag import check_number_of_errors_by_job_id
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import JOB_STATUS_DICT, FILE_STATUS_DICT

@@ -416,7 +416,7 @@ class ValidationManager:
         # Mark validation complete
         mark_file_complete(job_id)
 
-    def validate_job(self, request):
+    def validate_job(self, job_id):
         """ Gets file for job, validates each row, and sends valid rows to a staging table
         Args:
         request -- HTTP request containing the jobId
@@ -425,15 +425,6 @@ class ValidationManager:
         """
         # Create connection to job tracker database
         sess = GlobalDB.db().session
-
-        request_dict = RequestDictionary(request)
-        if request_dict.exists('job_id'):
-            job_id = request_dict.get_value('job_id')
-        else:
-            # Request does not have a job ID, can't validate
-            validation_error_type = ValidationError.jobError
-            raise ResponseException('No job ID specified in request', StatusCode.CLIENT_ERROR, None,
-                                    validation_error_type)
 
         # Get the job
         job = sess.query(Job).filter_by(job_id=job_id).one_or_none()

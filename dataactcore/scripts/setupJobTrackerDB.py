@@ -2,7 +2,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models import lookups
 from dataactcore.models.jobModels import JobStatus, JobType, FileType, PublishStatus
-from dataactvalidator.app import create_app
+from dataactvalidator.health_check import create_app
 
 
 def setup_job_tracker_db():
