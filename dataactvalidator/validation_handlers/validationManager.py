@@ -241,6 +241,10 @@ class ValidationManager:
                     else:
                         passed_validations, failures, valid = Validator.validate(record, csv_schema)
                     if valid:
+                        # todo: update this logic later when we have actual validations
+                        if file_type in ["detached_award"]:
+                            record["is_valid"] = True
+
                         model_instance = model(job_id=job.job_id, submission_id=submission_id,
                                                valid_record=passed_validations, **record)
                         skip_row = not insert_staging_model(model_instance, job, writer, error_list)

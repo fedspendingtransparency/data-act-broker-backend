@@ -714,7 +714,7 @@ class FileHandler:
             sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            for file_type in ['award']:
+            for file_type in ['detached_award']:
                 # if file_type not included in request, and this is an update to an existing submission, skip it
                 if not request_params.get(file_type):
                     # this is a new submission, all files are required

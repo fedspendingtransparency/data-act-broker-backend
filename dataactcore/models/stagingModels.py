@@ -486,8 +486,8 @@ class DetachedAwardFinancialAssistance(Base):
     __tablename__ = "detached_award_financial_assistance"
 
     detached_award_financial_assistance_id = Column(Integer, primary_key=True)
-    award_submission_id = Column(Integer, nullable=False, index=True)
-    award_job_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer, nullable=False, index=True)
+    job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     action_date = Column(Text)
     action_type = Column(Text)

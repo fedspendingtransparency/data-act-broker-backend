@@ -157,9 +157,9 @@ class SubmissionNarrative(Base):
 
 
 class SubmissionSubTierAffiliation(Base):
-    __tablename__ = "sub_tier_submission"
+    __tablename__ = "submission_sub_tier_affiliation"
 
-    subission_sub_tier_affiliation_id = Column(Integer, primary_key=True)
+    submission_sub_tier_affiliation_id = Column(Integer, primary_key=True)
     submission_id = Column(Integer, ForeignKey("submission.submission_id",
                                                name="fk_submission_sub_tier_affiliation_id"))
     submission = relationship(Submission, uselist=False)
