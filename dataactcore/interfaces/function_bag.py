@@ -3,7 +3,6 @@ import logging
 from operator import attrgetter
 import time
 import uuid
-import boto3
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
@@ -21,6 +20,7 @@ from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TY
                                         JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PUBLISH_STATUS_DICT)
 from dataactcore.interfaces.db import GlobalDB
 from dataactvalidator.validation_handlers.validationError import ValidationError
+from dataactcore.aws.sqsHandler import get_queue
 
 
 # This is a holding place for functions from a previous iteration of
@@ -345,8 +345,7 @@ def check_job_dependencies(job_id):
                 else:
                     # add dep_job_id to the SQS job queue
                     logger.info('Sending job %s to job manager in sqs', dep_job_id)
-                    sqs = boto3.resource('sqs', region_name=CONFIG_BROKER['aws_region'])
-                    queue = sqs.get_queue_by_name(QueueName='job-manager')
+                    queue = get_queue()
                     response = queue.send_message(MessageBody=str(dep_job_id))
                     logger.info('Send message response: %s', response)
 

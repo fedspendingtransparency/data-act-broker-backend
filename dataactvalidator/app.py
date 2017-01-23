@@ -1,6 +1,5 @@
 import logging
 
-import boto3
 from flask import Flask, g, current_app
 
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
@@ -8,6 +7,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactcore.models.jobModels import SQS
+from dataactcore.aws.sqsHandler import get_queue
 
 
 logger = logging.getLogger(__name__)
@@ -54,8 +54,7 @@ def run_app():
                     sess.commit()
 
         else:
-            sqs = boto3.resource('sqs', region_name=CONFIG_BROKER['aws_region'])
-            queue = sqs.get_queue_by_name(QueueName='job-manager')
+            queue = get_queue()
 
             logger.info("Starting SQS polling")
             while 1:
