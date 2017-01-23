@@ -59,7 +59,7 @@ def run_app():
             logger.info("Starting SQS polling")
             while 1:
                 # Grabs one (or more) messages from the queue
-                messages = queue.receive_messages()
+                messages = queue.receive_messages(WaitTimeSeconds=10)
                 for message in messages:
                     validation_manager = ValidationManager(local, error_report_path)
                     validation_manager.validate_job(message.body)
