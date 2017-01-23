@@ -162,15 +162,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         return update_narratives(submission, json)
 
     @app.route("/v1/submission/<int:submission_id>/report_url", methods=['POST'])
-    @use_kwargs({
-        'warning': webargs_fields.Bool(),
-        'file_type': webargs_fields.String(
-            required=True,
-            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys())
-        ),
-        'cross_type': webargs_fields.String(
-            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys()))
-    })
     @requires_submission_perms('reader')
     @use_kwargs({
         'warning': webargs_fields.Bool(),
@@ -178,12 +169,10 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             required=True,
             validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys())
         ),
-        'cross_type': webargs_fields.String(
-            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys()))
+        'cross_type': webargs_fields.String(validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys()))
     })
     def post_submission_report_url(submission, warning, file_type, cross_type):
-        return submission_report_url(
-            submission, bool(warning), file_type, cross_type)
+        return submission_report_url(submission, bool(warning), file_type, cross_type)
 
 
 def convert_to_submission_id(fn):
