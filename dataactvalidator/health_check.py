@@ -15,7 +15,7 @@ def create_app():
     flask_app.config.from_object(__name__)
 
     @flask_app.route("/", methods=["GET"])
-    def testApp():
+    def test_app():
         """Confirm server running."""
         return "Validator is running"
 

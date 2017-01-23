@@ -10,7 +10,6 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from flask import g
 
-from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.jobModels import Job, Submission, JobDependency, SQS
 from dataactcore.models.stagingModels import AwardFinancial
