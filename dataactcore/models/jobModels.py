@@ -152,3 +152,12 @@ class SubmissionNarrative(Base):
     narrative = Column(Text, nullable=False)
 
     __table_args__ = (UniqueConstraint('submission_id', 'file_type_id', name='uniq_submission_file_type'),)
+
+
+class SQS(Base):
+    __tablename__ = "sqs"
+
+    sqs_id = Column(Integer, primary_key=True)
+    job_id = Column(Integer, nullable=False)
+
+    __table_args__ = (UniqueConstraint('job_id', name='uniq_job_id'),)

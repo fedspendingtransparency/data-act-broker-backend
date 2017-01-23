@@ -9,9 +9,11 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
+from flask import g
+
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.errorModels import ErrorMetadata, File
-from dataactcore.models.jobModels import Job, Submission, JobDependency
+from dataactcore.models.jobModels import Job, Submission, JobDependency, SQS
 from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
@@ -334,13 +336,19 @@ def check_job_dependencies(job_id):
                 # so it is eligible to be set to a 'ready'
                 # status and added to the queue
                 mark_job_status(dep_job_id, 'ready')
-                # add dep_job_id to the SQS job queue
 
-                logger.info('Sending job %s to job manager in sqs', dep_job_id)
-                sqs = boto3.resource('sqs', region_name=CONFIG_BROKER['aws_region'])
-                queue = sqs.get_queue_by_name(QueueName='job-manager')
-                response = queue.send_message(MessageBody=str(dep_job_id))
-                logger.info('Send message response: %s', response)
+                # If local, utilize local db to mock queue
+                if g.is_local:
+                    new_queue_entry = SQS(job_id=dep_job_id)
+                    sess.add(new_queue_entry)
+                    sess.commit()
+                else:
+                    # add dep_job_id to the SQS job queue
+                    logger.info('Sending job %s to job manager in sqs', dep_job_id)
+                    sqs = boto3.resource('sqs', region_name=CONFIG_BROKER['aws_region'])
+                    queue = sqs.get_queue_by_name(QueueName='job-manager')
+                    response = queue.send_message(MessageBody=str(dep_job_id))
+                    logger.info('Send message response: %s', response)
 
 
 def create_submission(user_id, submission_values, existing_submission):
