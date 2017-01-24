@@ -6,7 +6,7 @@ from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.lookups import FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import RuleSql
-from dataactvalidator.app import create_app
+from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 
