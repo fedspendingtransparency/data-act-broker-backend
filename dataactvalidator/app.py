@@ -6,8 +6,7 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
-from dataactcore.models.jobModels import SQS
-from dataactcore.aws.sqsHandler import get_queue
+from dataactcore.aws.sqsHandler import sqs_queue
 
 
 logger = logging.getLogger(__name__)
@@ -41,32 +40,19 @@ def run_app():
         def before_request():
             GlobalDB.db()
 
-        # If local, utilize local db to mock queue
-        if local:
-            sess = GlobalDB.db().session
+        queue = sqs_queue()
 
-            while 1:
-                queue_entry = sess.query(SQS).first()
-                if queue_entry:
-                    validation_manager = ValidationManager(local, error_report_path)
-                    validation_manager.validate_job(queue_entry.job_id)
-                    sess.delete(queue_entry)
-                    sess.commit()
+        logger.info("Starting SQS polling")
+        while True:
+            # Grabs one (or more) messages from the queue
+            messages = queue.receive_messages(WaitTimeSeconds=10)
+            for message in messages:
+                validation_manager = ValidationManager(local, error_report_path)
+                validation_manager.validate_job(message.body)
+                logger.info("Message received: %s", message.body)
 
-        else:
-            queue = get_queue()
-
-            logger.info("Starting SQS polling")
-            while 1:
-                # Grabs one (or more) messages from the queue
-                messages = queue.receive_messages(WaitTimeSeconds=10)
-                for message in messages:
-                    validation_manager = ValidationManager(local, error_report_path)
-                    validation_manager.validate_job(message.body)
-                    logger.info("Message received: %s", message.body)
-
-                    # delete from SQS once processed
-                    message.delete()
+                # delete from SQS once processed
+                message.delete()
 
 if __name__ == "__main__":
     configure_logging()

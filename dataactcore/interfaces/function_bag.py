@@ -19,7 +19,7 @@ from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TY
                                         JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PUBLISH_STATUS_DICT)
 from dataactcore.interfaces.db import GlobalDB
 from dataactvalidator.validation_handlers.validationError import ValidationError
-from dataactcore.aws.sqsHandler import get_queue
+from dataactcore.aws.sqsHandler import sqs_queue
 
 
 # This is a holding place for functions from a previous iteration of
@@ -336,15 +336,13 @@ def check_job_dependencies(job_id):
                 # status and added to the queue
                 mark_job_status(dep_job_id, 'ready')
 
-                # If local, utilize local db to mock queue
-                if g.is_local:
-                    new_queue_entry = SQS(job_id=dep_job_id)
-                    sess.add(new_queue_entry)
-                    sess.commit()
-                else:
+                curr_job = sess.query(Job).filter(Job.job_id == dep_job_id).one()
+
+                # Only want to send validation jobs to the queue, other job types should be forwarded
+                if curr_job.job_type_name in ['csv_record_validation', 'validation']:
                     # add dep_job_id to the SQS job queue
                     logger.info('Sending job %s to job manager in sqs', dep_job_id)
-                    queue = get_queue()
+                    queue = sqs_queue()
                     response = queue.send_message(MessageBody=str(dep_job_id))
                     logger.info('Send message response: %s', response)
 
