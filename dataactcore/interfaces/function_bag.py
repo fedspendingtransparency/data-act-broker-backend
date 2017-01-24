@@ -8,10 +8,8 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
-from flask import g
-
 from dataactcore.models.errorModels import ErrorMetadata, File
-from dataactcore.models.jobModels import Job, Submission, JobDependency, SQS
+from dataactcore.models.jobModels import Job, Submission, JobDependency
 from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
