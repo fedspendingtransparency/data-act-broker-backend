@@ -12,11 +12,11 @@ WHERE op.submission_id = {0}
 		SELECT op.row_number
 		FROM object_class_program_activity as op
 			JOIN program_activity as pa
-				ON (op.beginning_period_of_availa IS NOT DISTINCT FROM pa.budget_year
-				AND op.agency_identifier IS NOT DISTINCT FROM pa.agency_id
-				AND op.allocation_transfer_agency IS NOT DISTINCT FROM pa.allocation_transfer_id
-				AND op.main_account_code IS NOT DISTINCT FROM pa.account_number
-				AND op.program_activity_name IS NOT DISTINCT FROM pa.program_activity_name
-				AND op.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code)
+				ON (op.beginning_period_of_availa = pa.budget_year
+				AND op.agency_identifier = pa.agency_id
+				AND op.allocation_transfer_agency = pa.allocation_transfer_id
+				AND op.main_account_code = pa.account_number
+				AND op.program_activity_name = pa.program_activity_name
+				AND op.program_activity_code = pa.program_activity_code)
 		WHERE op.submission_id = {0}
 	);

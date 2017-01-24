@@ -12,12 +12,12 @@ WHERE af.submission_id = {0}
 		SELECT af.row_number
 		FROM award_financial as af
 			JOIN program_activity as pa
-				ON (af.beginning_period_of_availa IS NOT DISTINCT FROM pa.budget_year
-				AND af.agency_identifier IS NOT DISTINCT FROM pa.agency_id
-				AND af.allocation_transfer_agency IS NOT DISTINCT FROM pa.allocation_transfer_id
-				AND af.main_account_code IS NOT DISTINCT FROM pa.account_number
-				AND af.program_activity_name IS NOT DISTINCT FROM pa.program_activity_name
-				AND af.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code)
+				ON (af.beginning_period_of_availa = pa.budget_year
+				AND af.agency_identifier = pa.agency_id
+				AND af.allocation_transfer_agency = pa.allocation_transfer_id
+				AND af.main_account_code = pa.account_number
+				AND af.program_activity_name = pa.program_activity_name
+				AND af.program_activity_code = pa.program_activity_code)
 				OR (af.program_activity_name IS NULL AND af.program_activity_code IS NULL)
 		WHERE af.submission_id = {0}
 	);
