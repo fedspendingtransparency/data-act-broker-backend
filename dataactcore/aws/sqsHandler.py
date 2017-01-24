@@ -3,6 +3,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.jobModels import SQS
 from dataactcore.interfaces.db import GlobalDB
 
+
 class SQSMockQueue:
     @staticmethod
     def send_message(MessageBody):    # noqa
@@ -15,6 +16,7 @@ class SQSMockQueue:
         sess = GlobalDB.db().session
         for sqs in sess.query(SQS):
             yield SQSMockMessage(sqs)
+
 
 class SQSMockMessage:
     def __init__(self, sqs):
