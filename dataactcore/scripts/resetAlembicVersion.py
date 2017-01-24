@@ -4,7 +4,7 @@ from sqlalchemy import MetaData, Table
 from sqlalchemy.sql import update
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactvalidator.app import create_app
+from dataactvalidator.health_check import create_app
 
 
 def reset_alembic(alembic_version):
