@@ -37,9 +37,9 @@ def test_failure(database):
     keys = ['ussgl480100_undelivered_or_fyb', 'ussgl480100_undelivered_or_cpe',
             'ussgl488100_upward_adjustm_cpe', 'ussgl490100_delivered_orde_fyb',
             'ussgl490100_delivered_orde_cpe', 'ussgl498100_upward_adjustm_cpe',
-            'ussgl480200_undelivered_or_fyb', 'ussgl480200_undelivered_or_cpe', 
-            'ussgl488200_upward_adjustm_cpe', 'ussgl490200_delivered_orde_cpe', 
-            'ussgl490800_authority_outl_fyb', 'ussgl490800_authority_outl_cpe', 
+            'ussgl480200_undelivered_or_fyb', 'ussgl480200_undelivered_or_cpe',
+            'ussgl488200_upward_adjustm_cpe', 'ussgl490200_delivered_orde_cpe',
+            'ussgl490800_authority_outl_fyb', 'ussgl490800_authority_outl_cpe',
             'ussgl498200_upward_adjustm_cpe']
 
     for i in range(len(keys)):
