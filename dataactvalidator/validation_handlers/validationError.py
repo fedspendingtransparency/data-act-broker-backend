@@ -32,25 +32,25 @@ class ValidationError:
                      lengthError: "length_error"}
 
     @staticmethod
-    def getErrorMessage(errorType):
+    def get_error_message(error_type):
         """ Retrieve error message for specified error type """
-        if errorType is None:
+        if error_type is None:
             # If no error type is provided, this is an unknown error
-            errorType = ValidationError.unknownError
-        if errorType in ValidationError.errorDict:
-            return ValidationError.errorDict[errorType]
+            error_type = ValidationError.unknownError
+        if error_type in ValidationError.errorDict:
+            return ValidationError.errorDict[error_type]
         else:
             # Not a valid error type
-            raise ValueError("Called getErrorMessage with an invalid error type: " + str(errorType))
+            raise ValueError("Called get_error_message with an invalid error type: " + str(error_type))
 
     @staticmethod
-    def getErrorTypeString(errorType):
+    def get_error_type_string(error_type):
         """ Get string identifier used in database for specified error type """
-        if errorType is None:
+        if error_type is None:
             # If no error type is provided, this is an unknown error
-            errorType = ValidationError.unknownError
-        if errorType in ValidationError.errorTypeDict:
-            return ValidationError.errorTypeDict[errorType]
+            error_type = ValidationError.unknownError
+        if error_type in ValidationError.errorTypeDict:
+            return ValidationError.errorTypeDict[error_type]
         else:
             # Not a valid error type
-            raise ValueError("Called getErrorTypeString with an invalid error type: " + str(errorType))
+            raise ValueError("Called get_error_type_string with an invalid error type: " + str(error_type))

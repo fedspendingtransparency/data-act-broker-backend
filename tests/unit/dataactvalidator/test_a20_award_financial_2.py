@@ -26,8 +26,8 @@ def test_failure(database):
     # These cgacs are different lengths to avoid being equal
     cgac_one = "cgac_one"
     cgac_two = "cgac_two"
-    awardFin = AwardFinancialFactory(agency_identifier=cgac_one)
+    award_fin = AwardFinancialFactory(agency_identifier=cgac_one)
     cgac = CGACFactory(cgac_code=cgac_two)
 
-    errors = number_of_errors(_FILE, database, models=[awardFin, cgac])
+    errors = number_of_errors(_FILE, database, models=[award_fin, cgac])
     assert errors == 1

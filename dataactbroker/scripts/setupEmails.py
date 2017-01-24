@@ -1,25 +1,25 @@
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import EmailTemplateType, EmailTemplate
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 
 
-def setupEmails():
+def setup_emails():
     """Create email templates from model metadata."""
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
 
         # insert email template types
-        typeList = [
+        type_list = [
             ('review_submission', '')
         ]
-        for t in typeList:
+        for t in type_list:
             email_id = sess.query(
                 EmailTemplateType.email_template_type_id).filter(
                 EmailTemplateType.name == t[0]).one_or_none()
             if not email_id:
-                emailType = EmailTemplateType(name=t[0], description=t[1])
-                sess.add(emailType)
+                email_type = EmailTemplateType(name=t[0], description=t[1])
+                sess.add(email_type)
 
         sess.commit()
 
@@ -58,4 +58,4 @@ def load_email_template(sess, subject, contents, email_type):
 
 if __name__ == '__main__':
     configure_logging()
-    setupEmails()
+    setup_emails()

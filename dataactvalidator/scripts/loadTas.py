@@ -10,18 +10,18 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import TAS_COMPONENTS, TASLookup
-from dataactvalidator.app import createApp
-from dataactvalidator.scripts.loaderUtils import LoaderUtils
+from dataactvalidator.app import create_app
+from dataactvalidator.scripts.loaderUtils import clean_data
 
 
 logger = logging.getLogger(__name__)
 
 
-def cleanTas(csvPath):
-    """Read a CSV into a dataframe, then use a configured `cleanData` and
+def clean_tas(csv_path):
+    """Read a CSV into a dataframe, then use a configured `clean_data` and
     return the results"""
-    data = pd.read_csv(csvPath, dtype=str)
-    data = LoaderUtils.cleanData(
+    data = pd.read_csv(csv_path, dtype=str)
+    data = clean_data(
         data,
         TASLookup,
         {"a": "availability_type_code",
@@ -48,12 +48,12 @@ def cleanTas(csvPath):
     return data.where(pd.notnull(data), None)
 
 
-def updateTASLookups(csvPath):
+def update_tas_lookups(csv_path):
     """Load TAS data from the provided CSV and replace/insert any
     TASLookups"""
     sess = GlobalDB.db().session
 
-    data = cleanTas(csvPath)
+    data = clean_tas(csv_path)
     add_start_date(data)
     add_existing_id(data)
 
@@ -80,24 +80,24 @@ def updateTASLookups(csvPath):
                 len(data.index), sum(data['existing_id'].notnull()))
 
 
-def loadTas(tasFile=None):
+def load_tas(tas_file=None):
     """Load TAS file into broker database. """
     # read TAS file to dataframe, to make sure all is well
     # with the file before firing up a db transaction
-    if not tasFile:
+    if not tas_file:
         if CONFIG_BROKER["use_aws"]:
             s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
             s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-            tasFile = s3bucket.get_key("cars_tas.csv").generate_url(expires_in=600)
+            tas_file = s3bucket.get_key("cars_tas.csv").generate_url(expires_in=600)
         else:
-            tasFile = os.path.join(
+            tas_file = os.path.join(
                 CONFIG_BROKER["path"],
                 "dataactvalidator",
                 "config",
                 "cars_tas.csv")
 
-    with createApp().app_context():
-        updateTASLookups(tasFile)
+    with create_app().app_context():
+        update_tas_lookups(tas_file)
 
 
 def add_start_date(data):
@@ -139,4 +139,4 @@ def existing_id(row, existing):
 
 if __name__ == '__main__':
     configure_logging()
-    loadTas()
+    load_tas()

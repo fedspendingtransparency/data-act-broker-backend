@@ -7,15 +7,15 @@ def timeout(timeout_length, message=None):
     def deco(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            defaultMessage = 'function [%s] timeout [%s seconds] exceeded!' % (func.__name__, timeout_length)
-            res = [Exception(message or defaultMessage)]
+            default_message = 'function [%s] timeout [%s seconds] exceeded!' % (func.__name__, timeout_length)
+            res = [Exception(message or default_message)]
 
-            def newFunc():
+            def new_func():
                 try:
                     res[0] = func(*args, **kwargs)
                 except Exception as e:
                     res[0] = e
-            t = Thread(target=newFunc)
+            t = Thread(target=new_func)
             t.daemon = True
             try:
                 t.start()

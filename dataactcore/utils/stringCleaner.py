@@ -5,23 +5,23 @@ class StringCleaner:
     """ Provides basic functionality for sanitizing string inputs """
 
     @staticmethod
-    def cleanString(data, removeSpaces=True):
+    def clean_string(data, remove_spaces=True):
         """ Change to lowercase, trim whitespace on ends, and replace internal spaces with underscores if desired
 
         Args:
             data: String to be cleaned
-            removeSpaces: True if spaces should be replaced with underscores
+            remove_spaces: True if spaces should be replaced with underscores
 
         Returns:
             Cleaned version of string
         """
         result = str(data).lower().strip()
-        if removeSpaces:
+        if remove_spaces:
             result = result.replace(" ", "_")
         return result
 
     @staticmethod
-    def isNumeric(data):
+    def is_numeric(data):
         try:
             float(data)
             return True
@@ -29,7 +29,7 @@ class StringCleaner:
             return False
 
     @staticmethod
-    def isDate(data):
+    def is_date(data):
         try:
             parse(data)
             return True

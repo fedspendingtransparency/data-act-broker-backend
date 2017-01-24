@@ -2,18 +2,18 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models import lookups
 from dataactcore.models.userModel import PermissionType
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 
 
-def setupUserDB():
+def setup_user_db():
     """Create user tables from model metadata."""
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
-        insertCodes(sess)
+        insert_codes(sess)
         sess.commit()
 
 
-def insertCodes(sess):
+def insert_codes(sess):
     """Create job tracker tables from model metadata."""
     # insert user permission types
     for t in lookups.PERMISSION_TYPE:
@@ -23,4 +23,4 @@ def insertCodes(sess):
 
 if __name__ == '__main__':
     configure_logging()
-    setupUserDB()
+    setup_user_db()

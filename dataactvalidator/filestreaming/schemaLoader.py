@@ -6,7 +6,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import FileType
 from dataactcore.models.validationModels import FileColumn, FieldType
-from dataactvalidator.app import createApp
+from dataactvalidator.app import create_app
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 logger = logging.getLogger(__name__)
@@ -23,36 +23,36 @@ class SchemaLoader(object):
         "award_procurement": "awardProcurementFields.csv"}
 
     @staticmethod
-    def loadFields(fileTypeName, schemaFileName):
+    def load_fields(file_type_name, schema_file_name):
         """Load specified schema from a .csv."""
-        with createApp().app_context():
+        with create_app().app_context():
             sess = GlobalDB.db().session
 
             # get file type object for specified fileTypeName
-            fileType = sess.query(FileType).filter(FileType.name == fileTypeName).one()
+            file_type = sess.query(FileType).filter(FileType.name == file_type_name).one()
 
             # delete existing schema from database
-            SchemaLoader.removeColumnsByFileType(sess, fileType)
+            SchemaLoader.remove_columns_by_file_type(sess, file_type)
 
             # get allowable datatypes
-            typeQuery = sess.query(FieldType.name, FieldType.field_type_id).all()
-            types = {data_type.name: data_type.field_type_id for data_type in typeQuery}
+            type_query = sess.query(FieldType.name, FieldType.field_type_id).all()
+            types = {data_type.name: data_type.field_type_id for data_type in type_query}
 
             # add schema to database
-            with open(schemaFileName, 'rU') as csvfile:
+            with open(schema_file_name, 'rU') as csvfile:
                 reader = csv.DictReader(csvfile)
                 file_column_count = 0
                 for record in reader:
-                    record = FieldCleaner.cleanRecord(record)
+                    record = FieldCleaner.clean_record(record)
 
                     fields = ["fieldname", "required", "data_type"]
                     if all(field in record for field in fields):
-                        SchemaLoader.addColumnByFileType(
+                        SchemaLoader.add_column_by_file_type(
                             sess,
                             types,
-                            fileType,
-                            FieldCleaner.cleanString(record["fieldname"]),
-                            FieldCleaner.cleanString(record["fieldname_short"]),
+                            file_type,
+                            FieldCleaner.clean_string(record["fieldname"]),
+                            FieldCleaner.clean_string(record["fieldname_short"]),
                             record["required"],
                             record["data_type"],
                             record["padded_flag"],
@@ -63,38 +63,38 @@ class SchemaLoader(object):
 
                 sess.commit()
                 logger.info('{} {} schema records added to {}'.format(
-                    file_column_count, fileTypeName, FileColumn.__tablename__))
+                    file_column_count, file_type_name, FileColumn.__tablename__))
 
     @staticmethod
-    def removeColumnsByFileType(sess, fileType):
+    def remove_columns_by_file_type(sess, file_type):
         """Remove the schema for a specified file type."""
-        deletedRecords = sess.query(FileColumn).filter(FileColumn.file == fileType).delete(
+        deleted_records = sess.query(FileColumn).filter(FileColumn.file == file_type).delete(
             synchronize_session='fetch')
         logger.info('{} {} schema records deleted from {}'.format(
-            deletedRecords, fileType.name, FileColumn.__tablename__))
+            deleted_records, file_type.name, FileColumn.__tablename__))
 
     @staticmethod
-    def addColumnByFileType(sess, types, fileType, fieldName, fieldNameShort, required, field_type, paddedFlag="False",
-                            fieldLength=None):
+    def add_column_by_file_type(sess, types, file_type, field_name, field_name_short, required, field_type,
+                                padded_flag="False", field_length=None):
         """
         Adds a new column to the schema
 
         Args:
-        fileType -- FileType object this column belongs to
-        fieldName -- The name of the schema column
+        file_type -- FileType object this column belongs to
+        field_name -- The name of the schema column
         types -- List of field types
-        fieldNameShort -- The machine-friendly, short column name
+        field_name_short -- The machine-friendly, short column name
         required --  marks the column if data is allways required
         field_type  -- sets the type of data allowed in the column
-        paddedFlag -- True if this column should be padded
-        fieldLength -- Maximum allowed length for this field
+        padded_flag -- True if this column should be padded
+        field_length -- Maximum allowed length for this field
 
         """
-        newColumn = FileColumn()
-        newColumn.file = fileType
-        newColumn.required = False
-        newColumn.name = fieldName.lower().strip().replace(' ', '_')
-        newColumn.name_short = fieldNameShort.lower().strip().replace(' ', '_')
+        new_column = FileColumn()
+        new_column.file = file_type
+        new_column.required = False
+        new_column.name = field_name.lower().strip().replace(' ', '_')
+        new_column.name_short = field_name_short.lower().strip().replace(' ', '_')
         field_type = field_type.upper()
 
         # Allow for other names
@@ -106,40 +106,40 @@ class SchemaLoader(object):
             field_type = "BOOLEAN"
 
         # Translate padded flag to true or false
-        if not paddedFlag:
-            newColumn.padded_flag = False
-        elif paddedFlag.lower() == "true":
-            newColumn.padded_flag = True
+        if not padded_flag:
+            new_column.padded_flag = False
+        elif padded_flag.lower() == "true":
+            new_column.padded_flag = True
         else:
-            newColumn.padded_flag = False
+            new_column.padded_flag = False
 
         # Check types
         if field_type in types:
-            newColumn.field_types_id = types[field_type]
+            new_column.field_types_id = types[field_type]
         else:
-            raise ValueError('Type {} not value for {}'.format(field_type, fieldName))
+            raise ValueError('Type {} not value for {}'.format(field_type, field_name))
 
         # Check Required
         if required.lower() in ['true', 'false']:
             if required.lower() == 'true':
-                newColumn.required = True
+                new_column.required = True
         else:
-            raise ValueError('Required field is not boolean for {}'.format(fieldName))
+            raise ValueError('Required field is not boolean for {}'.format(field_name))
 
         # Add length if present
-        if fieldLength is not None and str(fieldLength).strip() != "":
-            lengthInt = int(str(fieldLength).strip())
-            newColumn.length = lengthInt
+        if field_length is not None and str(field_length).strip() != "":
+            length_int = int(str(field_length).strip())
+            new_column.length = length_int
 
-        sess.add(newColumn)
+        sess.add(new_column)
 
     @classmethod
-    def loadAllFromPath(cls, path):
+    def load_all_from_path(cls, path):
         # Load field definitions into validation DB
         for key in cls.fieldFiles:
             filepath = os.path.join(path, cls.fieldFiles[key])
-            cls.loadFields(key, filepath)
+            cls.load_fields(key, filepath)
 
 if __name__ == '__main__':
     configure_logging()
-    SchemaLoader.loadAllFromPath("../config/")
+    SchemaLoader.load_all_from_path("../config/")

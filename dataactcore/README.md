@@ -84,7 +84,7 @@ It would be accessed by:
 ```json
 
     requestDictionary = RequestDictionary(request)
-    value = requestDictionary.getValue("data")
+    value = requestDictionary.get_value("data")
 
 ```
 
