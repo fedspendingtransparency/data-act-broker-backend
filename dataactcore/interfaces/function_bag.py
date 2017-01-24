@@ -334,10 +334,8 @@ def check_job_dependencies(job_id):
                 # status and added to the queue
                 mark_job_status(dep_job_id, 'ready')
 
-                curr_job = sess.query(Job).filter(Job.job_id == dep_job_id).one()
-
                 # Only want to send validation jobs to the queue, other job types should be forwarded
-                if curr_job.job_type_name in ['csv_record_validation', 'validation']:
+                if dependency.dependent_job.job_type_name in ['csv_record_validation', 'validation']:
                     # add dep_job_id to the SQS job queue
                     logger.info('Sending job %s to job manager in sqs', dep_job_id)
                     queue = sqs_queue()
