@@ -8,14 +8,23 @@ class SQSMockQueue:
     @staticmethod
     def send_message(MessageBody):    # noqa
         sess = GlobalDB.db().session
-        sess.add(SQS(job_id=MessageBody))
+        sess.add(SQS(job_id=int(MessageBody)))
         sess.commit()
+        return {"ResponseMetadata": {"HTTPStatusCode": 200}}
 
     @staticmethod
     def receive_messages(WaitTimeSeconds):  # noqa
         sess = GlobalDB.db().session
+        messages = []
         for sqs in sess.query(SQS):
-            yield SQSMockMessage(sqs)
+            messages.append(SQSMockMessage(sqs))
+        return messages
+
+    @staticmethod
+    def purge():
+        sess = GlobalDB.db().session
+        sess.query(SQS).delete()
+        sess.commit()
 
 
 class SQSMockMessage:

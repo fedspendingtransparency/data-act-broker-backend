@@ -1,4 +1,4 @@
-from dataactcore.aws.sqsHandler import get_queue
+from dataactcore.aws.sqsHandler import sqs_queue
 from tests.integration.baseTestValidator import BaseTestValidator
 
 
@@ -7,13 +7,14 @@ class SQSTests(BaseTestValidator):
     def test_push_poll_queue(self):
         """ Adds a single message to the queue then retrieves it immediately. Default number of messages
         for retrieval is 1 message. """
-        queue = get_queue()
-        response = queue.send_message(MessageBody="Test Message")
+        queue = sqs_queue()
+        response = queue.send_message(MessageBody="1234")
         self.assertEqual(response['ResponseMetadata']['HTTPStatusCode'], 200)
         messages = queue.receive_messages(WaitTimeSeconds=10)
         self.assertNotEqual(messages, [])
         for message in messages:
             message.delete()
 
+        queue.purge()
         messages = queue.receive_messages(WaitTimeSeconds=10)
         self.assertEqual(messages, [])
