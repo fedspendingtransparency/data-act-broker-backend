@@ -43,6 +43,19 @@ def test_success_null(database):
     assert number_of_errors(_FILE, database, models=[af, pa]) == 0
 
 
+def test_success_current_fy(database):
+    """ Tests valid FY (current year, when we don't yet have the domain values) """
+
+    af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2017, agency_identifier='test',
+                               allocation_transfer_agency='test', main_account_code='test',
+                               program_activity_name='test', program_activity_code='test')
+
+    pa = ProgramActivityFactory(budget_year=2017, agency_id='test', allocation_transfer_id='test',
+                                account_number='test', program_activity_name='test', program_activity_code='test')
+
+    assert number_of_errors(_FILE, database, models=[af, af, pa]) == 0
+
+
 def test_failure_program_activity_name(database):
     """ Testing invalid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
     A-11. """
@@ -79,3 +92,16 @@ def test_success_null_program_activity(database):
                                 account_number='test')
 
     assert number_of_errors(_FILE, database, models=[af, pa]) == 0
+
+
+def test_failure_current_fy(database):
+    """ Tests invalid FY (current year, when we don't yet have the domain values) """
+
+    af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2017, agency_identifier='test',
+                               allocation_transfer_agency='test', main_account_code='test',
+                               program_activity_name='test_wrong', program_activity_code='test')
+
+    pa = ProgramActivityFactory(budget_year=2017, agency_id='test', allocation_transfer_id='test',
+                                account_number='test', program_activity_name='test', program_activity_code='test')
+
+    assert number_of_errors(_FILE, database, models=[af, pa]) == 1
