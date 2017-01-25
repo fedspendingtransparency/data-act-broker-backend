@@ -39,27 +39,20 @@ def test_failure(database):
     """ Test for USSGL 48XX & 49XX (except 487X & 497X) if any one is provided and
     by_direct_reimbursable_fun is empty the rule fails """
 
-    af_dict = {'by_direct_reimbursable_fun': None, 
-               'ussgl480100_undelivered_or_fyb': None,
-               'ussgl480100_undelivered_or_cpe': None, 
-               'ussgl488100_upward_adjustm_cpe': None, 
-               'ussgl490100_delivered_orde_fyb': None,
-               'ussgl490100_delivered_orde_cpe': None, 
-               'ussgl498100_upward_adjustm_cpe': None, 
-               'ussgl480200_undelivered_or_fyb': None,
-               'ussgl480200_undelivered_or_cpe': None, 
-               'ussgl488200_upward_adjustm_cpe': None, 
-               'ussgl490200_delivered_orde_cpe': None,
-               'ussgl490800_authority_outl_fyb': None, 
-               'ussgl490800_authority_outl_cpe': None,
-               'ussgl498200_upward_adjustm_cpe': None}
+    af_dict = {'by_direct_reimbursable_fun': None, 'ussgl480100_undelivered_or_fyb': None,
+               'ussgl480100_undelivered_or_cpe': None, 'ussgl488100_upward_adjustm_cpe': None,
+               'ussgl490100_delivered_orde_fyb': None, 'ussgl490100_delivered_orde_cpe': None,
+               'ussgl498100_upward_adjustm_cpe': None, 'ussgl480200_undelivered_or_fyb': None,
+               'ussgl480200_undelivered_or_cpe': None, 'ussgl488200_upward_adjustm_cpe': None,
+               'ussgl490200_delivered_orde_cpe': None, 'ussgl490800_authority_outl_fyb': None,
+               'ussgl490800_authority_outl_cpe': None, 'ussgl498200_upward_adjustm_cpe': None}
 
-    keys = ['ussgl480100_undelivered_or_fyb', 'ussgl480100_undelivered_or_cpe', 
-            'ussgl488100_upward_adjustm_cpe', 'ussgl490100_delivered_orde_fyb', 
-            'ussgl490100_delivered_orde_cpe', 'ussgl498100_upward_adjustm_cpe', 
-            'ussgl480200_undelivered_or_fyb', 'ussgl480200_undelivered_or_cpe', 
-            'ussgl488200_upward_adjustm_cpe', 'ussgl490200_delivered_orde_cpe', 
-            'ussgl490800_authority_outl_fyb', 'ussgl490800_authority_outl_cpe', 
+    keys = ['ussgl480100_undelivered_or_fyb', 'ussgl480100_undelivered_or_cpe',
+            'ussgl488100_upward_adjustm_cpe', 'ussgl490100_delivered_orde_fyb',
+            'ussgl490100_delivered_orde_cpe', 'ussgl498100_upward_adjustm_cpe',
+            'ussgl480200_undelivered_or_fyb', 'ussgl480200_undelivered_or_cpe',
+            'ussgl488200_upward_adjustm_cpe', 'ussgl490200_delivered_orde_cpe',
+            'ussgl490800_authority_outl_fyb', 'ussgl490800_authority_outl_cpe',
             'ussgl498200_upward_adjustm_cpe']
 
     # Takes out one required key at a time and check that we get exactly one
