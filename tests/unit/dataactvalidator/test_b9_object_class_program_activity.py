@@ -64,4 +64,4 @@ def test_failure_mismatched_year(database):
     pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
-    assert number_of_errors(_FILE, database, models=[op, pa]) == 1
+    assert number_of_errors(_FILE, database, models=[op, pa]) == 0
