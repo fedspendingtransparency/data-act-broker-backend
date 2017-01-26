@@ -60,3 +60,6 @@ def configure_logging():
     if 'python_config' in CONFIG_LOGGING:
         config = deep_merge(config, CONFIG_LOGGING['python_config'])
     logging.config.dictConfig(config)
+
+    logging.getLogger('boto3').setLevel(logging.CRITICAL)
+    logging.getLogger('botocore').setLevel(logging.CRITICAL)

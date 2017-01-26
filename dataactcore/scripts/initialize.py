@@ -12,7 +12,7 @@ from dataactcore.interfaces.function_bag import create_user_with_password
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import User
 from dataactcore.scripts.setupAllDB import setup_all_db
-from dataactvalidator.app import create_app
+from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.schemaLoader import SchemaLoader
 from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.scripts.loadFile import load_domain_values

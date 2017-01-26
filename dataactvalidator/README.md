@@ -8,25 +8,8 @@ The U.S. Department of the Treasury is building a suite of open-source tools to 
 
 For more information about the DATA Act Broker codebase, please visit this repository's [main README](../README.md "DATA Act Broker Backend README").
 
-## Validator API Routes
-
-Generally, the validator should be accessed through the broker API, which is documented on [that project's README file](https://github.com/fedspendingtransparency/data-act-broker-backend/blob/master/README.md "DATA Act broker API README"). However, the available routes are documented below.
-
-##### GET `/`
-This is used to confirm that the validator is running
-
-Example input: None
-Example output: `Validator is running`
-
-##### POST `/validate/`
-Called to apply validation rules to a specified job ID.  Expects a JSON with key "job_id" specifying which job to validate.  Records will be written to a set of tables in the validation database, and errors will be listed in the error report and summarized in the error database.
-
-Example input: `{"job_id":3664}`
-Example output: None (status 200 if successful)
-
-
 ## Process Overview
-The validation process begins with a call to one of the above routes from either the job manager or the broker API, specifying the job ID for the validation job.  First, the validator checks the job tracker to ensure that the job is of the correct type, and that all prerequisites are completed.
+The validation process begins with a job ID being pushed to the job manager, an AWS SQS queue. The validator is constantly polling the aforementioned queue, and when it receives a message (the job ID), it kicks of the validation process. First, the validator checks the job tracker to ensure that the job is of the correct type, and that all prerequisites are completed.
 
 The file location on S3 is specified in the job tracker, and the validator streams the file record by record from S3.
 

@@ -63,6 +63,8 @@ def create_app():
 
     @flask_app.before_request
     def before_request():
+        # Set global value for local
+        g.is_local = local
         sess = GlobalDB.db().session
         # setup user
         g.user = None
