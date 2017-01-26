@@ -8,7 +8,7 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CGAC, SubTierAgency, ObjectClass, ProgramActivity
-from dataactvalidator.app import create_app
+from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)

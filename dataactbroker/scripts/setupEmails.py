@@ -1,7 +1,7 @@
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.userModel import EmailTemplateType, EmailTemplate
-from dataactvalidator.app import create_app
+from dataactvalidator.health_check import create_app
 
 
 def setup_emails():

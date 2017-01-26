@@ -4,7 +4,7 @@ import sys
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactbroker.fsrs import config_valid, fetch_and_replace_batch, GRANT, PROCUREMENT
-from dataactvalidator.app import create_app
+from dataactvalidator.health_check import create_app
 
 
 logger = logging.getLogger(__name__)

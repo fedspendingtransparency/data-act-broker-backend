@@ -6,7 +6,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import FileType
 from dataactcore.models.validationModels import FileColumn, FieldType
-from dataactvalidator.app import create_app
+from dataactvalidator.health_check import create_app
 from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 
 logger = logging.getLogger(__name__)

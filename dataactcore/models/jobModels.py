@@ -166,3 +166,12 @@ class SubmissionSubTierAffiliation(Base):
     sub_tier_agency_id = Column(Integer, ForeignKey("sub_tier_agency.sub_tier_agency_id",
                                                     name="fk_sub_tier_submission_affiliation_agency_id"))
     sub_tier_agency = relationship(SubTierAgency, uselist=False)
+
+
+class SQS(Base):
+    __tablename__ = "sqs"
+
+    sqs_id = Column(Integer, primary_key=True)
+    job_id = Column(Integer, nullable=False)
+
+    __table_args__ = (UniqueConstraint('job_id', name='uniq_job_id'),)

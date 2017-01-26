@@ -17,6 +17,7 @@ from dataactcore.models.lookups import (FILE_TYPE_DICT, FILE_STATUS_DICT, JOB_TY
                                         JOB_STATUS_DICT, FILE_TYPE_DICT_ID, PUBLISH_STATUS_DICT)
 from dataactcore.interfaces.db import GlobalDB
 from dataactvalidator.validation_handlers.validationError import ValidationError
+from dataactcore.aws.sqsHandler import sqs_queue
 
 
 # This is a holding place for functions from a previous iteration of
@@ -332,11 +333,14 @@ def check_job_dependencies(job_id):
                 # so it is eligible to be set to a 'ready'
                 # status and added to the queue
                 mark_job_status(dep_job_id, 'ready')
-                # add to the job queue
-                logger.info('Sending job %s to job manager', dep_job_id)
-                # will move this later
-                from dataactcore.utils.jobQueue import enqueue
-                enqueue.delay(dep_job_id)
+
+                # Only want to send validation jobs to the queue, other job types should be forwarded
+                if dependency.dependent_job.job_type_name in ['csv_record_validation', 'validation']:
+                    # add dep_job_id to the SQS job queue
+                    logger.info('Sending job %s to job manager in sqs', dep_job_id)
+                    queue = sqs_queue()
+                    response = queue.send_message(MessageBody=str(dep_job_id))
+                    logger.info('Send message response: %s', response)
 
 
 def create_submission(user_id, submission_values, existing_submission):
