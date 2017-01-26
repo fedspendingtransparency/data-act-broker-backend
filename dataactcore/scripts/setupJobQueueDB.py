@@ -1,13 +1,13 @@
 from dataactcore.config import CONFIG_DB
 from dataactcore.logging import configure_logging
-from dataactcore.scripts.databaseSetup import createDatabase
+from dataactcore.scripts.databaseSetup import create_database
 
 
-def setupJobQueueDB():
+def setup_job_queue_db():
     """Create job tracker tables from model metadata."""
-    createDatabase(CONFIG_DB['job_queue_db_name'])
+    create_database(CONFIG_DB['job_queue_db_name'])
 
 
 if __name__ == '__main__':
     configure_logging()
-    setupJobQueueDB()
+    setup_job_queue_db()

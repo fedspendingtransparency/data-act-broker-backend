@@ -15,8 +15,7 @@ from tests.unit.dataactcore.factories.user import UserFactory
 def test_current_user_can(database, monkeypatch, user_constants):
     user_cgac, other_cgac = [CGACFactory() for _ in range(2)]
     user = UserFactory(affiliations=[
-        UserAffiliation(cgac=user_cgac,
-                        permission_type_id=PERMISSION_TYPE_DICT['writer'])
+        UserAffiliation(cgac=user_cgac, permission_type_id=PERMISSION_TYPE_DICT['writer'])
     ])
     database.session.add_all([user_cgac, other_cgac, user])
     database.session.commit()

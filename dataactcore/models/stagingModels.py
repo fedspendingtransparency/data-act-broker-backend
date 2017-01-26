@@ -2,7 +2,7 @@ from sqlalchemy import Column, ForeignKey, Integer, Text, Numeric, Index
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
-from dataactcore.models.domainModels import concatTas, TASLookup
+from dataactcore.models.domainModels import concat_tas, TASLookup
 
 
 class FlexField(Base):
@@ -45,16 +45,15 @@ class Appropriation(Base):
     status_of_budgetary_resour_cpe = Column(Numeric)
     sub_account_code = Column(Text)
     unobligated_balance_cpe = Column(Numeric)
-    tas = Column(Text, index=True, nullable=False, default=concatTas)
-    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'),
-                    nullable=True)
+    tas = Column(Text, index=True, nullable=False, default=concat_tas)
+    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'), nullable=True)
     tas_obj = relationship(TASLookup)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
-        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(Appropriation, self).__init__(**cleanKwargs)
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(Appropriation, self).__init__(**clean_kwargs)
 
 
 class ObjectClassProgramActivity(Base):
@@ -108,16 +107,15 @@ class ObjectClassProgramActivity(Base):
     ussgl497200_downward_adjus_cpe = Column(Numeric)
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
-    tas = Column(Text, nullable=False, default=concatTas)
-    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'),
-                    nullable=True)
+    tas = Column(Text, nullable=False, default=concat_tas)
+    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'), nullable=True)
     tas_obj = relationship(TASLookup)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
-        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(ObjectClassProgramActivity, self).__init__(**cleanKwargs)
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(ObjectClassProgramActivity, self).__init__(**clean_kwargs)
 
 Index("ix_oc_pa_tas_oc_pa",
       ObjectClassProgramActivity.tas,
@@ -182,16 +180,15 @@ class AwardFinancial(Base):
     ussgl497200_downward_adjus_cpe = Column(Numeric)
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
-    tas = Column(Text, nullable=False, default=concatTas)
-    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'),
-                    nullable=True)
+    tas = Column(Text, nullable=False, default=concat_tas)
+    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'), nullable=True)
     tas_obj = relationship(TASLookup)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
-        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(AwardFinancial, self).__init__(**cleanKwargs)
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(AwardFinancial, self).__init__(**clean_kwargs)
 
 Index("ix_award_financial_tas_oc_pa",
       AwardFinancial.tas,
@@ -272,8 +269,8 @@ class AwardFinancialAssistance(Base):
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
-        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(AwardFinancialAssistance, self).__init__(**cleanKwargs)
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(AwardFinancialAssistance, self).__init__(**clean_kwargs)
 
 
 class AwardProcurement(Base):
@@ -480,5 +477,5 @@ class AwardProcurement(Base):
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
         # so get rid of any extraneous kwargs before instantiating
-        cleanKwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
-        super(AwardProcurement, self).__init__(**cleanKwargs)
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(AwardProcurement, self).__init__(**clean_kwargs)

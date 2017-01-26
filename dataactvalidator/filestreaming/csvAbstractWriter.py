@@ -23,7 +23,7 @@ class CsvAbstractWriter(object):
         self.rows = []
         self.write(header)
 
-    def write(self, dataList):
+    def write(self, data_list):
         """
 
         args
@@ -31,21 +31,21 @@ class CsvAbstractWriter(object):
         Adds a row of csv into the S3 stream
 
         """
-        strList = []
-        for data in dataList:
+        str_list = []
+        for data in data_list:
             if data is None:
                 data = ""
-            strList.append(str(data))
-        self.rows.append(strList)
+            str_list.append(str(data))
+        self.rows.append(str_list)
         if len(self.rows) > self.BATCH_SIZE:
-            self.finishBatch()
+            self.finish_batch()
 
-    def finishBatch(self):
+    def finish_batch(self):
         """ Write the last unfinished batch """
-        ioStream = io.StringIO()
-        csvFormatter = csv.writer(ioStream)
-        csvFormatter.writerows(self.rows)
-        self._write(ioStream.getvalue())
+        io_stream = io.StringIO()
+        csv_formatter = csv.writer(io_stream)
+        csv_formatter.writerows(self.rows)
+        self._write(io_stream.getvalue())
         self.rows = []
 
     def _write(self, data):

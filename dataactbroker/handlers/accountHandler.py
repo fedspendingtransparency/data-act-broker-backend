@@ -5,7 +5,7 @@ import xmltodict
 
 from flask import g
 
-from dataactbroker.handlers.aws.sesEmail import sesEmail
+from dataactbroker.handlers.aws.sesEmail import SesEmail
 from dataactbroker.handlers.aws.session import LoginSession
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -34,14 +34,14 @@ class AccountHandler:
     FRONT_END = ""
     # Instance fields include request, response, logFlag, and logFile
 
-    def __init__(self, request, bcrypt=None, isLocal=False):
+    def __init__(self, request, bcrypt=None, is_local=False):
         """ Creates the Login Handler
 
         Args:
             request - Flask request object
             bcrypt - Bcrypt object associated with app
         """
-        self.isLocal = isLocal
+        self.isLocal = is_local
         self.request = request
         self.bcrypt = bcrypt
 
@@ -61,9 +61,9 @@ class AccountHandler:
             sess = GlobalDB.db().session
             safe_dictionary = RequestDictionary(self.request)
 
-            username = safe_dictionary.getValue('username')
+            username = safe_dictionary.get_value('username')
 
-            password = safe_dictionary.getValue('password')
+            password = safe_dictionary.get_value('password')
 
             try:
                 user = sess.query(User).filter(func.lower(User.email) == func.lower(username)).one()
@@ -103,15 +103,15 @@ class AccountHandler:
 
         session  -- (Session) object from flask
 
-        return the reponse object
+        return the response object
 
         """
         try:
-            safeDictionary = RequestDictionary(self.request)
+            safe_dictionary = RequestDictionary(self.request)
 
             # Obtain POST content
-            ticket = safeDictionary.getValue("ticket")
-            service = safeDictionary.getValue('service')
+            ticket = safe_dictionary.get_value("ticket")
+            service = safe_dictionary.get_value('service')
 
             # Call MAX's serviceValidate endpoint and retrieve the response
             max_dict = get_max_dict(ticket, service)
@@ -193,11 +193,7 @@ class AccountHandler:
         except ResponseException as exc:
             return JsonResponse.error(exc, exc.status)
         sess.commit()
-        return JsonResponse.create(
-            StatusCode.OK,
-            {"message": "skip_guide set successfully",
-             "skip_guide": skip_guide}
-        )
+        return JsonResponse.create(StatusCode.OK, {"message": "skip_guide set successfully", "skip_guide": skip_guide})
 
     def email_users(self, system_email):
         """ Send email notification to list of users """
@@ -232,7 +228,7 @@ class AccountHandler:
             users.append(sess.query(User).filter(User.user_id == user_id).one())
 
         for user in users:
-            new_email = sesEmail(user.email, system_email, templateType=template_type, parameters=email_template)
+            new_email = SesEmail(user.email, system_email, template_type=template_type, parameters=email_template)
             new_email.send()
 
         return JsonResponse.create(StatusCode.OK, {"message": "Emails successfully sent"})
@@ -327,7 +323,7 @@ def logout(session):
 
     session  -- (Session) object from flask
 
-    return the reponse object
+    return the response object
 
     """
     # Call session handler
