@@ -194,30 +194,8 @@ class FileHandler:
                 sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            for file_type in FileHandler.FILE_TYPES:
-                # if filetype not included in request, and this is an update to an existing submission, skip it
-                if not request_params.get(file_type):
-                    if existing_submission:
-                        continue
-                    # this is a new submission, all files are required
-                    raise ResponseException("Must include all files for new submission", StatusCode.CLIENT_ERROR)
-
-                filename = request_params.get(file_type)
-                if filename:
-                    if not self.isLocal:
-                        upload_name = "{}/{}".format(
-                            g.user.user_id,
-                            S3UrlHandler.get_timestamped_filename(filename)
-                        )
-                    else:
-                        upload_name = filename
-                    response_dict[file_type + "_key"] = upload_name
-                    upload_files.append(FileHandler.UploadFile(
-                        file_type=file_type,
-                        upload_name=upload_name,
-                        file_name=filename,
-                        file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type]]
-                    ))
+            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files,
+                                existing_submission)
 
             if not upload_files and existing_submission:
                 raise ResponseException("Must include at least one file for an existing submission",
@@ -242,22 +220,8 @@ class FileHandler:
                         file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[ext_file_type]]
                     ))
 
-            file_job_dict = create_jobs(upload_files, submission, existing_submission)
-            for file_type in file_job_dict.keys():
-                if "submission_id" not in file_type:
-                    response_dict[file_type + "_id"] = file_job_dict[file_type]
-            if create_credentials and not self.isLocal:
-                self.s3manager = S3UrlHandler(CONFIG_BROKER["aws_bucket"])
-                response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
-            else:
-                response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local",
-                                                "SessionToken": "local", "Expiration": "local"}
-
-            response_dict["submission_id"] = file_job_dict["submission_id"]
-            if self.isLocal:
-                response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]
-            else:
-                response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
+            self.create_response_dict_for_submission(upload_files, submission, existing_submission, response_dict,
+                                                     create_credentials)
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
@@ -714,47 +678,9 @@ class FileHandler:
             sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            for file_type in ['detached_award']:
-                # if file_type not included in request, and this is an update to an existing submission, skip it
-                if not request_params.get(file_type):
-                    # this is a new submission, all files are required
-                    raise ResponseException("Must include all required files for new submission",
-                                            StatusCode.CLIENT_ERROR)
+            self.build_file_map(request_params, ['detached_award'], response_dict, upload_files)
 
-                file_name = request_params.get(file_type)
-                if file_name:
-                    if not self.isLocal:
-                        upload_name = "{}/{}".format(
-                            g.user.user_id,
-                            S3UrlHandler.get_timestamped_filename(file_name)
-                        )
-                    else:
-                        upload_name = file_name
-
-                    response_dict[file_type+"_key"] = upload_name
-                    upload_files.append(FileHandler.UploadFile(
-                        file_type=file_type,
-                        upload_name=upload_name,
-                        file_name=file_name,
-                        file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type]]
-                    ))
-
-            file_job_dict = create_jobs(upload_files, submission, False)
-            for file_type in file_job_dict.keys():
-                if "submission_id" not in file_type:
-                    response_dict[file_type+"_id"] = file_job_dict[file_type]
-            if create_credentials and not self.isLocal:
-                self.s3manager = S3UrlHandler(CONFIG_BROKER["aws_bucket"])
-                response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
-            else:
-                response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local",
-                                                "SessionToken": "local", "Expiration": "local"}
-
-            response_dict["submission_id"] = file_job_dict["submission_id"]
-            if self.isLocal:
-                response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]
-            else:
-                response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
+            self.create_response_dict_for_submission(upload_files, submission, False, response_dict, create_credentials)
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
@@ -956,6 +882,53 @@ class FileHandler:
 
         return job
 
+    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, existing_submission=False):
+        """ build fileNameMap to be used in creating jobs """
+        for file_type in file_type_list:
+            # if file_type not included in request, and this is an update to an existing submission, skip it
+            if not request_params.get(file_type):
+                if existing_submission:
+                    continue
+                # this is a new submission, all files are required
+                raise ResponseException("Must include all required files for new submission", StatusCode.CLIENT_ERROR)
+
+            file_name = request_params.get(file_type)
+            if file_name:
+                if not self.isLocal:
+                    upload_name = "{}/{}".format(
+                        g.user.user_id,
+                        S3UrlHandler.get_timestamped_filename(file_name)
+                    )
+                else:
+                    upload_name = file_name
+
+                response_dict[file_type + "_key"] = upload_name
+                upload_files.append(FileHandler.UploadFile(
+                    file_type=file_type,
+                    upload_name=upload_name,
+                    file_name=file_name,
+                    file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type]]
+                ))
+
+    def create_response_dict_for_submission(self, upload_files, submission, existing_submission, response_dict,
+                                            create_credentials):
+        file_job_dict = create_jobs(upload_files, submission, existing_submission)
+        for file_type in file_job_dict.keys():
+            if "submission_id" not in file_type:
+                response_dict[file_type + "_id"] = file_job_dict[file_type]
+        if create_credentials and not self.isLocal:
+            self.s3manager = S3UrlHandler(CONFIG_BROKER["aws_bucket"])
+            response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
+        else:
+            response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local",
+                                            "SessionToken": "local", "Expiration": "local"}
+
+        response_dict["submission_id"] = file_job_dict["submission_id"]
+        if self.isLocal:
+            response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]
+        else:
+            response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
+
 
 def narratives_for_submission(submission):
     """Fetch narratives for this submission, indexed by file letter"""
@@ -1143,7 +1116,7 @@ def list_submissions(page, limit, certified):
     query = sess.query(Submission).filter_by(d2_submission=False)
     if not g.user.website_admin:
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
-                                    Submission.user_id == g.user.user_id),)
+                                    Submission.user_id == g.user.user_id))
     if certified != 'mixed':
         query = query.filter_by(publishable=certified)
     submissions = query.order_by(Submission.updated_at.desc()).\
