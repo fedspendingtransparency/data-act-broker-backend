@@ -1,14 +1,14 @@
-"""Merge a62138efd429 and fc6be41471a3
+"""Merge 4c25c6cb647b and a3dd8fcc17bf
 
-Revision ID: 9f7136e38e21
-Revises: a62138efd429, fc6be41471a3
-Create Date: 2016-11-29 13:54:49.342595
+Revision ID: 98e33bf8ff23
+Revises: 4c25c6cb647b, a3dd8fcc17bf
+Create Date: 2017-01-26 09:31:54.506075
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '9f7136e38e21'
-down_revision = ('a62138efd429', 'fc6be41471a3')
+revision = '98e33bf8ff23'
+down_revision = ('4c25c6cb647b', 'a3dd8fcc17bf')
 branch_labels = None
 depends_on = None
 
