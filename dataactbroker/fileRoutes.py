@@ -136,6 +136,11 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.complete_generation(generation_id)
 
+    @app.route("/v1/upload_detached_file/", methods=["POST"])
+    def upload_detached_file():
+        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+        return file_manager.upload_detached_file(create_credentials)
+
     @app.route("/v1/get_obligations/", methods=["POST"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
@@ -157,15 +162,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         return update_narratives(submission, json)
 
     @app.route("/v1/submission/<int:submission_id>/report_url", methods=['POST'])
-    @use_kwargs({
-        'warning': webargs_fields.Bool(),
-        'file_type': webargs_fields.String(
-            required=True,
-            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys())
-        ),
-        'cross_type': webargs_fields.String(
-            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys()))
-    })
     @requires_submission_perms('reader')
     @use_kwargs({
         'warning': webargs_fields.Bool(),
@@ -173,12 +169,10 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             required=True,
             validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys())
         ),
-        'cross_type': webargs_fields.String(
-            validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys()))
+        'cross_type': webargs_fields.String(validate=webargs_validate.OneOf(FILE_TYPE_DICT.keys()))
     })
     def post_submission_report_url(submission, warning, file_type, cross_type):
-        return submission_report_url(
-            submission, bool(warning), file_type, cross_type)
+        return submission_report_url(submission, bool(warning), file_type, cross_type)
 
 
 def convert_to_submission_id(fn):

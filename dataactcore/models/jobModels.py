@@ -3,6 +3,7 @@
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
+from dataactcore.models.domainModels import SubTierAgency
 from dataactcore.models.lookups import FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, JOB_TYPE_DICT_ID
 
 
@@ -71,6 +72,7 @@ class Submission(Base):
     publish_status = relationship("PublishStatus", uselist=False)
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
+    d2_submission = Column(Boolean, nullable=False, default="False", server_default="False")
 
 
 class Job(Base):
@@ -152,6 +154,18 @@ class SubmissionNarrative(Base):
     narrative = Column(Text, nullable=False)
 
     __table_args__ = (UniqueConstraint('submission_id', 'file_type_id', name='uniq_submission_file_type'),)
+
+
+class SubmissionSubTierAffiliation(Base):
+    __tablename__ = "submission_sub_tier_affiliation"
+
+    submission_sub_tier_affiliation_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id",
+                                               name="fk_submission_sub_tier_affiliation_id"))
+    submission = relationship(Submission, uselist=False)
+    sub_tier_agency_id = Column(Integer, ForeignKey("sub_tier_agency.sub_tier_agency_id",
+                                                    name="fk_sub_tier_submission_affiliation_agency_id"))
+    sub_tier_agency = relationship(SubTierAgency, uselist=False)
 
 
 class SQS(Base):
