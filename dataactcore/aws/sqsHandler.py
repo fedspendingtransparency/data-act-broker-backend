@@ -37,6 +37,10 @@ class SQSMockMessage:
         sess.delete(self.sqs)
         sess.commit()
 
+    def change_visibility(self, VisibilityTimeout):
+        # Do nothing
+        pass
+
 
 def sqs_queue():
     if CONFIG_BROKER['local']:

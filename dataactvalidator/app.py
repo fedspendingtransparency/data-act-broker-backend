@@ -30,27 +30,31 @@ def run_app():
         # Future: Override config w/ environment variable, if set
         current_app.config.from_envvar('VALIDATOR_SETTINGS', silent=True)
 
-        @current_app.teardown_appcontext
-        def teardown_appcontext(exception):
-            GlobalDB.close()
-
-        @current_app.before_request
-        def before_request():
-            GlobalDB.db()
-
         queue = sqs_queue()
 
         logger.info("Starting SQS polling")
         while True:
-            # Grabs one (or more) messages from the queue
-            messages = queue.receive_messages(WaitTimeSeconds=10)
-            for message in messages:
-                validation_manager = ValidationManager(local, error_report_path)
-                validation_manager.validate_job(message.body)
-                logger.info("Message received: %s", message.body)
+            try:
+                # Grabs one (or more) messages from the queue
+                messages = queue.receive_messages(WaitTimeSeconds=10)
+                for message in messages:
+                    GlobalDB.db()
+                    validation_manager = ValidationManager(local, error_report_path)
+                    validation_manager.validate_job(message.body)
+                    logger.info("Message received: %s", message.body)
 
-                # delete from SQS once processed
-                message.delete()
+                    # delete from SQS once processed
+                    message.delete()
+            except Exception as e:
+                # Log exception and continue loop
+                logger.exception('Validator Exception: %s', e)
+
+                # Set visibility to 0 so that another attempt can be made to process in SQS.
+                for message in messages:
+                    message.change_visibility(VisibilityTimeout=0)
+            finally:
+                GlobalDB.close()
+
 
 if __name__ == "__main__":
     configure_logging()
