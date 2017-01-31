@@ -1,5 +1,12 @@
 WITH object_class_program_activity_b9_{0} AS
-    (SELECT *
+    (SELECT submission_id,
+        row_number,
+        beginning_period_of_availa,
+        agency_identifier,
+        allocation_transfer_agency,
+        main_account_code,
+        program_activity_name,
+        program_activity_code
     FROM object_class_program_activity
     WHERE submission_id = {0})
 SELECT op.row_number,
