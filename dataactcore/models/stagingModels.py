@@ -1,8 +1,7 @@
-from sqlalchemy import Column, ForeignKey, Integer, Text, Numeric, Index, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean
 
 from dataactcore.models.baseModel import Base
-from dataactcore.models.domainModels import concat_tas, TASLookup
+from dataactcore.models.domainModels import concat_tas
 
 
 class FlexField(Base):

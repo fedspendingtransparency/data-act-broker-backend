@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 import sqlalchemy as sa
-from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text, UniqueConstraint
+from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
