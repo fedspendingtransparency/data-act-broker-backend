@@ -49,7 +49,8 @@ def run_app():
                 # Log exception and continue loop
                 logger.exception('Validator Exception: %s', e)
 
-                # Set visibility to 0 so that another attempt can be made to process in SQS.
+                # Set visibility to 0 so that another attempt can be made to process in SQS immediately,
+                # instead of waiting for the timeout window to expire
                 for message in messages:
                     message.change_visibility(VisibilityTimeout=0)
             finally:
