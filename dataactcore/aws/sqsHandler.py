@@ -37,7 +37,7 @@ class SQSMockMessage:
         sess.delete(self.sqs)
         sess.commit()
 
-    def change_visibility(self, VisibilityTimeout):
+    def change_visibility(self, VisibilityTimeout): # noqa
         # Do nothing
         pass
 
