@@ -67,7 +67,7 @@ def test_update_tas_lookups(database, monkeypatch):
     existing_tas_entries = [
         # TAS present in both csv and db
         TASFactory(account_num=222, **{field: 'still-active' for field in TAS_COMPONENTS},
-                   internal_end_date=None, internal_start_date=date(2015,2,2)),
+                   internal_end_date=None, internal_start_date=date(2015, 2, 2)),
         # Example of TAS being modified
         TASFactory(account_num=333, agency_identifier='to-close-1'),
         # Example unrelated to anything of these entries
@@ -81,9 +81,9 @@ def test_update_tas_lookups(database, monkeypatch):
     incoming_tas_data = pd.DataFrame(
         columns=('account_num',) + TAS_COMPONENTS + ('internal_start_date', 'internal_end_date'),
         data=[
-            [111] + ['new-entry-1'] * len(TAS_COMPONENTS)+[date(2015,2,2),None],
-            [222] + ['still-active'] * len(TAS_COMPONENTS)+[date(2015,2,2),date(2015,5,2)],
-            [333] + ['new-entry-2'] * len(TAS_COMPONENTS)+[date(2015,2,2),None],
+            [111] + ['new-entry-1'] * len(TAS_COMPONENTS)+[date(2015, 2, 2), None],
+            [222] + ['still-active'] * len(TAS_COMPONENTS)+[date(2015, 2, 2), date(2015, 5, 2)],
+            [333] + ['new-entry-2'] * len(TAS_COMPONENTS)+[date(2015, 2, 2), None],
         ]
     )
     monkeypatch.setattr(loadTas, 'clean_tas', Mock(return_value=incoming_tas_data))
@@ -103,7 +103,7 @@ def test_update_tas_lookups(database, monkeypatch):
     assert t111.agency_identifier == 'new-entry-1'
 
     assert t222.account_num == 222
-    assert t222.internal_end_date == date(2015,5,2)     # newly closed based on new data
+    assert t222.internal_end_date == date(2015, 5, 2)     # newly closed based on new data
     assert t222.agency_identifier == 'still-active'
 
     assert t333.account_num == 333
