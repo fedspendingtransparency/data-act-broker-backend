@@ -1059,7 +1059,6 @@ def serialize_submission(submission):
         "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
         "size": total_size,
         "status": status,
-        # "errors": submission.number_of_errors,
         "agency": agency_name,
         # @todo why are these a different format?
         "reporting_start_date": str(submission.reporting_start_date),
