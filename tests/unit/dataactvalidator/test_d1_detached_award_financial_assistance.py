@@ -19,6 +19,7 @@ def test_success(database):
     errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_null])
     assert errors == 0
 
+
 def test_failure(database):
     """ Test that a null fain with record type 2 returns an error"""
 
