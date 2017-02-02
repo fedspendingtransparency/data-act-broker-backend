@@ -70,7 +70,8 @@ def job_context(task, job_id):
                     job.error_message = str(e)
                     sess.commit()
                     mark_job_status(job_id, "failed")
-        GlobalDB.close()
+        finally:
+            GlobalDB.close()
 
 
 @celery_app.task(name='jobQueue.generate_f_file', max_retries=0, bind=True)
