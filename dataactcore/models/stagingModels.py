@@ -1,8 +1,7 @@
-from sqlalchemy import Column, ForeignKey, Integer, Text, Numeric, Index, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean
 
 from dataactcore.models.baseModel import Base
-from dataactcore.models.domainModels import concat_tas, TASLookup
+from dataactcore.models.domainModels import concat_tas
 
 
 class FlexField(Base):
@@ -46,8 +45,7 @@ class Appropriation(Base):
     sub_account_code = Column(Text)
     unobligated_balance_cpe = Column(Numeric)
     tas = Column(Text, index=True, nullable=False, default=concat_tas)
-    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'), nullable=True)
-    tas_obj = relationship(TASLookup)
+    tas_id = Column(Integer, nullable=True)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -108,8 +106,7 @@ class ObjectClassProgramActivity(Base):
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text, nullable=False, default=concat_tas)
-    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'), nullable=True)
-    tas_obj = relationship(TASLookup)
+    tas_id = Column(Integer, nullable=True)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
@@ -181,8 +178,7 @@ class AwardFinancial(Base):
     ussgl498100_upward_adjustm_cpe = Column(Numeric)
     ussgl498200_upward_adjustm_cpe = Column(Numeric)
     tas = Column(Text, nullable=False, default=concat_tas)
-    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_tas'), nullable=True)
-    tas_obj = relationship(TASLookup)
+    tas_id = Column(Integer, nullable=True)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

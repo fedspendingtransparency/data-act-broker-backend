@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 import sqlalchemy as sa
-from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text, UniqueConstraint
+from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
@@ -51,20 +51,6 @@ class TASLookup(Base):
     internal_end_date = Column(Date, nullable=True)
     financial_indicator2 = Column(Text, nullable=True)
 
-    __table_args__ = (
-        UniqueConstraint(
-            'account_num',
-            'allocation_transfer_agency',
-            'agency_identifier',
-            'beginning_period_of_availa',
-            'ending_period_of_availabil',
-            'availability_type_code',
-            'main_account_code',
-            'sub_account_code',
-            name='tas_lookup_sanity_check'
-        ),
-    )
-
     def component_dict(self):
         """We'll often want to copy TAS component fields; this method returns
         a dictionary of field_name to value"""
@@ -98,7 +84,7 @@ def matching_cars_subquery(sess, model_class, start_date, end_date):
     # TAS components (ATA, AI, etc.) from being valid at the same time. When
     # that happens (unlikely), we select the minimum (i.e. older) of the
     # potential TAS history entries.
-    subquery = sess.query(sa.func.min(TASLookup.tas_id))
+    subquery = sess.query(sa.func.min(TASLookup.account_num))
 
     # Filter to matching TAS components, accounting for NULLs
     for field_name in TAS_COMPONENTS:
@@ -152,8 +138,7 @@ class SF133(Base):
     period = Column(Integer, nullable=False)
     line = Column(Integer, nullable=False)
     amount = Column(Numeric, nullable=False, default=0, server_default="0")
-    tas_id = Column(Integer, ForeignKey("tas_lookup.tas_id", name='fk_sf_133_tas_lookup'), nullable=True)
-    tas_obj = relationship(TASLookup)
+    tas_id = Column(Integer, nullable=True)
 
 Index("ix_sf_133_tas",
       SF133.tas,
