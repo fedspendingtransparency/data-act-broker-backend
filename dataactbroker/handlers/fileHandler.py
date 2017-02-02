@@ -1144,12 +1144,16 @@ def serialize_submission(submission):
     else:
         submission_user_name = sess.query(User).filter_by(user_id=submission.user_id).one().name
 
+
+    cgac = sess.query(CGAC).\
+        filter_by(cgac_code=submission.cgac_code).one_or_none()
+
     return {
         "submission_id": submission.submission_id,
         "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
         "size": total_size,
         "status": status,
-        "errors": submission.number_of_errors,
+        "agency": cgac.agency_name if cgac else 'N/A',
         # @todo why are these a different format?
         "reporting_start_date": str(submission.reporting_start_date),
         "reporting_end_date": str(submission.reporting_end_date),
