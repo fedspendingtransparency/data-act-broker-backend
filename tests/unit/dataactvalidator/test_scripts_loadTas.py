@@ -2,7 +2,9 @@ from csv import DictWriter
 from datetime import date
 from unittest.mock import Mock
 
+from freezegun import freeze_time
 import pandas as pd
+import pytest
 
 from dataactcore.models.domainModels import TAS_COMPONENTS, TASLookup
 from dataactvalidator.scripts import loadTas
@@ -15,8 +17,7 @@ def write_then_read_tas(tmpdir, *rows):
     csv_file = tmpdir.join("cars_tas.csv")
     with open(str(csv_file), 'w') as f:
         writer = DictWriter(
-            f, ['ACCT_NUM', 'ATA', 'AID', 'A', 'BPOA', 'EPOA', 'MAIN', 'SUB', 'FINANCIAL_INDICATOR_TYPE2',
-                'DT_TM_ESTAB', 'DT_END']
+            f, ['ACCT_NUM', 'ATA', 'AID', 'A', 'BPOA', 'EPOA', 'MAIN', 'SUB', 'FINANCIAL_INDICATOR_TYPE2']
         )
         writer.writeheader()
         for row in rows:
@@ -33,11 +34,9 @@ def test_clean_tas_multiple(tmpdir):
     results = write_then_read_tas(
         tmpdir,
         {'ACCT_NUM': '6', 'ATA': 'aaa', 'AID': 'bbb', 'A': 'ccc',
-         'BPOA': 'ddd', 'EPOA': 'eee', 'MAIN': 'ffff', 'SUB': 'ggg',
-         'DT_END': '', 'DT_TM_ESTAB': '10/1/1987  12:00:00 AM'},
+         'BPOA': 'ddd', 'EPOA': 'eee', 'MAIN': 'ffff', 'SUB': 'ggg'},
         {'ACCT_NUM': '12345', 'ATA': '111', 'AID': '222', 'A': '333',
-         'BPOA': '444', 'EPOA': '555', 'MAIN': '6666', 'SUB': '777',
-         'DT_END': '12/22/2016  12:00:00 AM', 'DT_TM_ESTAB': '10/1/2008  12:00:00 AM'}
+         'BPOA': '444', 'EPOA': '555', 'MAIN': '6666', 'SUB': '777'}
     )
     assert results['account_num'].tolist() == [6, 12345]
     assert results['allocation_transfer_agency'].tolist() == ['aaa', '111']
@@ -47,14 +46,11 @@ def test_clean_tas_multiple(tmpdir):
     assert results['ending_period_of_availabil'].tolist() == ['eee', '555']
     assert results['main_account_code'].tolist() == ['ffff', '6666']
     assert results['sub_account_code'].tolist() == ['ggg', '777']
-    assert results['internal_start_date'].tolist() == ['10/1/1987  12:00:00 AM', '10/1/2008  12:00:00 AM']
-    assert results['internal_end_date'].tolist() == [None, '12/22/2016  12:00:00 AM']
 
 
 def test_clean_tas_space_nulls(tmpdir):
     """Verify that spaces are converted into `None`s"""
-    results = write_then_read_tas(tmpdir, {'BPOA': '', 'EPOA': ' ', 'A': '   ', 'DT_END': '',
-                                           'DT_TM_ESTAB': '10/1/2008  12:00:00 AM'})
+    results = write_then_read_tas(tmpdir, {'BPOA': '', 'EPOA': ' ', 'A': '   '})
     assert results['beginning_period_of_availa'][0] is None
     assert results['ending_period_of_availabil'][0] is None
     assert results['availability_type_code'][0] is None
@@ -78,11 +74,11 @@ def test_update_tas_lookups(database, monkeypatch):
     sess.commit()
 
     incoming_tas_data = pd.DataFrame(
-        columns=('account_num',) + TAS_COMPONENTS + ('internal_start_date', 'internal_end_date'),
+        columns=('account_num',) + TAS_COMPONENTS,
         data=[
-            [111] + ['new-entry-1'] * len(TAS_COMPONENTS)+[date(2015, 2, 2), None],
-            [222] + ['still-active'] * len(TAS_COMPONENTS)+[date(2015, 2, 2), date(2016, 5, 2)],
-            [333] + ['new-entry-2'] * len(TAS_COMPONENTS)+[date(2015, 2, 2), None],
+            [111] + ['new-entry-1'] * len(TAS_COMPONENTS),
+            [222] + ['still-active'] * len(TAS_COMPONENTS),
+            [333] + ['new-entry-2'] * len(TAS_COMPONENTS),
         ]
     )
     monkeypatch.setattr(loadTas, 'clean_tas', Mock(return_value=incoming_tas_data))
@@ -94,25 +90,59 @@ def test_update_tas_lookups(database, monkeypatch):
 
     # Post-"import" state
     results = sess.query(TASLookup).order_by(TASLookup.account_num, TASLookup.agency_identifier).all()
-    assert len(results) == 5
-    t111, t222, t333, t444, t555 = results
+    assert len(results) == 6
+    t111, t222, t333_new, t333_old, t444, t555 = results
 
     assert t111.account_num == 111
     assert t111.internal_end_date is None               # active, new entry
     assert t111.agency_identifier == 'new-entry-1'
 
     assert t222.account_num == 222
-    assert t222.internal_end_date == date(2016, 5, 2)     # newly closed based on new data
+    assert t222.internal_end_date is None               # active, continuing
     assert t222.agency_identifier == 'still-active'
 
-    assert t333.account_num == 333
-    assert t333.internal_end_date is None           # active, continuing
-    assert t333.agency_identifier == 'new-entry-2'
+    assert t333_old.account_num == 333
+    assert t333_old.internal_end_date == date.today()   # closed today
+    assert t333_old.agency_identifier == 'to-close-1'
+
+    assert t333_new.account_num == 333
+    assert t333_new.internal_end_date is None           # active, new entry
+    assert t333_new.agency_identifier == 'new-entry-2'
 
     assert t444.account_num == 444
-    assert t444.internal_end_date is None            # active, continuing
+    assert t444.internal_end_date == date.today()       # closed today
     assert t444.agency_identifier == 'to-close-2'
 
     assert t555.account_num == 555
     assert t555.internal_end_date == date(2015, 2, 2)   # closed previously
     assert t555.agency_identifier == 'already-closed'
+
+
+def test_add_start_date_blank(database):
+    """We backdate all of the TASLookups when there aren't any in the
+    database"""
+    assert database.session.query(TASLookup).count() == 0
+    data = pd.DataFrame({'dummy': ['data']})
+    loadTas.add_start_date(data)
+
+    assert data['internal_start_date'][0] == date(2015, 1, 1)
+
+
+@pytest.mark.parametrize("today_date,fiscal_date", [
+    ('2016-01-01', date(2016, 1, 1)),
+    ('2016-02-01', date(2016, 1, 1)),
+    ('2016-03-22', date(2016, 1, 1)),
+    ('2016-04-10', date(2016, 4, 1)),
+    ('2016-08-08', date(2016, 7, 1)),
+    ('2016-12-31', date(2016, 10, 1)),
+])
+def test_add_start_date_fiscal_year(database, today_date, fiscal_date):
+    """We should be calculating the correct beginning of a fiscal year"""
+    database.session.add(TASFactory())
+    database.session.commit()
+
+    data = pd.DataFrame({'dummy': ['data']})
+    with freeze_time(today_date):
+        loadTas.add_start_date(data)
+
+    assert data['internal_start_date'][0] == fiscal_date
