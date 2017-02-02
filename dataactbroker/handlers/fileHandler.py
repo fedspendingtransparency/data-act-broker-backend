@@ -1052,7 +1052,7 @@ def serialize_submission(submission):
     if cgac:
         agency_name = cgac.agency_name
     else:
-        agency_name = ''
+        agency_name = 'N/A'
 
     return {
         "submission_id": submission.submission_id,
