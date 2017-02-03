@@ -4,4 +4,5 @@ SELECT
     action_type,
     record_type
 FROM detached_award_financial_assistance
-WHERE LOWER(COALESCE(action_type, '')) NOT IN ('', 'a', 'b', 'c', 'd') ;
+WHERE submission_id = {0}
+    AND LOWER(COALESCE(action_type, '')) NOT IN ('', 'a', 'b', 'c', 'd') ;
