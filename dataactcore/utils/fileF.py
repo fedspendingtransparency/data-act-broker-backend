@@ -4,8 +4,7 @@ import itertools
 import iso3166
 
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.fsrs import (
-    FSRSGrant, FSRSProcurement, FSRSSubcontract, FSRSSubgrant)
+from dataactcore.models.fsrs import FSRSGrant, FSRSProcurement, FSRSSubcontract, FSRSSubgrant
 from dataactcore.models.stagingModels import AwardFinancial, AwardProcurement
 
 

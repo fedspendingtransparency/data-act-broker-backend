@@ -43,26 +43,22 @@ class CsvAbstractReader(object):
             # Write header error for no header row
             with self.get_writer(bucket_name, error_filename, ["Error Type"], self.is_local) as writer:
                 writer.write(["No header row"])
-                writer.finishBatch()
+                writer.finish_batch()
             raise ResponseException("CSV file must have a header", StatusCode.CLIENT_ERROR,
                                     ValueError, ValidationError.singleRow)
 
         # create the header
         self.set_csv_delimiter(header_line, bucket_name, error_filename)
 
-        header_row = next(csv.reader([header_line], dialect='excel',
-                                     delimiter=self.delimiter))
+        header_row = next(csv.reader([header_line], dialect='excel', delimiter=self.delimiter))
         long_headers = use_long_headers(header_row, long_to_short_dict)
-        header_row = list(normalize_headers(
-            header_row, long_headers, long_to_short_dict))
+        header_row = list(normalize_headers(header_row, long_headers, long_to_short_dict))
 
-        expected_header_counts = self.count_and_set_headers(
-            csv_schema, header_row)
+        expected_header_counts = self.count_and_set_headers(csv_schema, header_row)
 
         self.column_count = len(header_row)
 
-        self.handle_missing_duplicate_headers(
-            expected_header_counts, bucket_name, error_filename)
+        self.handle_missing_duplicate_headers(expected_header_counts, bucket_name, error_filename)
 
         return long_headers
 
@@ -103,10 +99,8 @@ class CsvAbstractReader(object):
                 cell = None
             # self.expected_headers uses the short, machine-readable column
             # names
-            if (self.expected_headers[idx] is None and
-                    self.flex_headers[idx] is not None):
-                flex_fields.append(FlexField(
-                    header=self.flex_headers[idx], cell=cell))
+            if self.expected_headers[idx] is None and self.flex_headers[idx] is not None:
+                flex_fields.append(FlexField(header=self.flex_headers[idx], cell=cell))
             # We skip headers which aren't expected and aren't flex
             elif self.expected_headers[idx] is not None:
                 return_dict[self.expected_headers[idx]] = cell
@@ -150,7 +144,7 @@ class CsvAbstractReader(object):
 
             # Get the current lines
             current_bytes = self.unprocessed + packet
-            self.lines = self._split_lines(current_bytes)
+            self.lines = _split_lines(current_bytes)
 
             # edge case if the packet was filled with newlines only try again
             if len(self.lines) == 0:
@@ -168,38 +162,6 @@ class CsvAbstractReader(object):
             self.extra_line = True
         return self.unprocessed
 
-    def _split_lines(self, packet):
-        """
-        arguments :
-        packet unprocessed string of CSV data
-        returns a list of strings broken by newline
-        """
-        lines_to_return = []
-        escape_mode = False
-        current = ""
-
-        for index, char in enumerate(packet):
-            if not escape_mode:
-                if char == '\r' or char == '\n' or char == '\r\n':
-                    if len(current) > 0:
-                        lines_to_return.append(current)
-                        # check the last char if its a new line add extra line
-                        # as its at the end of the packet
-                    if index == len(packet) - 1:
-                        lines_to_return.append("")
-                    current = ""
-                else:
-                    current = "".join([current, char])
-                    if char == '"':
-                        escape_mode = True
-            else:
-                if char == '"':
-                    escape_mode = False
-                current = "".join([current, char])
-        if len(current) > 0:
-            lines_to_return.append(current)
-        return lines_to_return
-
     def set_csv_delimiter(self, header_line, bucket_name, error_filename):
         """Try to determine the delimiter type, raising exceptions if we
         cannot figure it out."""
@@ -208,49 +170,38 @@ class CsvAbstractReader(object):
 
         if pipe_count != 0 and comma_count != 0:
             # Write header error for mixed delimiter use
-            with self.get_writer(bucket_name, error_filename, ["Error Type"],
-                                 self.is_local) as writer:
-                writer.write(["Cannot use both ',' and '|' as delimiters. "
-                              "Please choose one."])
-                writer.finishBatch()
+            with self.get_writer(bucket_name, error_filename, ["Error Type"], self.is_local) as writer:
+                writer.write(["Cannot use both ',' and '|' as delimiters. Please choose one."])
+                writer.finish_batch()
             raise ResponseException(
-                "Error in header row: CSV file must use only '|' or ',' "
-                "as the delimiter", StatusCode.CLIENT_ERROR, ValueError,
-                ValidationError.headerError
+                "Error in header row: CSV file must use only '|' or ',' as the delimiter", StatusCode.CLIENT_ERROR,
+                ValueError, ValidationError.headerError
             )
 
         self.delimiter = "|" if header_line.count("|") != 0 else ","
 
-    def handle_missing_duplicate_headers(self, expected_fields, bucket_name,
-                                         error_filename):
+    def handle_missing_duplicate_headers(self, expected_fields, bucket_name, error_filename):
         """Check for missing or duplicated headers. If present, raise an
         exceptions with a meaningful message"""
-        missing_headers = [cell for cell, count in expected_fields.items()
-                           if count == 0]
-        duplicated_headers = [cell for cell, count in expected_fields.items()
-                              if count > 1]
+        missing_headers = [cell for cell, count in expected_fields.items() if count == 0]
+        duplicated_headers = [cell for cell, count in expected_fields.items() if count > 1]
 
         if missing_headers or duplicated_headers:
             self.write_missing_duplicated_headers(
                 missing_headers, duplicated_headers, bucket_name,
                 error_filename
             )
-            raise_missing_duplicated_exception(
-                missing_headers, duplicated_headers)
+            raise_missing_duplicated_exception(missing_headers, duplicated_headers)
 
-    def write_missing_duplicated_headers(
-            self, missing_headers, duplicated_headers, bucket_name,
-            error_filename):
+    def write_missing_duplicated_headers(self, missing_headers, duplicated_headers, bucket_name, error_filename):
         """Write header errors if any occurred and raise a header_error
         exception"""
-        with self.get_writer(
-                bucket_name, error_filename, self.header_report_headers,
-                self.is_local) as writer:
+        with self.get_writer(bucket_name, error_filename, self.header_report_headers, self.is_local) as writer:
             for header in duplicated_headers:
                 writer.write(["Duplicated header", header])
             for header in missing_headers:
                 writer.write(["Missing header", header])
-            writer.finishBatch()
+            writer.finish_batch()
 
     def count_and_set_headers(self, csv_schema, header_row):
         """Track how many times we've seen a field we were expecting and set
@@ -263,7 +214,7 @@ class CsvAbstractReader(object):
         expected_fields = {}
 
         for schema in csv_schema:
-            expected_fields[FieldCleaner.cleanString(schema.name_short)] = 0
+            expected_fields[FieldCleaner.clean_string(schema.name_short)] = 0
 
         for header_value in header_row:
             if header_value not in expected_fields:
@@ -286,7 +237,7 @@ def use_long_headers(header_row, long_to_short_dict):
     """Check to see if header contains long or short column names"""
     col_matches = 0
     for value in header_row:
-        if FieldCleaner.cleanString(value) in long_to_short_dict:
+        if FieldCleaner.clean_string(value) in long_to_short_dict:
             col_matches += 1
     # if most of column headers are in the long format,
     # we'll treat the file as having long headers
@@ -295,9 +246,9 @@ def use_long_headers(header_row, long_to_short_dict):
 
 def normalize_headers(header_row, long_headers, long_to_short_dict):
     for header in header_row:
-        header = FieldCleaner.cleanString(header)
+        header = FieldCleaner.clean_string(header)
         if long_headers and header in long_to_short_dict:
-            yield FieldCleaner.cleanString(long_to_short_dict[header])
+            yield FieldCleaner.clean_string(long_to_short_dict[header])
         else:
             yield header
 
@@ -323,3 +274,36 @@ def raise_missing_duplicated_exception(missing_headers, duplicated_headers):
             ValidationError.headerError,
             **extra_info
         )
+
+
+def _split_lines(packet):
+    """
+    arguments :
+    packet unprocessed string of CSV data
+    returns a list of strings broken by newline
+    """
+    lines_to_return = []
+    escape_mode = False
+    current = ""
+
+    for index, char in enumerate(packet):
+        if not escape_mode:
+            if char == '\r' or char == '\n' or char == '\r\n':
+                if len(current) > 0:
+                    lines_to_return.append(current)
+                    # check the last char if its a new line add extra line
+                    # as its at the end of the packet
+                if index == len(packet) - 1:
+                    lines_to_return.append("")
+                current = ""
+            else:
+                current = "".join([current, char])
+                if char == '"':
+                    escape_mode = True
+        else:
+            if char == '"':
+                escape_mode = False
+            current = "".join([current, char])
+    if len(current) > 0:
+        lines_to_return.append(current)
+    return lines_to_return

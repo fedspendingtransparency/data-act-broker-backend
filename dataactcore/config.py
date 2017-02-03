@@ -108,8 +108,6 @@ CONFIG_SERVICES['validator_host'] = re.sub(
 # 127.0.0.1 for cross-platform compatibility
 if CONFIG_SERVICES['broker_api_host'] == '0.0.0.0':
     CONFIG_SERVICES['broker_api_host'] = '127.0.0.1'
-if CONFIG_SERVICES['validator_host'] == '0.0.0.0':
-    CONFIG_SERVICES['validator_host'] = '127.0.0.1'
 
 if CONFIG_SERVICES["broker_api_port"] == 443:
     # Use https

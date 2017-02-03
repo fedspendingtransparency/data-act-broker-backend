@@ -6,7 +6,7 @@ from dataactcore.models.baseModel import Base
 from dataactcore.models.lookups import FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, JOB_TYPE_DICT_ID
 
 
-def generateFiscalYear(context):
+def generate_fiscal_year(context):
     """ Generate fiscal year based on the date provided """
     reporting_end_date = context.current_parameters['reporting_end_date']
     year = reporting_end_date.year
@@ -15,7 +15,7 @@ def generateFiscalYear(context):
     return year
 
 
-def generateFiscalPeriod(context):
+def generate_fiscal_period(context):
     """ Generate fiscal period based on the date provided """
     reporting_end_date = context.current_parameters['reporting_end_date']
     period = (reporting_end_date.month + 3) % 12
@@ -61,8 +61,8 @@ class Submission(Base):
     cgac_code = Column(Text)
     reporting_start_date = Column(Date, nullable=False)
     reporting_end_date = Column(Date, nullable=False)
-    reporting_fiscal_year = Column(Integer, nullable=False, default=generateFiscalYear, server_default='0')
-    reporting_fiscal_period = Column(Integer, nullable=False, default=generateFiscalPeriod, server_default='0')
+    reporting_fiscal_year = Column(Integer, nullable=False, default=generate_fiscal_year, server_default='0')
+    reporting_fiscal_period = Column(Integer, nullable=False, default=generate_fiscal_period, server_default='0')
     is_quarter_format = Column(Boolean, nullable=False, default="False", server_default="False")
     jobs = None
     publishable = Column(Boolean, nullable=False, default="False", server_default="False")
@@ -145,21 +145,19 @@ class SubmissionNarrative(Base):
     __tablename__ = "submission_narrative"
 
     submission_narrative_id = Column(Integer, primary_key=True)
-    submission_id = Column(
-        Integer,
-        ForeignKey("submission.submission_id", name="fk_submission"),
-        nullable=False
-    )
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission"), nullable=False)
     submission = relationship(Submission, uselist=False)
-    file_type_id = Column(
-        Integer,
-        ForeignKey("file_type.file_type_id", name="fk_file_type"),
-        nullable=False
-    )
+    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file_type"), nullable=False)
     file_type = relationship(FileType, uselist=False)
     narrative = Column(Text, nullable=False)
 
-    __table_args__ = (
-        UniqueConstraint('submission_id', 'file_type_id',
-                         name='uniq_submission_file_type'),
-    )
+    __table_args__ = (UniqueConstraint('submission_id', 'file_type_id', name='uniq_submission_file_type'),)
+
+
+class SQS(Base):
+    __tablename__ = "sqs"
+
+    sqs_id = Column(Integer, primary_key=True)
+    job_id = Column(Integer, nullable=False)
+
+    __table_args__ = (UniqueConstraint('job_id', name='uniq_job_id'),)

@@ -34,6 +34,7 @@ MarkupSafe==0.23
 mccabe==0.5.2
 numpy==1.11.2
 pandas==0.18.1
+pep8-naming==0.4.1
 psycopg2==2.6.1
 py==1.4.31
 pyasn1==0.1.9
@@ -66,3 +67,4 @@ xmltodict==0.10.2
 # suds is outdated but more compatible with FSRS than other libs. Pin a
 # version here
 -e git+https://github.com/andersinno/suds-jurko.git@44e27560b328ec6482459ea2d75516849dc209ff#egg=suds
+boto3==1.4.3

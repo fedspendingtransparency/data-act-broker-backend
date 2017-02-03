@@ -19,17 +19,17 @@ GRANT = 'grant_service'
 SERVICE_MODEL = {PROCUREMENT: FSRSProcurement, GRANT: FSRSGrant}
 
 
-def serviceConfig(serviceType):
+def service_config(service_type):
     """We use or {} instead of get(key, {}) as an empty config is converted
     into None rather than an empty dict"""
-    fsrsConfig = CONFIG_BROKER.get('fsrs') or {}
-    return fsrsConfig.get(serviceType) or {}
+    fsrs_config = CONFIG_BROKER.get('fsrs') or {}
+    return fsrs_config.get(service_type) or {}
 
 
-def configValid():
-    procWSDL = serviceConfig(PROCUREMENT).get('wsdl')
-    grantWSDL = serviceConfig(GRANT).get('wsdl')
-    return bool(procWSDL) and bool(grantWSDL)
+def config_valid():
+    proc_wsdl = service_config(PROCUREMENT).get('wsdl')
+    grant_wsdl = service_config(GRANT).get('wsdl')
+    return bool(proc_wsdl) and bool(grant_wsdl)
 
 
 class ControlFilter(MessagePlugin):
@@ -72,23 +72,23 @@ class ZeroDateFilter(MessagePlugin):
         context.reply = modified.encode('UTF-8')
 
 
-def newClient(serviceType):
+def new_client(service_type):
     """Make a `suds` client, accounting for ?wsdl suffixes, failing to import
     appropriate schemas, and http auth"""
-    config = serviceConfig(serviceType)
-    wsdlUrl = config.get('wsdl', '')
-    options = {'url': wsdlUrl}
+    config = service_config(service_type)
+    wsdl_url = config.get('wsdl', '')
+    options = {'url': wsdl_url}
 
-    if wsdlUrl.endswith('?wsdl'):
-        options['location'] = wsdlUrl[:-len('?wsdl')]
+    if wsdl_url.endswith('?wsdl'):
+        options['location'] = wsdl_url[:-len('?wsdl')]
 
     # The WSDL is missing an import; it's so common that suds has a work around
-    parsedWsdl = urlparse(wsdlUrl)
-    importFix = doctor.Import('http://schemas.xmlsoap.org/soap/encoding/')
-    importFix.filter.add(   # Main namespace is the wsdl domain
-        '{}://{}/'.format(parsedWsdl.scheme, parsedWsdl.netloc))
+    parsed_wsdl = urlparse(wsdl_url)
+    import_fix = doctor.Import('http://schemas.xmlsoap.org/soap/encoding/')
+    import_fix.filter.add(   # Main namespace is the wsdl domain
+        '{}://{}/'.format(parsed_wsdl.scheme, parsed_wsdl.netloc))
 
-    options['doctor'] = doctor.ImportDoctor(importFix)
+    options['doctor'] = doctor.ImportDoctor(import_fix)
     options['plugins'] = [ControlFilter(), ZeroDateFilter()]
 
     if config.get('username') and config.get('password'):
@@ -99,13 +99,13 @@ def newClient(serviceType):
     return Client(**options)
 
 
-def soap2Dict(soapObj):
+def soap_to_dict(soap_obj):
     """A recursive version of sudsobject.asdict"""
-    if isinstance(soapObj, sudsobject.Object):
-        return {k: soap2Dict(v) for k, v in soapObj}
-    elif isinstance(soapObj, list):
-        return [soap2Dict(v) for v in soapObj]
-    return soapObj
+    if isinstance(soap_obj, sudsobject.Object):
+        return {k: soap_to_dict(v) for k, v in soap_obj}
+    elif isinstance(soap_obj, list):
+        return [soap_to_dict(v) for v in soap_obj]
+    return soap_obj
 
 
 # Fields lists to copy
@@ -136,76 +136,68 @@ _contractAddrs = ('principle_place', 'company_address')
 _grantAddrs = ('principle_place', 'awardee_address')
 
 
-def flattenSoapDict(simpleFields, addressFields, commaField, soapDict):
+def flatten_soap_dict(simple_fields, address_fields, comma_field, soap_dict):
     """For all four FSRS models, we need to copy over values, flatten address
     data, flatten topPaid, convert comma fields"""
-    logger.debug(soapDict)
-    modelAttrs = {}
-    for field in simpleFields:
-        modelAttrs[field] = soapDict.get(field)
-    for prefix in addressFields:
+    logger.debug(soap_dict)
+    model_attrs = {}
+    for field in simple_fields:
+        model_attrs[field] = soap_dict.get(field)
+    for prefix in address_fields:
         for field in ('city', 'street', 'state', 'country', 'zip', 'district'):
-            modelAttrs[prefix + '_' + field] = soapDict[prefix].get(field)
+            model_attrs[prefix + '_' + field] = soap_dict[prefix].get(field)
     for idx in range(5):
         idx = str(idx + 1)
-        if 'top_pay_employees' in soapDict:
-            info = soapDict['top_pay_employees']['employee_' + idx]
-            modelAttrs['top_paid_fullname_' + idx] = info['fullname']
-            modelAttrs['top_paid_amount_' + idx] = info['amount']
-    modelAttrs[commaField] = ','.join(soapDict.get(commaField, []))
-    return modelAttrs
+        if 'top_pay_employees' in soap_dict:
+            info = soap_dict['top_pay_employees']['employee_' + idx]
+            model_attrs['top_paid_fullname_' + idx] = info['fullname']
+            model_attrs['top_paid_amount_' + idx] = info['amount']
+    model_attrs[comma_field] = ','.join(soap_dict.get(comma_field, []))
+    return model_attrs
 
 
-def toPrimeContract(soapDict):
-    modelAttrs = flattenSoapDict(
-        _primeContract, _contractAddrs, 'bus_types', soapDict)
-    modelAttrs['subawards'] = [
-        toSubcontract(sub) for sub in soapDict.get('subcontractors', [])
-    ]
-    return FSRSProcurement(**modelAttrs)
+def to_prime_contract(soap_dict):
+    model_attrs = flatten_soap_dict(_primeContract, _contractAddrs, 'bus_types', soap_dict)
+    model_attrs['subawards'] = [to_subcontract(sub) for sub in soap_dict.get('subcontractors', [])]
+    return FSRSProcurement(**model_attrs)
 
 
-def toSubcontract(soapDict):
-    modelAttrs = flattenSoapDict(
-        _subContract, _contractAddrs, 'bus_types', soapDict)
-    return FSRSSubcontract(**modelAttrs)
+def to_subcontract(soap_dict):
+    model_attrs = flatten_soap_dict(_subContract, _contractAddrs, 'bus_types', soap_dict)
+    return FSRSSubcontract(**model_attrs)
 
 
-def toPrimeGrant(soapDict):
-    modelAttrs = flattenSoapDict(
-        _primeGrant, _grantAddrs, 'cfda_numbers', soapDict)
-    modelAttrs['subawards'] = [
-        toSubgrant(sub) for sub in soapDict.get('subawardees', [])
-    ]
-    return FSRSGrant(**modelAttrs)
+def to_prime_grant(soap_dict):
+    model_attrs = flatten_soap_dict(_primeGrant, _grantAddrs, 'cfda_numbers', soap_dict)
+    model_attrs['subawards'] = [to_subgrant(sub) for sub in soap_dict.get('subawardees', [])]
+    return FSRSGrant(**model_attrs)
 
 
-def toSubgrant(soapDict):
-    modelAttrs = flattenSoapDict(
-        _subGrant, _grantAddrs, 'cfda_numbers', soapDict)
-    return FSRSSubgrant(**modelAttrs)
+def to_subgrant(soap_dict):
+    model_attrs = flatten_soap_dict(_subGrant, _grantAddrs, 'cfda_numbers', soap_dict)
+    return FSRSSubgrant(**model_attrs)
 
 
-def retrieveBatch(serviceType, minId):
+def retrieve_batch(service_type, min_id):
     """The FSRS web service returns records in batches (500 at a time).
     Retrieve one such batch, converting each result (and sub-results) into
     dicts"""
-    for report in newClient(serviceType).service.getData(id=minId)['reports']:
-        asDict = soap2Dict(report)
-        if serviceType == PROCUREMENT:
-            yield toPrimeContract(asDict)
+    for report in new_client(service_type).service.getData(id=min_id)['reports']:
+        as_dict = soap_to_dict(report)
+        if service_type == PROCUREMENT:
+            yield to_prime_contract(as_dict)
         else:
-            yield toPrimeGrant(asDict)
+            yield to_prime_grant(as_dict)
 
 
-def fetchAndReplaceBatch(sess, serviceType, minId=None):
+def fetch_and_replace_batch(sess, service_type, min_id=None):
     """Hit one of the FSRS APIs and replace any local records that match.
     Returns the award models"""
-    model = SERVICE_MODEL[serviceType]
-    if minId is None:
-        minId = model.nextId(sess)
+    model = SERVICE_MODEL[service_type]
+    if min_id is None:
+        min_id = model.next_id(sess)
 
-    awards = list(retrieveBatch(serviceType, minId))
+    awards = list(retrieve_batch(service_type, min_id))
     ids = [a.id for a in awards]
     sess.query(model).filter(model.id.in_(ids)).delete(
         synchronize_session=False)

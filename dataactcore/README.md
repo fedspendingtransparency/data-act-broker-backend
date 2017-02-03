@@ -12,8 +12,6 @@ For more information about the DATA Act Broker codebase, please visit this repos
 
 The DATA Act broker uses a single database (called `data_broker`) to track broker users, jobs and submissions, validation errors, and domain information needed to run data validations.
 
-In addition, there is a `job_queue` database that holds a queue of jobs to be sent to the validator.
-
 ## DATA Act Core Project Layout
 
 The DATA Act Core is a collection of common components used by other
@@ -84,7 +82,7 @@ It would be accessed by:
 ```json
 
     requestDictionary = RequestDictionary(request)
-    value = requestDictionary.getValue("data")
+    value = requestDictionary.get_value("data")
 
 ```
 

@@ -19,8 +19,7 @@ def requires_login(func):
     @wraps(func)
     def inner(*args, **kwargs):
         if g.user is None:
-            return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
-                                       {'message': "Login Required"})
+            return JsonResponse.create(StatusCode.LOGIN_REQUIRED, {'message': "Login Required"})
         return func(*args, **kwargs)
     return inner
 
@@ -30,12 +29,10 @@ def requires_admin(func):
     @wraps(func)
     def inner(*args, **kwargs):
         if g.user is None:
-            return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
-                                       {'message': "Login Required"})
+            return JsonResponse.create(StatusCode.LOGIN_REQUIRED, {'message': "Login Required"})
 
         if not g.user.website_admin:
-            return JsonResponse.create(StatusCode.LOGIN_REQUIRED,
-                                       {'message': NOT_AUTHORIZED_MSG})
+            return JsonResponse.create(StatusCode.LOGIN_REQUIRED, {'message': NOT_AUTHORIZED_MSG})
 
         return func(*args, **kwargs)
     return inner

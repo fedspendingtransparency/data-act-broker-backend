@@ -26,4 +26,4 @@ def write_csv(file_name, upload_name, is_local, header, body):
     with csv_writer as writer:
         for line in body:
             writer.write(line)
-        writer.finishBatch()
+        writer.finish_batch()

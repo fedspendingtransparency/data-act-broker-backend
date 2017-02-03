@@ -11,9 +11,8 @@ from sqlalchemy import engine_from_config, pool
 # @todo - load these dynamically
 from dataactcore.models import (baseModel, domainModels, fsrs, errorModels, jobModels, stagingModels, # noqa
                                 userModel, validationModels)
-
 from dataactcore.config import CONFIG_DB
-from dataactcore.interfaces.db import dbURI
+from dataactcore.interfaces.db import db_uri
 from dataactcore.logging import configure_logging
 
 USE_TWOPHASE = False
@@ -33,16 +32,12 @@ logger = logging.getLogger('alembic.env')
 # databases. In db_dict, the key will = alembic .ini section names and
 # migration method names. Value[0] will = the actual database name as
 # set in the broker config. Value[1] is the corresponding model.
-db_dict = {
-    'data_broker': [CONFIG_DB['db_name'], baseModel]
-}
+db_dict = {'data_broker': [CONFIG_DB['db_name'], baseModel]}
 db_names = config.get_main_option('databases')
 for name in re.split(r',\s*', db_names):
     if name not in db_dict:
-        raise Exception('The alembic.ini databases section is targeting '
-                        'a database ({}) that is not set up in env.py. '
-                        'Please add {} info to db_dict in env.py'.
-                        format(name, name))
+        raise Exception('The alembic.ini databases section is targeting a database ({}) that is not set up in env.py. '
+                        'Please add {} info to db_dict in env.py'.format(name, name))
 
 # add your model's MetaData objects here
 # for 'autogenerate' support.  These must be set
@@ -61,7 +56,7 @@ target_metadata = {key: value[1].Base.metadata for (key, value) in db_dict.items
 for (key, value) in db_dict.items():
     # key = db-related names expected by Alembic config/scripts
     # value[0] = actual db names as set in broker config file
-    baseUrl = dbURI(value[0])
+    baseUrl = db_uri(value[0])
     config.set_section_option(key, 'sqlalchemy.url', baseUrl)
 
 # other values from the config, defined by the needs of env.py,
@@ -88,8 +83,7 @@ def run_migrations_offline():
     engines = {}
     for db_name in re.split(r',\s*', db_names):
         engines[db_name] = rec = {}
-        rec['url'] = context.config.get_section_option(db_name,
-                                                       "sqlalchemy.url")
+        rec['url'] = context.config.get_section_option(db_name, "sqlalchemy.url")
 
     for db_name, rec in engines.items():
         logger.info("Migrating database %s" % db_name)

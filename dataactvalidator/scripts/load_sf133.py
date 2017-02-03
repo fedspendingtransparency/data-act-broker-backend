@@ -13,8 +13,8 @@ from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import matching_cars_subquery, SF133
-from dataactvalidator.app import createApp
-from dataactvalidator.scripts.loaderUtils import LoaderUtils
+from dataactvalidator.health_check import create_app
+from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +23,11 @@ def load_all_sf133(sf133_path=None, force_sf133_load=False):
     """Load any SF-133 files that are not yet in the database."""
     # get a list of SF 133 files to load
     sf133_list = get_sf133_list(sf133_path)
-    SF_RE = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
+    sf_re = re.compile(r'sf_133_(?P<year>\d{4})_(?P<period>\d{2})\.csv')
     for sf133 in sf133_list:
         # for each SF file, parse out fiscal year and period
         # and call the SF 133 loader
-        file_match = SF_RE.match(sf133.file)
+        file_match = sf_re.match(sf133.file)
         if not file_match:
             logger.info('Skipping SF 133 file with invalid name: %s',
                         sf133.full_file)
@@ -93,7 +93,7 @@ def update_tas_id(fiscal_year, fiscal_period):
 def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False):
     """Load SF 133 (budget execution report) lookup table."""
 
-    with createApp().app_context():
+    with create_app().app_context():
         sess = GlobalDB.db().session
 
         existing_records = sess.query(SF133).filter(
@@ -137,18 +137,18 @@ def load_sf133(filename, fiscal_year, fiscal_period, force_sf133_load=False):
 
         # insert to db
         table_name = SF133.__table__.name
-        num = LoaderUtils.insertDataframe(data, table_name, sess.connection())
+        num = insert_dataframe(data, table_name, sess.connection())
         update_tas_id(int(fiscal_year), int(fiscal_period))
         sess.commit()
 
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
-def clean_sf133_data(filename, SF133_data):
+def clean_sf133_data(filename, sf133_data):
     data = pd.read_csv(filename, dtype=str)
-    data = LoaderUtils.cleanData(
+    data = clean_data(
         data,
-        SF133_data,
+        sf133_data,
         {"ata": "allocation_transfer_agency",
          "aid": "agency_identifier",
          "availability_type_code": "availability_type_code",
@@ -197,7 +197,7 @@ def clean_sf133_data(filename, SF133_data):
 
 def format_internal_tas(row):
     """Concatenate TAS components into a single field for internal use."""
-    # This formatting should match formatting in dataactcore.models.stagingModels concatTas
+    # This formatting should match formatting in dataactcore.models.stagingModels concat_tas
     tas = ''.join([
         row['allocation_transfer_agency'] if row['allocation_transfer_agency'] else '000',
         row['agency_identifier'] if row['agency_identifier'] else '000',

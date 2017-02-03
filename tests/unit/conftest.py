@@ -7,8 +7,7 @@ import pytest
 import dataactcore.config
 from dataactcore.models import baseModel
 from dataactcore.scripts import setupJobTrackerDB, setupUserDB
-from dataactcore.scripts.databaseSetup import (
-    createDatabase, dropDatabase, runMigrations)
+from dataactcore.scripts.databaseSetup import create_database, drop_database, run_migrations
 from dataactcore.interfaces.db import GlobalDB
 
 
@@ -23,15 +22,15 @@ def full_database_setup():
     config['db_name'] = 'unittest{}_data_broker'.format(rand_id)
     dataactcore.config.CONFIG_DB = config
 
-    createDatabase(config['db_name'])
+    create_database(config['db_name'])
     db = GlobalDB.db()
-    runMigrations()
+    run_migrations()
 
     creation_order = baseModel.Base.metadata.sorted_tables
     yield (db, list(reversed(creation_order)))  # drop order
 
     GlobalDB.close()
-    dropDatabase(config['db_name'])
+    drop_database(config['db_name'])
 
 
 @pytest.fixture()
@@ -49,12 +48,12 @@ def database(full_database_setup):
 
 @pytest.fixture()
 def job_constants(database):
-    setupJobTrackerDB.insertCodes(database.session)
+    setupJobTrackerDB.insert_codes(database.session)
 
 
 @pytest.fixture()
 def user_constants(database):
-    setupUserDB.insertCodes(database.session)
+    setupUserDB.insert_codes(database.session)
     database.session.commit()
 
 

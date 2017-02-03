@@ -7,8 +7,8 @@ _TAS = 'a31_appropriations_tas'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'availability_type_code',
-                       'beginning_period_of_availa', 'ending_period_of_availabil'}
+    expected_subset = {'row_number', 'availability_type_code', 'beginning_period_of_availa',
+                       'ending_period_of_availabil'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
