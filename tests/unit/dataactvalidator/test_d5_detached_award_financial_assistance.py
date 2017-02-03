@@ -11,7 +11,8 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Tests success for when Action type is required for non-aggregate records (i.e., when RecordType = 2) """
+    """ Tests success for when AssistanceType field is required and must be one of the allowed values:
+        '02', '03', '04', '05', '06', '07', '08', '09', '10', '11' """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(assistance_type="02")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(assistance_type="03")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(assistance_type="04")
@@ -30,7 +31,8 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Tests that failure for when Action type is required for non-aggregate records (i.e., when RecordType = 2) """
+    """ Tests failure for when AssistanceType field is required and must be one of the allowed values:
+    '02', '03', '04', '05', '06', '07', '08', '09', '10', '11' """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(assistance_type="")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(assistance_type=None)
     det_award_3 = DetachedAwardFinancialAssistanceFactory(assistance_type="random")
