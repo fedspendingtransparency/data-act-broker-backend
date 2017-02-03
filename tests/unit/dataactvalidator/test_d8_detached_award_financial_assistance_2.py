@@ -21,8 +21,9 @@ def test_success(database):
     det_award = DetachedAwardFinancialAssistanceFactory(fiscal_year_and_quarter_co=str(today.year)+"3")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(fiscal_year_and_quarter_co=str(today.year-1)+"2")
     det_award_null = DetachedAwardFinancialAssistanceFactory(fiscal_year_and_quarter_co=None)
+    det_award_blank = DetachedAwardFinancialAssistanceFactory(fiscal_year_and_quarter_co="")
 
-    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_null])
+    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_null, det_award_blank])
     assert errors == 0
 
 
