@@ -12,9 +12,11 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Tests success for when Action type is required for non-aggregate records (i.e., when RecordType = 2) """
-    det_award = DetachedAwardFinancialAssistanceFactory(record_type="2")
+    det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type="2")
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(record_type="1", action_type="")
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(record_type="1", action_type=None)
 
-    errors = number_of_errors(_FILE, database, models=[det_award])
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
     assert errors == 0
 
 

@@ -5,4 +5,4 @@ SELECT
     record_type
 FROM detached_award_financial_assistance
 WHERE record_type = 2
-    AND COALESCE(action_type, '') = '' ;
+    AND (action_type = '' OR action_type IS NULL);
