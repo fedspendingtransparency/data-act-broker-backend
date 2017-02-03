@@ -16,7 +16,7 @@ SELECT op.row_number,
 	op.main_account_code,
 	op.program_activity_name,
 	op.program_activity_code
-FROM object_class_program_activity as op
+FROM object_class_program_activity_b9_{0} as op
 WHERE op.submission_id = {0}
     AND CAST(COALESCE(op.beginning_period_of_availa,'0') AS integer) IN (SELECT DISTINCT CAST(budget_year AS integer) FROM program_activity)
 	AND op.row_number NOT IN (
