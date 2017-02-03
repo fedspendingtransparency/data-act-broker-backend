@@ -38,10 +38,10 @@ def run_app():
                 # Grabs one (or more) messages from the queue
                 messages = queue.receive_messages(WaitTimeSeconds=10)
                 for message in messages:
+                    logger.info("Message received: %s", message.body)
                     GlobalDB.db()
                     validation_manager = ValidationManager(local, error_report_path)
                     validation_manager.validate_job(message.body)
-                    logger.info("Message received: %s", message.body)
 
                     # delete from SQS once processed
                     message.delete()
