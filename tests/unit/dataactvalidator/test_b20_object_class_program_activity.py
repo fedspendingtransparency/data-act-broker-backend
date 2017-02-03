@@ -26,9 +26,10 @@ def test_success(database):
     # Allow program activity code to be null, empty, or zero
     af2 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='', object_class='1')
     af3 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='0000', object_class='1')
-    af4 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code=None, object_class='1')
+    af4 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code='0', object_class='1')
+    af5 = AwardFinancialFactory(tas_id=tas.tas_id, program_activity_code=None, object_class='1')
 
-    assert number_of_errors(_FILE, database, models=[op, af, af2, af3, af4]) == 0
+    assert number_of_errors(_FILE, database, models=[op, af, af2, af3, af4, af5]) == 0
 
 
 def test_failure(database):
