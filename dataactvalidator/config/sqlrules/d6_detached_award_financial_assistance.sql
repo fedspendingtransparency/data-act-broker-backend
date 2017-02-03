@@ -3,5 +3,5 @@ SELECT
     row_number,
     record_type
 FROM detached_award_financial_assistance
-WHERE record_type IS NULL
-    OR record_type NOT IN (1, 2)
+WHERE submission_id = {0}
+    AND COALESCE(record_type, -1) NOT IN (1, 2)
