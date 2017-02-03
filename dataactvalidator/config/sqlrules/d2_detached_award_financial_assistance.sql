@@ -1,3 +1,5 @@
+-- The combination of fain, award modification amendment number, uri, and awarding sub tier agency code
+-- must be unique unless the correction late delete indicator is C or D
 SELECT
     row_number,
     fain,

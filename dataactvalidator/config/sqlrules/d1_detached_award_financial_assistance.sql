@@ -1,3 +1,4 @@
+-- fain is required for non-aggregate records (i.e., when RecordType = 2)
 SELECT
     row_number,
     record_type,
