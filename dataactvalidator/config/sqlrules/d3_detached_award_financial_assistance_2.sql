@@ -1,5 +1,4 @@
--- ActionType field must contain one of the following values: “A”, “B”, “C” or “D”.
--- Can also be '' if RecordType = 1, so that's included as well.
+-- ActionType field must contain A, B, C, D, or blank
 SELECT
     dafa.row_number,
     dafa.action_type,
