@@ -14,7 +14,3 @@ class SQSTests(BaseTestValidator):
         self.assertNotEqual(messages, [])
         for message in messages:
             message.delete()
-
-        queue.purge()
-        messages = queue.receive_messages(WaitTimeSeconds=10)
-        self.assertEqual(messages, [])
