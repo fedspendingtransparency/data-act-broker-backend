@@ -1144,7 +1144,6 @@ def serialize_submission(submission):
     else:
         submission_user_name = sess.query(User).filter_by(user_id=submission.user_id).one().name
 
-
     cgac = sess.query(CGAC).\
         filter_by(cgac_code=submission.cgac_code).one_or_none()
 
