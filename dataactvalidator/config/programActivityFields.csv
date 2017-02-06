@@ -13,7 +13,7 @@ grossoutlaysdeliveredorderspaidtotal_fyb,gross_outlays_delivered_or_fyb,TRUE,flo
 grossoutlaysundeliveredordersprepaidtotal_cpe,gross_outlays_undelivered_cpe,TRUE,float,21,"B5, B6, A18",
 grossoutlaysundeliveredordersprepaidtotal_fyb,gross_outlays_undelivered_fyb,TRUE,float,21,"A16, B5, B6",
 mainaccountcode,main_account_code,TRUE,str,4,A1,TRUE
-objectclass,object_class,TRUE,str,4,B11,TRUE
+objectclass,object_class,TRUE,str,4,B11
 obligationsdeliveredordersunpaidtotal_cpe,obligations_delivered_orde_cpe,TRUE,float,21,B4,
 obligationsdeliveredordersunpaidtotal_fyb,obligations_delivered_orde_fyb,TRUE,float,21,"A16, B4",
 obligationsincurredbyprogramobjectclass_cpe,obligations_incurred_by_pr_cpe,TRUE,float,21,A19,
