@@ -27,11 +27,3 @@ def test_failure(database):
     op = ObjectClassProgramActivityFactory(object_class='000')
 
     assert number_of_errors(_FILE, database, models=[op]) == 1
-
-
-def test_failure_zero(database):
-    """ Test invalid object class code (3 digits) """
-
-    op = ObjectClassProgramActivityFactory(object_class='0')
-
-    assert number_of_errors(_FILE, database, models=[op]) == 1
