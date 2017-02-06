@@ -55,6 +55,18 @@ def test_success_mismatched_year(database):
     assert number_of_errors(_FILE, database, models=[af, pa]) == 0
 
 
+def test_success_unknown_value(database):
+    """Program activity name/code as null"""
+    af_1 = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+                                 allocation_transfer_agency='test', main_account_code='test',
+                                 program_activity_name='test', program_activity_code='0000')
+    af_2 = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+                                 allocation_transfer_agency='test', main_account_code='test',
+                                 program_activity_name='test', program_activity_code='Unknown/Other')
+
+    assert number_of_errors(_FILE, database, models=[af_1, af_2]) == 0
+
+
 def test_failure_program_activity_name(database):
     """ Testing invalid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
     A-11. """
