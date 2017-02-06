@@ -19,7 +19,8 @@ SELECT af.row_number,
 FROM award_financial_b9_{0} as af
 WHERE af.submission_id = {0}
     AND CAST(COALESCE(af.beginning_period_of_availa,'0') AS integer) IN (SELECT DISTINCT CAST(budget_year AS integer) FROM program_activity)
-    AND LOWER(af.program_activity_code) NOT IN ('0000', 'unknown/other')
+    AND af.program_activity_code <> '0000'
+    AND LOWER(af.program_activity_name) <> 'unknown/other'
 	AND af.row_number NOT IN (
 		SELECT af.row_number
 		FROM award_financial_b9_{0} as af
