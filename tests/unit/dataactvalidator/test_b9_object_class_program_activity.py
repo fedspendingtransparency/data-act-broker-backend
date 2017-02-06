@@ -43,14 +43,16 @@ def test_success_mismatched_year(database):
 
 
 def test_success_unknown_value(database):
-    op_1 = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2017, agency_identifier='test',
-                                             allocation_transfer_agency='test', main_account_code='test',
-                                             program_activity_name='test', program_activity_code='0000')
+    """ Testing valid Unknown/other program activity name with '0000' code """
 
-    op_2 = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2017, agency_identifier='test',
-                                             allocation_transfer_agency='test', main_account_code='test',
-                                             program_activity_name='test', program_activity_code='Unknown/Other')
-    assert number_of_errors(_FILE, database, models=[op_1, op_2]) == 0
+    op = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+                                           allocation_transfer_agency='test', main_account_code='test',
+                                           program_activity_name='Unknown/Other', program_activity_code='0000')
+
+    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
+                                account_number='test', program_activity_name='test', program_activity_code='test')
+
+    assert number_of_errors(_FILE, database, models=[op, pa]) == 0
 
 
 def test_failure_program_activity_name(database):
