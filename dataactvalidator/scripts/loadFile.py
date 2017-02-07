@@ -136,7 +136,7 @@ def load_object_class(filename):
             data,
             model,
             {"max_oc_code": "object_class_code", "max_object_class_name": "object_class_name"},
-            {}
+            {"object_class_code": {"pad_to_length": 3}}
         )
         # de-dupe
         data.drop_duplicates(subset=['object_class_code'], inplace=True)
