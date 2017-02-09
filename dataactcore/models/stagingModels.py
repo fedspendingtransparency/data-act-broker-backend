@@ -534,3 +534,58 @@ class DetachedAwardFinancialAssistance(Base):
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(DetachedAwardFinancialAssistance, self).__init__(**clean_kwargs)
+
+
+class PublishedAwardFinancialAssistance(Base):
+    """Model for D2-Award (Financial Assistance)."""
+    __tablename__ = "published_award_financial_assistance"
+
+    published_award_financial_assistance_id = Column(Integer, primary_key=True)
+    action_date = Column(Text)
+    action_type = Column(Text)
+    assistance_type = Column(Text)
+    award_description = Column(Text)
+    awardee_or_recipient_legal = Column(Text)
+    awardee_or_recipient_uniqu = Column(Text)
+    awarding_agency_code = Column(Text)
+    awarding_office_code = Column(Text)
+    awarding_sub_tier_agency_c = Column(Text)
+    award_modification_amendme = Column(Text)
+    business_funds_indicator = Column(Text)
+    business_types = Column(Text)
+    cfda_number = Column(Text)
+    correction_late_delete_ind = Column(Text)
+    face_value_loan_guarantee = Column(Numeric)
+    fain = Column(Text, index=True)
+    federal_action_obligation = Column(Numeric)
+    fiscal_year_and_quarter_co = Column(Text)
+    funding_agency_code = Column(Text)
+    funding_office_code = Column(Text)
+    funding_sub_tier_agency_co = Column(Text)
+    legal_entity_address_line1 = Column(Text)
+    legal_entity_address_line2 = Column(Text)
+    legal_entity_address_line3 = Column(Text)
+    legal_entity_country_code = Column(Text)
+    legal_entity_foreign_city = Column(Text)
+    legal_entity_foreign_posta = Column(Text)
+    legal_entity_foreign_provi = Column(Text)
+    legal_entity_zip5 = Column(Text)
+    legal_entity_zip_last4 = Column(Text)
+    non_federal_funding_amount = Column(Numeric)
+    original_loan_subsidy_cost = Column(Numeric)
+    period_of_performance_curr = Column(Text)
+    period_of_performance_star = Column(Text)
+    place_of_performance_code = Column(Text)
+    place_of_performance_congr = Column(Text)
+    place_of_perform_country_c = Column(Text)
+    place_of_performance_forei = Column(Text)
+    place_of_performance_zip4a = Column(Text)
+    record_type = Column(Integer)
+    sai_number = Column(Text)
+    uri = Column(Text, index=True)
+
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(PublishedAwardFinancialAssistance, self).__init__(**clean_kwargs)
