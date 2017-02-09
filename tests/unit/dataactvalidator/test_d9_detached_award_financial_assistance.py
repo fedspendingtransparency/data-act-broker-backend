@@ -5,7 +5,7 @@ _FILE = 'd9_detached_award_financial_assistance'
 
 
 def test_column_headers(database):
-    expected_subset = {"row_number", "awardee_or_recipient_legal"}
+    expected_subset = {"row_number", "record_type", "awardee_or_recipient_legal"}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
