@@ -55,6 +55,8 @@ def test_failure(database):
             'ussgl490800_authority_outl_fyb', 'ussgl490800_authority_outl_cpe',
             'ussgl498200_upward_adjustm_cpe']
 
+    # Takes out one required key at a time and check that we get exactly one
+    # error
     for i in range(len(keys)):
         af_dict_copy = copy.deepcopy(af_dict)
         af_dict_copy.pop(keys[i])

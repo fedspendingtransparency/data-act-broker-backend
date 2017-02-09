@@ -419,7 +419,8 @@ def create_jobs(upload_files, submission, existing_submission=False):
             one()
         ext_job.job_status_id = JOB_STATUS_DICT["waiting"]
         submission.updated_at = time.strftime("%c")
-    else:
+    # todo: add these back in for detached_d2 when we have actual validations
+    elif not submission.d2_submission:
         # create cross-file validation job
         validation_job = Job(
             job_status_id=JOB_STATUS_DICT["waiting"],
