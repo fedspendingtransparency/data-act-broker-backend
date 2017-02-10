@@ -33,7 +33,7 @@ def test_update_tas_ids_has_match_open_ended(database, factory):
     validationManager.update_tas_ids(model.__class__, submission.submission_id)
 
     model = sess.query(model.__class__).one()   # we'll only have one entry
-    assert model.tas_id == tas.account_num
+    assert model.tas_id == tas.tas_id
 
 
 @with_factory_parameters
@@ -53,7 +53,7 @@ def test_update_tas_ids_has_match_closed(database, factory):
     validationManager.update_tas_ids(model.__class__, submission.submission_id)
 
     model = sess.query(model.__class__).one()   # we'll only have one entry
-    assert model.tas_id == tas.account_num
+    assert model.tas_id == tas.tas_id
 
 
 @with_factory_parameters

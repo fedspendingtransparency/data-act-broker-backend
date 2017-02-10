@@ -67,4 +67,4 @@ def test_update_tas_ids_fiscal_year(database):
     sess.commit()
     load_sf133.update_tas_id(2011, 1)
     sess.refresh(sf_133)
-    assert sf_133.tas_id == tas.account_num
+    assert sf_133.tas_id is tas.tas_id
