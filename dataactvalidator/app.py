@@ -1,4 +1,5 @@
 import logging
+import csv
 
 from flask import Flask, g, current_app
 
@@ -7,6 +8,10 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactcore.aws.sqsHandler import sqs_queue
+from dataactcore.interfaces.function_bag import mark_job_status, write_file_error
+from dataactcore.utils.responseException import ResponseException
+from dataactvalidator.validation_handlers.validationError import ValidationError
+from dataactcore.models.jobModels import Job
 
 
 logger = logging.getLogger(__name__)
@@ -40,22 +45,57 @@ def run_app():
                 for message in messages:
                     logger.info("Message received: %s", message.body)
                     GlobalDB.db()
+                    g.job_id = message.body
+                    mark_job_status(g.job_id, "ready")
                     validation_manager = ValidationManager(local, error_report_path)
-                    validation_manager.validate_job(message.body)
+                    validation_manager.validate_job(g.job_id)
 
                     # delete from SQS once processed
                     message.delete()
-            except Exception as e:
-                # Log exception and continue loop
-                logger.exception('Validator Exception: %s', e)
+            except ResponseException as e:
+                # Handle exceptions explicitly raised during validation.
+                logger.error(str(e))
 
+                job = get_current_job()
+                if job:
+                    if job.filename is not None:
+                        # insert file-level error info to the database
+                        write_file_error(job.job_id, job.filename, e.errorType, e.extraInfo)
+                    if e.errorType != ValidationError.jobError:
+                        # job pass prerequisites for validation, but an error
+                        # happened somewhere. mark job as 'invalid'
+                        mark_job_status(job.job_id, 'invalid')
+            except Exception as e:
+                # Handle uncaught exceptions in validation process.
+                logger.error(str(e))
+
+                # csv-specific errors get a different job status and response code
+                if isinstance(e, ValueError) or isinstance(e, csv.Error):
+                    job_status = 'invalid'
+                else:
+                    job_status = 'failed'
+                job = get_current_job()
+                if job:
+                    if job.filename is not None:
+                        write_file_error(job.job_id, job.filename, ValidationError.unknownError)
+                    mark_job_status(job.job_id, job_status)
+            finally:
+                GlobalDB.close()
                 # Set visibility to 0 so that another attempt can be made to process in SQS immediately,
                 # instead of waiting for the timeout window to expire
                 for message in messages:
                     message.change_visibility(VisibilityTimeout=0)
-            finally:
-                GlobalDB.close()
 
+
+def get_current_job():
+    """Return the job currently stored in flask.g"""
+    # the job_id is added to flask.g at the beginning of the validate
+    # route. we expect it to be here now, since validate is
+    # currently the app's only functional route
+    job_id = g.get('job_id', None)
+    if job_id:
+        sess = GlobalDB.db().session
+        return sess.query(Job).filter(Job.job_id == job_id).one_or_none()
 
 if __name__ == "__main__":
     configure_logging()
