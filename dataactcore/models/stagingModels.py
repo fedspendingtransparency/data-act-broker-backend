@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean
+from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean, UniqueConstraint
 
 from dataactcore.models.baseModel import Base
 from dataactcore.models.domainModels import concat_tas
@@ -549,8 +549,8 @@ class PublishedAwardFinancialAssistance(Base):
     awardee_or_recipient_uniqu = Column(Text)
     awarding_agency_code = Column(Text)
     awarding_office_code = Column(Text)
-    awarding_sub_tier_agency_c = Column(Text)
-    award_modification_amendme = Column(Text)
+    awarding_sub_tier_agency_c = Column(Text, index=True)
+    award_modification_amendme = Column(Text, index=True)
     business_funds_indicator = Column(Text)
     business_types = Column(Text)
     cfda_number = Column(Text)
@@ -583,6 +583,9 @@ class PublishedAwardFinancialAssistance(Base):
     record_type = Column(Integer)
     sai_number = Column(Text)
     uri = Column(Text, index=True)
+
+    __table_args__ = (UniqueConstraint('awarding_sub_tier_agency_c', 'award_modification_amendme', 'fain', 'uri',
+                                       name='uniq_award_mod_sub_tier_fain_uri'),)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data
