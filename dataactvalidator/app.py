@@ -7,6 +7,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactvalidator.validation_handlers.validationManager import ValidationManager
 from dataactcore.aws.sqsHandler import sqs_queue
+from dataactcore.interfaces.function_bag import mark_job_status
 
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ def run_app():
                 for message in messages:
                     logger.info("Message received: %s", message.body)
                     GlobalDB.db()
+                    mark_job_status(message.body, "ready")
                     validation_manager = ValidationManager(local, error_report_path)
                     validation_manager.validate_job(message.body)
 
@@ -52,6 +54,7 @@ def run_app():
                 # Set visibility to 0 so that another attempt can be made to process in SQS immediately,
                 # instead of waiting for the timeout window to expire
                 for message in messages:
+                    mark_job_status(message.body, "failed")
                     message.change_visibility(VisibilityTimeout=0)
             finally:
                 GlobalDB.close()
