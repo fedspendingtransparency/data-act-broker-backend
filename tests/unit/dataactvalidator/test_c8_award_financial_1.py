@@ -46,10 +46,11 @@ def test_null_uri_fain(database):
 def test_both_fain_and_url_supplied(database):
     """Tests File C (award financial) having both uri and fain populated ."""
     tas = _TAS
-    af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency=None)
+    cgac = CGACFactory(cgac_code='good')
+    af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency=cgac.cgac_code)
 
-    errors = number_of_errors(_FILE, database, models=[af])
-    assert errors == 1
+    errors = number_of_errors(_FILE, database, models=[af, cgac])
+    assert errors == 0
 
 
 def test_invalid_allocation_transfer_agency(database):

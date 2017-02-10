@@ -51,20 +51,10 @@ def test_both_fain_and_url_supplied(database):
     """Tests File C (award financial) having both uri and fain populated ."""
     tas = _TAS
     af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency=None)
-
-    errors = number_of_errors(_FILE, database, models=[af])
-    assert errors == 1
-
-
-def test_unequal_fain(database):
-    """Tests File C (award financial) fain different than File D2
-    (award financial assistance) fain."""
-    tas = _TAS
-    af = AwardFinancialFactory(tas=tas, fain='abc', uri=None, allocation_transfer_agency=None)
-    afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain='xyz', uri=None)
+    afa = AwardFinancialAssistanceFactory(tas=tas, submisson_id=af.submission_id, fain=af.fain, uri=af.uri)
 
     errors = number_of_errors(_FILE, database, models=[af, afa])
-    assert errors == 1
+    assert errors == 0
 
 
 def test_unequal_uri(database):
