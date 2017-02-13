@@ -31,9 +31,9 @@ def test_update_cgacs(database):
 
     models = {cgac.cgac_code: cgac for cgac in cgacs}
     new_data = pd.DataFrame([
-        {'cgac_code': '0', 'agency_name': 'other'},
-        {'cgac_code': '1', 'agency_name': '11111'},
-        {'cgac_code': 'something-else', 'agency_name': 'new_agency'}
+        {'cgac_code': '0', 'agency_name': 'other', 'agency_abbreviation': 'other'},
+        {'cgac_code': '1', 'agency_name': '11111', 'agency_abbreviation': '11111'},
+        {'cgac_code': 'something-else', 'agency_name': 'new_agency', 'agency_abbreviation': "new_agency"}
     ])
 
     assert models['0'].agency_name == '00000'
@@ -41,6 +41,6 @@ def test_update_cgacs(database):
     assert 'something-else' not in models
 
     loadFile.update_cgacs(models, new_data)
-    assert models['0'].agency_name == 'other'
-    assert models['1'].agency_name == '11111'
-    assert models['something-else'].agency_name == 'new_agency'
+    assert models['0'].agency_name == 'other (other)'
+    assert models['1'].agency_name == '11111 (11111)'
+    assert models['something-else'].agency_name == 'new_agency (new_agency)'
