@@ -4,7 +4,7 @@ from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
-_FILE = 'c8_award_financial_2'
+_FILE = 'c8_award_financial'
 _TAS = 'c8_award_financial_tas'
 
 
@@ -51,9 +51,10 @@ def test_both_fain_and_url_supplied(database):
     """Tests File C (award financial) having both uri and fain populated ."""
     tas = _TAS
     af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency=None)
+    afa = AwardFinancialAssistanceFactory(tas=tas, submisson_id=af.submission_id, fain=af.fain, uri=af.uri)
 
-    errors = number_of_errors(_FILE, database, models=[af])
-    assert errors == 1
+    errors = number_of_errors(_FILE, database, models=[af, afa])
+    assert errors == 0
 
 
 def test_unequal_fain(database):
