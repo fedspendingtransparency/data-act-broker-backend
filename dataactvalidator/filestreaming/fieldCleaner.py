@@ -172,3 +172,4 @@ if __name__ == '__main__':
     FieldCleaner.clean_file("../config/awardFinancialFieldsRaw.csv", "../config/awardFinancialFields.csv")
     FieldCleaner.clean_file("../config/programActivityFieldsRaw.csv", "../config/programActivityFields.csv")
     FieldCleaner.clean_file("../config/awardFieldsRaw.csv", "../config/awardFields.csv")
+    FieldCleaner.clean_file("../config/detachedAwardFieldsRaw.csv", "../config/detachedAwardFields.csv")

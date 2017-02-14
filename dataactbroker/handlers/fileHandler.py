@@ -19,9 +19,10 @@ from dataactbroker.permissions import current_user_can, current_user_can_on_subm
 from dataactcore.aws.s3UrlHandler import S3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC
+from dataactcore.models.domainModels import CGAC, SubTierAgency
 from dataactcore.models.errorModels import File
-from dataactcore.models.jobModels import FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency
+from dataactcore.models.jobModels import (
+    FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID,
@@ -193,30 +194,8 @@ class FileHandler:
                 sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            for file_type in FileHandler.FILE_TYPES:
-                # if filetype not included in request, and this is an update to an existing submission, skip it
-                if not request_params.get(file_type):
-                    if existing_submission:
-                        continue
-                    # this is a new submission, all files are required
-                    raise ResponseException("Must include all files for new submission", StatusCode.CLIENT_ERROR)
-
-                filename = request_params.get(file_type)
-                if filename:
-                    if not self.isLocal:
-                        upload_name = "{}/{}".format(
-                            g.user.user_id,
-                            S3UrlHandler.get_timestamped_filename(filename)
-                        )
-                    else:
-                        upload_name = filename
-                    response_dict[file_type + "_key"] = upload_name
-                    upload_files.append(FileHandler.UploadFile(
-                        file_type=file_type,
-                        upload_name=upload_name,
-                        file_name=filename,
-                        file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type]]
-                    ))
+            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files,
+                                existing_submission)
 
             if not upload_files and existing_submission:
                 raise ResponseException("Must include at least one file for an existing submission",
@@ -241,22 +220,8 @@ class FileHandler:
                         file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[ext_file_type]]
                     ))
 
-            file_job_dict = create_jobs(upload_files, submission, existing_submission)
-            for file_type in file_job_dict.keys():
-                if "submission_id" not in file_type:
-                    response_dict[file_type + "_id"] = file_job_dict[file_type]
-            if create_credentials and not self.isLocal:
-                self.s3manager = S3UrlHandler(CONFIG_BROKER["aws_bucket"])
-                response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
-            else:
-                response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local",
-                                                "SessionToken": "local", "Expiration": "local"}
-
-            response_dict["submission_id"] = file_job_dict["submission_id"]
-            if self.isLocal:
-                response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]
-            else:
-                response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
+            self.create_response_dict_for_submission(upload_files, submission, existing_submission, response_dict,
+                                                     create_credentials)
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
@@ -642,6 +607,92 @@ class FileHandler:
         # Return same response as check generation route
         return result or self.check_detached_generation(new_job.job_id)
 
+    def upload_detached_file(self, create_credentials):
+        """ Builds S3 URLs for a set of detached files and adds all related jobs to job tracker database
+
+        Flask request should include keys from FILE_TYPES class variable above
+
+        Arguments:
+            create_credentials - If True, will create temporary credentials for S3 uploads
+
+        Returns:
+        Flask response returned will have key_url and key_id for each key in the request
+        key_url is the S3 URL for uploading
+        key_id is the job id to be passed to the finalize_submission route
+        """
+        logger.debug("Starting detached D file upload")
+        sess = GlobalDB.db().session
+        try:
+            response_dict = {}
+            upload_files = []
+            request_params = RequestDictionary.derive(self.request)
+
+            # unfortunately, field names in the request don't match
+            # field names in the db/response. create a mapping here.
+            request_job_mapping = {
+                "reporting_period_start_date": "reporting_start_date",
+                "reporting_period_end_date": "reporting_end_date"
+            }
+
+            job_data = {}
+            for request_field, submission_field in request_job_mapping.items():
+                if request_field in request_params:
+                    job_data[submission_field] = request_params[request_field]
+                # all of those fields are required
+                else:
+                    raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
+
+            # get the cgac code associated with this sub tier agency
+            sub_tier_agency = sess.query(SubTierAgency).\
+                filter_by(sub_tier_agency_code=request_params["agency_code"]).one()
+            job_data["cgac_code"] = sub_tier_agency.cgac.cgac_code
+            job_data["d2_submission"] = True
+
+            # convert submission start/end dates from the request into Python date objects
+            date_format = '%d/%m/%Y'
+            try:
+                job_data['reporting_start_date'] = datetime.strptime(job_data['reporting_start_date'],
+                                                                     date_format).date()
+                job_data['reporting_end_date'] = datetime.strptime(job_data['reporting_end_date'],
+                                                                   date_format).date()
+            except ValueError:
+                raise ResponseException("Date must be provided as DD/MM/YYYY", StatusCode.CLIENT_ERROR, ValueError)
+
+            # the front-end is doing date checks, but we'll also do a few server side to ensure everything is correct
+            # when clients call the API directly
+            if job_data.get('reporting_start_date') > job_data.get('reporting_end_date'):
+                raise ResponseException("Submission start date {} is after the end date {}".format(
+                        job_data.get('reporting_start_date'), job_data.get('reporting_end_date')),
+                        StatusCode.CLIENT_ERROR)
+
+            if not current_user_can('writer', job_data["cgac_code"]):
+                raise ResponseException("User does not have permission to create jobs for this agency",
+                                        StatusCode.PERMISSION_DENIED)
+
+            submission = create_submission(g.user.user_id, job_data, None)
+            sess.add(submission)
+            sess.commit()
+            sub_tier_affiliation = SubmissionSubTierAffiliation(submission_id=submission.submission_id,
+                                                                sub_tier_agency_id=sub_tier_agency.sub_tier_agency_id)
+            sess.add(sub_tier_affiliation)
+            sess.commit()
+
+            # build fileNameMap to be used in creating jobs
+            self.build_file_map(request_params, ['detached_award'], response_dict, upload_files)
+
+            self.create_response_dict_for_submission(upload_files, submission, False, response_dict, create_credentials)
+            return JsonResponse.create(StatusCode.OK, response_dict)
+        except (ValueError, TypeError, NotImplementedError) as e:
+            return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
+        except ResponseException as e:
+            # call error route directly, status code depends on exception
+            return JsonResponse.error(e, e.status)
+        except Exception as e:
+            # unexpected exception, this is a 500 server error
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+        except:
+            return JsonResponse.error(Exception("Failed to catch exception"), StatusCode.INTERNAL_ERROR)
+
     @staticmethod
     def check_detached_generation(job_id):
         """ Return information about file generation jobs
@@ -831,6 +882,53 @@ class FileHandler:
 
         return job
 
+    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, existing_submission=False):
+        """ build fileNameMap to be used in creating jobs """
+        for file_type in file_type_list:
+            # if file_type not included in request, and this is an update to an existing submission, skip it
+            if not request_params.get(file_type):
+                if existing_submission:
+                    continue
+                # this is a new submission, all files are required
+                raise ResponseException("Must include all required files for new submission", StatusCode.CLIENT_ERROR)
+
+            file_name = request_params.get(file_type)
+            if file_name:
+                if not self.isLocal:
+                    upload_name = "{}/{}".format(
+                        g.user.user_id,
+                        S3UrlHandler.get_timestamped_filename(file_name)
+                    )
+                else:
+                    upload_name = file_name
+
+                response_dict[file_type + "_key"] = upload_name
+                upload_files.append(FileHandler.UploadFile(
+                    file_type=file_type,
+                    upload_name=upload_name,
+                    file_name=file_name,
+                    file_letter=FILE_TYPE_DICT_LETTER[FILE_TYPE_DICT[file_type]]
+                ))
+
+    def create_response_dict_for_submission(self, upload_files, submission, existing_submission, response_dict,
+                                            create_credentials):
+        file_job_dict = create_jobs(upload_files, submission, existing_submission)
+        for file_type in file_job_dict.keys():
+            if "submission_id" not in file_type:
+                response_dict[file_type + "_id"] = file_job_dict[file_type]
+        if create_credentials and not self.isLocal:
+            self.s3manager = S3UrlHandler(CONFIG_BROKER["aws_bucket"])
+            response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
+        else:
+            response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local",
+                                            "SessionToken": "local", "Expiration": "local"}
+
+        response_dict["submission_id"] = file_job_dict["submission_id"]
+        if self.isLocal:
+            response_dict["bucket_name"] = CONFIG_BROKER["broker_files"]
+        else:
+            response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
+
 
 def narratives_for_submission(submission):
     """Fetch narratives for this submission, indexed by file letter"""
@@ -1015,7 +1113,7 @@ def list_submissions(page, limit, certified):
     offset = limit * (page - 1)
 
     cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
-    query = sess.query(Submission)
+    query = sess.query(Submission).filter_by(d2_submission=False)
     if not g.user.website_admin:
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
                                     Submission.user_id == g.user.user_id))
@@ -1046,12 +1144,15 @@ def serialize_submission(submission):
     else:
         submission_user_name = sess.query(User).filter_by(user_id=submission.user_id).one().name
 
+    cgac = sess.query(CGAC).\
+        filter_by(cgac_code=submission.cgac_code).one_or_none()
+
     return {
         "submission_id": submission.submission_id,
         "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
         "size": total_size,
         "status": status,
-        "errors": submission.number_of_errors,
+        "agency": cgac.agency_name if cgac else 'N/A',
         # @todo why are these a different format?
         "reporting_start_date": str(submission.reporting_start_date),
         "reporting_end_date": str(submission.reporting_end_date),
