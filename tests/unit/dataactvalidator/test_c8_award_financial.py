@@ -4,7 +4,7 @@ from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
-_FILE = 'c8_award_financial_1'
+_FILE = 'c8_award_financial'
 _TAS = 'c8_award_financial_tas'
 
 
