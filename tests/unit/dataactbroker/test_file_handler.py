@@ -6,12 +6,13 @@ from unittest.mock import Mock
 import pytest
 
 from dataactbroker.handlers import fileHandler
-from dataactcore.models.jobModels import JobStatus, JobType, FileType
+from dataactcore.models.jobModels import JobStatus, JobType, FileType, PublishStatus
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
 from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
 from tests.unit.dataactcore.factories.user import UserFactory
+from dataactcore.models.lookups import PUBLISH_STATUS
 
 
 def list_submissions_result():
@@ -267,8 +268,12 @@ def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
 
 
 def test_submission_to_dict_for_status(database):
+    for ps in PUBLISH_STATUS:
+        status = PublishStatus(publish_status_id=ps.id, name=ps.name, description=ps.desc)
+        database.session.merge(status)
+
     cgac = CGACFactory(cgac_code='abcdef', agency_name='Age')
-    sub = SubmissionFactory(cgac_code='abcdef', number_of_errors=1234)
+    sub = SubmissionFactory(cgac_code='abcdef', number_of_errors=1234, publish_status_id=1)
     database.session.add_all([cgac, sub])
     database.session.commit()
 
