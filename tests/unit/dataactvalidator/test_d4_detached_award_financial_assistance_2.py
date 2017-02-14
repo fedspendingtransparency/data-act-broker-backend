@@ -14,8 +14,9 @@ def test_success(database):
     """ Tests if value of action date is be between 19991001 and 20991231
         (i.e., a date between 10/01/1999 and 12/31/2099) """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(action_date="20120725")
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(action_date=None)
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1])
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
     assert errors == 0
 
 

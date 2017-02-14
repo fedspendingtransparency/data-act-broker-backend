@@ -16,8 +16,9 @@ def test_success(database):
     """ Tests that future ActionDate is valid if it occurs within the current fiscal year """
     today = date.today() + relativedelta(months=1)
     det_award_1 = DetachedAwardFinancialAssistanceFactory(action_date=str(today))
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(action_date=None)
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1])
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
     assert errors == 0
 
 

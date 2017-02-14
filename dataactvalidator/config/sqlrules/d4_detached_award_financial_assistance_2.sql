@@ -13,6 +13,6 @@ SELECT
     action_date
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND pg_temp.is_date(action_date)
+    AND pg_temp.is_date(COALESCE(action_date, '0'))
     AND (CAST(action_date as DATE) < CAST('19991001' AS DATE)
         OR CAST(action_date as DATE) > CAST('20991231' AS DATE));

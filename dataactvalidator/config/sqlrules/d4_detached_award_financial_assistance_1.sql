@@ -12,4 +12,4 @@ SELECT
     row_number,
     action_date
 FROM detached_award_financial_assistance
-WHERE submission_id = {0} AND NOT pg_temp.is_date(action_date);
+WHERE submission_id = {0} AND NOT pg_temp.is_date(COALESCE(action_date, '0'));

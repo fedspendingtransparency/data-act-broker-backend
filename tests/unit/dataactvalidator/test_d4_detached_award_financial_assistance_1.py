@@ -22,6 +22,7 @@ def test_failure(database):
     """ Tests failure for Action date in YYYYMMDD format """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(action_date="19990132")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(action_date="19991331")
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(action_date=None)
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
-    assert errors == 2
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
+    assert errors == 3
