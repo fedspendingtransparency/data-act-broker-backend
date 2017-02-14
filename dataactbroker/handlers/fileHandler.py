@@ -26,7 +26,7 @@ from dataactcore.models.jobModels import (
     FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
-    FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID,
+    FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT,
     JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -783,12 +783,17 @@ class FileHandler:
     @staticmethod
     def submit_detached_file(submission):
         """ Submits the FABS upload file associated with the submission ID """
-        sess = GlobalDB.db().session
-        submission_id = submission.submission_id
-
         # Check to make sure it's a d2 submission
         if not submission.d2_submission:
             raise ResponseException("This is not a FABS submission", StatusCode.CLIENT_ERROR)
+
+        # Check to make sure it isn't already a published submission
+        if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
+            raise ResponseException("This submission has already been published", StatusCode.CLIENT_ERROR)
+
+        # if it's an unpublished FABS submission, we can start the process
+        sess = GlobalDB.db().session
+        submission_id = submission.submission_id
 
         try:
             # get all valid lines for this submission
@@ -839,6 +844,8 @@ class FileHandler:
             sess.rollback()
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
+        sess.query(Submission).filter_by(submission_id=submission_id).\
+            update({"publish_status_id": PUBLISH_STATUS_DICT['published']}, synchronize_session=False)
         response_dict = {"submission_id": submission_id}
         return JsonResponse.create(StatusCode.OK, response_dict)
 
