@@ -1133,7 +1133,8 @@ def submission_to_dict_for_status(submission):
         # are always equal
         'reporting_period_start_date': reporting_date(submission),
         'reporting_period_end_date': reporting_date(submission),
-        'jobs': [job_to_dict(job) for job in relevant_jobs]
+        'jobs': [job_to_dict(job) for job in relevant_jobs],
+        'publish_status': submission.publish_status.name
     }
 
 
