@@ -9,7 +9,7 @@ import pytest
 from dataactcore.models.jobModels import FileType, JobStatus, JobType
 from dataactcore.utils import fileE, jobQueue
 from tests.unit.dataactcore.factories.staging import AwardFinancialAssistanceFactory, AwardProcurementFactory
-from tests.unit.dataactcore.factories.job import JobFactory
+from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
 
 
 def read_file_rows(file_path):
@@ -50,20 +50,25 @@ def test_generate_e_file_query(monkeypatch, mock_broker_config_paths, database):
     # Generate several file D1 entries, largely with the same submission_id,
     # and with two overlapping DUNS. Generate several D2 entries with the same
     # submission_id as well
-    model = AwardProcurementFactory()
-    aps = [AwardProcurementFactory(submission_id=model.submission_id) for _ in range(4)]
-    afas = [AwardFinancialAssistanceFactory(submission_id=model.submission_id) for _ in range(5)]
+    sub = SubmissionFactory()
+    sub_2 = SubmissionFactory()
+    database.session.add_all([sub, sub_2])
+    database.session.commit()
+
+    model = AwardProcurementFactory(submission_id=sub.submission_id)
+    aps = [AwardProcurementFactory(submission_id=sub.submission_id) for _ in range(4)]
+    afas = [AwardFinancialAssistanceFactory(submission_id=sub.submission_id) for _ in range(5)]
     same_duns = AwardProcurementFactory(
-        submission_id=model.submission_id,
+        submission_id=sub.submission_id,
         awardee_or_recipient_uniqu=model.awardee_or_recipient_uniqu)
-    unrelated = AwardProcurementFactory(submission_id=model.submission_id + 1)
+    unrelated = AwardProcurementFactory(submission_id=sub_2.submission_id)
     database.session.add_all(aps + afas + [model, same_duns, unrelated])
     database.session.commit()
 
     monkeypatch.setattr(jobQueue, 'mark_job_status', Mock())
     monkeypatch.setattr(jobQueue.fileE, 'retrieve_rows', Mock(return_value=[]))
 
-    jobQueue.generate_e_file(model.submission_id, 1, 'uniq', 'uniq', is_local=True)
+    jobQueue.generate_e_file(sub.submission_id, 1, 'uniq', 'uniq', is_local=True)
 
     # [0][0] gives us the first, non-keyword args
     call_args = jobQueue.fileE.retrieve_rows.call_args[0][0]
