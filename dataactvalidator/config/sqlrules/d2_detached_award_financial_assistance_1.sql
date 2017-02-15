@@ -22,9 +22,6 @@ FROM (
         ) AS row
     FROM detached_award_financial_assistance as dafa
     WHERE dafa.submission_id = {0}
-        AND ((dafa.correction_late_delete_ind <> 'C'
-        AND dafa.correction_late_delete_ind <> 'D')
-        OR dafa.correction_late_delete_ind IS NULL)
     ORDER BY dafa.row_number
     ) duplicates
 WHERE duplicates.row > 1
