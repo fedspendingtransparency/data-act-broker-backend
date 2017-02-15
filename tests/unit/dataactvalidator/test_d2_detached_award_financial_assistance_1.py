@@ -5,16 +5,14 @@ _FILE = 'd2_detached_award_financial_assistance_1'
 
 
 def test_column_headers(database):
-    expected_subset = {"row_number", "fain", "award_modification_amendme", "uri", "awarding_sub_tier_agency_c",
-                       "correction_late_delete_ind"}
+    expected_subset = {"row_number", "fain", "award_modification_amendme", "uri", "awarding_sub_tier_agency_c"}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
 
 def test_success(database):
     """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, and AwardingSubTierAgencyCode
-        in File D2 (Detached Award Financial Assistance) are unique or that CorrectionLateDeleteIndicator is
-        C or D if they aren't"""
+        in File D2 (Detached Award Financial Assistance) are unique"""
     det_award_1 = DetachedAwardFinancialAssistanceFactory(fain="ABC", award_modification_amendme="ABC",
                                                           uri="ABC", awarding_sub_tier_agency_c="ABC",
                                                           correction_late_delete_ind=None)
@@ -37,8 +35,7 @@ def test_success(database):
 
 def test_failure(database):
     """ Tests that all combinations of FAIN, AwardModificationAmendmentNumber, URI, and AwardingSubTierAgencyCode
-        in File D2 (Detached Award Financial Assistance) are not unique and don't have C or D for
-        CorrectionLateDeleteIndicator fail"""
+        in File D2 (Detached Award Financial Assistance) are not unique"""
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(fain="ABC", award_modification_amendme="ABC",
                                                           uri="ABC", awarding_sub_tier_agency_c="ABC",
