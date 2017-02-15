@@ -6,7 +6,7 @@ from webargs.flaskparser import parser as webargs_parser, use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler,
-    narratives_for_submission, submission_report_url, update_narratives)
+    narratives_for_submission, submission_report_url, update_narratives, delete_submission as delete_submission_handler)
 from dataactcore.interfaces.function_bag import get_submission_stats
 from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactbroker.permissions import requires_login, requires_submission_perms
@@ -173,6 +173,13 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     })
     def post_submission_report_url(submission, warning, file_type, cross_type):
         return submission_report_url(submission, bool(warning), file_type, cross_type)
+
+    @app.route("/v1/delete_submission/", methods=['POST'])
+    @convert_to_submission_id
+    @requires_submission_perms('writer')
+    def delete_submission(submission):
+        """ Deletes all data associated with the specified submission """
+        return delete_submission_handler(submission.submission_id)
 
 
 def convert_to_submission_id(fn):

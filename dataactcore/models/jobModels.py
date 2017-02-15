@@ -117,10 +117,10 @@ class JobDependency(Base):
     __tablename__ = "job_dependency"
 
     dependency_id = Column(Integer, primary_key=True)
-    job_id = Column(Integer, ForeignKey("job.job_id", name="fk_dep_job_id"))
-    prerequisite_id = Column(Integer, ForeignKey("job.job_id", name="fk_prereq_job_id"))
-    dependent_job = relationship("Job", foreign_keys=[job_id], lazy='joined')
-    prerequisite_job = relationship("Job", foreign_keys=[prerequisite_id], lazy='joined')
+    job_id = Column(Integer, ForeignKey("job.job_id", name="fk_dep_job_id", ondelete="CASCADE"))
+    prerequisite_id = Column(Integer, ForeignKey("job.job_id", name="fk_prereq_job_id", ondelete="CASCADE"))
+    dependent_job = relationship("Job", foreign_keys=[job_id], lazy='joined', cascade="delete")
+    prerequisite_job = relationship("Job", foreign_keys=[prerequisite_id], lazy='joined', cascade="delete")
 
 
 class FileType(Base):
@@ -139,7 +139,7 @@ class FileGenerationTask(Base):
 
     file_generation_task_id = Column(Integer, primary_key=True)
     generation_task_key = Column(Text, index=True, unique=True)
-    job_id = Column(Integer, ForeignKey("job.job_id", name="fk_generation_job"))
+    job_id = Column(Integer, ForeignKey("job.job_id", name="fk_generation_job", ondelete="CASCADE"))
     job = relationship("Job", uselist=False, cascade="delete")
 
 
@@ -147,8 +147,9 @@ class SubmissionNarrative(Base):
     __tablename__ = "submission_narrative"
 
     submission_narrative_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission"), nullable=False)
-    submission = relationship(Submission, uselist=False)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission", ondelete="CASCADE")
+                           , nullable=False)
+    submission = relationship(Submission, uselist=False, cascade="delete")
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file_type"), nullable=False)
     file_type = relationship(FileType, uselist=False)
     narrative = Column(Text, nullable=False)
