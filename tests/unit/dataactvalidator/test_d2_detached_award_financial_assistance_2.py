@@ -32,7 +32,7 @@ def test_success(database):
                                                            uri="ABC", awarding_sub_tier_agency_c="ABCD",
                                                            correction_late_delete_ind=None)
     pub_award_3 = PublishedAwardFinancialAssistanceFactory(fain="ABCD", award_modification_amendme="ABC",
-                                                          uri="ABC", awarding_sub_tier_agency_c="ABC",
+                                                           uri="ABC", awarding_sub_tier_agency_c="ABC",
                                                            correction_late_delete_ind=None)
     pub_award_4 = PublishedAwardFinancialAssistanceFactory(fain="ABC", award_modification_amendme="ABCD",
                                                            uri="ABC", awarding_sub_tier_agency_c="ABC",
