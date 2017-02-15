@@ -30,9 +30,12 @@ def update_cgacs(models, new_data):
     """Modify existing models or create new ones"""
     for _, row in new_data.iterrows():
         cgac_code = row['cgac_code']
+        agency_abbreviation = row['agency_abbreviation']
         if cgac_code not in models:
             models[cgac_code] = CGAC()
         for field, value in row.items():
+            if field == 'agency_name':
+                value = ("%s (%s)" % (value, agency_abbreviation))
             setattr(models[cgac_code], field, value)
 
 
@@ -49,7 +52,8 @@ def load_cgac(file_name):
         data = clean_data(
             data,
             CGAC,
-            {"cgac_agency_code": "cgac_code", "agency_name": "agency_name"},
+            {"cgac_agency_code": "cgac_code", "agency_name": "agency_name",
+             "agency_abbreviation": "agency_abbreviation"},
             {"cgac_code": {"pad_to_length": 3}}
         )
         # de-dupe
