@@ -1,3 +1,9 @@
+WITH award_financial_c23_{0} AS
+    (SELECT piid,
+    	transaction_obligated_amou,
+    	submission_id
+    FROM award_financial
+    WHERE submission_id = {0})
 SELECT
 	NULL as row_number,
 	af.piid,
@@ -5,11 +11,10 @@ SELECT
 		FROM award_financial as sub_af WHERE submission_id = {0} AND sub_af.piid = af.piid) AS transaction_obligated_amou_sum,
   (SELECT COALESCE(SUM(sub_ap.federal_action_obligation), 0) AS obligation_sum
 		FROM award_procurement as sub_ap WHERE submission_id = {0} AND sub_ap.piid = af.piid) AS federal_action_obligation_sum
-FROM award_financial AS af
+FROM award_financial_c23_{0} AS af
 JOIN award_procurement AS ap
 		ON af.piid = ap.piid
 	  AND af.submission_id = ap.submission_id
-WHERE af.submission_id = {0}
 GROUP BY af.piid
 HAVING
 		(SELECT COALESCE(SUM(sub_af.transaction_obligated_amou::numeric),0) AS transaction_sum

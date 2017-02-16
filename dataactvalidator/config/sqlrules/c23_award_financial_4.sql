@@ -1,3 +1,9 @@
+WITH award_financial_c23_4_{0} AS
+    (SELECT submission_id,
+    	transaction_obligated_amou,
+    	uri
+    FROM award_financial
+    WHERE submission_id = {0})
 SELECT
 	NULL as row_number,
 	af.uri,
@@ -12,11 +18,10 @@ SELECT
 		FROM award_financial_assistance as sub_afa
 		WHERE submission_id = {0} AND sub_afa.uri = af.uri and
 		COALESCE(sub_afa.assistance_type,'') in ('07','08')) AS original_loan_subsidy_cost_sum
-FROM award_financial AS af
+FROM award_financial_c23_4_{0} AS af
 JOIN award_financial_assistance AS afa
 		ON af.uri = afa.uri
 	  AND af.submission_id = afa.submission_id
-WHERE af.submission_id = {0}
 GROUP BY af.uri
 HAVING
 		(SELECT COALESCE(SUM(sub_af.transaction_obligated_amou::numeric),0) AS transaction_sum

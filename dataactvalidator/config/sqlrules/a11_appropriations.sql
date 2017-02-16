@@ -1,8 +1,14 @@
+WITH appropriation_a11 AS 
+	(SELECT submission_id,
+		row_number,
+		spending_authority_from_of_cpe,
+		tas
+	FROM appropriation)
 SELECT
     approp.row_number,
     approp.spending_authority_from_of_cpe,
     SUM(sf.amount) as sf_133_amount_sum
-FROM appropriation as approp
+FROM appropriation_a11 as approp
     INNER JOIN sf_133 as sf ON approp.tas = sf.tas
     INNER JOIN submission as sub ON approp.submission_id = sub.submission_id AND
         sf.period = sub.reporting_fiscal_period AND

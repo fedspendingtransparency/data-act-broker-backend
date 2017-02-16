@@ -1,6 +1,11 @@
+WITH appropriation_a16 AS 
+	(SELECT submission_id,
+		row_number,
+		budget_authority_unobligat_fyb
+	FROM appropriation)
 SELECT row_number,
 	budget_authority_unobligat_fyb
-FROM appropriation as approp
+FROM appropriation_a16 as approp
 	JOIN submission as sub
 	ON sub.submission_id = approp.submission_id
 WHERE approp.submission_id = {0}

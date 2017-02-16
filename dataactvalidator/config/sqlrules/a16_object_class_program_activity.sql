@@ -1,3 +1,16 @@
+WITH object_class_program_activity_a16 AS 
+	(SELECT submission_id,
+		row_number,
+		gross_outlay_amount_by_pro_fyb,
+		gross_outlays_delivered_or_fyb,
+		gross_outlays_undelivered_fyb,
+		obligations_delivered_orde_fyb,
+		obligations_undelivered_or_fyb,
+		ussgl480100_undelivered_or_fyb,
+		ussgl480200_undelivered_or_fyb,
+		ussgl490100_delivered_orde_fyb,
+		ussgl490800_authority_outl_fyb
+	FROM object_class_program_activity)
 SELECT row_number,
 	gross_outlay_amount_by_pro_fyb,
 	gross_outlays_delivered_or_fyb,
@@ -8,7 +21,7 @@ SELECT row_number,
 	ussgl480200_undelivered_or_fyb,
 	ussgl490100_delivered_orde_fyb,
 	ussgl490800_authority_outl_fyb
-FROM object_class_program_activity as ocpa
+FROM object_class_program_activity_a16 as ocpa
 	JOIN submission as sub
 	ON sub.submission_id = ocpa.submission_id
 WHERE ocpa.submission_id = {0}

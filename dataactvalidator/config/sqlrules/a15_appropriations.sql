@@ -1,3 +1,9 @@
+WITH appropriation_a15 AS 
+	(SELECT submission_id,
+		row_number,
+		unobligated_balance_cpe,
+		tas
+	FROM appropriation)
 SELECT
     approp.row_number,
     approp.unobligated_balance_cpe,
