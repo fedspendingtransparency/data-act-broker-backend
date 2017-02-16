@@ -147,8 +147,8 @@ class SubmissionNarrative(Base):
     __tablename__ = "submission_narrative"
 
     submission_narrative_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission", ondelete="CASCADE")
-                           , nullable=False)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_submission", ondelete="CASCADE"),
+                           nullable=False)
     submission = relationship(Submission, uselist=False, cascade="delete")
     file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_file_type"), nullable=False)
     file_type = relationship(FileType, uselist=False)

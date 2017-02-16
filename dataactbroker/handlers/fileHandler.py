@@ -20,13 +20,10 @@ from dataactcore.aws.s3UrlHandler import S3UrlHandler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, SubTierAgency
-from dataactcore.models.errorModels import File, ErrorMetadata
+from dataactcore.models.errorModels import File
 from dataactcore.models.jobModels import (
     FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation)
 from dataactcore.models.userModel import User
-from dataactcore.models.stagingModels import (
-    Appropriation, ObjectClassProgramActivity, AwardFinancial, AwardFinancialAssistance, AwardProcurement,
-    FlexField)
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID,
     JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT)
