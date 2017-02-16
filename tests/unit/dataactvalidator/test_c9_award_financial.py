@@ -54,9 +54,10 @@ def test_both_fain_and_url_supplied(database):
     tas = _TAS
     afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri='xyz', federal_action_obligation=1,
                                           original_loan_subsidy_cost='1')
+    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=afa.fain, uri=afa.uri)
 
-    errors = number_of_errors(_FILE, database, models=[afa])
-    assert errors == 1
+    errors = number_of_errors(_FILE, database, models=[afa, af])
+    assert errors == 0
 
 
 def test_unequal_fain(database):
