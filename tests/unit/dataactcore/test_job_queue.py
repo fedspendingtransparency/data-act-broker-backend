@@ -83,7 +83,11 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
     structure"""
     # Create an award so that we have _a_ duns
     sess = database.session
-    ap = AwardProcurementFactory()
+    sub = SubmissionFactory()
+    sess.add(sub)
+    sess.commit()
+
+    ap = AwardProcurementFactory(submission_id=sub.submission_id)
     sess.add(ap)
     sess.commit()
 
