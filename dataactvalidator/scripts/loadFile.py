@@ -49,7 +49,7 @@ def load_cgac(file_name):
         data = clean_data(
             data,
             CGAC,
-            {"cgac_agency_code": "cgac_code", "agency_name": "agency_name"},
+            {"cgac": "cgac_code", "agency": "agency_name"},
             {"cgac_code": {"pad_to_length": 3}}
         )
         # de-dupe
@@ -77,12 +77,15 @@ def delete_missing_sub_tier_agencies(models, new_data):
 def update_sub_tier_agencies(models, new_data, cgac_dict):
     """Modify existing models or create new ones"""
     for _, row in new_data.iterrows():
-        row['cgac_id'] = cgac_dict[row['cgac_code']]
-        sub_tier_agency_code = row['sub_tier_agency_code']
-        if sub_tier_agency_code not in models:
-            models[sub_tier_agency_code] = SubTierAgency()
-        for field, value in row.items():
-            setattr(models[sub_tier_agency_code], field, value)
+        try:
+            row['cgac_id'] = cgac_dict[row['cgac_code']]
+            sub_tier_agency_code = row['sub_tier_agency_code']
+            if sub_tier_agency_code not in models:
+                models[sub_tier_agency_code] = SubTierAgency()
+            for field, value in row.items():
+                setattr(models[sub_tier_agency_code], field, value)
+        except KeyError:
+            continue
 
 
 def load_sub_tier_agencies(file_name):
@@ -190,17 +193,19 @@ def load_domain_values(base_path, local_program_activity=None):
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
+        cgac_file = s3bucket.get_key("cgac.csv").generate_url(expires_in=600)
         agency_list_file = s3bucket.get_key("agency_list.csv").generate_url(expires_in=600)
         object_class_file = s3bucket.get_key("object_class.csv").generate_url(expires_in=600)
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
 
     else:
+        cgac_file = os.path.join(base_path, "cgac.csv")
         agency_list_file = os.path.join(base_path, "agency_list.csv")
         object_class_file = os.path.join(base_path, "object_class.csv")
         program_activity_file = os.path.join(base_path, "program_activity.csv")
 
     logger.info('Loading CGAC')
-    load_cgac(agency_list_file)
+    load_cgac(cgac_file)
     logger.info('Loading Sub Tier Agencies')
     load_sub_tier_agencies(agency_list_file)
     logger.info('Loading object class')
