@@ -6,7 +6,7 @@ from webargs.flaskparser import parser as webargs_parser, use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler,
-    narratives_for_submission, submission_report_url, update_narratives, delete_submission as delete_submission_handler)
+    narratives_for_submission, submission_report_url, update_narratives)
 from dataactcore.interfaces.function_bag import get_submission_stats
 from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactbroker.permissions import requires_login, requires_submission_perms
@@ -14,6 +14,8 @@ from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.jobModels import Submission
 
 
 # Add the file submission route
@@ -178,8 +180,15 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @convert_to_submission_id
     @requires_submission_perms('writer')
     def delete_submission(submission):
-        """ Deletes all data associated with the specified submission """
-        return delete_submission_handler(submission.submission_id)
+        """ Deletes all data associated with the specified submission
+        NOTE: THERE IS NO WAY TO UNDO THIS """
+
+        sess = GlobalDB.db().session
+        sess.query(Submission).filter(Submission.submission_id == submission.submission_id).delete(
+            synchronize_session=False)
+        sess.expire_all()
+
+        return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
 
 def convert_to_submission_id(fn):

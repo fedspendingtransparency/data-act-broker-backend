@@ -1281,14 +1281,3 @@ def map_generate_status(upload_job, validation_job=None):
             upload_job.error_message = validation_job.error_message
     sess.commit()
     return response_status
-
-
-def delete_submission(submission_id):
-    """ Deletes all data associated with the specified submission
-    NOTE: THERE IS NO WAY TO UNDO THIS """
-
-    sess = GlobalDB.db().session
-    sess.query(Submission).filter(Submission.submission_id == submission_id).delete(synchronize_session=False)
-    sess.expire_all()
-
-    return JsonResponse.create(StatusCode.OK, {"message": "Success"})
