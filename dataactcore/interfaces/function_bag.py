@@ -601,7 +601,7 @@ def get_submission_status(submission):
         status = "validation_successful"
         if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
             status = "validation_successful_warnings"
-        if submission.publishable:
+        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
             status = "submitted"
 
     # Check if submission has errors
