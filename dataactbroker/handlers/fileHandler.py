@@ -785,11 +785,11 @@ class FileHandler:
         """ Submits the FABS upload file associated with the submission ID """
         # Check to make sure it's a d2 submission
         if not submission.d2_submission:
-            raise ResponseException("This is not a FABS submission", StatusCode.CLIENT_ERROR)
+            raise ResponseException("Submission is not a FABS submission", StatusCode.CLIENT_ERROR)
 
         # Check to make sure it isn't already a published submission
         if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
-            raise ResponseException("This submission has already been published", StatusCode.CLIENT_ERROR)
+            raise ResponseException("Submission has already been published", StatusCode.CLIENT_ERROR)
 
         # if it's an unpublished FABS submission, we can start the process
         sess = GlobalDB.db().session
