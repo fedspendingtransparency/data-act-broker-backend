@@ -10,10 +10,11 @@ from dataactbroker.handlers.fileHandler import (
 from dataactcore.interfaces.function_bag import get_submission_stats
 from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactbroker.permissions import requires_login, requires_submission_perms
-from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER
+from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER, PUBLISH_STATUS_DICT
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.interfaces.db import GlobalDB
 
 
 # Add the file submission route
@@ -173,6 +174,16 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     })
     def post_submission_report_url(submission, warning, file_type, cross_type):
         return submission_report_url(submission, bool(warning), file_type, cross_type)
+
+    @app.route("/v1/certify_submission/", methods=['POST'])
+    @convert_to_submission_id
+    @requires_submission_perms('submitter')
+    def certify_submission(submission):
+        if submission.publishable:
+            sess = GlobalDB.db().session
+            submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+            sess.commit()
+        return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
 
 def convert_to_submission_id(fn):
