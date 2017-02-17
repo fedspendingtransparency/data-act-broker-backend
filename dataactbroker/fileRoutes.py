@@ -177,7 +177,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/certify_submission/", methods=['POST'])
     @convert_to_submission_id
-    @requires_submission_perms('submitter')
+    @requires_submission_perms('submitter', check_owner=False)
     def certify_submission(submission):
         if submission.publishable:
             sess = GlobalDB.db().session
