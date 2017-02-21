@@ -1,13 +1,13 @@
 """Added cascading for deleting submissions
 
-Revision ID: 101b19203181
+Revision ID: 9889ac822e9c
 Revises: 88e9b634ca1a
-Create Date: 2017-02-15 15:25:09.518566
+Create Date: 2017-02-21 09:18:18.259911
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '101b19203181'
+revision = '9889ac822e9c'
 down_revision = '88e9b634ca1a'
 branch_labels = None
 depends_on = None
@@ -33,6 +33,7 @@ def upgrade_data_broker():
     op.create_foreign_key('fk_award_financial_submission_id', 'award_financial', 'submission', ['submission_id'], ['submission_id'], ondelete='CASCADE')
     op.create_foreign_key('fk_award_financial_assistance_submission_id', 'award_financial_assistance', 'submission', ['submission_id'], ['submission_id'], ondelete='CASCADE')
     op.create_foreign_key('fk_award_procurement_submission_id', 'award_procurement', 'submission', ['submission_id'], ['submission_id'], ondelete='CASCADE')
+    op.create_foreign_key('fk_detached_award_financial_assistance_submission_id', 'detached_award_financial_assistance', 'submission', ['submission_id'], ['submission_id'], ondelete='CASCADE')
     op.create_foreign_key('fk_error_metadata_job', 'error_metadata', 'job', ['job_id'], ['job_id'], ondelete='CASCADE')
     op.create_foreign_key('fk_file_job', 'file', 'job', ['job_id'], ['job_id'], ondelete='CASCADE')
     op.drop_constraint('fk_generation_job', 'file_generation_task', type_='foreignkey')
@@ -62,6 +63,7 @@ def downgrade_data_broker():
     op.create_foreign_key('fk_generation_job', 'file_generation_task', 'job', ['job_id'], ['job_id'])
     op.drop_constraint('fk_file_job', 'file', type_='foreignkey')
     op.drop_constraint('fk_error_metadata_job', 'error_metadata', type_='foreignkey')
+    op.drop_constraint('fk_detached_award_financial_assistance_submission_id', 'detached_award_financial_assistance', type_='foreignkey')
     op.drop_constraint('fk_award_procurement_submission_id', 'award_procurement', type_='foreignkey')
     op.drop_constraint('fk_award_financial_assistance_submission_id', 'award_financial_assistance', type_='foreignkey')
     op.drop_constraint('fk_award_financial_submission_id', 'award_financial', type_='foreignkey')
