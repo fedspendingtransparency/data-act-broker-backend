@@ -1,3 +1,6 @@
+-- For each unique URI for financial assistance in File C, the sum of each TransactionObligatedAmount submitted in the
+-- reporting period should match (in inverse) the sum of the FederalActionObligation and OriginalLoanSubsidyCost
+-- amounts reported in D2 for the same timeframe, regardless of modifications.
 SELECT
 	NULL as row_number,
 	af.uri,
