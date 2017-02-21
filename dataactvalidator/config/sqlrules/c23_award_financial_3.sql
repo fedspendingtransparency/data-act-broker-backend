@@ -1,4 +1,4 @@
-WITH award_financial_c23_3 AS
+WITH award_financial_c23_3_{0} AS
     (SELECT submission_id,
     	transaction_obligated_amou,
     	fain
@@ -18,7 +18,7 @@ SELECT
 		FROM award_financial_assistance as sub_afa
 		WHERE submission_id = {0} AND sub_afa.fain = af.fain and
 		COALESCE(sub_afa.assistance_type,'') in ('07','08')) AS original_loan_subsidy_cost_sum
-FROM award_financial_c23_3 AS af
+FROM award_financial_c23_3_{0} AS af
 JOIN award_financial_assistance AS afa
 		ON af.fain = afa.fain
 	  AND af.submission_id = afa.submission_id

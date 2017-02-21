@@ -1,4 +1,4 @@
-WITH object_class_program_activity_b14 AS
+WITH object_class_program_activity_b14_{0} AS
     (SELECT submission_id,
         tas,
         ussgl480100_undelivered_or_cpe,
@@ -15,7 +15,8 @@ WITH object_class_program_activity_b14 AS
         ussgl498100_upward_adjustm_cpe,
         ussgl498200_upward_adjustm_cpe,
         by_direct_reimbursable_fun
-    FROM object_class_program_activity)
+    FROM object_class_program_activity
+    WHERE submission_id = {0})
 SELECT
     DISTINCT NULL as row_number,
     op.tas,
@@ -33,12 +34,12 @@ SELECT
     SUM(op.ussgl498100_upward_adjustm_cpe) as ussgl498100_upward_adjustm_cpe_sum,
     SUM(op.ussgl498200_upward_adjustm_cpe) as ussgl498200_upward_adjustm_cpe_sum,
     sf.amount as sf_133_amount
-FROM object_class_program_activity_b14 as op
+FROM object_class_program_activity_b14_{0} as op
     INNER JOIN sf_133 as sf ON op.tas = sf.tas
     INNER JOIN submission as sub ON op.submission_id = sub.submission_id AND
         sf.period = sub.reporting_fiscal_period AND
         sf.fiscal_year = sub.reporting_fiscal_year
-WHERE op.submission_id = {} AND sf.line = 2004 AND
+WHERE sf.line = 2004 AND
     LOWER(op.by_direct_reimbursable_fun) = 'd'
 GROUP BY op.tas, sf.amount
 HAVING

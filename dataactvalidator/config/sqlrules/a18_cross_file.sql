@@ -1,4 +1,4 @@
-WITH appropriation_a18 AS 
+WITH appropriation_a18_{0} AS 
 	(SELECT row_number,
 		allocation_transfer_agency,
 		agency_identifier,
@@ -11,7 +11,7 @@ WITH appropriation_a18 AS
 		tas_id,
 		submission_id
 	FROM appropriation
-	WHERE submission_id = {})
+	WHERE submission_id = {0})
 SELECT
 	approp.row_number,
 	approp.allocation_transfer_agency,
@@ -23,7 +23,7 @@ SELECT
 	approp.sub_account_code,
 	approp.gross_outlay_amount_by_tas_cpe,
 	SUM(op.gross_outlay_amount_by_pro_cpe) as gross_outlay_amount_by_pro_cpe_sum
-FROM appropriation_a18 AS approp
+FROM appropriation_a18_{0} AS approp
 	JOIN object_class_program_activity op
 		ON approp.tas_id = op.tas_id
 			AND approp.submission_id = op.submission_id
