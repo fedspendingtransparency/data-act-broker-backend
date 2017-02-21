@@ -20,4 +20,8 @@ WHERE afa.submission_id = {0}
                         AND afa.uri = af.uri
             WHERE afa.submission_id = {0}
         )
+    ) AND NOT EXISTS(
+	      SELECT transaction_obligated_amou
+	      FROM award_financial AS af
+	      WHERE transaction_obligated_amou IS NULL
     );
