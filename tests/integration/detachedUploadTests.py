@@ -59,14 +59,14 @@ class DetachedUploadTests(BaseTestAPI):
         response = self.app.post_json("/v1/submit_detached_file/", submission,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual("This submission has already been published", response.json["message"])
+        self.assertEqual("Submission has already been published", response.json["message"])
 
     def test_not_fabs(self):
         submission = {"submission_id": self.other_submission}
         response = self.app.post_json("/v1/submit_detached_file/", submission,
                                       headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual("This is not a FABS submission", response.json["message"])
+        self.assertEqual("Submission is not a FABS submission", response.json["message"])
 
     def test_duplicate_entry(self):
         self.insert_duplicate_detached_award()
