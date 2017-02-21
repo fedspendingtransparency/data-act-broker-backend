@@ -1,6 +1,7 @@
 SELECT af.row_number, af.fain, af.uri
 FROM award_financial AS af
 WHERE af.submission_id = {0}
+    AND af.transaction_obligated_amou IS NOT NULL
     AND NOT EXISTS (
         SELECT cgac_code
         FROM cgac
