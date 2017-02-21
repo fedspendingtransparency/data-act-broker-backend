@@ -21,11 +21,12 @@ from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, SubTierAgency
 from dataactcore.models.errorModels import File
+from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.jobModels import (
     FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
-    FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID,
+    FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT,
     JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
@@ -779,6 +780,75 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, response_dict)
 
+    @staticmethod
+    def submit_detached_file(submission):
+        """ Submits the FABS upload file associated with the submission ID """
+        # Check to make sure it's a d2 submission
+        if not submission.d2_submission:
+            raise ResponseException("Submission is not a FABS submission", StatusCode.CLIENT_ERROR)
+
+        # Check to make sure it isn't already a published submission
+        if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
+            raise ResponseException("Submission has already been published", StatusCode.CLIENT_ERROR)
+
+        # if it's an unpublished FABS submission, we can start the process
+        sess = GlobalDB.db().session
+        submission_id = submission.submission_id
+
+        try:
+            # get all valid lines for this submission
+            query = sess.query(DetachedAwardFinancialAssistance).\
+                filter_by(is_valid=True, submission_id=submission_id).all()
+
+            for row in query:
+                # if it is not a delete row
+                if row.correction_late_delete_ind is None or row.correction_late_delete_ind.upper() != "D":
+                    # remove all keys in the row that are not in the intermediate table
+                    temp_obj = row.__dict__
+                    temp_obj.pop('detached_award_financial_assistance_id', None)
+                    temp_obj.pop('submission_id', None)
+                    temp_obj.pop('job_id', None)
+                    temp_obj.pop('row_number', None)
+                    temp_obj.pop('is_valid', None)
+                    temp_obj.pop('_sa_instance_state', None)
+                    # if it is a new row, just insert it
+                    if row.correction_late_delete_ind is None:
+                        new_row = PublishedAwardFinancialAssistance(**temp_obj)
+                        sess.add(new_row)
+                    # if it's a correction row, check if it exists
+                    else:
+                        check_row = sess.query(PublishedAwardFinancialAssistance).\
+                            filter_by(fain=row.fain, uri=row.uri,
+                                      awarding_sub_tier_agency_c=row.awarding_sub_tier_agency_c,
+                                      award_modification_amendme=row.award_modification_amendme).one_or_none()
+                        # if the row exists, update the existing row
+                        if check_row:
+                            sess.query(PublishedAwardFinancialAssistance).\
+                                filter_by(fain=row.fain, uri=row.uri,
+                                          awarding_sub_tier_agency_c=row.awarding_sub_tier_agency_c,
+                                          award_modification_amendme=row.award_modification_amendme).\
+                                update(temp_obj, synchronize_session=False)
+                        # if the row doesn't exist, add a new one
+                        else:
+                            new_row = PublishedAwardFinancialAssistance(**temp_obj)
+                            sess.add(new_row)
+                # if it is a delete row, delete the associated row from the list
+                else:
+                    sess.query(PublishedAwardFinancialAssistance).\
+                        filter_by(fain=row.fain, uri=row.uri,
+                                  awarding_sub_tier_agency_c=row.awarding_sub_tier_agency_c,
+                                  award_modification_amendme=row.award_modification_amendme).delete()
+            sess.commit()
+        except Exception as e:
+            # rollback the changes if there are any errors. We want to submit everything together
+            sess.rollback()
+            return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
+
+        sess.query(Submission).filter_by(submission_id=submission_id).\
+            update({"publish_status_id": PUBLISH_STATUS_DICT['published']}, synchronize_session=False)
+        response_dict = {"submission_id": submission_id}
+        return JsonResponse.create(StatusCode.OK, response_dict)
+
     def get_protected_files(self):
         """ Returns a set of urls to protected files on the help page """
         response = {}
@@ -1063,7 +1133,8 @@ def submission_to_dict_for_status(submission):
         # are always equal
         'reporting_period_start_date': reporting_date(submission),
         'reporting_period_end_date': reporting_date(submission),
-        'jobs': [job_to_dict(job) for job in relevant_jobs]
+        'jobs': [job_to_dict(job) for job in relevant_jobs],
+        'publish_status': submission.publish_status.name
     }
 
 
