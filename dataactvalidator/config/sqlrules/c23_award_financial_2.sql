@@ -18,8 +18,8 @@ JOIN award_procurement AS ap
 GROUP BY af.parent_award_id
 HAVING 
 		(SELECT COALESCE(SUM(sub_af.transaction_obligated_amou::numeric),0) AS transaction_sum
-		FROM award_financial as sub_af WHERE submission_id = {0} AND sub_af.parent_award_id = af.parent_award_id) <> 
+		FROM award_financial as sub_af WHERE sub_af.parent_award_id = af.parent_award_id) <> 
 		-1*(SELECT COALESCE(SUM(sub_ap.federal_action_obligation),0) AS obligation_sum
-		FROM award_procurement as sub_ap WHERE submission_id = {0} AND sub_ap.parent_award_id = af.parent_award_id)
+		FROM award_procurement as sub_ap WHERE sub_ap.parent_award_id = af.parent_award_id)
 		AND NOT EXISTS (SELECT sub_af.allocation_transfer_agency FROM award_financial as sub_af
 			WHERE sub_af.parent_award_id = af.parent_award_id AND COALESCE(sub_af.allocation_transfer_agency,'') <> '')
