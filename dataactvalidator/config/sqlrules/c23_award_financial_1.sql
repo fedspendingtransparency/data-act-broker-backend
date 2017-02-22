@@ -24,7 +24,7 @@ JOIN award_procurement AS ap
 GROUP BY af.piid
 HAVING
 		(SELECT COALESCE(SUM(sub_af.transaction_obligated_amou::numeric),0) AS transaction_sum
-			FROM award_financial as sub_af WHERE submission_id = {0} AND sub_af.piid = af.piid AND COALESCE(sub_af.parent_award_id,'') = '') <>
+			FROM award_financial_c23_1_{0} as sub_af WHERE sub_af.piid = af.piid AND COALESCE(sub_af.parent_award_id,'') = '') <>
 		-1*(SELECT COALESCE(SUM(sub_ap.federal_action_obligation),0) AS obligation_sum
 			FROM award_procurement as sub_ap WHERE submission_id = {0} AND sub_ap.piid = af.piid)
 		AND NOT EXISTS (SELECT sub_af.allocation_transfer_agency FROM award_financial as sub_af WHERE sub_af.piid = af.piid
