@@ -15,8 +15,9 @@ def test_success(database):
         (i.e., a date between 10/01/1999 and 12/31/2099) """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(action_date="20120725")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(action_date=None)
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(action_date="5")
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
     assert errors == 0
 
 
