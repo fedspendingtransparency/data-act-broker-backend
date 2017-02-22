@@ -638,7 +638,7 @@ File download or redirect to signed URL
 
 This route sends a request to the backend with ID of the FABS submission we're submitting in order to process it.
 
-### Body (JSON)
+##### Body (JSON)
 
 ```
 {
@@ -646,11 +646,11 @@ This route sends a request to the backend with ID of the FABS submission we're s
 }
 ```
 
-### Body Description
+##### Body Description
 
 * `submission_id` - **required** - ID of the submission to process
 
-### Response (JSON)
+##### Response (JSON)
 Successful response will contain the submission_id.
 
 ```
