@@ -111,8 +111,9 @@ class SubTierAgency(Base):
     sub_tier_agency_id = Column(Integer, primary_key=True)
     sub_tier_agency_code = Column(Text, nullable=False, index=True, unique=True)
     sub_tier_agency_name = Column(Text)
-    cgac_id = Column(Integer, ForeignKey("cgac.cgac_id", name='fk_sub_tier_agency_cgac'), nullable=False)
-    cgac = relationship('CGAC', foreign_keys='SubTierAgency.cgac_id')
+    cgac_id = Column(Integer, ForeignKey("cgac.cgac_id", name='fk_sub_tier_agency_cgac', ondelete="CASCADE"),
+                     nullable=False)
+    cgac = relationship('CGAC', foreign_keys='SubTierAgency.cgac_id', cascade="delete")
 
 
 class ObjectClass(Base):
