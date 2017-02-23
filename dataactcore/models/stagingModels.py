@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean, UniqueConstraint
+from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean, UniqueConstraint, ForeignKey
+from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
 from dataactcore.models.domainModels import concat_tas
@@ -9,7 +10,11 @@ class FlexField(Base):
     __tablename__ = "flex_field"
 
     flex_field_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_flex_field_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     header = Column(Text)
@@ -21,7 +26,11 @@ class Appropriation(Base):
     __tablename__ = "appropriation"
 
     appropriation_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_appropriation_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     adjustments_to_unobligated_cpe = Column(Numeric)
@@ -59,7 +68,11 @@ class ObjectClassProgramActivity(Base):
     __tablename__ = "object_class_program_activity"
 
     object_class_program_activity_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_object_class_program_activity_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     agency_identifier = Column(Text)
@@ -126,7 +139,11 @@ class AwardFinancial(Base):
     __tablename__ = "award_financial"
 
     award_financial_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_award_financial_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     agency_identifier = Column(Text)
@@ -198,7 +215,11 @@ class AwardFinancialAssistance(Base):
     __tablename__ = "award_financial_assistance"
 
     award_financial_assistance_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_award_financial_assistance_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     action_date = Column(Text)
@@ -273,7 +294,11 @@ class AwardProcurement(Base):
     """Model for D1-Award (Procurement)."""
     __tablename__ = "award_procurement"
     award_procurement_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_award_procurement_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     piid = Column(Text)
@@ -482,7 +507,11 @@ class DetachedAwardFinancialAssistance(Base):
     __tablename__ = "detached_award_financial_assistance"
 
     detached_award_financial_assistance_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_detached_award_financial_assistance_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     action_date = Column(Text)

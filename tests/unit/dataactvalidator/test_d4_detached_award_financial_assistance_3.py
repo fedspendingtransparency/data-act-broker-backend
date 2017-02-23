@@ -17,8 +17,9 @@ def test_success(database):
     today = date.today() + relativedelta(months=1)
     det_award_1 = DetachedAwardFinancialAssistanceFactory(action_date=str(today))
     det_award_2 = DetachedAwardFinancialAssistanceFactory(action_date=None)
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(action_date="5")
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
     assert errors == 0
 
 

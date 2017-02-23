@@ -10,6 +10,7 @@ from dataactcore.models.domainModels import matching_cars_subquery
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
+from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance
 from dataactcore.interfaces.function_bag import (
     create_file_if_needed, write_file_error, mark_file_complete, run_job_checks,
     mark_job_status, sum_number_of_errors_for_job_list, populate_submission_error_info
@@ -283,6 +284,13 @@ class ValidationManager:
             error_rows_unique = set(error_rows)
             total_rows_excluding_header = row_number - 1
             valid_rows = total_rows_excluding_header - len(error_rows_unique)
+
+            # Update detached_award is_valid rows where applicable
+            if file_type in ["detached_award"]:
+                sess.query(DetachedAwardFinancialAssistance).\
+                    filter(DetachedAwardFinancialAssistance.row_number.in_(error_rows_unique),
+                           DetachedAwardFinancialAssistance.submission_id == submission_id).\
+                    update({"is_valid": False}, synchronize_session=False)
 
             # Update job metadata
             job.number_of_rows = row_number

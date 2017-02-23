@@ -15,6 +15,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.jobModels import Submission
 
 
 # Add the file submission route
@@ -142,6 +143,13 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.upload_detached_file(create_credentials)
 
+    @app.route("/v1/submit_detached_file/", methods=["POST"])
+    @convert_to_submission_id
+    @requires_submission_perms('writer')
+    def submit_detached_file(submission):
+        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+        return file_manager.submit_detached_file(submission)
+
     @app.route("/v1/get_obligations/", methods=["POST"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
@@ -174,6 +182,20 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     })
     def post_submission_report_url(submission, warning, file_type, cross_type):
         return submission_report_url(submission, bool(warning), file_type, cross_type)
+
+    @app.route("/v1/delete_submission/", methods=['POST'])
+    @convert_to_submission_id
+    @requires_submission_perms('writer')
+    def delete_submission(submission):
+        """ Deletes all data associated with the specified submission
+        NOTE: THERE IS NO WAY TO UNDO THIS """
+
+        sess = GlobalDB.db().session
+        sess.query(Submission).filter(Submission.submission_id == submission.submission_id).delete(
+            synchronize_session=False)
+        sess.expire_all()
+
+        return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
     @app.route("/v1/certify_submission/", methods=['POST'])
     @convert_to_submission_id
