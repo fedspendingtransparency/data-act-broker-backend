@@ -266,9 +266,9 @@ def test_submission_bad_dates(start_date, end_date, quarter_flag, submission):
         fh.check_submission_dates(start_date, end_date, quarter_flag, submission)
 
 
-def test_submission_to_dict_for_status(database):
+def test_submission_to_dict_for_status(database, job_constants):
     cgac = CGACFactory(cgac_code='abcdef', agency_name='Age')
-    sub = SubmissionFactory(cgac_code='abcdef', number_of_errors=1234)
+    sub = SubmissionFactory(cgac_code='abcdef', number_of_errors=1234, publish_status_id=1)
     database.session.add_all([cgac, sub])
     database.session.commit()
 

@@ -1,4 +1,29 @@
 -- Verify that all of the submitted data (from file A) has an associated GTAS
+WITH appropriation_a33_2_{0} AS 
+    (SELECT row_number,
+        allocation_transfer_agency,
+        agency_identifier,
+        beginning_period_of_availa,
+        ending_period_of_availabil,
+        availability_type_code,
+        main_account_code,
+        sub_account_code,
+        submission_id,
+        tas,
+        adjustments_to_unobligated_cpe,
+        budget_authority_appropria_cpe,
+        borrowing_authority_amount_cpe,
+        contract_authority_amount_cpe,
+        spending_authority_from_of_cpe,
+        other_budgetary_resources_cpe,
+        budget_authority_available_cpe,
+        gross_outlay_amount_by_tas_cpe,
+        obligations_incurred_total_cpe,
+        deobligations_recoveries_r_cpe,
+        unobligated_balance_cpe,
+        status_of_budgetary_resour_cpe
+    FROM appropriation
+    WHERE submission_id = {0})
 SELECT DISTINCT approp.row_number,
     approp.allocation_transfer_agency,
 	approp.agency_identifier,
@@ -7,10 +32,9 @@ SELECT DISTINCT approp.row_number,
 	approp.availability_type_code,
 	approp.main_account_code,
 	approp.sub_account_code
-FROM appropriation AS approp
+FROM appropriation_a33_2_{0} AS approp
 	JOIN submission AS sub
 	    ON approp.submission_id = sub.submission_id
-WHERE approp.submission_id = {0}
 	AND NOT EXISTS (
 		SELECT 1
 		FROM sf_133 AS sf

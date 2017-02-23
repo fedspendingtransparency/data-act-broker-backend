@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean
+from sqlalchemy import Column, Integer, Text, Numeric, Index, Boolean, UniqueConstraint, ForeignKey
+from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
 from dataactcore.models.domainModels import concat_tas
@@ -9,7 +10,11 @@ class FlexField(Base):
     __tablename__ = "flex_field"
 
     flex_field_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_flex_field_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     header = Column(Text)
@@ -21,7 +26,11 @@ class Appropriation(Base):
     __tablename__ = "appropriation"
 
     appropriation_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_appropriation_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     adjustments_to_unobligated_cpe = Column(Numeric)
@@ -59,7 +68,11 @@ class ObjectClassProgramActivity(Base):
     __tablename__ = "object_class_program_activity"
 
     object_class_program_activity_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_object_class_program_activity_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     agency_identifier = Column(Text)
@@ -126,7 +139,11 @@ class AwardFinancial(Base):
     __tablename__ = "award_financial"
 
     award_financial_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_award_financial_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     agency_identifier = Column(Text)
@@ -198,7 +215,11 @@ class AwardFinancialAssistance(Base):
     __tablename__ = "award_financial_assistance"
 
     award_financial_assistance_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_award_financial_assistance_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     action_date = Column(Text)
@@ -273,7 +294,11 @@ class AwardProcurement(Base):
     """Model for D1-Award (Procurement)."""
     __tablename__ = "award_procurement"
     award_procurement_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_award_procurement_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     piid = Column(Text)
@@ -482,7 +507,11 @@ class DetachedAwardFinancialAssistance(Base):
     __tablename__ = "detached_award_financial_assistance"
 
     detached_award_financial_assistance_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, nullable=False, index=True)
+    submission_id = Column(Integer,
+                           ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                      name="fk_detached_award_financial_assistance_submission_id"),
+                           nullable=False, index=True)
+    submission = relationship("Submission", uselist=False, cascade="delete")
     job_id = Column(Integer, nullable=False, index=True)
     row_number = Column(Integer, nullable=False)
     action_date = Column(Text)
@@ -534,3 +563,61 @@ class DetachedAwardFinancialAssistance(Base):
         # so get rid of any extraneous kwargs before instantiating
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(DetachedAwardFinancialAssistance, self).__init__(**clean_kwargs)
+
+
+class PublishedAwardFinancialAssistance(Base):
+    """Model for D2-Award (Financial Assistance)."""
+    __tablename__ = "published_award_financial_assistance"
+
+    published_award_financial_assistance_id = Column(Integer, primary_key=True)
+    action_date = Column(Text)
+    action_type = Column(Text)
+    assistance_type = Column(Text)
+    award_description = Column(Text)
+    awardee_or_recipient_legal = Column(Text)
+    awardee_or_recipient_uniqu = Column(Text)
+    awarding_agency_code = Column(Text)
+    awarding_office_code = Column(Text)
+    awarding_sub_tier_agency_c = Column(Text, index=True)
+    award_modification_amendme = Column(Text, index=True)
+    business_funds_indicator = Column(Text)
+    business_types = Column(Text)
+    cfda_number = Column(Text)
+    correction_late_delete_ind = Column(Text)
+    face_value_loan_guarantee = Column(Numeric)
+    fain = Column(Text, index=True)
+    federal_action_obligation = Column(Numeric)
+    fiscal_year_and_quarter_co = Column(Text)
+    funding_agency_code = Column(Text)
+    funding_office_code = Column(Text)
+    funding_sub_tier_agency_co = Column(Text)
+    legal_entity_address_line1 = Column(Text)
+    legal_entity_address_line2 = Column(Text)
+    legal_entity_address_line3 = Column(Text)
+    legal_entity_country_code = Column(Text)
+    legal_entity_foreign_city = Column(Text)
+    legal_entity_foreign_posta = Column(Text)
+    legal_entity_foreign_provi = Column(Text)
+    legal_entity_zip5 = Column(Text)
+    legal_entity_zip_last4 = Column(Text)
+    non_federal_funding_amount = Column(Numeric)
+    original_loan_subsidy_cost = Column(Numeric)
+    period_of_performance_curr = Column(Text)
+    period_of_performance_star = Column(Text)
+    place_of_performance_code = Column(Text)
+    place_of_performance_congr = Column(Text)
+    place_of_perform_country_c = Column(Text)
+    place_of_performance_forei = Column(Text)
+    place_of_performance_zip4a = Column(Text)
+    record_type = Column(Integer)
+    sai_number = Column(Text)
+    uri = Column(Text, index=True)
+
+    __table_args__ = (UniqueConstraint('awarding_sub_tier_agency_c', 'award_modification_amendme', 'fain', 'uri',
+                                       name='uniq_award_mod_sub_tier_fain_uri'),)
+
+    def __init__(self, **kwargs):
+        # broker is set up to ignore extra columns in submitted data
+        # so get rid of any extraneous kwargs before instantiating
+        clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
+        super(PublishedAwardFinancialAssistance, self).__init__(**clean_kwargs)

@@ -2,6 +2,7 @@ from dataactcore.utils import fileF
 from tests.unit.dataactcore.factories.fsrs import (FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory,
                                                    FSRSSubgrantFactory)
 from tests.unit.dataactcore.factories.staging import AwardFinancialFactory, AwardProcurementFactory
+from tests.unit.dataactcore.factories.job import SubmissionFactory
 
 
 def test_copy_values_procurement():
@@ -60,12 +61,17 @@ def test_generate_f_rows(database, monkeypatch):
     uniqueness"""
     # Setup - create awards, procurements/grants, subawards
     sess = database.session
-    awards = [AwardFinancialFactory(submission_id=123, piid='PIID1'),
-              AwardFinancialFactory(submission_id=123, piid='PIID2'),
-              AwardFinancialFactory(submission_id=123, fain='FAIN1'),
-              AwardFinancialFactory(submission_id=123, fain='FAIN2'),
-              AwardFinancialFactory(submission_id=321, piid='PIID1'),
-              AwardFinancialFactory(submission_id=321, fain='FAIN1')]
+    sub_1 = SubmissionFactory()
+    sub_2 = SubmissionFactory()
+    sess.add_all([sub_1, sub_2])
+    sess.commit()
+
+    awards = [AwardFinancialFactory(submission_id=sub_1.submission_id, piid='PIID1'),
+              AwardFinancialFactory(submission_id=sub_1.submission_id, piid='PIID2'),
+              AwardFinancialFactory(submission_id=sub_1.submission_id, fain='FAIN1'),
+              AwardFinancialFactory(submission_id=sub_1.submission_id, fain='FAIN2'),
+              AwardFinancialFactory(submission_id=sub_2.submission_id, piid='PIID1'),
+              AwardFinancialFactory(submission_id=sub_2.submission_id, fain='FAIN1')]
     sess.add_all(awards)
     procurements = {}
     for piid in ('PIID1', 'PIID2', 'PIID3'):
@@ -85,7 +91,7 @@ def test_generate_f_rows(database, monkeypatch):
         sess.add_all(grants[fain])
     sess.commit()
 
-    actual = {result['SubAwardeeOrRecipientUniqueIdentifier'] for result in fileF.generate_f_rows(123)}
+    actual = {result['SubAwardeeOrRecipientUniqueIdentifier'] for result in fileF.generate_f_rows(sub_1.submission_id)}
     expected = set()
     expected.update(sub.duns for proc in procurements['PIID1'] for sub in proc.subawards)
     expected.update(sub.duns for proc in procurements['PIID2'] for sub in proc.subawards)
@@ -95,7 +101,11 @@ def test_generate_f_rows(database, monkeypatch):
 
 def test_generate_f_rows_naics_desc(database, monkeypatch):
     """The NAICS description should be retireved from an AwardProcurement"""
-    award = AwardFinancialFactory()
+    sub = SubmissionFactory()
+    database.session.add(sub)
+    database.session.commit()
+
+    award = AwardFinancialFactory(submission_id=sub.submission_id)
     ap = AwardProcurementFactory(submission_id=award.submission_id, piid=award.piid)
     other_aps = [AwardProcurementFactory(submission_id=award.submission_id) for _ in range(3)]
     proc = FSRSProcurementFactory(contract_number=award.piid, subawards=[FSRSSubcontractFactory(naics=ap.naics)])
@@ -109,7 +119,11 @@ def test_generate_f_rows_naics_desc(database, monkeypatch):
 
 def test_generate_f_rows_false(database, monkeypatch):
     """Make sure we're converting False to a string"""
-    award = AwardFinancialFactory()
+    sub = SubmissionFactory()
+    database.session.add(sub)
+    database.session.commit()
+
+    award = AwardFinancialFactory(submission_id=sub.submission_id)
     proc = FSRSProcurementFactory(
         contract_number=award.piid,
         subawards=[FSRSSubcontractFactory(recovery_model_q1=False, recovery_model_q2=None)]
