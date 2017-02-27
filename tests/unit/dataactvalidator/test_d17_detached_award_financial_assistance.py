@@ -11,16 +11,15 @@ def test_column_headers(database):
 
 
 def test_success(database):
+    """ LegalEntityForeignPostalCode must be blank for domestic recipients
+    when LegalEntityCountryCode is 'USA'. Foreign recipients don't affect success """
 
-    # LegalEntityForeignPostalCode is optional for foreign recipients (i.e., when LegalEntityCountryCode != USA)
     det_award_1 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="Spain",
                                                           legal_entity_foreign_posta="12345")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="Peru",
                                                           legal_entity_foreign_posta="")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="Peru",
                                                           legal_entity_foreign_posta=None)
-
-    # LegalEntityForeignPostalCode must be blank for domestic recipients when LegalEntityCountryCode is 'USA'
     det_award_4 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA",
                                                           legal_entity_foreign_posta=None)
     det_award_5 = DetachedAwardFinancialAssistanceFactory(legal_entity_country_code="USA",

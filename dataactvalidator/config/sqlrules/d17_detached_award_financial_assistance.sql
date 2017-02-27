@@ -1,4 +1,3 @@
--- LegalEntityForeignPostalCode is optional for foreign recipients (i.e., when LegalEntityCountryCode != USA)
 -- LegalEntityForeignPostalCode must be blank for domestic recipients when LegalEntityCountryCode is 'USA'
 SELECT
     row_number,

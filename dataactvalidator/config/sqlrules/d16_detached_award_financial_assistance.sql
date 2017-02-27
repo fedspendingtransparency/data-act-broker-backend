@@ -1,4 +1,3 @@
--- LegalEntityForeignProvinceName is optional for foreign recipients (i.e., when LegalEntityCountryCode != USA)
 -- LegalEntityForeignProvinceName must be blank for foreign recipients (i.e., when LegalEntityCountryCode = USA)
 SELECT
     row_number,
