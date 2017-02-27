@@ -19,6 +19,8 @@ class FlexField(Base):
     row_number = Column(Integer, nullable=False)
     header = Column(Text)
     cell = Column(Text)
+    file_type_id = Column(Integer)
+    file_letter_name = Column(Text)
 
 
 class Appropriation(Base):
