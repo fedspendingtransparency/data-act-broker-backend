@@ -208,6 +208,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             sess = GlobalDB.db().session
             submission.publish_status_id = PUBLISH_STATUS_DICT['published']
             sess.commit()
+        else:
+            return JsonResponse.error(ValueError("Submission cannot be certified due to critical errors"),
+                                      StatusCode.CLIENT_ERROR)
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
     @app.route("/v1/restart_validation/", methods=['POST'])
