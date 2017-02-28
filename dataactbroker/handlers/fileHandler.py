@@ -1004,7 +1004,7 @@ class FileHandler:
         # update all validation jobs to "ready"
         sess = GlobalDB.db().session
         initial_file_types = [FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
-                                    FILE_TYPE_DICT['award_financial']]
+                              FILE_TYPE_DICT['award_financial']]
 
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
 
