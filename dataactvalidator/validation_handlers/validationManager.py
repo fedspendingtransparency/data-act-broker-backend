@@ -114,6 +114,7 @@ class ValidationManager:
                 flex_field.submission_id = job.submission_id
                 flex_field.job_id = job.job_id
                 flex_field.row_number = row_number
+                flex_field.file_type_id = job.file_type_id
 
             if reader.is_finished and len(record) < 2:
                 # This is the last line and is empty, don't record an error
@@ -391,7 +392,8 @@ class ValidationManager:
                 RuleSql.file_id == second_file.id,
                 RuleSql.target_file_id == first_file.id)))
             # send comboRules to validator.crossValidate sql
-            failures = cross_validate_sql(combo_rules.all(), submission_id, self.short_to_long_dict)
+            failures = cross_validate_sql(combo_rules.all(), submission_id, self.short_to_long_dict, first_file.id,
+                                          second_file.id)
             # get error file name
             report_filename = self.get_file_name(report_file_name(submission_id, False, first_file.name,
                                                                   second_file.name))
