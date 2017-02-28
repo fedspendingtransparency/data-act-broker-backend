@@ -665,7 +665,7 @@ Other errors will be 500 errors
 
 #### POST "/v1/delete_submission"
 
-This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted.
+This route deletes all data related to the specified `submission_id`. A certified/published submission cannot be deleted.
 
 ##### Body (JSON)
 
@@ -678,6 +678,56 @@ This route sends a request to the backend to utilize the relevant external APIs 
 ##### Body Description
 
 * `submission_id` - **required** - an integer corresponding to the ID of the submission that is to be deleted.
+
+##### Response (JSON)
+
+```
+{
+  "message": "Success"
+}
+```
+* `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
+
+#### POST "/v1/certify_submission"
+
+This route certifies the specified submission, if possible. If a submission has critical errors, it cannot be certified.
+
+##### Body (JSON)
+
+```
+{
+  "submission_id": 1
+}
+```
+
+##### Body Description
+
+* `submission_id` - **required** - an integer corresponding to the ID of the submission that is to be certified.
+
+##### Response (JSON)
+
+```
+{
+  "message": "Success"
+}
+```
+* `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
+
+#### POST "/v1/restart_validation"
+
+This route alters a submission's jobs' statuses and then restarts all validations for the specified submission.
+
+##### Body (JSON)
+
+```
+{
+  "submission_id": 1
+}
+```
+
+##### Body Description
+
+* `submission_id` - **required** - an integer corresponding to the ID of the submission for which the validations should be restarted.
 
 ##### Response (JSON)
 
