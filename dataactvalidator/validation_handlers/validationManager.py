@@ -115,7 +115,6 @@ class ValidationManager:
                 flex_field.job_id = job.job_id
                 flex_field.row_number = row_number
                 flex_field.file_type_id = job.file_type_id
-                flex_field.file_letter_name = job.file_type.letter_name
 
             if reader.is_finished and len(record) < 2:
                 # This is the last line and is empty, don't record an error

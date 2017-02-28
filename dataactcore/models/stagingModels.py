@@ -20,7 +20,6 @@ class FlexField(Base):
     header = Column(Text)
     cell = Column(Text)
     file_type_id = Column(Integer)
-    file_letter_name = Column(Text)
 
 
 class Appropriation(Base):
