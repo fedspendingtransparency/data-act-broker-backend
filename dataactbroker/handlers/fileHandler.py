@@ -999,6 +999,34 @@ class FileHandler:
         else:
             response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
 
+    @staticmethod
+    def restart_validation(submission):
+        # update all validation jobs to "ready"
+        sess = GlobalDB.db().session
+        initial_file_types = [FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
+                                    FILE_TYPE_DICT['award_financial']]
+
+        jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
+
+        # set all jobs to their initial status of "waiting"
+        for job in jobs:
+            job.job_status_id = JOB_STATUS_DICT['waiting']
+        sess.commit()
+
+        # update upload jobs to "running", only for files A, B, and C
+        upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']] and
+                       job.file_type_id in initial_file_types]
+
+        for job in upload_jobs:
+            job.job_status_id = JOB_STATUS_DICT['running']
+        sess.commit()
+
+        # call finalize job for the upload jobs for files A, B, and C which will kick off the rest of
+        for job in upload_jobs:
+            FileHandler.finalize(job.job_id)
+
+        return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
 
 def narratives_for_submission(submission):
     """Fetch narratives for this submission, indexed by file letter"""

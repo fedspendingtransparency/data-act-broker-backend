@@ -190,6 +190,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         """ Deletes all data associated with the specified submission
         NOTE: THERE IS NO WAY TO UNDO THIS """
 
+        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+            return JsonResponse.error(ValueError("Certified submissions cannot be deleted"), StatusCode.CLIENT_ERROR)
+
         sess = GlobalDB.db().session
         sess.query(Submission).filter(Submission.submission_id == submission.submission_id).delete(
             synchronize_session=False)
@@ -206,6 +209,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             submission.publish_status_id = PUBLISH_STATUS_DICT['published']
             sess.commit()
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
+    @app.route("/v1/restart_validation/", methods=['POST'])
+    @convert_to_submission_id
+    @requires_submission_perms('writer')
+    def restart_validation(submission):
+        return FileHandler.restart_validation(submission)
 
 
 def convert_to_submission_id(fn):

@@ -50,7 +50,7 @@ def current_user_can(permission, cgac_code):
     return admin or has_affil
 
 
-def current_user_can_on_submission(perm, submission, check_owner):
+def current_user_can_on_submission(perm, submission, check_owner=True):
     """Submissions add another permission possibility: if a user created a
     submission, they can do anything to it, regardless of submission agency"""
     is_owner = hasattr(g, 'user') and submission.user_id == g.user.user_id
