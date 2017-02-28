@@ -1,5 +1,4 @@
--- BusinessTypes must be one to three letters in length. BusinessTypes values must be capitalized,
--- non-repeated letters from A to X.
+-- BusinessTypes must be one to three letters in length. BusinessTypes values must be non-repeated letters from A to X.
 SELECT
     row_number,
     business_types
