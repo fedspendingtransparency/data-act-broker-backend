@@ -10,7 +10,7 @@ from dataactcore.models.domainModels import matching_cars_subquery
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.lookups import FILE_TYPE, FILE_TYPE_DICT, RULE_SEVERITY_DICT
 from dataactcore.models.validationModels import FileColumn
-from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance
+from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, FlexField
 from dataactcore.interfaces.function_bag import (
     create_file_if_needed, write_file_error, mark_file_complete, run_job_checks,
     mark_job_status, sum_number_of_errors_for_job_list, populate_submission_error_info
@@ -162,6 +162,10 @@ class ValidationManager:
         sess.query(model).filter_by(submission_id=submission_id).delete()
         sess.commit()
 
+        # Clear existing flex fields for this job
+        sess.query(FlexField).filter_by(job_id=job_id).delete()
+        sess.commit()
+
         # If local, make the error report directory
         if self.isLocal and not os.path.exists(self.directory):
             os.makedirs(self.directory)
@@ -247,7 +251,7 @@ class ValidationManager:
                         if file_type in ["detached_award"]:
                             record["is_valid"] = True
 
-                        model_instance = model(job_id=job.job_id, submission_id=submission_id,
+                        model_instance = model(job_id=job_id, submission_id=submission_id,
                                                valid_record=passed_validations, **record)
                         skip_row = not insert_staging_model(model_instance, job, writer, error_list)
                         if flex_cols:
