@@ -53,6 +53,11 @@ def test_success(database):
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 0
 
+    af = AwardFinancialFactory(piid=None, parent_award_id=None, transaction_obligated_amou='12345')
+    ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
+
+    assert number_of_errors(_FILE, database, models=[af, ap]) == 0
+
 
 def test_failure(database):
     """ Unique PIID, ParentAwardId from file C doesn't exist in file D1 during the same reporting period. """
@@ -68,6 +73,12 @@ def test_failure(database):
     af = AwardFinancialFactory(piid='some_piid', parent_award_id='some_parent_award_id',
                                allocation_transfer_agency='bad', transaction_obligated_amou='12345')
     ap = AwardProcurementFactory(piid='some_piid', parent_award_id='some_other_parent_award_id')
+
+    assert number_of_errors(_FILE, database, models=[af, ap]) == 1
+
+    af = AwardFinancialFactory(piid='some_piid', parent_award_id=None,
+                               allocation_transfer_agency='bad', transaction_obligated_amou='12345')
+    ap = AwardProcurementFactory(piid='some_other_piid', parent_award_id='some_other_parent_award_id')
 
     assert number_of_errors(_FILE, database, models=[af, ap]) == 1
 
