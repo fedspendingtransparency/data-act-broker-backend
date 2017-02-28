@@ -614,7 +614,7 @@ class FileTests(BaseTestAPI):
                           is_quarter=False, number_of_errors=0, publish_status_id=1):
         """Insert one submission into job tracker and get submission ID back."""
         publishable = True if number_of_errors == 0 else False
-        sub = Submission(datetime_utc=datetime.utcnow(),
+        sub = Submission(created_at=datetime.utcnow(),
                          user_id=submission_user_id,
                          cgac_code=cgac_code,
                          reporting_start_date=datetime.strptime(start_date, '%m/%Y'),

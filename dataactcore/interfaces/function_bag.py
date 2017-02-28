@@ -355,7 +355,7 @@ def create_submission(user_id, submission_values, existing_submission):
         submission object
     """
     if existing_submission is None:
-        submission = Submission(datetime_utc=datetime.utcnow(), **submission_values)
+        submission = Submission(created_at=datetime.utcnow(), **submission_values)
         submission.user_id = user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
     else:

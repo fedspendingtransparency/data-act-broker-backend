@@ -1152,10 +1152,11 @@ def submission_to_dict_for_status(submission):
     return {
         'cgac_code': submission.cgac_code,
         'agency_name': agency_name,
-        'created_on': submission.datetime_utc.strftime('%m/%d/%Y'),
+        'created_on': submission.created_at.strftime('%m/%d/%Y'),
         'number_of_errors': submission.number_of_errors,
         'number_of_rows': number_of_rows,
         'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
+        'last_validated': submission.last_validated.strftime('%m/%d/%Y'),
         # Broker allows submission for a single quarter or a single month,
         # so reporting_period start and end dates reported by check_status
         # are always equal

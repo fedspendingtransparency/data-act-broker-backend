@@ -1,5 +1,5 @@
 """ These classes define the ORM models to be used by sqlalchemy for the job tracker database """
-
+from datetime import datetime
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from dataactcore.models.baseModel import Base
@@ -55,7 +55,6 @@ class Submission(Base):
     __tablename__ = "submission"
 
     submission_id = Column(Integer, primary_key=True)
-    datetime_utc = Column(DateTime)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_submission_user"),
                      nullable=True)
     user = relationship("User")
@@ -73,6 +72,7 @@ class Submission(Base):
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
     d2_submission = Column(Boolean, nullable=False, default="False", server_default="False")
+    last_validated = Column(DateTime, default=datetime.utcnow)
 
 
 class Job(Base):
