@@ -181,8 +181,10 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
                 full_column_string = column_string
                 # go through all flex fields in this row and add to the columns and values
                 for field in flex_data[row['row_number']]:
-                    full_column_string += ", " + field.header + "_file" + FILE_TYPE_DICT_LETTER[field.file_type_id].lower()
-                    values += ", {}: {}".format(field.header + "_file" + FILE_TYPE_DICT_LETTER[field.file_type_id].lower(), field.cell)
+                    full_column_string += ", " + field.header + "_file" +\
+                                          FILE_TYPE_DICT_LETTER[field.file_type_id].lower()
+                    values += ", {}: {}".format(field.header + "_file" +
+                                                FILE_TYPE_DICT_LETTER[field.file_type_id].lower(), field.cell)
 
                 target_file_type = FILE_TYPE_DICT_ID[rule.target_file_id]
                 failures.append([rule.file.name, target_file_type, full_column_string,
