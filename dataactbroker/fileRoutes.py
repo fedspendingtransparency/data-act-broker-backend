@@ -204,13 +204,14 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @convert_to_submission_id
     @requires_submission_perms('submitter', check_owner=False)
     def certify_submission(submission):
-        if submission.publishable:
-            sess = GlobalDB.db().session
-            submission.publish_status_id = PUBLISH_STATUS_DICT['published']
-            sess.commit()
-        else:
+        if not submission.publishable:
             return JsonResponse.error(ValueError("Submission cannot be certified due to critical errors"),
                                       StatusCode.CLIENT_ERROR)
+
+        sess = GlobalDB.db().session
+        submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+        sess.commit()
+
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
     @app.route("/v1/restart_validation/", methods=['POST'])

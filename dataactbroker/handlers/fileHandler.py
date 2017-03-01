@@ -1011,7 +1011,6 @@ class FileHandler:
         # set all jobs to their initial status of "waiting"
         for job in jobs:
             job.job_status_id = JOB_STATUS_DICT['waiting']
-        sess.commit()
 
         # update upload jobs to "running", only for files A, B, and C
         upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']] and
