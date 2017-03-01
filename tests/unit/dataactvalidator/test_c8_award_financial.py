@@ -4,7 +4,7 @@ from tests.unit.dataactcore.factories.domain import CGACFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
-_FILE = 'c8_award_financial_2'
+_FILE = 'c8_award_financial'
 _TAS = 'c8_award_financial_tas'
 
 
@@ -51,9 +51,10 @@ def test_both_fain_and_url_supplied(database):
     """Tests File C (award financial) having both uri and fain populated ."""
     tas = _TAS
     af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency=None)
+    afa = AwardFinancialAssistanceFactory(tas=tas, submisson_id=af.submission_id, fain=af.fain, uri=af.uri)
 
-    errors = number_of_errors(_FILE, database, models=[af])
-    assert errors == 1
+    errors = number_of_errors(_FILE, database, models=[af, afa])
+    assert errors == 0
 
 
 def test_unequal_fain(database):
@@ -116,7 +117,9 @@ def test_invalid_allocation_transfer_agency(database):
     transfer agency in File C (award financial). Per rule C24."""
     tas = _TAS
     cgac = CGACFactory(cgac_code='good')
-    af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency='bad')
+    # Perform when there's a transaction obligated amount value in the field
+    af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency='bad',
+                               transaction_obligated_amou='12345')
     afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain='123', uri='456')
 
     errors = number_of_errors(_FILE, database, models=[af, afa, cgac])
@@ -128,8 +131,14 @@ def test_valid_allocation_transfer_agency(database):
     record has a valid allocation transfer agency."""
     tas = _TAS
     cgac = CGACFactory(cgac_code='good')
-    af = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency=cgac.cgac_code)
-    afa = AwardFinancialAssistanceFactory(tas=tas, submission_id=af.submission_id, fain='123', uri='456')
+    # Perform when there's a transaction obligated amount value in the field
+    af_1 = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency=cgac.cgac_code,
+                                 transaction_obligated_amou='12345')
+    # Not perform when no transaction obligated amount value in the field
+    af_2 = AwardFinancialFactory(tas=tas, fain='abc', uri='xyz', allocation_transfer_agency='bad',
+                                 transaction_obligated_amou=None)
+    afa_1 = AwardFinancialAssistanceFactory(tas=tas, submission_id=af_1.submission_id, fain='123', uri='456')
+    afa_2 = AwardFinancialAssistanceFactory(tas=tas, submission_id=af_2.submission_id, fain='123', uri='456')
 
-    errors = number_of_errors(_FILE, database, models=[af, afa, cgac])
+    errors = number_of_errors(_FILE, database, models=[af_1, af_2, afa_1, afa_2, cgac])
     assert errors == 0

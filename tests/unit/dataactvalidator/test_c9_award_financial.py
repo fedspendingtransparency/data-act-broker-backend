@@ -54,9 +54,10 @@ def test_both_fain_and_url_supplied(database):
     tas = _TAS
     afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri='xyz', federal_action_obligation=1,
                                           original_loan_subsidy_cost='1')
+    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=afa.fain, uri=afa.uri)
 
-    errors = number_of_errors(_FILE, database, models=[afa])
-    assert errors == 1
+    errors = number_of_errors(_FILE, database, models=[afa, af])
+    assert errors == 0
 
 
 def test_unequal_fain(database):
@@ -116,14 +117,27 @@ def test_zero_federal_action_obligation_and_original_loan_subsidy_cost(database)
     errors = number_of_errors(_FILE, database, models=[afa, af])
     assert errors == 0
 
+    tas = _TAS
+    afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=0,
+                                          original_loan_subsidy_cost='1')
+    # Not perform when no transaction obligated amount value in the field
+    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=None, uri=None,
+                               transaction_obligated_amou=None)
+
+    errors = number_of_errors(_FILE, database, models=[afa, af])
+    assert errors == 0
+
 
 def test_zero_federal_action_obligation_and_positive_original_loan_subsidy_cost(database):
     """Tests that a single warning is thrown for both a federal action obligation of 0
      and an original loan subsidy cost of 0"""
+
     tas = _TAS
     afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=0,
                                           original_loan_subsidy_cost='1')
-    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
+    # Perform when there's a transaction obligated amount value in the field
+    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=None, uri=None,
+                               transaction_obligated_amou='1234')
 
     errors = number_of_errors(_FILE, database, models=[afa, af])
     assert errors == 1
@@ -132,10 +146,13 @@ def test_zero_federal_action_obligation_and_positive_original_loan_subsidy_cost(
 def test_positive_federal_action_obligation_and_zero_original_loan_subsidy_cost(database):
     """Tests that a single warning is thrown for both a federal action obligation of 0
      and an original loan subsidy cost of 0"""
+
     tas = _TAS
     afa = AwardFinancialAssistanceFactory(tas=tas, fain='abc', uri=None, federal_action_obligation=1,
                                           original_loan_subsidy_cost='0')
-    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=None, uri=None)
+    # Perform when there's a transaction obligated amount value in the field
+    af = AwardFinancialFactory(tas=tas, submisson_id=afa.submission_id, fain=None, uri=None,
+                               transaction_obligated_amou='12345')
 
     errors = number_of_errors(_FILE, database, models=[afa, af])
     assert errors == 1

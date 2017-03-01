@@ -247,6 +247,10 @@ def use_long_headers(header_row, long_to_short_dict):
 def normalize_headers(header_row, long_headers, long_to_short_dict):
     for header in header_row:
         header = FieldCleaner.clean_string(header)
+        # Replace correctly spelled header (which does NOT match the db) with the
+        # misspelling that DOES match the db
+        if header == 'deobligationsrecoveriesrefundsofprioryearbyprogramobjectclass_cpe':
+            header = 'deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe'
         if long_headers and header in long_to_short_dict:
             yield FieldCleaner.clean_string(long_to_short_dict[header])
         else:

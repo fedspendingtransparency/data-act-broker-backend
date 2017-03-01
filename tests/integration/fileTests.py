@@ -16,6 +16,7 @@ from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, ERROR_TYPE_DICT, RU
                                         FILE_STATUS_DICT, FILE_TYPE_DICT, JOB_TYPE_DICT, JOB_STATUS_DICT)
 from dataactcore.config import CONFIG_BROKER
 from dataactvalidator.health_check import create_app
+from sqlalchemy import or_
 
 
 class FileTests(BaseTestAPI):
@@ -68,6 +69,11 @@ class FileTests(BaseTestAPI):
                                                                 start_date="10/2015", end_date="12/2015",
                                                                 is_quarter=True, number_of_errors=1)
             cls.setup_submission_with_error(sess, cls.row_error_submission_id)
+
+            cls.test_delete_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                  start_date="07/2015", end_date="09/2015",
+                                                                  is_quarter=True)
+            cls.setup_file_generation_submission(sess, submission_id=cls.test_delete_submission_id)
 
     def setUp(self):
         """Test set-up."""
@@ -547,9 +553,30 @@ class FileTests(BaseTestAPI):
         json = response.json
         self.assertEqual(json["message"], 'No generation job found with the specified ID')
 
+    def test_delete_submission(self):
+        sess = GlobalDB.db().session
+        jobs_orig = sess.query(Job).filter(Job.submission_id == self.test_delete_submission_id).all()
+        job_ids = [job.job_id for job in jobs_orig]
+
+        post_json = {'submission_id': self.test_delete_submission_id}
+        response = self.app.post_json("/v1/delete_submission/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(response.json["message"], "Success")
+
+        response = self.app.post_json("/v1/check_status/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.json["message"], "No such submission")
+
+        # check if models were actually delete (verifying cascading worked)
+        jobs_new = sess.query(Job).filter(Job.submission_id == self.test_delete_submission_id).all()
+        self.assertEqual(jobs_new, [])
+
+        job_deps = sess.query(JobDependency).filter(or_(JobDependency.job_id.in_(job_ids),
+                                                        JobDependency.prerequisite_id.in_(job_ids))).all()
+        self.assertEqual(job_deps, [])
+
     @staticmethod
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
-                          is_quarter=False, number_of_errors=0):
+                          is_quarter=False, number_of_errors=0, publish_status_id=1):
         """Insert one submission into job tracker and get submission ID back."""
         sub = Submission(datetime_utc=datetime.utcnow(),
                          user_id=submission_user_id,
@@ -557,7 +584,8 @@ class FileTests(BaseTestAPI):
                          reporting_start_date=datetime.strptime(start_date, '%m/%Y'),
                          reporting_end_date=datetime.strptime(end_date, '%m/%Y'),
                          is_quarter_format=is_quarter,
-                         number_of_errors=number_of_errors)
+                         number_of_errors=number_of_errors,
+                         publish_status_id=publish_status_id)
         sess.add(sub)
         sess.commit()
         return sub.submission_id
@@ -606,9 +634,10 @@ class FileTests(BaseTestAPI):
         return ed.error_metadata_id
 
     @classmethod
-    def setup_file_generation_submission(cls, sess):
+    def setup_file_generation_submission(cls, sess, submission_id=None):
         """Create jobs for D, E, and F files."""
-        submission = sess.query(Submission).filter(Submission.submission_id == cls.generation_submission_id).one()
+        submission_id = cls.generation_submission_id if not submission_id else submission_id
+        submission = sess.query(Submission).filter(Submission.submission_id == submission_id).one()
 
         # Create D1 jobs ready for generation route to be called
         cls.insert_job(

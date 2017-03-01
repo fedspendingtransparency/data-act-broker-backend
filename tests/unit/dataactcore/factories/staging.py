@@ -271,6 +271,55 @@ class DetachedAwardFinancialAssistanceFactory(factory.Factory):
     is_valid = True
 
 
+class PublishedAwardFinancialAssistanceFactory(factory.Factory):
+    class Meta:
+        model = stagingModels.PublishedAwardFinancialAssistance
+
+    published_award_financial_assistance_id = None
+    action_date = fuzzy.FuzzyText()
+    action_type = fuzzy.FuzzyText()
+    assistance_type = fuzzy.FuzzyText()
+    award_description = fuzzy.FuzzyText()
+    awardee_or_recipient_legal = fuzzy.FuzzyText()
+    awardee_or_recipient_uniqu = fuzzy.FuzzyText()
+    awarding_agency_code = fuzzy.FuzzyText()
+    awarding_office_code = fuzzy.FuzzyText()
+    awarding_sub_tier_agency_c = fuzzy.FuzzyText()
+    award_modification_amendme = fuzzy.FuzzyText()
+    business_funds_indicator = fuzzy.FuzzyText()
+    business_types = fuzzy.FuzzyText()
+    cfda_number = fuzzy.FuzzyText()
+    correction_late_delete_ind = fuzzy.FuzzyText()
+    face_value_loan_guarantee = fuzzy.FuzzyDecimal(9999)
+    fain = fuzzy.FuzzyText()
+    federal_action_obligation = fuzzy.FuzzyDecimal(9999)
+    fiscal_year_and_quarter_co = fuzzy.FuzzyText()
+    funding_agency_code = fuzzy.FuzzyText()
+    funding_office_code = fuzzy.FuzzyText()
+    funding_sub_tier_agency_co = fuzzy.FuzzyText()
+    legal_entity_address_line1 = fuzzy.FuzzyText()
+    legal_entity_address_line2 = fuzzy.FuzzyText()
+    legal_entity_address_line3 = fuzzy.FuzzyText()
+    legal_entity_country_code = fuzzy.FuzzyText()
+    legal_entity_foreign_city = fuzzy.FuzzyText()
+    legal_entity_foreign_posta = fuzzy.FuzzyText()
+    legal_entity_foreign_provi = fuzzy.FuzzyText()
+    legal_entity_zip5 = fuzzy.FuzzyText()
+    legal_entity_zip_last4 = fuzzy.FuzzyText()
+    non_federal_funding_amount = fuzzy.FuzzyDecimal(9999)
+    original_loan_subsidy_cost = fuzzy.FuzzyDecimal(9999)
+    period_of_performance_curr = fuzzy.FuzzyText()
+    period_of_performance_star = fuzzy.FuzzyText()
+    place_of_performance_code = fuzzy.FuzzyText()
+    place_of_performance_congr = fuzzy.FuzzyText()
+    place_of_perform_country_c = fuzzy.FuzzyText()
+    place_of_performance_forei = fuzzy.FuzzyText()
+    place_of_performance_zip4a = fuzzy.FuzzyText()
+    record_type = fuzzy.FuzzyInteger(1, 2)
+    sai_number = fuzzy.FuzzyText()
+    uri = fuzzy.FuzzyText()
+
+
 class AwardProcurementFactory(factory.Factory):
     class Meta:
         model = stagingModels.AwardProcurement

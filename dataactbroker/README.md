@@ -634,6 +634,60 @@ This route requests the URL associated with a particular type of submission repo
 ##### Response
 File download or redirect to signed URL
 
+#### POST "/v1/submit_detached_file"
+
+This route sends a request to the backend with ID of the FABS submission we're submitting in order to process it.
+
+##### Body (JSON)
+
+```
+{
+    "submission_id": 7
+}
+```
+
+##### Body Description
+
+* `submission_id` - **required** - ID of the submission to process
+
+##### Response (JSON)
+Successful response will contain the submission_id.
+
+```
+{
+    "submission_id": 7
+}
+```
+
+Invalid submission_ids (nonexistant or not FABS submissions) and submissions that have already been published will return a 400 error.
+
+Other errors will be 500 errors
+
+#### POST "/v1/delete_submission"
+
+This route sends a request to the backend to utilize the relevant external APIs and generate the relevant file for the metadata that is submitted.
+
+##### Body (JSON)
+
+```
+{
+  "submission_id": 1
+}
+```
+
+##### Body Description
+
+* `submission_id` - **required** - an integer corresponding to the ID of the submission that is to be deleted.
+
+##### Response (JSON)
+
+```
+{
+  "message": "Success"
+}
+```
+* `message` - A message indicating whether or not the action was successful. Any message other than "Success" indicates a failure.
+
 ## File Generation Routes
 
 #### GET "/v1/list_submissions/"

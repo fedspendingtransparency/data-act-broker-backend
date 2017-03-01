@@ -5,6 +5,7 @@ SELECT
 FROM award_financial AS af
 WHERE af.submission_id = {}
     AND af.piid IS NOT NULL
+    AND af.transaction_obligated_amou IS NOT NULL
 	AND NOT EXISTS (
 		SELECT 1
 		FROM award_procurement AS ap
