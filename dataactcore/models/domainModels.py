@@ -167,3 +167,10 @@ Index("ix_pa_tas_pa",
       ProgramActivity.program_activity_code,
       ProgramActivity.program_activity_name,
       unique=True)
+
+
+class CountryCode(Base):
+    __tablename__ = "country_code"
+    country_code_id = Column(Integer, primary_key=True)
+    country_code = Column(Text, nullable=False, index=True, unique=True)
+    country_name = Column(Text, nullable=False)

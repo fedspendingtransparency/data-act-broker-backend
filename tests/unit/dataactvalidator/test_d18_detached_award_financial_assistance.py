@@ -11,19 +11,19 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ BusinessTypes must be one to three letters in length. BusinessTypes values must be capitalized,
-        non-repeated letters from A to X. """
+    """ BusinessTypes must be one to three letters in length. BusinessTypes values must be non-repeated letters
+        from A to X. """
     det_award = DetachedAwardFinancialAssistanceFactory(business_types="A")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(business_types="XB")
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(business_types="RCM")
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(business_types="RCm")
 
     errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3])
     assert errors == 0
 
 
 def test_failure(database):
-    """ BusinessTypes must be one to three letters in length. BusinessTypes values must be capitalized,
-        non-repeated letters from A to X. """
+    """ BusinessTypes must be one to three letters in length. BusinessTypes values must be non-repeated letters
+        from A to X. """
 
     # Test if it's somehow empty or has 4 letters (length test)
     det_award = DetachedAwardFinancialAssistanceFactory(business_types="")
@@ -32,15 +32,14 @@ def test_failure(database):
     errors = number_of_errors(_FILE, database, models=[det_award, det_award_2])
     assert errors == 2
 
-    # Test capitalization and repeats
-    det_award = DetachedAwardFinancialAssistanceFactory(business_types="aB")
+    # Test repeats
+    det_award = DetachedAwardFinancialAssistanceFactory(business_types="BOb")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(business_types="BOB")
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(business_types="BBO")
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(business_types="BbO")
     det_award_4 = DetachedAwardFinancialAssistanceFactory(business_types="BB")
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(business_types="BOb")
 
-    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3, det_award_4, det_award_5])
-    assert errors == 5
+    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3, det_award_4])
+    assert errors == 4
 
     # Test that only valid letters work
     det_award = DetachedAwardFinancialAssistanceFactory(business_types="ABY")

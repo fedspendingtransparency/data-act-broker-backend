@@ -7,7 +7,7 @@ import boto
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import CGAC, SubTierAgency, ObjectClass, ProgramActivity
+from dataactcore.models.domainModels import CGAC, SubTierAgency, ObjectClass, ProgramActivity, CountryCode
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
 
@@ -183,6 +183,32 @@ def load_program_activity(filename):
     logger.info('{} records inserted to {}'.format(num, table_name))
 
 
+def load_country_codes(filename):
+    """Load object class lookup table."""
+    model = CountryCode
+
+    with create_app().app_context():
+        sess = GlobalDB.db().session
+        # for object class, delete and replace values
+        sess.query(model).delete()
+
+        data = pd.read_csv(filename, dtype=str)
+        data = clean_data(
+            data,
+            model,
+            {"country_code": "country_code", "country_name": "country_name"},
+            {}
+        )
+        # de-dupe
+        data.drop_duplicates(subset=['country_code'], inplace=True)
+        # insert to db
+        table_name = model.__table__.name
+        num = insert_dataframe(data, table_name, sess.connection())
+        sess.commit()
+
+    logger.info('{} records inserted to {}'.format(num, table_name))
+
+
 def load_domain_values(base_path, local_program_activity=None):
     """Load all domain value files.
 
@@ -197,11 +223,13 @@ def load_domain_values(base_path, local_program_activity=None):
         agency_list_file = s3bucket.get_key("agency_list.csv").generate_url(expires_in=600)
         object_class_file = s3bucket.get_key("object_class.csv").generate_url(expires_in=600)
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
+        country_codes_file = s3bucket.get_key("country_codes.csv").generate_url(expires_in=600)
 
     else:
         agency_list_file = os.path.join(base_path, "agency_list.csv")
         object_class_file = os.path.join(base_path, "object_class.csv")
         program_activity_file = os.path.join(base_path, "program_activity.csv")
+        country_codes_file = os.path.join(base_path, "country_codes.csv")
 
     logger.info('Loading CGAC')
     load_cgac(agency_list_file)
@@ -209,6 +237,8 @@ def load_domain_values(base_path, local_program_activity=None):
     load_sub_tier_agencies(agency_list_file)
     logger.info('Loading object class')
     load_object_class(object_class_file)
+    logger.info('Loading country codes')
+    load_country_codes(country_codes_file)
     logger.info('Loading program activity')
 
     if local_program_activity is not None:
