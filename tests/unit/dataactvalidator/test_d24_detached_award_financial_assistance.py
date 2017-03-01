@@ -12,7 +12,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ LegalEntityCountryCode Field must contain a valid three character GENC Standard Edition 3.0 (Update 4)
+    """ PrimaryPlaceOfPerformanceCountryCode must contain a valid three character GENC Standard Edition 3.0 (Update 4)
         country code. """
     cc_1 = CountryCode(country_code="USA", country_name="United States")
     cc_2 = CountryCode(country_code="UKR", country_name="Ukraine")
@@ -24,7 +24,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ LegalEntityCountryCode Field must contain a valid three character GENC Standard Edition 3.0 (Update 4)
+    """ PrimaryPlaceOfPerformanceCountryCode must contain a valid three character GENC Standard Edition 3.0 (Update 4)
         country code. """
 
     det_award = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="xyz")
