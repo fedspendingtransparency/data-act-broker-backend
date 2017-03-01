@@ -1,7 +1,7 @@
 import factory
 from factory import fuzzy
 
-from datetime import date, datetime, timezone
+from datetime import date
 
 from dataactcore.models import jobModels
 
