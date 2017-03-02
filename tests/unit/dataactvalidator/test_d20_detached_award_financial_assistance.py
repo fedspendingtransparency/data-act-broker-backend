@@ -1,5 +1,5 @@
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
-from tests.unit.dataactcore.factories.domain import CGACFactory
+from dataactcore.models.domainModels import CGAC
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'd20_detached_award_financial_assistance'
@@ -15,7 +15,7 @@ def test_success(database):
     """ FundingAgencyCode is an optional field, but when provided
     must be a valid 3-digit CGAC agency code. """
 
-    cgac = CGACFactory(cgac_code='001')
+    cgac = CGAC(cgac_code='001')
     det_award = DetachedAwardFinancialAssistanceFactory(funding_agency_code=cgac.cgac_code)
     det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_agency_code=None)
     det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_agency_code='')
@@ -28,7 +28,7 @@ def test_failure(database):
     """ FundingAgencyCode is an optional field, but when provided
     must be a valid 3-digit CGAC agency code. """
 
-    cgac = CGACFactory(cgac_code='001')
+    cgac = CGAC(cgac_code='001')
     det_award = DetachedAwardFinancialAssistanceFactory(funding_agency_code='bad')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_agency_code='12345')
 
