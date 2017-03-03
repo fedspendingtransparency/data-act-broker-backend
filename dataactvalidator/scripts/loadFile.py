@@ -184,7 +184,7 @@ def load_program_activity(filename):
 
 
 def load_country_codes(filename):
-    """Load object class lookup table."""
+    """Load country code lookup table."""
     model = CountryCode
 
     with create_app().app_context():
