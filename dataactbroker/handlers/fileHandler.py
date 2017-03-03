@@ -1183,8 +1183,6 @@ def list_submissions(page, limit, certified, sort, order):
 
     offset = limit * (page - 1)
 
-    postSort = ''
-
     cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
     query = sess.query(Submission).filter_by(d2_submission=False)
     if not g.user.website_admin:
