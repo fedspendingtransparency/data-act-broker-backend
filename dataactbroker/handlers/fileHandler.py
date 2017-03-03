@@ -1202,6 +1202,9 @@ def list_submissions(page, limit, certified, sort, order):
         'agency': 'agency'
     }
 
+    if not options.get(sort):
+        sort = 'modified'
+
     if sort == 'submitted_by':
         arr.sort(key=lambda x: x.get('user').get('name'))
     else:

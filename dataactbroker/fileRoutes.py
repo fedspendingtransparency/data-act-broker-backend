@@ -76,7 +76,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         'certified': webargs_fields.String(
             required=True,
             validate=webargs_validate.OneOf(('mixed', 'true', 'false'))),
-        'sort': webargs_fields.String(missing='updated'),
+        'sort': webargs_fields.String(missing='modified'),
         'order': webargs_fields.String(missing='desc')
     })
     def list_submissions(page, limit, certified, sort, order):
