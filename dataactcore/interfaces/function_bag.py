@@ -4,7 +4,7 @@ from operator import attrgetter
 import time
 import uuid
 
-from sqlalchemy import func, or_, and_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -617,8 +617,8 @@ def get_last_validated_date(submission_id):
 
     validation_job_types = [JOB_TYPE_DICT['csv_record_validation'], JOB_TYPE_DICT['validation']]
 
-    jobs = sess.query(Job).filter(and_(Job.submission_id == submission_id,
-                                       Job.job_type_id.in_(validation_job_types))).all()
+    jobs = sess.query(Job).filter(Job.submission_id == submission_id,
+                                  Job.job_type_id.in_(validation_job_types)).all()
 
     oldest_date = ''
     for job in jobs:
