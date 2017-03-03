@@ -72,7 +72,6 @@ class Submission(Base):
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
     d2_submission = Column(Boolean, nullable=False, default="False", server_default="False")
-    last_validated = Column(DateTime, default=datetime.utcnow)
 
 
 class Job(Base):
@@ -99,6 +98,7 @@ class Job(Base):
     start_date = Column(Date)
     end_date = Column(Date)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_job_user"), nullable=True)
+    last_validated = Column(DateTime, default=datetime.utcnow)
 
     @property
     def job_type_name(self):
@@ -176,3 +176,9 @@ class SQS(Base):
     job_id = Column(Integer, nullable=False)
 
     __table_args__ = (UniqueConstraint('job_id', name='uniq_job_id'),)
+
+
+class RevalidationThreshold(Base):
+    __tablename__ = "revalidation_threshold"
+
+    revalidation_date = Column(Date, primary_key=True)

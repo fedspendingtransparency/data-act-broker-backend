@@ -307,10 +307,6 @@ class ValidationManager:
             # Update error info for submission
             populate_submission_error_info(submission_id)
 
-            # Update last validated date
-            job.submission.last_validated = datetime.utcnow()
-            sess.commit()
-
             # Mark validation as finished in job tracker
             mark_job_status(job_id, "finished")
             mark_file_complete(job_id, file_name)
@@ -483,6 +479,9 @@ class ValidationManager:
         else:
             raise ResponseException("Bad job type for validator", StatusCode.INTERNAL_ERROR)
 
+        # Update last validated date
+        job.last_validated = datetime.utcnow()
+        sess.commit()
         return JsonResponse.create(StatusCode.OK, {"message": "Validation complete"})
 
 

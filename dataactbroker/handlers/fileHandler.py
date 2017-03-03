@@ -23,7 +23,8 @@ from dataactcore.models.domainModels import CGAC, SubTierAgency
 from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.jobModels import (
-    FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation)
+    FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation,
+    RevalidationThreshold)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT,
@@ -37,7 +38,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     check_number_of_errors_by_job_id, create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type,
-    get_submission_status, mark_job_status, run_job_checks, create_file_if_needed)
+    get_submission_status, mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 logger = logging.getLogger(__name__)
@@ -1148,6 +1149,9 @@ def submission_to_dict_for_status(submission):
         Job.job_type_id.in_(relevant_job_types)
     )
 
+    revalidation_threshold = sess.query(RevalidationThreshold).one_or_none()
+    last_validated = get_last_validated_date(submission.submission_id)
+
     return {
         'cgac_code': submission.cgac_code,
         'agency_name': agency_name,
@@ -1155,7 +1159,9 @@ def submission_to_dict_for_status(submission):
         'number_of_errors': submission.number_of_errors,
         'number_of_rows': number_of_rows,
         'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
-        'last_validated': submission.last_validated.strftime('%m/%d/%Y') if submission.last_validated else '',
+        'last_validated': last_validated,
+        'revalidation_threshold':
+            revalidation_threshold.revalidation_date.strftime('%m/%d/%Y') if revalidation_threshold else '',
         # Broker allows submission for a single quarter or a single month,
         # so reporting_period start and end dates reported by check_status
         # are always equal

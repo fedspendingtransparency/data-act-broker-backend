@@ -4,7 +4,7 @@ from operator import attrgetter
 import time
 import uuid
 
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, and_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -609,3 +609,26 @@ def get_submission_status(submission):
         status = "validation_errors"
 
     return status
+
+
+def get_last_validated_date(submission_id):
+    """ Return the oldest last validated date for validation jobs """
+    sess = GlobalDB.db().session
+
+    validation_job_types = [JOB_TYPE_DICT['csv_record_validation'], JOB_TYPE_DICT['validation']]
+
+    jobs = sess.query(Job).filter(and_(Job.submission_id == submission_id,
+                                       Job.job_type_id.in_(validation_job_types))).all()
+
+    oldest_date = ''
+    for job in jobs:
+        # if any job's last validated doesn't exist, return blank immediately
+        if not job.last_validated:
+            return ''
+
+        if not oldest_date or job.last_validated < oldest_date:
+            oldest_date = job.last_validated
+
+    # Still need to do a check here in case there aren't any jobs for a submission.
+    # This is the case for a single unit test
+    return oldest_date.strftime('%m/%d/%Y') if oldest_date else oldest_date
