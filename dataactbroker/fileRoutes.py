@@ -196,7 +196,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
                                       Job.job_status_id == JOB_STATUS_DICT['running']).all()
 
-        if len(jobs) != 0:
+        if jobs:
             return JsonResponse.error(ValueError("Submissions with running jobs cannot be deleted"),
                                       StatusCode.CLIENT_ERROR)
 
