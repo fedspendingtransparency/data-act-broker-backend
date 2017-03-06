@@ -1,4 +1,3 @@
--- AwardingSubTierAgencyCode is required for all submissions and cannot be blank.
 -- AwardingSubTierAgencyCode must contain a valid four character numeric code.
 SELECT
     dafa.row_number,
