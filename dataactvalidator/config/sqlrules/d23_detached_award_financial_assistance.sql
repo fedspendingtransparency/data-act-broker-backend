@@ -5,8 +5,7 @@ SELECT
     dafa.awarding_sub_tier_agency_c
 FROM detached_award_financial_assistance as dafa
 WHERE dafa.submission_id = {0}
-    AND ((dafa.awarding_sub_tier_agency_c IS NULL) OR (dafa.awarding_sub_tier_agency_c =''))
-    OR (dafa.awarding_sub_tier_agency_c != ''
+    AND (dafa.awarding_sub_tier_agency_c != ''
         AND NOT EXISTS (
             SELECT sta.sub_tier_agency_code
             FROM sub_tier_agency AS sta

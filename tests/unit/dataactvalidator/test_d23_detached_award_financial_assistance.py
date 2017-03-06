@@ -12,8 +12,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ FundingSubTierAgencyCode is an optional field, but when provided
-    must be a valid 4-digit sub-tier agency code.  """
+    """ FundingSubTierAgencyCode must be a valid 4-digit sub-tier agency code.  """
 
     agency = SubTierAgency(sub_tier_agency_code='0000', cgac_id='1')
     cgac = CGAC(cgac_id='1', cgac_code='001', agency_name='test')
@@ -25,12 +24,9 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ FundingSubTierAgencyCode is an optional field, but when provided
-    must be a valid 4-digit sub-tier agency code.  """
+    """ FundingSubTierAgencyCode must be a valid 4-digit sub-tier agency code.  """
 
     det_award = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='bad')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c=None)
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(awarding_sub_tier_agency_c='')
 
-    errors = number_of_errors(_FILE, database, models=[det_award, det_award_2, det_award_3])
-    assert errors == 3
+    errors = number_of_errors(_FILE, database, models=[det_award])
+    assert errors == 1
