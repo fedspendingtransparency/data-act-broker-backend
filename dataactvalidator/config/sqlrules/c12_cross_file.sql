@@ -8,20 +8,20 @@ WHERE ap.submission_id = {}
     AND COALESCE(ap.federal_action_obligation, 0) <> 0
     AND ap.piid IS NOT NULL
     AND ((ap.parent_award_id IS NULL
-        AND NOT EXISTS (
-            SELECT 1
-            FROM award_financial AS af
-            WHERE af.submission_id = ap.submission_id
-                AND af.piid = ap.piid)
+          AND NOT EXISTS (
+              SELECT 1
+              FROM award_financial AS af
+              WHERE af.submission_id = ap.submission_id
+                  AND af.piid = ap.piid)
          )
-        OR (ap.parent_award_id IS NOT NULL
-        AND NOT EXISTS (
-            SELECT 1
-            FROM award_financial AS af
-            WHERE af.submission_id = ap.submission_id
-                AND af.piid = ap.piid
-                AND af.parent_award_id IS NOT DISTINCT FROM ap.parent_award_id)
-	        )
+         OR (ap.parent_award_id IS NOT NULL
+             AND NOT EXISTS (
+                 SELECT 1
+                 FROM award_financial AS af
+                 WHERE af.submission_id = ap.submission_id
+                     AND af.piid = ap.piid
+                     AND af.parent_award_id IS NOT DISTINCT FROM ap.parent_award_id)
+	       )
 	   )
 	  AND NOT EXISTS (
         SELECT af.transaction_obligated_amou
