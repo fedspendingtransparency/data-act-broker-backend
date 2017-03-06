@@ -5,11 +5,11 @@ AssistanceType,assistance_type,ASP: Required,string,2,D1
 AwardDescription,award_description,ASP: Conditional per Validation Rule,string,4000,D2
 AwardeeOrRecipientLegalEntityName,awardee_or_recipient_legal,ASP: Required,string,120,D22
 AwardeeOrRecipientUniqueIdentifier,awardee_or_recipient_uniqu,ASP: Conditional per Validation Rule,string,9,"D2, D10"
-AwardingAgencyCode,awarding_agency_code,ASP: Optional,string,3,D1
+AwardingAgencyCode,awarding_agency_code,ASP: Required,string,3,D1
 AwardingOfficeCode,awarding_office_code,ASP: Optional,string,6,
 AwardingSubTierAgencyCode,awarding_sub_tier_agency_c,ASP: Required,string,4,"D1, D6"
 AwardModificationAmendmentNumber,award_modification_amendme,ASP: Optional,string,25,D6
-BusinessFundsIndicator,business_funds_indicator,ASP: Optional,string,3,D1
+BusinessFundsIndicator,business_funds_indicator,ASP: Required,string,3,D1
 BusinessTypes,business_types,ASP: Required,string,3,D1
 CFDA_Number,cfda_number,ASP: Required,string,7,D13
 CorrectionLateDeleteIndicator,correction_late_delete_ind,ASP: Optional,string,1,D1

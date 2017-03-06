@@ -5,11 +5,11 @@ assistancetype,assistance_type,TRUE,str,2,D1,TRUE
 awarddescription,award_description,FALSE,str,4000,D2,
 awardeeorrecipientlegalentityname,awardee_or_recipient_legal,TRUE,str,120,D22,
 awardeeorrecipientuniqueidentifier,awardee_or_recipient_uniqu,FALSE,str,9,"D2, D10",
-awardingagencycode,awarding_agency_code,FALSE,str,3,D1,
+awardingagencycode,awarding_agency_code,TRUE,str,3,D1,TRUE
 awardingofficecode,awarding_office_code,FALSE,str,6,,
 awardingsubtieragencycode,awarding_sub_tier_agency_c,TRUE,str,4,"D1, D6",
 awardmodificationamendmentnumber,award_modification_amendme,FALSE,str,25,D6,
-businessfundsindicator,business_funds_indicator,FALSE,str,3,D1,
+businessfundsindicator,business_funds_indicator,TRUE,str,3,D1,
 businesstypes,business_types,TRUE,str,3,D1,
 cfda_number,cfda_number,TRUE,str,7,D13,
 correctionlatedeleteindicator,correction_late_delete_ind,FALSE,str,1,D1,
