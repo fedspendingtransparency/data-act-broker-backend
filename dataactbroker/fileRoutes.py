@@ -10,12 +10,12 @@ from dataactbroker.handlers.fileHandler import (
 from dataactcore.interfaces.function_bag import get_submission_stats
 from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactbroker.permissions import requires_login, requires_submission_perms
-from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER
+from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER, JOB_STATUS_DICT
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.jobModels import Submission
+from dataactcore.models.jobModels import Submission, Job
 
 
 # Add the file submission route
@@ -191,6 +191,15 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         NOTE: THERE IS NO WAY TO UNDO THIS """
 
         sess = GlobalDB.db().session
+
+        # Check if the submission has any jobs that are currently running, if so, do not allow deletion
+        jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                      Job.job_status_id == JOB_STATUS_DICT['running']).all()
+
+        if jobs:
+            return JsonResponse.error(ValueError("Submissions with running jobs cannot be deleted"),
+                                      StatusCode.CLIENT_ERROR)
+
         sess.query(Submission).filter(Submission.submission_id == submission.submission_id).delete(
             synchronize_session=False)
         sess.expire_all()
