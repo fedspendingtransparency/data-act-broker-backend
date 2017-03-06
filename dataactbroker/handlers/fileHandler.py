@@ -1191,7 +1191,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     if certified != 'mixed':
         query = query.filter_by(publishable=certified)
 
-    arr = [serialize_submission(s) for s in query];
+    arr = [serialize_submission(s) for s in query]
 
     options = {
         'modified': 'last_modified',
@@ -1208,7 +1208,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     else:
         arr.sort(key=lambda x: x.get(options.get(sort)))
 
-    if order=='desc':
+    if order == 'desc':
         arr.reverse()
 
     return JsonResponse.create(StatusCode.OK, {
