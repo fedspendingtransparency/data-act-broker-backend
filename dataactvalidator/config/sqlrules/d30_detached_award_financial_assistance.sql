@@ -4,5 +4,4 @@ SELECT
     business_funds_indicator
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND UPPER(business_funds_indicator) != 'REC'
-    AND UPPER(business_funds_indicator) != 'NON'
+    AND UPPER(business_funds_indicator) NOT IN ('REC', 'NON')
