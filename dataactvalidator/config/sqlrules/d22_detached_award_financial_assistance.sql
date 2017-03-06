@@ -4,8 +4,8 @@ SELECT
     dafa.awarding_agency_code
 FROM detached_award_financial_assistance as dafa
 WHERE dafa.submission_id = {0}
-    AND (dafa.awarding_agency_code != ''
-         AND NOT EXISTS (
-            SELECT cgac.cgac_code
-            FROM cgac AS cgac
-            WHERE cgac.cgac_code = dafa.awarding_agency_code))
+    AND NOT EXISTS (
+        SELECT cgac.cgac_code
+        FROM cgac AS cgac
+        WHERE cgac.cgac_code = dafa.awarding_agency_code
+    )
