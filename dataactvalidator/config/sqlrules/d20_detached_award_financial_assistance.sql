@@ -6,7 +6,7 @@ FROM detached_award_financial_assistance AS dafa
 WHERE dafa.submission_id = {0}
     AND dafa.funding_agency_code != ''
     AND NOT EXISTS (
-        SELECT cgac_code
+        SELECT cgac.cgac_code
         FROM cgac AS cgac
         WHERE cgac.cgac_code = dafa.funding_agency_code
     )
