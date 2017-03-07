@@ -50,14 +50,14 @@ def current_user_can(permission, cgac_code):
     return admin or has_affil
 
 
-def current_user_can_on_submission(perm, submission):
+def current_user_can_on_submission(perm, submission, check_owner=True):
     """Submissions add another permission possibility: if a user created a
     submission, they can do anything to it, regardless of submission agency"""
     is_owner = hasattr(g, 'user') and submission.user_id == g.user.user_id
-    return is_owner or current_user_can(perm, submission.cgac_code)
+    return (is_owner and check_owner) or current_user_can(perm, submission.cgac_code)
 
 
-def requires_submission_perms(perm):
+def requires_submission_perms(perm, check_owner=True):
     """Decorator that checks the current user's permissions and validates that
     the submission exists. It expects a submission_id parameter and will
     return a submission object"""
@@ -74,9 +74,9 @@ def requires_submission_perms(perm):
                 raise ResponseException('No such submission',
                                         StatusCode.CLIENT_ERROR)
 
-            if not current_user_can_on_submission(perm, submission):
+            if not current_user_can_on_submission(perm, submission, check_owner):
                 raise ResponseException(
-                    "User does not have permission to view that submission",
+                    "User does not have permission to access that submission",
                     StatusCode.PERMISSION_DENIED)
             return fn(submission, *args, **kwargs)
         return wrapped

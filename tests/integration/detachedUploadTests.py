@@ -83,7 +83,7 @@ class DetachedUploadTests(BaseTestAPI):
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
                           is_quarter=False, publish_status_id=1, d2_submission=True):
         """Insert one submission into job tracker and get submission ID back."""
-        sub = Submission(datetime_utc=datetime.utcnow(),
+        sub = Submission(created_at=datetime.utcnow(),
                          user_id=submission_user_id,
                          cgac_code=cgac_code,
                          reporting_start_date=datetime.strptime(start_date, '%m/%Y'),
@@ -96,13 +96,13 @@ class DetachedUploadTests(BaseTestAPI):
         return sub.submission_id
 
     def insert_duplicate_detached_award(self):
-        det_award = DetachedAwardFinancialAssistance(datetime_utc=datetime.utcnow(),
+        det_award = DetachedAwardFinancialAssistance(created_at=datetime.utcnow(),
                                                      submission_id=self.d2_submission_dupe,
                                                      job_id=1, row_number=1, is_valid=True,
                                                      fain="abc", uri="def", awarding_sub_tier_agency_c="abc",
                                                      award_modification_amendme="def")
 
-        det_award_2 = DetachedAwardFinancialAssistance(datetime_utc=datetime.utcnow(),
+        det_award_2 = DetachedAwardFinancialAssistance(created_at=datetime.utcnow(),
                                                        submission_id=self.d2_submission_dupe_2,
                                                        job_id=1, row_number=1, is_valid=True,
                                                        fain="abc", uri="def", awarding_sub_tier_agency_c="abc",
