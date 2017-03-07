@@ -13,7 +13,6 @@ SELECT
     period_of_performance_star
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
-    AND period_of_performance_star IS NOT NULL
     AND
         ((CASE
             WHEN pg_temp.is_date(COALESCE(period_of_performance_star, '0'))
