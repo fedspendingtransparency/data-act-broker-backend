@@ -21,10 +21,10 @@ WHERE ap.submission_id = {}
                  WHERE af.submission_id = ap.submission_id
                      AND af.piid = ap.piid
                      AND af.parent_award_id IS NOT DISTINCT FROM ap.parent_award_id)
-	       )
-	  )
-  AND NOT EXISTS (
-	    SELECT af.transaction_obligated_amou
-	    FROM award_financial AS af
-	    WHERE af.transaction_obligated_amou IS NULL
-	)
+         )
+    )
+    AND NOT EXISTS (
+        SELECT af.transaction_obligated_amou
+        FROM award_financial AS af
+        WHERE af.transaction_obligated_amou IS NULL
+    )
