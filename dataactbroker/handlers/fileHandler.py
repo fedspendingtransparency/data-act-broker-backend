@@ -1210,7 +1210,7 @@ def get_error_metrics(submission):
         return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
 
-def list_submissions(page, limit, certified):
+def list_submissions(page, limit, certified, sort='modified', order='desc'):
     """ List submission based on current page and amount to display. If provided, filter based on
     certification status """
     sess = GlobalDB.db().session
@@ -1224,11 +1224,29 @@ def list_submissions(page, limit, certified):
                                     Submission.user_id == g.user.user_id))
     if certified != 'mixed':
         query = query.filter_by(publishable=certified)
-    submissions = query.order_by(Submission.updated_at.desc()).\
-        limit(limit).offset(offset)
+
+    arr = [serialize_submission(s) for s in query]
+
+    options = {
+        'modified': 'last_modified',
+        'reporting': 'reporting_start_date',
+        'status': 'status',
+        'agency': 'agency'
+    }
+
+    if not options.get(sort):
+        sort = 'modified'
+
+    if sort == 'submitted_by':
+        arr.sort(key=lambda x: x.get('user').get('name'))
+    else:
+        arr.sort(key=lambda x: x.get(options.get(sort)))
+
+    if order == 'desc':
+        arr.reverse()
 
     return JsonResponse.create(StatusCode.OK, {
-        "submissions": [serialize_submission(s) for s in submissions],
+        "submissions": arr[offset:offset+limit],
         "total": query.count()
     })
 
