@@ -10,7 +10,7 @@ from dataactbroker.handlers.fileHandler import (
 from dataactcore.interfaces.function_bag import get_submission_stats
 from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactbroker.permissions import requires_login, requires_submission_perms
-from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER, JOB_STATUS_DICT
+from dataactcore.models.lookups import FILE_TYPE_DICT_LETTER, JOB_STATUS_DICT, PUBLISH_STATUS_DICT
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
@@ -75,11 +75,13 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         'limit': webargs_fields.Int(missing=5),
         'certified': webargs_fields.String(
             required=True,
-            validate=webargs_validate.OneOf(('mixed', 'true', 'false')))
+            validate=webargs_validate.OneOf(('mixed', 'true', 'false'))),
+        'sort': webargs_fields.String(missing='modified'),
+        'order': webargs_fields.String(missing='desc')
     })
-    def list_submissions(page, limit, certified):
+    def list_submissions(page, limit, certified, sort, order):
         """ List submission IDs associated with the current user """
-        return list_submissions_handler(page, limit, certified)
+        return list_submissions_handler(page, limit, certified, sort, order)
 
     @app.route("/v1/get_protected_files/", methods=["GET"])
     @requires_login
@@ -190,6 +192,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         """ Deletes all data associated with the specified submission
         NOTE: THERE IS NO WAY TO UNDO THIS """
 
+        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+            return JsonResponse.error(ValueError("Certified submissions cannot be deleted"), StatusCode.CLIENT_ERROR)
+
         sess = GlobalDB.db().session
 
         # Check if the submission has any jobs that are currently running, if so, do not allow deletion
@@ -205,6 +210,29 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         sess.expire_all()
 
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
+    @app.route("/v1/certify_submission/", methods=['POST'])
+    @convert_to_submission_id
+    @requires_submission_perms('submitter', check_owner=False)
+    def certify_submission(submission):
+        if not submission.publishable:
+            return JsonResponse.error(ValueError("Submission cannot be certified due to critical errors"),
+                                      StatusCode.CLIENT_ERROR)
+
+        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+            return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
+
+        sess = GlobalDB.db().session
+        submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+        sess.commit()
+
+        return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
+    @app.route("/v1/restart_validation/", methods=['POST'])
+    @convert_to_submission_id
+    @requires_submission_perms('writer')
+    def restart_validation(submission):
+        return FileHandler.restart_validation(submission)
 
 
 def convert_to_submission_id(fn):
