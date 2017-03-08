@@ -602,7 +602,7 @@ def get_submission_status(submission):
         if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
             status = "validation_successful_warnings"
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-            status = "submitted"
+            status = "certified"
 
     # Check if submission has errors
     if submission.number_of_errors is not None and submission.number_of_errors > 0:
