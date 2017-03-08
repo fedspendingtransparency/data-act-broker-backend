@@ -478,6 +478,8 @@ class FileHandler:
                         val_job.number_of_errors = 0
                         val_job.number_of_warnings = 0
                         val_job.filename = None
+                        # Update last validated date
+                        val_job.last_validated = datetime.utcnow()
                     sess.commit()
             except Timeout as e:
                 exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
@@ -1223,7 +1225,10 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
                                     Submission.user_id == g.user.user_id))
     if certified != 'mixed':
-        query = query.filter_by(publishable=certified)
+        if certified == 'true':
+            query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['published'])
+        else:
+            query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['published'])
 
     arr = [serialize_submission(s) for s in query]
 
