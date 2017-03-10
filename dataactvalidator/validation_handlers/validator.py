@@ -2,7 +2,7 @@ from collections import defaultdict, namedtuple
 from decimal import Decimal, DecimalException
 import logging
 
-from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT
+from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
 from dataactcore.models.stagingModels import FlexField
 from dataactcore.models.validationModels import RuleSql
 from dataactvalidator.validation_handlers.validationError import ValidationError
@@ -147,7 +147,7 @@ class Validator(object):
         raise ValueError("".join(["Data Type Error, Type: ", datatype, ", Value: ", data]))
 
 
-def cross_validate_sql(rules, submission_id, short_to_long_dict):
+def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, second_file):
     """ Evaluate all sql-based rules for cross file validation
 
     Args:
@@ -168,13 +168,26 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict):
             cols = failed_rows.keys()
             cols.remove('row_number')
             column_string = ", ".join(short_to_long_dict[c] if c in short_to_long_dict else c for c in cols)
+
+            # materialize as we'll iterate over the failed_rows twice
+            failed_rows = list(failed_rows)
+            flex_data = relevant_cross_flex_data(failed_rows, submission_id, [first_file, second_file])
+
             for row in failed_rows:
                 # get list of values for each column
                 values = ["{}: {}".format(short_to_long_dict[c], str(row[c])) if c in short_to_long_dict else
                           "{}: {}".format(c, str(row[c])) for c in cols]
                 values = ", ".join(values)
+                full_column_string = column_string
+                # go through all flex fields in this row and add to the columns and values
+                for field in flex_data[row['row_number']]:
+                    full_column_string += ", " + field.header + "_file" +\
+                                          FILE_TYPE_DICT_LETTER[field.file_type_id].lower()
+                    values += ", {}: {}".format(field.header + "_file" +
+                                                FILE_TYPE_DICT_LETTER[field.file_type_id].lower(), field.cell)
+
                 target_file_type = FILE_TYPE_DICT_ID[rule.target_file_id]
-                failures.append([rule.file.name, target_file_type, column_string,
+                failures.append([rule.file.name, target_file_type, full_column_string,
                                 str(rule.rule_error_message), values, row['row_number'], str(rule.rule_label),
                                 rule.file_id, rule.target_file_id, rule.rule_severity_id])
 
@@ -232,6 +245,20 @@ def relevant_flex_data(failures, job_id):
     flex_data = defaultdict(list)
     relevant_rows = {f['row_number'] for f in failures}
     query = sess.query(FlexField).filter(FlexField.row_number.in_(relevant_rows), FlexField.job_id == job_id).\
+        order_by(FlexField.flex_field_id)
+    for flex_field in query:
+        flex_data[flex_field.row_number].append(flex_field)
+    return flex_data
+
+
+def relevant_cross_flex_data(failed_rows, submission_id, files):
+    """Create a dictionary mapping row numbers of cross-file failures to lists of FlexFields"""
+    sess = GlobalDB.db().session
+    flex_data = defaultdict(list)
+    relevant_rows = {f['row_number'] for f in failed_rows}
+    query = sess.query(FlexField).filter(FlexField.row_number.in_(relevant_rows),
+                                         FlexField.submission_id == submission_id,
+                                         FlexField.file_type_id.in_(files)). \
         order_by(FlexField.flex_field_id)
     for flex_field in query:
         flex_data[flex_field.row_number].append(flex_field)

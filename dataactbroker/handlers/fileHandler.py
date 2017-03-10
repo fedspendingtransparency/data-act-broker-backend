@@ -23,7 +23,8 @@ from dataactcore.models.domainModels import CGAC, SubTierAgency
 from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.jobModels import (
-    FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation)
+    FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation,
+    RevalidationThreshold)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT,
@@ -37,7 +38,7 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     check_number_of_errors_by_job_id, create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type,
-    get_submission_status, mark_job_status, run_job_checks, create_file_if_needed)
+    get_submission_status, mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
 logger = logging.getLogger(__name__)
@@ -477,6 +478,8 @@ class FileHandler:
                         val_job.number_of_errors = 0
                         val_job.number_of_warnings = 0
                         val_job.filename = None
+                        # Update last validated date
+                        val_job.last_validated = datetime.utcnow()
                     sess.commit()
             except Timeout as e:
                 exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, Timeout)
@@ -999,6 +1002,33 @@ class FileHandler:
         else:
             response_dict["bucket_name"] = CONFIG_BROKER["aws_bucket"]
 
+    @staticmethod
+    def restart_validation(submission):
+        # update all validation jobs to "ready"
+        sess = GlobalDB.db().session
+        initial_file_types = [FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
+                              FILE_TYPE_DICT['award_financial']]
+
+        jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
+
+        # set all jobs to their initial status of "waiting"
+        for job in jobs:
+            job.job_status_id = JOB_STATUS_DICT['waiting']
+
+        # update upload jobs to "running", only for files A, B, and C
+        upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']] and
+                       job.file_type_id in initial_file_types]
+
+        for job in upload_jobs:
+            job.job_status_id = JOB_STATUS_DICT['running']
+        sess.commit()
+
+        # call finalize job for the upload jobs for files A, B, and C which will kick off the rest of
+        for job in upload_jobs:
+            FileHandler.finalize(job.job_id)
+
+        return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
 
 def narratives_for_submission(submission):
     """Fetch narratives for this submission, indexed by file letter"""
@@ -1121,13 +1151,19 @@ def submission_to_dict_for_status(submission):
         Job.job_type_id.in_(relevant_job_types)
     )
 
+    revalidation_threshold = sess.query(RevalidationThreshold).one_or_none()
+    last_validated = get_last_validated_date(submission.submission_id)
+
     return {
         'cgac_code': submission.cgac_code,
         'agency_name': agency_name,
-        'created_on': submission.datetime_utc.strftime('%m/%d/%Y'),
+        'created_on': submission.created_at.strftime('%m/%d/%Y'),
         'number_of_errors': submission.number_of_errors,
         'number_of_rows': number_of_rows,
         'last_updated': submission.updated_at.strftime("%Y-%m-%dT%H:%M:%S"),
+        'last_validated': last_validated,
+        'revalidation_threshold':
+            revalidation_threshold.revalidation_date.strftime('%m/%d/%Y') if revalidation_threshold else '',
         # Broker allows submission for a single quarter or a single month,
         # so reporting_period start and end dates reported by check_status
         # are always equal
@@ -1176,7 +1212,7 @@ def get_error_metrics(submission):
         return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
 
-def list_submissions(page, limit, certified):
+def list_submissions(page, limit, certified, sort='modified', order='desc'):
     """ List submission based on current page and amount to display. If provided, filter based on
     certification status """
     sess = GlobalDB.db().session
@@ -1189,12 +1225,33 @@ def list_submissions(page, limit, certified):
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
                                     Submission.user_id == g.user.user_id))
     if certified != 'mixed':
-        query = query.filter_by(publishable=certified)
-    submissions = query.order_by(Submission.updated_at.desc()).\
-        limit(limit).offset(offset)
+        if certified == 'true':
+            query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['published'])
+        else:
+            query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['published'])
+
+    arr = [serialize_submission(s) for s in query]
+
+    options = {
+        'modified': 'last_modified',
+        'reporting': 'reporting_start_date',
+        'status': 'status',
+        'agency': 'agency'
+    }
+
+    if not options.get(sort):
+        sort = 'modified'
+
+    if sort == 'submitted_by':
+        arr.sort(key=lambda x: x.get('user').get('name'))
+    else:
+        arr.sort(key=lambda x: x.get(options.get(sort)))
+
+    if order == 'desc':
+        arr.reverse()
 
     return JsonResponse.create(StatusCode.OK, {
-        "submissions": [serialize_submission(s) for s in submissions],
+        "submissions": arr[offset:offset+limit],
         "total": query.count()
     })
 

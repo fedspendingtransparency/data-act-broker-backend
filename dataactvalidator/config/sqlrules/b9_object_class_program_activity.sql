@@ -29,6 +29,6 @@ WHERE op.submission_id = {0}
 				AND op.agency_identifier IS NOT DISTINCT FROM pa.agency_id
 				AND op.allocation_transfer_agency IS NOT DISTINCT FROM pa.allocation_transfer_id
 				AND op.main_account_code IS NOT DISTINCT FROM pa.account_number
-				AND op.program_activity_name IS NOT DISTINCT FROM pa.program_activity_name
+				AND LOWER(op.program_activity_name) IS NOT DISTINCT FROM LOWER(pa.program_activity_name)
 				AND op.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code)
 	);

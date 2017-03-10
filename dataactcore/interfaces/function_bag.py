@@ -355,7 +355,7 @@ def create_submission(user_id, submission_values, existing_submission):
         submission object
     """
     if existing_submission is None:
-        submission = Submission(datetime_utc=datetime.utcnow(), **submission_values)
+        submission = Submission(created_at=datetime.utcnow(), **submission_values)
         submission.user_id = user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['unpublished']
     else:
@@ -601,11 +601,34 @@ def get_submission_status(submission):
         status = "validation_successful"
         if submission.number_of_warnings is not None and submission.number_of_warnings > 0:
             status = "validation_successful_warnings"
-        if submission.publishable:
-            status = "submitted"
+        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+            status = "certified"
 
     # Check if submission has errors
     if submission.number_of_errors is not None and submission.number_of_errors > 0:
         status = "validation_errors"
 
     return status
+
+
+def get_last_validated_date(submission_id):
+    """ Return the oldest last validated date for validation jobs """
+    sess = GlobalDB.db().session
+
+    validation_job_types = [JOB_TYPE_DICT['csv_record_validation'], JOB_TYPE_DICT['validation']]
+
+    jobs = sess.query(Job).filter(Job.submission_id == submission_id,
+                                  Job.job_type_id.in_(validation_job_types)).all()
+
+    oldest_date = ''
+    for job in jobs:
+        # if any job's last validated doesn't exist, return blank immediately
+        if not job.last_validated:
+            return ''
+
+        if not oldest_date or job.last_validated < oldest_date:
+            oldest_date = job.last_validated
+
+    # Still need to do a check here in case there aren't any jobs for a submission.
+    # This is the case for a single unit test
+    return oldest_date.strftime('%m/%d/%Y') if oldest_date else oldest_date

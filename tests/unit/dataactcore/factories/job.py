@@ -1,7 +1,7 @@
 import factory
 from factory import fuzzy
 
-from datetime import date, datetime, timezone
+from datetime import date
 
 from dataactcore.models import jobModels
 
@@ -11,7 +11,6 @@ class SubmissionFactory(factory.Factory):
         model = jobModels.Submission
 
     submission_id = None
-    datetime_utc = fuzzy.FuzzyDateTime(datetime(2010, 1, 1, tzinfo=timezone.utc))
     user_id = None
     cgac_code = fuzzy.FuzzyText()
     reporting_start_date = fuzzy.FuzzyDate(date(2010, 1, 1))

@@ -20,6 +20,53 @@ def list_submissions_result():
     return json.loads(json_response.get_data().decode('UTF-8'))
 
 
+def list_submissions_sort(category, order):
+    json_response = fileHandler.list_submissions(1, 10, "mixed", category, order)
+    assert json_response.status_code == 200
+    return json.loads(json_response.get_data().decode('UTF-8'))
+
+
+def test_list_submissions_sort_success(database, job_constants, monkeypatch):
+    user1 = UserFactory(user_id=1, name='Oliver Queen', website_admin=True)
+    user2 = UserFactory(user_id=2, name='Barry Allen')
+    sub1 = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1, reporting_start_date=date(2010, 1, 1))
+    sub2 = SubmissionFactory(user_id=1, submission_id=2, number_of_warnings=1, reporting_start_date=date(2010, 1, 2))
+    sub3 = SubmissionFactory(user_id=2, submission_id=3, number_of_warnings=1, reporting_start_date=date(2010, 1, 3))
+    sub4 = SubmissionFactory(user_id=2, submission_id=4, number_of_warnings=1, reporting_start_date=date(2010, 1, 4))
+    sub5 = SubmissionFactory(user_id=2, submission_id=5, number_of_warnings=1, reporting_start_date=date(2010, 1, 5))
+    add_models(database, [user1, user2, sub1, sub2, sub3, sub4, sub5])
+
+    monkeypatch.setattr(fileHandler, 'g', Mock(user=user1))
+    result = list_submissions_sort('reporting', 'desc')
+    assert result['total'] == 5
+    sub = result['submissions'][0]
+    for subit in result['submissions']:
+        assert subit['reporting_start_date'] <= sub['reporting_start_date']
+        sub = subit
+
+    result = list_submissions_sort('reporting', 'asc')
+    assert result['total'] == 5
+    sub = result['submissions'][0]
+    for subit in result['submissions']:
+        assert subit['reporting_start_date'] >= sub['reporting_start_date']
+        sub = subit
+
+    result = list_submissions_sort('submitted_by', 'asc')
+    assert result['total'] == 5
+    sub = result['submissions'][0]
+    for subit in result['submissions']:
+        assert subit['user']['name'] <= sub['user']['name']
+        sub = subit
+
+    result = list_submissions_sort('submitted_by', 'desc')
+    assert result['total'] == 5
+    sub = result['submissions'][0]
+    for subit in result['submissions']:
+        assert subit['user']['name'] >= sub['user']['name']
+        sub = subit
+    delete_models(database, [user1, user2, sub1, sub2, sub3, sub4, sub5])
+
+
 def test_list_submissions_success(database, job_constants, monkeypatch):
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1)
