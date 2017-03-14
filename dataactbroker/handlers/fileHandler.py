@@ -1039,7 +1039,9 @@ class FileHandler:
             old_path_sections = job.filename.split("/")
             new_path = '{}/{}/{}/{}'.format(submission.cgac_code, submission.reporting_fiscal_period // 3,
                                             submission.reporting_fiscal_year, old_path_sections[-1])
-            self.s3manager.copy_file(original_path=job.filename, new_path=new_path)
+            self.s3manager.copy_file(original_bucket=CONFIG_BROKER['aws_bucket'],
+                                     new_bucket=CONFIG_BROKER['certified_bucket'],
+                                     original_path=job.filename, new_path=new_path)
 
 
 def narratives_for_submission(submission):
