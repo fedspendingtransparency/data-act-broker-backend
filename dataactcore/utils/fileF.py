@@ -7,7 +7,6 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.fsrs import FSRSGrant, FSRSProcurement, FSRSSubcontract, FSRSSubgrant
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
 import logging
-from sqlalchemy import and_
 
 
 logger = logging.getLogger(__name__)
