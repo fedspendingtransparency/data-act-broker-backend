@@ -1035,12 +1035,14 @@ class FileHandler:
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
                                       Job.job_type_id == JOB_TYPE_DICT['file_upload'],
                                       Job.filename.isnot(None)).all()
+        original_bucket = CONFIG_BROKER['aws_bucket']
+        new_bucket = CONFIG_BROKER['certified_bucket']
         for job in jobs:
             old_path_sections = job.filename.split("/")
             new_path = '{}/{}/{}/{}'.format(submission.cgac_code, submission.reporting_fiscal_period // 3,
                                             submission.reporting_fiscal_year, old_path_sections[-1])
-            self.s3manager.copy_file(original_bucket=CONFIG_BROKER['aws_bucket'],
-                                     new_bucket=CONFIG_BROKER['certified_bucket'],
+            self.s3manager.copy_file(original_bucket=original_bucket,
+                                     new_bucket=new_bucket,
                                      original_path=job.filename, new_path=new_path)
 
 
