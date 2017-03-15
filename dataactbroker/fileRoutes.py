@@ -220,6 +220,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.error(ValueError("Submission cannot be certified due to critical errors"),
                                       StatusCode.CLIENT_ERROR)
 
+        if not submission.is_quarter_format:
+            return JsonResponse.error(ValueError("Monthly submissions cannot be certified"), StatusCode.CLIENT_ERROR)
+
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
 

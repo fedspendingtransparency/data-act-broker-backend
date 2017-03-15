@@ -394,6 +394,10 @@ status objects for each job under the key "jobs", and other submission-level dat
 - number_of_rows: Total number of rows in the submission
 - created_on: Date the submission was originally created
 - last_updated: Date + time of last modification to this submission
+- last_validated: Earliest date of last validation of all jobs
+- revalidation_threshold: Earliest date all jobs must be validated after in order to certify/publish
+- publish_status: Publish status of the submission (unpublished/published/updated)
+- quarterly_submission: True if the submission is quarterly, false otherwise
 
 
 Example input:
@@ -507,8 +511,12 @@ Example output:
   "reporting_period_end_date": "03/31/2016",
   "number_of_errors": 54,
   "number_of_rows": 446,
-  "created_on": "04/01/2016"
-  "last_updated": "2016-04-01T09:10:11"
+  "created_on": "04/01/2016",
+  "last_updated": "2016-04-01T09:10:11",
+  "last_validated": "03/15/2017",
+  "revalidation_threshold": "02/02/2017",
+  "publish_status": "unpublished",
+  "quarterly_submission": True
 }
 ```
 
