@@ -394,6 +394,10 @@ status objects for each job under the key "jobs", and other submission-level dat
 - number_of_rows: Total number of rows in the submission
 - created_on: Date the submission was originally created
 - last_updated: Date + time of last modification to this submission
+- last_validated: Earliest date of last validation of all jobs
+- revalidation_threshold: Earliest date all jobs must be validated after in order to certify/publish
+- publish_status: Publish status of the submission (unpublished/published/updated)
+- quarterly_submission: True if the submission is quarterly, false otherwise
 
 
 Example input:
