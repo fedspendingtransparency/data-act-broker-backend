@@ -511,8 +511,12 @@ Example output:
   "reporting_period_end_date": "03/31/2016",
   "number_of_errors": 54,
   "number_of_rows": 446,
-  "created_on": "04/01/2016"
-  "last_updated": "2016-04-01T09:10:11"
+  "created_on": "04/01/2016",
+  "last_updated": "2016-04-01T09:10:11",
+  "last_validated": "03/15/2017",
+  "revalidation_threshold": "02/02/2017",
+  "publish_status": "unpublished",
+  "quarterly_submission": True
 }
 ```
 
