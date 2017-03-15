@@ -196,7 +196,7 @@ class FileHandler:
                 sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files,
+            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files, submission,
                                 existing_submission)
 
             if not upload_files and existing_submission:
@@ -209,7 +209,7 @@ class FileHandler:
 
                     if not self.isLocal:
                         upload_name = "{}/{}".format(
-                            g.user.user_id,
+                            submission.submission_id,
                             S3UrlHandler.get_timestamped_filename(filename)
                         )
                     else:
@@ -682,7 +682,7 @@ class FileHandler:
             sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, ['detached_award'], response_dict, upload_files)
+            self.build_file_map(request_params, ['detached_award'], response_dict, upload_files, submission)
 
             self.create_response_dict_for_submission(upload_files, submission, False, response_dict, create_credentials)
             return JsonResponse.create(StatusCode.OK, response_dict)
@@ -955,7 +955,8 @@ class FileHandler:
 
         return job
 
-    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, existing_submission=False):
+    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, submission,
+                       existing_submission=False):
         """ build fileNameMap to be used in creating jobs """
         for file_type in file_type_list:
             # if file_type not included in request, and this is an update to an existing submission, skip it
@@ -969,7 +970,7 @@ class FileHandler:
             if file_name:
                 if not self.isLocal:
                     upload_name = "{}/{}".format(
-                        g.user.user_id,
+                        submission.submission_id,
                         S3UrlHandler.get_timestamped_filename(file_name)
                     )
                 else:
