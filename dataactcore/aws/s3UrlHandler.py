@@ -142,4 +142,9 @@ class S3UrlHandler:
 
         s3connection = boto.s3.connect_to_region(S3UrlHandler.REGION)
         original_key = s3connection.get_bucket(original_bucket).get_key(original_path)
+        logger.warning("Old Bucket: %s", original_bucket)
+        logger.warning("Old Path: %s", original_path)
+        logger.warning("New Bucket: %s", new_bucket)
+        logger.warning("New Path: %s", new_path)
+        logger.warning("File doesn't exist on AWS: %s", original_key)
         original_key.copy(new_bucket, new_path)
