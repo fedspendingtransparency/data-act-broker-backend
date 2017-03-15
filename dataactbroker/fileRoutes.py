@@ -192,8 +192,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         """ Deletes all data associated with the specified submission
         NOTE: THERE IS NO WAY TO UNDO THIS """
 
-        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-            return JsonResponse.error(ValueError("Certified submissions cannot be deleted"), StatusCode.CLIENT_ERROR)
+        if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
+            return JsonResponse.error(ValueError("Submissions that have been certified cannot be deleted"),
+                                      StatusCode.CLIENT_ERROR)
 
         sess = GlobalDB.db().session
 
