@@ -596,13 +596,13 @@ class FileTests(BaseTestAPI):
         post_json = {'submission_id': self.test_certified_submission_id}
         response = self.app.post_json("/v1/delete_submission/", post_json, headers={"x-session-id": self.session_id},
                                       expect_errors=True)
-        self.assertEqual(response.json["message"], "Certified submissions cannot be deleted")
+        self.assertEqual(response.json["message"], "Submissions that have been certified cannot be deleted")
 
         # test trying to delete an updated submission (failure expected)
         post_json = {'submission_id': self.test_updated_submission_id}
         response = self.app.post_json("/v1/delete_submission/", post_json, headers={"x-session-id": self.session_id},
                                       expect_errors=True)
-        self.assertEqual(response.json["message"], "Certified submissions cannot be deleted")
+        self.assertEqual(response.json["message"], "Submissions that have been certified cannot be deleted")
 
     def test_certify_submission(self):
         post_json = {'submission_id': self.test_uncertified_submission_id}
