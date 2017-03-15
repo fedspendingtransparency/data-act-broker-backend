@@ -1,7 +1,7 @@
 from dataactcore.utils import fileF
 from tests.unit.dataactcore.factories.fsrs import (FSRSGrantFactory, FSRSProcurementFactory, FSRSSubcontractFactory,
                                                    FSRSSubgrantFactory)
-from tests.unit.dataactcore.factories.staging import AwardFinancialFactory, AwardProcurementFactory
+from tests.unit.dataactcore.factories.staging import AwardFinancialAssistanceFactory, AwardProcurementFactory
 from tests.unit.dataactcore.factories.job import SubmissionFactory
 
 
@@ -66,19 +66,22 @@ def test_generate_f_rows(database, monkeypatch):
     sess.add_all([sub_1, sub_2])
     sess.commit()
 
-    awards = [AwardFinancialFactory(submission_id=sub_1.submission_id, piid='PIID1'),
-              AwardFinancialFactory(submission_id=sub_1.submission_id, piid='PIID2'),
-              AwardFinancialFactory(submission_id=sub_1.submission_id, fain='FAIN1'),
-              AwardFinancialFactory(submission_id=sub_1.submission_id, fain='FAIN2'),
-              AwardFinancialFactory(submission_id=sub_2.submission_id, piid='PIID1'),
-              AwardFinancialFactory(submission_id=sub_2.submission_id, fain='FAIN1')]
+    awards = [AwardProcurementFactory(submission_id=sub_1.submission_id, piid='PIID1', parent_award_id='PIID1'),
+              AwardProcurementFactory(submission_id=sub_1.submission_id, piid='PIID2', parent_award_id='PIID2'),
+              AwardFinancialAssistanceFactory(submission_id=sub_1.submission_id, fain='FAIN1'),
+              AwardFinancialAssistanceFactory(submission_id=sub_1.submission_id, fain='FAIN2'),
+              AwardProcurementFactory(submission_id=sub_2.submission_id, piid='PIID1', parent_award_id='PIID1'),
+              AwardFinancialAssistanceFactory(submission_id=sub_2.submission_id, fain='FAIN1')]
     sess.add_all(awards)
     procurements = {}
     for piid in ('PIID1', 'PIID2', 'PIID3'):
         procurements[piid] = [
-            FSRSProcurementFactory(contract_number=piid, subawards=[FSRSSubcontractFactory() for _ in range(3)]),
-            FSRSProcurementFactory(contract_number=piid, subawards=[]),
-            FSRSProcurementFactory(contract_number=piid, subawards=[FSRSSubcontractFactory() for _ in range(2)])
+            FSRSProcurementFactory(contract_number=piid, idv_reference_number=piid,
+                                   subawards=[FSRSSubcontractFactory() for _ in range(3)]),
+            FSRSProcurementFactory(contract_number=piid, idv_reference_number=piid,
+                                   subawards=[]),
+            FSRSProcurementFactory(contract_number=piid, idv_reference_number=piid,
+                                   subawards=[FSRSSubcontractFactory() for _ in range(2)])
         ]
         sess.add_all(procurements[piid])
     grants = {}
@@ -105,16 +108,16 @@ def test_generate_f_rows_naics_desc(database, monkeypatch):
     database.session.add(sub)
     database.session.commit()
 
-    award = AwardFinancialFactory(submission_id=sub.submission_id)
-    ap = AwardProcurementFactory(submission_id=award.submission_id, piid=award.piid)
+    award = AwardProcurementFactory(submission_id=sub.submission_id)
     other_aps = [AwardProcurementFactory(submission_id=award.submission_id) for _ in range(3)]
-    proc = FSRSProcurementFactory(contract_number=award.piid, subawards=[FSRSSubcontractFactory(naics=ap.naics)])
+    proc = FSRSProcurementFactory(contract_number=award.piid, idv_reference_number=award.parent_award_id,
+                                  subawards=[FSRSSubcontractFactory(naics=award.naics)])
 
-    database.session.add_all([award, ap, proc] + other_aps)
+    database.session.add_all([award, proc] + other_aps)
     database.session.commit()
 
     actual = {result['NAICS_Description'] for result in fileF.generate_f_rows(award.submission_id)}
-    assert actual == {ap.naics_description}
+    assert actual == {award.naics_description}
 
 
 def test_generate_f_rows_false(database, monkeypatch):
@@ -123,9 +126,10 @@ def test_generate_f_rows_false(database, monkeypatch):
     database.session.add(sub)
     database.session.commit()
 
-    award = AwardFinancialFactory(submission_id=sub.submission_id)
+    award = AwardProcurementFactory(submission_id=sub.submission_id)
     proc = FSRSProcurementFactory(
         contract_number=award.piid,
+        idv_reference_number=award.parent_award_id,
         subawards=[FSRSSubcontractFactory(recovery_model_q1=False, recovery_model_q2=None)]
     )
 

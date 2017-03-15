@@ -56,8 +56,10 @@ def job_context(task, job_id):
         sess = GlobalDB.db().session
         try:
             yield sess
+            logger.debug('Marking job as finished')
             mark_job_status(job_id, "finished")
         except Exception as e:
+            logger.debug('EXCEPTION CAUGHT')
             # logger.exception() automatically adds traceback info
             logger.exception('Job %s failed, retrying', job_id)
             try:
@@ -77,14 +79,21 @@ def job_context(task, job_id):
 @celery_app.task(name='jobQueue.generate_f_file', max_retries=0, bind=True)
 def generate_f_file(task, submission_id, job_id, timestamped_name, upload_file_name, is_local):
     """Write rows from fileF.generate_f_rows to an appropriate CSV."""
+
+    logger.debug('Starting file F generation')
+
     with job_context(task, job_id):
+        logger.debug('Calling genearte_f_rows')
         rows_of_dicts = fileF.generate_f_rows(submission_id)
         header = [key for key in fileF.mappings]    # keep order
         body = []
         for row in rows_of_dicts:
             body.append([row[key] for key in header])
 
+        logger.debug('Writing file F CSV')
         write_csv(timestamped_name, upload_file_name, is_local, header, body)
+
+    logger.debug('Finished file F generation')
 
 
 @celery_app.task(name='jobQueue.generate_e_file', max_retires=3, bind=True)

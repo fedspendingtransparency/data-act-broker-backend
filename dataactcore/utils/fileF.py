@@ -5,7 +5,11 @@ import iso3166
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.fsrs import FSRSGrant, FSRSProcurement, FSRSSubcontract, FSRSSubgrant
-from dataactcore.models.stagingModels import AwardFinancial, AwardProcurement
+from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 def _country_name(code):
@@ -164,34 +168,40 @@ def submission_procurements(submission_id):
     """Fetch procurements and subcontracts"""
     sess = GlobalDB.db().session
 
-    naics_subquery = sess.query(AwardProcurement.naics_description).\
+    logger.debug('Starting submission procurements')
+
+    results = sess.query(AwardProcurement, FSRSProcurement, FSRSSubcontract).\
         filter(AwardProcurement.submission_id == submission_id).\
-        filter(AwardProcurement.piid == AwardFinancial.piid).\
-        filter(AwardProcurement.naics == FSRSSubcontract.naics).\
-        order_by(AwardProcurement.award_procurement_id).limit(1).as_scalar()
-    results = sess.query(AwardFinancial, FSRSProcurement, FSRSSubcontract,
-                         naics_subquery).\
-        filter(AwardFinancial.submission_id == submission_id).\
-        filter(FSRSProcurement.contract_number == AwardFinancial.piid).\
+        filter(FSRSProcurement.contract_number == AwardProcurement.piid).\
+        filter(FSRSProcurement.idv_reference_number == AwardProcurement.parent_award_id).\
         filter(FSRSSubcontract.parent_id == FSRSProcurement.id)
-    for award, proc, sub, naics_desc in results:
-        yield ModelRow(award, proc, sub, naics_desc=naics_desc)
+    for award, proc, sub in results:
+        yield ModelRow(award, proc, sub, naics_desc=award.naics_description)
+
+    logger.debug('Finished submission procurements')
 
 
 def submission_grants(submission_id):
     """Fetch grants and subgrants"""
+    logger.debug('Starting submission grants')
+
     triplets = GlobalDB.db().session.\
-        query(AwardFinancial, FSRSGrant, FSRSSubgrant).\
-        filter(AwardFinancial.submission_id == submission_id).\
-        filter(FSRSGrant.fain == AwardFinancial.fain).\
+        query(AwardFinancialAssistance, FSRSGrant, FSRSSubgrant).\
+        filter(AwardFinancialAssistance.submission_id == submission_id).\
+        filter(FSRSGrant.fain == AwardFinancialAssistance.fain).\
         filter(FSRSSubgrant.parent_id == FSRSGrant.id)
     for award, grant, sub in triplets:
         yield ModelRow(award, grant=grant, subgrant=sub)
+
+    logger.debug('Finished submission grants')
 
 
 def generate_f_rows(submission_id):
     """Generated OrderedDicts representing File F rows. Subawards are filtered
     to those relevant to a particular submissionId"""
+
+    logger.debug('Starting generate f rows')
+
     for model_row in itertools.chain(submission_procurements(submission_id),
                                      submission_grants(submission_id)):
         result = OrderedDict()
@@ -202,3 +212,5 @@ def generate_f_rows(submission_id):
             else:
                 result[key] = str(value)
         yield result
+
+    logger.debug('Finished generating f rows')
