@@ -75,6 +75,19 @@ class FileTests(BaseTestAPI):
                                                                   is_quarter=True)
             cls.setup_file_generation_submission(sess, submission_id=cls.test_delete_submission_id)
 
+            cls.test_certified_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                     start_date="07/2015", end_date="09/2015",
+                                                                     is_quarter=True, number_of_errors=0,
+                                                                     publish_status_id=2)
+
+            cls.test_uncertified_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                       start_date="07/2015", end_date="09/2015",
+                                                                       is_quarter=True, number_of_errors=0)
+
+            cls.test_revalidate_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                      start_date="10/2015", end_date="12/2015",
+                                                                      is_quarter=True, number_of_errors=0)
+
     def setUp(self):
         """Test set-up."""
         super(FileTests, self).setUp()
@@ -574,18 +587,42 @@ class FileTests(BaseTestAPI):
                                                         JobDependency.prerequisite_id.in_(job_ids))).all()
         self.assertEqual(job_deps, [])
 
+        # test trying to delete a certified submission (failure expected)
+        post_json = {'submission_id': self.test_certified_submission_id}
+        response = self.app.post_json("/v1/delete_submission/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.json["message"], "Certified submissions cannot be deleted")
+
+    def test_certify_submission(self):
+        post_json = {'submission_id': self.test_uncertified_submission_id}
+        response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(response.json['message'], "Success")
+
+        post_json = {'submission_id': self.row_error_submission_id}
+        response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.json['message'], "Submission cannot be certified due to critical errors")
+
+    def test_revalidate_submission(self):
+        post_json = {'submission_id': self.row_error_submission_id}
+        response = self.app.post_json("/v1/restart_validation/", post_json,
+                                      headers={"x-session-id": self.session_id})
+        self.assertEqual(response.json['message'], "Success")
+
     @staticmethod
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
                           is_quarter=False, number_of_errors=0, publish_status_id=1):
         """Insert one submission into job tracker and get submission ID back."""
-        sub = Submission(datetime_utc=datetime.utcnow(),
+        publishable = True if number_of_errors == 0 else False
+        sub = Submission(created_at=datetime.utcnow(),
                          user_id=submission_user_id,
                          cgac_code=cgac_code,
                          reporting_start_date=datetime.strptime(start_date, '%m/%Y'),
                          reporting_end_date=datetime.strptime(end_date, '%m/%Y'),
                          is_quarter_format=is_quarter,
                          number_of_errors=number_of_errors,
-                         publish_status_id=publish_status_id)
+                         publish_status_id=publish_status_id,
+                         publishable=publishable)
         sess.add(sub)
         sess.commit()
         return sub.submission_id

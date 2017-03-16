@@ -80,7 +80,7 @@ class BaseTestValidator(unittest.TestCase):
         else:
             reporting_start_date = reporting_end_date - timedelta(days=30)
         sub = Submission(
-            datetime_utc=datetime.utcnow(),
+            created_at=datetime.utcnow(),
             user_id=user_id,
             reporting_start_date=reporting_start_date,
             reporting_end_date=reporting_end_date)
