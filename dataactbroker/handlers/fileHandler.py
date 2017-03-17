@@ -1029,6 +1029,22 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
+    def move_certified_files(self, submission):
+        sess = GlobalDB.db().session
+        # Putting this here for now, get the uploads list
+        jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                      Job.job_type_id == JOB_TYPE_DICT['file_upload'],
+                                      Job.filename.isnot(None)).all()
+        original_bucket = CONFIG_BROKER['aws_bucket']
+        new_bucket = CONFIG_BROKER['certified_bucket']
+        for job in jobs:
+            old_path_sections = job.filename.split("/")
+            new_path = '{}/{}/{}/{}'.format(submission.cgac_code, submission.reporting_fiscal_year,
+                                            submission.reporting_fiscal_period // 3, old_path_sections[-1])
+            self.s3manager.copy_file(original_bucket=original_bucket,
+                                     new_bucket=new_bucket,
+                                     original_path=job.filename, new_path=new_path)
+
 
 def narratives_for_submission(submission):
     """Fetch narratives for this submission, indexed by file letter"""

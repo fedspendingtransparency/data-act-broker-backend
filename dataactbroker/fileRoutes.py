@@ -227,6 +227,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
 
         sess = GlobalDB.db().session
+        if not is_local:
+            file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+            file_manager.move_certified_files(submission)
         submission.publish_status_id = PUBLISH_STATUS_DICT['published']
         sess.commit()
 
