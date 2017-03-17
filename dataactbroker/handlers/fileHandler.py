@@ -1039,8 +1039,8 @@ class FileHandler:
         new_bucket = CONFIG_BROKER['certified_bucket']
         for job in jobs:
             old_path_sections = job.filename.split("/")
-            new_path = '{}/{}/{}/{}'.format(submission.cgac_code, submission.reporting_fiscal_period // 3,
-                                            submission.reporting_fiscal_year, old_path_sections[-1])
+            new_path = '{}/{}/{}/{}'.format(submission.cgac_code, submission.reporting_fiscal_year,
+                                            submission.reporting_fiscal_period // 3, old_path_sections[-1])
             self.s3manager.copy_file(original_bucket=original_bucket,
                                      new_bucket=new_bucket,
                                      original_path=job.filename, new_path=new_path)
