@@ -196,7 +196,7 @@ class FileHandler:
                 sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files,
+            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files, submission,
                                 existing_submission)
 
             if not upload_files and existing_submission:
@@ -209,7 +209,7 @@ class FileHandler:
 
                     if not self.isLocal:
                         upload_name = "{}/{}".format(
-                            g.user.user_id,
+                            submission.submission_id,
                             S3UrlHandler.get_timestamped_filename(filename)
                         )
                     else:
@@ -682,7 +682,7 @@ class FileHandler:
             sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, ['detached_award'], response_dict, upload_files)
+            self.build_file_map(request_params, ['detached_award'], response_dict, upload_files, submission)
 
             self.create_response_dict_for_submission(upload_files, submission, False, response_dict, create_credentials)
             return JsonResponse.create(StatusCode.OK, response_dict)
@@ -932,20 +932,19 @@ class FileHandler:
     def add_generation_job_info(self, file_type_name, job=None, dates=None):
         # if job is None, that means the info being added is for detached d file generation
         sess = GlobalDB.db().session
-        user_id = g.user.user_id
+
+        if job is None:
+            job = Job(job_type_id=JOB_TYPE_DICT['file_upload'], user_id=g.user.user_id,
+                      file_type_id=FILE_TYPE_DICT[file_type_name], start_date=dates['start_date'],
+                      end_date=dates['end_date'])
+            sess.add(job)
 
         timestamped_name = S3UrlHandler.get_timestamped_filename(
             CONFIG_BROKER["".join([str(file_type_name), "_file_name"])])
         if self.isLocal:
             upload_file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
         else:
-            upload_file_name = "".join([str(user_id), "/", timestamped_name])
-
-        if job is None:
-            job = Job(job_type_id=JOB_TYPE_DICT['file_upload'], user_id=user_id,
-                      file_type_id=FILE_TYPE_DICT[file_type_name], start_date=dates['start_date'],
-                      end_date=dates['end_date'])
-            sess.add(job)
+            upload_file_name = "".join([str(job.submission_id), "/", timestamped_name])
 
         # This will update the reference so no need to return the job, just the upload and timestamped file names
         job.filename = upload_file_name
@@ -955,7 +954,8 @@ class FileHandler:
 
         return job
 
-    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, existing_submission=False):
+    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, submission,
+                       existing_submission=False):
         """ build fileNameMap to be used in creating jobs """
         for file_type in file_type_list:
             # if file_type not included in request, and this is an update to an existing submission, skip it
@@ -969,7 +969,7 @@ class FileHandler:
             if file_name:
                 if not self.isLocal:
                     upload_name = "{}/{}".format(
-                        g.user.user_id,
+                        submission.submission_id,
                         S3UrlHandler.get_timestamped_filename(file_name)
                     )
                 else:
