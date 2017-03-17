@@ -646,6 +646,11 @@ class FileHandler:
                 existing_submission_obj = sess.query(Submission).\
                     filter_by(submission_id=existing_submission_id).\
                     one()
+                jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
+                # set all jobs to their initial status of "waiting"
+                jobs[0].job_status_id = JOB_STATUS_DICT['waiting']
+                sess.commit()
+
             else:
                 existing_submission = None
                 existing_submission_obj = None
@@ -659,10 +664,9 @@ class FileHandler:
                     raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
 
             if existing_submission_obj is not None :
-                formatted_start_date = existing_submission_obj.reporting_start_date;
-                formatted_end_date = existing_submission_obj.reporting_end_date;
+                formatted_start_date = existing_submission_obj.reporting_start_date
+                formatted_end_date = existing_submission_obj.reporting_end_date
                 cgac_code = existing_submission_obj.cgac_code
-                existing_submission_obj.job_status = 'waiting'
             else:
                 sub_tier_agency = sess.query(SubTierAgency).\
                     filter_by(sub_tier_agency_code=request_params["agency_code"]).one()
@@ -711,7 +715,7 @@ class FileHandler:
                 # build fileNameMap to be used in creating jobs
             self.build_file_map(request_params, ['detached_award'], response_dict, upload_files)
 
-            self.create_response_dict_for_submission(upload_files, submission, False, response_dict, create_credentials)
+            self.create_response_dict_for_submission(upload_files, submission, existing_submission, response_dict, create_credentials)
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
