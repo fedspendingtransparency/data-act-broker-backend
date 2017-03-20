@@ -13,8 +13,10 @@ def test_column_headers(database):
 def test_success(database):
     """ PeriodOfPerformanceStartDate is an optional field, but when provided, must follow YYYYMMDD format """
     det_award_1 = DetachedAwardFinancialAssistanceFactory(period_of_performance_star="19990131")
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(period_of_performance_star=None)
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(period_of_performance_star="")
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1])
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
     assert errors == 0
 
 
