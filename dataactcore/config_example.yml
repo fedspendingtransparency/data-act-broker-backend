@@ -137,6 +137,7 @@ logging:
             - use_aws
             - local
             - aws_bucket
+            - certified_bucket
             - aws_role
             - aws_region
             - aws_create_temp_credentials
