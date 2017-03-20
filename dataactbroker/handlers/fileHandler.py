@@ -663,20 +663,18 @@ class FileHandler:
                 elif 'existing_submission_id' not in request_params:
                     raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
 
-            if existing_submission_obj is not None :
+            if existing_submission_obj is not None:
                 formatted_start_date = existing_submission_obj.reporting_start_date
                 formatted_end_date = existing_submission_obj.reporting_end_date
                 cgac_code = existing_submission_obj.cgac_code
             else:
                 sub_tier_agency = sess.query(SubTierAgency).\
                     filter_by(sub_tier_agency_code=request_params["agency_code"]).one()
-                cgac_code = sub_tier_agency.cgac.cgac_code    
+                cgac_code = sub_tier_agency.cgac.cgac_code
                 date_format = '%d/%m/%Y'
                 try:
-                    formatted_start_date = datetime.strptime(job_data['reporting_start_date'],
-                                                                     date_format).date()
-                    formatted_end_date = datetime.strptime(job_data['reporting_end_date'],
-                                                                   date_format).date()
+                    formatted_start_date = datetime.strptime(job_data['reporting_start_date'], date_format).date()
+                    formatted_end_date = datetime.strptime(job_data['reporting_end_date'], date_format).date()
                 except ValueError:
                     raise ResponseException("Date must be provided as DD/MM/YYYY", StatusCode.CLIENT_ERROR, ValueError)
 
@@ -707,15 +705,17 @@ class FileHandler:
             sess.add(submission)
             sess.commit()
             if existing_submission_obj is None:
+                sub_tier_agency_id = sub_tier_agency.sub_tier_agency_id
                 sub_tier_affiliation = SubmissionSubTierAffiliation(submission_id=submission.submission_id,
-                                                                    sub_tier_agency_id=sub_tier_agency.sub_tier_agency_id)
+                                                                    sub_tier_agency_id=sub_tier_agency_id)
                 sess.add(sub_tier_affiliation)
                 sess.commit()
 
                 # build fileNameMap to be used in creating jobs
             self.build_file_map(request_params, ['detached_award'], response_dict, upload_files)
 
-            self.create_response_dict_for_submission(upload_files, submission, existing_submission, response_dict, create_credentials)
+            self.create_response_dict_for_submission(upload_files, submission, existing_submission,
+                                                     response_dict, create_credentials)
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
