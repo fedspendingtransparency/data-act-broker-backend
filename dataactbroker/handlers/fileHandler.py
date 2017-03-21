@@ -660,7 +660,7 @@ class FileHandler:
                     job_data[submission_field] = request_params[request_field]
                 # all of those fields are required
                 # unless existing_submission_id exists
-                elif 'existing_submission_id' not in request_params:
+                elif 'existing_submission_id' not in request_params and request_field in request_params:
                     raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
 
             if existing_submission_obj is not None:
@@ -683,12 +683,8 @@ class FileHandler:
             job_data["d2_submission"] = True
 
             # convert submission start/end dates from the request into Python date objects
-            try:
-                job_data['reporting_start_date'] = formatted_start_date
-                job_data['reporting_end_date'] = formatted_end_date
-
-            except ValueError:
-                raise ResponseException("Date must be provided as DD/MM/YYYY", StatusCode.CLIENT_ERROR, ValueError)
+            job_data['reporting_start_date'] = formatted_start_date
+            job_data['reporting_end_date'] = formatted_end_date
 
             # the front-end is doing date checks, but we'll also do a few server side to ensure everything is correct
             # when clients call the API directly
@@ -711,8 +707,8 @@ class FileHandler:
                 sess.add(sub_tier_affiliation)
                 sess.commit()
 
-                # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, ['detached_award'], response_dict, upload_files)
+            # build fileNameMap to be used in creating jobs
+            self.build_file_map(request_params, ['detached_award'], response_dict, upload_files, submission)
 
             self.create_response_dict_for_submission(upload_files, submission, existing_submission,
                                                      response_dict, create_credentials)
