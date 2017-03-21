@@ -673,6 +673,7 @@ class FileHandler:
                 cgac_code = sub_tier_agency.cgac.cgac_code
                 date_format = '%d/%m/%Y'
                 try:
+                    # convert submission start/end dates from the request into Python date objects
                     formatted_start_date = datetime.strptime(job_data['reporting_start_date'], date_format).date()
                     formatted_end_date = datetime.strptime(job_data['reporting_end_date'], date_format).date()
                 except ValueError:
@@ -681,8 +682,6 @@ class FileHandler:
             # get the cgac code associated with this sub tier agency
             job_data["cgac_code"] = cgac_code
             job_data["d2_submission"] = True
-
-            # convert submission start/end dates from the request into Python date objects
             job_data['reporting_start_date'] = formatted_start_date
             job_data['reporting_end_date'] = formatted_end_date
 
