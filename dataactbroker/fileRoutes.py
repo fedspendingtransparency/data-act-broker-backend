@@ -212,6 +212,26 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
+    @app.route("/v1/check_year_quarter/", methods=["GET"])
+    @requires_login
+    def check_year_and_quarter():
+        """ Check if cgac code, year, and quarter already has a published submission """
+        sess = GlobalDB.db().session
+        cgac_code = request.args.get('cgac_code')
+        reporting_fiscal_year = request.args.get('reporting_fiscal_year')
+        reporting_fiscal_period = request.args.get('reporting_fiscal_period')
+
+        submissions = _find_existing_submissions(sess, cgac_code, reporting_fiscal_year, reporting_fiscal_period)
+
+        if submissions.count() > 0:
+            data = {
+                "message": "A submission for the same FY and quarter has already been certified.",
+                "submissionId": submissions[0].submission_id
+            }
+            return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+
+        return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
     @app.route("/v1/certify_submission/", methods=['POST'])
     @convert_to_submission_id
     @requires_submission_perms('submitter', check_owner=False)
@@ -225,6 +245,20 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
+
+        sess = GlobalDB.db().session
+
+        submissions = _find_existing_submissions(sess, submission.cgac_code, submission.reporting_fiscal_year,
+                                                 submission.reporting_fiscal_period)
+
+        if submissions.count() > 0:
+            data = {
+                "message": "A submission for the same FY and quarter has already been certified.",
+                "submissionId": submissions[0].submission_id
+            }
+            return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+
+        sess.expire_all()
 
         sess = GlobalDB.db().session
         submission.publish_status_id = PUBLISH_STATUS_DICT['published']
@@ -257,3 +291,11 @@ def convert_to_submission_id(fn):
                 "submission_id is required", StatusCode.CLIENT_ERROR)
         return fn(submission_id, *args, **kwargs)
     return wrapped
+
+
+def _find_existing_submissions(sess, cgac_code, reporting_fiscal_year, reporting_fiscal_period):
+    return sess.query(Submission).filter(
+        Submission.cgac_code == cgac_code,
+        Submission.reporting_fiscal_year == reporting_fiscal_year,
+        Submission.reporting_fiscal_period == reporting_fiscal_period,
+        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
