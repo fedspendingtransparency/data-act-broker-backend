@@ -1166,7 +1166,7 @@ def reporting_date(submission):
         return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3,
                                submission.reporting_fiscal_year)
     else:
-        return submission.reporting_start_date.strftime("%m/%Y")
+        return submission.reporting_start_date.strftime("%b %Y")
 
 
 def submission_to_dict_for_status(submission):
