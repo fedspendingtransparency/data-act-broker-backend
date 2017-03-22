@@ -1126,6 +1126,7 @@ def reporting_date(submission):
     else:
         return submission.reporting_start_date.strftime("%b %Y")
 
+
 def submission_to_dict_for_status(submission):
     """Convert a Submission model into a dictionary, ready to be serialized as
     JSON for the get_status function"""
