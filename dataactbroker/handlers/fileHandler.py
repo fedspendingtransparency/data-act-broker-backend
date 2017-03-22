@@ -1124,25 +1124,7 @@ def reporting_date(submission):
         return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3,
                                submission.reporting_fiscal_year)
     else:
-        month = intToMonth(submission.reporting_start_date.month)
-        return month+' '+str(submission.reporting_start_date.year)
-
-def intToMonth(month):
-    return {
-        1: 'Jan',
-        2: 'Feb',
-        3: 'Mar',
-        4: 'Apr',
-        5: 'May',
-        6: 'Jun',
-        7: 'Jul',
-        8: 'Aug',
-        9: 'Sept',
-        10: 'Oct',
-        11: 'Nov',
-        12: 'Dec'
-    }[month]
-
+        return submission.reporting_start_date.strftime("%b %Y")
 
 def submission_to_dict_for_status(submission):
     """Convert a Submission model into a dictionary, ready to be serialized as
