@@ -448,12 +448,12 @@ Example output:
           "rule_failed": "",
           "original_label":""
         }, {
-          "field_name": "availabilitytypecode",
+          "field_name": "status_of_budgetary_resour_cpe, budget_authority_available_cpe",
           "error_name": "rule_failed",
-          "error_description": "Failed rule: Indicator must be X, F, A, or blank",
+          "error_description": "StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE",
           "occurrences": 27,
-          "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
-          "original_label":"A21"
+          "rule_failed": "StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE",
+          "original_label":"A24"
         }
       ],
       "warning_data": [
@@ -465,12 +465,12 @@ Example output:
           "rule_failed": "BorrowingAuthorityAmountTotal_CPE= CPE aggregate value for GTAS SF 133 line #1340 + #1440",
           "original_label":"A10"
         }, {
-          "field_name": "availabilitytypecode",
+          "field_name": "other_budgetary_resources_cpe, borrowing_authority_amount_cpe, contract_authority_amount_cpe, spending_authority_from_of_cpe",
           "error_name": "rule_failed",
-          "error_description": "Failed rule: Indicator must be X, F, A, or blank",
+          "error_description": "OtherBudgetaryResourcesAmount_CPE must be provided if TAS has borrowing, contract and/or spending authority provided in File A. If not applicable, leave blank.",
           "occurrences": 27,
-          "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
-          "original_label":"A21"
+          "rule_failed": "OtherBudgetaryResourcesAmount_CPE must be provided if TAS has borrowing, contract and/or spending authority provided in File A. If not applicable, leave blank.",
+          "original_label":"A28"
         }
       ]
     }, {

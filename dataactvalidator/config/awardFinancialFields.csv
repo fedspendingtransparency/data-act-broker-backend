@@ -1,7 +1,7 @@
 fieldname,fieldname_short,required,data_type,field_length,rule_labels,padded_flag
-agencyidentifier,agency_identifier,TRUE,str,3,"A1, A20",TRUE
-allocationtransferagencyidentifier,allocation_transfer_agency,FALSE,str,3,"A1, A20",TRUE
-availabilitytypecode,availability_type_code,FALSE,str,1,"A1, A21",
+agencyidentifier,agency_identifier,TRUE,str,3,"A1",TRUE
+allocationtransferagencyidentifier,allocation_transfer_agency,FALSE,str,3,"A1",TRUE
+availabilitytypecode,availability_type_code,FALSE,str,1,"A1",
 beginningperiodofavailability,beginning_period_of_availa,FALSE,str,4,A1,
 bydirectreimbursablefundingsource,by_direct_reimbursable_fun,FALSE,str,1,B12,
 deobligationsrecoveriesrefundsofprioryearbyaward_cpe,deobligations_recov_by_awa_cpe,FALSE,float,21,B13,
