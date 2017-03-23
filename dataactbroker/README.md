@@ -448,12 +448,12 @@ Example output:
           "rule_failed": "",
           "original_label":""
         }, {
-          "field_name": "availabilitytypecode",
+          "field_name": "status_of_budgetary_resour_cpe, budget_authority_available_cpe",
           "error_name": "rule_failed",
-          "error_description": "Failed rule: Indicator must be X, F, A, or blank",
+          "error_description": "StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE",
           "occurrences": 27,
-          "rule_failed": "Failed rule: Indicator must be X, F, A, or blank",
-          "original_label":"A21"
+          "rule_failed": "StatusOfBudgetaryResourcesTotal_CPE = BudgetAuthorityAvailableAmountTotal_CPE",
+          "original_label":"A24"
         }
       ],
       "warning_data": [
