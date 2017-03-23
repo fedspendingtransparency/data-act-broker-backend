@@ -16,7 +16,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
-from dataactcore.aws.s3UrlHandler import S3Handler
+from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, SubTierAgency
