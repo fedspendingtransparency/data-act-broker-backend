@@ -403,7 +403,7 @@ def create_jobs(upload_files, submission, existing_submission=False):
     # once single-file upload/validation jobs are created, create the cross-file
     # validation job and dependencies
     # todo: remove external validation jobs from the code-base--they aren't used
-    if existing_submission:
+    if existing_submission and not submission.d2_submission:
         # find cross-file and external validation jobs and mark them as waiting
         # (note: job_type of 'validation' is a cross-file job)
         val_job = sess.query(Job).\
