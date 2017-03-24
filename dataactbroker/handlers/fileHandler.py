@@ -1269,9 +1269,9 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
                                     Submission.user_id == g.user.user_id))
     if certified != 'mixed':
         if certified == 'true':
-            query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['published'])
+            query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
         else:
-            query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['published'])
+            query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
     arr = [serialize_submission(s) for s in query]
 
