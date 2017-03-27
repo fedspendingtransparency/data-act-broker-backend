@@ -24,7 +24,7 @@ from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.jobModels import (
     FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation,
-    RevalidationThreshold)
+    RevalidationThreshold, CertifyHistory)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT,
@@ -874,7 +874,12 @@ class FileHandler:
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
-            update({"publish_status_id": PUBLISH_STATUS_DICT['published']}, synchronize_session=False)
+            update({"publish_status_id": PUBLISH_STATUS_DICT['published'], "certifying_user_id": g.user.user_id},
+                   synchronize_session=False)
+        certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
+                                         submission_id=submission_id)
+        sess.add(certify_history)
+        sess.commit()
         response_dict = {"submission_id": submission_id}
         return JsonResponse.create(StatusCode.OK, response_dict)
 

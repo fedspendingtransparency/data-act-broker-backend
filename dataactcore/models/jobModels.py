@@ -192,7 +192,7 @@ class CertifyHistory(Base):
     __tablename__ = "certify_history"
 
     certify_history_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, ForeignKey("submission.submission_id",ondelete="CASCADE",
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
                                                name="fk_certify_history_submission_id"))
     submission = relationship("Submission", uselist=False, cascade="delete")
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_certify_history_user"),
