@@ -1339,7 +1339,8 @@ def serialize_submission(submission):
         "reporting_end_date": str(submission.reporting_end_date),
         "user": {"user_id": submission.user_id,
                  "name": submission_user_name},
-        "certifying_user": certifying_user
+        "certifying_user": certifying_user,
+        'publish_status': submission.publish_status.name,
     }
 
 
