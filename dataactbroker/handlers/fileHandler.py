@@ -1318,7 +1318,12 @@ def serialize_submission(submission):
     if submission.user_id is None:
         submission_user_name = "No user"
     else:
-        submission_user_name = sess.query(User).filter_by(user_id=submission.user_id).one().name
+        submission_user_name = submission.user.name
+
+    if submission.certifying_user_id is None:
+        certifying_user = ""
+    else:
+        certifying_user = submission.certifying_user.name
 
     cgac = sess.query(CGAC).\
         filter_by(cgac_code=submission.cgac_code).one_or_none()
@@ -1333,7 +1338,8 @@ def serialize_submission(submission):
         "reporting_start_date": str(submission.reporting_start_date),
         "reporting_end_date": str(submission.reporting_end_date),
         "user": {"user_id": submission.user_id,
-                 "name": submission_user_name}
+                 "name": submission_user_name},
+        "certifying_user": certifying_user
     }
 
 
