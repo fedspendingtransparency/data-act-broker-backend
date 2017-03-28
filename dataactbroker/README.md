@@ -698,7 +698,7 @@ This route deletes all data related to the specified `submission_id`. A submissi
 
 #### POST "/v1/certify_submission"
 
-This route certifies the specified submission, if possible. If a submission has critical errors, it cannot be certified.
+This route certifies the specified submission, if possible. If a submission has critical errors, it cannot be certified. Submission files are copied to a certified bucket on aws if it is a non-local environment.
 
 ##### Body (JSON)
 

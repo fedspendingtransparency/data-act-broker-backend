@@ -196,7 +196,7 @@ class FileHandler:
                 sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files,
+            self.build_file_map(request_params, FileHandler.FILE_TYPES, response_dict, upload_files, submission,
                                 existing_submission)
 
             if not upload_files and existing_submission:
@@ -209,7 +209,7 @@ class FileHandler:
 
                     if not self.isLocal:
                         upload_name = "{}/{}".format(
-                            g.user.user_id,
+                            submission.submission_id,
                             S3UrlHandler.get_timestamped_filename(filename)
                         )
                     else:
@@ -639,28 +639,51 @@ class FileHandler:
             }
 
             job_data = {}
+            # Check for existing submission
+            existing_submission_id = request_params.get('existing_submission_id')
+            if existing_submission_id:
+                existing_submission = True
+                existing_submission_obj = sess.query(Submission).\
+                    filter_by(submission_id=existing_submission_id).\
+                    one()
+                jobs = sess.query(Job).filter(Job.submission_id == existing_submission_id)
+                # set all jobs to their initial status of "waiting"
+                jobs[0].job_status_id = JOB_STATUS_DICT['waiting']
+                sess.commit()
+
+            else:
+                existing_submission = None
+                existing_submission_obj = None
+
             for request_field, submission_field in request_job_mapping.items():
                 if request_field in request_params:
                     job_data[submission_field] = request_params[request_field]
                 # all of those fields are required
-                else:
+                # unless existing_submission_id exists
+                elif 'existing_submission_id' not in request_params and request_field in request_params:
                     raise ResponseException('{} is required'.format(request_field), StatusCode.CLIENT_ERROR, ValueError)
 
-            # get the cgac code associated with this sub tier agency
-            sub_tier_agency = sess.query(SubTierAgency).\
-                filter_by(sub_tier_agency_code=request_params["agency_code"]).one()
-            job_data["cgac_code"] = sub_tier_agency.cgac.cgac_code
-            job_data["d2_submission"] = True
+            if existing_submission_obj is not None:
+                formatted_start_date = existing_submission_obj.reporting_start_date
+                formatted_end_date = existing_submission_obj.reporting_end_date
+                cgac_code = existing_submission_obj.cgac_code
+            else:
+                sub_tier_agency = sess.query(SubTierAgency).\
+                    filter_by(sub_tier_agency_code=request_params["agency_code"]).one()
+                cgac_code = sub_tier_agency.cgac.cgac_code
+                date_format = '%d/%m/%Y'
+                try:
+                    # convert submission start/end dates from the request into Python date objects
+                    formatted_start_date = datetime.strptime(job_data['reporting_start_date'], date_format).date()
+                    formatted_end_date = datetime.strptime(job_data['reporting_end_date'], date_format).date()
+                except ValueError:
+                    raise ResponseException("Date must be provided as DD/MM/YYYY", StatusCode.CLIENT_ERROR, ValueError)
 
-            # convert submission start/end dates from the request into Python date objects
-            date_format = '%d/%m/%Y'
-            try:
-                job_data['reporting_start_date'] = datetime.strptime(job_data['reporting_start_date'],
-                                                                     date_format).date()
-                job_data['reporting_end_date'] = datetime.strptime(job_data['reporting_end_date'],
-                                                                   date_format).date()
-            except ValueError:
-                raise ResponseException("Date must be provided as DD/MM/YYYY", StatusCode.CLIENT_ERROR, ValueError)
+            # get the cgac code associated with this sub tier agency
+            job_data["cgac_code"] = cgac_code
+            job_data["d2_submission"] = True
+            job_data['reporting_start_date'] = formatted_start_date
+            job_data['reporting_end_date'] = formatted_end_date
 
             # the front-end is doing date checks, but we'll also do a few server side to ensure everything is correct
             # when clients call the API directly
@@ -673,18 +696,21 @@ class FileHandler:
                 raise ResponseException("User does not have permission to create jobs for this agency",
                                         StatusCode.PERMISSION_DENIED)
 
-            submission = create_submission(g.user.user_id, job_data, None)
+            submission = create_submission(g.user.user_id, job_data, existing_submission_obj)
             sess.add(submission)
             sess.commit()
-            sub_tier_affiliation = SubmissionSubTierAffiliation(submission_id=submission.submission_id,
-                                                                sub_tier_agency_id=sub_tier_agency.sub_tier_agency_id)
-            sess.add(sub_tier_affiliation)
-            sess.commit()
+            if existing_submission_obj is None:
+                sub_tier_agency_id = sub_tier_agency.sub_tier_agency_id
+                sub_tier_affiliation = SubmissionSubTierAffiliation(submission_id=submission.submission_id,
+                                                                    sub_tier_agency_id=sub_tier_agency_id)
+                sess.add(sub_tier_affiliation)
+                sess.commit()
 
             # build fileNameMap to be used in creating jobs
-            self.build_file_map(request_params, ['detached_award'], response_dict, upload_files)
+            self.build_file_map(request_params, ['detached_award'], response_dict, upload_files, submission)
 
-            self.create_response_dict_for_submission(upload_files, submission, False, response_dict, create_credentials)
+            self.create_response_dict_for_submission(upload_files, submission, existing_submission,
+                                                     response_dict, create_credentials)
             return JsonResponse.create(StatusCode.OK, response_dict)
         except (ValueError, TypeError, NotImplementedError) as e:
             return JsonResponse.error(e, StatusCode.CLIENT_ERROR)
@@ -932,20 +958,19 @@ class FileHandler:
     def add_generation_job_info(self, file_type_name, job=None, dates=None):
         # if job is None, that means the info being added is for detached d file generation
         sess = GlobalDB.db().session
-        user_id = g.user.user_id
+
+        if job is None:
+            job = Job(job_type_id=JOB_TYPE_DICT['file_upload'], user_id=g.user.user_id,
+                      file_type_id=FILE_TYPE_DICT[file_type_name], start_date=dates['start_date'],
+                      end_date=dates['end_date'])
+            sess.add(job)
 
         timestamped_name = S3UrlHandler.get_timestamped_filename(
             CONFIG_BROKER["".join([str(file_type_name), "_file_name"])])
         if self.isLocal:
             upload_file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
         else:
-            upload_file_name = "".join([str(user_id), "/", timestamped_name])
-
-        if job is None:
-            job = Job(job_type_id=JOB_TYPE_DICT['file_upload'], user_id=user_id,
-                      file_type_id=FILE_TYPE_DICT[file_type_name], start_date=dates['start_date'],
-                      end_date=dates['end_date'])
-            sess.add(job)
+            upload_file_name = "".join([str(job.submission_id), "/", timestamped_name])
 
         # This will update the reference so no need to return the job, just the upload and timestamped file names
         job.filename = upload_file_name
@@ -955,7 +980,8 @@ class FileHandler:
 
         return job
 
-    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, existing_submission=False):
+    def build_file_map(self, request_params, file_type_list, response_dict, upload_files, submission,
+                       existing_submission=False):
         """ build fileNameMap to be used in creating jobs """
         for file_type in file_type_list:
             # if file_type not included in request, and this is an update to an existing submission, skip it
@@ -969,7 +995,7 @@ class FileHandler:
             if file_name:
                 if not self.isLocal:
                     upload_name = "{}/{}".format(
-                        g.user.user_id,
+                        submission.submission_id,
                         S3UrlHandler.get_timestamped_filename(file_name)
                     )
                 else:
@@ -1028,6 +1054,22 @@ class FileHandler:
             FileHandler.finalize(job.job_id)
 
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
+    def move_certified_files(self, submission):
+        sess = GlobalDB.db().session
+        # Putting this here for now, get the uploads list
+        jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
+                                      Job.job_type_id == JOB_TYPE_DICT['file_upload'],
+                                      Job.filename.isnot(None)).all()
+        original_bucket = CONFIG_BROKER['aws_bucket']
+        new_bucket = CONFIG_BROKER['certified_bucket']
+        for job in jobs:
+            old_path_sections = job.filename.split("/")
+            new_path = '{}/{}/{}/{}'.format(submission.cgac_code, submission.reporting_fiscal_year,
+                                            submission.reporting_fiscal_period // 3, old_path_sections[-1])
+            self.s3manager.copy_file(original_bucket=original_bucket,
+                                     new_bucket=new_bucket,
+                                     original_path=job.filename, new_path=new_path)
 
 
 def narratives_for_submission(submission):
@@ -1124,7 +1166,7 @@ def reporting_date(submission):
         return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3,
                                submission.reporting_fiscal_year)
     else:
-        return submission.reporting_start_date.strftime("%m/%Y")
+        return submission.reporting_start_date.strftime("%b %Y")
 
 
 def submission_to_dict_for_status(submission):

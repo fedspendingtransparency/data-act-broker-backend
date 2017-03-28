@@ -132,3 +132,14 @@ class S3UrlHandler:
                 urls[file_name] = url
 
         return urls
+
+    @staticmethod
+    def copy_file(original_bucket, new_bucket, original_path, new_path):
+        try:
+            S3UrlHandler.REGION
+        except AttributeError:
+            S3UrlHandler.REGION = CONFIG_BROKER["aws_region"]
+
+        s3connection = boto.s3.connect_to_region(S3UrlHandler.REGION)
+        original_key = s3connection.get_bucket(original_bucket).get_key(original_path)
+        original_key.copy(new_bucket, new_path)

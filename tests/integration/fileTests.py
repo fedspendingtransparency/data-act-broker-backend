@@ -626,18 +626,13 @@ class FileTests(BaseTestAPI):
 
     def test_certify_submission(self):
         post_json = {'submission_id': self.test_uncertified_submission_id}
-        response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id},)
+        response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id})
         self.assertEqual(response.json['message'], "Success")
 
         post_json = {'submission_id': self.row_error_submission_id}
         response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id},
                                       expect_errors=True)
         self.assertEqual(response.json['message'], "Submission cannot be certified due to critical errors")
-
-        post_json = {'submission_id': self.test_monthly_submission_id}
-        response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id},
-                                      expect_errors=True)
-        self.assertEqual(response.json['message'], "Monthly submissions cannot be certified")
 
         post_json = {'submission_id': self.test_monthly_submission_id}
         response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id},
