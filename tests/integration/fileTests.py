@@ -80,6 +80,11 @@ class FileTests(BaseTestAPI):
                                                                      is_quarter=True, number_of_errors=0,
                                                                      publish_status_id=2)
 
+            cls.test_updated_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                   start_date="07/2015", end_date="09/2015",
+                                                                   is_quarter=True, number_of_errors=0,
+                                                                   publish_status_id=3)
+
             cls.test_uncertified_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
                                                                        start_date="07/2015", end_date="09/2015",
                                                                        is_quarter=True, number_of_errors=0)
@@ -87,6 +92,10 @@ class FileTests(BaseTestAPI):
             cls.test_revalidate_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
                                                                       start_date="10/2015", end_date="12/2015",
                                                                       is_quarter=True, number_of_errors=0)
+
+            cls.test_monthly_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                   start_date="10/2015", end_date="12/2015",
+                                                                   is_quarter=False, number_of_errors=0)
 
     def setUp(self):
         """Test set-up."""
@@ -591,7 +600,13 @@ class FileTests(BaseTestAPI):
         post_json = {'submission_id': self.test_certified_submission_id}
         response = self.app.post_json("/v1/delete_submission/", post_json, headers={"x-session-id": self.session_id},
                                       expect_errors=True)
-        self.assertEqual(response.json["message"], "Certified submissions cannot be deleted")
+        self.assertEqual(response.json["message"], "Submissions that have been certified cannot be deleted")
+
+        # test trying to delete an updated submission (failure expected)
+        post_json = {'submission_id': self.test_updated_submission_id}
+        response = self.app.post_json("/v1/delete_submission/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.json["message"], "Submissions that have been certified cannot be deleted")
 
     def test_certify_submission(self):
         post_json = {'submission_id': self.test_uncertified_submission_id}
@@ -602,6 +617,11 @@ class FileTests(BaseTestAPI):
         response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id},
                                       expect_errors=True)
         self.assertEqual(response.json['message'], "Submission cannot be certified due to critical errors")
+
+        post_json = {'submission_id': self.test_monthly_submission_id}
+        response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.json['message'], "Monthly submissions cannot be certified")
 
     def test_revalidate_submission(self):
         post_json = {'submission_id': self.row_error_submission_id}

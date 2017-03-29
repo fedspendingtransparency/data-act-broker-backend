@@ -192,8 +192,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         """ Deletes all data associated with the specified submission
         NOTE: THERE IS NO WAY TO UNDO THIS """
 
-        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-            return JsonResponse.error(ValueError("Certified submissions cannot be deleted"), StatusCode.CLIENT_ERROR)
+        if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
+            return JsonResponse.error(ValueError("Submissions that have been certified cannot be deleted"),
+                                      StatusCode.CLIENT_ERROR)
 
         sess = GlobalDB.db().session
 
@@ -219,10 +220,16 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.error(ValueError("Submission cannot be certified due to critical errors"),
                                       StatusCode.CLIENT_ERROR)
 
+        if not submission.is_quarter_format:
+            return JsonResponse.error(ValueError("Monthly submissions cannot be certified"), StatusCode.CLIENT_ERROR)
+
         if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
 
         sess = GlobalDB.db().session
+        if not is_local:
+            file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+            file_manager.move_certified_files(submission)
         submission.publish_status_id = PUBLISH_STATUS_DICT['published']
         sess.commit()
 
