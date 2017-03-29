@@ -247,7 +247,7 @@ class FileHandler:
         # objects. if a date is missing, grab it from the existing submission
         # note: a previous check ensures that there's an existing submission
         # when the start/end dates are empty
-        date_format = '%m/%Y'
+        date_format = '%m/%d/%Y'
         try:
             if start_date is not None:
                 start_date = datetime.strptime(start_date, date_format).date()
@@ -258,7 +258,7 @@ class FileHandler:
             else:
                 end_date = existing_submission.reporting_end_date
         except ValueError:
-            raise ResponseException("Date must be provided as MM/YYYY", StatusCode.CLIENT_ERROR,
+            raise ResponseException("Date must be provided as MM/DD/YYYY", StatusCode.CLIENT_ERROR,
                                     ValueError)
 
         # the front-end is doing date checks, but we'll also do a few server side to ensure
