@@ -114,6 +114,7 @@ class SubTierAgency(Base):
     cgac_id = Column(Integer, ForeignKey("cgac.cgac_id", name='fk_sub_tier_agency_cgac', ondelete="CASCADE"),
                      nullable=False)
     cgac = relationship('CGAC', foreign_keys='SubTierAgency.cgac_id', cascade="delete")
+    priority = Column(Integer, nullable=False, default='2', server_default='2')
 
 
 class ObjectClass(Base):
