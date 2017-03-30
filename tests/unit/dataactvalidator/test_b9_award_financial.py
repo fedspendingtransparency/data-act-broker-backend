@@ -1,5 +1,6 @@
 from tests.unit.dataactcore.factories.staging import AwardFinancialFactory
 from tests.unit.dataactcore.factories.domain import ProgramActivityFactory
+from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 
@@ -17,11 +18,11 @@ def test_success(database):
     """ Testing valid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
     A-11. """
 
-    af_1 = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+    af_1 = AwardFinancialFactory(row_number=1, agency_identifier='test',
                                  allocation_transfer_agency='test', main_account_code='test',
                                  program_activity_name='test', program_activity_code='test')
 
-    af_2 = AwardFinancialFactory(row_number=2, beginning_period_of_availa=2016, agency_identifier='test',
+    af_2 = AwardFinancialFactory(row_number=2, agency_identifier='test',
                                  allocation_transfer_agency='test', main_account_code='test',
                                  program_activity_name='test', program_activity_code='test')
 
@@ -33,7 +34,7 @@ def test_success(database):
 
 def test_success_null(database):
     """Program activity name/code as null"""
-    af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+    af = AwardFinancialFactory(row_number=1, agency_identifier='test',
                                allocation_transfer_agency='test', main_account_code='test',
                                program_activity_name=None, program_activity_code=None)
 
@@ -43,53 +44,51 @@ def test_success_null(database):
     assert number_of_errors(_FILE, database, models=[af, pa]) == 0
 
 
-def test_success_mismatched_year(database):
+def test_success_fiscal_year(database):
+    """ Testing valid name for FY that matches with budget_year"""
 
-    af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
-                               allocation_transfer_agency='test', main_account_code='test',
-                               program_activity_name='test', program_activity_code='test')
+    af = AwardFinancialFactory(row_number=1, submission_id='1', agency_identifier='test',
+                                 allocation_transfer_agency='test', main_account_code='test',
+                                 program_activity_name='test', program_activity_code='test')
 
-    pa = ProgramActivityFactory(budget_year=2017, agency_id='test', allocation_transfer_id='test',
+    pa_1 = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
-    assert number_of_errors(_FILE, database, models=[af, pa]) == 0
+    pa_2 = ProgramActivityFactory(budget_year=2017, agency_id='test2', allocation_transfer_id='test2',
+                                account_number='test2', program_activity_name='test2', program_activity_code='test2')
+
+    submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2016')
+
+    assert number_of_errors(_FILE, database, models=[af, pa_1, pa_2], submission=submission) == 0
 
 
-def test_success_unknown_value(database):
-    """ Testing valid Unknown/other program activity name with '0000' code """
+def test_failure_fiscal_year(database):
+    """ Testing invalid name for FY, not matches with budget_year"""
 
-    af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
-                               allocation_transfer_agency='test', main_account_code='test',
-                               program_activity_name='Unknown/Other', program_activity_code='0000')
+    af = AwardFinancialFactory(row_number=1, submission_id='1', agency_identifier='test2',
+                                 allocation_transfer_agency='test2', main_account_code='test2',
+                                 program_activity_name='test2', program_activity_code='test2')
 
-    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
+    pa_1 = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
                                 account_number='test', program_activity_name='test', program_activity_code='test')
 
-    assert number_of_errors(_FILE, database, models=[af, pa]) == 0
+    pa_2 = ProgramActivityFactory(budget_year=2017, agency_id='test2', allocation_transfer_id='test2',
+                                account_number='test2', program_activity_name='test2', program_activity_code='test2')
 
+    submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2016')
 
-def test_success_ignore_case(database):
-    """ Testing program activity validation to ignore case """
-
-    af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
-                               allocation_transfer_agency='test', main_account_code='test',
-                               program_activity_name='test', program_activity_code='test')
-
-    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
-                                account_number='test', program_activity_name='TEST', program_activity_code='test')
-
-    assert number_of_errors(_FILE, database, models=[af, pa]) == 0
+    assert number_of_errors(_FILE, database, models=[af, pa_1, pa_2], submission=submission) == 1
 
 
 def test_failure_program_activity_name(database):
     """ Testing invalid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
     A-11. """
 
-    af_1 = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+    af_1 = AwardFinancialFactory(row_number=1, agency_identifier='test',
                                  allocation_transfer_agency='test', main_account_code='test',
                                  program_activity_name='test_wrong', program_activity_code='test')
 
-    af_2 = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+    af_2 = AwardFinancialFactory(row_number=1, agency_identifier='test',
                                  allocation_transfer_agency='test', main_account_code='test',
                                  program_activity_name='test_wrong', program_activity_code='0000')
 
@@ -101,11 +100,11 @@ def test_failure_program_activity_name(database):
 
 def test_failure_program_activity_code(database):
     """Failure where the program _activity_code does not match"""
-    af_1 = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+    af_1 = AwardFinancialFactory(row_number=1, agency_identifier='test',
                                  allocation_transfer_agency='test', main_account_code='test',
                                  program_activity_name='test', program_activity_code='test_wrong')
 
-    af_2 = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+    af_2 = AwardFinancialFactory(row_number=1, agency_identifier='test',
                                  allocation_transfer_agency='test', main_account_code='test',
                                  program_activity_name='Unknown/Other', program_activity_code='12345')
 
@@ -117,7 +116,7 @@ def test_failure_program_activity_code(database):
 
 def test_success_null_program_activity(database):
     """program activity name/code as null"""
-    af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test_wrong',
+    af = AwardFinancialFactory(row_number=1, agency_identifier='test_wrong',
                                allocation_transfer_agency='test', main_account_code='test',
                                program_activity_name=None, program_activity_code=None)
 

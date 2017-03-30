@@ -17,19 +17,19 @@ SELECT af.row_number,
 	af.program_activity_name,
 	af.program_activity_code
 FROM award_financial_b9_{0} as af
+    INNER JOIN submission as sub
+        ON af.submission_id = sub.submission_id
 WHERE af.submission_id = {0}
-    AND CAST(COALESCE(af.beginning_period_of_availa,'0') AS integer) IN (SELECT DISTINCT CAST(budget_year AS integer) FROM program_activity)
     AND af.program_activity_code <> '0000'
     AND LOWER(af.program_activity_name) <> 'unknown/other'
 	AND af.row_number NOT IN (
 		SELECT af.row_number
 		FROM award_financial_b9_{0} as af
 			JOIN program_activity as pa
-				ON (af.beginning_period_of_availa IS NOT DISTINCT FROM pa.budget_year
-				AND af.agency_identifier IS NOT DISTINCT FROM pa.agency_id
+				ON (af.agency_identifier IS NOT DISTINCT FROM pa.agency_id
 				AND af.allocation_transfer_agency IS NOT DISTINCT FROM pa.allocation_transfer_id
 				AND af.main_account_code IS NOT DISTINCT FROM pa.account_number
-				AND LOWER(af.program_activity_name) IS NOT DISTINCT FROM LOWER(pa.program_activity_name)
-				AND af.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code)
-				OR (af.program_activity_name IS NULL AND af.program_activity_code IS NULL)
+				AND af.program_activity_name IS NOT DISTINCT FROM pa.program_activity_name
+				AND af.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code
+				AND CAST(pa.budget_year as integer) = CAST(sub.reporting_fiscal_year as integer))
 	);
