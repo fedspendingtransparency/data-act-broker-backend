@@ -1274,8 +1274,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
 
     cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
     query = sess.query(*columns_to_query).\
-        join(User, Submission.user_id == User.user_id).\
-        join(CGAC, Submission.cgac_code == CGAC.cgac_code).\
+        outerjoin(User, Submission.user_id == User.user_id). \
+        outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         filter(Submission.d2_submission == False)
     if not g.user.website_admin:
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
