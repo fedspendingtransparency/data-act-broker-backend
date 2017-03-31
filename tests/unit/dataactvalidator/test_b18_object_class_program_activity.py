@@ -32,6 +32,47 @@ def test_match_r_value(database):
                 by_direct_reimbursable_fun="r"), 0)
 
 
+def test_ignore_all_zero(database):
+    check_query(database,
+                ObjectClassProgramActivityFactory(object_class=randint(1000, 1999), by_direct_reimbursable_fun="r",
+                                                  deobligations_recov_by_pro_cpe=0, gross_outlay_amount_by_pro_cpe=0,
+                                                  gross_outlay_amount_by_pro_fyb=0, gross_outlays_delivered_or_cpe=0,
+                                                  gross_outlays_delivered_or_fyb=0, gross_outlays_undelivered_cpe=0,
+                                                  gross_outlays_undelivered_fyb=0, obligations_delivered_orde_cpe=0,
+                                                  obligations_delivered_orde_fyb=0, obligations_incurred_by_pr_cpe=0,
+                                                  obligations_undelivered_or_cpe=0, obligations_undelivered_or_fyb=0,
+                                                  ussgl480100_undelivered_or_cpe=0, ussgl480100_undelivered_or_fyb=0,
+                                                  ussgl480200_undelivered_or_cpe=0, ussgl480200_undelivered_or_fyb=0,
+                                                  ussgl483100_undelivered_or_cpe=0, ussgl483200_undelivered_or_cpe=0,
+                                                  ussgl487100_downward_adjus_cpe=0, ussgl487200_downward_adjus_cpe=0,
+                                                  ussgl488100_upward_adjustm_cpe=0, ussgl488200_upward_adjustm_cpe=0,
+                                                  ussgl490100_delivered_orde_cpe=0, ussgl490100_delivered_orde_fyb=0,
+                                                  ussgl490200_delivered_orde_cpe=0, ussgl490800_authority_outl_cpe=0,
+                                                  ussgl490800_authority_outl_fyb=0, ussgl493100_delivered_orde_cpe=0,
+                                                  ussgl497100_downward_adjus_cpe=0, ussgl497200_downward_adjus_cpe=0,
+                                                  ussgl498100_upward_adjustm_cpe=0, ussgl498200_upward_adjustm_cpe=0),
+                0)
+    check_query(database,
+                ObjectClassProgramActivityFactory(object_class=randint(2000, 2999), by_direct_reimbursable_fun="d",
+                                                  deobligations_recov_by_pro_cpe=0, gross_outlay_amount_by_pro_cpe=0,
+                                                  gross_outlay_amount_by_pro_fyb=0, gross_outlays_delivered_or_cpe=0,
+                                                  gross_outlays_delivered_or_fyb=0, gross_outlays_undelivered_cpe=0,
+                                                  gross_outlays_undelivered_fyb=0, obligations_delivered_orde_cpe=0,
+                                                  obligations_delivered_orde_fyb=0, obligations_incurred_by_pr_cpe=0,
+                                                  obligations_undelivered_or_cpe=0, obligations_undelivered_or_fyb=0,
+                                                  ussgl480100_undelivered_or_cpe=0, ussgl480100_undelivered_or_fyb=0,
+                                                  ussgl480200_undelivered_or_cpe=0, ussgl480200_undelivered_or_fyb=0,
+                                                  ussgl483100_undelivered_or_cpe=0, ussgl483200_undelivered_or_cpe=0,
+                                                  ussgl487100_downward_adjus_cpe=0, ussgl487200_downward_adjus_cpe=0,
+                                                  ussgl488100_upward_adjustm_cpe=0, ussgl488200_upward_adjustm_cpe=0,
+                                                  ussgl490100_delivered_orde_cpe=0, ussgl490100_delivered_orde_fyb=0,
+                                                  ussgl490200_delivered_orde_cpe=0, ussgl490800_authority_outl_cpe=0,
+                                                  ussgl490800_authority_outl_fyb=0, ussgl493100_delivered_orde_cpe=0,
+                                                  ussgl497100_downward_adjus_cpe=0, ussgl497200_downward_adjus_cpe=0,
+                                                  ussgl498100_upward_adjustm_cpe=0, ussgl498200_upward_adjustm_cpe=0),
+                0)
+
+
 def test_mismatch_d_value(database):
     check_query(database, ObjectClassProgramActivityFactory(object_class=randint(2000, 2999),
                 by_direct_reimbursable_fun="d"), 1)
