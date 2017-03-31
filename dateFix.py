@@ -1,0 +1,134 @@
+import calendar
+
+import os
+import os.path
+
+from flask_cors import CORS
+from flask_bcrypt import Bcrypt
+from flask import Flask, g, session
+
+from dataactbroker.domainRoutes import add_domain_routes
+from dataactbroker.exception_handler import add_exception_handlers
+from dataactbroker.fileRoutes import add_file_routes
+from dataactbroker.handlers.accountHandler import AccountHandler
+from dataactbroker.handlers.aws.sesEmail import SesEmail
+from dataactbroker.handlers.aws.session import UserSessionInterface
+from dataactbroker.loginRoutes import add_login_routes
+from dataactbroker.userRoutes import add_user_routes
+from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
+from dataactcore.interfaces.db import GlobalDB
+from dataactcore.logging import configure_logging
+from dataactcore.models.userModel import User
+from dataactcore.utils.jsonResponse import JsonResponse
+from dataactcore.utils.responseException import ResponseException
+from dataactcore.utils.statusCode import StatusCode
+
+from dataactcore.models.jobModels import (
+    FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation,
+    RevalidationThreshold)
+
+from collections import namedtuple
+from csv import reader
+from datetime import datetime
+
+import sqlalchemy as sa
+from sqlalchemy import func
+from sqlalchemy.orm.exc import NoResultFound
+
+def create_app():
+    """Set up the application."""
+    flask_app = Flask(__name__.split('.')[0])
+    local = CONFIG_BROKER['local']
+    flask_app.config.from_object(__name__)
+    flask_app.config['LOCAL'] = local
+    flask_app.debug = CONFIG_SERVICES['debug']
+    flask_app.config['SYSTEM_EMAIL'] = CONFIG_BROKER['reply_to_email']
+
+    # Future: Override config w/ environment variable, if set
+    flask_app.config.from_envvar('BROKER_SETTINGS', silent=True)
+
+    # Set parameters
+    broker_file_path = CONFIG_BROKER['broker_files']
+    AccountHandler.FRONT_END = CONFIG_BROKER['full_url']
+    SesEmail.SIGNING_KEY = CONFIG_BROKER['email_token_key']
+    SesEmail.isLocal = local
+    if SesEmail.isLocal:
+        SesEmail.emailLog = os.path.join(broker_file_path, 'email.log')
+    # If local, make the email directory if needed
+    if local and not os.path.exists(broker_file_path):
+        os.makedirs(broker_file_path)
+
+    JsonResponse.debugMode = flask_app.debug
+
+    if CONFIG_SERVICES['cross_origin_url'] == "*":
+        CORS(flask_app, supports_credentials=False, allow_headers="*", expose_headers="X-Session-Id")
+    else:
+        CORS(flask_app, supports_credentials=False, origins=CONFIG_SERVICES['cross_origin_url'],
+             allow_headers="*", expose_headers="X-Session-Id")
+    # Enable DB session table handling
+    flask_app.session_interface = UserSessionInterface()
+    # Set up bcrypt
+    bcrypt = Bcrypt(flask_app)
+
+    @flask_app.teardown_appcontext
+    def teardown_appcontext(exception):
+        GlobalDB.close()
+
+    @flask_app.before_request
+    def before_request():
+        # Set global value for local
+        g.is_local = local
+        sess = GlobalDB.db().session
+        # setup user
+        g.user = None
+        if session.get('name') is not None:
+            g.user = sess.query(User).filter_by(user_id=session['name']).one_or_none()
+
+    # Root will point to index.html
+    @flask_app.route("/", methods=["GET"])
+    def root():
+        return "Broker is running"
+
+    @flask_app.errorhandler(ResponseException)
+    def handle_response_exception(exception):
+        return JsonResponse.error(exception, exception.status)
+
+    @flask_app.errorhandler(Exception)
+    def handle_exception(exception):
+        wrapped = ResponseException(str(exception), StatusCode.INTERNAL_ERROR, type(exception))
+        return JsonResponse.error(wrapped, wrapped.status)
+
+    # Add routes for modules here
+    add_login_routes(flask_app, bcrypt)
+
+    add_file_routes(flask_app, CONFIG_BROKER['aws_create_temp_credentials'], local, broker_file_path)
+    add_user_routes(flask_app, flask_app.config['SYSTEM_EMAIL'], bcrypt)
+    add_domain_routes(flask_app)
+    add_exception_handlers(flask_app)
+    return flask_app
+
+def run_app():
+    """runs the application"""
+    flask_app = create_app()
+    flask_app.run(
+        host=CONFIG_SERVICES['broker_api_host'],
+        port=CONFIG_SERVICES['broker_api_port']
+    )
+
+def update_dates():
+	sess = GlobalDB.db().session
+	query = sess.query(Submission).filter_by(d2_submission=False)
+	for submission in query:
+		# Check submission.reporting_end_date, it should not be the first
+		date = submission.reporting_end_date
+		if date.day == 1 :
+			new_day = calendar.monthrange(date.year, date.month)[1]
+			date = datetime(date.year, date.month, new_day).date()
+			submission.reporting_end_date = date
+			print(submission.submission_id)
+			sess.add(submission)
+			sess.commit()
+
+
+app = create_app()
+update_dates()
