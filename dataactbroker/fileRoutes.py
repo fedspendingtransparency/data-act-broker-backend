@@ -27,6 +27,32 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_login
     def submit_files():
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+
+        sess = GlobalDB.db().session
+
+        start_date = request.json.get('reporting_period_start_date')
+        end_date = request.json.get('reporting_period_end_date')
+        is_quarter = request.json.get('is_quarter_format', False)
+        print(start_date, end_date, is_quarter)
+
+        formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date, end_date, is_quarter)
+
+        submissions = sess.query(Submission).filter(
+            Submission.cgac_code == request.json.get('cgac_code'),
+            Submission.reporting_start_date == formatted_start_date,
+            Submission.reporting_end_date == formatted_end_date,
+            Submission.is_quarter_format == request.json.get('is_quarter'),
+            Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+        if 'existing_submission_id' in request.json:
+            submissions.filter(Submission.submission_id != request.json['existing_submission_id'])
+
+        if submissions.count() > 0:
+            data = {
+                "message": "Unable to submit files. A submission for the same period has already been certified.",
+                "submissionId": submissions[0].submission_id
+            }
+            return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+
         return file_manager.submit(create_credentials)
 
     @app.route("/v1/finalize_job/", methods=["POST"])
@@ -218,14 +244,17 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         """ Check if cgac code, year, and quarter already has a published submission """
         sess = GlobalDB.db().session
         cgac_code = request.args.get('cgac_code')
+        submission_id = request.args.get('submission_id')
         reporting_fiscal_year = request.args.get('reporting_fiscal_year')
         reporting_fiscal_period = request.args.get('reporting_fiscal_period')
 
-        submissions = _find_existing_submissions(sess, cgac_code, reporting_fiscal_year, reporting_fiscal_period)
+        submissions = _find_existing_submissions(sess, submission_id, cgac_code, reporting_fiscal_year,
+                                                 reporting_fiscal_period)
 
         if submissions.count() > 0:
             data = {
-                "message": "A submission for the same FY and quarter has already been certified.",
+                "message": "Unable to create a new submission. A submission for the same "
+                           "period has already been certified.",
                 "submissionId": submissions[0].submission_id
             }
             return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
@@ -247,8 +276,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
 
         sess = GlobalDB.db().session
-        submissions = _find_existing_submissions(sess, submission.cgac_code, submission.reporting_fiscal_year,
-                                                 submission.reporting_fiscal_period)
+        submissions = _find_existing_submissions(sess, submission.submission_id, submission.cgac_code,
+                                                 submission.reporting_fiscal_year, submission.reporting_fiscal_period)
 
         if submissions.count() > 0:
             data = {
@@ -256,8 +285,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                 "submissionId": submissions[0].submission_id
             }
             return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
-
-        sess.expire_all()
 
         sess = GlobalDB.db().session
         if not is_local:
@@ -295,8 +322,9 @@ def convert_to_submission_id(fn):
     return wrapped
 
 
-def _find_existing_submissions(sess, cgac_code, reporting_fiscal_year, reporting_fiscal_period):
+def _find_existing_submissions(sess, submission_id, cgac_code, reporting_fiscal_year, reporting_fiscal_period):
     return sess.query(Submission).filter(
+        Submission.submission_id != submission_id,
         Submission.cgac_code == cgac_code,
         Submission.reporting_fiscal_year == reporting_fiscal_year,
         Submission.reporting_fiscal_period == reporting_fiscal_period,
