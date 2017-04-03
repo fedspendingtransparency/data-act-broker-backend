@@ -55,14 +55,14 @@ def test_list_submissions_sort_success(database, job_constants, monkeypatch):
     assert result['total'] == 5
     sub = result['submissions'][0]
     for subit in result['submissions']:
-        assert subit['user']['name'] <= sub['user']['name']
+        assert subit['user']['name'] >= sub['user']['name']
         sub = subit
 
     result = list_submissions_sort('submitted_by', 'desc')
     assert result['total'] == 5
     sub = result['submissions'][0]
     for subit in result['submissions']:
-        assert subit['user']['name'] >= sub['user']['name']
+        assert subit['user']['name'] <= sub['user']['name']
         sub = subit
     delete_models(database, [user1, user2, sub1, sub2, sub3, sub4, sub5])
 

@@ -1262,8 +1262,21 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
 
     offset = limit * (page - 1)
 
+    submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.user_id,
+                          Submission.publish_status_id, Submission.d2_submission, Submission.number_of_warnings,
+                          Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
+                          Submission.reporting_end_date]
+
+    cgac_columns = [CGAC.cgac_code, CGAC.agency_name]
+    user_columns = [User.user_id, User.name]
+
+    columns_to_query = submission_columns + cgac_columns + user_columns
+
     cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
-    query = sess.query(Submission).filter_by(d2_submission=False)
+    query = sess.query(*columns_to_query).\
+        outerjoin(User, Submission.user_id == User.user_id). \
+        outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
+        filter(Submission.d2_submission.is_(False))
     if not g.user.website_admin:
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
                                     Submission.user_id == g.user.user_id))
@@ -1273,62 +1286,49 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
         else:
             query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
-    arr = [serialize_submission(s) for s in query]
+    total_submissions = query.count()
 
     options = {
-        'modified': 'last_modified',
-        'reporting': 'reporting_start_date',
-        'status': 'status',
-        'agency': 'agency'
+        'modified': {'model': Submission, 'col': 'updated_at'},
+        'reporting': {'model': Submission, 'col': 'reporting_start_date'},
+        'agency': {'model': CGAC, 'col': 'agency_name'},
+        'submitted_by': {'model': User, 'col': 'name'}
     }
 
     if not options.get(sort):
         sort = 'modified'
 
-    if sort == 'submitted_by':
-        arr.sort(key=lambda x: x.get('user').get('name'))
-    else:
-        arr.sort(key=lambda x: x.get(options.get(sort)))
+    model = options[sort]['model']
+    col = options[sort]['col']
 
     if order == 'desc':
-        arr.reverse()
+        query = query.order_by(getattr(model, col).desc())
+    else:
+        query = query.order_by(getattr(model, col))
+
+    query = query.limit(limit).offset(offset)
 
     return JsonResponse.create(StatusCode.OK, {
-        "submissions": arr[offset:offset+limit],
-        "total": query.count()
+        "submissions": [serialize_submission(submission) for submission in query],
+        "total": total_submissions
     })
 
 
 def serialize_submission(submission):
     """Convert the provided submission into a dictionary in a schema the
     frontend expects"""
-    sess = GlobalDB.db().session
-    # @todo these should probably be part of the query rather than spawning n
-    # queries
-    total_size = sess.query(func.sum(Job.file_size)).\
-        filter_by(submission_id=submission.submission_id).\
-        scalar() or 0
-
     status = get_submission_status(submission)
-    if submission.user_id is None:
-        submission_user_name = "No user"
-    else:
-        submission_user_name = sess.query(User).filter_by(user_id=submission.user_id).one().name
-
-    cgac = sess.query(CGAC).\
-        filter_by(cgac_code=submission.cgac_code).one_or_none()
 
     return {
         "submission_id": submission.submission_id,
         "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
-        "size": total_size,
         "status": status,
-        "agency": cgac.agency_name if cgac else 'N/A',
+        "agency": submission.agency_name if submission.agency_name else 'N/A',
         # @todo why are these a different format?
         "reporting_start_date": str(submission.reporting_start_date),
         "reporting_end_date": str(submission.reporting_end_date),
         "user": {"user_id": submission.user_id,
-                 "name": submission_user_name}
+                 "name": submission.name if submission.name else "No User"}
     }
 
 
