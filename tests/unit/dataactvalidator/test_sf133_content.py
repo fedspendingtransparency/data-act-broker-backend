@@ -30,7 +30,11 @@ def sum_range(tas, start, end, target, join_array, failed_validations, tas_str, 
                                                          "{0:.2f}".format(sum_lines_start_to_end)]))
     sum_key = "sum_lines_{start}_through_{end}".format(start=start, end=end)
     sum_dict = {sum_key: sum_lines_start_to_end, target: line_target_amount}
-    line_sums[tas_str] = sum_dict if tas_str not in line_sums else {**line_sums[tas_str], **sum_dict}  # noqa: E999
+
+    if tas_str not in line_sums:
+        line_sums[tas_str] = sum_dict
+    else:
+        line_sums[tas_str].update(sum_dict)
 
 
 def sum_list(tas_str, line_list):
