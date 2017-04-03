@@ -1286,14 +1286,11 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
         else:
             query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
-    print(query)
-
     total_submissions = query.count()
 
     options = {
         'modified': {'model': Submission, 'col': 'updated_at'},
         'reporting': {'model': Submission, 'col': 'reporting_start_date'},
-        # 'status': 'status',
         'agency': {'model': CGAC, 'col': 'agency_name'},
         'submitted_by': {'model': User, 'col': 'name'}
     }
