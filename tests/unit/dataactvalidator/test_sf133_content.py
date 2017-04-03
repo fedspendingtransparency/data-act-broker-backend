@@ -221,8 +221,8 @@ def test_sf133_files(database):
 
                 if line_2490_amount != sum_lines:
                     failed_validations.append(','.join(join_array + ['2201 + 2202 + 2203 + 2301 + 2302 + 2303 + 2401 + '
-                                                                     '2402 + 2403 + 2413 = 2490', line_2190_amount,
-                                                                     line_amount_sum]))
+                                                                     '2402 + 2403 + 2413 = 2490', line_2490_amount,
+                                                                     sum_lines]))
 
                 # Rule: 2412 + 2413 = 2490
                 sum_range(tas=tas, start=2412, end=2413, target=2490, join_array=join_array,
