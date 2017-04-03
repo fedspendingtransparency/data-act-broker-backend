@@ -16,7 +16,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 
 from dataactbroker.permissions import current_user_can, current_user_can_on_submission
-from dataactcore.aws.s3UrlHandler import S3UrlHandler
+from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, SubTierAgency
@@ -25,9 +25,10 @@ from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, P
 from dataactcore.models.jobModels import (
     FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation,
     RevalidationThreshold, CertifyHistory)
+from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
-    FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT,
-    JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT)
+    FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
+    JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT, PUBLISH_STATUS_DICT_ID)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
@@ -51,7 +52,7 @@ class FileHandler:
 
     Instance fields:
     request -- A flask request object, comes with the request
-    s3manager -- instance of S3UrlHandler, manages calls to S3
+    s3manager -- instance of S3Handler, manages calls to S3
     """
 
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
@@ -75,7 +76,7 @@ class FileHandler:
         self.request = route_request
         self.isLocal = is_local
         self.serverPath = server_path
-        self.s3manager = S3UrlHandler()
+        self.s3manager = S3Handler()
 
     def get_error_report_urls_for_submission(self, submission_id, is_warning=False):
         """
@@ -83,7 +84,7 @@ class FileHandler:
         """
         sess = GlobalDB.db().session
         try:
-            self.s3manager = S3UrlHandler()
+            self.s3manager = S3Handler()
             response_dict = {}
             jobs = sess.query(Job).filter_by(submission_id=submission_id)
             for job in jobs:
@@ -209,7 +210,7 @@ class FileHandler:
                     if not self.isLocal:
                         upload_name = "{}/{}".format(
                             submission.submission_id,
-                            S3UrlHandler.get_timestamped_filename(filename)
+                            S3Handler.get_timestamped_filename(filename)
                         )
                     else:
                         upload_name = filename
@@ -752,8 +753,8 @@ class FileHandler:
             response_dict["url"] = "#"
         elif CONFIG_BROKER["use_aws"]:
             path, file_name = upload_job.filename.split("/")
-            response_dict["url"] = S3UrlHandler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
-                                                                 method="GET")
+            response_dict["url"] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
+                                                              method="GET")
         else:
             response_dict["url"] = upload_job.filename
 
@@ -796,8 +797,8 @@ class FileHandler:
             response_dict["url"] = "#"
         elif CONFIG_BROKER["use_aws"]:
             path, file_name = upload_job.filename.split("/")
-            response_dict["url"] = S3UrlHandler().get_signed_url(path=path, file_name=file_name,
-                                                                 bucket_route=None, method="GET")
+            response_dict["url"] = S3Handler().get_signed_url(path=path, file_name=file_name, bucket_route=None,
+                                                              method="GET")
         else:
             response_dict["url"] = upload_job.filename
 
@@ -969,7 +970,7 @@ class FileHandler:
                       end_date=dates['end_date'])
             sess.add(job)
 
-        timestamped_name = S3UrlHandler.get_timestamped_filename(
+        timestamped_name = S3Handler.get_timestamped_filename(
             CONFIG_BROKER["".join([str(file_type_name), "_file_name"])])
         if self.isLocal:
             upload_file_name = "".join([CONFIG_BROKER['broker_files'], timestamped_name])
@@ -1000,7 +1001,7 @@ class FileHandler:
                 if not self.isLocal:
                     upload_name = "{}/{}".format(
                         submission.submission_id,
-                        S3UrlHandler.get_timestamped_filename(file_name)
+                        S3Handler.get_timestamped_filename(file_name)
                     )
                 else:
                     upload_name = file_name
@@ -1020,7 +1021,7 @@ class FileHandler:
             if "submission_id" not in file_type:
                 response_dict[file_type + "_id"] = file_job_dict[file_type]
         if create_credentials and not self.isLocal:
-            self.s3manager = S3UrlHandler(CONFIG_BROKER["aws_bucket"])
+            self.s3manager = S3Handler(CONFIG_BROKER["aws_bucket"])
             response_dict["credentials"] = self.s3manager.get_temporary_credentials(g.user.user_id)
         else:
             response_dict["credentials"] = {"AccessKeyId": "local", "SecretAccessKey": "local",
@@ -1170,7 +1171,7 @@ def reporting_date(submission):
         return 'Q{}/{}'.format(submission.reporting_fiscal_period // 3,
                                submission.reporting_fiscal_year)
     else:
-        return submission.reporting_start_date.strftime("%b %Y")
+        return submission.reporting_start_date.strftime("%m/%Y")
 
 
 def submission_to_dict_for_status(submission):
@@ -1266,80 +1267,80 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
 
     offset = limit * (page - 1)
 
+    submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.user_id,
+                          Submission.publish_status_id, Submission.d2_submission, Submission.number_of_warnings,
+                          Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
+                          Submission.reporting_end_date, Submission.certifying_user_id]
+
+    cgac_columns = [CGAC.cgac_code, CGAC.agency_name]
+    user_columns = [User.user_id, User.name]
+
+    columns_to_query = submission_columns + cgac_columns + user_columns
+
     cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
-    query = sess.query(Submission).filter_by(d2_submission=False)
+    query = sess.query(*columns_to_query).\
+        outerjoin(User, Submission.user_id == User.user_id). \
+        outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
+        filter(Submission.d2_submission.is_(False))
     if not g.user.website_admin:
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
                                     Submission.user_id == g.user.user_id))
     if certified != 'mixed':
         if certified == 'true':
-            query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['published'])
+            query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
         else:
-            query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['published'])
+            query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
 
-    arr = [serialize_submission(s) for s in query]
+    total_submissions = query.count()
 
     options = {
-        'modified': 'last_modified',
-        'reporting': 'reporting_start_date',
-        'status': 'status',
-        'agency': 'agency'
+        'modified': {'model': Submission, 'col': 'updated_at'},
+        'reporting': {'model': Submission, 'col': 'reporting_start_date'},
+        'agency': {'model': CGAC, 'col': 'agency_name'},
+        'submitted_by': {'model': User, 'col': 'name'}
     }
 
     if not options.get(sort):
         sort = 'modified'
 
-    if sort == 'submitted_by':
-        arr.sort(key=lambda x: x.get('user').get('name'))
-    else:
-        arr.sort(key=lambda x: x.get(options.get(sort)))
+    model = options[sort]['model']
+    col = options[sort]['col']
 
     if order == 'desc':
-        arr.reverse()
+        query = query.order_by(getattr(model, col).desc())
+    else:
+        query = query.order_by(getattr(model, col))
+
+    query = query.limit(limit).offset(offset)
 
     return JsonResponse.create(StatusCode.OK, {
-        "submissions": arr[offset:offset+limit],
-        "total": query.count()
+        "submissions": [serialize_submission(submission) for submission in query],
+        "total": total_submissions
     })
 
 
 def serialize_submission(submission):
     """Convert the provided submission into a dictionary in a schema the
     frontend expects"""
-    sess = GlobalDB.db().session
-    # @todo these should probably be part of the query rather than spawning n
-    # queries
-    total_size = sess.query(func.sum(Job.file_size)).\
-        filter_by(submission_id=submission.submission_id).\
-        scalar() or 0
-
     status = get_submission_status(submission)
-    if submission.user_id is None:
-        submission_user_name = "No user"
-    else:
-        submission_user_name = submission.user.name
 
     if submission.certifying_user_id is None:
         certifying_user = ""
     else:
         certifying_user = submission.certifying_user.name
 
-    cgac = sess.query(CGAC).\
-        filter_by(cgac_code=submission.cgac_code).one_or_none()
-
     return {
         "submission_id": submission.submission_id,
         "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
-        "size": total_size,
         "status": status,
-        "agency": cgac.agency_name if cgac else 'N/A',
+        "agency": submission.agency_name if submission.agency_name else 'N/A',
         # @todo why are these a different format?
         "reporting_start_date": str(submission.reporting_start_date),
         "reporting_end_date": str(submission.reporting_end_date),
         "user": {"user_id": submission.user_id,
-                 "name": submission_user_name},
+                 "name": submission.name if submission.name else "No User"},
         "certifying_user": certifying_user,
-        'publish_status': submission.publish_status.name,
+        'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
     }
 
 
@@ -1350,7 +1351,7 @@ def submission_report_url(submission, warning, file_type, cross_type):
     if CONFIG_BROKER['local']:
         url = os.path.join(CONFIG_BROKER['broker_files'], file_name)
     else:
-        url = S3UrlHandler().get_signed_url("errors", file_name, method="GET")
+        url = S3Handler().get_signed_url("errors", file_name, method="GET")
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 

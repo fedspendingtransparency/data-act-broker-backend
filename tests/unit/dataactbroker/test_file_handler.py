@@ -60,14 +60,14 @@ def test_list_submissions_sort_success(database, job_constants, monkeypatch):
     assert result['total'] == 5
     sub = result['submissions'][0]
     for subit in result['submissions']:
-        assert subit['user']['name'] <= sub['user']['name']
+        assert subit['user']['name'] >= sub['user']['name']
         sub = subit
 
     result = list_submissions_sort('submitted_by', 'desc')
     assert result['total'] == 5
     sub = result['submissions'][0]
     for subit in result['submissions']:
-        assert subit['user']['name'] >= sub['user']['name']
+        assert subit['user']['name'] <= sub['user']['name']
         sub = subit
     delete_models(database, [user1, user2, sub1, sub2, sub3, sub4, sub5])
 
@@ -343,7 +343,7 @@ def test_submission_report_url_s3(monkeypatch):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
     s3_url_handler = Mock()
     s3_url_handler.return_value.get_signed_url.return_value = 'some/url/here.csv'
-    monkeypatch.setattr(fileHandler, 'S3UrlHandler', s3_url_handler)
+    monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
     json_response = fileHandler.submission_report_url(
         SubmissionFactory(submission_id=2), False, 'some_file', None)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
