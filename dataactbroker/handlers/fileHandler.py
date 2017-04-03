@@ -12,6 +12,7 @@ from flask import g, request
 from requests.exceptions import Timeout
 import sqlalchemy as sa
 from sqlalchemy import func
+from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 
@@ -1267,19 +1268,23 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
 
     offset = limit * (page - 1)
 
+    certifying_user = aliased(User)
+
     submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.user_id,
                           Submission.publish_status_id, Submission.d2_submission, Submission.number_of_warnings,
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
                           Submission.reporting_end_date, Submission.certifying_user_id]
 
     cgac_columns = [CGAC.cgac_code, CGAC.agency_name]
-    user_columns = [User.user_id, User.name]
+    user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
+                    certifying_user.name.label('certifying_user_name')]
 
     columns_to_query = submission_columns + cgac_columns + user_columns
 
     cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id). \
+        outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id). \
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         filter(Submission.d2_submission.is_(False))
     if not g.user.website_admin:
@@ -1324,11 +1329,6 @@ def serialize_submission(submission):
     frontend expects"""
     status = get_submission_status(submission)
 
-    if submission.certifying_user_id is None:
-        certifying_user = ""
-    else:
-        certifying_user = submission.certifying_user.name
-
     return {
         "submission_id": submission.submission_id,
         "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
@@ -1339,7 +1339,7 @@ def serialize_submission(submission):
         "reporting_end_date": str(submission.reporting_end_date),
         "user": {"user_id": submission.user_id,
                  "name": submission.name if submission.name else "No User"},
-        "certifying_user": certifying_user,
+        "certifying_user": submission.certifying_user_name if submission.certifying_user_name else "",
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
     }
 
