@@ -1,6 +1,7 @@
 from functools import wraps
+from datetime import datetime
 
-from flask import request
+from flask import request, g
 from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import parser as webargs_parser, use_kwargs
 
@@ -15,7 +16,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.jobModels import Submission, Job
+from dataactcore.models.jobModels import Submission, Job, CertifyHistory
 
 
 # Add the file submission route
@@ -230,6 +231,10 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         if not is_local:
             file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
             file_manager.move_certified_files(submission)
+        certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
+                                         submission_id=submission.submission_id)
+        sess.add(certify_history)
+        submission.certifying_user_id = g.user.user_id
         submission.publish_status_id = PUBLISH_STATUS_DICT['published']
         sess.commit()
 

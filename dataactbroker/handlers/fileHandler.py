@@ -12,6 +12,7 @@ from flask import g, request
 from requests.exceptions import Timeout
 import sqlalchemy as sa
 from sqlalchemy import func
+from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 
@@ -24,11 +25,11 @@ from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.jobModels import (
     FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation,
-    RevalidationThreshold)
+    RevalidationThreshold, CertifyHistory)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
-    FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT,
-    JOB_STATUS_DICT, JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT)
+    FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
+    JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT, PUBLISH_STATUS_DICT_ID)
 from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
@@ -874,7 +875,12 @@ class FileHandler:
             return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
         sess.query(Submission).filter_by(submission_id=submission_id).\
-            update({"publish_status_id": PUBLISH_STATUS_DICT['published']}, synchronize_session=False)
+            update({"publish_status_id": PUBLISH_STATUS_DICT['published'], "certifying_user_id": g.user.user_id},
+                   synchronize_session=False)
+        certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
+                                         submission_id=submission_id)
+        sess.add(certify_history)
+        sess.commit()
         response_dict = {"submission_id": submission_id}
         return JsonResponse.create(StatusCode.OK, response_dict)
 
@@ -1262,19 +1268,23 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
 
     offset = limit * (page - 1)
 
+    certifying_user = aliased(User)
+
     submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.user_id,
                           Submission.publish_status_id, Submission.d2_submission, Submission.number_of_warnings,
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
-                          Submission.reporting_end_date]
+                          Submission.reporting_end_date, Submission.certifying_user_id]
 
     cgac_columns = [CGAC.cgac_code, CGAC.agency_name]
-    user_columns = [User.user_id, User.name]
+    user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
+                    certifying_user.name.label('certifying_user_name')]
 
     columns_to_query = submission_columns + cgac_columns + user_columns
 
     cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id). \
+        outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id). \
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         filter(Submission.d2_submission.is_(False))
     if not g.user.website_admin:
@@ -1328,7 +1338,9 @@ def serialize_submission(submission):
         "reporting_start_date": str(submission.reporting_start_date),
         "reporting_end_date": str(submission.reporting_end_date),
         "user": {"user_id": submission.user_id,
-                 "name": submission.name if submission.name else "No User"}
+                 "name": submission.name if submission.name else "No User"},
+        "certifying_user": submission.certifying_user_name if submission.certifying_user_name else "",
+        'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
     }
 
 
