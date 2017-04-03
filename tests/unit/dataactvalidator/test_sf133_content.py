@@ -235,7 +235,7 @@ def test_sf133_files(database):
                 # Rule: 1910 = 2500
                 line_amount = "{:.2f}".format(float(sum_list(tas_str, [2500])))
                 if line_1910_amount != line_amount:
-                    failed_validations.append(','.join(join_array + ['1910 != 25400',
+                    failed_validations.append(','.join(join_array + ['1910 != 2500',
                                                                      line_1910_amount,
                                                                      line_amount]))
 
