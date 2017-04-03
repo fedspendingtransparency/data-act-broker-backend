@@ -1276,7 +1276,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id). \
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
-        filter(Submission.d2_submission == False)
+        filter(Submission.d2_submission.is_(False))
     if not g.user.website_admin:
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
                                     Submission.user_id == g.user.user_id))
@@ -1285,6 +1285,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
             query = query.filter(Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
         else:
             query = query.filter(Submission.publish_status_id == PUBLISH_STATUS_DICT['unpublished'])
+
+    print(query)
 
     total_submissions = query.count()
 
