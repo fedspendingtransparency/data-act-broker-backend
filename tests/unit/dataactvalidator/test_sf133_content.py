@@ -228,12 +228,14 @@ def test_sf133_files(database):
                 sum_range(tas=tas, start=2412, end=2413, target=2490, join_array=join_array,
                           failed_validations=failed_validations, tas_str=tas_str)
 
-                # Rule: (sum of lines 2001 through 2403) + 2413 = 2500
-                sum_range(tas=tas, start=2001, end=2403, target=2500, join_array=join_array,
-                          failed_validations=failed_validations, tas_str=tas_str, extra_line=2413)
+                # Turning this rule off until it is deemed necessary
+                #
+                # # Rule: (sum of lines 2001 through 2403) + 2413 = 2500
+                # sum_range(tas=tas, start=2001, end=2403, target=2500, join_array=join_array,
+                #           failed_validations=failed_validations, tas_str=tas_str, extra_line=2413)
 
                 # Rule: 1910 = 2500
-                line_amount = "{:.2f}".format(float(sum_list(tas_str, [2500])))
+                line_amount = "{:.2f}".format(tas[tas.line == '2500'].amount.astype(float).sum())
                 if line_1910_amount != line_amount:
                     failed_validations.append(','.join(join_array + ['1910 != 2500',
                                                                      line_1910_amount,
