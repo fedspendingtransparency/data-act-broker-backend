@@ -100,7 +100,6 @@ def load_sub_tier_agencies(file_name):
         # read Sub Tier Agency values from csv
         data = pd.read_csv(file_name, dtype=str)
 
-        data["PRIORITY"] = 0
         condition = data["FPDS DEPARTMENT ID"] == data["SUB TIER CODE"]
         data.loc[condition, "PRIORITY"] = 1
         data.loc[~condition, "PRIORITY"] = 2
