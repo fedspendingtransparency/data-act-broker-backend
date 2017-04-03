@@ -24,9 +24,8 @@ def sum_range(tas, start, end, target, join_array, failed_validations, tas_str, 
     if line_target_amount != sum_lines_start_to_end:
         error_message = 'Sum of lines {start} through {end} != {target}'.format(start=start, end=end, target=target)
         if extra_line:
-            error_message = 'Sum of lines {start} through {end} + {extra_line} != {target}'.format(start=start, end=end,
-                                                                                                   extra_line=extra_line
-                                                                                                   , target=target)
+            error_message = 'Sum of lines {start} through {end} + {extra_line} != {target}'.\
+                format(start=start, end=end,  extra_line=extra_line, target=target)
         failed_validations.append(','.join(join_array + [error_message, "{0:.2f}".format(line_target_amount),
                                                          "{0:.2f}".format(sum_lines_start_to_end)]))
     sum_key = "sum_lines_{start}_through_{end}".format(start=start, end=end)
