@@ -42,7 +42,8 @@ def add_domain_routes(app):
 
         sub_tier_agency_list = [
             {'agency_name': '{}: {}'.format(sub_tier_agency.cgac.agency_name, sub_tier_agency.sub_tier_agency_name),
-             'agency_code': sub_tier_agency.sub_tier_agency_code} for sub_tier_agency in sub_tier_agencies
+             'agency_code': sub_tier_agency.sub_tier_agency_code,
+             'priority': sub_tier_agency.priority} for sub_tier_agency in sub_tier_agencies
         ]
         return JsonResponse.create(StatusCode.OK, {'sub_tier_agency_list': sub_tier_agency_list})
 

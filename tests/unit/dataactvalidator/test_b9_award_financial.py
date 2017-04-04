@@ -48,14 +48,14 @@ def test_success_fiscal_year(database):
     """ Testing valid name for FY that matches with budget_year"""
 
     af = AwardFinancialFactory(row_number=1, submission_id='1', agency_identifier='test',
-                                 allocation_transfer_agency='test', main_account_code='test',
-                                 program_activity_name='test', program_activity_code='test')
+                               allocation_transfer_agency='test', main_account_code='test',
+                               program_activity_name='test', program_activity_code='test')
 
     pa_1 = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
-                                account_number='test', program_activity_name='test', program_activity_code='test')
+                                  account_number='test', program_activity_name='test', program_activity_code='test')
 
     pa_2 = ProgramActivityFactory(budget_year=2017, agency_id='test2', allocation_transfer_id='test2',
-                                account_number='test2', program_activity_name='test2', program_activity_code='test2')
+                                  account_number='test2', program_activity_name='test2', program_activity_code='test2')
 
     submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2016')
 
@@ -66,14 +66,14 @@ def test_failure_fiscal_year(database):
     """ Testing invalid name for FY, not matches with budget_year"""
 
     af = AwardFinancialFactory(row_number=1, submission_id='1', agency_identifier='test2',
-                                 allocation_transfer_agency='test2', main_account_code='test2',
-                                 program_activity_name='test2', program_activity_code='test2')
+                               allocation_transfer_agency='test2', main_account_code='test2',
+                               program_activity_name='test2', program_activity_code='test2')
 
     pa_1 = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
-                                account_number='test', program_activity_name='test', program_activity_code='test')
+                                  account_number='test', program_activity_name='test', program_activity_code='test')
 
     pa_2 = ProgramActivityFactory(budget_year=2017, agency_id='test2', allocation_transfer_id='test2',
-                                account_number='test2', program_activity_name='test2', program_activity_code='test2')
+                                  account_number='test2', program_activity_name='test2', program_activity_code='test2')
 
     submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2016')
 

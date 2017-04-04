@@ -99,6 +99,11 @@ def load_sub_tier_agencies(file_name):
 
         # read Sub Tier Agency values from csv
         data = pd.read_csv(file_name, dtype=str)
+
+        condition = data["FPDS DEPARTMENT ID"] == data["SUB TIER CODE"]
+        data.loc[condition, "PRIORITY"] = 1
+        data.loc[~condition, "PRIORITY"] = 2
+
         # clean data
         data = clean_data(
             data,
@@ -107,6 +112,7 @@ def load_sub_tier_agencies(file_name):
                 "cgac_agency_code": "cgac_code",
                 "sub_tier_code": "sub_tier_agency_code",
                 "sub_tier_name": "sub_tier_agency_name",
+                "priority": "priority"
             }, {
                 "cgac_code": {"pad_to_length": 3},
                 "sub_tier_agency_code": {"pad_to_length": 4}
