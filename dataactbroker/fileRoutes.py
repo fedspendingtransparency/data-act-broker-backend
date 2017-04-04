@@ -47,7 +47,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         if 'existing_submission_id' in request.json:
             submissions.filter(Submission.submission_id != request.json['existing_submission_id'])
 
-        response = _check_submissions_and_create_response(submissions)
+        response = check_submissions_and_create_response(submissions)
 
         if response.status_code != StatusCode.OK:
             return response
@@ -246,10 +246,10 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         """ Check if cgac code, year, and quarter already has a published submission """
         sess = GlobalDB.db().session
 
-        submissions = _find_existing_submissions_in_period(sess, None, cgac_code, reporting_fiscal_year,
+        submissions = find_existing_submissions_in_period(sess, None, cgac_code, reporting_fiscal_year,
                                                            reporting_fiscal_period)
 
-        return _check_submissions_and_create_response(submissions)
+        return check_submissions_and_create_response(submissions)
 
     @app.route("/v1/certify_submission/", methods=['POST'])
     @convert_to_submission_id
@@ -267,11 +267,11 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         sess = GlobalDB.db().session
 
-        submissions = _find_existing_submissions_in_period(sess, submission.submission_id, submission.cgac_code,
+        submissions = find_existing_submissions_in_period(sess, submission.submission_id, submission.cgac_code,
                                                            submission.reporting_fiscal_year,
                                                            submission.reporting_fiscal_period)
 
-        response = _check_submissions_and_create_response(submissions)
+        response = check_submissions_and_create_response(submissions)
 
         if response.status_code == StatusCode.OK:
             sess = GlobalDB.db().session
@@ -314,17 +314,19 @@ def convert_to_submission_id(fn):
     return wrapped
 
 
-def _find_existing_submissions_in_period(sess, submission_id, cgac_code, reporting_fiscal_year,
+def find_existing_submissions_in_period(sess, submission_id, cgac_code, reporting_fiscal_year,
                                          reporting_fiscal_period):
-    return sess.query(Submission).filter(
-        Submission.submission_id != submission_id,
+    sessions = sess.query(Submission).filter(
         Submission.cgac_code == cgac_code,
         Submission.reporting_fiscal_year == reporting_fiscal_year,
         Submission.reporting_fiscal_period == reporting_fiscal_period,
         Submission.publish_status_id == PUBLISH_STATUS_DICT['published'])
+    if submission_id:
+        sessions = sessions.filter(
+            Submission.submission_id != submission_id)
+    return sessions
 
-
-def _check_submissions_and_create_response(submissions):
+def check_submissions_and_create_response(submissions):
     if submissions.count() > 0:
         data = {
                 "message": "A submission with the same period already exists.",
