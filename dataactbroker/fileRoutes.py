@@ -2,6 +2,7 @@ from functools import wraps
 from datetime import datetime
 
 from flask import request, g
+from sqlalchemy import desc
 from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import parser as webargs_parser, use_kwargs
 
@@ -46,7 +47,10 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                 Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
 
             if 'existing_submission_id' in request.json:
-                submissions.filter(Submission.submission_id != request.json['existing_submission_id'])
+                submissions.filter(Submission.submission_id !=
+                                   request.json['existing_submission_id'])
+
+            submissions = submissions.order_by(desc(Submission.created_at))
 
             if submissions.count() > 0:
                 data = {
@@ -323,6 +327,8 @@ def find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
     if submission_id:
         submission_query = submission_query.filter(
             Submission.submission_id != submission_id)
+
+    submission_query = submission_query.order_by(desc(Submission.created_at))
 
     if submission_query.count() > 0:
         data = {
