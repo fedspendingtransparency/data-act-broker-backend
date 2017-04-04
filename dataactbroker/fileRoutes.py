@@ -2,6 +2,7 @@ from functools import wraps
 from datetime import datetime
 
 from flask import request, g
+from sqlalchemy import desc
 from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import parser as webargs_parser, use_kwargs
 
@@ -28,6 +29,36 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_login
     def submit_files():
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+
+        sess = GlobalDB.db().session
+
+        start_date = request.json.get('reporting_period_start_date')
+        end_date = request.json.get('reporting_period_end_date')
+        is_quarter = request.json.get('is_quarter_format', False)
+
+        if not (start_date is None or end_date is None):
+            formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date,
+                                                                                          end_date, is_quarter)
+            submissions = sess.query(Submission).filter(
+                Submission.cgac_code == request.json.get('cgac_code'),
+                Submission.reporting_start_date == formatted_start_date,
+                Submission.reporting_end_date == formatted_end_date,
+                Submission.is_quarter_format == request.json.get('is_quarter'),
+                Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+
+            if 'existing_submission_id' in request.json:
+                submissions.filter(Submission.submission_id !=
+                                   request.json['existing_submission_id'])
+
+            submissions = submissions.order_by(desc(Submission.created_at))
+
+            if submissions.count() > 0:
+                data = {
+                        "message": "A submission with the same period already exists.",
+                        "submissionId": submissions[0].submission_id
+                }
+                return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+
         return file_manager.submit(create_credentials)
 
     @app.route("/v1/finalize_job/", methods=["POST"])
@@ -213,6 +244,18 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
+    @app.route("/v1/check_year_quarter/", methods=["GET"])
+    @requires_login
+    @use_kwargs({'cgac_code': webargs_fields.String(required=True),
+                 'reporting_fiscal_year': webargs_fields.String(requrired=True),
+                 'reporting_fiscal_period': webargs_fields.String(requrired=True)})
+    def check_year_and_quarter(cgac_code, reporting_fiscal_year, reporting_fiscal_period):
+        """ Check if cgac code, year, and quarter already has a published submission """
+        sess = GlobalDB.db().session
+
+        return find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
+                                                   reporting_fiscal_period)
+
     @app.route("/v1/certify_submission/", methods=['POST'])
     @convert_to_submission_id
     @requires_submission_perms('submitter', check_owner=False)
@@ -228,17 +271,24 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
 
         sess = GlobalDB.db().session
-        if not is_local:
-            file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-            file_manager.move_certified_files(submission)
-        certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
-                                         submission_id=submission.submission_id)
-        sess.add(certify_history)
-        submission.certifying_user_id = g.user.user_id
-        submission.publish_status_id = PUBLISH_STATUS_DICT['published']
-        sess.commit()
 
-        return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+        response = find_existing_submissions_in_period(sess, submission.cgac_code,
+                                                       submission.reporting_fiscal_year,
+                                                       submission.reporting_fiscal_period, submission.submission_id)
+
+        if response.status_code == StatusCode.OK:
+            sess = GlobalDB.db().session
+            if not is_local:
+                file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+                file_manager.move_certified_files(submission)
+            certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
+                                             submission_id=submission.submission_id)
+            sess.add(certify_history)
+            submission.certifying_user_id = g.user.user_id
+            submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+            sess.commit()
+
+        return response
 
     @app.route("/v1/restart_validation/", methods=['POST'])
     @convert_to_submission_id
@@ -265,3 +315,25 @@ def convert_to_submission_id(fn):
                 "submission_id is required", StatusCode.CLIENT_ERROR)
         return fn(submission_id, *args, **kwargs)
     return wrapped
+
+
+def find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
+                                        reporting_fiscal_period, submission_id=None):
+    submission_query = sess.query(Submission).filter(
+        Submission.cgac_code == cgac_code,
+        Submission.reporting_fiscal_year == reporting_fiscal_year,
+        Submission.reporting_fiscal_period == reporting_fiscal_period,
+        Submission.publish_status_id == PUBLISH_STATUS_DICT['published'])
+    if submission_id:
+        submission_query = submission_query.filter(
+            Submission.submission_id != submission_id)
+
+    submission_query = submission_query.order_by(desc(Submission.created_at))
+
+    if submission_query.count() > 0:
+        data = {
+            "message": "A submission with the same period already exists.",
+            "submissionId": submission_query[0].submission_id
+        }
+        return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+    return JsonResponse.create(StatusCode.OK, {"message": "Success"})
