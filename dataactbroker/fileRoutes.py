@@ -42,15 +42,14 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             Submission.reporting_end_date == formatted_end_date,
             Submission.is_quarter_format == request.json.get('is_quarter'),
             Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+
         if 'existing_submission_id' in request.json:
             submissions.filter(Submission.submission_id != request.json['existing_submission_id'])
 
-        if submissions.count() > 0:
-            data = {
-                "message": "Unable to submit files. A submission for the same period has already been certified.",
-                "submissionId": submissions[0].submission_id
-            }
-            return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+        response = _check_submissions_and_create_response(submissions)
+
+        if response.status_code != StatusCode.OK:
+            return response
 
         return file_manager.submit(create_credentials)
 
@@ -238,27 +237,18 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
     @app.route("/v1/check_year_quarter/", methods=["GET"])
-    @requires_login
-    def check_year_and_quarter():
+    # @requires_login
+    @use_kwargs({'cgac_code': webargs_fields.String(required=True),
+                 'reporting_fiscal_year': webargs_fields.String(requrired=True),
+                 'reporting_fiscal_period': webargs_fields.String(requrired=True)})
+    def check_year_and_quarter(cgac_code, reporting_fiscal_year, reporting_fiscal_period):
         """ Check if cgac code, year, and quarter already has a published submission """
         sess = GlobalDB.db().session
-        cgac_code = request.args.get('cgac_code')
-        submission_id = request.args.get('submission_id')
-        reporting_fiscal_year = request.args.get('reporting_fiscal_year')
-        reporting_fiscal_period = request.args.get('reporting_fiscal_period')
 
-        submissions = _find_existing_submissions_in_period(sess, submission_id, cgac_code, reporting_fiscal_year,
+        submissions = _find_existing_submissions_in_period(sess, None, cgac_code, reporting_fiscal_year,
                                                            reporting_fiscal_period)
 
-        if submissions.count() > 0:
-            data = {
-                "message": "Unable to create a new submission. A submission for the same "
-                           "period has already been certified.",
-                "submissionId": submissions[0].submission_id
-            }
-            return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
-
-        return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+        return _check_submissions_and_create_response(submissions)
 
     @app.route("/v1/certify_submission/", methods=['POST'])
     @convert_to_submission_id
@@ -279,21 +269,17 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                                                            submission.reporting_fiscal_year,
                                                            submission.reporting_fiscal_period)
 
-        if submissions.count() > 0:
-            data = {
-                "message": "A submission for the same FY and quarter has already been certified.",
-                "submissionId": submissions[0].submission_id
-            }
-            return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+        response = _check_submissions_and_create_response(submissions)
 
-        sess = GlobalDB.db().session
-        if not is_local:
-            file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-            file_manager.move_certified_files(submission)
-        submission.publish_status_id = PUBLISH_STATUS_DICT['published']
-        sess.commit()
+        if response.status_code == StatusCode.OK:
+            sess = GlobalDB.db().session
+            if not is_local:
+                file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+                file_manager.move_certified_files(submission)
+            submission.publish_status_id = PUBLISH_STATUS_DICT['published']
+            sess.commit()
 
-        return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+        return response
 
     @app.route("/v1/restart_validation/", methods=['POST'])
     @convert_to_submission_id
@@ -307,7 +293,7 @@ def convert_to_submission_id(fn):
     convert into a submission_id parameter. The provided function should have
     a submission_id parameter as its first argument."""
     @wraps(fn)
-    @requires_login     # check login before checking submission_id
+    # @requires_login     # check login before checking submission_id
     def wrapped(*args, **kwargs):
         req_args = webargs_parser.parse({
             'submission': webargs_fields.Int(),
@@ -329,4 +315,14 @@ def _find_existing_submissions_in_period(sess, submission_id, cgac_code, reporti
         Submission.cgac_code == cgac_code,
         Submission.reporting_fiscal_year == reporting_fiscal_year,
         Submission.reporting_fiscal_period == reporting_fiscal_period,
-        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+        Submission.publish_status_id == PUBLISH_STATUS_DICT['published'])
+
+
+def _check_submissions_and_create_response(submissions):
+    if submissions.count() > 0:
+        data = {
+                "message": "A submission with the same period already exists.",
+                "submissionId": submissions[0].submission_id
+        }
+        return JsonResponse.create(StatusCode.CLIENT_ERROR, data)
+    return JsonResponse.create(StatusCode.OK, {"message": "Success"})
