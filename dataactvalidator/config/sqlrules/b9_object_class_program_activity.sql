@@ -14,31 +14,33 @@ WITH object_class_program_activity_b9_{0} AS
     (SELECT *
     FROM object_class_program_activity
     WHERE submission_id = {0})
-SELECT op.row_number,
-	op.beginning_period_of_availa,
-	op.agency_identifier,
-	op.allocation_transfer_agency,
-	op.main_account_code,
-	op.program_activity_name,
-	op.program_activity_code
+SELECT  op.tas,
+        op.submission_id,
+        op.row_number,
+        op.agency_identifier,
+        op.allocation_transfer_agency,
+        op.main_account_code,
+        op.program_activity_name,
+        op.program_activity_code
 FROM object_class_program_activity_b9_{0} as op
 WHERE op.submission_id = {0}
-    AND CAST(COALESCE(op.beginning_period_of_availa,'0') AS integer) IN (SELECT DISTINCT CAST(budget_year AS integer) FROM program_activity)
     AND op.program_activity_code <> '0000'
     AND LOWER(op.program_activity_name) <> 'unknown/other'
 	AND op.row_number NOT IN (
 		SELECT op.row_number
 		FROM object_class_program_activity_b9_{0} as op
 			JOIN program_activity as pa
-				ON (op.beginning_period_of_availa IS NOT DISTINCT FROM pa.budget_year
-				AND op.agency_identifier IS NOT DISTINCT FROM pa.agency_id
+				ON (op.agency_identifier IS NOT DISTINCT FROM pa.agency_id
 				AND op.allocation_transfer_agency IS NOT DISTINCT FROM pa.allocation_transfer_id
 				AND op.main_account_code IS NOT DISTINCT FROM pa.account_number
-				AND LOWER(op.program_activity_name) IS NOT DISTINCT FROM LOWER(pa.program_activity_name)
-				AND op.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code)
+				AND op.program_activity_name IS NOT DISTINCT FROM pa.program_activity_name
+				AND op.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code
+				AND CAST(pa.budget_year as integer) = (SELECT reporting_fiscal_year
+                                                            FROM submission
+                                                            WHERE submission_id = op.submission_id))
 	)
 	AND (CASE WHEN op.program_activity_name = ''
-	        THEN pg_temp.is_zero(op.deobligations_recov_by_pro_cpe) + pg_temp.is_zero(op.gross_outlay_amount_by_pro_cpe) +
+    	        THEN pg_temp.is_zero(op.deobligations_recov_by_pro_cpe) + pg_temp.is_zero(op.gross_outlay_amount_by_pro_cpe) +
             pg_temp.is_zero(op.gross_outlay_amount_by_pro_fyb) + pg_temp.is_zero(op.gross_outlays_delivered_or_cpe) +
             pg_temp.is_zero(op.gross_outlays_delivered_or_fyb) + pg_temp.is_zero(op.gross_outlays_undelivered_cpe) +
             pg_temp.is_zero(op.gross_outlays_undelivered_fyb) + pg_temp.is_zero(op.obligations_delivered_orde_cpe) +
