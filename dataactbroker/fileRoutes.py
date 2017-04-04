@@ -1,6 +1,7 @@
 from functools import wraps
+from datetime import datetime
 
-from flask import request
+from flask import request, g
 from webargs import fields as webargs_fields, validate as webargs_validate
 from webargs.flaskparser import parser as webargs_parser, use_kwargs
 
@@ -15,7 +16,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.jobModels import Submission, Job
+from dataactcore.models.jobModels import Submission, Job, CertifyHistory
 
 
 # Add the file submission route
@@ -237,7 +238,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
     @app.route("/v1/check_year_quarter/", methods=["GET"])
-    # @requires_login
+    @requires_login
     @use_kwargs({'cgac_code': webargs_fields.String(required=True),
                  'reporting_fiscal_year': webargs_fields.String(requrired=True),
                  'reporting_fiscal_period': webargs_fields.String(requrired=True)})
@@ -265,6 +266,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.error(ValueError("Submission has already been certified"), StatusCode.CLIENT_ERROR)
 
         sess = GlobalDB.db().session
+
         submissions = _find_existing_submissions_in_period(sess, submission.submission_id, submission.cgac_code,
                                                            submission.reporting_fiscal_year,
                                                            submission.reporting_fiscal_period)
@@ -276,6 +278,10 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             if not is_local:
                 file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
                 file_manager.move_certified_files(submission)
+            certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
+                                             submission_id=submission.submission_id)
+            sess.add(certify_history)
+            submission.certifying_user_id = g.user.user_id
             submission.publish_status_id = PUBLISH_STATUS_DICT['published']
             sess.commit()
 
@@ -293,7 +299,7 @@ def convert_to_submission_id(fn):
     convert into a submission_id parameter. The provided function should have
     a submission_id parameter as its first argument."""
     @wraps(fn)
-    # @requires_login     # check login before checking submission_id
+    @requires_login     # check login before checking submission_id
     def wrapped(*args, **kwargs):
         req_args = webargs_parser.parse({
             'submission': webargs_fields.Int(),

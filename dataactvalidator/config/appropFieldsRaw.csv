@@ -1,8 +1,8 @@
 fieldname,fieldname_short,required,data_type,field_length,rule_labels
 AdjustmentsToUnobligatedBalanceBroughtForward_CPE,adjustments_to_unobligated_cpe,Required,numeric,21,"A2, A12, A17"
-AgencyIdentifier,agency_identifier,Required,string,3,"A1, A20"
-AllocationTransferAgencyIdentifier,allocation_transfer_agency,Conditional per Validation Rule,string,3,"A1, A20"
-AvailabilityTypeCode,availability_type_code,Conditional per Validation Rule,string,1,"A1, A21"
+AgencyIdentifier,agency_identifier,Required,string,3,"A1"
+AllocationTransferAgencyIdentifier,allocation_transfer_agency,Conditional per Validation Rule,string,3,"A1"
+AvailabilityTypeCode,availability_type_code,Conditional per Validation Rule,string,1,"A1"
 BeginningPeriodOfAvailability,beginning_period_of_availa,Conditional per Validation Rule,string,4,A1
 BorrowingAuthorityAmountTotal_CPE,borrowing_authority_amount_cpe,Conditional per Validation Rule,numeric,21,"A3, A10, A17, A25"
 BudgetAuthorityAppropriatedAmount_CPE,budget_authority_appropria_cpe,Required,numeric,21,"A2, A8, A17"

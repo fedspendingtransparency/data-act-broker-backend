@@ -62,6 +62,7 @@ PUBLISH_STATUS = [
     LookupType(3, 'updated', 'Submission was updated after being published')
 ]
 PUBLISH_STATUS_DICT = {item.name: item.id for item in PUBLISH_STATUS}
+PUBLISH_STATUS_DICT_ID = {item.id: item.name for item in PUBLISH_STATUS}
 
 FILE_TYPE = [
     LookupFileType(1, 'appropriations', '', 'A', 1, True, Appropriation),

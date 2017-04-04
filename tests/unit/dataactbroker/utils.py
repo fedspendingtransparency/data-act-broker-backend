@@ -1,4 +1,5 @@
 def add_models(db, models=None):
+    db.session.expunge_all()
     if models is None:
         models = []
 
