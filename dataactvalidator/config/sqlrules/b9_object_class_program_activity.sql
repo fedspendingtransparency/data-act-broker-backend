@@ -1,10 +1,10 @@
 CREATE OR REPLACE function pg_temp.is_zero(numeric) returns integer AS $$
 BEGIN
-perform CAST($1 AS numeric);
-CASE WHEN $1 <> 0
-THEN return 1;
-ELSE return 0;
-END CASE;
+    perform CAST($1 AS numeric);
+    CASE WHEN $1 <> 0
+        THEN return 1;
+        ELSE return 0;
+    END CASE;
 EXCEPTION WHEN others THEN
     return 0;
 END;
@@ -35,7 +35,7 @@ WHERE op.submission_id = {0}
 				AND op.main_account_code IS NOT DISTINCT FROM pa.account_number
 				AND op.program_activity_name IS NOT DISTINCT FROM pa.program_activity_name
 				AND op.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code
-                AND CAST(pa.budget_year as integer) = (SELECT reporting_fiscal_year
+				AND CAST(pa.budget_year as integer) = (SELECT reporting_fiscal_year
                                                             FROM submission
                                                             WHERE submission_id = op.submission_id))
 	)

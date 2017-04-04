@@ -24,12 +24,12 @@ WHERE af.submission_id = {0}
 		SELECT af.row_number
 		FROM award_financial_b9_{0} as af
 			JOIN program_activity as pa
-				ON (af.agency_identifier IS NOT DISTINCT FROM pa.agency_id
-				AND af.allocation_transfer_agency IS NOT DISTINCT FROM pa.allocation_transfer_id
-				AND af.main_account_code IS NOT DISTINCT FROM pa.account_number
-				AND af.program_activity_name IS NOT DISTINCT FROM pa.program_activity_name
-				AND af.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code
-				AND CAST(pa.budget_year as integer) = (SELECT reporting_fiscal_year
-														FROM submission
-														WHERE submission_id = af.submission_id))
+                ON (af.agency_identifier IS NOT DISTINCT FROM pa.agency_id
+                AND af.allocation_transfer_agency IS NOT DISTINCT FROM pa.allocation_transfer_id
+                AND af.main_account_code IS NOT DISTINCT FROM pa.account_number
+                AND af.program_activity_name IS NOT DISTINCT FROM pa.program_activity_name
+                AND af.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code
+                AND CAST(pa.budget_year as integer) = (SELECT reporting_fiscal_year
+                                                            FROM submission
+                                                            WHERE submission_id = af.submission_id))
 	);
