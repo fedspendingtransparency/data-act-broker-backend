@@ -24,7 +24,10 @@ def test_success(database):
 def test_failure(database):
     """ Test invalid object class code (3 digits) """
 
-    # This should return because if it's '000', '00', '0' a warning should be returned
+    # This should return because if it's '0000' '000', '00', '0' a warning should be returned
+    af = AwardFinancialFactory(object_class='0000')
+    assert number_of_errors(_FILE, database, models=[af]) == 1
+
     af = AwardFinancialFactory(object_class='000')
     assert number_of_errors(_FILE, database, models=[af]) == 1
 
