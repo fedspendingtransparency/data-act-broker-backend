@@ -86,7 +86,7 @@ class FileTests(BaseTestAPI):
                                                                    publish_status_id=3)
 
             cls.test_uncertified_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                       start_date="07/2015", end_date="09/2015",
+                                                                       start_date="04/2015", end_date="06/2015",
                                                                        is_quarter=True, number_of_errors=0)
 
             cls.test_revalidate_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
@@ -244,6 +244,20 @@ class FileTests(BaseTestAPI):
                                              headers={"x-session-id": self.session_id}, expect_errors=True)
         self.assertEqual(update_response.status_code, 400)
         self.assertIn("Date must be provided as", update_response.json["message"])
+
+    def test_submit_file_certified_period(self):
+        """ Test file submissions for Q4, 2015, submission w same period already been certified """
+        update_json = {
+            "cgac_code": "SYS",
+            "is_quarter": True,
+            "appropriations": "appropriations.csv",
+            "award_financial": "award_financial.csv",
+            "program_activity": "program_activity.csv",
+            "reporting_period_start_date": "07/2015",
+            "reporting_period_end_date": "09/2015"}
+        response = self.app.post_json("/v1/submit_files/", update_json,
+                                      headers={"x-session-id": self.session_id}, expect_errors=True)
+        self.assertEqual(response.json['message'], "A submission with the same period already exists.")
 
     def test_check_status_no_login(self):
         """ Test response with no login """
@@ -608,6 +622,26 @@ class FileTests(BaseTestAPI):
                                       expect_errors=True)
         self.assertEqual(response.json["message"], "Submissions that have been certified cannot be deleted")
 
+    def test_check_year_quarter_success(self):
+        params = {'cgac_code': "SYS",
+                  'submission_id': "1",
+                  'reporting_fiscal_year': "2015",
+                  'reporting_fiscal_period': "3"}
+        response = self.app.get("/v1/check_year_quarter/", params, headers={"x-session-id": self.session_id},
+                                expect_errors=False)
+        self.assertEqual(response.json['message'], "Success")
+
+    def test_check_year_quarter_already_certified(self):
+        params = {'cgac_code': "SYS",
+                  'submission_id': "1",
+                  'reporting_fiscal_year': "2015",
+                  'reporting_fiscal_period': "12"}
+
+        response = self.app.get("/v1/check_year_quarter/", params, headers={"x-session-id": self.session_id},
+                                expect_errors=True)
+        self.assertEqual(response.json['message'], "A submission with the same period already exists.")
+        self.assertEqual(response.json['submissionId'], self.test_certified_submission_id)
+
     def test_certify_submission(self):
         post_json = {'submission_id': self.test_uncertified_submission_id}
         response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id})
@@ -622,6 +656,11 @@ class FileTests(BaseTestAPI):
         response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id},
                                       expect_errors=True)
         self.assertEqual(response.json['message'], "Monthly submissions cannot be certified")
+
+        post_json = {'submission_id': self.test_certified_submission_id}
+        response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.json['message'], "Submission has already been certified")
 
     def test_revalidate_submission(self):
         post_json = {'submission_id': self.row_error_submission_id}

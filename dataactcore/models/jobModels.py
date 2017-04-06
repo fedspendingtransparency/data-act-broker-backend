@@ -57,7 +57,7 @@ class Submission(Base):
     submission_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_submission_user"),
                      nullable=True)
-    user = relationship("User")
+    user = relationship("User", foreign_keys=[user_id])
     cgac_code = Column(Text)
     reporting_start_date = Column(Date, nullable=False)
     reporting_end_date = Column(Date, nullable=False)
@@ -72,6 +72,10 @@ class Submission(Base):
     number_of_errors = Column(Integer, nullable=False, default=0, server_default='0')
     number_of_warnings = Column(Integer, nullable=False, default=0, server_default='0')
     d2_submission = Column(Boolean, nullable=False, default="False", server_default="False")
+    certifying_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL",
+                                                    name="fk_submission_certifying_user"),
+                                nullable=True)
+    certifying_user = relationship("User", foreign_keys=[certifying_user_id])
 
 
 class Job(Base):
@@ -182,3 +186,15 @@ class RevalidationThreshold(Base):
     __tablename__ = "revalidation_threshold"
 
     revalidation_date = Column(Date, primary_key=True)
+
+
+class CertifyHistory(Base):
+    __tablename__ = "certify_history"
+
+    certify_history_id = Column(Integer, primary_key=True)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
+                                               name="fk_certify_history_submission_id"))
+    submission = relationship("Submission", uselist=False, cascade="delete")
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_certify_history_user"),
+                     nullable=True)
+    user = relationship("User")
