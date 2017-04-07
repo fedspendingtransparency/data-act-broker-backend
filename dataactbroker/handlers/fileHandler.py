@@ -183,6 +183,7 @@ class FileHandler:
 
             submission = create_submission(g.user.user_id, submission_data,
                                            existing_submission_obj)
+
             cant_edit = (
                 existing_submission and
                 not current_user_can_on_submission(
