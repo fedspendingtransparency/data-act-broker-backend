@@ -177,6 +177,8 @@ def load_program_activity(filename):
             {"program_activity_code": {"pad_to_length": 4}, "agency_id": {"pad_to_length": 3},
              "allocation_transfer_id": {"pad_to_length": 3, "keep_null": True}, "account_number": {"pad_to_length": 4}}
         )
+        # Lowercase Program Activity Name
+        data['program_activity_name'] = data['program_activity_name'].apply(lambda x: x.lower())
         # because we're only loading a subset of program activity info,
         # there will be duplicate records in the dataframe. this is ok,
         # but need to de-duped before the db load.
