@@ -80,6 +80,19 @@ def test_failure_fiscal_year(database):
     assert number_of_errors(_FILE, database, models=[af, pa_1, pa_2], submission=submission) == 1
 
 
+def test_success_ignore_case(database):
+    """ Testing program activity validation to ignore case """
+
+    af = AwardFinancialFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+                               allocation_transfer_agency='test', main_account_code='test',
+                               program_activity_name='TEST', program_activity_code='test')
+
+    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
+                                account_number='test', program_activity_name='test', program_activity_code='test')
+
+    assert number_of_errors(_FILE, database, models=[af, pa]) == 0
+
+
 def test_failure_program_activity_name(database):
     """ Testing invalid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
     A-11. """
