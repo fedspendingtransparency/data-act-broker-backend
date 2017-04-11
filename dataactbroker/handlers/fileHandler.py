@@ -502,7 +502,7 @@ class FileHandler:
                 if response.status_code != 200:
                     # Could not download the file, return False
                     return False
-                # write to file
+                # write (stream) to file
                 response.encoding = "utf-8"
                 for chunk in response.iter_content(chunk_size=1024):
                     if chunk:
@@ -540,9 +540,13 @@ class FileHandler:
                 job.error_message = "A problem occurred receiving data from {}".format(source)
 
                 raise ResponseException(job.error_message, StatusCode.CLIENT_ERROR)
-            # lines = get_lines_from_csv(full_file_path)
-            #
-            # write_csv(timestamped_name, upload_name, is_local, lines[0], lines[1:])
+
+            # we're streaming non-locally but locally we still need to write as a csv
+            # because copyfile doesn't do it
+            if self.isLocal:
+                lines = get_lines_from_csv(full_file_path)
+
+                write_csv(timestamped_name, upload_name, is_local, lines[0], lines[1:])
 
             logger.debug('Marking job id of %s', job_id)
             mark_job_status(job_id, "finished")
