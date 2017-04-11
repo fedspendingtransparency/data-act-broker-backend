@@ -1,4 +1,6 @@
 import os
+import boto
+import smart_open
 from collections import namedtuple
 from csv import reader
 from datetime import datetime
@@ -488,18 +490,23 @@ class FileHandler:
         else:
             self.complete_generation(task_key, file_type)
 
-    def download_file(self, local_file_path, file_url):
+    def download_file(self, local_file_path, file_url, upload_name):
         """ Download a file locally from the specified URL, returns True if successful """
         if not self.isLocal:
-            with open(local_file_path, "w") as file:
+            bucket = CONFIG_BROKER['aws_bucket']
+            region = CONFIG_BROKER['aws_region']
+            conn = boto.s3.connect_to_region(region).get_bucket(bucket).new_key(upload_name)
+            with smart_open.smart_open(conn, 'w') as writer:
                 # get request
-                response = requests.get(file_url)
+                response = requests.get(file_url, stream=True)
                 if response.status_code != 200:
                     # Could not download the file, return False
                     return False
                 # write to file
                 response.encoding = "utf-8"
-                file.write(response.text)
+                for chunk in response.iter_content(chunk_size=1024):
+                    if chunk:
+                        writer.write(chunk)
                 return True
         elif not os.path.isfile(file_url):
             raise ResponseException('{} does not exist'.format(file_url),
@@ -519,7 +526,7 @@ class FileHandler:
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
             logger.debug('Downloading file...')
-            if not self.download_file(full_file_path, url):
+            if not self.download_file(full_file_path, url, upload_name):
                 # Error occurred while downloading file, mark job as failed and record error message
                 mark_job_status(job_id, "failed")
                 job = sess.query(Job).filter_by(job_id=job_id).one()
@@ -533,9 +540,9 @@ class FileHandler:
                 job.error_message = "A problem occurred receiving data from {}".format(source)
 
                 raise ResponseException(job.error_message, StatusCode.CLIENT_ERROR)
-            lines = get_lines_from_csv(full_file_path)
-
-            write_csv(timestamped_name, upload_name, is_local, lines[0], lines[1:])
+            # lines = get_lines_from_csv(full_file_path)
+            #
+            # write_csv(timestamped_name, upload_name, is_local, lines[0], lines[1:])
 
             logger.debug('Marking job id of %s', job_id)
             mark_job_status(job_id, "finished")
