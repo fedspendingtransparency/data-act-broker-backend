@@ -947,10 +947,11 @@ class FileHandler:
             # if it isn't local, we want to make the actual loading a thread because we need to quickly respond to
             # metrostar
             if not self.isLocal:
-                response = requests.get(url)
+                response = requests.get(url, stream=True)
                 if response.status_code != 200:
                     # Could not download the file, return False
                     raise ResponseException("Could not access download URL", StatusCode.CLIENT_ERROR)
+                logger.debug('Starting thread')
                 threading.Thread(target=self.load_d_file, args=(url, job.filename, job.original_filename, job.job_id,
                                                                 self.isLocal))
             # local shouldn't be a thread, just wait, no one is waiting on us.
