@@ -99,6 +99,11 @@ def load_sub_tier_agencies(file_name):
 
         # read Sub Tier Agency values from csv
         data = pd.read_csv(file_name, dtype=str)
+
+        condition = data["FPDS DEPARTMENT ID"] == data["SUB TIER CODE"]
+        data.loc[condition, "PRIORITY"] = 1
+        data.loc[~condition, "PRIORITY"] = 2
+
         # clean data
         data = clean_data(
             data,
@@ -107,6 +112,7 @@ def load_sub_tier_agencies(file_name):
                 "cgac_agency_code": "cgac_code",
                 "sub_tier_code": "sub_tier_agency_code",
                 "sub_tier_name": "sub_tier_agency_name",
+                "priority": "priority"
             }, {
                 "cgac_code": {"pad_to_length": 3},
                 "sub_tier_agency_code": {"pad_to_length": 4}
@@ -171,6 +177,8 @@ def load_program_activity(filename):
             {"program_activity_code": {"pad_to_length": 4}, "agency_id": {"pad_to_length": 3},
              "allocation_transfer_id": {"pad_to_length": 3, "keep_null": True}, "account_number": {"pad_to_length": 4}}
         )
+        # Lowercase Program Activity Name
+        data['program_activity_name'] = data['program_activity_name'].apply(lambda x: x.lower())
         # because we're only loading a subset of program activity info,
         # there will be duplicate records in the dataframe. this is ok,
         # but need to de-duped before the db load.

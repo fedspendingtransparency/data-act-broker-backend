@@ -29,11 +29,16 @@ def list_submissions_sort(category, order):
 def test_list_submissions_sort_success(database, job_constants, monkeypatch):
     user1 = UserFactory(user_id=1, name='Oliver Queen', website_admin=True)
     user2 = UserFactory(user_id=2, name='Barry Allen')
-    sub1 = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1, reporting_start_date=date(2010, 1, 1))
-    sub2 = SubmissionFactory(user_id=1, submission_id=2, number_of_warnings=1, reporting_start_date=date(2010, 1, 2))
-    sub3 = SubmissionFactory(user_id=2, submission_id=3, number_of_warnings=1, reporting_start_date=date(2010, 1, 3))
-    sub4 = SubmissionFactory(user_id=2, submission_id=4, number_of_warnings=1, reporting_start_date=date(2010, 1, 4))
-    sub5 = SubmissionFactory(user_id=2, submission_id=5, number_of_warnings=1, reporting_start_date=date(2010, 1, 5))
+    sub1 = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1, reporting_start_date=date(2010, 1, 1),
+                             publish_status_id=1)
+    sub2 = SubmissionFactory(user_id=1, submission_id=2, number_of_warnings=1, reporting_start_date=date(2010, 1, 2),
+                             publish_status_id=1)
+    sub3 = SubmissionFactory(user_id=2, submission_id=3, number_of_warnings=1, reporting_start_date=date(2010, 1, 3),
+                             publish_status_id=1)
+    sub4 = SubmissionFactory(user_id=2, submission_id=4, number_of_warnings=1, reporting_start_date=date(2010, 1, 4),
+                             publish_status_id=1)
+    sub5 = SubmissionFactory(user_id=2, submission_id=5, number_of_warnings=1, reporting_start_date=date(2010, 1, 5),
+                             publish_status_id=1)
     add_models(database, [user1, user2, sub1, sub2, sub3, sub4, sub5])
 
     monkeypatch.setattr(fileHandler, 'g', Mock(user=user1))
@@ -55,21 +60,21 @@ def test_list_submissions_sort_success(database, job_constants, monkeypatch):
     assert result['total'] == 5
     sub = result['submissions'][0]
     for subit in result['submissions']:
-        assert subit['user']['name'] <= sub['user']['name']
+        assert subit['user']['name'] >= sub['user']['name']
         sub = subit
 
     result = list_submissions_sort('submitted_by', 'desc')
     assert result['total'] == 5
     sub = result['submissions'][0]
     for subit in result['submissions']:
-        assert subit['user']['name'] >= sub['user']['name']
+        assert subit['user']['name'] <= sub['user']['name']
         sub = subit
     delete_models(database, [user1, user2, sub1, sub2, sub3, sub4, sub5])
 
 
 def test_list_submissions_success(database, job_constants, monkeypatch):
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, number_of_warnings=1, publish_status_id=1)
     add_models(database, [user, sub])
 
     monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
@@ -80,7 +85,7 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
 
     sess = database.session
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='finished').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
@@ -93,7 +98,7 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
 
     sess = database.session
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='running').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
@@ -106,7 +111,7 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
 
     sess = database.session
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='waiting').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
@@ -119,7 +124,7 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
 
     sess = database.session
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='ready').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
@@ -133,7 +138,7 @@ def test_list_submissions_success(database, job_constants, monkeypatch):
 
 def test_list_submissions_failure(database, job_constants, monkeypatch):
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1, number_of_errors=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, number_of_errors=1, publish_status_id=1)
     add_models(database, [user, sub])
 
     monkeypatch.setattr(fileHandler, 'g', Mock(user=user))
@@ -144,7 +149,7 @@ def test_list_submissions_failure(database, job_constants, monkeypatch):
 
     sess = database.session
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='failed').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
@@ -157,7 +162,7 @@ def test_list_submissions_failure(database, job_constants, monkeypatch):
 
     sess = database.session
     user = UserFactory(user_id=1)
-    sub = SubmissionFactory(user_id=1, submission_id=1)
+    sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
     job = JobFactory(submission_id=1, job_status=sess.query(JobStatus).filter_by(name='invalid').one(),
                      job_type=sess.query(JobType).filter_by(name='csv_record_validation').one(),
                      file_type=sess.query(FileType).filter_by(name='award').one())
@@ -170,14 +175,14 @@ def test_list_submissions_failure(database, job_constants, monkeypatch):
 
 
 @pytest.mark.usefixtures('user_constants')
-def test_list_submissions_permissions(database, monkeypatch):
+def test_list_submissions_permissions(database, monkeypatch, job_constants):
     """Verify that the user must be in the same CGAC group, the submission's
     owner, or website admin to see the submission"""
     cgac1, cgac2 = CGACFactory(), CGACFactory()
     user1, user2 = UserFactory.with_cgacs(cgac1), UserFactory()
     database.session.add_all([cgac1, cgac2, user1, user2])
     database.session.commit()
-    sub = SubmissionFactory(user_id=user2.user_id, cgac_code=cgac2.cgac_code)
+    sub = SubmissionFactory(user_id=user2.user_id, cgac_code=cgac2.cgac_code, publish_status_id=1)
     database.session.add(sub)
     database.session.commit()
 
@@ -338,7 +343,7 @@ def test_submission_report_url_s3(monkeypatch):
     monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'local': False})
     s3_url_handler = Mock()
     s3_url_handler.return_value.get_signed_url.return_value = 'some/url/here.csv'
-    monkeypatch.setattr(fileHandler, 'S3UrlHandler', s3_url_handler)
+    monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
     json_response = fileHandler.submission_report_url(
         SubmissionFactory(submission_id=2), False, 'some_file', None)
     url = json.loads(json_response.get_data().decode('utf-8'))['url']
