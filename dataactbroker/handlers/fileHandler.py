@@ -8,6 +8,7 @@ import logging
 from dateutil.relativedelta import relativedelta
 from uuid import uuid4
 from shutil import copyfile
+import threading
 
 import requests
 from flask import g, request
@@ -943,8 +944,19 @@ class FileHandler:
             task = sess.query(FileGenerationTask).filter(FileGenerationTask.generation_task_key == generation_id).one()
             job = sess.query(Job).filter_by(job_id=task.job_id).one()
             logger.debug('Loading D file...')
-            result = self.load_d_file(url, job.filename, job.original_filename, job.job_id, self.isLocal)
-            logger.debug('Load D file result => %s', result)
+            # if it isn't local, we want to make the actual loading a thread because we need to quickly respond to
+            # metrostar
+            if not self.isLocal:
+                response = requests.get(url)
+                if response.status_code != 200:
+                    # Could not download the file, return False
+                    raise ResponseException("Could not access download URL", StatusCode.CLIENT_ERROR)
+                threading.Thread(target=self.load_d_file, args=(url, job.filename, job.original_filename, job.job_id,
+                                                                self.isLocal))
+            # local shouldn't be a thread, just wait, no one is waiting on us.
+            else:
+                result = self.load_d_file(url, job.filename, job.original_filename, job.job_id, self.isLocal)
+                logger.debug('Load D file result => %s', result)
             return JsonResponse.create(StatusCode.OK, {"message": "File loaded successfully"})
         except ResponseException as e:
             return JsonResponse.error(e, e.status)
