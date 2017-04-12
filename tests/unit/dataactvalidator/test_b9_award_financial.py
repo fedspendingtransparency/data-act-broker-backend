@@ -44,9 +44,13 @@ def test_success_null(database):
 def test_success_fiscal_year(database):
     """ Testing valid name for FY that matches with budget_year"""
 
-    af = AwardFinancialFactory(row_number=1, submission_id='1', agency_identifier='test',
-                               main_account_code='test', program_activity_name='test',
-                               program_activity_code='test')
+    af_1 = AwardFinancialFactory(row_number=1, submission_id='1', agency_identifier='test',
+                                 main_account_code='test', program_activity_name='test',
+                                 program_activity_code='test')
+
+    af_2 = AwardFinancialFactory(row_number=1, submission_id='1', agency_identifier='test2',
+                                 main_account_code='test2', program_activity_name='test2',
+                                 program_activity_code='test2')
 
     pa_1 = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
                                   account_number='test', program_activity_name='test', program_activity_code='test')
@@ -54,17 +58,17 @@ def test_success_fiscal_year(database):
     pa_2 = ProgramActivityFactory(budget_year=2017, agency_id='test2', allocation_transfer_id='test2',
                                   account_number='test2', program_activity_name='test2', program_activity_code='test2')
 
-    submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2016')
+    submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2017')
 
-    assert number_of_errors(_FILE, database, models=[af, pa_1, pa_2], submission=submission) == 0
+    assert number_of_errors(_FILE, database, models=[af_1, af_2, pa_1, pa_2], submission=submission) == 0
 
 
 def test_failure_fiscal_year(database):
     """ Testing invalid name for FY, not matches with budget_year"""
 
-    af = AwardFinancialFactory(row_number=1, submission_id='1', agency_identifier='test2',
-                               main_account_code='test2', program_activity_name='test2',
-                               program_activity_code='test2')
+    af = AwardFinancialFactory(row_number=1, submission_id='1', agency_identifier='test3',
+                               main_account_code='test3', program_activity_name='test3',
+                               program_activity_code='test3')
 
     pa_1 = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
                                   account_number='test', program_activity_name='test', program_activity_code='test')
@@ -72,9 +76,12 @@ def test_failure_fiscal_year(database):
     pa_2 = ProgramActivityFactory(budget_year=2017, agency_id='test2', allocation_transfer_id='test2',
                                   account_number='test2', program_activity_name='test2', program_activity_code='test2')
 
-    submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2016')
+    pa_3 = ProgramActivityFactory(budget_year=2018, agency_id='test3', allocation_transfer_id='test3',
+                                  account_number='test3', program_activity_name='test3', program_activity_code='test3')
 
-    assert number_of_errors(_FILE, database, models=[af, pa_1, pa_2], submission=submission) == 1
+    submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2017')
+
+    assert number_of_errors(_FILE, database, models=[af, pa_1, pa_2, pa_3], submission=submission) == 1
 
 
 def test_success_ignore_case(database):
