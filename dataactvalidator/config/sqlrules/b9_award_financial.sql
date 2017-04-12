@@ -24,8 +24,7 @@ WHERE af.submission_id = {0}
                 AND af.main_account_code IS NOT DISTINCT FROM pa.account_number
                 AND LOWER(af.program_activity_name) IS NOT DISTINCT FROM pa.program_activity_name
                 AND af.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code
-                AND (CAST(pa.budget_year as integer) = 2016
-                    OR (CAST(pa.budget_year as integer) = (SELECT reporting_fiscal_year
-                                                                FROM submission
-                                                                WHERE submission_id = af.submission_id))))
+                AND (CAST(pa.budget_year as integer) in (2016, (SELECT reporting_fiscal_year
+                                                                    FROM submission
+                                                                    WHERE submission_id = af.submission_id))))
 	);
