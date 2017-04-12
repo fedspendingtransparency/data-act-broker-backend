@@ -19,7 +19,6 @@ SELECT  op.tas,
         op.submission_id,
         op.row_number,
         op.agency_identifier,
-        op.allocation_transfer_agency,
         op.main_account_code,
         op.program_activity_name,
         op.program_activity_code
