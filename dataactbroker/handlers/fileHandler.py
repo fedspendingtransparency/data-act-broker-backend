@@ -491,18 +491,20 @@ class FileHandler:
         else:
             self.complete_generation(task_key, file_type)
 
-    def download_file(self, local_file_path, file_url, upload_name):
+    def download_file(self, local_file_path, file_url, upload_name, response):
         """ Download a file locally from the specified URL, returns True if successful """
         if not self.isLocal:
             bucket = CONFIG_BROKER['aws_bucket']
             region = CONFIG_BROKER['aws_region']
             conn = boto.s3.connect_to_region(region).get_bucket(bucket).new_key(upload_name)
             with smart_open.smart_open(conn, 'w') as writer:
-                # get request
-                response = requests.get(file_url, stream=True)
-                if response.status_code != 200:
-                    # Could not download the file, return False
-                    return False
+                # get request if it doesn't already exist
+                if not response:
+                    response = requests.get(file_url, stream=True)
+                    # we only need to run this check if we haven't already
+                    if response.status_code != 200:
+                        # Could not download the file, return False
+                        return False
                 # write (stream) to file
                 response.encoding = "utf-8"
                 for chunk in response.iter_content(chunk_size=1024):
@@ -520,14 +522,14 @@ class FileHandler:
             copyfile(file_url, local_file_path)
             return True
 
-    def load_d_file(self, url, upload_name, timestamped_name, job_id, is_local):
+    def load_d_file(self, url, upload_name, timestamped_name, job_id, is_local, response=None):
         """ Pull D file from specified URL and write to S3 """
         sess = GlobalDB.db().session
         try:
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
             logger.debug('Downloading file...')
-            if not self.download_file(full_file_path, url, upload_name):
+            if not self.download_file(full_file_path, url, upload_name, response):
                 # Error occurred while downloading file, mark job as failed and record error message
                 mark_job_status(job_id, "failed")
                 job = sess.query(Job).filter_by(job_id=job_id).one()
@@ -949,11 +951,24 @@ class FileHandler:
             if not self.isLocal:
                 response = requests.get(url, stream=True)
                 if response.status_code != 200:
-                    # Could not download the file, return False
-                    raise ResponseException("Could not access download URL", StatusCode.CLIENT_ERROR)
+                    # Error occurred while downloading file, mark job as failed and record error message
+                    mark_job_status(job.job_id, "failed")
+                    job = sess.query(Job).filter_by(job_id=job.job_id).one()
+                    file_type = job.file_type.name
+                    if file_type == "award":
+                        source = "ASP"
+                    elif file_type == "award_procurement":
+                        source = "FPDS"
+                    else:
+                        source = "unknown source"
+                    job.error_message = "A problem occurred receiving data from {}".format(source)
+
+                    raise ResponseException(job.error_message, StatusCode.CLIENT_ERROR)
+
                 logger.debug('Starting thread')
-                threading.Thread(target=self.load_d_file, args=(url, job.filename, job.original_filename, job.job_id,
-                                                                self.isLocal))
+                t = threading.Thread(target=self.load_d_file, args=(url, job.filename, job.original_filename,
+                                                                    job.job_id, self.isLocal, response))
+                t.start()
             # local shouldn't be a thread, just wait, no one is waiting on us.
             else:
                 result = self.load_d_file(url, job.filename, job.original_filename, job.job_id, self.isLocal)
