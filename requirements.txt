@@ -68,4 +68,3 @@ xmltodict==0.10.2
 # version here
 -e git+https://github.com/andersinno/suds-jurko.git@44e27560b328ec6482459ea2d75516849dc209ff#egg=suds
 boto3==1.4.3
-paramiko==2.1.2
