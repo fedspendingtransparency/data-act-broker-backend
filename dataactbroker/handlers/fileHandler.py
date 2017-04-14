@@ -1,4 +1,5 @@
 import os
+import smart_open
 from collections import namedtuple
 from csv import reader
 from datetime import datetime
@@ -6,6 +7,7 @@ import logging
 from dateutil.relativedelta import relativedelta
 from uuid import uuid4
 from shutil import copyfile
+import threading
 
 import requests
 from flask import g, request
@@ -56,6 +58,8 @@ class FileHandler:
     s3manager -- instance of S3Handler, manages calls to S3
     """
 
+    # 1024 sounds like a good chunk size, we can change if needed
+    CHUNK_SIZE = 1024
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
     EXTERNAL_FILE_TYPES = ["award", "award_procurement", "awardee_attributes", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
@@ -488,18 +492,23 @@ class FileHandler:
         else:
             self.complete_generation(task_key, file_type)
 
-    def download_file(self, local_file_path, file_url):
+    def download_file(self, local_file_path, file_url, upload_name, response):
         """ Download a file locally from the specified URL, returns True if successful """
         if not self.isLocal:
-            with open(local_file_path, "w") as file:
-                # get request
-                response = requests.get(file_url)
-                if response.status_code != 200:
-                    # Could not download the file, return False
-                    return False
-                # write to file
+            conn = self.s3manager.create_file_path(upload_name)
+            with smart_open.smart_open(conn, 'w') as writer:
+                # get request if it doesn't already exist
+                if not response:
+                    response = requests.get(file_url, stream=True)
+                    # we only need to run this check if we haven't already
+                    if response.status_code != 200:
+                        # Could not download the file, return False
+                        return False
+                # write (stream) to file
                 response.encoding = "utf-8"
-                file.write(response.text)
+                for chunk in response.iter_content(chunk_size=FileHandler.CHUNK_SIZE):
+                    if chunk:
+                        writer.write(chunk)
                 return True
         elif not os.path.isfile(file_url):
             raise ResponseException('{} does not exist'.format(file_url),
@@ -512,14 +521,14 @@ class FileHandler:
             copyfile(file_url, local_file_path)
             return True
 
-    def load_d_file(self, url, upload_name, timestamped_name, job_id, is_local):
+    def load_d_file(self, url, upload_name, timestamped_name, job_id, is_local, response=None):
         """ Pull D file from specified URL and write to S3 """
         sess = GlobalDB.db().session
         try:
             full_file_path = "".join([CONFIG_BROKER['d_file_storage_path'], timestamped_name])
 
             logger.debug('Downloading file...')
-            if not self.download_file(full_file_path, url):
+            if not self.download_file(full_file_path, url, upload_name, response):
                 # Error occurred while downloading file, mark job as failed and record error message
                 mark_job_status(job_id, "failed")
                 job = sess.query(Job).filter_by(job_id=job_id).one()
@@ -533,9 +542,13 @@ class FileHandler:
                 job.error_message = "A problem occurred receiving data from {}".format(source)
 
                 raise ResponseException(job.error_message, StatusCode.CLIENT_ERROR)
-            lines = get_lines_from_csv(full_file_path)
 
-            write_csv(timestamped_name, upload_name, is_local, lines[0], lines[1:])
+            # we're streaming non-locally but locally we still need to write as a csv
+            # because copyfile doesn't do it
+            if self.isLocal:
+                lines = get_lines_from_csv(full_file_path)
+
+                write_csv(timestamped_name, upload_name, is_local, lines[0], lines[1:])
 
             logger.debug('Marking job id of %s', job_id)
             mark_job_status(job_id, "finished")
@@ -932,8 +945,33 @@ class FileHandler:
             task = sess.query(FileGenerationTask).filter(FileGenerationTask.generation_task_key == generation_id).one()
             job = sess.query(Job).filter_by(job_id=task.job_id).one()
             logger.debug('Loading D file...')
-            result = self.load_d_file(url, job.filename, job.original_filename, job.job_id, self.isLocal)
-            logger.debug('Load D file result => %s', result)
+            # if it isn't local, we want to make the actual loading a thread because we need to quickly respond to
+            # metrostar
+            if not self.isLocal:
+                response = requests.get(url, stream=True)
+                if response.status_code != 200:
+                    # Error occurred while downloading file, mark job as failed and record error message
+                    mark_job_status(job.job_id, "failed")
+                    job = sess.query(Job).filter_by(job_id=job.job_id).one()
+                    file_type = job.file_type.name
+                    if file_type == "award":
+                        source = "ASP"
+                    elif file_type == "award_procurement":
+                        source = "FPDS"
+                    else:
+                        source = "unknown source"
+                    job.error_message = "A problem occurred receiving data from {}".format(source)
+
+                    raise ResponseException(job.error_message, StatusCode.CLIENT_ERROR)
+
+                logger.debug('Starting thread')
+                t = threading.Thread(target=self.load_d_file, args=(url, job.filename, job.original_filename,
+                                                                    job.job_id, self.isLocal, response))
+                t.start()
+            # local shouldn't be a thread, just wait, no one is waiting on us.
+            else:
+                result = self.load_d_file(url, job.filename, job.original_filename, job.job_id, self.isLocal)
+                logger.debug('Load D file result => %s', result)
             return JsonResponse.create(StatusCode.OK, {"message": "File loaded successfully"})
         except ResponseException as e:
             return JsonResponse.error(e, e.status)
