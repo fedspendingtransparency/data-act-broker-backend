@@ -12,6 +12,7 @@ from dataactcore.interfaces.function_bag import mark_job_status
 from dataactcore.logging import configure_logging
 from dataactcore.models.jobModels import Job
 from dataactcore.models.stagingModels import AwardFinancialAssistance, AwardProcurement
+from dataactcore.models.domainModels import ExecutiveCompensation
 from dataactcore.utils import fileE, fileF
 from dataactvalidator.filestreaming.csv_selection import write_csv
 
@@ -114,6 +115,13 @@ def generate_e_file(task, submission_id, job_id, timestamped_name, upload_file_n
         rows = []
         for i in range(0, len(duns_list), 100):
             rows.extend(fileE.retrieve_rows(duns_list[i:i + 100]))
+
+        # Add rows to database here.
+        # TODO: This is a temporary solution until loading from SAM's SFTP has been resolved
+        for row in rows:
+            session.merge(ExecutiveCompensation(**row))
+        session.commit()
+
         write_csv(timestamped_name, upload_file_name, is_local, fileE.Row._fields, rows)
 
 
