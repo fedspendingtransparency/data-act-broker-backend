@@ -1,5 +1,4 @@
 import os
-import boto
 import smart_open
 from collections import namedtuple
 from csv import reader
@@ -59,6 +58,8 @@ class FileHandler:
     s3manager -- instance of S3Handler, manages calls to S3
     """
 
+    # 1024 sounds like a good chunk size, we can change if needed
+    CHUNK_SIZE = 1024
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
     EXTERNAL_FILE_TYPES = ["award", "award_procurement", "awardee_attributes", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
@@ -494,9 +495,7 @@ class FileHandler:
     def download_file(self, local_file_path, file_url, upload_name, response):
         """ Download a file locally from the specified URL, returns True if successful """
         if not self.isLocal:
-            bucket = CONFIG_BROKER['aws_bucket']
-            region = CONFIG_BROKER['aws_region']
-            conn = boto.s3.connect_to_region(region).get_bucket(bucket).new_key(upload_name)
+            conn = self.s3manager.create_file_path(upload_name)
             with smart_open.smart_open(conn, 'w') as writer:
                 # get request if it doesn't already exist
                 if not response:
@@ -507,7 +506,7 @@ class FileHandler:
                         return False
                 # write (stream) to file
                 response.encoding = "utf-8"
-                for chunk in response.iter_content(chunk_size=1024):
+                for chunk in response.iter_content(chunk_size=FileHandler.CHUNK_SIZE):
                     if chunk:
                         writer.write(chunk)
                 return True
