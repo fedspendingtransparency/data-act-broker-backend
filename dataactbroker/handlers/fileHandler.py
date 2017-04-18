@@ -552,6 +552,9 @@ class FileHandler:
 
             logger.debug('Marking job id of %s', job_id)
             mark_job_status(job_id, "finished")
+            # only need to close it if we threaded it in the first place
+            if not self.isLocal:
+                GlobalDB.close()
             return {"message": "Success", "file_name": timestamped_name}
         except Exception as e:
             logger.exception('Exception caught => %s', e)
@@ -560,6 +563,9 @@ class FileHandler:
             sess.query(Job).filter_by(job_id=job_id).one().error_message = str(e)
             mark_job_status(job_id, "failed")
             sess.commit()
+            # only need to close it if we threaded it in the first place
+            if not self.isLocal:
+                GlobalDB.close()
             raise e
 
     def generate_file(self, submission_id, file_type):
