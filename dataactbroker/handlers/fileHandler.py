@@ -561,6 +561,9 @@ class FileHandler:
             mark_job_status(job_id, "failed")
             sess.commit()
             raise e
+        finally:
+            # need to explicitly close because this function can get called by a thread
+            GlobalDB.close()
 
     def generate_file(self, submission_id, file_type):
         """ Start a file generation job for the specified file type """
