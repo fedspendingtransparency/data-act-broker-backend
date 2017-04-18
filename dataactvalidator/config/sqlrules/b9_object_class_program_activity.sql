@@ -27,7 +27,7 @@ WHERE op.submission_id = {0}
     AND op.program_activity_code <> '0000'
     AND LOWER(op.program_activity_name) <> 'unknown/other'
 	AND op.row_number NOT IN (
-		SELECT op.row_number
+		SELECT DISTINCT op.row_number
 		FROM object_class_program_activity_b9_{0} as op
 			JOIN program_activity as pa
 				ON (op.agency_identifier IS NOT DISTINCT FROM pa.agency_id
