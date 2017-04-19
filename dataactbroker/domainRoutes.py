@@ -59,6 +59,9 @@ def get_cgacs(fn):
         elif g.user.website_admin:
             cgacs = sess.query(CGAC).all()
         else:
-            cgacs = [affil.cgac for affil in g.user.affiliations]
+            cgacs = []
+            for affil in g.user.affiliations:
+                if affil.permission_type_id >= 2:
+                    cgacs.append(affil.cgac)
         return fn(cgacs, *args, **kwargs)
     return wrapped

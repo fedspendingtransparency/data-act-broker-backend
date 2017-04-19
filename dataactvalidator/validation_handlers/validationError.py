@@ -21,15 +21,17 @@ class ValidationError:
     jobErrorMsg = "Error occurred in job manager"
     lengthError = 9
     lengthErrorMsg = "Value was longer than maximum length for this field"
+    encodingError = 10
+    encodingErrorMsg = 'File contains invalid characters that could not be validated'
     # Create dict of error types
     errorDict = {typeError: typeErrorMsg, requiredError: requiredErrorMsg, valueError: valueErrorMsg,
                  headerError: headerErrorMsg, readError: readErrorMsg, writeError: writeErrorMsg,
                  unknownError: unknownErrorMsg, singleRow: singleRowMsg, jobError: jobErrorMsg,
-                 lengthError: lengthErrorMsg}
+                 lengthError: lengthErrorMsg, encodingError: encodingErrorMsg}
     errorTypeDict = {typeError: "type_error", requiredError: "required_error", valueError: "value_error",
                      headerError: "header_error", readError: "read_error", writeError: "write_error",
                      unknownError: "unknown_error", singleRow: "single_row_error", jobError: "job_error",
-                     lengthError: "length_error"}
+                     lengthError: "length_error", encodingError: "encoding_error"}
 
     @staticmethod
     def get_error_message(error_type):
