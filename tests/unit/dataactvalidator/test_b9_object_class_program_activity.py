@@ -8,8 +8,8 @@ _FILE = 'b9_object_class_program_activity'
 
 
 def test_column_headers(database):
-    expected_subset = {'row_number', 'agency_identifier', 'allocation_transfer_agency',
-                       'main_account_code', 'program_activity_name', 'program_activity_code'}
+    expected_subset = {'row_number', 'agency_identifier', 'main_account_code', 'program_activity_name',
+                       'program_activity_code'}
     actual = set(query_columns(_FILE, database))
     assert (actual & expected_subset) == expected_subset
 
@@ -18,12 +18,10 @@ def test_success(database):
     """ Testing valid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
     A-11. """
 
-    op_1 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test',
-                                             allocation_transfer_agency='test', main_account_code='test',
+    op_1 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                              program_activity_name='test', program_activity_code='test')
 
-    op_2 = ObjectClassProgramActivityFactory(row_number=2, agency_identifier='test',
-                                             allocation_transfer_agency='test', main_account_code='test',
+    op_2 = ObjectClassProgramActivityFactory(row_number=2, agency_identifier='test', main_account_code='test',
                                              program_activity_name='test', program_activity_code='test')
 
     pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
@@ -36,8 +34,8 @@ def test_success_fiscal_year(database):
     """ Testing valid name for FY that matches with budget_year"""
 
     op = ObjectClassProgramActivityFactory(row_number=1, submission_id='1', agency_identifier='test',
-                                           allocation_transfer_agency='test', main_account_code='test',
-                                           program_activity_name='test', program_activity_code='test')
+                                           main_account_code='test', program_activity_name='test',
+                                           program_activity_code='test')
 
     pa_1 = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
                                   account_number='test', program_activity_name='test', program_activity_code='test')
@@ -45,7 +43,7 @@ def test_success_fiscal_year(database):
     pa_2 = ProgramActivityFactory(budget_year=2017, agency_id='test2', allocation_transfer_id='test2',
                                   account_number='test2', program_activity_name='test2', program_activity_code='test2')
 
-    submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2016')
+    submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2017')
 
     assert number_of_errors(_FILE, database, models=[op, pa_1, pa_2], submission=submission) == 0
 
@@ -53,9 +51,9 @@ def test_success_fiscal_year(database):
 def test_failure_fiscal_year(database):
     """ Testing invalid name for FY, not matches with budget_year"""
 
-    op = ObjectClassProgramActivityFactory(row_number=1, submission_id='1', agency_identifier='test2',
-                                           allocation_transfer_agency='test2', main_account_code='test2',
-                                           program_activity_name='test2', program_activity_code='test2')
+    op = ObjectClassProgramActivityFactory(row_number=1, submission_id='1', agency_identifier='test3',
+                                           main_account_code='test3', program_activity_name='test3',
+                                           program_activity_code='test3')
 
     pa_1 = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
                                   account_number='test', program_activity_name='test', program_activity_code='test')
@@ -63,16 +61,18 @@ def test_failure_fiscal_year(database):
     pa_2 = ProgramActivityFactory(budget_year=2017, agency_id='test2', allocation_transfer_id='test2',
                                   account_number='test2', program_activity_name='test2', program_activity_code='test2')
 
-    submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2016')
+    pa_3 = ProgramActivityFactory(budget_year=2018, agency_id='test3', allocation_transfer_id='test3',
+                                  account_number='test3', program_activity_name='test3', program_activity_code='test3')
 
-    assert number_of_errors(_FILE, database, models=[op, pa_1, pa_2], submission=submission) == 1
+    submission = SubmissionFactory(submission_id='1', reporting_fiscal_year='2017')
+
+    assert number_of_errors(_FILE, database, models=[op, pa_1, pa_2, pa_3], submission=submission) == 1
 
 
 def test_success_unknown_value(database):
     """ Testing valid Unknown/other program activity name with '0000' code """
 
-    op = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test',
-                                           allocation_transfer_agency='test', main_account_code='test',
+    op = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                            program_activity_name='Unknown/Other', program_activity_code='0000')
 
     pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
@@ -84,8 +84,8 @@ def test_success_unknown_value(database):
 def test_success_ignore_blank_program_activity_name(database):
     """ Testing program activity name validation to ignore blanks if monetary sum is 0 """
     op = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
-                                           allocation_transfer_agency='test', main_account_code='test',
-                                           program_activity_name='', program_activity_code='test',
+                                           main_account_code='test', program_activity_name='',
+                                           program_activity_code='test',
                                            deobligations_recov_by_pro_cpe=0, gross_outlay_amount_by_pro_cpe=0,
                                            gross_outlay_amount_by_pro_fyb=0, gross_outlays_delivered_or_cpe=0,
                                            gross_outlays_delivered_or_fyb=0, gross_outlays_undelivered_cpe=0,
@@ -109,16 +109,27 @@ def test_success_ignore_blank_program_activity_name(database):
     assert number_of_errors(_FILE, database, models=[op, pa]) == 0
 
 
+def test_success_ignore_case(database):
+    """ Testing program activity validation to ignore case """
+
+    op = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
+                                           main_account_code='test', program_activity_name='TEST',
+                                           program_activity_code='test')
+
+    pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
+                                account_number='test', program_activity_name='test', program_activity_code='test')
+
+    assert number_of_errors(_FILE, database, models=[op, pa]) == 0
+
+
 def test_failure_program_activity_name(database):
     """ Testing invalid program activity name for the corresponding TAS/TAFS as defined in Section 82 of OMB Circular
     A-11. """
 
-    op_1 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test',
-                                             allocation_transfer_agency='test', main_account_code='test',
+    op_1 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                              program_activity_name='test_wrong', program_activity_code='test')
 
-    op_2 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test',
-                                             allocation_transfer_agency='test', main_account_code='test',
+    op_2 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                              program_activity_name='test_wrong', program_activity_code='0000')
 
     pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
@@ -128,12 +139,10 @@ def test_failure_program_activity_name(database):
 
 
 def test_failure_program_activity_code(database):
-    op_1 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test',
-                                             allocation_transfer_agency='test', main_account_code='test',
+    op_1 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                              program_activity_name='test', program_activity_code='test_wrong')
 
-    op_2 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test',
-                                             allocation_transfer_agency='test', main_account_code='test',
+    op_2 = ObjectClassProgramActivityFactory(row_number=1, agency_identifier='test', main_account_code='test',
                                              program_activity_name='Unknown/Other', program_activity_code='123456')
 
     pa = ProgramActivityFactory(budget_year=2016, agency_id='test', allocation_transfer_id='test',
@@ -149,8 +158,8 @@ def test_failure_empty_activity_name(database):
 
     # one monetary amount not 0
     op = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
-                                           allocation_transfer_agency='test', main_account_code='test',
-                                           program_activity_name='', program_activity_code='test',
+                                           main_account_code='test', program_activity_name='',
+                                           program_activity_code='test',
                                            deobligations_recov_by_pro_cpe=2, gross_outlay_amount_by_pro_cpe=0,
                                            gross_outlay_amount_by_pro_fyb=0, gross_outlays_delivered_or_cpe=0,
                                            gross_outlays_delivered_or_fyb=0, gross_outlays_undelivered_cpe=0,
@@ -172,8 +181,8 @@ def test_failure_empty_activity_name(database):
 
     # several monetary amounts not 0
     op = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
-                                           allocation_transfer_agency='test', main_account_code='test',
-                                           program_activity_name='', program_activity_code='test',
+                                           main_account_code='test', program_activity_name='',
+                                           program_activity_code='test',
                                            deobligations_recov_by_pro_cpe=2, gross_outlay_amount_by_pro_cpe=0,
                                            gross_outlay_amount_by_pro_fyb=0, gross_outlays_delivered_or_cpe=0,
                                            gross_outlays_delivered_or_fyb=0, gross_outlays_undelivered_cpe=0,
@@ -195,8 +204,8 @@ def test_failure_empty_activity_name(database):
 
     # all monetary amounts not 0
     op = ObjectClassProgramActivityFactory(row_number=1, beginning_period_of_availa=2016, agency_identifier='test',
-                                           allocation_transfer_agency='test', main_account_code='test',
-                                           program_activity_name='', program_activity_code='test',
+                                           main_account_code='test', program_activity_name='',
+                                           program_activity_code='test',
                                            deobligations_recov_by_pro_cpe=2, gross_outlay_amount_by_pro_cpe=100,
                                            gross_outlay_amount_by_pro_fyb=-0.00003, gross_outlays_delivered_or_cpe=10,
                                            gross_outlays_delivered_or_fyb=5, gross_outlays_undelivered_cpe=5,

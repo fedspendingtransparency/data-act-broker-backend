@@ -39,6 +39,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         if not (start_date is None or end_date is None):
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date,
                                                                                           end_date, is_quarter)
+
             submissions = sess.query(Submission).filter(
                 Submission.cgac_code == request.json.get('cgac_code'),
                 Submission.reporting_start_date == formatted_start_date,

@@ -21,7 +21,7 @@ def test_list_agencies_limits(monkeypatch, user_constants, domain_app):
     sess = GlobalDB.db().session
     user = UserFactory()
     cgacs = [CGACFactory() for _ in range(2)]
-    user.affiliations = [UserAffiliation(cgac=cgacs[0], permission_type_id=1)]
+    user.affiliations = [UserAffiliation(cgac=cgacs[0], permission_type_id=2)]
     sess.add_all(cgacs + [user])
     sess.commit()
     monkeypatch.setattr(domainRoutes, 'g', Mock(user=user))
