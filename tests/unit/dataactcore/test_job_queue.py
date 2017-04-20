@@ -91,6 +91,9 @@ def test_generate_e_file_csv(monkeypatch, mock_broker_config_paths, database):
     sess.add(ap)
     sess.commit()
 
+    monkeypatch.setattr(jobQueue.fileE, 'row_to_dict', Mock())
+    jobQueue.fileE.row_to_dict.return_value = {}
+
     monkeypatch.setattr(jobQueue.fileE, 'retrieve_rows', Mock())
     jobQueue.fileE.retrieve_rows.return_value = [
         fileE.Row('a', 'b', 'c', '1a', '1b', '2a', '2b', '3a', '3b', '4a', '4b', '5a', '5b'),
