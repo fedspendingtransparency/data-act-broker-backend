@@ -43,6 +43,8 @@ broker:
     # File E
     awardee_attributes_url: https://sample.gov
     awardee_attributes_file_name: awardee_data.csv
+    executive_compensation_url: https://sample.gov
+    executive_compensation_file_name: executive_compensation_data.csv
 
     # File F
     sub_award_url: https://sample.gov
@@ -151,6 +153,8 @@ logging:
             - award_file_name
             - awardee_attributes_url
             - awardee_attributes_file_name
+            - executive_compensation_url
+            - executive_compensation_file_name
             - sub_award_url
             - sub_award_file_name
             - rss_folder

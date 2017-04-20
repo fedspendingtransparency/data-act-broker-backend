@@ -63,7 +63,7 @@ class FileHandler:
     # 1024 sounds like a good chunk size, we can change if needed
     CHUNK_SIZE = 1024
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
-    EXTERNAL_FILE_TYPES = ["award", "award_procurement", "awardee_attributes", "sub_award"]
+    EXTERNAL_FILE_TYPES = ["award", "award_procurement", "executive_compensation", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
     STATUS_MAP = {"waiting": "invalid", "ready": "invalid", "running": "waiting", "finished": "finished",
                   "invalid": "failed", "failed": "failed"}

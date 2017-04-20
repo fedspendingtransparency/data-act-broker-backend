@@ -760,9 +760,9 @@ class FileTests(BaseTestAPI):
             submission.submission_id
         )
         # Create E and F jobs ready for check route
-        awardee_att_job = cls.insert_job(
+        exec_comp_job = cls.insert_job(
             sess,
-            FILE_TYPE_DICT['awardee_attributes'],
+            FILE_TYPE_DICT['executive_compensation'],
             JOB_STATUS_DICT['finished'],
             JOB_TYPE_DICT['file_upload'],
             submission.submission_id
@@ -792,11 +792,11 @@ class FileTests(BaseTestAPI):
             submission.submission_id
         )
         # Create dependency
-        awardee_att_dep = JobDependency(
-            job_id=awardee_att_job.job_id,
+        exec_comp_dep = JobDependency(
+            job_id=exec_comp_job.job_id,
             prerequisite_id=award_roc_val_job.job_id
         )
-        sess.add(awardee_att_dep)
+        sess.add(exec_comp_dep)
         sess.commit()
 
     @classmethod
