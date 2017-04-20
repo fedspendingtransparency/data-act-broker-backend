@@ -590,20 +590,29 @@ def main():
     data_award = []
     params = 'CONTRACTING_AGENCY_ID:1542'
     # params = 'VENDOR_ADDRESS_COUNTRY_CODE:"GBR"'
-    resp_award = requests.get(feed_url + params + ' CONTRACT_TYPE:"AWARD"' + '&start=0', timeout=60)
-    resp_data_award = xmltodict.parse(resp_award.text, process_namespaces=True, namespaces={'http://www.fpdsng.com/FPDS': None, 'http://www.w3.org/2005/Atom': None})
-    listed_data_award = list_data(resp_data_award['feed']['entry'])
 
-    for ld in listed_data_award:
-        data_award.append(ld)
+    i = 0
+    while True:
+        resp_award = requests.get(feed_url + params + ' CONTRACT_TYPE:"AWARD"' + '&start=' + str(i), timeout=60)
+        resp_data_award = xmltodict.parse(resp_award.text, process_namespaces=True, namespaces={'http://www.fpdsng.com/FPDS': None, 'http://www.w3.org/2005/Atom': None})
+        listed_data_award = list_data(resp_data_award['feed']['entry'])
+
+        for ld in listed_data_award:
+            data_award.append(ld)
+            i += 1
+
+        if len(listed_data_award) < 10:
+            break
 
     sess = GlobalDB.db().session
+    print(len(data_award))
 
     for value in data_award:
         tmp_obj = process_data(value['content']['award'], atom_type="award", sess=sess)
         tmp_award = DetachedAwardProcurement(**tmp_obj)
         sess.add(tmp_award)
     sess.commit()
+    print("processed")
 
 if __name__ == '__main__':
     with create_app().app_context():
