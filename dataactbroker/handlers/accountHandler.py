@@ -212,7 +212,9 @@ class AccountHandler:
         user_ids = request_dict['users']
         submission_id = request_dict['submission_id']
         # Check if submission id is valid
-        sess.query(Submission).filter_by(submission_id=submission_id).one()
+        _, agency_name = sess.query(Submission.submission_id, CGAC.agency_name)\
+            .join(CGAC, Submission.cgac_code == CGAC.cgac_code)\
+            .filter(Submission.submission_id == submission_id).one()
 
         template_type = request_dict['email_template']
         # Check if email template type is valid
@@ -221,7 +223,7 @@ class AccountHandler:
         users = []
 
         link = "".join([AccountHandler.FRONT_END, '#/reviewData/', str(submission_id)])
-        email_template = {'[REV_USER_NAME]': g.user.name, '[REV_URL]': link}
+        email_template = {'[REV_USER_NAME]': g.user.name, '[REV_AGENCY]': agency_name, '[REV_URL]': link}
 
         for user_id in user_ids:
             # Check if user id is valid, if so add User object to array
