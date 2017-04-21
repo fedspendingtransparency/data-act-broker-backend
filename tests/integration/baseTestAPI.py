@@ -65,6 +65,11 @@ class BaseTestAPI(unittest.TestCase):
 
             # get user info and save as class variables for use by tests
             sess = GlobalDB.db().session
+            admin_cgac = CGAC(cgac_code='SYS', agency_name='Admin Agency')
+            cls.admin_cgac_code = admin_cgac.cgac_code
+            sess.add(admin_cgac)
+            sess.commit()
+
             cgac = CGAC(cgac_code='000', agency_name='Example Agency')
 
             # set up users for status tests
