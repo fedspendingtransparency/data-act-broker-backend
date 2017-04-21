@@ -2,6 +2,8 @@ import os
 from datetime import datetime
 from shutil import copy
 
+import calendar
+
 import boto
 from boto.s3.key import Key
 
@@ -673,11 +675,18 @@ class FileTests(BaseTestAPI):
                           is_quarter=False, number_of_errors=0, publish_status_id=1):
         """Insert one submission into job tracker and get submission ID back."""
         publishable = True if number_of_errors == 0 else False
+        end_date = datetime.strptime(end_date, '%m/%Y')
+        end_date = datetime.strptime(
+                        str(end_date.year) + '/' +
+                        str(end_date.month) + '/' +
+                        str(calendar.monthrange(end_date.year, end_date.month)[1]),
+                        '%Y/%m/%d'
+                    ).date()
         sub = Submission(created_at=datetime.utcnow(),
                          user_id=submission_user_id,
                          cgac_code=cgac_code,
                          reporting_start_date=datetime.strptime(start_date, '%m/%Y'),
-                         reporting_end_date=datetime.strptime(end_date, '%m/%Y'),
+                         reporting_end_date=end_date,
                          is_quarter_format=is_quarter,
                          number_of_errors=number_of_errors,
                          publish_status_id=publish_status_id,
@@ -751,9 +760,9 @@ class FileTests(BaseTestAPI):
             submission.submission_id
         )
         # Create E and F jobs ready for check route
-        awardee_att_job = cls.insert_job(
+        exec_comp_job = cls.insert_job(
             sess,
-            FILE_TYPE_DICT['awardee_attributes'],
+            FILE_TYPE_DICT['executive_compensation'],
             JOB_STATUS_DICT['finished'],
             JOB_TYPE_DICT['file_upload'],
             submission.submission_id
@@ -783,11 +792,11 @@ class FileTests(BaseTestAPI):
             submission.submission_id
         )
         # Create dependency
-        awardee_att_dep = JobDependency(
-            job_id=awardee_att_job.job_id,
+        exec_comp_dep = JobDependency(
+            job_id=exec_comp_job.job_id,
             prerequisite_id=award_roc_val_job.job_id
         )
-        sess.add(awardee_att_dep)
+        sess.add(exec_comp_dep)
         sess.commit()
 
     @classmethod
