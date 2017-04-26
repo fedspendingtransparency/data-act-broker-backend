@@ -172,8 +172,8 @@ def submission_procurements(submission_id):
 
     results = sess.query(AwardProcurement, FSRSProcurement, FSRSSubcontract).\
         filter(AwardProcurement.submission_id == submission_id).\
-        filter(FSRSProcurement.contract_number == AwardProcurement.piid).\
-        filter(FSRSProcurement.idv_reference_number == AwardProcurement.parent_award_id).\
+        filter(FSRSProcurement.contract_number.isnot_distinct_from(AwardProcurement.piid)).\
+        filter(FSRSProcurement.idv_reference_number.isnot_distinct_from(AwardProcurement.parent_award_id)).\
         filter(FSRSSubcontract.parent_id == FSRSProcurement.id)
     for award, proc, sub in results:
         yield ModelRow(award, proc, sub, naics_desc=award.naics_description)

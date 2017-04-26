@@ -5,6 +5,8 @@ from unittest.mock import Mock
 
 import pytest
 
+import calendar
+
 from dataactbroker.handlers import fileHandler
 from dataactcore.models.jobModels import JobStatus, JobType, FileType
 from dataactcore.utils.responseException import ResponseException
@@ -260,19 +262,19 @@ good_dates = [
     ('10/2017', '12/2017', True, None),
     ('04/2016', None, False, SubmissionFactory(
         reporting_start_date=datetime.strptime('09/2016', '%m/%Y').date(),
-        reporting_end_date=datetime.strptime('09/2016', '%m/%Y').date())),
+        reporting_end_date=datetime.strptime('09/30/2016', '%m/%d/%Y').date())),
     (None, '07/2014', None, SubmissionFactory(
         reporting_start_date=datetime.strptime('08/2013', '%m/%Y').date(),
-        reporting_end_date=datetime.strptime('09/2016', '%m/%Y').date())),
+        reporting_end_date=datetime.strptime('09/30/2016', '%m/%d/%Y').date())),
     ('01/2010', '03/2010', True, SubmissionFactory(is_quarter_format=False)),
     (None, None, None, SubmissionFactory(
         reporting_start_date=datetime.strptime('09/2016', '%m/%Y').date(),
-        reporting_end_date=datetime.strptime('09/2016', '%m/%Y').date()
+        reporting_end_date=datetime.strptime('09/30/2016', '%m/%d/%Y').date()
     )),
     (None, None, None, SubmissionFactory(
         is_quarter_format=True,
         reporting_start_date=datetime.strptime('10/2016', '%m/%Y').date(),
-        reporting_end_date=datetime.strptime('12/2016', '%m/%Y').date()
+        reporting_end_date=datetime.strptime('12/31/2016', '%m/%d/%Y').date()
     ))
 ]
 
@@ -293,7 +295,14 @@ def test_submission_good_dates(start_date, end_date, quarter_flag, submission):
     if end_date is None:
         assert output_end_date == submission.reporting_end_date
     else:
-        assert output_end_date == datetime.strptime(end_date, date_format).date()
+        test_date = datetime.strptime(end_date, date_format).date()
+        test_date = datetime.strptime(
+                        str(test_date.year) + '/' +
+                        str(test_date.month) + '/' +
+                        str(calendar.monthrange(test_date.year, test_date.month)[1]),
+                        '%Y/%m/%d'
+                    ).date()
+        assert output_end_date == test_date
 
 bad_dates = [
     ('04/2016', '05/2016', True, SubmissionFactory()),

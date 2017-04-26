@@ -38,12 +38,14 @@ def run_app():
         queue = sqs_queue()
 
         logger.info("Starting SQS polling")
+        current_message = None
         while True:
             try:
                 # Grabs one (or more) messages from the queue
                 messages = queue.receive_messages(WaitTimeSeconds=10)
                 for message in messages:
                     logger.info("Message received: %s", message.body)
+                    current_message = message
                     GlobalDB.db()
                     g.job_id = message.body
                     mark_job_status(g.job_id, "ready")
@@ -70,14 +72,20 @@ def run_app():
                 logger.error(str(e))
 
                 # csv-specific errors get a different job status and response code
-                if isinstance(e, ValueError) or isinstance(e, csv.Error):
+                if isinstance(e, ValueError) or isinstance(e, csv.Error) or isinstance(e, UnicodeDecodeError):
                     job_status = 'invalid'
                 else:
                     job_status = 'failed'
                 job = get_current_job()
                 if job:
                     if job.filename is not None:
-                        write_file_error(job.job_id, job.filename, ValidationError.unknownError)
+                        error_type = ValidationError.unknownError
+                        if isinstance(e, UnicodeDecodeError):
+                            error_type = ValidationError.encodingError
+                            # TODO Is this really the only case where the message should be deleted?
+                            if current_message:
+                                current_message.delete()
+                        write_file_error(job.job_id, job.filename, error_type)
                     mark_job_status(job.job_id, job_status)
             finally:
                 GlobalDB.close()

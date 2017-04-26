@@ -19,7 +19,8 @@ FILE_STATUS = [
     LookupType(3, 'unknown_error', 'An unknown error has occurred with this file'),
     LookupType(4, 'single_row_error', 'Error occurred in job manager'),
     LookupType(5, 'job_error', 'File has not yet been validated'),
-    LookupType(6, 'incomplete', 'File has not yet been validated')
+    LookupType(6, 'incomplete', 'File has not yet been validated'),
+    LookupType(7, 'encoding_error', 'File contains invalid characters that could not be validated')
 ]
 FILE_STATUS_DICT = {item.name: item.id for item in FILE_STATUS}
 FILE_STATUS_DICT_ID = {item.id: item.name for item in FILE_STATUS}
@@ -70,7 +71,7 @@ FILE_TYPE = [
     LookupFileType(3, 'award_financial', '', 'C', 3, True, AwardFinancial),
     LookupFileType(4, 'award', '', 'D2', 4, True, AwardFinancialAssistance),
     LookupFileType(5, 'award_procurement', '', 'D1', 5, True, AwardProcurement),
-    LookupFileType(6, 'awardee_attributes', '', 'E', None, False, None),
+    LookupFileType(6, 'executive_compensation', '', 'E', None, False, None),
     LookupFileType(7, 'sub_award', '', 'F', None, False, None),
     LookupFileType(8, 'detached_award', '', 'D2_detached', None, False, DetachedAwardFinancialAssistance)
 ]
