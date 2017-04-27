@@ -18,6 +18,7 @@ chunk_size = 1024 * 10
 
 # add data to the zips table
 def add_to_table(data, sess):
+    i = 0
     # loop through all the items in the current array
     for _, new_zip in data.items():
         # create an insert statement that overrides old values if there's a conflict
@@ -28,10 +29,14 @@ def add_to_table(data, sess):
                                             congressional_district_no=new_zip["congressional_district_no"]))
         sess.execute(insert_statement)
 
+        if i % 10000 == 0:
+            logger.info("inserting row " + str(i) + " of current batch")
+        i += 1
     sess.commit()
 
 
 def parse_zip4_file(f, sess):
+    logger.info("starting file " + str(f))
     # pull out the copyright data
     f.read(line_size)
 
@@ -109,16 +114,18 @@ def main():
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-        zip_4_file_path = s3bucket.get_key("zip4mst0.txt").generate_url(expires_in=600)
-        f = urllib.request.urlopen(zip_4_file_path)
+        zip_folder = CONFIG_BROKER["zip_folder"] + "/"
+        for key in s3bucket.list(prefix=zip_folder):
+            if key.name != zip_folder:
+                zip_4_file_path = key.generate_url(expires_in=600)
+                parse_zip4_file(urllib.request.urlopen(zip_4_file_path), sess)
     else:
-        base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config")
-        zip_path = os.path.join(base_path, CONFIG_BROKER["zip_folder"])
-        file_list = [f for f in os.listdir(zip_path)]
+        base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", CONFIG_BROKER["zip_folder"])
+        file_list = [f for f in os.listdir(base_path)]
         for file in file_list:
-            parse_zip4_file(open(os.path.join(zip_path, file)), sess)
+            parse_zip4_file(open(os.path.join(base_path, file)), sess)
 
-    print("done with everything")
+    logger.info("Zipcode script complete")
 
 
 if __name__ == '__main__':
