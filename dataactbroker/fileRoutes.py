@@ -69,6 +69,13 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.finalize(upload_id)
 
+    @app.route("/v1/fail_job/", methods=["POST"])
+    @requires_login
+    @use_kwargs({'upload_id': webargs_fields.Int(required=True)})
+    def finalize_submission(upload_id):
+        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+        return file_manager.finalize(upload_id)
+
     @app.route("/v1/check_status/", methods=["POST"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
