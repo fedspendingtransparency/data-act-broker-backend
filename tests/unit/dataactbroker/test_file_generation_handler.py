@@ -3,8 +3,6 @@ import csv
 import os
 from unittest.mock import Mock
 
-import pytest
-
 from dataactcore.models.jobModels import FileType, JobStatus, JobType
 from dataactcore.utils import fileE
 from dataactbroker.handlers import fileGenerationHandler
