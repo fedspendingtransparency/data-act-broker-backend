@@ -613,6 +613,17 @@ class FileHandler:
             mark_job_status(job.job_id, "failed")
             return error_response
 
+        if file_type in ["D1", "D2"]:
+            # Set cross-file validation status to waiting if it's not already
+            cross_file_job = sess.query(Job).filter(Job.submission_id == submission_id,
+                                                    Job.job_type_id == JOB_TYPE_DICT['validation'],
+                                                    Job.job_status_id != JOB_STATUS_DICT['waiting']).one_or_none()
+
+            # No need to update it for each type of D file generation job, just do it once
+            if cross_file_job:
+                cross_file_job.job_status_id = JOB_STATUS_DICT['waiting']
+                sess.commit()
+
         # Return same response as check generation route
         submission = sess.query(Submission).\
             filter_by(submission_id=submission_id).\
