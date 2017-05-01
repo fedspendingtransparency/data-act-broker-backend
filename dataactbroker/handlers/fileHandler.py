@@ -1113,13 +1113,14 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
-    def fail_validation(submission):
+    def fail_validation(upload_id):
         # update all validation jobs to "ready"
         sess = GlobalDB.db().session
         initial_file_types = [FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
                               FILE_TYPE_DICT['award_financial']]
 
-        jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id).all()
+
+        jobs = sess.query(Job).filter(Job.submission_id == upload_id).all()
 
         # set all jobs to their initial status of "waiting"
         for job in jobs:
