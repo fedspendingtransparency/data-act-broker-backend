@@ -879,6 +879,8 @@ class FileHandler:
                     temp_obj.pop('row_number', None)
                     temp_obj.pop('is_valid', None)
                     temp_obj.pop('_sa_instance_state', None)
+
+                    temp_obj = fabs_derivations(temp_obj)
                     # if it is a new row, just insert it
                     if row.correction_late_delete_ind is None:
                         new_row = PublishedAwardFinancialAssistance(**temp_obj)
@@ -1527,3 +1529,11 @@ def map_generate_status(upload_job, validation_job=None):
             upload_job.error_message = validation_job.error_message
     sess.commit()
     return response_status
+
+
+def fabs_derivations(obj):
+    # deriving total_funding_amount
+    federal_action_obligation = obj['federal_action_obligation'] or 0
+    non_federal_funding_amount = obj['non_federal_funding_amount'] or 0
+    obj['total_funding_amount'] = federal_action_obligation + non_federal_funding_amount
+    return obj
