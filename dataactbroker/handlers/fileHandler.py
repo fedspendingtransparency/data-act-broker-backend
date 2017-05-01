@@ -1113,11 +1113,10 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
-    def fail_validation(self, upload_id):
-        # update all validation jobs to "ready"
+    def fail_validation(self, submission_id):
         sess = GlobalDB.db().session
 
-        jobs = sess.query(Job).filter(Job.submission_id == upload_id).all()
+        jobs = sess.query(Job).filter(Job.submission_id == submission_id).all()
 
         for job in jobs:
             job.job_status_id = JOB_STATUS_DICT['failed']
