@@ -613,6 +613,17 @@ class FileHandler:
             mark_job_status(job.job_id, "failed")
             return error_response
 
+        if file_type in ["D1", "D2"]:
+            # Set cross-file validation status to waiting if it's not already
+            cross_file_job = sess.query(Job).filter(Job.submission_id == submission_id,
+                                                    Job.job_type_id == JOB_TYPE_DICT['validation'],
+                                                    Job.job_status_id != JOB_STATUS_DICT['waiting']).one_or_none()
+
+            # No need to update it for each type of D file generation job, just do it once
+            if cross_file_job:
+                cross_file_job.job_status_id = JOB_STATUS_DICT['waiting']
+                sess.commit()
+
         # Return same response as check generation route
         submission = sess.query(Submission).\
             filter_by(submission_id=submission_id).\
@@ -868,6 +879,8 @@ class FileHandler:
                     temp_obj.pop('row_number', None)
                     temp_obj.pop('is_valid', None)
                     temp_obj.pop('_sa_instance_state', None)
+
+                    temp_obj = fabs_derivations(temp_obj)
                     # if it is a new row, just insert it
                     if row.correction_late_delete_ind is None:
                         new_row = PublishedAwardFinancialAssistance(**temp_obj)
@@ -1516,3 +1529,11 @@ def map_generate_status(upload_job, validation_job=None):
             upload_job.error_message = validation_job.error_message
     sess.commit()
     return response_status
+
+
+def fabs_derivations(obj):
+    # deriving total_funding_amount
+    federal_action_obligation = obj['federal_action_obligation'] or 0
+    non_federal_funding_amount = obj['non_federal_funding_amount'] or 0
+    obj['total_funding_amount'] = federal_action_obligation + non_federal_funding_amount
+    return obj
