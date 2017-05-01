@@ -1116,21 +1116,10 @@ class FileHandler:
     def fail_validation(self, upload_id):
         # update all validation jobs to "ready"
         sess = GlobalDB.db().session
-        initial_file_types = [FILE_TYPE_DICT['appropriations'], FILE_TYPE_DICT['program_activity'],
-                              FILE_TYPE_DICT['award_financial']]
-
 
         jobs = sess.query(Job).filter(Job.submission_id == upload_id).all()
 
-        # set all jobs to their initial status of "waiting"
         for job in jobs:
-            job.job_status_id = JOB_STATUS_DICT['waiting']
-
-        # update upload jobs to "running", only for files A, B, and C
-        upload_jobs = [job for job in jobs if job.job_type_id in [JOB_TYPE_DICT['file_upload']] and
-                       job.file_type_id in initial_file_types]
-
-        for job in upload_jobs:
             job.job_status_id = JOB_STATUS_DICT['failed']
         sess.commit()
 
