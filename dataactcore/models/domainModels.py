@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 import sqlalchemy as sa
-from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text
+from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
@@ -175,3 +175,37 @@ class CountryCode(Base):
     country_code_id = Column(Integer, primary_key=True)
     country_code = Column(Text, nullable=False, index=True, unique=True)
     country_name = Column(Text, nullable=False)
+
+
+class ExecutiveCompensation(Base):
+    """ File E """
+    __tablename__ = "executive_compensation"
+
+    executive_compensation_id = Column(Integer, primary_key=True)
+    awardee_or_recipient_uniqu = Column(Text)
+    ultimate_parent_unique_ide = Column(Text)
+    ultimate_parent_legal_enti = Column(Text)
+    high_comp_officer1_full_na = Column(Text)
+    high_comp_officer1_amount = Column(Text)
+    high_comp_officer2_full_na = Column(Text)
+    high_comp_officer2_amount = Column(Text)
+    high_comp_officer3_full_na = Column(Text)
+    high_comp_officer3_amount = Column(Text)
+    high_comp_officer4_full_na = Column(Text)
+    high_comp_officer4_amount = Column(Text)
+    high_comp_officer5_full_na = Column(Text)
+    high_comp_officer5_amount = Column(Text)
+
+
+class Zips(Base):
+    """ Zip and other address data for validation """
+    __tablename__ = "zips"
+
+    zips_id = Column(Integer, primary_key=True)
+    zip5 = Column(Text, index=True)
+    zip_last4 = Column(Text, index=True)
+    state_abbreviation = Column(Text)
+    county_number = Column(Text)
+    congressional_district_no = Column(Text)
+
+    __table_args__ = (UniqueConstraint('zip5', 'zip_last4', name='uniq_zip5_zip_last4'),)

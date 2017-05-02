@@ -39,6 +39,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         if not (start_date is None or end_date is None):
             formatted_start_date, formatted_end_date = FileHandler.check_submission_dates(start_date,
                                                                                           end_date, is_quarter)
+
             submissions = sess.query(Submission).filter(
                 Submission.cgac_code == request.json.get('cgac_code'),
                 Submission.reporting_start_date == formatted_start_date,
@@ -67,6 +68,13 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     def finalize_submission(upload_id):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.finalize(upload_id)
+
+    @app.route("/v1/fail_job/", methods=["POST"])
+    @requires_login
+    @use_kwargs({'upload_id': webargs_fields.Int(required=True)})
+    def fail_submission(upload_id):
+        file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+        return file_manager.fail_validation(upload_id)
 
     @app.route("/v1/check_status/", methods=["POST"])
     @convert_to_submission_id

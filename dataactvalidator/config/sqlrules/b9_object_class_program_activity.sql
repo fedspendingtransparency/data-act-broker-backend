@@ -19,7 +19,6 @@ SELECT  op.tas,
         op.submission_id,
         op.row_number,
         op.agency_identifier,
-        op.allocation_transfer_agency,
         op.main_account_code,
         op.program_activity_name,
         op.program_activity_code
@@ -28,16 +27,16 @@ WHERE op.submission_id = {0}
     AND op.program_activity_code <> '0000'
     AND LOWER(op.program_activity_name) <> 'unknown/other'
 	AND op.row_number NOT IN (
-		SELECT op.row_number
+		SELECT DISTINCT op.row_number
 		FROM object_class_program_activity_b9_{0} as op
 			JOIN program_activity as pa
 				ON (op.agency_identifier IS NOT DISTINCT FROM pa.agency_id
 				AND op.main_account_code IS NOT DISTINCT FROM pa.account_number
 				AND LOWER(op.program_activity_name) IS NOT DISTINCT FROM pa.program_activity_name
 				AND op.program_activity_code IS NOT DISTINCT FROM pa.program_activity_code
-				AND CAST(pa.budget_year as integer) = (SELECT reporting_fiscal_year
-                                                            FROM submission
-                                                            WHERE submission_id = op.submission_id))
+				AND (CAST(pa.budget_year as integer) in (2016, (SELECT reporting_fiscal_year
+				                                                    FROM submission
+				                                                    WHERE submission_id = op.submission_id))))
 	)
 	AND (CASE WHEN op.program_activity_name = ''
     	        THEN pg_temp.is_zero(op.deobligations_recov_by_pro_cpe) + pg_temp.is_zero(op.gross_outlay_amount_by_pro_cpe) +

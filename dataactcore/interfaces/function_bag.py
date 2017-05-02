@@ -482,7 +482,7 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
         if upload_file.file_type in ["award", "award_procurement"]:
             # file generation handled on backend, mark as ready
             upload_status = JOB_STATUS_DICT['ready']
-        elif upload_file.file_type in ["awardee_attributes", "sub_award"]:
+        elif upload_file.file_type in ["executive_compensation", "sub_award"]:
             # these are dependent on file D2 validation
             upload_status = JOB_STATUS_DICT['waiting']
         else:
@@ -523,7 +523,7 @@ def add_jobs_for_uploaded_file(upload_file, submission_id, existing_submission):
 
     else:
         # create a new record validation job and add dependencies if necessary
-        if upload_file.file_type == "awardee_attributes":
+        if upload_file.file_type == "executive_compensation":
             d1_val_job = sess.query(Job).\
                 filter(Job.submission_id == submission_id,
                        Job.file_type_id == FILE_TYPE_DICT['award_procurement'],

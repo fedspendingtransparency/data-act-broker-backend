@@ -25,6 +25,9 @@ broker:
     # is ignored if use_aws is true.
     broker_files: /full/path/to/broker/files
 
+    # The folder within dataactvalidator/config where USPS zip4 files are stored
+    zip_folder: zips
+
     ## Smartronix API URLs ##
 
     # File D1 API
@@ -43,6 +46,8 @@ broker:
     # File E
     awardee_attributes_url: https://sample.gov
     awardee_attributes_file_name: awardee_data.csv
+    executive_compensation_url: https://sample.gov
+    executive_compensation_file_name: executive_compensation_data.csv
 
     # File F
     sub_award_url: https://sample.gov
@@ -151,6 +156,8 @@ logging:
             - award_file_name
             - awardee_attributes_url
             - awardee_attributes_file_name
+            - executive_compensation_url
+            - executive_compensation_file_name
             - sub_award_url
             - sub_award_file_name
             - rss_folder
@@ -173,19 +180,3 @@ logging:
             - scheme
         logging:
             - log_files
-        job-queue:
-            - url
-            - port
-            - broker_scheme
-
-job-queue:
-
-    # URL for the job queue server (do not add http)
-    url: dataactbroker.jobqueue.host.domain.com
-
-    # Port on which Celery is listening
-    port: 5672
-
-    # Broker scheme which must coordinate with the type of broker being used
-    # on the remote server. amqp corresponds to RabbitMQ.
-    broker_scheme: amqp
