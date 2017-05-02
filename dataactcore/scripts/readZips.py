@@ -2,6 +2,7 @@
 # Suggested to run on a weekend during off hours
 
 import os
+import re
 import logging
 import boto
 import urllib.request
@@ -127,7 +128,9 @@ def main():
         base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", CONFIG_BROKER["zip_folder"])
         file_list = [f for f in os.listdir(base_path)]
         for file in file_list:
-            parse_zip4_file(open(os.path.join(base_path, file)), sess)
+            # ignore hidden files on Mac
+            if not re.match('^\.', file):
+                parse_zip4_file(open(os.path.join(base_path, file)), sess)
 
     logger.info("Zipcode script complete")
 
