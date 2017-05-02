@@ -93,6 +93,8 @@ class CsvReader(object):
     def _transfer_s3_file_to_local(self, bucket, filename):
         (file, file_path) = tempfile.mkstemp()
         file.close()
+        os.close(file_path)
+        os.remove(file_path)
 
         s3 = boto3.client('s3')
         s3.download_file(bucket, filename, file_path)
