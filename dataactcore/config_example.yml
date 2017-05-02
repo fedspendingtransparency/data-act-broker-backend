@@ -25,6 +25,9 @@ broker:
     # is ignored if use_aws is true.
     broker_files: /full/path/to/broker/files
 
+    # The folder within dataactvalidator/config where USPS zip4 files are stored
+    zip_folder: zips
+
     ## Smartronix API URLs ##
 
     # File D1 API
