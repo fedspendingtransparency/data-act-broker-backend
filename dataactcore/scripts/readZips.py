@@ -1,3 +1,6 @@
+# Local tests took 1 hour to insert 5 million lines. Estimated 9 hours to insert all data as of 05/2017.
+# Suggested to run on a weekend during off hours
+
 import os
 import logging
 import boto
