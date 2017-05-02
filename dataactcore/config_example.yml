@@ -177,19 +177,3 @@ logging:
             - scheme
         logging:
             - log_files
-        job-queue:
-            - url
-            - port
-            - broker_scheme
-
-job-queue:
-
-    # URL for the job queue server (do not add http)
-    url: dataactbroker.jobqueue.host.domain.com
-
-    # Port on which Celery is listening
-    port: 5672
-
-    # Broker scheme which must coordinate with the type of broker being used
-    # on the remote server. amqp corresponds to RabbitMQ.
-    broker_scheme: amqp

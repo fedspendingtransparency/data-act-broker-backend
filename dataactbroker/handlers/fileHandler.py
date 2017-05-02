@@ -34,7 +34,6 @@ from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
     JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT, PUBLISH_STATUS_DICT_ID)
-from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -45,6 +44,7 @@ from dataactcore.interfaces.function_bag import (
     check_number_of_errors_by_job_id, create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type,
     get_submission_status, mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date)
 from dataactvalidator.filestreaming.csv_selection import write_csv
+from dataactbroker.handlers.fileGenerationHandler import generate_e_file, generate_f_file
 
 logger = logging.getLogger(__name__)
 
@@ -411,13 +411,15 @@ class FileHandler:
             return self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id, file_type,
                                                 file_type_name, start_date, end_date, cgac_code, job)
         elif file_type == 'E':
-            generate_e_file.delay(
-                submission.submission_id, job.job_id, timestamped_name,
-                upload_file_name, self.isLocal)
+            # Start separate thread to generate file E
+            t = threading.Thread(target=generate_e_file, args=(submission.submission_id, job.job_id, timestamped_name,
+                                                               upload_file_name, self.isLocal))
+            t.start()
         elif file_type == 'F':
-            generate_f_file.delay(
-                submission.submission_id, job.job_id, timestamped_name,
-                upload_file_name, self.isLocal)
+            # Start separate thread to generate file F
+            t = threading.Thread(target=generate_f_file, args=(submission.submission_id, job.job_id, timestamped_name,
+                                                               upload_file_name, self.isLocal))
+            t.start()
 
         return True, None
 
