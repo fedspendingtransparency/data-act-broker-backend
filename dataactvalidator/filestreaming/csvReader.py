@@ -112,7 +112,8 @@ class CsvReader(object):
         row = next(csv.reader([line], dialect='excel', delimiter=self.delimiter))
         if len(row) != self.column_count:
             raise ResponseException(
-                "Wrong number of fields in this row, expected %s got %s" % (self.column_count, len(row)), StatusCode.CLIENT_ERROR,
+                "Wrong number of fields in this row, expected %s got %s" %
+                (self.column_count, len(row)), StatusCode.CLIENT_ERROR,
                 ValueError, ValidationError.readError)
         for idx, cell in enumerate(row):
             if idx >= self.column_count:
