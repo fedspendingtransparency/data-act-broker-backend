@@ -26,7 +26,7 @@ legalentityaddressline2,legal_entity_address_line2,FALSE,str,150,,
 legalentityaddressline3,legal_entity_address_line3,FALSE,str,35,,
 legalentitycountrycode,legal_entity_country_code,TRUE,str,3,"D1, D2, D12",
 legalentityforeigncityname,legal_entity_foreign_city,FALSE,str,40,D9,
-legalentitycongressionaldistrict,legal_entity_congressional,FALSE,str,2,,
+legalentitycongressionaldistrict,legal_entity_congressional,FALSE,str,2,,TRUE
 legalentityforeignpostalcode,legal_entity_foreign_posta,FALSE,str,50,,
 legalentityforeignprovincename,legal_entity_foreign_provi,FALSE,str,25,,
 legalentityzip5,legal_entity_zip5,FALSE,str,5,"D2, D11",TRUE
