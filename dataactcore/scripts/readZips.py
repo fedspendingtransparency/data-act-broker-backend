@@ -8,6 +8,7 @@ import urllib.request
 
 from sqlalchemy.dialects.postgresql import insert
 
+from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import Zips
@@ -132,5 +133,6 @@ def main():
 
 
 if __name__ == '__main__':
+    configure_logging()
     with create_app().app_context():
         main()
