@@ -9,7 +9,7 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
 from dataactcore.models.domainModels import CGAC, SubTierAgency, ObjectClass, ProgramActivity, CountryCode, CFDAProgram
 from dataactvalidator.health_check import create_app
-from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe
+from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe, format_date
 
 logger = logging.getLogger(__name__)
 
@@ -273,14 +273,9 @@ def load_cfda_program(filename):
              "archived_date": "archived_date"},
             {}
         )
+        data["published_date"] = format_date(data["published_date"])
+        data["archived_date"] = format_date(data["archived_date"])
 
-        data["published_date"] = pd.to_datetime(data["published_date"], format="%b, %d %Y")
-        data["published_date"] = data["published_date"].apply(lambda x: x.strftime('%Y%m%d')
-                                                              if not pd.isnull(x) else '')
-
-        data["archived_date"] = pd.to_datetime(data["archived_date"], format="%b, %d %Y")
-        data["archived_date"] = data["archived_date"].apply(lambda x: x.strftime('%Y%m%d')
-                                                            if not pd.isnull(x) else '')
         # insert to db
         table_name = model.__table__.name
         num = insert_dataframe(data, table_name, sess.connection())
