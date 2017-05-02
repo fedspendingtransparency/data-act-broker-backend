@@ -117,3 +117,15 @@ class CFDAProgramFactory(factory.Factory):
     omb_bureau_code = fuzzy.FuzzyText()
     published_date = fuzzy.FuzzyText()
     archived_date = fuzzy.FuzzyText()
+
+
+class ZipsFactory(factory.Factory):
+    class Meta:
+        model = domainModels.Zips
+
+    zips_id = None
+    zip5 = fuzzy.FuzzyText()
+    zip_last4 = fuzzy.FuzzyText()
+    state_abbreviation = fuzzy.FuzzyText()
+    county_number = fuzzy.FuzzyText()
+    congressional_district_no = fuzzy.FuzzyText()

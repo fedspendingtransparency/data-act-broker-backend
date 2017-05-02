@@ -129,17 +129,6 @@ When running the broker, you have the option to use Amazon Web Services (AWS) to
 
 Using AWS is optional, and by default the broker will not use these services. If you'd like to use AWS, [follow these directions](AWS.md "set up Amazon Web Services") now.
 
-### Install RabbitMQ
-
-RabbitMQ is used to pass jobs to the validator, and requires Erlang to be installed before RabbitMQ.
-
-1.  Install Erlang based on the [download instructions](https://www.erlang.org/downloads)
-2.  Choose an installation guide based on your OS for [RabbitMQ](https://www.rabbitmq.com/download.html).  Be sure to install Erlang before installing RabbitMQ.  The default user and password is "guest"/"guest", if you change these you'll need to keep that information to be placed in the config files later in the process.
-
-Alternatively, a [Docker](https://www.docker.com/products/overview#/install_the_platform) setup is pretty straight forward:
-
-        $ docker run -d -p 5672:5672 rabbitmq:3
-
 ### Clone Broker Backend Code Repository
 
 Now we're ready to install the DATA Act broker itself. Before starting:
@@ -287,14 +276,6 @@ Make sure the validator is working by visiting by visiting the hostname and port
 Once the DATA Act broker's backend is up and running, you may also want to stand up a local version of the broker website. The directions for doing that are in the [website project's code repository](https://github.com/fedspendingtransparency/data-act-broker-web-app "DATA Act broker website").
 
 After following the website setup directions, you can log in with the admin e-mail and password you set in the [broker's backend config file](#create-broker-config-file "config file setup") (`admin_email` and `admin_password`).
-
-### Run Celery
-
-Celery puts jobs into the queue, which are then read into the validator. This will need to be running in the background while the app is running at all times.
-
-From the `data-act-broker-backend/dataactcore/utils/` directory:
-
-		$ celery -A jobQueue worker --loglevel=info
 
 
 
