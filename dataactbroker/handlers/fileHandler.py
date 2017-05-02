@@ -1128,6 +1128,17 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
+    def fail_validation(self, submission_id):
+        sess = GlobalDB.db().session
+
+        jobs = sess.query(Job).filter(Job.submission_id == submission_id).all()
+
+        for job in jobs:
+            job.job_status_id = JOB_STATUS_DICT['failed']
+        sess.commit()
+
+        return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
     def move_certified_files(self, submission):
         sess = GlobalDB.db().session
         # Putting this here for now, get the uploads list
