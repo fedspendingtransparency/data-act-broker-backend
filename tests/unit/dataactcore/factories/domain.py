@@ -129,4 +129,3 @@ class ZipsFactory(factory.Factory):
     state_abbreviation = fuzzy.FuzzyText()
     county_number = fuzzy.FuzzyText()
     congressional_district_no = fuzzy.FuzzyText()
-
