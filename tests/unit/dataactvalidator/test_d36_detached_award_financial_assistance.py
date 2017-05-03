@@ -14,7 +14,7 @@ def test_success(database):
     """ Test valid. CFDA_Number must be in XX.XXX or XXX.XXXX format """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number='99.999')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.3456')
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.345')
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
     assert errors == 0
@@ -24,9 +24,9 @@ def test_failure(database):
     """ Test invalid. CFDA_Number must be in XX.XXX or XXX.XXXX format """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number='1234')
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.34445')
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.34567')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.3')
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(cfda_number='123.44')
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(cfda_number='123.456')
     det_award_5 = DetachedAwardFinancialAssistanceFactory(cfda_number='ab.cdf')
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5])
