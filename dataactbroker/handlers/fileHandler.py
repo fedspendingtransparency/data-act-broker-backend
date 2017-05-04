@@ -42,7 +42,8 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     check_number_of_errors_by_job_id, create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type,
-    get_submission_status, mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date)
+    get_submission_status, mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date,
+    get_lastest_certified_date)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 from dataactbroker.handlers.fileGenerationHandler import generate_e_file, generate_f_file
 
@@ -1407,6 +1408,8 @@ def serialize_submission(submission):
     frontend expects"""
     status = get_submission_status(submission)
 
+    certified_on = get_lastest_certified_date(submission)
+
     return {
         "submission_id": submission.submission_id,
         "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
@@ -1419,6 +1422,7 @@ def serialize_submission(submission):
                  "name": submission.name if submission.name else "No User"},
         "certifying_user": submission.certifying_user_name if submission.certifying_user_name else "",
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
+        "certified_on": certified_on.strftime('%Y-%m-%d') if certified_on else ""
     }
 
 

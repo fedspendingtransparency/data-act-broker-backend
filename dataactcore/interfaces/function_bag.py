@@ -9,7 +9,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
 from dataactcore.models.errorModels import ErrorMetadata, File
-from dataactcore.models.jobModels import Job, Submission, JobDependency
+from dataactcore.models.jobModels import Job, Submission, JobDependency, CertifyHistory
 from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
@@ -609,6 +609,18 @@ def get_submission_status(submission):
         status = "validation_errors"
 
     return status
+
+
+def get_lastest_certified_date(submission):
+    if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
+        sess = GlobalDB.db().session
+        last_certified = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id). \
+            order_by(CertifyHistory.created_at.desc()).first()
+
+        if last_certified:
+            return last_certified.created_at
+
+    return None
 
 
 def get_last_validated_date(submission_id):
