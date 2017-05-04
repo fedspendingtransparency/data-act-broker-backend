@@ -1412,7 +1412,7 @@ def serialize_submission(submission):
 
     return {
         "submission_id": submission.submission_id,
-        "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
+        "last_modified": str(submission.updated_at),
         "status": status,
         "agency": submission.agency_name if submission.agency_name else 'N/A',
         # @todo why are these a different format?
@@ -1422,7 +1422,7 @@ def serialize_submission(submission):
                  "name": submission.name if submission.name else "No User"},
         "certifying_user": submission.certifying_user_name if submission.certifying_user_name else "",
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
-        "certified_on": certified_on.strftime('%Y-%m-%d') if certified_on else ""
+        "certified_on": str(certified_on) if certified_on else ""
     }
 
 
