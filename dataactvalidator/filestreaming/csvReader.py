@@ -34,6 +34,7 @@ class CsvReader(object):
             long_to_short_dict: mapping of long to short schema column names
         """
 
+        self.has_tempfile = False
         # If this is a file in S3, download to a local temp file first
         if region and bucket:
             # Use temp file as local file
@@ -91,10 +92,12 @@ class CsvReader(object):
         return CsvS3Writer(region, bucket_name, filename, header)
 
     def _transfer_s3_file_to_local(self, bucket, filename):
+        # mkstemp returns a file handle and a path to the created file
         (file, file_path) = tempfile.mkstemp()
+        self.has_tempfile = True
+        # We are going to open this later when we read it,
+        # but we don't need it open now, so close it
         file.close()
-        os.close(file_path)
-        os.remove(file_path)
 
         s3 = boto3.client('s3')
         s3.download_file(bucket, filename, file_path)
@@ -221,6 +224,8 @@ class CsvReader(object):
         """Closes file if it exists """
         try:
             self.file.close()
+            if self.has_tempfile:
+                os.remove(self.filename)
         except AttributeError:
             # File does not exist, and so does not need to be closed
             pass
