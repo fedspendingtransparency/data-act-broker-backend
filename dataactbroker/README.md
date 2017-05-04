@@ -774,10 +774,10 @@ List submissions for all agencies for which the current user is a member of. Opt
       "status": "validation_successful" (will be undergoing changes),
       "size": 0,
       "errors": 0,
-      "last_modified": "08-31-2016",
+      "last_modified": "2016-08-31 12:59:37.053424",
       "publish_status": "published",
       "certifying_user": "Certifier",
-      "certified_on": "08-30-2016"
+      "certified_on": "2016-08-30 12:53:37.053424"
     },
     {
       "reporting_end_date": "2015-09-01",
@@ -791,7 +791,7 @@ List submissions for all agencies for which the current user is a member of. Opt
       "status": "file_errors" (will be undergoing changes),
       "size": 34482,
       "errors": 582,
-      "last_modified": "08-31-2016",
+      "last_modified": "2016-08-31 15:59:37.053424",
       "publish_status": "unpublished",
       "certifying_user": "",
       "certified_on": ""
