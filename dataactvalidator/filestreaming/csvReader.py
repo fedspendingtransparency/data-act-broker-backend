@@ -25,7 +25,7 @@ class CsvReader(object):
         """ Opens file and prepares to read each record, mapping entries to specified column names
 
         Args:
-            region: Not used, seems to be read from config
+            region: AWS region where the bucket is located
             bucket: Optional parameter; if set, file will be retrieved from S3
             filename: The file path for the CSV file (local or in S3)
             csv_schema: list of FileColumn objects for this file type
@@ -38,7 +38,8 @@ class CsvReader(object):
         # If this is a file in S3, download to a local temp file first
         if region and bucket:
             # Use temp file as local file
-            filename = self._transfer_s3_file_to_local(bucket, filename)
+
+            filename = self._transfer_s3_file_to_local(region, bucket, filename)
 
         self.filename = filename
         self.is_local = True
@@ -84,22 +85,19 @@ class CsvReader(object):
         """
         Gets the write type based on if its a local install or not.
         """
-        # TODO verify that the writer works corectly for local and S3
         if is_local:
             return CsvLocalWriter(filename, header)
         if region is None:
             region = CONFIG_BROKER["aws_region"]
         return CsvS3Writer(region, bucket_name, filename, header)
 
-    def _transfer_s3_file_to_local(self, bucket, filename):
+    def _transfer_s3_file_to_local(self, region, bucket, filename):
         # mkstemp returns a file handle and a path to the created file
         (file, file_path) = tempfile.mkstemp()
         self.has_tempfile = True
-        # We are going to open this later when we read it,
-        # but we don't need it open now, so close it
-        file.close()
 
-        s3 = boto3.client('s3')
+        s3 = boto3.client('s3', region_name=region)
+
         s3.download_file(bucket, filename, file_path)
 
         return file_path
