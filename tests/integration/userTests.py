@@ -26,7 +26,7 @@ class UserTests(BaseTestAPI):
                 sub = Submission(user_id=cls.agency_user_id)
                 sub.reporting_start_date = datetime(2015, 10, 1)
                 sub.reporting_end_date = datetime(2015, 12, 31)
-                sub.cgac_code = "SYS"
+                sub.cgac_code = cls.admin_cgac_code
                 sess.add(sub)
                 sess.commit()
                 if i == 0:
