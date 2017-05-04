@@ -25,6 +25,7 @@ LegalEntityAddressLine2,legal_entity_address_line2,ASP: Optional,string,150,
 LegalEntityAddressLine3,legal_entity_address_line3,ASP: Optional,string,35,
 LegalEntityCountryCode,legal_entity_country_code,ASP: Required,string,3,"D1, D2, D12"
 LegalEntityForeignCityName,legal_entity_foreign_city,ASP: Conditional per Validation Rule,string,40,D9
+LegalEntityCongressionalDistrict,legal_entity_congressional,ASP: Optional,string,2,
 LegalEntityForeignPostalCode,legal_entity_foreign_posta,ASP: Optional,string,50,
 LegalEntityForeignProvinceName,legal_entity_foreign_provi,ASP: Optional,string,25,
 LegalEntityZIP5,legal_entity_zip5,ASP: Conditional per Validation Rule,string,5,"D2, D11"
