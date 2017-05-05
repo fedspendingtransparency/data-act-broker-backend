@@ -15,7 +15,7 @@ import requests
 from flask import g, request
 from requests.exceptions import Timeout
 import sqlalchemy as sa
-from sqlalchemy import func
+from sqlalchemy import func, MetaData, Table
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
@@ -1344,6 +1344,10 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     """ List submission based on current page and amount to display. If provided, filter based on
     certification status """
     sess = GlobalDB.db().session
+    db = GlobalDB.db()
+    metadata = MetaData(bind=db.engine)
+
+    submission_updated_view = Table('submission_updated_at_view', metadata, autoload=True, info=dict(is_view=True))
 
     offset = limit * (page - 1)
 
@@ -1358,13 +1362,17 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
 
-    columns_to_query = submission_columns + cgac_columns + user_columns
+    view_columns = [submission_updated_view.columns.submission_id,
+                    submission_updated_view.columns.updated_at.label('updated_at')]
+
+    columns_to_query = submission_columns + cgac_columns + user_columns + view_columns
 
     cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id). \
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id). \
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
+        outerjoin(submission_updated_view, submission_updated_view.columns.submission_id == Submission.submission_id).\
         filter(Submission.d2_submission.is_(False))
     if not g.user.website_admin:
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
@@ -1378,7 +1386,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     total_submissions = query.count()
 
     options = {
-        'modified': {'model': Submission, 'col': 'updated_at'},
+        'modified': {'model': submission_updated_view.columns, 'col': 'updated_at'},
         'reporting': {'model': Submission, 'col': 'reporting_start_date'},
         'agency': {'model': CGAC, 'col': 'agency_name'},
         'submitted_by': {'model': User, 'col': 'name'}
