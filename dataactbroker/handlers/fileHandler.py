@@ -479,9 +479,6 @@ class FileHandler:
                 if "numFound='0'" in get_xml_response_content(api_url):
                     sess = GlobalDB.db().session
                     # No results found, skip validation and mark as finished
-                    sess.query(JobDependency). \
-                        filter(JobDependency.prerequisite_id == job.job_id). \
-                        delete(synchronize_session='fetch')
                     mark_job_status(job.job_id, "finished")
                     job.filename = None
 
