@@ -1,11 +1,11 @@
 from unittest.mock import Mock
 
-from dataactvalidator.filestreaming import csvReader
+from dataactvalidator.filestreaming import csvAbstractReader
 
 
 def test_count_and_set_headers_flex():
     """Verify that we are setting the correct flex headers"""
-    reader = csvReader.CsvReader()
+    reader = csvAbstractReader.CsvAbstractReader()
     csv_schema = [Mock(name_short='some_col'), Mock(name_short='other')]
     header_row = ['ignored', 'flex_my_col', 'some_col', 'flex_other', 'some_col']
 
@@ -17,7 +17,7 @@ def test_count_and_set_headers_flex():
 
 def test_get_next_record_flex():
     """Verify that we get a list of FlexFields if present"""
-    reader = csvReader.CsvReader()
+    reader = csvAbstractReader.CsvAbstractReader()
     reader.delimiter = ','
     reader.column_count = 6
     reader.expected_headers = ['a', 'b', 'c', None, None, None]
@@ -40,9 +40,9 @@ def test_normalize_headers():
     ]
     mapping = {'allocationtransferagencyidentifier': 'ata', 'beginningperiodofavailability': 'boa'}
 
-    result = csvReader.normalize_headers(headers, False, mapping)
+    result = csvAbstractReader.normalize_headers(headers, False, mapping)
     assert list(result) == [
         'allocationtransferagencyidentifier', 'beginningperiodofavailability', 'flex_mycol', 'flex_another'
     ]
-    result = csvReader.normalize_headers(headers, True, mapping)
+    result = csvAbstractReader.normalize_headers(headers, True, mapping)
     assert list(result) == ['ata', 'boa', 'flex_mycol', 'flex_another']

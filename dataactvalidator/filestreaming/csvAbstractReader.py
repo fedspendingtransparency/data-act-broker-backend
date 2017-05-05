@@ -1,52 +1,35 @@
 import csv
-import os
-import tempfile
-
-import boto3
-
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.models.stagingModels import FlexField
-from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
+from dataactcore.utils.responseException import ResponseException
+from dataactvalidator.validation_handlers.validationError import ValidationError
+from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
-from dataactvalidator.filestreaming.fieldCleaner import FieldCleaner
-from dataactvalidator.validation_handlers.validationError import ValidationError
 
 
-class CsvReader(object):
+class CsvAbstractReader(object):
     """
-    Reads data from local CSV file (first downloading from S3 if necessary)
+    Reads data from S3 CSV file
     """
 
+    BUFFER_SIZE = 8192
     header_report_headers = ["Error type", "Header name"]
 
     def open_file(self, region, bucket, filename, csv_schema, bucket_name, error_filename, long_to_short_dict):
         """ Opens file and prepares to read each record, mapping entries to specified column names
-
         Args:
-            region: Not used, seems to be read from config
-            bucket: Optional parameter; if set, file will be retrieved from S3
-            filename: The file path for the CSV file (local or in S3)
+            region: AWS region where the bucket is located (not used if instantiated as CsvLocalReader)
+            bucket: the S3 Bucket (not used if instantiated as CsvLocalReader)
+            filename: The file path for the CSV file in S3
             csv_schema: list of FileColumn objects for this file type
             bucket_name: bucket to send errors to
             error_filename: filename for error report
             long_to_short_dict: mapping of long to short schema column names
         """
 
-        self.has_tempfile = False
-        # If this is a file in S3, download to a local temp file first
-        if region and bucket:
-            # Use temp file as local file
-            filename = self._transfer_s3_file_to_local(bucket, filename)
-
         self.filename = filename
-        self.is_local = True
-        try:
-            self.file = open(filename, "r")
-        except:
-            raise ValueError("".join(["Filename provided not found : ", str(self.filename)]))
-
         self.unprocessed = ''
         self.extra_line = False
         self.lines = []
@@ -84,25 +67,11 @@ class CsvReader(object):
         """
         Gets the write type based on if its a local install or not.
         """
-        # TODO verify that the writer works corectly for local and S3
         if is_local:
             return CsvLocalWriter(filename, header)
         if region is None:
             region = CONFIG_BROKER["aws_region"]
         return CsvS3Writer(region, bucket_name, filename, header)
-
-    def _transfer_s3_file_to_local(self, bucket, filename):
-        # mkstemp returns a file handle and a path to the created file
-        (file, file_path) = tempfile.mkstemp()
-        self.has_tempfile = True
-        # We are going to open this later when we read it,
-        # but we don't need it open now, so close it
-        file.close()
-
-        s3 = boto3.client('s3')
-        s3.download_file(bucket, filename, file_path)
-
-        return file_path
 
     def get_next_record(self):
         """
@@ -114,11 +83,11 @@ class CsvReader(object):
         flex_fields = []
         line = self._get_line()
 
-        row = next(csv.reader([line], dialect='excel', delimiter=self.delimiter))
+        row = next(
+            csv.reader([line], dialect='excel', delimiter=self.delimiter))
         if len(row) != self.column_count:
             raise ResponseException(
-                "Wrong number of fields in this row, expected %s got %s" %
-                (self.column_count, len(row)), StatusCode.CLIENT_ERROR,
+                "Wrong number of fields in this row", StatusCode.CLIENT_ERROR,
                 ValueError, ValidationError.readError)
         for idx, cell in enumerate(row):
             if idx >= self.column_count:
@@ -137,18 +106,61 @@ class CsvReader(object):
                 return_dict[self.expected_headers[idx]] = cell
         return return_dict, flex_fields
 
-    def _get_line(self):
-        line = self.file.readline()
-        # Empty lines are represented with '\n'. Read until we get a non-empty line or get an empty string
-        # signifying end of file.
-        while line == '\n':
-            line = self.file.readline()
+    def close(self):
+        """
+        closes the file
+        """
+        raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
 
-        # If the line is empty, we've reached the end of the file.
-        if not line:
-            self.is_finished = True
+    def _get_file_size(self):
+        """
+        Gets the size of the file
+        """
+        raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
+
+    def _get_next_packet(self):
+        """
+        Gets the next packet from the file returns true if successful
+        """
+        raise NotImplementedError("Do not instantiate csvAbstractReader directly.")
+
+    def _get_line(self):
+        """
+        This method reads 8192 bytes from S3 Bucket at a time and stores
+        it in a line buffer. The line buffer is used until its empty then
+        another request is created to S3 for more data.
+        """
+        if len(self.lines) > 0:
+            # Get the next line
+            return self.lines.pop(0)
+        # packets are 8192 bytes in size
+        # for packet in self.s3File :
+        while self.packet_counter * CsvAbstractReader.BUFFER_SIZE <= self._get_file_size():
+
+            success, packet = self._get_next_packet()
+            if not success:
+                break
+            self.packet_counter += 1
+
+            # Get the current lines
+            current_bytes = self.unprocessed + packet
+            self.lines = _split_lines(current_bytes)
+
+            # edge case if the packet was filled with newlines only try again
+            if len(self.lines) == 0:
+                continue
+
+            # last line still needs processing save and reuse
+            self.unprocessed = self.lines.pop()
+            if len(self.lines) > 0:
+                # Get the next line
+                return self.lines.pop(0)
+        self.is_finished = True
+
+        if len(self.unprocessed) < 5:
+            # Got an extra line from a line break on the last line
             self.extra_line = True
-        return line
+        return self.unprocessed
 
     def set_csv_delimiter(self, header_line, bucket_name, error_filename):
         """Try to determine the delimiter type, raising exceptions if we
@@ -220,22 +232,6 @@ class CsvReader(object):
                 expected_fields[header_value] += 1
         return expected_fields
 
-    def close(self):
-        """Closes file if it exists """
-        try:
-            self.file.close()
-            if self.has_tempfile:
-                os.remove(self.filename)
-        except AttributeError:
-            # File does not exist, and so does not need to be closed
-            pass
-
-    def _get_file_size(self):
-        """
-        Gets the size of the file
-        """
-        return os.path.getsize(self.filename)
-
 
 def use_long_headers(header_row, long_to_short_dict):
     """Check to see if header contains long or short column names"""
@@ -282,3 +278,36 @@ def raise_missing_duplicated_exception(missing_headers, duplicated_headers):
             ValidationError.headerError,
             **extra_info
         )
+
+
+def _split_lines(packet):
+    """
+    arguments :
+    packet unprocessed string of CSV data
+    returns a list of strings broken by newline
+    """
+    lines_to_return = []
+    escape_mode = False
+    current = ""
+
+    for index, char in enumerate(packet):
+        if not escape_mode:
+            if char == '\r' or char == '\n' or char == '\r\n':
+                if len(current) > 0:
+                    lines_to_return.append(current)
+                    # check the last char if its a new line add extra line
+                    # as its at the end of the packet
+                if index == len(packet) - 1:
+                    lines_to_return.append("")
+                current = ""
+            else:
+                current = "".join([current, char])
+                if char == '"':
+                    escape_mode = True
+        else:
+            if char == '"':
+                escape_mode = False
+            current = "".join([current, char])
+    if len(current) > 0:
+        lines_to_return.append(current)
+    return lines_to_return
