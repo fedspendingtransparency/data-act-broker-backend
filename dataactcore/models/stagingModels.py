@@ -539,6 +539,7 @@ class DetachedAwardFinancialAssistance(Base):
     legal_entity_address_line1 = Column(Text)
     legal_entity_address_line2 = Column(Text)
     legal_entity_address_line3 = Column(Text)
+    legal_entity_congressional = Column(Text)
     legal_entity_country_code = Column(Text)
     legal_entity_foreign_city = Column(Text)
     legal_entity_foreign_posta = Column(Text)
@@ -595,6 +596,7 @@ class PublishedAwardFinancialAssistance(Base):
     legal_entity_address_line1 = Column(Text)
     legal_entity_address_line2 = Column(Text)
     legal_entity_address_line3 = Column(Text)
+    legal_entity_congressional = Column(Text)
     legal_entity_country_code = Column(Text)
     legal_entity_foreign_city = Column(Text)
     legal_entity_foreign_posta = Column(Text)
@@ -612,6 +614,7 @@ class PublishedAwardFinancialAssistance(Base):
     place_of_performance_zip4a = Column(Text)
     record_type = Column(Integer)
     sai_number = Column(Text)
+    total_funding_amount = Column(Text)
     uri = Column(Text, index=True)
 
     __table_args__ = (UniqueConstraint('awarding_sub_tier_agency_c', 'award_modification_amendme', 'fain', 'uri',
