@@ -23,7 +23,8 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.aws.s3Handler import S3Handler
-from dataactvalidator.filestreaming.csvReader import CsvReader
+from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
+from dataactvalidator.filestreaming.csvLocalReader import CsvLocalReader
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.validation_handlers.errorInterface import ErrorInterface
@@ -59,7 +60,9 @@ class ValidationManager:
         """
         Gets the reader type based on if its local install or not.
         """
-        return CsvReader()
+        if self.isLocal:
+            return CsvLocalReader()
+        return CsvS3Reader()
 
     def get_writer(self, region_name, bucket_name, file_name, header):
         """ Gets the write type based on if its a local install or not.
