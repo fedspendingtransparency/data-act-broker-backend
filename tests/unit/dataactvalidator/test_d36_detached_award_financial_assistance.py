@@ -11,7 +11,7 @@ def test_column_headers(database):
 
 
 def test_success(database):
-    """ Test valid. CFDA_Number must be in XX.XXX or XXX.XXXX format """
+    """ Test valid. CFDA_Number must be in XX.XXX format """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number='99.999')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.345')
@@ -21,7 +21,7 @@ def test_success(database):
 
 
 def test_failure(database):
-    """ Test invalid. CFDA_Number must be in XX.XXX or XXX.XXXX format """
+    """ Test invalid. CFDA_Number must be in XX.XXX format """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number='1234')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number='12.34567')

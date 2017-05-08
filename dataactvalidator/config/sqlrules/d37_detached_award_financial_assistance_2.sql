@@ -1,6 +1,6 @@
--- For new assistance awards (ActionType = B, C, or D), the CFDA_Number need not be active as of the ActionDate.
+-- For new assistance awards (ActionType = B, C, or D), the CFDA_Number need NOT be active as of the ActionDate.
 -- This does not apply to correction records (those with CorrectionLateDeleteIndicator = C).
--- Active date: Archived Date >= Action Date >= Published Date.
+-- Active date: publish_date <= action_date <= archive_date.
 SELECT
     row_number,
     cfda_number,
@@ -18,8 +18,8 @@ WHERE submission_id = {0}
         FROM detached_award_financial_assistance AS dafa
             JOIN cfda_program AS cfda
             ON (CAST(dafa.cfda_number as float) IS NOT DISTINCT FROM CAST(cfda.program_number as float)
-            AND (((dafa.action_date >= cfda.published_date) AND (cfda.published_date !=''))
-                OR ((dafa.action_date <= cfda.archived_date) AND (cfda.archived_date !='')))
+            AND cfda.published_date <= dafa.action_date
+            AND cfda.published_date !=''
+            AND cfda.archived_date = ''
             )
     )
-
