@@ -12,68 +12,34 @@ def test_column_headers(database):
 
 
 def test_pubished_date_success(database):
-    """ Test valid. For (ActionType = B, C, or D), the CFDA_Number need not be active as of the ActionDate.
+    """ Test valid. For (ActionType = B, C, or D), the CFDA_Number need NOT be active as of the ActionDate.
         Not apply to those with CorrectionLateDeleteIndicator = C.
-        If Archived Date <= Action Date <= Published Date, it passes validation (active).
+        Active date: publish_date <= action_date <= archive_date.
     """
 
-    cfda = CFDAProgram(program_number="12.345", published_date="20130427")
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20110111',
+    cfda = CFDAProgram(program_number="12.345", published_date="20130427", archived_date="20140427")
+    det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20130528',
                                                           action_type='B', correction_late_delete_ind="B")
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20110111',
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20130428',
                                                           action_type='C', correction_late_delete_ind="D")
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20110111',
-                                                          action_type='D', correction_late_delete_ind=None)
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, cfda])
-    assert errors == 0
-
-
-def test_achived_date_success(database):
-    """ Test invalid. For (ActionType = B, C, or D), the CFDA_Number need not be active as of the ActionDate.
-        Not apply to those with CorrectionLateDeleteIndicator = C.
-        If Archived Date < Action Date < Published Date, it passes validation (not active).
-    """
-
-    cfda = CFDAProgram(program_number="12.345", archived_date="20130427")
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20150111',
-                                                          action_type='B', correction_late_delete_ind="B")
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20150111',
-                                                          action_type='C', correction_late_delete_ind="D")
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20150111',
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20130428',
                                                           action_type='D', correction_late_delete_ind=None)
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, cfda])
     assert errors == 0
 
 
 def test_pubished_date_failure(database):
-    """ Test invalid. For ActionType = A, the CFDA_Number must be active as of the ActionDate.
+    """ Test invalid. For (ActionType = B, C, or D), the CFDA_Number need NOT be active as of the ActionDate.
         Not apply to those with CorrectionLateDeleteIndicator = C.
-        If Archived Date >= Action Date >= Published Date, it fails validation (active).
+        Active date: publish_date <= action_date and there's no `archive_date` (Fails validation if active).
     """
 
-    cfda = CFDAProgram(program_number="12.345", published_date="20130427")
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20130428',
+    cfda = CFDAProgram(program_number="12.345", published_date="20130427", archived_date="")
+    det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20130528',
                                                           action_type='B', correction_late_delete_ind="B")
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20130427',
+    det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20150427',
                                                           action_type='C', correction_late_delete_ind="D")
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20130428',
-                                                          action_type='D', correction_late_delete_ind=None)
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, cfda])
-    assert errors == 3
-
-
-def test_achived_date_failure(database):
-    """ Test valid. For (ActionType = B, C, or D), the CFDA_Number need not be active as of the ActionDate.
-        Not apply to those with CorrectionLateDeleteIndicator = C.
-        If Archived Date >= Action Date >= Published Date, it fails validation (active).
-    """
-
-    cfda = CFDAProgram(program_number="12.345", archived_date="20130427")
-    det_award_1 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='19990313',
-                                                          action_type='C', correction_late_delete_ind="")
-    det_award_2 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20130427',
-                                                          action_type='C', correction_late_delete_ind="D")
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20130426',
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(cfda_number="12.345", action_date='20150428',
                                                           action_type='D', correction_late_delete_ind=None)
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, cfda])
     assert errors == 3
