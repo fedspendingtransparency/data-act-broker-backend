@@ -71,3 +71,15 @@ class ObjectClassFactory(factory.Factory):
     object_class_id = None
     object_class_code = fuzzy.FuzzyText()
     object_class_name = fuzzy.FuzzyText()
+
+
+class ZipsFactory(factory.Factory):
+    class Meta:
+        model = domainModels.Zips
+
+    zips_id = None
+    zip5 = fuzzy.FuzzyText()
+    zip_last4 = fuzzy.FuzzyText()
+    state_abbreviation = fuzzy.FuzzyText()
+    county_number = fuzzy.FuzzyText()
+    congressional_district_no = fuzzy.FuzzyText()

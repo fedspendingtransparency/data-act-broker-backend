@@ -34,7 +34,6 @@ from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
     JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT, PUBLISH_STATUS_DICT_ID)
-from dataactcore.utils.jobQueue import generate_e_file, generate_f_file
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -45,6 +44,7 @@ from dataactcore.interfaces.function_bag import (
     check_number_of_errors_by_job_id, create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type,
     get_submission_status, mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date)
 from dataactvalidator.filestreaming.csv_selection import write_csv
+from dataactbroker.handlers.fileGenerationHandler import generate_e_file, generate_f_file
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ class FileHandler:
     # 1024 sounds like a good chunk size, we can change if needed
     CHUNK_SIZE = 1024
     FILE_TYPES = ["appropriations", "award_financial", "program_activity"]
-    EXTERNAL_FILE_TYPES = ["award", "award_procurement", "awardee_attributes", "sub_award"]
+    EXTERNAL_FILE_TYPES = ["award", "award_procurement", "executive_compensation", "sub_award"]
     VALIDATOR_RESPONSE_FILE = "validatorResponse"
     STATUS_MAP = {"waiting": "invalid", "ready": "invalid", "running": "waiting", "finished": "finished",
                   "invalid": "failed", "failed": "failed"}
@@ -411,13 +411,15 @@ class FileHandler:
             return self.add_job_info_for_d_file(upload_file_name, timestamped_name, submission.submission_id, file_type,
                                                 file_type_name, start_date, end_date, cgac_code, job)
         elif file_type == 'E':
-            generate_e_file.delay(
-                submission.submission_id, job.job_id, timestamped_name,
-                upload_file_name, self.isLocal)
+            # Start separate thread to generate file E
+            t = threading.Thread(target=generate_e_file, args=(submission.submission_id, job.job_id, timestamped_name,
+                                                               upload_file_name, self.isLocal))
+            t.start()
         elif file_type == 'F':
-            generate_f_file.delay(
-                submission.submission_id, job.job_id, timestamped_name,
-                upload_file_name, self.isLocal)
+            # Start separate thread to generate file F
+            t = threading.Thread(target=generate_f_file, args=(submission.submission_id, job.job_id, timestamped_name,
+                                                               upload_file_name, self.isLocal))
+            t.start()
 
         return True, None
 
@@ -612,6 +614,17 @@ class FileHandler:
             # If not successful, set job status as "failed"
             mark_job_status(job.job_id, "failed")
             return error_response
+
+        if file_type in ["D1", "D2"]:
+            # Set cross-file validation status to waiting if it's not already
+            cross_file_job = sess.query(Job).filter(Job.submission_id == submission_id,
+                                                    Job.job_type_id == JOB_TYPE_DICT['validation'],
+                                                    Job.job_status_id != JOB_STATUS_DICT['waiting']).one_or_none()
+
+            # No need to update it for each type of D file generation job, just do it once
+            if cross_file_job:
+                cross_file_job.job_status_id = JOB_STATUS_DICT['waiting']
+                sess.commit()
 
         # Return same response as check generation route
         submission = sess.query(Submission).\
@@ -868,6 +881,8 @@ class FileHandler:
                     temp_obj.pop('row_number', None)
                     temp_obj.pop('is_valid', None)
                     temp_obj.pop('_sa_instance_state', None)
+
+                    temp_obj = fabs_derivations(temp_obj)
                     # if it is a new row, just insert it
                     if row.correction_late_delete_ind is None:
                         new_row = PublishedAwardFinancialAssistance(**temp_obj)
@@ -1110,6 +1125,17 @@ class FileHandler:
         # call finalize job for the upload jobs for files A, B, and C which will kick off the rest of
         for job in upload_jobs:
             FileHandler.finalize(job.job_id)
+
+        return JsonResponse.create(StatusCode.OK, {"message": "Success"})
+
+    def fail_validation(self, submission_id):
+        sess = GlobalDB.db().session
+
+        jobs = sess.query(Job).filter(Job.submission_id == submission_id).all()
+
+        for job in jobs:
+            job.job_status_id = JOB_STATUS_DICT['failed']
+        sess.commit()
 
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
@@ -1516,3 +1542,11 @@ def map_generate_status(upload_job, validation_job=None):
             upload_job.error_message = validation_job.error_message
     sess.commit()
     return response_status
+
+
+def fabs_derivations(obj):
+    # deriving total_funding_amount
+    federal_action_obligation = obj['federal_action_obligation'] or 0
+    non_federal_funding_amount = obj['non_federal_funding_amount'] or 0
+    obj['total_funding_amount'] = federal_action_obligation + non_federal_funding_amount
+    return obj

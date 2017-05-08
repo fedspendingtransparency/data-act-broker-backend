@@ -384,7 +384,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,12,   ,4085,3,Underwriting Gains,underwriting gains
 2016,12,   ,4085,4,Federal Crop Insurance Act Initiatives,federal crop insurance act initiatives
 2016,12,   ,4085,801,Reimbursable program - indemnities,reimbursable program - indemnities
-2016,12,   ,4085,802,Reimbursable program -  program related  IT,reimbursable program -  program related  it
+2016,12,   ,4085,802,Reimbursable program -  program related  IT,reimbursable program - program related it
 2016,12,   ,600,1,Conservation,conservation
 2016,12,12,600,1,Conservation,conservation
 2016,12,   ,600,2,Income support,income support
@@ -1515,8 +1515,8 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,13,   ,1455,1,Gulf Coast Restoration,gulf coast restoration
 2016,13,   ,1460,1,National Ocean Service,national ocean service
 2016,13,   ,1460,3,Office of Oceanic and Atmospheric Research,office of oceanic and atmospheric research
-2016,13,   ,1460,4,National  Weather Service,national  weather service
-2016,13,   ,1460,5,National  Environmental Satellite Service,national  environmental satellite service
+2016,13,   ,1460,4,National  Weather Service,national weather service
+2016,13,   ,1460,5,National  Environmental Satellite Service,national environmental satellite service
 2016,13,   ,1460,6,Program Support,program support
 2016,13,   ,5284,1,Limited Access System Administration Fund (Direct),limited access system administration fund (direct)
 2016,13,   ,1451,8,Grants to States and Tribes,grants to states and tribes
@@ -2113,7 +2113,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,91,   ,204,8,Magnet schools assistance,magnet schools assistance
 2016,91,   ,204,9,Advanced placement,advanced placement
 2016,91,   ,204,10,Ready-to-learn television,ready-to-learn television
-2016,91,   ,204,11,Fund for the Improvement of Education:  Programs of national significance,fund for the improvement of education:  programs of national significance
+2016,91,   ,204,11,Fund for the Improvement of Education:  Programs of national significance,fund for the improvement of education: programs of national significance
 2016,91,   ,204,12,Arts in education,arts in education
 2016,91,   ,204,801,SOAR Act,soar act
 2016,91,   ,1300,1,English language acquisition grants,english language acquisition grants
@@ -4441,28 +4441,28 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,75,   ,1362,9,Health Surveillance and Program Support,health surveillance and program support
 2016,75,   ,1362,11,Prevention Fund,prevention fund
 2016,75,   ,1362,802,Reimbursables,reimbursables
-2016,75,   ,1362,810,Reimbursable:  PHS Evaluation,reimbursable:  phs evaluation
+2016,75,   ,1362,810,Reimbursable:  PHS Evaluation,reimbursable: phs evaluation
 2016,75,   ,1363,6,Mental Health,mental health
 2016,75,   ,1363,7,Substance Abuse Treatment,substance abuse treatment
 2016,75,   ,1363,8,Substance Abuse Prevention,substance abuse prevention
 2016,75,   ,1363,9,Health Surveillance and Program Support,health surveillance and program support
 2016,75,   ,1363,11,Prevention Fund,prevention fund
 2016,75,   ,1363,802,Reimbursables,reimbursables
-2016,75,   ,1363,810,Reimbursable:  PHS Evaluation,reimbursable:  phs evaluation
+2016,75,   ,1363,810,Reimbursable:  PHS Evaluation,reimbursable: phs evaluation
 2016,75,   ,1364,6,Mental Health,mental health
 2016,75,   ,1364,7,Substance Abuse Treatment,substance abuse treatment
 2016,75,   ,1364,8,Substance Abuse Prevention,substance abuse prevention
 2016,75,   ,1364,9,Health Surveillance and Program Support,health surveillance and program support
 2016,75,   ,1364,11,Prevention Fund,prevention fund
 2016,75,   ,1364,802,Reimbursables,reimbursables
-2016,75,   ,1364,810,Reimbursable:  PHS Evaluation,reimbursable:  phs evaluation
+2016,75,   ,1364,810,Reimbursable:  PHS Evaluation,reimbursable: phs evaluation
 2016,75,   ,1365,6,Mental Health,mental health
 2016,75,   ,1365,7,Substance Abuse Treatment,substance abuse treatment
 2016,75,   ,1365,8,Substance Abuse Prevention,substance abuse prevention
 2016,75,   ,1365,9,Health Surveillance and Program Support,health surveillance and program support
 2016,75,   ,1365,11,Prevention Fund,prevention fund
 2016,75,   ,1365,802,Reimbursables,reimbursables
-2016,75,   ,1365,810,Reimbursable:  PHS Evaluation,reimbursable:  phs evaluation
+2016,75,   ,1365,810,Reimbursable:  PHS Evaluation,reimbursable: phs evaluation
 2016,75,   ,1700,1,"Research on Health Costs, Quality and Outcomes","research on health costs, quality and outcomes"
 2016,75,   ,1700,2,Medical Expenditure Panel Survey,medical expenditure panel survey
 2016,75,   ,1700,3,Program Support,program support
@@ -6731,7 +6731,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,15,   ,404,11,Justice Reinvestment Initiative,justice reinvestment initiative
 2016,15,   ,404,12,Victims of Trafficking,victims of trafficking
 2016,15,   ,404,13,Prescription Drug Monitoring Program,prescription drug monitoring program
-2016,15,   ,404,14,Prison Rape Prevention and Prosecution  Program,prison rape prevention and prosecution  program
+2016,15,   ,404,14,Prison Rape Prevention and Prosecution  Program,prison rape prevention and prosecution program
 2016,15,   ,404,15,Capital Litigation Improvement Grant Program,capital litigation improvement grant program
 2016,15,   ,404,16,Mentally-Ill Offender Act,mentally-ill offender act
 2016,15,   ,404,17,National Sex Offender Public Website,national sex offender public website
@@ -7829,34 +7829,34 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,69,   ,8632,2,"Cooperative work, international highway transportation 69-X-8371","cooperative work, international highway transportation 69-x-8371"
 2016,69,   ,8632,3,Advances from State cooperating agencies 69-X-8054,advances from state cooperating agencies 69-x-8054
 2016,69,   ,8632,4,Contributions for highway research programs 69-X-8264,contributions for highway research programs 69-x-8264
-2016,69,   ,8001,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8002,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8009,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8014,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8017,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8026,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8045,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8049,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8057,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8058,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,69,8058,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8061,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8076,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8081,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8082,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8087,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8120,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8363,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8374,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8375,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8376,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8377,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8378,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8380,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8381,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8382,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8386,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2016,69,   ,8390,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
+2016,69,   ,8001,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8002,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8009,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8014,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8017,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8026,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8045,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8049,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8057,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8058,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,69,8058,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8061,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8076,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8081,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8082,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8087,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8120,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8363,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8374,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8375,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8376,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8377,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8378,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8380,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8381,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8382,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8386,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2016,69,   ,8390,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
 2016,69,   ,8048,1,Border Modernization and Maintenance,border modernization and maintenance
 2016,69,   ,8158,1,Motor Carrier Safety Assistance Program,motor carrier safety assistance program
 2016,69,   ,8158,2,Border Enforcement Grants,border enforcement grants
@@ -7866,7 +7866,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,69,   ,8158,6,Performance and Registration Information System,performance and registration information system
 2016,69,   ,8158,7,MCSAP High Priority,mcsap high priority
 2016,69,   ,8158,8,Innovative Technology Deployment Program (ITD),innovative technology deployment program (itd)
-2016,69,   ,8158,9,Commercial  Motor Vehicle Operator  (CMV) Grant,commercial  motor vehicle operator  (cmv) grant
+2016,69,   ,8158,9,Commercial  Motor Vehicle Operator  (CMV) Grant,commercial motor vehicle operator (cmv) grant
 2016,69,   ,8159,1,Operating Expenses,operating expenses
 2016,69,   ,8159,2,Research and Technology,research and technology
 2016,69,   ,8159,3,Information Management,information management
@@ -8161,7 +8161,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,20,   ,173,1,BSA administration and Analysis,bsa administration and analysis
 2016,20,   ,520,1,Collections,collections
 2016,20,   ,520,2,Debt Collection,debt collection
-2016,20,   ,520,3,DoNOT Pay  Business Center,donot pay  business center
+2016,20,   ,520,3,DoNOT Pay  Business Center,donot pay business center
 2016,20,   ,520,4,Government Agency Investment Services,government agency investment services
 2016,20,   ,520,5,Government-wide Accounting and Reporting,government-wide accounting and reporting
 2016,20,   ,520,6,Payments,payments
@@ -8171,7 +8171,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,20,   ,520,801,Salaries and Expenses (Reimbursable),salaries and expenses (reimbursable)
 2016,20,   ,560,1,Collections,collections
 2016,20,   ,560,2,Debt Collection,debt collection
-2016,20,   ,560,3,DoNOT Pay  Business Center,donot pay  business center
+2016,20,   ,560,3,DoNOT Pay  Business Center,donot pay business center
 2016,20,   ,560,4,Government Agency Investment Services,government agency investment services
 2016,20,   ,560,5,Government-wide Accounting and Reporting,government-wide accounting and reporting
 2016,20,   ,560,6,Payments,payments
@@ -8181,7 +8181,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,20,   ,560,801,Salaries and Expenses (Reimbursable),salaries and expenses (reimbursable)
 2016,20,   ,1801,1,Collections,collections
 2016,20,   ,1801,2,Debt Collection,debt collection
-2016,20,   ,1801,3,DoNOT Pay  Business Center,donot pay  business center
+2016,20,   ,1801,3,DoNOT Pay  Business Center,donot pay business center
 2016,20,   ,1801,4,Government Agency Investment Services,government agency investment services
 2016,20,   ,1801,5,Government-wide Accounting and Reporting,government-wide accounting and reporting
 2016,20,   ,1801,6,Payments,payments
@@ -8191,7 +8191,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,20,   ,1801,801,Salaries and Expenses (Reimbursable),salaries and expenses (reimbursable)
 2016,20,   ,5445,1,Collections,collections
 2016,20,   ,5445,2,Debt Collection,debt collection
-2016,20,   ,5445,3,DoNOT Pay  Business Center,donot pay  business center
+2016,20,   ,5445,3,DoNOT Pay  Business Center,donot pay business center
 2016,20,   ,5445,4,Government Agency Investment Services,government agency investment services
 2016,20,   ,5445,5,Government-wide Accounting and Reporting,government-wide accounting and reporting
 2016,20,   ,5445,6,Payments,payments
@@ -8201,7 +8201,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,20,   ,5445,801,Salaries and Expenses (Reimbursable),salaries and expenses (reimbursable)
 2016,20,   ,8902,1,Collections,collections
 2016,20,   ,8902,2,Debt Collection,debt collection
-2016,20,   ,8902,3,DoNOT Pay  Business Center,donot pay  business center
+2016,20,   ,8902,3,DoNOT Pay  Business Center,donot pay business center
 2016,20,   ,8902,4,Government Agency Investment Services,government agency investment services
 2016,20,   ,8902,5,Government-wide Accounting and Reporting,government-wide accounting and reporting
 2016,20,   ,8902,6,Payments,payments
@@ -8406,7 +8406,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,36,   ,137,205,Housing Technology Grants,housing technology grants
 2016,36,   ,137,301,Work study,work study
 2016,36,   ,137,302,Payments to States,payments to states
-2016,36,   ,137,303,All-volunteer assistance:  Basic benefits and all other,all-volunteer assistance:  basic benefits and all other
+2016,36,   ,137,303,All-volunteer assistance:  Basic benefits and all other,all-volunteer assistance: basic benefits and all other
 2016,36,   ,137,304,Veterans Retraining Assistance Program,veterans retraining assistance program
 2016,36,   ,137,305,Tuition Assistance,tuition assistance
 2016,36,   ,137,306,Licensing and Certification,licensing and certification
@@ -8560,7 +8560,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,96,   ,3122,34,Environmental projects,environmental projects
 2016,96,   ,3122,36,Aquatic plant control,aquatic plant control
 2016,96,   ,3122,37,Aquatic ecosystems,aquatic ecosystems
-2016,96,   ,3122,39,Beneficial  uses  of  dredged  material,beneficial  uses  of  dredged  material
+2016,96,   ,3122,39,Beneficial  uses  of  dredged  material,beneficial uses of dredged material
 2016,96,   ,3122,811,Department of Homeland Security,department of homeland security
 2016,96,   ,3122,812,Department of Veteran Affairs,department of veteran affairs
 2016,96,   ,3122,813,Enviromental Protection Agency,enviromental protection agency
@@ -8586,7 +8586,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,96,   ,3930,34,Environmental projects,environmental projects
 2016,96,   ,3930,36,Aquatic plant control,aquatic plant control
 2016,96,   ,3930,37,Aquatic ecosystems,aquatic ecosystems
-2016,96,   ,3930,39,Beneficial  uses  of  dredged  material,beneficial  uses  of  dredged  material
+2016,96,   ,3930,39,Beneficial  uses  of  dredged  material,beneficial uses of dredged material
 2016,96,   ,3930,811,Department of Homeland Security,department of homeland security
 2016,96,   ,3930,812,Department of Veteran Affairs,department of veteran affairs
 2016,96,   ,3930,813,Enviromental Protection Agency,enviromental protection agency
@@ -9179,6 +9179,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,49,   ,100,7,"Social, Behavioral and Economic Sciences","social, behavioral and economic sciences"
 2016,49,   ,100,8,Integrative Activities,integrative activities
 2016,49,   ,100,9,Office of International Science and Engineering,office of international science and engineering
+2016,49,   ,100,10,Office of Polar Programs,office of polar programs
 2016,49,   ,100,13,Arctic Research Commission,arctic research commission
 2016,49,   ,100,801,Research and Related Activities (Reimbursable),research and related activities (reimbursable)
 2016,49,   ,551,1,Major Research Equipment and Facilities Construction,major research equipment and facilities construction
@@ -9199,6 +9200,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,49,   ,8960,3,B&M Gates Foundation,b&m gates foundation
 2016,49,   ,8960,4,US Civilian Research,us civilian research
 2016,49,   ,8960,5,General Trust Fund,general trust fund
+2016,49,,8960,900,Donations,donations
 2016,24,   ,100,1,Employee Services,employee services
 2016,24,   ,100,2,Merit System Audit & Compliance,merit system audit & compliance
 2016,24,   ,100,3,Office of the Chief Financial Officer,office of the chief financial officer
@@ -9375,6 +9377,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,28,   ,8704,801,"Reimbursable activity, general","reimbursable activity, general"
 2016,28,   ,8704,802,Low Income Subsidy,low income subsidy
 2016,310,   ,3200,1,Salaries and expenses (Direct),salaries and expenses (direct)
+2016,310,,3200,801,Salaries and Expenses (Reimbursable),salaries and expenses (reimbursable)
 2016,302,   ,1700,1,Salaries and Expenses (Direct),salaries and expenses (direct)
 2016,306,   ,2300,1,Salaries and Expenses (Direct),salaries and expenses (direct)
 2016,306,   ,2300,801,Salaries and Expenses (Reimbursable),salaries and expenses (reimbursable)
@@ -9764,6 +9767,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,534,   ,2850,1,Coordination and review,coordination and review
 2016,534,   ,5548,1,Coordination and review,coordination and review
 2016,481,   ,2992,1,Commission to Eliminate Child Abuse and Neglect Fatalities (Direct),commission to eliminate child abuse and neglect fatalities (direct)
+2016,10,15,930,1,Court Security (Direct),court security (direct)
 2016,10,   ,8123,1,Other Commissions and Boards (Direct),other commissions and boards (direct)
 2016,321,   ,3700,1,Other Commissions and Boards (Direct),other commissions and boards (direct)
 2016,321,   ,8268,1,Other Commissions and Boards (Direct),other commissions and boards (direct)
@@ -9774,7 +9778,6 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,579,   ,8299,2,Obligations to HHS,obligations to hhs
 2016,512,   ,4331,801,Presidio Trust (Reimbursable),presidio trust (reimbursable)
 2016,535,   ,2724,1,Salaries and Expenses (Direct),salaries and expenses (direct)
-2016,511,   ,1733,1,Public Defender Service,public defender service
 2016,60,   ,111,1,Dual Benefits Payments Account (Direct),dual benefits payments account (direct)
 2016,60,   ,113,1,Federal Payments to Railroad Retirement Accounts (Direct),federal payments to railroad retirement accounts (direct)
 2016,60,   ,117,1,Railroad Unemployment Extended Benefits,railroad unemployment extended benefits
@@ -9843,12 +9846,13 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2016,33,   ,201,1,"Repair, Restoration, and Renovation of Buildings, National Galle (Direct)","repair, restoration, and renovation of buildings, national galle (direct)"
 2016,33,   ,400,1,"Salaries and Expenses, Woodrow Wilson International Center for S (Direct)","salaries and expenses, woodrow wilson international center for s (direct)"
 2016,453,   ,52,1,Salaries and Expenses (Direct),salaries and expenses (direct)
-2016,455,   ,4110,801,Power program:  Operating expenses,power program:  operating expenses
-2016,455,   ,4110,802,Power program:  Capital expenditures,power program:  capital expenditures
+2016,455,   ,4110,801,Power program:  Operating expenses,power program: operating expenses
+2016,455,   ,4110,802,Power program:  Capital expenditures,power program: capital expenditures
 2016,455,   ,4110,803,Other Cash Items,other cash items
 2016,455,   ,4110,804,Non-Federal Investments,non-federal investments
 2016,345,   ,300,1,Salaries and Expenses,salaries and expenses
 2016,345,   ,5113,1,Salaries and Expenses,salaries and expenses
+2016,345,   ,5113,801,Salaries and Expenses (Reimbursable),salaries and expenses (reimbursable)
 2016,345,   ,8290,1,Court of Appeals for Veterans Claims Retirement Fund,court of appeals for veterans claims retirement fund
 2016,456,   ,3300,1,Holocaust Memorial Museum (Direct),holocaust memorial museum (direct)
 2016,456,   ,8279,1,Holocaust Memorial Museum (Direct),holocaust memorial museum (direct)
@@ -9918,6 +9922,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,86,,8093,1,Gifts and bequests,gifts and bequests
 2017,86,,234,1,Payment to Trust Fund,payment to trust fund
 2017,86,,5271,1,Payment to Trust Fund,payment to trust fund
+2017,10,15,930,1,Court Security (Direct),court security (direct)
 2017,10,,8123,1,Other Commissions and Boards (Direct),other commissions and boards (direct)
 2017,11,,1022,1,Counterdrug and Anti-Crime Programs,counterdrug and anti-crime programs
 2017,11,,1022,801,International Narcotics Control and Law Enforcement (Reimbursable),international narcotics control and law enforcement (reimbursable)
@@ -10007,9 +10012,9 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,11,,3100,3,Program Implementation Expenses,program implementation expenses
 2017,11,,3100,5,Administrative Expenses,administrative expenses
 2017,11,,3100,801,Development Grants (SPTF),development grants (sptf)
-2017,11,,8243,802,Development Grants (Gift) ,development grants (gift) 
+2017,11,,8243,802,Development Grants (Gift) ,development grants (gift)
 2017,11,,8243,803,Program Implementation Expenses (Reimbursable),program implementation expenses (reimbursable)
-2017,11,,8243,804,Administrative Expenses (Reimbursable) ,administrative expenses (reimbursable) 
+2017,11,,8243,804,Administrative Expenses (Reimbursable) ,administrative expenses (reimbursable)
 2017,11,,3,1,Change in valuation,change in valuation
 2017,11,,4,1,Change in valuation,change in valuation
 2017,11,,1037,1,Economic Support Fund (Direct),economic support fund (direct)
@@ -10237,9 +10242,9 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,12,,2701,1,Geographically disadvantaged farmers and ranchers program,geographically disadvantaged farmers and ranchers program
 2017,12,,1140,701,Direct loan subsidy,direct loan subsidy
 2017,12,,1140,702,Loan guarantee subsidy,loan guarantee subsidy
-2017,12,,1140,709,Administrative expenses ,administrative expenses 
+2017,12,,1140,709,Administrative expenses ,administrative expenses
 2017,12,,1336,702,Loan guarantee subsidy,loan guarantee subsidy
-2017,12,,1336,709,Administrative expenses ,administrative expenses 
+2017,12,,1336,709,Administrative expenses ,administrative expenses
 2017,12,,3539,1,Above 185 of poverty,above 185 of poverty
 2017,12,,3539,2,130-185 of poverty,130-185 of poverty
 2017,12,,3539,3,Below 130 of poverty,below 130 of poverty
@@ -11403,14 +11408,14 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,13,,1451,8,Grants to States and Tribes,grants to states and tribes
 2017,13,,1454,1,National Ocean Service,national ocean service
 2017,13,,1454,3,Office of Oceanic and Atmospheric Research,office of oceanic and atmospheric research
-2017,13,,1454,4,National  Weather Service,national  weather service
-2017,13,,1454,5,National  Environmental Satellite Service,national  environmental satellite service
+2017,13,,1454,4,National  Weather Service,national weather service
+2017,13,,1454,5,National  Environmental Satellite Service,national environmental satellite service
 2017,13,,1454,6,Program Support,program support
 2017,13,,1454,7,Spectrum Relocation Fund,spectrum relocation fund
 2017,13,,1460,1,National Ocean Service,national ocean service
 2017,13,,1460,3,Office of Oceanic and Atmospheric Research,office of oceanic and atmospheric research
-2017,13,,1460,4,National  Weather Service,national  weather service
-2017,13,,1460,5,National  Environmental Satellite Service,national  environmental satellite service
+2017,13,,1460,4,National  Weather Service,national weather service
+2017,13,,1460,5,National  Environmental Satellite Service,national environmental satellite service
 2017,13,,1460,6,Program Support,program support
 2017,13,,1460,7,Spectrum Relocation Fund,spectrum relocation fund
 2017,13,,5139,1,Promote and Develop Fishery Products and Research,promote and develop fishery products and research
@@ -11445,16 +11450,16 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,14,,2636,3,Taos Pueblo,taos pueblo
 2017,14,,2636,4,Aamodt,aamodt
 2017,14,,2636,5,Navajo-Gallup,navajo-gallup
-2017,14,,2103,801,Indian Land Consolidation  (Reimbursable),indian land consolidation  (reimbursable)
+2017,14,,2103,801,Indian Land Consolidation  (Reimbursable),indian land consolidation (reimbursable)
 2017,14,,2303,26,Duck Valley Reservation Water Rights Settlement,duck valley reservation water rights settlement
 2017,14,,4415,3,Interest supplement payments,interest supplement payments
 2017,14,,8361,1,"Gifts and Donations, Bureay of Indian Affais (Direct)","gifts and donations, bureay of indian affais (direct)"
-2017,14,,5884,14,  Payments to O&C counties under 1937 statute,  payments to o&c counties under 1937 statute
-2017,14,,5898,15,  Payments to CBWR counties under 1939 statute,  payments to cbwr counties under 1939 statute
+2017,14,,5884,14,  Payments to O&C counties under 1937 statute,payments to o&c counties under 1937 statute
+2017,14,,5898,15,  Payments to CBWR counties under 1939 statute,payments to cbwr counties under 1939 statute
 2017,14,,1109,806,Inspection fees,inspection fees
 2017,14,,1109,807,Grazing fees,grazing fees
 2017,14,,1116,2,Western Oregon Construction and Acquisition,western oregon construction and acquisition
-2017,14,,8069,5, Sikes Act, sikes act
+2017,14,,8069,5, Sikes Act,sikes act
 2017,14,,787,1,Fish and Wildlife,fish and wildlife
 2017,14,,787,1,Program Administration,program administration
 2017,14,,5174,1,Title IV Interest on Investment,title iv interest on investment
@@ -12343,7 +12348,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,15,,401,13,Research on Domestic Radicalization,research on domestic radicalization
 2017,15,,401,16,NCS-X Implementation Program,ncs-x implementation program
 2017,15,,404,8,Byrne Incentive Grants,byrne incentive grants
-2017,15,,404,20,State and Local Anti-Terrorism Training ,state and local anti-terrorism training 
+2017,15,,404,20,State and Local Anti-Terrorism Training ,state and local anti-terrorism training
 2017,15,,404,24,Countering Violent Extremism Training and Technical Assistance,countering violent extremism training and technical assistance
 2017,15,,404,53,Missing Alzheimer's Program,missing alzheimer's program
 2017,15,,404,76,State and Local Assistance Help Desk and Diagnostic Center,state and local assistance help desk and diagnostic center
@@ -12523,7 +12528,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,15,,404,11,Community Trust Initiative: Justice Reinvestment Initiative,community trust initiative: justice reinvestment initiative
 2017,15,,404,12,Victims of Trafficking,victims of trafficking
 2017,15,,404,13,Prescription Drug Monitoring Program,prescription drug monitoring program
-2017,15,,404,14,Prison Rape Prevention and Prosecution  Program,prison rape prevention and prosecution  program
+2017,15,,404,14,Prison Rape Prevention and Prosecution  Program,prison rape prevention and prosecution program
 2017,15,,404,15,Capital Litigation Improvement Grant Program,capital litigation improvement grant program
 2017,15,,404,16,Mentally-Ill Offender Act,mentally-ill offender act
 2017,15,,404,17,National Sex Offender Public Website,national sex offender public website
@@ -13877,7 +13882,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,36,,137,205,Housing Technology Grants,housing technology grants
 2017,36,,137,301,Work study,work study
 2017,36,,137,302,Payments to States,payments to states
-2017,36,,137,303,All-volunteer assistance:  Basic benefits and all other,all-volunteer assistance:  basic benefits and all other
+2017,36,,137,303,All-volunteer assistance:  Basic benefits and all other,all-volunteer assistance: basic benefits and all other
 2017,36,,137,305,Tuition Assistance,tuition assistance
 2017,36,,137,306,Licensing and Certification,licensing and certification
 2017,36,,137,307,Reporting fees,reporting fees
@@ -14058,6 +14063,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,49,,8960,2,Gemini Telescope,gemini telescope
 2017,49,,8960,3,B&M Gates Foundation,b&m gates foundation
 2017,49,,8960,4,International Ocean Drilling,international ocean drilling
+2017,49,,8960,900,Donations,donations
 2017,49,,106,1,Education and Human Resources,education and human resources
 2017,49,,106,302,Low income scholarship program,low income scholarship program
 2017,49,,106,303,"ITEST grants for Mathematics, Science, or Engineering enrichment courses","itest grants for mathematics, science, or engineering enrichment courses"
@@ -14083,6 +14089,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,49,,100,7,"Social, Behavioral and Economic Sciences","social, behavioral and economic sciences"
 2017,49,,100,8,Integrative Activities,integrative activities
 2017,49,,100,9,Office of International Science and Engineering,office of international science and engineering
+2017,49,,100,10,Office of Polar Programs,office of polar programs
 2017,49,,100,13,Arctic Research Commission,arctic research commission
 2017,49,,100,801,Research and Related Activities (Reimbursable),research and related activities (reimbursable)
 2017,49,,101,1,Biological Sciences,biological sciences
@@ -14279,7 +14286,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,60,,8051,1,Railroad Unemployment Insurance Trust Fund (Direct),railroad unemployment insurance trust fund (direct)
 2017,60,,8051,801,Railroad Unemployment Insurance Trust Fund (Reimbursable),railroad unemployment insurance trust fund (reimbursable)
 2017,61,,100,1,Consumer Product Safety - Direct,consumer product safety - direct
-2017,61,,100,801,Consumer Product Safety - Reimbursable ,consumer product safety - reimbursable 
+2017,61,,100,801,Consumer Product Safety - Reimbursable ,consumer product safety - reimbursable
 2017,61,,8079,1,Consumer Product Safety - Gift Fund,consumer product safety - gift fund
 2017,62,,100,1,Investigation and prosecution of reprisals for whistle blowing,investigation and prosecution of reprisals for whistle blowing
 2017,65,,100,1,formal proceeedings,formal proceeedings
@@ -14288,8 +14295,8 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,65,,5184,1,formal proceeedings,formal proceeedings
 2017,65,,5184,2,Inspector General,inspector general
 2017,65,,5184,3,Operational and Administrative,operational and administrative
-2017,65,,100,4,Equal Employment Opportunity,equal employment opportunity
-2017,65,,5184,4,Equal Employment Opportunity,equal employment opportunity
+2017,65,,100,4,Equal Employment Opportunity (Direct),equal employment opportunity (direct)
+2017,65,,5184,4,Equal Employment Opportunity (Direct),equal employment opportunity (direct)
 2017,67,,204,2,Upgrade of existing relay station capabilities,upgrade of existing relay station capabilities
 2017,67,,204,3,"Maintenance, improvements, replacements and repairs","maintenance, improvements, replacements and repairs"
 2017,67,,204,5,Satellite and terrestrial feed systems,satellite and terrestrial feed systems
@@ -14301,26 +14308,26 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,67,,9971,1,Conditional gift fund,conditional gift fund
 2017,67,,202,1,East-West Center (Direct),east-west center (direct)
 2017,67,,210,1,National Endowment for Democracy (Direct),national endowment for democracy (direct)
-2017,68,,103,3001,Categorical Grant:  Nonpoint Source (Sec. 319),categorical grant:  nonpoint source (sec. 319)
-2017,68,,103,3003,Categorical Grant:  Public Water System Supervision (PWSS),categorical grant:  public water system supervision (pwss)
-2017,68,,103,3004,Categorical Grant:  State and Local Air Quality Management,categorical grant:  state and local air quality management
-2017,68,,103,3005,Categorical Grant:  Radon,categorical grant:  radon
-2017,68,,103,3006,Categorical Grant:  Pollution Control (Sec. 106),categorical grant:  pollution control (sec. 106)
-2017,68,,103,3007,Categorical Grant:  Wetlands Program Development,categorical grant:  wetlands program development
-2017,68,,103,3008,Categorical Grant:  Underground Injection Control  (UIC),categorical grant:  underground injection control  (uic)
-2017,68,,103,3009,Categorical Grant:  Pesticides Program Implementation,categorical grant:  pesticides program implementation
-2017,68,,103,3010,Categorical Grant:  Lead,categorical grant:  lead
-2017,68,,103,3011,Categorical Grant:  Hazardous Waste Financial Assistance,categorical grant:  hazardous waste financial assistance
-2017,68,,103,3012,Categorical Grant:  Pesticides Enforcement,categorical grant:  pesticides enforcement
-2017,68,,103,3013,Categorical Grant:  Pollution Prevention,categorical grant:  pollution prevention
-2017,68,,103,3014,Categorical Grant:  Toxics Substances Compliance,categorical grant:  toxics substances compliance
-2017,68,,103,3015,Categorical Grant:  Tribal General Assistance Program,categorical grant:  tribal general assistance program
-2017,68,,103,3016,Categorical Grant:  Underground Storage Tanks,categorical grant:  underground storage tanks
-2017,68,,103,3017,Categorical Grant:  Tribal Air Quality Management,categorical grant:  tribal air quality management
-2017,68,,103,3020,Categorical Grant:  Multipurpose Grants,categorical grant:  multipurpose grants
-2017,68,,103,3021,Categorical Grant:  Environmental Information,categorical grant:  environmental information
-2017,68,,103,3023,Categorical Grant:  Beaches Protection,categorical grant:  beaches protection
-2017,68,,103,3024,Categorical Grant:  Brownfields,categorical grant:  brownfields
+2017,68,,103,3001,Categorical Grant:  Nonpoint Source (Sec. 319),categorical grant: nonpoint source (sec. 319)
+2017,68,,103,3003,Categorical Grant:  Public Water System Supervision (PWSS),categorical grant: public water system supervision (pwss)
+2017,68,,103,3004,Categorical Grant:  State and Local Air Quality Management,categorical grant: state and local air quality management
+2017,68,,103,3005,Categorical Grant:  Radon,categorical grant: radon
+2017,68,,103,3006,Categorical Grant:  Pollution Control (Sec. 106),categorical grant: pollution control (sec. 106)
+2017,68,,103,3007,Categorical Grant:  Wetlands Program Development,categorical grant: wetlands program development
+2017,68,,103,3008,Categorical Grant:  Underground Injection Control  (UIC),categorical grant: underground injection control (uic)
+2017,68,,103,3009,Categorical Grant:  Pesticides Program Implementation,categorical grant: pesticides program implementation
+2017,68,,103,3010,Categorical Grant:  Lead,categorical grant: lead
+2017,68,,103,3011,Categorical Grant:  Hazardous Waste Financial Assistance,categorical grant: hazardous waste financial assistance
+2017,68,,103,3012,Categorical Grant:  Pesticides Enforcement,categorical grant: pesticides enforcement
+2017,68,,103,3013,Categorical Grant:  Pollution Prevention,categorical grant: pollution prevention
+2017,68,,103,3014,Categorical Grant:  Toxics Substances Compliance,categorical grant: toxics substances compliance
+2017,68,,103,3015,Categorical Grant:  Tribal General Assistance Program,categorical grant: tribal general assistance program
+2017,68,,103,3016,Categorical Grant:  Underground Storage Tanks,categorical grant: underground storage tanks
+2017,68,,103,3017,Categorical Grant:  Tribal Air Quality Management,categorical grant: tribal air quality management
+2017,68,,103,3020,Categorical Grant:  Multipurpose Grants,categorical grant: multipurpose grants
+2017,68,,103,3021,Categorical Grant:  Environmental Information,categorical grant: environmental information
+2017,68,,103,3023,Categorical Grant:  Beaches Protection,categorical grant: beaches protection
+2017,68,,103,3024,Categorical Grant:  Brownfields,categorical grant: brownfields
 2017,68,,108,3042,Beach / Fish Programs,beach / fish programs
 2017,68,,108,3043,Brownfields,brownfields
 2017,68,,108,3043,Brownfields,brownfields
@@ -14355,30 +14362,30 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,68,,107,3061,Federal Vehicle and Fuels Standards and Certification,federal vehicle and fuels standards and certification
 2017,68,,107,3062,Forensics Support,forensics support
 2017,68,,8145,3062,Forensics Support,forensics support
-2017,68,,108,3063,Geographic Program:  Chesapeake Bay,geographic program:  chesapeake bay
-2017,68,,108,3065,Geographic Program:  Gulf of Mexico ,geographic program:  gulf of mexico 
-2017,68,,108,3066,Geographic Program:  Lake Champlain,geographic program:  lake champlain
-2017,68,,108,3067,Geographic Program:  Long Island Sound,geographic program:  long island sound
-2017,68,,108,3068,Geographic Program:  Other,geographic program:  other
-2017,68,,108,3070,Homeland Security:  Communication and Information,homeland security:  communication and information
-2017,68,,108,3070,Homeland Security:  Communication and Information,homeland security:  communication and information
-2017,68,,108,3071,Homeland Security:  Critical Infrastructure Protection,homeland security:  critical infrastructure protection
-2017,68,,107,3071,Homeland Security:  Critical Infrastructure Protection,homeland security:  critical infrastructure protection
-2017,68,,107,3072,"Homeland Security:  Preparedness, Response, and Recovery ","homeland security:  preparedness, response, and recovery "
-2017,68,,8145,3072,"Homeland Security:  Preparedness, Response, and Recovery ","homeland security:  preparedness, response, and recovery "
-2017,68,,8145,3072,"Homeland Security:  Preparedness, Response, and Recovery ","homeland security:  preparedness, response, and recovery "
-2017,68,,108,3073,Homeland Security:  Protection of EPA Personnel and Infrastructure,homeland security:  protection of epa personnel and infrastructure
-2017,68,,108,3073,Homeland Security:  Protection of EPA Personnel and Infrastructure,homeland security:  protection of epa personnel and infrastructure
-2017,68,,107,3073,Homeland Security:  Protection of EPA Personnel and Infrastructure,homeland security:  protection of epa personnel and infrastructure
-2017,68,,,3073,Homeland Security:  Protection of EPA Personnel and Infrastructure,homeland security:  protection of epa personnel and infrastructure
-2017,68,,8145,3073,Homeland Security:  Protection of EPA Personnel and Infrastructure,homeland security:  protection of epa personnel and infrastructure
-2017,68,,108,3076,Indoor Air:  Radon Program,indoor air:  radon program
-2017,68,,107,3076,Indoor Air:  Radon Program,indoor air:  radon program
-2017,68,,103,3078,Infrastructure Assistance:  Alaska Native Villages,infrastructure assistance:  alaska native villages
+2017,68,,108,3063,Geographic Program:  Chesapeake Bay,geographic program: chesapeake bay
+2017,68,,108,3065,Geographic Program:  Gulf of Mexico ,geographic program: gulf of mexico
+2017,68,,108,3066,Geographic Program:  Lake Champlain,geographic program: lake champlain
+2017,68,,108,3067,Geographic Program:  Long Island Sound,geographic program: long island sound
+2017,68,,108,3068,Geographic Program:  Other,geographic program: other
+2017,68,,108,3070,Homeland Security:  Communication and Information,homeland security: communication and information
+2017,68,,108,3070,Homeland Security:  Communication and Information,homeland security: communication and information
+2017,68,,108,3071,Homeland Security:  Critical Infrastructure Protection,homeland security: critical infrastructure protection
+2017,68,,107,3071,Homeland Security:  Critical Infrastructure Protection,homeland security: critical infrastructure protection
+2017,68,,107,3072,"Homeland Security:  Preparedness, Response, and Recovery ","homeland security: preparedness, response, and recovery"
+2017,68,,8145,3072,"Homeland Security:  Preparedness, Response, and Recovery ","homeland security: preparedness, response, and recovery"
+2017,68,,8145,3072,"Homeland Security:  Preparedness, Response, and Recovery ","homeland security: preparedness, response, and recovery"
+2017,68,,108,3073,Homeland Security:  Protection of EPA Personnel and Infrastructure,homeland security: protection of epa personnel and infrastructure
+2017,68,,108,3073,Homeland Security:  Protection of EPA Personnel and Infrastructure,homeland security: protection of epa personnel and infrastructure
+2017,68,,107,3073,Homeland Security:  Protection of EPA Personnel and Infrastructure,homeland security: protection of epa personnel and infrastructure
+2017,68,,,3073,Homeland Security:  Protection of EPA Personnel and Infrastructure,homeland security: protection of epa personnel and infrastructure
+2017,68,,8145,3073,Homeland Security:  Protection of EPA Personnel and Infrastructure,homeland security: protection of epa personnel and infrastructure
+2017,68,,108,3076,Indoor Air:  Radon Program,indoor air: radon program
+2017,68,,107,3076,Indoor Air:  Radon Program,indoor air: radon program
+2017,68,,103,3078,Infrastructure Assistance:  Alaska Native Villages,infrastructure assistance: alaska native villages
 2017,68,,103,3079,Brownfields Projects,brownfields projects
-2017,68,,103,3080,Infrastructure Assistance:  Clean Water SRF,infrastructure assistance:  clean water srf
-2017,68,,103,3081,Infrastructure Assistance:  Drinking Water SRF,infrastructure assistance:  drinking water srf
-2017,68,,103,3082,Infrastructure Assistance:  Mexico Border,infrastructure assistance:  mexico border
+2017,68,,103,3080,Infrastructure Assistance:  Clean Water SRF,infrastructure assistance: clean water srf
+2017,68,,103,3081,Infrastructure Assistance:  Drinking Water SRF,infrastructure assistance: drinking water srf
+2017,68,,103,3082,Infrastructure Assistance:  Mexico Border,infrastructure assistance: mexico border
 2017,68,,107,3084,Human Health Risk Assessment,human health risk assessment
 2017,68,,108,3086,LUST / UST,lust / ust
 2017,68,,8153,3086,LUST / UST,lust / ust
@@ -14391,16 +14398,16 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,68,,8221,3091,"Oil Spill: Prevention, Preparedness and Response","oil spill: prevention, preparedness and response"
 2017,68,,8221,3091,"Oil Spill: Prevention, Preparedness and Response","oil spill: prevention, preparedness and response"
 2017,68,,108,3095,Pollution Prevention Program,pollution prevention program
-2017,68,,108,3097,Radiation:  Protection,radiation:  protection
-2017,68,,108,3097,Radiation:  Protection,radiation:  protection
-2017,68,,107,3097,Radiation:  Protection,radiation:  protection
-2017,68,,8145,3097,Radiation:  Protection,radiation:  protection
-2017,68,,108,3098,Radiation:  Response Preparedness,radiation:  response preparedness
-2017,68,,107,3098,Radiation:  Response Preparedness,radiation:  response preparedness
-2017,68,,108,3099,RCRA:  Corrective Action,rcra:  corrective action
-2017,68,,108,101,RCRA:  Waste Management,rcra:  waste management
-2017,68,,,101,RCRA:  Waste Management,rcra:  waste management
-2017,68,,108,102,RCRA:  Waste Minimization & Recycling,rcra:  waste minimization & recycling
+2017,68,,108,3097,Radiation:  Protection,radiation: protection
+2017,68,,108,3097,Radiation:  Protection,radiation: protection
+2017,68,,107,3097,Radiation:  Protection,radiation: protection
+2017,68,,8145,3097,Radiation:  Protection,radiation: protection
+2017,68,,108,3098,Radiation:  Response Preparedness,radiation: response preparedness
+2017,68,,107,3098,Radiation:  Response Preparedness,radiation: response preparedness
+2017,68,,108,3099,RCRA:  Corrective Action,rcra: corrective action
+2017,68,,108,101,RCRA:  Waste Management,rcra: waste management
+2017,68,,,101,RCRA:  Waste Management,rcra: waste management
+2017,68,,108,102,RCRA:  Waste Minimization & Recycling,rcra: waste minimization & recycling
 2017,68,,108,104,Integrated Environmental Strategies,integrated environmental strategies
 2017,68,,108,104,Integrated Environmental Strategies,integrated environmental strategies
 2017,68,,108,3002,Science Policy and Biotechnology,science policy and biotechnology
@@ -14408,23 +14415,23 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,68,,108,304,Stratospheric Ozone: Domestic Programs,stratospheric ozone: domestic programs
 2017,68,,108,304,Stratospheric Ozone: Domestic Programs,stratospheric ozone: domestic programs
 2017,68,,108,305,Stratospheric Ozone: Multilateral Fund,stratospheric ozone: multilateral fund
-2017,68,,8145,306,Superfund:  Emergency Response and Removal,superfund:  emergency response and removal
-2017,68,,8145,306,Superfund:  Emergency Response and Removal,superfund:  emergency response and removal
-2017,68,,8145,306,Superfund:  Emergency Response and Removal,superfund:  emergency response and removal
-2017,68,,8145,307,Superfund:  Enforcement,superfund:  enforcement
-2017,68,,8145,307,Superfund:  Enforcement,superfund:  enforcement
-2017,68,,8145,308,Superfund:  EPA Emergency Preparedness,superfund:  epa emergency preparedness
-2017,68,,8145,309,Superfund:  Federal Facilities,superfund:  federal facilities
-2017,68,,8145,309,Superfund:  Federal Facilities,superfund:  federal facilities
-2017,68,,8145,402,Superfund:  Remedial,superfund:  remedial
-2017,68,,8145,402,Superfund:  Remedial,superfund:  remedial
+2017,68,,8145,306,Superfund:  Emergency Response and Removal,superfund: emergency response and removal
+2017,68,,8145,306,Superfund:  Emergency Response and Removal,superfund: emergency response and removal
+2017,68,,8145,306,Superfund:  Emergency Response and Removal,superfund: emergency response and removal
+2017,68,,8145,307,Superfund:  Enforcement,superfund: enforcement
+2017,68,,8145,307,Superfund:  Enforcement,superfund: enforcement
+2017,68,,8145,308,Superfund:  EPA Emergency Preparedness,superfund: epa emergency preparedness
+2017,68,,8145,309,Superfund:  Federal Facilities,superfund: federal facilities
+2017,68,,8145,309,Superfund:  Federal Facilities,superfund: federal facilities
+2017,68,,8145,402,Superfund:  Remedial,superfund: remedial
+2017,68,,8145,402,Superfund:  Remedial,superfund: remedial
 2017,68,,108,404,Surface Water Protection,surface water protection
 2017,68,,108,404,Surface Water Protection,surface water protection
-2017,68,,108,405,TOXIC SUBSTANCES:  CHEMICAL RISK MANAGEMENT,toxic substances:  chemical risk management
-2017,68,,108,406,Toxic Substances:  Chemical Risk Review and Reduction,toxic substances:  chemical risk review and reduction
-2017,68,,108,406,Toxic Substances:  Chemical Risk Review and Reduction,toxic substances:  chemical risk review and reduction
-2017,68,,108,407,Toxic Substances:  Lead Risk Reduction Program,toxic substances:  lead risk reduction program
-2017,68,,108,407,Toxic Substances:  Lead Risk Reduction Program,toxic substances:  lead risk reduction program
+2017,68,,108,405,TOXIC SUBSTANCES:  CHEMICAL RISK MANAGEMENT,toxic substances: chemical risk management
+2017,68,,108,406,Toxic Substances:  Chemical Risk Review and Reduction,toxic substances: chemical risk review and reduction
+2017,68,,108,406,Toxic Substances:  Chemical Risk Review and Reduction,toxic substances: chemical risk review and reduction
+2017,68,,108,407,Toxic Substances:  Lead Risk Reduction Program,toxic substances: lead risk reduction program
+2017,68,,108,407,Toxic Substances:  Lead Risk Reduction Program,toxic substances: lead risk reduction program
 2017,68,,108,408,TRI / Right to Know,tri / right to know
 2017,68,,108,409,Tribal - Capacity Building,tribal - capacity building
 2017,68,,108,409,Tribal - Capacity Building,tribal - capacity building
@@ -14828,34 +14835,34 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,69,,9911,2,69-X-0538 STP,69-x-0538 stp
 2017,69,,9911,3,69-X-991 All Others,69-x-991 all others
 2017,69,,9911,83,69-X-0505 TIFIA,69-x-0505 tifia
-2017,69,,8001,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8002,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8009,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8014,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8017,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8026,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8045,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8049,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8057,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8058,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8061,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8076,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8081,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8082,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8087,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8120,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8363,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8374,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8375,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8376,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8377,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8378,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8380,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8381,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8382,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8386,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,8390,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
-2017,69,,9972,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity     miscellaneous highway projects
+2017,69,,8001,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8002,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8009,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8014,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8017,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8026,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8045,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8049,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8057,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8058,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8061,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8076,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8081,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8082,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8087,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8120,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8363,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8374,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8375,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8376,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8377,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8378,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8380,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8381,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8382,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8386,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,8390,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
+2017,69,,9972,27,Obligations by program activity     Miscellaneous highway projects,obligations by program activity miscellaneous highway projects
 2017,69,,8054,1,Advances from State cooperating agencies 69-X-8054,advances from state cooperating agencies 69-x-8054
 2017,69,,8054,2,"Cooperative work, international highway transportation 69-X-8371","cooperative work, international highway transportation 69-x-8371"
 2017,69,,8264,1,Advances from State cooperating agencies 69-X-8054,advances from state cooperating agencies 69-x-8054
@@ -14922,7 +14929,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,69,,745,13,Rolling Stock Program,rolling stock program
 2017,69,,745,14,Train Control and Communication,train control and communication
 2017,69,,702,1,Rail Safety Grants,rail safety grants
-2017,69,,122,1,"Rail Service Assistance, Federal Railroad Administration - Direct ","rail service assistance, federal railroad administration - direct "
+2017,69,,122,1,"Rail Service Assistance, Federal Railroad Administration - Direct ","rail service assistance, federal railroad administration - direct"
 2017,69,,122,6,Alaska railroad liabilities,alaska railroad liabilities
 2017,69,,700,1,Safety and Operations,safety and operations
 2017,69,,700,6,Alaska railroad liabilities,alaska railroad liabilities
@@ -14976,7 +14983,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,69,,8547,1,Gifts & Bequests,gifts & bequests
 2017,69,,8547,2,Special Studies,special studies
 2017,69,,1749,1,Academy Operations,academy operations
-2017,69,,1749,2,USMMA Capital Asset  Management Program,usmma capital asset  management program
+2017,69,,1749,2,USMMA Capital Asset  Management Program,usmma capital asset management program
 2017,69,,1749,3,Student Incentive Program,student incentive program
 2017,69,,1749,4,Direct SMA Support,direct sma support
 2017,69,,1749,5,Fuel Assistance Program,fuel assistance program
@@ -14987,7 +14994,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,69,,1749,11,Other Maritime Programs,other maritime programs
 2017,69,,1749,801,Operations and Training (Reimbursable),operations and training (reimbursable)
 2017,69,,1750,1,Academy Operations,academy operations
-2017,69,,1750,2,USMMA Capital Asset  Management Program,usmma capital asset  management program
+2017,69,,1750,2,USMMA Capital Asset  Management Program,usmma capital asset management program
 2017,69,,1750,3,Student Incentive Program,student incentive program
 2017,69,,1750,4,Direct SMA Support,direct sma support
 2017,69,,1750,5,Fuel Assistance Program,fuel assistance program
@@ -15008,10 +15015,10 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,69,,8020,12,Section 406 Safety Belt Performance NASS Modernization (no-year limitation),section 406 safety belt performance nass modernization (no-year limitation)
 2017,69,,8020,14,Section 405B Occupant Protection Grants,section 405b occupant protection grants
 2017,69,,8020,15,Section 405C State Traffic Safety Information System Improvements,section 405c state traffic safety information system improvements
-2017,69,,8020,16,Section 405D Impaired Driving Countermeasures ,section 405d impaired driving countermeasures 
-2017,69,,8020,17,Section 405E Distracted Driving ,section 405e distracted driving 
-2017,69,,8020,18,Section 405F Motorcyclist Safety ,section 405f motorcyclist safety 
-2017,69,,8020,0,Section 405H Nonmotorized Safety ,section 405h nonmotorized safety 
+2017,69,,8020,16,Section 405D Impaired Driving Countermeasures ,section 405d impaired driving countermeasures
+2017,69,,8020,17,Section 405E Distracted Driving ,section 405e distracted driving
+2017,69,,8020,18,Section 405F Motorcyclist Safety ,section 405f motorcyclist safety
+2017,69,,8020,0,Section 405H Nonmotorized Safety ,section 405h nonmotorized safety
 2017,69,,8020,0,Section 405G State Graduated Driver Licensing Laws,section 405g state graduated driver licensing laws
 2017,69,,8020,20,Section 403H In-Vehicle Alcohol Detection Device Research,section 403h in-vehicle alcohol detection device research
 2017,69,,8020,21,Section 154/164 Penalties to 402 Program,section 154/164 penalties to 402 program
@@ -15055,7 +15062,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,69,,102,5,Corres. Sys. Repl. & IT Network Assess.,corres. sys. repl. & it network assess.
 2017,69,,102,801,Salaries and Expenses (Reimbursable),salaries and expenses (reimbursable)
 2017,69,,117,10,Rental Payments,rental payments
-2017,69,,8548,11,Gifts and Bequests ,gifts and bequests 
+2017,69,,8548,11,Gifts and Bequests ,gifts and bequests
 2017,69,,119,1,Minority business outreach,minority business outreach
 2017,69,,119,2,Bonding Assistance Program,bonding assistance program
 2017,69,,105,10,"Transportation Research Activities Overseas, Special Foreign Currency Program","transportation research activities overseas, special foreign currency program"
@@ -18424,7 +18431,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,75,,128,803,OIG HCFAC Discretionary allocation adjustment,oig hcfac discretionary allocation adjustment
 2017,75,,129,1,Office of Inspector General (Direct),office of inspector general (direct)
 2017,75,,129,801,Office of the Inspector General HCFAC Trust Fund,office of the inspector general hcfac trust fund
-2017,75,,129,802,Office of the Inspector General (Direct Reimbursable) ,office of the inspector general (direct reimbursable) 
+2017,75,,129,802,Office of the Inspector General (Direct Reimbursable) ,office of the inspector general (direct reimbursable)
 2017,75,,129,803,Office of the Inspector General HCFAC Discretionary,office of the inspector general hcfac discretionary
 2017,75,,170,1,Medicare eligible accruals,medicare eligible accruals
 2017,75,,4503,801,Program Support Center,program support center
@@ -18472,28 +18479,28 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,75,,1362,9,Health Surveillance and Program Support,health surveillance and program support
 2017,75,,1362,11,SAMHSA Prevention Fund,samhsa prevention fund
 2017,75,,1362,802,SAMHSA Reimbursables,samhsa reimbursables
-2017,75,,1362,810,SAMHSA Reimbursable:  PHS Evaluation,samhsa reimbursable:  phs evaluation
+2017,75,,1362,810,SAMHSA Reimbursable:  PHS Evaluation,samhsa reimbursable: phs evaluation
 2017,75,,1363,6,Mental Health,mental health
 2017,75,,1363,7,Substance Abuse Treatment,substance abuse treatment
 2017,75,,1363,8,Substance Abuse Prevention,substance abuse prevention
 2017,75,,1363,9,Health Surveillance and Program Support,health surveillance and program support
 2017,75,,1363,11,SAMHSA Prevention Fund,samhsa prevention fund
 2017,75,,1363,802,SAMHSA Reimbursables,samhsa reimbursables
-2017,75,,1363,810,SAMHSA Reimbursable:  PHS Evaluation,samhsa reimbursable:  phs evaluation
+2017,75,,1363,810,SAMHSA Reimbursable:  PHS Evaluation,samhsa reimbursable: phs evaluation
 2017,75,,1364,6,Mental Health,mental health
 2017,75,,1364,7,Substance Abuse Treatment,substance abuse treatment
 2017,75,,1364,8,Substance Abuse Prevention,substance abuse prevention
 2017,75,,1364,9,Health Surveillance and Program Support,health surveillance and program support
 2017,75,,1364,11,SAMHSA Prevention Fund,samhsa prevention fund
 2017,75,,1364,802,SAMHSA Reimbursables,samhsa reimbursables
-2017,75,,1364,810,SAMHSA Reimbursable:  PHS Evaluation,samhsa reimbursable:  phs evaluation
+2017,75,,1364,810,SAMHSA Reimbursable:  PHS Evaluation,samhsa reimbursable: phs evaluation
 2017,75,,1365,6,Mental Health,mental health
 2017,75,,1365,7,Substance Abuse Treatment,substance abuse treatment
 2017,75,,1365,8,Substance Abuse Prevention,substance abuse prevention
 2017,75,,1365,9,Health Surveillance and Program Support,health surveillance and program support
 2017,75,,1365,11,SAMHSA Prevention Fund,samhsa prevention fund
 2017,75,,1365,802,SAMHSA Reimbursables,samhsa reimbursables
-2017,75,,1365,810,SAMHSA Reimbursable:  PHS Evaluation,samhsa reimbursable:  phs evaluation
+2017,75,,1365,810,SAMHSA Reimbursable:  PHS Evaluation,samhsa reimbursable: phs evaluation
 2017,75,,409,1,Benefits,benefits
 2017,75,,409,2,Administration,administration
 2017,75,,440,1,Taxation of benefits,taxation of benefits
@@ -18814,7 +18821,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,89,,331,810,Energy Efficiency and Renewable Energy (Reimbursable),energy efficiency and renewable energy (reimbursable)
 2017,89,,219,2,NPR Management,npr management
 2017,89,,2234,1,Strategic Petroleum Reserve Petroleum Account,strategic petroleum reserve petroleum account
-2017,89,,216,1,National Energy Information System ,national energy information system 
+2017,89,,216,1,National Energy Information System ,national energy information system
 2017,89,,212,801,"Ensure Just and Reasonable Rates, Terms & Conditions","ensure just and reasonable rates, terms & conditions"
 2017,89,,212,802,"Promote Safe, Reliable, Secure & Efficient Infrastructure","promote safe, reliable, secure & efficient infrastructure"
 2017,89,,212,803,Mission Support through Organizational Excellence,mission support through organizational excellence
@@ -18829,7 +18836,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,89,,213,17,Special Recruitment Program,special recruitment program
 2017,89,,213,20,Natural gas technologies,natural gas technologies
 2017,89,,213,21,Unconventional FE Technologies,unconventional fe technologies
-2017,89,,213,22,Supercritical Transformational Electric Power Generation ,supercritical transformational electric power generation 
+2017,89,,213,22,Supercritical Transformational Electric Power Generation ,supercritical transformational electric power generation
 2017,89,,213,26,Clean Coal Power Initiative,clean coal power initiative
 2017,89,,213,801,Fossil Energy Research and Development (Reimbursable),fossil energy research and development (reimbursable)
 2017,89,,214,2,Carbon Capture,carbon capture
@@ -19034,22 +19041,22 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,91,,220,1,Grants to local educational agencies,grants to local educational agencies
 2017,91,,220,2,School improvement grants,school improvement grants
 2017,91,,220,3,State agency programs: Migrants,state agency programs: migrants
-2017,91,,220,4,State agency programs:  Neglected and delinquent,state agency programs:  neglected and delinquent
+2017,91,,220,4,State agency programs:  Neglected and delinquent,state agency programs: neglected and delinquent
 2017,91,,220,6,Special programs for migrant students,special programs for migrant students
 2017,91,,500,1,Grants to local educational agencies,grants to local educational agencies
 2017,91,,500,2,School improvement grants,school improvement grants
 2017,91,,500,3,State agency programs: Migrants,state agency programs: migrants
-2017,91,,500,4,State agency programs:  Neglected and delinquent,state agency programs:  neglected and delinquent
+2017,91,,500,4,State agency programs:  Neglected and delinquent,state agency programs: neglected and delinquent
 2017,91,,500,6,Special programs for migrant students,special programs for migrant students
 2017,91,,900,1,Grants to local educational agencies,grants to local educational agencies
 2017,91,,900,2,School improvement grants,school improvement grants
 2017,91,,900,3,State agency programs: Migrants,state agency programs: migrants
-2017,91,,900,4,State agency programs:  Neglected and delinquent,state agency programs:  neglected and delinquent
+2017,91,,900,4,State agency programs:  Neglected and delinquent,state agency programs: neglected and delinquent
 2017,91,,900,6,Special programs for migrant students,special programs for migrant students
 2017,91,,901,1,Grants to local educational agencies,grants to local educational agencies
 2017,91,,901,2,School improvement grants,school improvement grants
 2017,91,,901,3,State agency programs: Migrants,state agency programs: migrants
-2017,91,,901,4,State agency programs:  Neglected and delinquent,state agency programs:  neglected and delinquent
+2017,91,,901,4,State agency programs:  Neglected and delinquent,state agency programs: neglected and delinquent
 2017,91,,901,6,Special programs for migrant students,special programs for migrant students
 2017,91,,102,1,Basic support payments,basic support payments
 2017,91,,102,2,Payments for children with disabilities,payments for children with disabilities
@@ -19159,7 +19166,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,91,,204,6,Magnet school assistance,magnet school assistance
 2017,91,,204,7,Advanced placement,advanced placement
 2017,91,,204,8,Ready to learn programming,ready to learn programming
-2017,91,,204,9,Fund for the Improvement of Education:  Programs of national significance,fund for the improvement of education:  programs of national significance
+2017,91,,204,9,Fund for the Improvement of Education:  Programs of national significance,fund for the improvement of education: programs of national significance
 2017,91,,204,10,Arts in education,arts in education
 2017,91,,204,11,American history and civics academies,american history and civics academies
 2017,91,,204,12,Race to the top,race to the top
@@ -19172,7 +19179,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,91,,207,6,Magnet school assistance,magnet school assistance
 2017,91,,207,7,Advanced placement,advanced placement
 2017,91,,207,8,Ready to learn programming,ready to learn programming
-2017,91,,207,9,Fund for the Improvement of Education:  Programs of national significance,fund for the improvement of education:  programs of national significance
+2017,91,,207,9,Fund for the Improvement of Education:  Programs of national significance,fund for the improvement of education: programs of national significance
 2017,91,,207,10,Arts in education,arts in education
 2017,91,,207,11,American history and civics academies,american history and civics academies
 2017,91,,207,12,Race to the top,race to the top
@@ -19592,6 +19599,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,309,,100,1,Other Commissions and Boards (Direct),other commissions and boards (direct)
 2017,309,,500,1,Other Commissions and Boards (Direct),other commissions and boards (direct)
 2017,310,,3200,1,Salaries and expenses (Direct),salaries and expenses (direct)
+2017,310,,3200,801,Salaries and Expenses (Reimbursable),salaries and expenses (reimbursable)
 2017,313,,8281,1,Barry Goldwater Scholarship and Excellence in Education Foundation (Direct),barry goldwater scholarship and excellence in education foundation (direct)
 2017,321,,3700,1,Other Commissions and Boards (Direct),other commissions and boards (direct)
 2017,321,,8268,1,Other Commissions and Boards (Direct),other commissions and boards (direct)
@@ -19609,6 +19617,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,345,,8290,1,Court of Appeals for Veterans Claims Retirement Fund,court of appeals for veterans claims retirement fund
 2017,345,,300,1,Salaries and Expenses,salaries and expenses
 2017,345,,5113,1,Salaries and Expenses,salaries and expenses
+2017,345,,5113,801,Salaries and Expenses (Reimbursable),salaries and expenses (reimbursable)
 2017,347,,3900,1,Salaries and Expenses (Direct),salaries and expenses (direct)
 2017,349,,5676,1,Crime Victims Compensation,crime victims compensation
 2017,349,,1736,1,Federal Payment for Defender Services in District of Columbia Co (Direct),federal payment for defender services in district of columbia co (direct)
@@ -19656,15 +19665,15 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,394,,2500,42,Planning Operations (Reimbursable),planning operations (reimbursable)
 2017,413,,3500,1,Salaries and expenses,salaries and expenses
 2017,413,,8077,1,Salaries and expenses,salaries and expenses
-2017,417,,300,1,Assistance for museums,assistance for museums
-2017,417,,300,2,Assistance for libraries,assistance for libraries
-2017,417,,300,3,Administration,administration
-2017,417,,301,1,Assistance for museums,assistance for museums
-2017,417,,301,2,Assistance for libraries,assistance for libraries
-2017,417,,301,3,Administration,administration
-2017,417,,8080,1,Assistance for museums,assistance for museums
-2017,417,,8080,2,Assistance for libraries,assistance for libraries
-2017,417,,8080,3,Administration,administration
+2017,474,,300,1,Assistance for museums,assistance for museums
+2017,474,,300,2,Assistance for libraries,assistance for libraries
+2017,474,,300,3,Administration,administration
+2017,474,,301,1,Assistance for museums,assistance for museums
+2017,474,,301,2,Assistance for libraries,assistance for libraries
+2017,474,,301,3,Administration,administration
+2017,474,,8080,1,Assistance for museums,assistance for museums
+2017,474,,8080,2,Assistance for libraries,assistance for libraries
+2017,474,,8080,3,Administration,administration
 2017,417,,8040,102,Permanent authority,permanent authority
 2017,417,,100,1,Promotion of the arts,promotion of the arts
 2017,417,,100,3,Program support,program support
@@ -19716,8 +19725,8 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,435,,1100,4,Discretionary fund payments,discretionary fund payments
 2017,437,,700,1,Other Commissions and Boards (Direct),other commissions and boards (direct)
 2017,453,,52,1,Salaries and Expenses (Direct),salaries and expenses (direct)
-2017,455,,4110,801,Power program:  Operating expenses,power program:  operating expenses
-2017,455,,4110,802,Power program:  Capital expenditures,power program:  capital expenditures
+2017,455,,4110,801,Power program:  Operating expenses,power program: operating expenses
+2017,455,,4110,802,Power program:  Capital expenditures,power program: capital expenditures
 2017,455,,4110,803,Other Cash Items,other cash items
 2017,455,,4110,804,Non-Federal Investments,non-federal investments
 2017,456,,3300,1,Holocaust Memorial Museum (Direct),holocaust memorial museum (direct)
@@ -19769,7 +19778,6 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,510,,3851,1,Salaries and Expenses (Direct),salaries and expenses (direct)
 2017,511,,1734,1,Community supervision program,community supervision program
 2017,511,,1734,2,Pretrial Services Agency,pretrial services agency
-2017,511,,1733,1,Public Defender Service,public defender service
 2017,512,,4331,801,Presidio Trust (Reimbursable),presidio trust (reimbursable)
 2017,513,,1200,101,Denali Commission (Direct),denali commission (direct)
 2017,513,,1200,801,Denali Commission (Reimbursable),denali commission (reimbursable)
@@ -20017,7 +20025,7 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,70,,5545,5,CAS - Aviation Security Capital Fund (Mandatory),cas - aviation security capital fund (mandatory)
 2017,70,,5569,801,APEC Business Travel Card,apec business travel card
 2017,70,,5701,1,NFIP Claims Payments from Reserve Fund,nfip claims payments from reserve fund
-2017,70,,5702,1,9-11 Response and Biometric Exit Account ,9-11 response and biometric exit account 
+2017,70,,5702,1,9-11 Response and Biometric Exit Account ,9-11 response and biometric exit account
 2017,70,,5703,1,Electronic Visa Update System (direct),electronic visa update system (direct)
 2017,70,,8360,3,Accreditation,accreditation
 2017,70,,8360,4,CAS - Mission Support,cas - mission support
@@ -20026,788 +20034,3 @@ year,agency_id,alloc_id,account,pa_code,pa_name,
 2017,70,,8598,3,CAS - Office of the Principal Legal Advisor,cas - office of the principal legal advisor
 2017,70,,8598,4,CAS - Homeland Security Investigations,cas - homeland security investigations
 2017,70,,8598,5,CAS - Enforcement and Removal Operations,cas - enforcement and removal operations
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
