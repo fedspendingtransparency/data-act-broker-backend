@@ -600,11 +600,6 @@ class FileHandler:
             filter_by(submission_id=submission_id).\
             one()
 
-        # Change the publish status back to updated if certified
-        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
-            submission.publishable = False
-            submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
-
         job = sess.query(Job).filter_by(
             submission_id=submission_id,
             file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
@@ -630,6 +625,11 @@ class FileHandler:
             return error_response
 
         if file_type in ["D1", "D2"]:
+            # Change the publish status back to updated if certified
+            if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+                submission.publishable = False
+                submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
+
             # Set cross-file validation status to waiting if it's not already
             cross_file_job = sess.query(Job).filter(Job.submission_id == submission_id,
                                                     Job.job_type_id == JOB_TYPE_DICT['validation'],
