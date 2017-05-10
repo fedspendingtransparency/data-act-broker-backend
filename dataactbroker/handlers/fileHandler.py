@@ -452,6 +452,10 @@ class FileHandler:
             job.end_date = datetime.strptime(end_date, "%m/%d/%Y").date()
             val_job.start_date = datetime.strptime(start_date, "%m/%d/%Y").date()
             val_job.end_date = datetime.strptime(end_date, "%m/%d/%Y").date()
+
+            # Clear out error messages to prevent stale messages
+            job.error_message = ''
+            val_job.error_message = ''
         except ValueError as e:
             # Date was not in expected format
             exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, ValueError)
@@ -478,8 +482,12 @@ class FileHandler:
                 # Check for numFound = 0
                 if "numFound='0'" in get_xml_response_content(api_url):
                     sess = GlobalDB.db().session
-                    # No results found, skip validation and mark as finished
-                    mark_job_status(job.job_id, "finished")
+                    # No results found, skip validation and mark as finished.
+                    #
+                    # Skip check here is true since we don't need to check the dependencies for the upload job
+                    # because there are no results. The validation job will manually be update versus running through
+                    # the validator.
+                    mark_job_status(job.job_id, "finished", skip_check=True)
                     job.filename = None
 
                     if val_job is not None:
@@ -588,6 +596,15 @@ class FileHandler:
         if error:
             return error
 
+        submission = sess.query(Submission).\
+            filter_by(submission_id=submission_id).\
+            one()
+
+        # Change the publish status back to updated if certified
+        if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+            submission.publishable = False
+            submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
+
         job = sess.query(Job).filter_by(
             submission_id=submission_id,
             file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
@@ -624,9 +641,6 @@ class FileHandler:
                 sess.commit()
 
         # Return same response as check generation route
-        submission = sess.query(Submission).\
-            filter_by(submission_id=submission_id).\
-            one()
         return self.check_generation(submission, file_type)
 
     def generate_detached_file(self, file_type, cgac_code, start, end):

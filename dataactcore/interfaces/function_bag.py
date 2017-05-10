@@ -277,7 +277,7 @@ def run_job_checks(job_id):
         return True
 
 
-def mark_job_status(job_id, status_name):
+def mark_job_status(job_id, status_name, skip_check=False):
     """
     Mark job as having specified status.
     Jobs being marked as finished will add dependent jobs to queue.
@@ -296,7 +296,7 @@ def mark_job_status(job_id, status_name):
 
     # if status is changed to finished for the first time, check dependencies
     # and add to the job queue as necessary
-    if old_status != 'finished' and status_name == 'finished':
+    if old_status != 'finished' and status_name == 'finished' and not skip_check:
         check_job_dependencies(job_id)
 
 
