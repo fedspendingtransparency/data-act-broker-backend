@@ -130,6 +130,46 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
         return file_manager.get_protected_files()
 
+    @app.route("/v1/check_current_page/", methods=["GET"])
+    @convert_to_submission_id
+    def check_submission(submission_id):
+        sess = GlobalDB.db().session
+        # /v1/reviewData/
+        reviewdata = sess.query(Job).filter(Job.submission_id == submission_id,
+                                            Job.file_type_id.in_([6, 7]), Job.job_status_id == 4)
+        if reviewdata.count() > 0:
+            return "5"
+
+        # /v1/validateCrossFile/
+        validatecrossfile = sess.query(Job).filter(Job.submission_id == submission_id,
+                                                   Job.file_type_id.in_([4, 5]), Job.job_type_id == 2,
+                                                   Job.number_of_errors == 0, Job.file_size.isnot(None))
+        if validatecrossfile.count() > 0:
+            return "3"
+
+        # /v1/generateEF/
+        generateef = sess.query(Job).filter(Job.submission_id == submission_id, Job.file_type_id.in_([1, 2, 3, 4, 5]),
+                                            Job.job_status_id == 2, Job.number_of_errors == 0,
+                                            Job.file_size.isnot(None))
+        if generateef.count() > 0:
+            return "4"
+
+        # /v1/validateData/
+        validatedata = sess.query(Job).filter(Job.submission_id == submission_id,
+                                              Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
+                                              Job.number_of_errors != 0, Job.file_size.isnot(None))
+        if validatedata.count() > 0:
+            return "1"
+
+        # /v1/generateFiles/
+        generatefiles = sess.query(Job).filter(Job.submission_id == submission_id,
+                                               Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
+                                               Job.number_of_errors == 0, Job.file_size.isnot(None))
+        if generatefiles.count() > 0:
+            return "2"
+
+        return "0"
+
     @app.route("/v1/generate_file/", methods=["POST"])
     @convert_to_submission_id
     @use_kwargs({'file_type': webargs_fields.String(
