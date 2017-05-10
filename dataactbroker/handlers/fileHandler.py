@@ -836,7 +836,7 @@ class FileHandler:
         response_dict = {
             'status': map_generate_status(upload_job, validation_job),
             'file_type': file_type,
-            'size': upload_job,
+            'size': upload_job.file_size,
             'message': upload_job.error_message or ""
         }
         if upload_job.filename is None:
