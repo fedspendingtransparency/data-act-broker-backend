@@ -1,5 +1,8 @@
+import argparse
 import requests
 import xmltodict
+
+import datetime
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, SubTierAgency
@@ -742,26 +745,40 @@ def process_data(data, atom_type, sess):
     return obj
 
 
-def get_data(contract_type, award_type, date_range=None):
+def get_data(contract_type, award_type, sess, date_range=False):
     data = []
-    # TODO change this to blank later, this is just for testing
-    params = 'CONTRACTING_AGENCY_ID:1542'
+    if not date_range:
+        params = ''
+    else:
+        params = ''
+        print("there should be a date range here but I didn't do it yet")
+
+    # TODO remove this later, this is just for testing
+    params += 'CONTRACTING_AGENCY_ID:1542 '
     # params = 'VENDOR_ADDRESS_COUNTRY_CODE:"GBR"'
-    # add if date_range to set params to something
+
     i = 0
+    print(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"&start=' + str(i))
     while True:
-        resp = requests.get(feed_url + params + ' CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"&start=' + str(i), timeout=60)
+        resp = requests.get(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"&start=' + str(i), timeout=60)
         resp_data = xmltodict.parse(resp.text, process_namespaces=True, namespaces={'http://www.fpdsng.com/FPDS': None, 'http://www.w3.org/2005/Atom': None})
-        listed_data = list_data(resp_data['feed']['entry'])
+        # only list the data if there's data to list
+        try:
+            listed_data = list_data(resp_data['feed']['entry'])
+        except KeyError:
+            listed_data = []
 
         for ld in listed_data:
             data.append(ld)
             i += 1
 
+        if i % 100 == 0:
+            print("On line " + str(i))
+
         if len(listed_data) < 10:
             break
 
-    sess = GlobalDB.db().session
+    # sess = GlobalDB.db().session
     print(len(data))
 
     for value in data:
@@ -773,10 +790,43 @@ def get_data(contract_type, award_type, date_range=None):
 
 
 def main():
+    sess = GlobalDB.db().session
+
+    parser = argparse.ArgumentParser(description='Pull data from the FPDS Atom Feed.')
+    parser.add_argument('-a', '--all', help='Clear out the database and get historical data', action='store_true')
+    parser.add_argument('-l', '--latest', help='Get by last_mod_date stored in DB', action='store_true')
+    args = parser.parse_args()
+
     award_types_award = ["BPA Call", "Purchase Order", "Delivery Order", "Definitive Contract"]
     award_types_idv = ["GWAC", "IDC", "FSS", "BOA", "BPA"]
-    get_data("award", award_types_award[0])
+
+    if args.all:
+        print("Starting at: " + str(datetime.datetime.now()))
+        # clear out table
+        sess.query(DetachedAwardProcurement).delete()
+
+        # loop through and check all award types
+        for award_type in award_types_award:
+            get_data("award", award_type, sess)
+        for award_type in award_types_idv:
+            get_data("IDV", award_type, sess)
+
+        print("Ending at: " + str(datetime.datetime.now()))
+
+        sess.commit()
+    elif args.latest:
+        print("Get data based on DB")
+
+    # get_data("award", award_types_award[0])
     # get_data("IDV", award_types_idv[0])
+    # TODO loop through and remove \n and \t from specified fields before inserting into table
+    # TODO threading
+    # TODO try/except before each attempt to access any keys in the data in case they don't exist
+    # TODO add actual processing for latest date
+    # TODO add a start date for "all" (and figure out what query param I'm supposed to be using for it) so we don't get ALL the data
+    # TODO delete feed when inserting not "all" (sub-step, figure out what we're comparing against so it's easier to delete)
+    # TODO actually save the current date in the fpds_update table
+    # TODO fine-tune indexing
 
 if __name__ == '__main__':
     with create_app().app_context():
