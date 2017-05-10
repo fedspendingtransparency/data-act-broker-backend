@@ -5,8 +5,8 @@ from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, SubTierAgency
 from dataactcore.models.stagingModels import DetachedAwardProcurement
 
-from dataactcore.models.jobModels import Submission # noqa
-from dataactcore.models.userModel import User # noqa
+from dataactcore.models.jobModels import Submission  # noqa
+from dataactcore.models.userModel import User  # noqa
 
 from dataactvalidator.health_check import create_app
 
@@ -55,6 +55,25 @@ def award_id_values(data, obj):
     return obj
 
 
+def contract_id_values(data, obj):
+    value_map = {'agencyID': 'referenced_idv_agency_iden',
+                 'modNumber': 'award_modification_amendme',
+                 'PIID': 'piid'}
+    for key, value in value_map.items():
+        try:
+            obj[value] = extract_text(data['IDVID'][key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    # need to do this outside because modNumber goes to 2 columns? What?
+    try:
+        obj['referenced_idv_modificatio'] = extract_text(data['IDVID']['modNumber'])
+    except (KeyError, TypeError):
+        obj['referenced_idv_modificatio'] = None
+
+    return obj
+
+
 # Get values from the competition level of the xml
 def competition_values(data, obj):
     value_map = {'A76Action': 'a_76_fair_act_action',
@@ -76,6 +95,26 @@ def competition_values(data, obj):
     for key, value in value_map.items():
         try:
             obj[value] = extract_text(data[key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    # get descriptions for things in the value map
+    value_map = {'A76Action': 'a_76_fair_act_action_desc',
+                 'commercialItemAcquisitionProcedures': 'commercial_item_acqui_desc',
+                 'commercialItemTestProgram': 'commercial_item_test_desc',
+                 'evaluatedPreference': 'evaluated_preference_desc',
+                 'extentCompeted': 'extent_compete_description',
+                 'fedBizOpps': 'fed_biz_opps_description',
+                 'localAreaSetAside': 'local_area_set_aside_desc',
+                 'reasonNotCompeted': 'other_than_full_and_o_desc',
+                 'research': 'research_description',
+                 'solicitationProcedures': 'solicitation_procedur_desc',
+                 'statutoryExceptionToFairOpportunity': 'fair_opportunity_limi_desc',
+                 'typeOfSetAside': 'type_set_aside_description'}
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = data[key]['@description']
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -108,14 +147,47 @@ def contract_data_values(data, obj, atom_type):
 
     if atom_type == "award":
         value_map['contractActionType'] = 'contract_award_type'
-        value_map['referencedIDVMultipleOrSingle'] = 'multiple_or_single_award_i'
+        value_map['referencedIDVMultipleOrSingle'] = 'referenced_mult_or_single'
     else:
         value_map['contractActionType'] = 'idv_type'
         value_map['multipleOrSingleAwardIDC'] = 'multiple_or_single_award_i'
+        value_map['referencedIDVMultipleOrSingle'] = 'referenced_mult_or_single'
 
     for key, value in value_map.items():
         try:
             obj[value] = extract_text(data[key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    # get descriptions for things in the value map
+    value_map = {'consolidatedContract': 'consolidated_contract_desc',
+                 'contingencyHumanitarianPeacekeepingOperation': 'contingency_humanitar_desc',
+                 'contractFinancing': 'contract_financing_descrip',
+                 'costAccountingStandardsClause': 'cost_accounting_stand_desc',
+                 'costOrPricingData': 'cost_or_pricing_data_desc',
+                 'GFE-GFP': 'government_furnished_desc',
+                 'multiYearContract': 'multi_year_contract_desc',
+                 'nationalInterestActionCode': 'national_interest_desc',
+                 'performanceBasedServiceContract': 'performance_based_se_desc',
+                 'purchaseCardAsPaymentMethod': 'purchase_card_as_paym_desc',
+                 'reasonForModification': 'action_type_description',
+                 'referencedIDVType': 'referenced_idv_type_desc',
+                 'seaTransportation': 'sea_transportation_desc',
+                 'typeOfContractPricing': 'type_of_contract_pric_desc',
+                 'typeOfIDC': 'type_of_idc_description',
+                 'undefinitizedAction': 'undefinitized_action_desc'}
+
+    if atom_type == "award":
+        value_map['contractActionType'] = 'contract_award_type_desc'
+        value_map['referencedIDVMultipleOrSingle'] = 'referenced_mult_or_si_desc'
+    else:
+        value_map['contractActionType'] = 'idv_type_description'
+        value_map['multipleOrSingleAwardIDC'] = 'multiple_or_single_aw_desc'
+        value_map['referencedIDVMultipleOrSingle'] = 'referenced_mult_or_si_desc'
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = data[key]['@description']
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -152,11 +224,24 @@ def legislative_mandates_values(data, obj):
         except (KeyError, TypeError):
             obj[value] = None
 
+    # get descriptions for things in the value map
+    value_map = {'ClingerCohenAct': 'clinger_cohen_act_pla_desc',
+                 'DavisBaconAct': 'davis_bacon_act_descrip',
+                 'interagencyContractingAuthority': 'interagency_contract_desc',
+                 'serviceContractAct': 'service_contract_act_desc',
+                 'WalshHealyAct': 'walsh_healey_act_descrip'}
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = data[key]['@description']
+        except (KeyError, TypeError):
+            obj[value] = None
+
     return obj
 
 
 # Get values from the placeOfPerformance level of the xml
-def place_of_performance_values(data, obj):
+def place_of_performance_values(data, obj, atom_type):
     value_map = {'placeOfPerformanceCongressionalDistrict': 'place_of_performance_congr',
                  'placeOfPerformanceZIPCode': 'place_of_performance_zip4a'}
 
@@ -173,13 +258,25 @@ def place_of_performance_values(data, obj):
         obj['place_of_perform_city_name'] = None
 
     # within placeOfPerformance, the principalPlaceOfPerformance sub-level
-    value_map = {'countryCode': 'place_of_perform_country_c',
-                 'locationCode': 'place_of_performance_locat',
+    value_map = {'locationCode': 'place_of_performance_locat',
                  'stateCode': 'place_of_performance_state'}
+
+    if atom_type == "award":
+        value_map['countryCode'] = 'place_of_perform_country_c'
 
     for key, value in value_map.items():
         try:
             obj[value] = extract_text(data['principalPlaceOfPerformance'][key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    # get descriptions for things in the value map
+    value_map = {'countryCode': 'place_of_perf_country_desc',
+                 'stateCode': 'place_of_perfor_state_desc'}
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = data[key]['@description']
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -206,11 +303,24 @@ def product_or_service_information_values(data, obj):
         except (KeyError, TypeError):
             obj[value] = None
 
-    # naics description
-    try:
-        obj['naics_description'] = data['principalNAICSCode']['@description']
-    except (KeyError, TypeError):
-        obj['naics_description'] = None
+    # get descriptions for things in the value map
+    value_map = {'claimantProgramCode': 'dod_claimant_prog_cod_desc',
+                 'contractBundling': 'contract_bundling_descrip',
+                 'countryOfOrigin': 'country_of_product_or_desc',
+                 'informationTechnologyCommercialItemCategory': 'information_technolog_desc',
+                 'manufacturingOrganizationType': 'domestic_or_foreign_e_desc',
+                 'placeOfManufacture': 'place_of_manufacture_desc',
+                 'principalNAICSCode': 'naics_description',
+                 'productOrServiceCode': 'product_or_service_co_desc',
+                 'recoveredMaterialClauses': 'recovered_materials_s_desc',
+                 'systemEquipmentCode': 'program_system_or_equ_desc',
+                 'useOfEPADesignatedProducts': 'epa_designated_produc_desc'}
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = data[key]['@description']
+        except (KeyError, TypeError):
+            obj[value] = None
 
     return obj
 
@@ -226,6 +336,15 @@ def purchaser_information_values(data, obj):
     for key, value in value_map.items():
         try:
             obj[value] = extract_text(data[key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    # get descriptions for things in the value map
+    value_map = {'foreignFunding': 'foreign_funding_desc'}
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = data[key]['@description']
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -262,7 +381,7 @@ def relevant_contract_dates_values(data, obj):
 
 
 # Get values from the vendor level of the xml
-def vendor_values(data, obj):
+def vendor_values(data, obj, atom_type):
     # base vendor level
     value_map = {'CCRException': 'sam_exception',
                  'contractingOfficerBusinessSizeDetermination': 'contracting_officers_deter'}
@@ -270,6 +389,16 @@ def vendor_values(data, obj):
     for key, value in value_map.items():
         try:
             obj[value] = extract_text(data[key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    # get descriptions for things in the value map
+    value_map = {'CCRException': 'sam_exception_description',
+                 'contractingOfficerBusinessSizeDetermination': 'contracting_officers_desc'}
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = data[key]['@description']
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -284,13 +413,13 @@ def vendor_values(data, obj):
             obj[value] = None
 
     # vendorSiteDetails sub-level (there are a lot so it gets its own function)
-    obj = vendor_site_details_values(data['vendorSiteDetails'], obj)
+    obj = vendor_site_details_values(data['vendorSiteDetails'], obj, atom_type)
 
     return obj
 
 
 # Get values from the vendorSiteDetails level of the xml (sub-level of vendor)
-def vendor_site_details_values(data, obj):
+def vendor_site_details_values(data, obj, atom_type):
     # typeOfEducationalEntity sub-level
     value_map = {'is1862LandGrantCollege': 'c1862_land_grant_college',
                  'is1890LandGrantCollege': 'c1890_land_grant_college',
@@ -439,10 +568,24 @@ def vendor_site_details_values(data, obj):
         except (KeyError, TypeError):
             obj[value] = None
 
+    # countryCode has 2 things it maps to if it's an IDV
+    if atom_type != "award":
+        try:
+            obj['place_of_perform_country_c'] = extract_text(data['vendorLocation']['countryCode'])
+        except (KeyError, TypeError):
+            obj['place_of_perform_country_c'] = None
+
     # differentiating between US and foreign states
     key = 'legal_entity_state_code'
     if obj['legal_entity_country_code'] != 'USA':
         key = 'legal_entity_state_descrip'
+    # if it is in the USA, grab the description for the state
+    else:
+        try:
+            obj['legal_entity_state_descrip'] = data['vendorLocation']['state']['@description']
+        except (KeyError, TypeError):
+            obj['legal_entity_state_descrip'] = None
+
     try:
         obj[key] = extract_text(data['vendorLocation']['state'])
     except (KeyError, TypeError):
@@ -549,7 +692,14 @@ def calculate_remaining_fields(obj, sess):
 def process_data(data, atom_type, sess):
     obj = {}
 
-    obj = award_id_values(data['awardID'], obj)
+    if atom_type == "award":
+        obj = award_id_values(data['awardID'], obj)
+    else:
+        obj = contract_id_values(data['contractID'], obj)
+        try:
+            obj['parent_award_id'] = extract_text(data['awardID']['referencedIDVID']['PIID'])
+        except (KeyError, TypeError):
+            obj['parent_award_id'] = None
 
     obj = competition_values(data['competition'], obj)
 
@@ -557,14 +707,20 @@ def process_data(data, atom_type, sess):
 
     obj = dollar_values_values(data['dollarValues'], obj)
 
-    obj = legislative_mandates_values(data['legislativeMandates'], obj)
+    if atom_type == "award":
+        obj = place_of_performance_values(data['placeOfPerformance'], obj, atom_type)
 
-    obj = place_of_performance_values(data['placeOfPerformance'], obj)
+    obj = legislative_mandates_values(data['legislativeMandates'], obj)
 
     try:
         obj['subcontracting_plan'] = extract_text(data['preferencePrograms']['subcontractPlan'])
     except (KeyError, TypeError):
         obj['subcontracting_plan'] = None
+
+    try:
+        obj['subcontracting_plan_desc'] = data['preferencePrograms']['subcontractPlan']['@description']
+    except (KeyError, TypeError):
+        obj['subcontracting_plan_desc'] = None
 
     obj = product_or_service_information_values(data['productOrServiceInformation'], obj)
 
@@ -572,7 +728,7 @@ def process_data(data, atom_type, sess):
 
     obj = relevant_contract_dates_values(data['relevantContractDates'], obj)
 
-    obj = vendor_values(data['vendor'], obj)
+    obj = vendor_values(data['vendor'], obj, atom_type)
 
     obj = calculate_remaining_fields(obj, sess)
 
@@ -586,33 +742,41 @@ def process_data(data, atom_type, sess):
     return obj
 
 
-def main():
-    data_award = []
+def get_data(contract_type, award_type, date_range=None):
+    data = []
+    # TODO change this to blank later, this is just for testing
     params = 'CONTRACTING_AGENCY_ID:1542'
     # params = 'VENDOR_ADDRESS_COUNTRY_CODE:"GBR"'
-
+    # add if date_range to set params to something
     i = 0
     while True:
-        resp_award = requests.get(feed_url + params + ' CONTRACT_TYPE:"AWARD"' + '&start=' + str(i), timeout=60)
-        resp_data_award = xmltodict.parse(resp_award.text, process_namespaces=True, namespaces={'http://www.fpdsng.com/FPDS': None, 'http://www.w3.org/2005/Atom': None})
-        listed_data_award = list_data(resp_data_award['feed']['entry'])
+        resp = requests.get(feed_url + params + ' CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"&start=' + str(i), timeout=60)
+        resp_data = xmltodict.parse(resp.text, process_namespaces=True, namespaces={'http://www.fpdsng.com/FPDS': None, 'http://www.w3.org/2005/Atom': None})
+        listed_data = list_data(resp_data['feed']['entry'])
 
-        for ld in listed_data_award:
-            data_award.append(ld)
+        for ld in listed_data:
+            data.append(ld)
             i += 1
 
-        if len(listed_data_award) < 10:
+        if len(listed_data) < 10:
             break
 
     sess = GlobalDB.db().session
-    print(len(data_award))
+    print(len(data))
 
-    for value in data_award:
-        tmp_obj = process_data(value['content']['award'], atom_type="award", sess=sess)
+    for value in data:
+        tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sess=sess)
         tmp_award = DetachedAwardProcurement(**tmp_obj)
         sess.add(tmp_award)
-    sess.commit()
-    print("processed")
+    # sess.commit()
+    print("processed " + contract_type + ": " + award_type + " data")
+
+
+def main():
+    award_types_award = ["BPA Call", "Purchase Order", "Delivery Order", "Definitive Contract"]
+    award_types_idv = ["GWAC", "IDC", "FSS", "BOA", "BPA"]
+    get_data("award", award_types_award[0])
+    # get_data("IDV", award_types_idv[0])
 
 if __name__ == '__main__':
     with create_app().app_context():
