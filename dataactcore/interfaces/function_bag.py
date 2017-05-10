@@ -67,18 +67,29 @@ def populate_submission_error_info(submission_id):
     sess.commit()
 
 
+def populate_job_error_info(job):
+    """ Set number of errors and warnings for specified job. """
+    sess = GlobalDB.db().session
+    job.number_of_errors = sess.query(func.sum(ErrorMetadata.occurrences)).join(ErrorMetadata.severity).\
+                               filter(ErrorMetadata.job_id == job.job_id, RuleSeverity.name == 'fatal').\
+                               scalar() or 0
+
+    job.number_of_warnings = sess.query(func.sum(ErrorMetadata.occurrences)).join(ErrorMetadata.severity).\
+                                 filter(ErrorMetadata.job_id == job.job_id, RuleSeverity.name == 'warning').\
+                                 scalar() or 0
+    sess.commit()
+
+
 def sum_number_of_errors_for_job_list(submission_id, error_type='fatal'):
     """Add number of errors for all jobs in list."""
     sess = GlobalDB.db().session
     error_sum = 0
     jobs = sess.query(Job).filter(Job.submission_id == submission_id).all()
     for job in jobs:
-        job_errors = check_number_of_errors_by_job_id(job.job_id, error_type)
         if error_type == 'fatal':
-            job.number_of_errors = job_errors
+            error_sum += job.number_of_errors
         elif error_type == 'warning':
-            job.number_of_warnings = job_errors
-        error_sum += job_errors
+            error_sum += job.number_of_warnings
     sess.commit()
     return error_sum
 

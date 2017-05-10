@@ -14,7 +14,7 @@ from dataactcore.models.validationModels import FileColumn
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, FlexField
 from dataactcore.interfaces.function_bag import (
     create_file_if_needed, write_file_error, mark_file_complete, run_job_checks,
-    mark_job_status, sum_number_of_errors_for_job_list, populate_submission_error_info
+    mark_job_status, sum_number_of_errors_for_job_list, populate_job_error_info
 )
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
@@ -309,7 +309,7 @@ class ValidationManager:
 
             error_list.write_all_row_errors(job_id)
             # Update error info for submission
-            populate_submission_error_info(submission_id)
+            populate_job_error_info(job)
 
             # Mark validation as finished in job tracker
             mark_job_status(job_id, "finished")
