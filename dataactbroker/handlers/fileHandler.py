@@ -28,8 +28,8 @@ from dataactcore.models.domainModels import CGAC, SubTierAgency
 from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.jobModels import (
-    FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation,
-    RevalidationThreshold, CertifyHistory)
+    FileGenerationTask, Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation, RevalidationThreshold,
+    CertifyHistory)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
@@ -596,10 +596,6 @@ class FileHandler:
         if error:
             return error
 
-        submission = sess.query(Submission).\
-            filter_by(submission_id=submission_id).\
-            one()
-
         job = sess.query(Job).filter_by(
             submission_id=submission_id,
             file_type_id=FILE_TYPE_DICT_LETTER_ID[file_type],
@@ -624,11 +620,16 @@ class FileHandler:
             mark_job_status(job.job_id, "failed")
             return error_response
 
+        submission = sess.query(Submission).\
+            filter_by(submission_id=submission_id).\
+            one()
+
         if file_type in ["D1", "D2"]:
             # Change the publish status back to updated if certified
             if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
                 submission.publishable = False
                 submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
+                sess.commit()
 
             # Set cross-file validation status to waiting if it's not already
             cross_file_job = sess.query(Job).filter(Job.submission_id == submission_id,
