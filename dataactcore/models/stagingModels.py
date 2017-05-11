@@ -530,6 +530,7 @@ class DetachedAwardProcurement(Base):
     award_description = Column(Text)
     place_of_performance_zip4a = Column(Text)
     place_of_perform_city_name = Column(Text)
+    place_of_perform_county_na = Column(Text)
     place_of_performance_congr = Column(Text)
     awardee_or_recipient_legal = Column(Text)
     legal_entity_city_name = Column(Text)
@@ -559,6 +560,7 @@ class DetachedAwardProcurement(Base):
     awarding_office_code = Column(Text)
     awarding_office_name = Column(Text)
     referenced_idv_agency_iden = Column(Text)
+    referenced_idv_agency_desc = Column(Text)
     funding_agency_code = Column(Text)
     funding_agency_name = Column(Text)
     place_of_performance_locat = Column(Text)
@@ -762,6 +764,7 @@ class DetachedAwardProcurement(Base):
     domestic_or_foreign_entity = Column(Text)
     domestic_or_foreign_e_desc = Column(Text)
     pulled_from = Column(Text)
+    last_modified = Column(Text)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

@@ -55,12 +55,17 @@ def award_id_values(data, obj):
         except (KeyError, TypeError):
             obj[value] = None
 
+    # get agencyID name
+    try:
+        obj['referenced_idv_agency_desc'] = data['referencedIDVID']['agencyID']['@name']
+    except (KeyError, TypeError):
+        obj['referenced_idv_agency_desc'] = None
+
     return obj
 
 
 def contract_id_values(data, obj):
-    value_map = {'agencyID': 'referenced_idv_agency_iden',
-                 'modNumber': 'award_modification_amendme',
+    value_map = {'modNumber': 'award_modification_amendme',
                  'PIID': 'piid'}
     for key, value in value_map.items():
         try:
@@ -68,11 +73,20 @@ def contract_id_values(data, obj):
         except (KeyError, TypeError):
             obj[value] = None
 
-    # need to do this outside because modNumber goes to 2 columns? What?
+    value_map = {'agencyID': 'referenced_idv_agency_iden',
+                 'modNumber': 'referenced_idv_modificatio'}
+
+    for key, value in value_map.items():
+        try:
+            obj[value] = extract_text(data['referencedIDVID'][key])
+        except (KeyError, TypeError):
+            obj[value] = None
+
+    # get agencyID name
     try:
-        obj['referenced_idv_modificatio'] = extract_text(data['IDVID']['modNumber'])
+        obj['referenced_idv_agency_desc'] = data['referencedIDVID']['agencyID']['@name']
     except (KeyError, TypeError):
-        obj['referenced_idv_modificatio'] = None
+        obj['referenced_idv_agency_desc'] = None
 
     return obj
 
@@ -260,6 +274,12 @@ def place_of_performance_values(data, obj, atom_type):
     except (KeyError, TypeError):
         obj['place_of_perform_city_name'] = None
 
+    # placeOfPerformanceName
+    try:
+        obj['place_of_perform_county_na'] = data['placeOfPerformanceZIPCode']['@county']
+    except (KeyError, TypeError):
+        obj['place_of_perform_county_na'] = None
+
     # within placeOfPerformance, the principalPlaceOfPerformance sub-level
     value_map = {'locationCode': 'place_of_performance_locat',
                  'stateCode': 'place_of_performance_state'}
@@ -279,7 +299,7 @@ def place_of_performance_values(data, obj, atom_type):
 
     for key, value in value_map.items():
         try:
-            obj[value] = data[key]['@description']
+            obj[value] = data[key]['@name']
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -309,7 +329,6 @@ def product_or_service_information_values(data, obj):
     # get descriptions for things in the value map
     value_map = {'claimantProgramCode': 'dod_claimant_prog_cod_desc',
                  'contractBundling': 'contract_bundling_descrip',
-                 'countryOfOrigin': 'country_of_product_or_desc',
                  'informationTechnologyCommercialItemCategory': 'information_technolog_desc',
                  'manufacturingOrganizationType': 'domestic_or_foreign_e_desc',
                  'placeOfManufacture': 'place_of_manufacture_desc',
@@ -324,6 +343,12 @@ def product_or_service_information_values(data, obj):
             obj[value] = data[key]['@description']
         except (KeyError, TypeError):
             obj[value] = None
+
+    # get country of origin name
+    try:
+        obj['country_of_product_or_desc'] = data['countryOfOrigin']['@name']
+    except (KeyError, TypeError):
+        obj['country_of_product_or_desc'] = None
 
     return obj
 
@@ -384,7 +409,7 @@ def relevant_contract_dates_values(data, obj):
 
 
 # Get values from the vendor level of the xml
-def vendor_values(data, obj, atom_type):
+def vendor_values(data, obj):
     # base vendor level
     value_map = {'CCRException': 'sam_exception',
                  'contractingOfficerBusinessSizeDetermination': 'contracting_officers_deter'}
@@ -416,13 +441,13 @@ def vendor_values(data, obj, atom_type):
             obj[value] = None
 
     # vendorSiteDetails sub-level (there are a lot so it gets its own function)
-    obj = vendor_site_details_values(data['vendorSiteDetails'], obj, atom_type)
+    obj = vendor_site_details_values(data['vendorSiteDetails'], obj)
 
     return obj
 
 
 # Get values from the vendorSiteDetails level of the xml (sub-level of vendor)
-def vendor_site_details_values(data, obj, atom_type):
+def vendor_site_details_values(data, obj):
     # typeOfEducationalEntity sub-level
     value_map = {'is1862LandGrantCollege': 'c1862_land_grant_college',
                  'is1890LandGrantCollege': 'c1890_land_grant_college',
@@ -571,13 +596,6 @@ def vendor_site_details_values(data, obj, atom_type):
         except (KeyError, TypeError):
             obj[value] = None
 
-    # countryCode has 2 things it maps to if it's an IDV
-    if atom_type != "award":
-        try:
-            obj['place_of_perform_country_c'] = extract_text(data['vendorLocation']['countryCode'])
-        except (KeyError, TypeError):
-            obj['place_of_perform_country_c'] = None
-
     # differentiating between US and foreign states
     key = 'legal_entity_state_code'
     if obj['legal_entity_country_code'] != 'USA':
@@ -585,7 +603,7 @@ def vendor_site_details_values(data, obj, atom_type):
     # if it is in the USA, grab the description for the state
     else:
         try:
-            obj['legal_entity_state_descrip'] = data['vendorLocation']['state']['@description']
+            obj['legal_entity_state_descrip'] = data['vendorLocation']['state']['@name']
         except (KeyError, TypeError):
             obj['legal_entity_state_descrip'] = None
 
@@ -731,7 +749,7 @@ def process_data(data, atom_type, sess):
 
     obj = relevant_contract_dates_values(data['relevantContractDates'], obj)
 
-    obj = vendor_values(data['vendor'], obj, atom_type)
+    obj = vendor_values(data['vendor'], obj)
 
     obj = calculate_remaining_fields(obj, sess)
 
@@ -756,6 +774,7 @@ def get_data(contract_type, award_type, sess, date_range=False):
     # TODO remove this later, this is just for testing
     params += 'CONTRACTING_AGENCY_ID:1542 '
     # params = 'VENDOR_ADDRESS_COUNTRY_CODE:"GBR"'
+    # params = 'PIID:"TPDARCBPA120002"'
 
     i = 0
     print(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"&start=' + str(i))
@@ -817,8 +836,9 @@ def main():
     elif args.latest:
         print("Get data based on DB")
 
-    # get_data("award", award_types_award[0])
-    # get_data("IDV", award_types_idv[0])
+    # get_data("award", award_types_award[0], sess)
+    # get_data("IDV", award_types_idv[0], sess)
+    # sess.commit()
     # TODO loop through and remove \n and \t from specified fields before inserting into table
     # TODO threading
     # TODO try/except before each attempt to access any keys in the data in case they don't exist
