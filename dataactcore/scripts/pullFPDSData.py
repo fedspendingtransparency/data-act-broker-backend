@@ -703,16 +703,24 @@ def calculate_remaining_fields(obj, sess):
     if obj['awarding_sub_tier_agency_c']:
         agency_data = sess.query(CGAC).\
             filter(CGAC.cgac_id == SubTierAgency.cgac_id,
-                   SubTierAgency.sub_tier_agency_code == obj['awarding_sub_tier_agency_c']).one()
-        obj['awarding_agency_code'] = agency_data.cgac_code
-        obj['awarding_agency_name'] = agency_data.agency_name
+                   SubTierAgency.sub_tier_agency_code == obj['awarding_sub_tier_agency_c']).one_or_none()
+        if agency_data:
+            obj['awarding_agency_code'] = agency_data.cgac_code
+            obj['awarding_agency_name'] = agency_data.agency_name
+        else:
+            obj['awarding_agency_code'] = '999'
+            obj['awarding_agency_name'] = None
 
     if obj['funding_sub_tier_agency_co']:
         agency_data = sess.query(CGAC). \
             filter(CGAC.cgac_id == SubTierAgency.cgac_id,
-                   SubTierAgency.sub_tier_agency_code == obj['funding_sub_tier_agency_co']).one()
-        obj['funding_agency_code'] = agency_data.cgac_code
-        obj['funding_agency_name'] = agency_data.agency_name
+                   SubTierAgency.sub_tier_agency_code == obj['funding_sub_tier_agency_co']).one_or_none()
+        if agency_data:
+            obj['funding_agency_code'] = agency_data.cgac_code
+            obj['funding_agency_name'] = agency_data.agency_name
+        else:
+            obj['funding_agency_code'] = '999'
+            obj['funding_agency_name'] = None
     return obj
 
 
@@ -832,13 +840,15 @@ def process_data(data, atom_type, sess):
 def get_data(contract_type, award_type, sess, date_range=False):
     data = []
     if not date_range:
-        params = ''
+        # params = 'SIGNED_DATE:[2015/10/01,PRESENT]'
+        yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+        params = 'SIGNED_DATE:[2017/03/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
     else:
         params = ''
         print("there should be a date range here but I didn't do it yet")
 
     # TODO remove this later, this is just for testing
-    params += 'CONTRACTING_AGENCY_ID:1542 '
+    # params += 'CONTRACTING_AGENCY_ID:1542 '
     # params = 'VENDOR_ADDRESS_COUNTRY_CODE:"GBR"'
     # params = 'PIID:"0046"+REF_IDV_PIID:"W56KGZ15A6000"'
 
@@ -884,6 +894,8 @@ def main():
 
     award_types_award = ["BPA Call", "Purchase Order", "Delivery Order", "Definitive Contract"]
     award_types_idv = ["GWAC", "IDC", "FSS", "BOA", "BPA"]
+    # award_types_award = ["BPA Call"]
+    # award_types_idv = []
 
     if args.all:
         print("Starting at: " + str(datetime.datetime.now()))
@@ -905,10 +917,11 @@ def main():
     # get_data("award", award_types_award[0], sess)
     # get_data("IDV", award_types_idv[0], sess)
     # sess.commit()
-    # TODO add a start date for "all" (and figure out what query param I'm supposed to be using for it) so we don't get ALL the data
-    # TODO delete feed when inserting not "all" (sub-step, figure out what we're comparing against so it's easier to delete)
+    # TODO add a correct start date for "all" so we don't get ALL the data
     # TODO actually save the current date in the fpds_update table
+    # TODO figure out a way to go through the records without having to store all of them and use so much memory
     # TODO add actual processing for latest date
+    # TODO delete feed when inserting not "all" (sub-step, figure out what we're comparing against so it's easier to delete)
     # TODO fine-tune indexing
     # TODO threading
 
