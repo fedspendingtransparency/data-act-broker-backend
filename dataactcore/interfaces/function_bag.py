@@ -94,17 +94,6 @@ def sum_number_of_errors_for_job_list(submission_id, error_type='fatal'):
     return error_sum
 
 
-def check_number_of_errors_by_job_id(job_id, error_type='fatal'):
-    """Get the number of errors for a specified job and severity."""
-    sess = GlobalDB.db().session
-    errors = sess.query(func.sum(ErrorMetadata.occurrences)).join(ErrorMetadata.severity).\
-        filter(ErrorMetadata.job_id == job_id, RuleSeverity.name == error_type).scalar()
-    # error_metadata table tallies total errors by job/file/field/error type. jobs that
-    # don't have errors or warnings won't be in the table at all. thus, if the above query
-    # returns an empty value that means the job didn't have any errors that matched
-    # the specified severity type, so return 0
-    return errors or 0
-
 """ ERROR DB FUNCTIONS """
 
 
