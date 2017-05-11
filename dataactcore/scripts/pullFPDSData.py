@@ -301,7 +301,7 @@ def place_of_performance_values(data, obj, atom_type):
 
     for key, value in value_map.items():
         try:
-            obj[value] = data[key]['@name']
+            obj[value] = data['principalPlaceOfPerformance'][key]['@name']
         except (KeyError, TypeError):
             obj[value] = None
 
@@ -840,7 +840,7 @@ def get_data(contract_type, award_type, sess, date_range=False):
     # TODO remove this later, this is just for testing
     params += 'CONTRACTING_AGENCY_ID:1542 '
     # params = 'VENDOR_ADDRESS_COUNTRY_CODE:"GBR"'
-    # params = 'PIID:"8095"+MODIFICATION_NUMBER:"0"+REF_IDV_PIID:"SPE7L117D0012"'
+    # params = 'PIID:"0046"+REF_IDV_PIID:"W56KGZ15A6000"'
 
     i = 0
     print(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"&start=' + str(i))
@@ -905,12 +905,12 @@ def main():
     # get_data("award", award_types_award[0], sess)
     # get_data("IDV", award_types_idv[0], sess)
     # sess.commit()
-    # TODO threading
     # TODO add a start date for "all" (and figure out what query param I'm supposed to be using for it) so we don't get ALL the data
     # TODO delete feed when inserting not "all" (sub-step, figure out what we're comparing against so it's easier to delete)
     # TODO actually save the current date in the fpds_update table
     # TODO add actual processing for latest date
     # TODO fine-tune indexing
+    # TODO threading
 
 if __name__ == '__main__':
     with create_app().app_context():
