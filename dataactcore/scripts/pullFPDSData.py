@@ -3,6 +3,7 @@ import requests
 import xmltodict
 
 import datetime
+import re
 
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, SubTierAgency
@@ -74,7 +75,8 @@ def contract_id_values(data, obj):
             obj[value] = None
 
     value_map = {'agencyID': 'referenced_idv_agency_iden',
-                 'modNumber': 'referenced_idv_modificatio'}
+                 'modNumber': 'referenced_idv_modificatio',
+                 'PIID': 'parent_award_id'}
 
     for key, value in value_map.items():
         try:
@@ -717,10 +719,6 @@ def process_data(data, atom_type, sess):
         obj = award_id_values(data['awardID'], obj)
     else:
         obj = contract_id_values(data['contractID'], obj)
-        try:
-            obj['parent_award_id'] = extract_text(data['awardID']['referencedIDVID']['PIID'])
-        except (KeyError, TypeError):
-            obj['parent_award_id'] = None
 
     obj = competition_values(data['competition'], obj)
 
@@ -760,6 +758,14 @@ def process_data(data, atom_type, sess):
 
     obj['pulled_from'] = atom_type
 
+    # clear out potentially excel-breaking whitespace from specific fields
+    free_fields = ["award_description", "vendor_doing_as_business_n", "legal_entity_address_line1",
+                   "legal_entity_address_line2", "legal_entity_address_line3", "ultimate_parent_legal_enti",
+                   "awardee_or_recipient_legal"]
+    for field in free_fields:
+        if obj[field]:
+            obj[field] = re.sub('\s', ' ', obj[field])
+
     return obj
 
 
@@ -774,7 +780,7 @@ def get_data(contract_type, award_type, sess, date_range=False):
     # TODO remove this later, this is just for testing
     params += 'CONTRACTING_AGENCY_ID:1542 '
     # params = 'VENDOR_ADDRESS_COUNTRY_CODE:"GBR"'
-    # params = 'PIID:"TPDARCBPA120002"'
+    # params = 'LAST_MOD_DATE:[2017/05/04,2017/05/07] '
 
     i = 0
     print(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"&start=' + str(i))
@@ -839,9 +845,8 @@ def main():
     # get_data("award", award_types_award[0], sess)
     # get_data("IDV", award_types_idv[0], sess)
     # sess.commit()
-    # TODO loop through and remove \n and \t from specified fields before inserting into table
-    # TODO threading
     # TODO try/except before each attempt to access any keys in the data in case they don't exist
+    # TODO threading
     # TODO add actual processing for latest date
     # TODO add a start date for "all" (and figure out what query param I'm supposed to be using for it) so we don't get ALL the data
     # TODO delete feed when inserting not "all" (sub-step, figure out what we're comparing against so it's easier to delete)
