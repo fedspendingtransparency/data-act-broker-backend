@@ -15,7 +15,7 @@ import requests
 from flask import g, request
 from requests.exceptions import Timeout
 import sqlalchemy as sa
-from sqlalchemy import func, MetaData, Table
+from sqlalchemy import func
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
