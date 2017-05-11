@@ -158,6 +158,10 @@ class ValidationManager:
         # Get orm model for this file
         model = [ft.model for ft in FILE_TYPE if ft.name == file_type][0]
 
+        # Delete existing file level errors for this submission
+        sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == job_id).delete()
+        sess.commit()
+
         # Clear existing records for this submission
         sess.query(model).filter_by(submission_id=submission_id).delete()
         sess.commit()
