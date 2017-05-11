@@ -442,6 +442,11 @@ def vendor_values(data, obj):
         except (KeyError, TypeError):
             obj[value] = None
 
+    # make sure key exists before passing it
+    try:
+        data['vendorSiteDetails']
+    except KeyError:
+        data['vendorSiteDetails'] = {}
     # vendorSiteDetails sub-level (there are a lot so it gets its own function)
     obj = vendor_site_details_values(data['vendorSiteDetails'], obj)
 
@@ -716,19 +721,54 @@ def process_data(data, atom_type, sess):
     obj = {}
 
     if atom_type == "award":
+        # make sure key exists before passing it
+        try:
+            data['awardID']
+        except KeyError:
+            data['awardID'] = {}
         obj = award_id_values(data['awardID'], obj)
     else:
+        # make sure key exists before passing it
+        try:
+            data['contractID']
+        except KeyError:
+            data['contractID'] = {}
         obj = contract_id_values(data['contractID'], obj)
 
+    # make sure key exists before passing it
+    try:
+        data['competition']
+    except KeyError:
+        data['competition'] = {}
     obj = competition_values(data['competition'], obj)
 
+    # make sure key exists before passing it
+    try:
+        data['contractData']
+    except KeyError:
+        data['contractData'] = {}
     obj = contract_data_values(data['contractData'], obj, atom_type)
 
+    # make sure key exists before passing it
+    try:
+        data['dollarValues']
+    except KeyError:
+        data['dollarValues'] = {}
     obj = dollar_values_values(data['dollarValues'], obj)
 
     if atom_type == "award":
+        # make sure key exists before passing it
+        try:
+            data['placeOfPerformance']
+        except KeyError:
+            data['placeOfPerformance'] = {}
         obj = place_of_performance_values(data['placeOfPerformance'], obj, atom_type)
 
+    # make sure key exists before passing it
+    try:
+        data['legislativeMandates']
+    except KeyError:
+        data['legislativeMandates'] = {}
     obj = legislative_mandates_values(data['legislativeMandates'], obj)
 
     try:
@@ -741,12 +781,32 @@ def process_data(data, atom_type, sess):
     except (KeyError, TypeError):
         obj['subcontracting_plan_desc'] = None
 
+    # make sure key exists before passing it
+    try:
+        data['productOrServiceInformation']
+    except KeyError:
+        data['productOrServiceInformation'] = {}
     obj = product_or_service_information_values(data['productOrServiceInformation'], obj)
 
+    # make sure key exists before passing it
+    try:
+        data['purchaserInformation']
+    except KeyError:
+        data['purchaserInformation'] = {}
     obj = purchaser_information_values(data['purchaserInformation'], obj)
 
+    # make sure key exists before passing it
+    try:
+        data['relevantContractDates']
+    except KeyError:
+        data['relevantContractDates'] = {}
     obj = relevant_contract_dates_values(data['relevantContractDates'], obj)
 
+    # make sure key exists before passing it
+    try:
+        data['vendor']
+    except KeyError:
+        data['vendor'] = {}
     obj = vendor_values(data['vendor'], obj)
 
     obj = calculate_remaining_fields(obj, sess)
@@ -761,7 +821,7 @@ def process_data(data, atom_type, sess):
     # clear out potentially excel-breaking whitespace from specific fields
     free_fields = ["award_description", "vendor_doing_as_business_n", "legal_entity_address_line1",
                    "legal_entity_address_line2", "legal_entity_address_line3", "ultimate_parent_legal_enti",
-                   "awardee_or_recipient_legal"]
+                   "awardee_or_recipient_legal", "other_statutory_authority"]
     for field in free_fields:
         if obj[field]:
             obj[field] = re.sub('\s', ' ', obj[field])
@@ -780,7 +840,7 @@ def get_data(contract_type, award_type, sess, date_range=False):
     # TODO remove this later, this is just for testing
     params += 'CONTRACTING_AGENCY_ID:1542 '
     # params = 'VENDOR_ADDRESS_COUNTRY_CODE:"GBR"'
-    # params = 'LAST_MOD_DATE:[2017/05/04,2017/05/07] '
+    # params = 'PIID:"8095"+MODIFICATION_NUMBER:"0"+REF_IDV_PIID:"SPE7L117D0012"'
 
     i = 0
     print(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"&start=' + str(i))
@@ -845,12 +905,11 @@ def main():
     # get_data("award", award_types_award[0], sess)
     # get_data("IDV", award_types_idv[0], sess)
     # sess.commit()
-    # TODO try/except before each attempt to access any keys in the data in case they don't exist
     # TODO threading
-    # TODO add actual processing for latest date
     # TODO add a start date for "all" (and figure out what query param I'm supposed to be using for it) so we don't get ALL the data
     # TODO delete feed when inserting not "all" (sub-step, figure out what we're comparing against so it's easier to delete)
     # TODO actually save the current date in the fpds_update table
+    # TODO add actual processing for latest date
     # TODO fine-tune indexing
 
 if __name__ == '__main__':
