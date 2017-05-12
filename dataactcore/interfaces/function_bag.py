@@ -70,13 +70,15 @@ def populate_submission_error_info(submission_id):
 def populate_job_error_info(job):
     """ Set number of errors and warnings for specified job. """
     sess = GlobalDB.db().session
-    job.number_of_errors = sess.query(func.sum(ErrorMetadata.occurrences)).join(ErrorMetadata.severity).\
-                               filter(ErrorMetadata.job_id == job.job_id, RuleSeverity.name == 'fatal').\
-                               scalar() or 0
+    job.number_of_errors = sess.query(func.sum(ErrorMetadata.occurrences)).\
+        join(ErrorMetadata.severity).\
+        filter(ErrorMetadata.job_id == job.job_id, RuleSeverity.name == 'fatal').\
+        scalar() or 0
 
-    job.number_of_warnings = sess.query(func.sum(ErrorMetadata.occurrences)).join(ErrorMetadata.severity).\
-                                 filter(ErrorMetadata.job_id == job.job_id, RuleSeverity.name == 'warning').\
-                                 scalar() or 0
+    job.number_of_warnings = sess.query(func.sum(ErrorMetadata.occurrences)).\
+        join(ErrorMetadata.severity).\
+        filter(ErrorMetadata.job_id == job.job_id, RuleSeverity.name == 'warning').\
+        scalar() or 0
     sess.commit()
 
 
