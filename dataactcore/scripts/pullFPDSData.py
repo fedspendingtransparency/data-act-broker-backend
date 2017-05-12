@@ -8,6 +8,7 @@ import re
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, SubTierAgency
 from dataactcore.models.stagingModels import DetachedAwardProcurement
+from dataactcore.models.jobModels import FPDSUpdate
 
 from dataactcore.models.jobModels import Submission  # noqa
 from dataactcore.models.userModel import User  # noqa
@@ -837,9 +838,9 @@ def process_data(data, atom_type, sess):
     return obj
 
 
-def get_data(contract_type, award_type, sess, date_range=False):
+def get_data(contract_type, award_type, sess, last_run=None):
     data = []
-    if not date_range:
+    if not last_run:
         # params = 'SIGNED_DATE:[2015/10/01,PRESENT]'
         yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
         params = 'SIGNED_DATE:[2017/03/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
@@ -848,7 +849,7 @@ def get_data(contract_type, award_type, sess, date_range=False):
         print("there should be a date range here but I didn't do it yet")
 
     # TODO remove this later, this is just for testing
-    # params += 'CONTRACTING_AGENCY_ID:1542 '
+    params += 'CONTRACTING_AGENCY_ID:1542 '
     # params = 'VENDOR_ADDRESS_COUNTRY_CODE:"GBR"'
     # params = 'PIID:"0046"+REF_IDV_PIID:"W56KGZ15A6000"'
 
@@ -908,6 +909,13 @@ def main():
         for award_type in award_types_idv:
             get_data("IDV", award_type, sess)
 
+        last_update = sess.query(FPDSUpdate).one_or_none()
+
+        if last_update:
+            sess.query(FPDSUpdate).update({"update_date":datetime.datetime.now()}, synchronize_session=False)
+        else:
+            sess.add(FPDSUpdate(update_date=datetime.datetime.now()))
+
         print("Ending at: " + str(datetime.datetime.now()))
 
         sess.commit()
@@ -918,7 +926,6 @@ def main():
     # get_data("IDV", award_types_idv[0], sess)
     # sess.commit()
     # TODO add a correct start date for "all" so we don't get ALL the data
-    # TODO actually save the current date in the fpds_update table
     # TODO figure out a way to go through the records without having to store all of them and use so much memory
     # TODO add actual processing for latest date
     # TODO delete feed when inserting not "all" (sub-step, figure out what we're comparing against so it's easier to delete)
