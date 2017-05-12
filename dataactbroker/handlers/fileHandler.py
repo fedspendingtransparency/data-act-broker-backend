@@ -34,6 +34,7 @@ from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
     JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT, PUBLISH_STATUS_DICT_ID)
+from dataactcore.models.views import SubmissionUpdatedView
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -42,7 +43,8 @@ from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     check_number_of_errors_by_job_id, create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type,
-    get_submission_status, mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date)
+    get_submission_status, mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date,
+    get_lastest_certified_date)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 from dataactbroker.handlers.fileGenerationHandler import generate_e_file, generate_f_file
 
@@ -1356,6 +1358,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     certification status """
     sess = GlobalDB.db().session
 
+    submission_updated_view = SubmissionUpdatedView()
+
     offset = limit * (page - 1)
 
     certifying_user = aliased(User)
@@ -1369,13 +1373,17 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
 
-    columns_to_query = submission_columns + cgac_columns + user_columns
+    view_columns = [submission_updated_view.submission_id,
+                    submission_updated_view.updated_at.label('updated_at')]
+
+    columns_to_query = submission_columns + cgac_columns + user_columns + view_columns
 
     cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id). \
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id). \
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
+        outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
         filter(Submission.d2_submission.is_(False))
     if not g.user.website_admin:
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
@@ -1389,7 +1397,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     total_submissions = query.count()
 
     options = {
-        'modified': {'model': Submission, 'col': 'updated_at'},
+        'modified': {'model': submission_updated_view, 'col': 'updated_at'},
         'reporting': {'model': Submission, 'col': 'reporting_start_date'},
         'agency': {'model': CGAC, 'col': 'agency_name'},
         'submitted_by': {'model': User, 'col': 'name'}
@@ -1419,9 +1427,11 @@ def serialize_submission(submission):
     frontend expects"""
     status = get_submission_status(submission)
 
+    certified_on = get_lastest_certified_date(submission)
+
     return {
         "submission_id": submission.submission_id,
-        "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
+        "last_modified": str(submission.updated_at),
         "status": status,
         "agency": submission.agency_name if submission.agency_name else 'N/A',
         # @todo why are these a different format?
@@ -1431,6 +1441,7 @@ def serialize_submission(submission):
                  "name": submission.name if submission.name else "No User"},
         "certifying_user": submission.certifying_user_name if submission.certifying_user_name else "",
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
+        "certified_on": str(certified_on) if certified_on else ""
     }
 
 
