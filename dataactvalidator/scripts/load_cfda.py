@@ -1,35 +1,51 @@
 from ftplib import FTP
+from io import BytesIO
+from dataactcore.config import CONFIG_BROKER
 
-# connect to host, default port
-ftp = FTP('ftp.cfda.gov')
+import boto3
 
-# anonymous FTP, the archive site allow general access
-# user anonymous, password anonymous
-ftp.login()
 
-# change the directory to /usaspending/
-ftp.cwd('usaspending')
+def load_cfda():
+    # connect to host, default port
+    ftp = FTP('ftp.cfda.gov')
+    # anonymous FTP, the archive site allow general access
+    # user anonymous, password anonymous
+    ftp.login()
 
-data = []
+    # change the directory to /usaspending/
+    ftp.cwd('usaspending')
 
-# output the directory contents
-ftp.dir('-t', data.append)
+    data = []
 
-# get the most recent updated cfda file
-file_listing = data[0]
+    # output the directory contents
+    ftp.dir('-t', data.append)
 
-# break string down by adding the data to a string array using a space separator
-# example of the list: "22553023 May 07 01:51 programs-full-usaspending17126.csv"
-file_parts = file_listing.split(' ')
+    # get the most recent updated cfda file
+    file_listing = data[0]
 
-# get the last string array (file name)
-file_name = file_parts[-1]
+    # break string down by adding the data to a string array using a space separator
+    # example of the list: "22553023 May 07 01:51 programs-full-usaspending17126.csv"
+    file_parts = file_listing.split(' ')
 
-print('Loading ' + file_name)
+    # get the last string array (file name)
+    file_name = file_parts[-1]
 
-# use retrbinary() function to download file
-ftp.retrbinary('RETR ' + file_name, open('dataactvalidator/config/cfda_program.csv', 'wb').write)
+    print('Loading ' + file_name)
 
-print('Loading completed')
+    if CONFIG_BROKER["use_aws"]:
+        data = BytesIO()
+        # download file
+        ftp.retrbinary('RETR ' + file_name, data.write)
+        data.seek(0)
 
-ftp.quit()
+        s3 = boto3.resource('s3', region_name=CONFIG_BROKER['aws_region'])
+        s3.Bucket(CONFIG_BROKER['sf_133_bucket']).put_object(Key='cfda_program.csv', Body=data)
+
+        print('Loading file to S3 completed')
+    else:
+        # download file
+        ftp.retrbinary('RETR ' + file_name, open('dataactvalidator/config/cfda_program.csv', 'wb').write)
+        print('Loading file completed')
+
+    ftp.quit()
+load_cfda()
