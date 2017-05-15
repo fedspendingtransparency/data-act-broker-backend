@@ -138,37 +138,61 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         reviewdata = sess.query(Job).filter(Job.submission_id == submission_id,
                                             Job.file_type_id.in_([6, 7]), Job.job_status_id == 4)
         if reviewdata.count() > 0:
-            return "5"
+            data = {
+                "message": "The current progress of this submission id is on /v1/reviewData/ page.",
+                "step": "5"
+            }
+            return JsonResponse.create(StatusCode.OK, data)
 
         # /v1/validateCrossFile/
         validatecrossfile = sess.query(Job).filter(Job.submission_id == submission_id,
                                                    Job.file_type_id.in_([4, 5]), Job.job_type_id == 2,
                                                    Job.number_of_errors == 0, Job.file_size.isnot(None))
         if validatecrossfile.count() > 0:
-            return "3"
+            data = {
+                "message": "The current progress of this submission id is on /v1/validateCrossFile/ page.",
+                "step": "3"
+            }
+            return JsonResponse.create(StatusCode.OK, data)
 
         # /v1/generateEF/
         generateef = sess.query(Job).filter(Job.submission_id == submission_id, Job.file_type_id.in_([1, 2, 3, 4, 5]),
                                             Job.job_status_id == 2, Job.number_of_errors == 0,
                                             Job.file_size.isnot(None))
         if generateef.count() > 0:
-            return "4"
+            data = {
+                "message": "The current progress of this submission id is on /v1/generateEF/ page.",
+                "step": "4"
+            }
+            return JsonResponse.create(StatusCode.OK, data)
 
         # /v1/validateData/
         validatedata = sess.query(Job).filter(Job.submission_id == submission_id,
                                               Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
                                               Job.number_of_errors != 0, Job.file_size.isnot(None))
         if validatedata.count() > 0:
-            return "1"
+            data = {
+                    "message": "The current progress of this submission id is on /v1/validateData/ page.",
+                    "step": "1"
+            }
+            return JsonResponse.create(StatusCode.OK, data)
 
         # /v1/generateFiles/
         generatefiles = sess.query(Job).filter(Job.submission_id == submission_id,
                                                Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
                                                Job.number_of_errors == 0, Job.file_size.isnot(None))
         if generatefiles.count() > 0:
-            return "2"
+            data = {
+                "message": "The current progress of this submission id is on /v1/generateFiles/ page.",
+                "step": "2"
+            }
+            return JsonResponse.create(StatusCode.OK, data)
 
-        return "0"
+        data = {
+            "message": "The submission id is not found in the database.",
+            "step": "0"
+        }
+        return JsonResponse.create(StatusCode.OK, data)
 
     @app.route("/v1/generate_file/", methods=["POST"])
     @convert_to_submission_id
