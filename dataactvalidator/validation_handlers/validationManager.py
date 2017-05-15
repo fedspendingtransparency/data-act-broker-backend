@@ -14,7 +14,7 @@ from dataactcore.models.validationModels import FileColumn
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, FlexField
 from dataactcore.interfaces.function_bag import (
     create_file_if_needed, write_file_error, mark_file_complete, run_job_checks,
-    mark_job_status, sum_number_of_errors_for_job_list, populate_submission_error_info
+    mark_job_status, populate_submission_error_info, populate_job_error_info
 )
 from dataactcore.models.errorModels import ErrorMetadata
 from dataactcore.models.jobModels import Job
@@ -23,8 +23,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.aws.s3Handler import S3Handler
-from dataactvalidator.filestreaming.csvS3Reader import CsvS3Reader
-from dataactvalidator.filestreaming.csvLocalReader import CsvLocalReader
+from dataactvalidator.filestreaming.csvReader import CsvReader
 from dataactvalidator.filestreaming.csvLocalWriter import CsvLocalWriter
 from dataactvalidator.filestreaming.csvS3Writer import CsvS3Writer
 from dataactvalidator.validation_handlers.errorInterface import ErrorInterface
@@ -60,9 +59,7 @@ class ValidationManager:
         """
         Gets the reader type based on if its local install or not.
         """
-        if self.isLocal:
-            return CsvLocalReader()
-        return CsvS3Reader()
+        return CsvReader()
 
     def get_writer(self, region_name, bucket_name, file_name, header):
         """ Gets the write type based on if its a local install or not.
@@ -309,7 +306,7 @@ class ValidationManager:
 
             error_list.write_all_row_errors(job_id)
             # Update error info for submission
-            populate_submission_error_info(submission_id)
+            populate_job_error_info(job)
 
             # Mark validation as finished in job tracker
             mark_job_status(job_id, "finished")
@@ -424,10 +421,7 @@ class ValidationManager:
         error_list.write_all_row_errors(job_id)
         mark_job_status(job_id, "finished")
         logger.info('VALIDATOR_INFO: Completed run_cross_validation on submission_id: %s', submission_id)
-        submission = sess.query(Submission).filter_by(submission_id=submission_id).one()
-        # Update error info for submission
-        submission.number_of_errors = sum_number_of_errors_for_job_list(submission_id)
-        submission.number_of_warnings = sum_number_of_errors_for_job_list(submission_id, error_type="warning")
+        submission = populate_submission_error_info(submission_id)
         # TODO: Remove temporary step below
         # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their
         # submissions as publishable
