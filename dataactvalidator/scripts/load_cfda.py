@@ -1,6 +1,7 @@
 from ftplib import FTP
 from io import BytesIO
 from dataactcore.config import CONFIG_BROKER
+from dataactcore.logging import configure_logging
 
 import boto3
 
@@ -48,4 +49,8 @@ def load_cfda():
         print('Loading file completed')
 
     ftp.quit()
-load_cfda()
+
+
+if __name__ == '__main__':
+    configure_logging()
+    load_cfda()
