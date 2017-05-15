@@ -66,6 +66,8 @@ def populate_submission_error_info(submission_id):
     submission.number_of_warnings = sum_number_of_errors_for_job_list(submission_id, error_type='warning')
     sess.commit()
 
+    return submission
+
 
 def populate_job_error_info(job):
     """ Set number of errors and warnings for specified job. """
@@ -92,7 +94,6 @@ def sum_number_of_errors_for_job_list(submission_id, error_type='fatal'):
             error_sum += job.number_of_errors
         elif error_type == 'warning':
             error_sum += job.number_of_warnings
-    sess.commit()
     return error_sum
 
 
