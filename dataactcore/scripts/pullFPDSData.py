@@ -5,6 +5,8 @@ import xmltodict
 import datetime
 import re
 
+from sqlalchemy.dialects.postgresql import insert
+
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.models.domainModels import CGAC, SubTierAgency
 from dataactcore.models.stagingModels import DetachedAwardProcurement
@@ -838,15 +840,30 @@ def process_data(data, atom_type, sess):
     return obj
 
 
+def process_and_add(data, contract_type, sess, last_run=None):
+    if not last_run:
+        for value in data:
+            tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sess=sess)
+            tmp_award = DetachedAwardProcurement(**tmp_obj)
+            sess.add(tmp_award)
+    else:
+        for value in data:
+            tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sess=sess)
+            insert_statement = insert(DetachedAwardProcurement).values(**tmp_obj).on_conflict_do_update(
+                constraint='uniq_det_award_proc_key',
+                set_=tmp_obj)
+            sess.execute(insert_statement)
+
+
 def get_data(contract_type, award_type, sess, last_run=None):
     data = []
+    yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
     if not last_run:
         # params = 'SIGNED_DATE:[2015/10/01,PRESENT]'
-        yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
         params = 'SIGNED_DATE:[2017/03/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
     else:
-        params = ''
-        print("there should be a date range here but I didn't do it yet")
+        last_run_date = last_run.update_date
+        params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
 
     # TODO remove this later, this is just for testing
     params += 'CONTRACTING_AGENCY_ID:1542 '
@@ -854,7 +871,7 @@ def get_data(contract_type, award_type, sess, last_run=None):
     # params = 'PIID:"0046"+REF_IDV_PIID:"W56KGZ15A6000"'
 
     i = 0
-    print(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"&start=' + str(i))
+    print('Starting: ' + feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"')
     while True:
         resp = requests.get(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"&start=' + str(i), timeout=60)
         resp_data = xmltodict.parse(resp.text, process_namespaces=True, namespaces={'http://www.fpdsng.com/FPDS': None, 'http://www.w3.org/2005/Atom': None})
@@ -868,20 +885,26 @@ def get_data(contract_type, award_type, sess, last_run=None):
             data.append(ld)
             i += 1
 
+        # Every 100 rows log which one we're on so we can keep track of how far we are
         if i % 100 == 0:
             print("On line " + str(i))
 
+            # every 100,000 records, add the data to the session and clear the data array so we don't run into
+            # a memory error. This can be done inside the 100 tracker because 100,000 is divisible by 100
+            # so we don't have to check this if statement every time. Don't process on row 0
+            if i % 100000 == 0 and i != 0:
+                print("Processing next 100,000 records")
+                process_and_add(data, contract_type, sess, last_run)
+                data = []
+
+        # if we got less than 10 records, we can stop calling the feed
         if len(listed_data) < 10:
             break
 
-    # sess = GlobalDB.db().session
     print(len(data))
 
-    for value in data:
-        tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sess=sess)
-        tmp_award = DetachedAwardProcurement(**tmp_obj)
-        sess.add(tmp_award)
-    # sess.commit()
+    # insert whatever is left
+    process_and_add(data, contract_type, sess, last_run)
     print("processed " + contract_type + ": " + award_type + " data")
 
 
@@ -895,8 +918,6 @@ def main():
 
     award_types_award = ["BPA Call", "Purchase Order", "Delivery Order", "Definitive Contract"]
     award_types_idv = ["GWAC", "IDC", "FSS", "BOA", "BPA"]
-    # award_types_award = ["BPA Call"]
-    # award_types_idv = []
 
     if args.all:
         print("Starting at: " + str(datetime.datetime.now()))
@@ -920,14 +941,29 @@ def main():
 
         sess.commit()
     elif args.latest:
-        print("Get data based on DB")
+        print("Starting at: " + str(datetime.datetime.now()))
 
-    # get_data("award", award_types_award[0], sess)
-    # get_data("IDV", award_types_idv[0], sess)
-    # sess.commit()
+        last_update = sess.query(FPDSUpdate).one_or_none()
+
+        # update_date can't be null because it's being used as the PK for the table, so it can only exist or
+        # there are no rows in the table. If there are no rows, act like it's an "add all"
+        if not last_update:
+            sess.query(DetachedAwardProcurement).delete()
+
+        # loop through and check all award types
+        for award_type in award_types_award:
+            get_data("award", award_type, sess, last_update)
+        for award_type in award_types_idv:
+            get_data("IDV", award_type, sess, last_update)
+
+        if last_update:
+            sess.query(FPDSUpdate).update({"update_date":datetime.datetime.now()}, synchronize_session=False)
+        else:
+            sess.add(FPDSUpdate(update_date=datetime.datetime.now()))
+
+        print("Ending at: " + str(datetime.datetime.now()))
+        sess.commit()
     # TODO add a correct start date for "all" so we don't get ALL the data
-    # TODO figure out a way to go through the records without having to store all of them and use so much memory
-    # TODO add actual processing for latest date
     # TODO delete feed when inserting not "all" (sub-step, figure out what we're comparing against so it's easier to delete)
     # TODO fine-tune indexing
     # TODO threading
