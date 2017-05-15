@@ -1,7 +1,8 @@
 from datetime import timedelta
 
 import sqlalchemy as sa
-from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text, UniqueConstraint
+
+from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text, Float, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from dataactcore.models.baseModel import Base
@@ -195,6 +196,51 @@ class ExecutiveCompensation(Base):
     high_comp_officer4_amount = Column(Text)
     high_comp_officer5_full_na = Column(Text)
     high_comp_officer5_amount = Column(Text)
+
+
+class CFDAProgram(Base):
+    __tablename__ = "cfda_program"
+    cfda_program_id = Column(Integer, primary_key=True)
+    program_number = Column(Float, nullable=False)
+    program_title = Column(Text)
+    popular_name = Column(Text)
+    federal_agency = Column(Text)
+    authorization = Column(Text)
+    objectives = Column(Text)
+    types_of_assistance = Column(Text)
+    uses_and_use_restrictions = Column(Text)
+    applicant_eligibility = Column(Text)
+    beneficiary_eligibility = Column(Text)
+    credentials_documentation = Column(Text)
+    preapplication_coordination = Column(Text)
+    application_procedures = Column(Text)
+    award_procedure = Column(Text)
+    deadlines = Column(Text)
+    range_of_approval_disapproval_time = Column(Text)
+    website_address = Column(Text)
+    formula_and_matching_requirements = Column(Text)
+    length_and_time_phasing_of_assistance = Column(Text)
+    reports = Column(Text)
+    audits = Column(Text)
+    records = Column(Text)
+    account_identification = Column(Text)
+    obligations = Column(Text)
+    range_and_average_of_financial_assistance = Column(Text)
+    appeals = Column(Text)
+    renewals = Column(Text)
+    program_accomplishments = Column(Text)
+    regulations_guidelines_and_literature = Column(Text)
+    regional_or_local_office = Column(Text)
+    headquarters_office = Column(Text)
+    related_programs = Column(Text)
+    examples_of_funded_projects = Column(Text)
+    criteria_for_selecting_proposals = Column(Text)
+    url = Column(Text)
+    recovery = Column(Text)
+    omb_agency_code = Column(Text)
+    omb_bureau_code = Column(Text)
+    published_date = Column(Text)
+    archived_date = Column(Text)
 
 
 class Zips(Base):
