@@ -424,7 +424,7 @@ class ValidationManager:
         error_list.write_all_row_errors(job_id)
         mark_job_status(job_id, "finished")
         logger.info('VALIDATOR_INFO: Completed run_cross_validation on submission_id: %s', submission_id)
-        submission = populate_submission_error_info(job.submission_id)
+        submission = populate_submission_error_info(submission_id)
         # TODO: Remove temporary step below
         # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their
         # submissions as publishable
