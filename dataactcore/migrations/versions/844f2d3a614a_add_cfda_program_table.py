@@ -1,14 +1,14 @@
-"""cfda_program
+"""Add cfda program table
 
-Revision ID: 6052e3de154f
-Revises: 4ec514fa1f13
-Create Date: 2017-05-08 20:39:43.437900
+Revision ID: 844f2d3a614a
+Revises: f15485f0092b
+Create Date: 2017-05-15 17:04:50.407153
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '6052e3de154f'
-down_revision = '4ec514fa1f13'
+revision = '844f2d3a614a'
+down_revision = 'f15485f0092b'
 branch_labels = None
 depends_on = None
 
