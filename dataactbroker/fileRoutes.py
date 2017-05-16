@@ -132,14 +132,25 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/check_current_page/", methods=["GET"])
     @convert_to_submission_id
+    @requires_submission_perms('reader')
     def check_submission(submission_id):
         sess = GlobalDB.db().session
+
+        # check if submission_id exists in database
+        check_submission_id = sess.query(Job).filter(Job.submission_id == submission_id)
+        if check_submission_id.count() < 1:
+            data = {
+                "message": "A submission with the specified ID does not exist",
+                "step": "0"
+            }
+            return JsonResponse.create(StatusCode.OK, data)
+
         # /v1/reviewData/
         review_data = sess.query(Job).filter(Job.submission_id == submission_id,
                                              Job.file_type_id.in_([6, 7]), Job.job_status_id == 4)
         if review_data.count() > 0:
             data = {
-                "message": "The current progress of this submission id is on /v1/reviewData/ page.",
+                "message": "The current progress of this submission ID is on /v1/reviewData/ page.",
                 "step": "5"
             }
             return JsonResponse.create(StatusCode.OK, data)
@@ -150,7 +161,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                                                      Job.number_of_errors == 0, Job.file_size.isnot(None))
         if validate_cross_file.count() > 0:
             data = {
-                "message": "The current progress of this submission id is on /v1/validateCrossFile/ page.",
+                "message": "The current progress of this submission ID is on /v1/validateCrossFile/ page.",
                 "step": "3"
             }
             return JsonResponse.create(StatusCode.OK, data)
@@ -161,7 +172,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                                              Job.file_size.isnot(None))
         if generate_ef.count() > 0:
             data = {
-                "message": "The current progress of this submission id is on /v1/generateEF/ page.",
+                "message": "The current progress of this submission ID is on /v1/generateEF/ page.",
                 "step": "4"
             }
             return JsonResponse.create(StatusCode.OK, data)
@@ -172,7 +183,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                                                Job.number_of_errors != 0, Job.file_size.isnot(None))
         if validate_data.count() > 0:
             data = {
-                    "message": "The current progress of this submission id is on /v1/validateData/ page.",
+                    "message": "The current progress of this submission ID is on /v1/validateData/ page.",
                     "step": "1"
             }
             return JsonResponse.create(StatusCode.OK, data)
@@ -183,16 +194,11 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                                                 Job.number_of_errors == 0, Job.file_size.isnot(None))
         if generate_files.count() > 0:
             data = {
-                "message": "The current progress of this submission id is on /v1/generateFiles/ page.",
+                "message": "The current progress of this submission ID is on /v1/generateFiles/ page.",
                 "step": "2"
             }
             return JsonResponse.create(StatusCode.OK, data)
 
-        data = {
-            "message": "The submission id is not found in the database.",
-            "step": "0"
-        }
-        return JsonResponse.create(StatusCode.OK, data)
 
     @app.route("/v1/generate_file/", methods=["POST"])
     @convert_to_submission_id
