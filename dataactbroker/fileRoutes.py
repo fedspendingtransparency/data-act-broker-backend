@@ -199,7 +199,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             }
             return JsonResponse.create(StatusCode.OK, data)
 
-
     @app.route("/v1/generate_file/", methods=["POST"])
     @convert_to_submission_id
     @use_kwargs({'file_type': webargs_fields.String(
