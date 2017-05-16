@@ -274,7 +274,7 @@ def failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, sql_failur
     field_list = col_headers + [field.header for field in flex_data[row]]
     return ValidationFailure(
         ", ".join(field_list),
-        rule.rule_description,
+        rule.rule_error_message,
         ", ".join(values_list),
         row,
         rule.rule_label,
