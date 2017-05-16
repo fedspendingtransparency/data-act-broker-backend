@@ -782,12 +782,12 @@ class FileHandler:
                          'start': '', 'end': ''}
 
         if upload_job is None:
-            response_dict['status'] = 'invalid'
+            response_dict['status'] = 'Invalid'
             response_dict['message'] = 'No generation job found with the specified ID'
             return JsonResponse.create(StatusCode.OK, response_dict)
         elif upload_job.filename is None:
-            response_dict['status'] = 'invalid'
-            response_dict['message'] = 'No generation job found with the specified ID'
+            response_dict['status'] = 'Invalid'
+            response_dict['message'] = 'No file has been generated for this submission.'
             return JsonResponse.create(StatusCode.OK, response_dict)
 
         file_type = FILE_TYPE_DICT_LETTER[upload_job.file_type_id]
