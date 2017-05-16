@@ -42,8 +42,8 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    check_number_of_errors_by_job_id, create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type,
-    get_submission_status, mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date,
+    create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status,
+    mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date,
     get_lastest_certified_date)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 from dataactbroker.handlers.fileGenerationHandler import generate_e_file, generate_f_file
@@ -1531,7 +1531,7 @@ def map_generate_status(upload_job, validation_job=None):
         validation_status = None
     else:
         validation_status = validation_job.job_status.name
-        if check_number_of_errors_by_job_id(validation_job.job_id) > 0:
+        if validation_job.number_of_errors > 0:
             errors_present = True
         else:
             errors_present = False
