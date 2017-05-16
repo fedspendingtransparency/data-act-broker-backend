@@ -136,7 +136,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         sess = GlobalDB.db().session
         # /v1/reviewData/
         review_data = sess.query(Job).filter(Job.submission_id == submission_id,
-                                            Job.file_type_id.in_([6, 7]), Job.job_status_id == 4)
+                                             Job.file_type_id.in_([6, 7]), Job.job_status_id == 4)
         if review_data.count() > 0:
             data = {
                 "message": "The current progress of this submission id is on /v1/reviewData/ page.",
@@ -146,8 +146,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         # /v1/validateCrossFile/
         validate_cross_file = sess.query(Job).filter(Job.submission_id == submission_id,
-                                                   Job.file_type_id.in_([4, 5]), Job.job_type_id == 2,
-                                                   Job.number_of_errors == 0, Job.file_size.isnot(None))
+                                                     Job.file_type_id.in_([4, 5]), Job.job_type_id == 2,
+                                                     Job.number_of_errors == 0, Job.file_size.isnot(None))
         if validate_cross_file.count() > 0:
             data = {
                 "message": "The current progress of this submission id is on /v1/validateCrossFile/ page.",
@@ -157,8 +157,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         # /v1/generateEF/
         generate_ef = sess.query(Job).filter(Job.submission_id == submission_id, Job.file_type_id.in_([1, 2, 3, 4, 5]),
-                                            Job.job_status_id == 2, Job.number_of_errors == 0,
-                                            Job.file_size.isnot(None))
+                                             Job.job_status_id == 2, Job.number_of_errors == 0,
+                                             Job.file_size.isnot(None))
         if generate_ef.count() > 0:
             data = {
                 "message": "The current progress of this submission id is on /v1/generateEF/ page.",
@@ -168,8 +168,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         # /v1/validateData/
         validate_data = sess.query(Job).filter(Job.submission_id == submission_id,
-                                              Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
-                                              Job.number_of_errors != 0, Job.file_size.isnot(None))
+                                               Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
+                                               Job.number_of_errors != 0, Job.file_size.isnot(None))
         if validate_data.count() > 0:
             data = {
                     "message": "The current progress of this submission id is on /v1/validateData/ page.",
@@ -179,8 +179,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         # /v1/generateFiles/
         generate_files = sess.query(Job).filter(Job.submission_id == submission_id,
-                                               Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
-                                               Job.number_of_errors == 0, Job.file_size.isnot(None))
+                                                Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
+                                                Job.number_of_errors == 0, Job.file_size.isnot(None))
         if generate_files.count() > 0:
             data = {
                 "message": "The current progress of this submission id is on /v1/generateFiles/ page.",
