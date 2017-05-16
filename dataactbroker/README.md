@@ -850,7 +850,8 @@ This route returns either a signed S3 URL to the generated file or, if the file 
 ```
 {
     "submission_id": 123,
-    "file_type": "D1"
+    "file_type": "D1",
+    "size": 123
 }
 ```
 

@@ -4,7 +4,6 @@ import sqlalchemy as sa
 
 from sqlalchemy import Column, Date, ForeignKey, Index, Integer, Numeric, Text, Float, UniqueConstraint
 from sqlalchemy.orm import relationship
-
 from dataactcore.models.baseModel import Base
 
 

@@ -799,6 +799,10 @@ class FileHandler:
             response_dict['status'] = 'invalid'
             response_dict['message'] = 'No generation job found with the specified ID'
             return JsonResponse.create(StatusCode.OK, response_dict)
+        elif upload_job.filename is None:
+            response_dict['status'] = 'invalid'
+            response_dict['message'] = 'No file has been generated for this submission.'
+            return JsonResponse.create(StatusCode.OK, response_dict)
 
         file_type = FILE_TYPE_DICT_LETTER[upload_job.file_type_id]
         response_dict["status"] = JOB_STATUS_DICT_ID[upload_job.job_status_id]
@@ -846,6 +850,7 @@ class FileHandler:
         response_dict = {
             'status': map_generate_status(upload_job, validation_job),
             'file_type': file_type,
+            'size': upload_job.file_size,
             'message': upload_job.error_message or ""
         }
         if upload_job.filename is None:
