@@ -238,7 +238,6 @@ class DetachedAwardFinancialAssistanceFactory(factory.Factory):
     award_modification_amendme = fuzzy.FuzzyText()
     business_funds_indicator = fuzzy.FuzzyText()
     business_types = fuzzy.FuzzyText()
-    cfda_number = fuzzy.FuzzyText()
     correction_late_delete_ind = fuzzy.FuzzyText()
     face_value_loan_guarantee = fuzzy.FuzzyDecimal(9999)
     fain = fuzzy.FuzzyText()
