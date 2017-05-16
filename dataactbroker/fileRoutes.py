@@ -137,7 +137,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         sess = GlobalDB.db().session
 
         # check if submission_id exists in database
-        check_submission_id = sess.query(Job).filter(Job.submission_id == submission_id)
+        check_submission_id = sess.query(Submission).filter(Submission.submission_id == submission_id)
         if check_submission_id.count() < 1:
             data = {
                 "message": "A submission with the specified ID does not exist",
