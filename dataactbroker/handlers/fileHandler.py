@@ -1572,4 +1572,54 @@ def fabs_derivations(obj):
     federal_action_obligation = obj['federal_action_obligation'] or 0
     non_federal_funding_amount = obj['non_federal_funding_amount'] or 0
     obj['total_funding_amount'] = federal_action_obligation + non_federal_funding_amount
+
+
+    sess = GlobalDB.db().session
+
+    # deriving awarding agency name
+    try:
+        awarding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['awarding_agency_code']).one()
+    except:
+        print('awarding_agency_code not Found')
+        awarding_agency_name = False
+        pass
+
+    if awarding_agency_name:
+        obj['awarding_agency_name'] = awarding_agency_name.agency_name
+
+    # deriving awarding sub tier agency name
+    try:
+        awarding_sub_tier_agency_name = sess.query(SubTierAgency).filter_by(
+            sub_tier_agency_code=obj['awarding_sub_tier_agency_c']).one()
+    except:
+        print('awarding_sub_tier_agency_c not Found')
+        awarding_sub_tier_agency_name = False
+        pass
+
+    if awarding_sub_tier_agency_name:
+        obj['awarding_sub_tier_agency_n'] = awarding_sub_tier_agency_name.sub_tier_agency_name
+
+    # deriving funding agency name
+    try:
+        funding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['funding_agency_code']).one()
+    except:
+        print('funding_agency_code not Found')
+        funding_agency_name = False
+        pass
+
+    if funding_agency_name:
+        obj['funding_agency_name'] = funding_agency_name.agency_name
+
+    # deriving funding sub tier agency name
+    try:
+        funding_sub_tier_agency_name = sess.query(SubTierAgency).filter_by(
+            sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one()
+    except:
+        print('funding_sub_tier_agency_co not Found')
+        funding_sub_tier_agency_name = False
+        pass
+
+    if funding_sub_tier_agency_name:
+        obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency_name.sub_tier_agency_name
+
     return obj
