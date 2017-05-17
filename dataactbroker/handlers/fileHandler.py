@@ -1573,14 +1573,15 @@ def map_generate_status(upload_job, validation_job=None):
 
 
 def fabs_derivations(obj):
+
+    sess = GlobalDB.db().session
+
     # deriving total_funding_amount
     federal_action_obligation = obj['federal_action_obligation'] or 0
     non_federal_funding_amount = obj['non_federal_funding_amount'] or 0
     obj['total_funding_amount'] = federal_action_obligation + non_federal_funding_amount
 
     # deriving cfda_title from program_title in cfda_program table
-    sess = GlobalDB.db().session
-
     try:
         cfda_title = sess.query(CFDAProgram).filter_by(program_number=obj['cfda_number']).one()
     except:
