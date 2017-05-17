@@ -542,6 +542,35 @@ Example output if there are no files available:
 }
 ```
 
+#### GET "/v1/check_current_page/"
+
+A call to this route will provide current validation progress of the specified submission. The request should have JSON or form-urlencoded with a key "submission". The response will contain a current page of the specified submission.
+
+Example input:
+
+```json
+{
+  "submission":1234
+}
+```
+
+Example response (JSON)
+
+```json
+{
+  "message": "The current progress of this submission ID is on /v1/generateFiles/ page.",
+  "step": "2"
+}
+```
+
+List of message and step response:
+
+* The current progress of this submission ID is on /v1/validateData/ page. | step: 1
+* The current progress of this submission ID is on /v1/generateFiles/ page. | step: 2
+* The current progress of this submission ID is on /v1/validateCrossFile/ page. | step: 3
+* The current progress of this submission ID is on /v1/generateEF/ page. | step: 4
+* The current progress of this submission ID is on /v1/reviewData/ page. | step: 5
+
 #### POST "/v1/get_obligations/"
 Get total obligations and specific obligations. Calls to this route should include the key "submission_id" to specify which submission we are calculating obligations from.
 
