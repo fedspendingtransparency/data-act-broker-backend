@@ -542,7 +542,7 @@ Example output if there are no files available:
 }
 ```
 
-#### GET "/v1/check_current/page/"
+#### GET "/v1/check_current_page/"
 
 A call to this route will provide current validation progress of the specified submission. The request should have JSON or form-urlencoded with a key "submission". The response will contain a current page of the specified submission.
 
