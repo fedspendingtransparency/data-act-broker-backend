@@ -133,17 +133,11 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @app.route("/v1/check_current_page/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    def check_submission(submission_id):
+    def check_submission(submission):
         sess = GlobalDB.db().session
 
         # check if submission_id exists in database
-        check_submission_id = sess.query(Submission).filter(Submission.submission_id == submission_id)
-        if check_submission_id.count() < 1:
-            data = {
-                "message": "A submission with the specified ID does not exist",
-                "step": "0"
-            }
-            return JsonResponse.create(StatusCode.OK, data)
+        submission_id = submission.submission_id
 
         # /v1/reviewData/
         review_data = sess.query(Job).filter(Job.submission_id == submission_id,
