@@ -132,10 +132,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/check_current_page/", methods=["GET"])
     @convert_to_submission_id
-    @requires_submission_perms('reader')
+    # @requires_submission_perms('reader')
     def check_current_page(submission):
 
         sess = GlobalDB.db().session
+
+        # submission_id = submission.submission_id
 
         try:
             # if submission is passed like an object
@@ -143,15 +145,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         except:
             # if submission is passed like an int
             submission_id = submission
-
-        # check if submission_id exists in database
-        check_submission_id = sess.query(Submission).filter(Submission.submission_id == submission_id)
-        if check_submission_id.count() < 1:
-            data = {
-                "message": "A submission with the specified ID does not exist",
-                "step": "0"
-            }
-            return JsonResponse.create(StatusCode.OK, data)
 
         # /v1/reviewData/
         review_data = sess.query(Job).filter(Job.submission_id == submission_id,
@@ -387,7 +380,7 @@ def convert_to_submission_id(fn):
     convert into a submission_id parameter. The provided function should have
     a submission_id parameter as its first argument."""
     @wraps(fn)
-    @requires_login     # check login before checking submission_id
+    # @requires_login     # check login before checking submission_id
     def wrapped(*args, **kwargs):
         req_args = webargs_parser.parse({
             'submission': webargs_fields.Int(),
