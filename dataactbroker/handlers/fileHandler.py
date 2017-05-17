@@ -1583,10 +1583,22 @@ def fabs_derivations(obj):
 
     try:
         cfda_title = sess.query(CFDAProgram).filter_by(program_number=obj['cfda_number']).one()
-    except:
-        print('CFDA Title not Found')
-        cfda_title = False
-        pass
+    # except:
+    #     # print('CFDA Title not found')
+    #     # cfda_title = False
+    #     pass
+
+    except Exception as e:
+        logger.exception('Exception caught => %s', e)
+        # Log the error
+        JsonResponse.error(e, 500)
+        sess.query(CFDAProgram).filter_by(program_number=obj['cfda_number']).one().error_message = str(e)
+        mark_job_status(cfda_number, "failed")
+        sess.commit()
+        raise e
+    finally:
+        # need to explicitly close because this function can get called by a thread
+        GlobalDB.close()
 
     if cfda_title:
         # get the first element because there could ever only be one
