@@ -133,10 +133,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @app.route("/v1/check_current_page/", methods=["GET"])
     @convert_to_submission_id
     @requires_submission_perms('reader')
-    def check_submission(submission):
+    def check_current_page(submission):
         sess = GlobalDB.db().session
 
-        # check if submission_id exists in database
         submission_id = submission.submission_id
 
         # /v1/reviewData/
