@@ -18,8 +18,7 @@ from dataactcore.models.userModel import User  # noqa
 from dataactvalidator.health_check import create_app
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.4.5&q="
-feed_size = 10
-query_url = ''
+delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.4.5&q="
 
 
 def list_data(data):
@@ -840,6 +839,74 @@ def process_data(data, atom_type, sess):
     return obj
 
 
+def process_delete_data(data, atom_type):
+    obj = {}
+
+    # get all values that make up unique key except awarding_sub_tier_agency_c because that doesn't show up
+    # in delete feed
+    # try:
+    #     obj['awarding_sub_tier_agency_c'] = extract_text(data['purchaserInformation']['contractingOfficeAgencyID'])
+    # except (KeyError, TypeError):
+    #     obj['awarding_sub_tier_agency_c'] = None
+
+    if atom_type == "award":
+        try:
+            obj['piid'] = extract_text(data['awardID']['awardContractID']['PIID'])
+        except (KeyError, TypeError):
+            obj['piid'] = None
+
+        try:
+            obj['award_modification_amendme'] = extract_text(data['awardID']['awardContractID']['modNumber'])
+        except (KeyError, TypeError):
+            obj['award_modification_amendme'] = None
+
+        try:
+            obj['parent_award_id'] = extract_text(data['awardID']['referencedIDVID']['PIID'])
+        except (KeyError, TypeError):
+            obj['parent_award_id'] = None
+
+        try:
+            obj['referenced_idv_modificatio'] = extract_text(data['awardID']['referencedIDVID']['modNumber'])
+        except (KeyError, TypeError):
+            obj['referenced_idv_modificatio'] = None
+
+        try:
+            obj['transaction_number'] = extract_text(data['awardID']['awardContractID']['transactionNumber'])
+        except (KeyError, TypeError):
+            obj['transaction_number'] = None
+    else:
+        try:
+            obj['piid'] = extract_text(data['contractID']['IDVID']['PIID'])
+        except (KeyError, TypeError):
+            obj['piid'] = None
+
+        try:
+            obj['award_modification_amendme'] = extract_text(data['contractID']['IDVID']['modNumber'])
+        except (KeyError, TypeError):
+            obj['award_modification_amendme'] = None
+
+        try:
+            obj['parent_award_id'] = extract_text(data['contractID']['referencedIDVID']['PIID'])
+        except (KeyError, TypeError):
+            obj['parent_award_id'] = None
+
+        try:
+            obj['referenced_idv_modificatio'] = extract_text(data['contractID']['referencedIDVID']['modNumber'])
+        except (KeyError, TypeError):
+            obj['referenced_idv_modificatio'] = None
+
+        # not in IDV feed, just set it to None
+        obj['transaction_number'] = None
+
+    # not sure if I need this yet, we'll see
+    try:
+        obj['last_modified'] = data['transactionInformation']['lastModifiedDate']
+    except (KeyError, TypeError):
+        obj['last_modified'] = None
+
+    return obj
+
+
 def process_and_add(data, contract_type, sess, last_run=None):
     if not last_run:
         for value in data:
@@ -855,18 +922,22 @@ def process_and_add(data, contract_type, sess, last_run=None):
             sess.execute(insert_statement)
 
 
-def get_data(contract_type, award_type, sess, last_run=None):
+def get_data(contract_type, award_type, now, sess, last_run=None):
     data = []
-    yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+    yesterday = now - datetime.timedelta(days=1)
+    log_interval = 1000
     if not last_run:
-        # params = 'SIGNED_DATE:[2015/10/01,PRESENT]'
-        params = 'SIGNED_DATE:[2017/03/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
+        # we want to log less often for a "get all" run
+        log_interval = 10000
+        # params = 'SIGNED_DATE:[2015/10/01'+ yesterday.strftime('%Y/%m/%d') + '] '
+        params = 'SIGNED_DATE:[2016/10/01' + yesterday.strftime('%Y/%m/%d') + '] '
+        # params = 'SIGNED_DATE:[2017/03/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
     else:
         last_run_date = last_run.update_date
         params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
 
     # TODO remove this later, this is just for testing
-    params += 'CONTRACTING_AGENCY_ID:1542 '
+    # params += 'CONTRACTING_AGENCY_ID:1542 '
     # params = 'VENDOR_ADDRESS_COUNTRY_CODE:"GBR"'
     # params = 'PIID:"0046"+REF_IDV_PIID:"W56KGZ15A6000"'
 
@@ -885,8 +956,8 @@ def get_data(contract_type, award_type, sess, last_run=None):
             data.append(ld)
             i += 1
 
-        # Every 100 rows log which one we're on so we can keep track of how far we are
-        if i % 100 == 0:
+        # Log which one we're on so we can keep track of how far we are (different numbers for different pulls)
+        if i % log_interval == 0:
             print("On line " + str(i))
 
             # every 100,000 records, add the data to the session and clear the data array so we don't run into
@@ -901,15 +972,54 @@ def get_data(contract_type, award_type, sess, last_run=None):
         if len(listed_data) < 10:
             break
 
-    print(len(data))
+    print(i)
 
     # insert whatever is left
     process_and_add(data, contract_type, sess, last_run)
     print("processed " + contract_type + ": " + award_type + " data")
 
 
+def get_delete_data(contract_type, now, sess, last_run):
+    data = []
+    yesterday = now - datetime.timedelta(days=1)
+    last_run_date = last_run.update_date
+    params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
+
+    i = 0
+    print('Starting: ' + delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"')
+    while True:
+        resp = requests.get(delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"&start=' + str(i), timeout=60)
+        resp_data = xmltodict.parse(resp.text, process_namespaces=True, namespaces={'http://www.fpdsng.com/FPDS': None, 'http://www.w3.org/2005/Atom': None})
+        # only list the data if there's data to list
+        try:
+            listed_data = list_data(resp_data['feed']['entry'])
+        except KeyError:
+            listed_data = []
+
+        for ld in listed_data:
+            data.append(ld)
+            i += 1
+
+        # Every 100 lines, log which one we're on so we can keep track of how far we are
+        if i % 100 == 0:
+            print("On line " + str(i))
+
+        # if we got less than 10 records, we can stop calling the feed
+        if len(listed_data) < 10:
+            break
+
+    print(i)
+    for value in data:
+        tmp_obj = process_delete_data(value['content'][contract_type], atom_type=contract_type)
+        print(tmp_obj)
+        # tmp_award = DetachedAwardProcurement(**tmp_obj)
+        # sess.add(tmp_award)
+
+
 def main():
     sess = GlobalDB.db().session
+
+    now = datetime.datetime.now()
 
     parser = argparse.ArgumentParser(description='Pull data from the FPDS Atom Feed.')
     parser.add_argument('-a', '--all', help='Clear out the database and get historical data', action='store_true')
@@ -926,16 +1036,16 @@ def main():
 
         # loop through and check all award types
         for award_type in award_types_award:
-            get_data("award", award_type, sess)
+            get_data("award", award_type, now, sess)
         for award_type in award_types_idv:
-            get_data("IDV", award_type, sess)
+            get_data("IDV", award_type, now, sess)
 
         last_update = sess.query(FPDSUpdate).one_or_none()
 
         if last_update:
-            sess.query(FPDSUpdate).update({"update_date":datetime.datetime.now()}, synchronize_session=False)
+            sess.query(FPDSUpdate).update({"update_date":now}, synchronize_session=False)
         else:
-            sess.add(FPDSUpdate(update_date=datetime.datetime.now()))
+            sess.add(FPDSUpdate(update_date=now))
 
         print("Ending at: " + str(datetime.datetime.now()))
 
@@ -948,18 +1058,19 @@ def main():
         # update_date can't be null because it's being used as the PK for the table, so it can only exist or
         # there are no rows in the table. If there are no rows, act like it's an "add all"
         if not last_update:
-            sess.query(DetachedAwardProcurement).delete()
+            print("No last_update date present, please run the script with the -a flag to generate an initial dataset")
+            raise ValueError(
+                "No last_update date present, please run the script with the -a flag to generate an initial dataset")
 
         # loop through and check all award types
-        for award_type in award_types_award:
-            get_data("award", award_type, sess, last_update)
-        for award_type in award_types_idv:
-            get_data("IDV", award_type, sess, last_update)
+        # for award_type in award_types_award:
+        #     get_data("award", award_type, sess, last_update)
+        # for award_type in award_types_idv:
+        #     get_data("IDV", award_type, sess, last_update)
 
-        if last_update:
-            sess.query(FPDSUpdate).update({"update_date":datetime.datetime.now()}, synchronize_session=False)
-        else:
-            sess.add(FPDSUpdate(update_date=datetime.datetime.now()))
+        # We also need to process the delete feed
+        get_delete_data("award", now, sess, last_update)
+        # sess.query(FPDSUpdate).update({"update_date":now}, synchronize_session=False)
 
         print("Ending at: " + str(datetime.datetime.now()))
         sess.commit()
