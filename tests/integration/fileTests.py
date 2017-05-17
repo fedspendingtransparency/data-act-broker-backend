@@ -342,7 +342,6 @@ class FileTests(BaseTestAPI):
             # Check file size and number of rows
             self.assertEqual(approp_job["file_size"], 2345)
             self.assertEqual(approp_job["number_of_rows"], 567)
-            self.assertEqual(approp_job["error_type"], "row_errors")
 
             # Check error metadata for specified error
             rule_error_data = None
@@ -848,6 +847,7 @@ class FileTests(BaseTestAPI):
             'cross_file': [None, JOB_STATUS_DICT['finished'], JOB_TYPE_DICT['validation'], 2, None, None, None]
         }
         job_id_dict = {}
+        approp_job = None
 
         for job_key, values in job_values.items():
             job = FileTests.insert_job(
@@ -861,6 +861,10 @@ class FileTests(BaseTestAPI):
                 num_rows=values[5]
             )
             job_id_dict[job_key] = job.job_id
+            if job_key == 'appropriations':
+                approp_job = job
+            elif job_key == 'cross_file':
+                cross_file_job = job
 
         # For appropriations job, create an entry in file for this job
         file_rec = File(
@@ -892,6 +896,7 @@ class FileTests(BaseTestAPI):
             target_file_type_id=FILE_TYPE_DICT['award'],
             severity_id=RULE_SEVERITY_DICT['fatal']
         )
+        approp_job.number_of_errors += 7
         sess.add(rule_error)
 
         warning_error = ErrorMetadata(
@@ -906,6 +911,7 @@ class FileTests(BaseTestAPI):
             target_file_type_id=FILE_TYPE_DICT['award'],
             severity_id=RULE_SEVERITY_DICT['warning']
         )
+        approp_job.number_of_warnings += 7
         sess.add(warning_error)
 
         req_error = ErrorMetadata(
@@ -917,6 +923,7 @@ class FileTests(BaseTestAPI):
             rule_failed="A required value was not provided",
             severity_id=RULE_SEVERITY_DICT['fatal']
         )
+        approp_job.number_of_errors += 5
         sess.add(req_error)
 
         cross_error = ErrorMetadata(
@@ -930,6 +937,7 @@ class FileTests(BaseTestAPI):
             target_file_type_id=FILE_TYPE_DICT['award'],
             severity_id=RULE_SEVERITY_DICT['fatal']
         )
+        cross_file_job.number_of_errors += 5
         sess.add(cross_error)
 
         sess.commit()
