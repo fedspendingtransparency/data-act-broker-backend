@@ -1585,6 +1585,8 @@ def fabs_derivations(obj):
     cfda_title = sess.query(CFDAProgram).filter_by(program_number=obj['cfda_number']).one_or_none()
     if cfda_title:
         obj['cfda_title'] = cfda_title.program_title
+    else:
+        logging.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
 
     GlobalDB.close()
     return obj
