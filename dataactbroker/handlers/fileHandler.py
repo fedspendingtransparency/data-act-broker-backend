@@ -1582,15 +1582,8 @@ def fabs_derivations(obj):
     obj['total_funding_amount'] = federal_action_obligation + non_federal_funding_amount
 
     # deriving cfda_title from program_title in cfda_program table
-    try:
-        cfda_title = sess.query(CFDAProgram).filter_by(program_number=obj['cfda_number']).one()
-    except:
-        logger.debug('CFDA title not found for CFDA number %s', obj['cfda_number'])
-        cfda_title = False
-        pass
-
+    cfda_title = sess.query(CFDAProgram).filter_by(program_number=obj['cfda_number']).one_or_none()
     if cfda_title:
-        # get the first element because there could ever only be one
         obj['cfda_title'] = cfda_title.program_title
 
     GlobalDB.close()
