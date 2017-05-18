@@ -1038,14 +1038,13 @@ def get_delete_data(contract_type, now, sess, last_run):
     for value in data:
         # get last modified date
         last_modified = value['content'][contract_type]['transactionInformation']['lastModifiedDate']
-        last_modified = datetime.datetime.strptime(last_modified, "%Y-%m-%d %H:%M:%S")
         tmp_obj = process_delete_data(value['content'][contract_type], atom_type=contract_type)
 
         existing_item = sess.query(DetachedAwardProcurement).filter_by(**tmp_obj).one_or_none()
 
         if existing_item:
             # only add to delete list if the last modified date is later than the existing entry's last modified date
-            if last_modified > datetime.datetime.strptime(existing_item.last_modified, "%Y-%m-%d %H:%M:%S"):
+            if last_modified > existing_item.last_modified:
                 delete_list.append(existing_item.detached_award_procurement_id)
 
     # only need to delete values if there's something to delete
