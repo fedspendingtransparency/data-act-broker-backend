@@ -512,6 +512,7 @@ class DetachedAwardProcurement(Base):
     __tablename__ = "detached_award_procurement"
     detached_award_procurement_id = Column(Integer, primary_key=True)
     piid = Column(Text)
+    agency_id = Column(Text)
     awarding_sub_tier_agency_c = Column(Text)
     awarding_sub_tier_agency_n = Column(Text)
     awarding_agency_code = Column(Text)
@@ -766,7 +767,7 @@ class DetachedAwardProcurement(Base):
     pulled_from = Column(Text)
     last_modified = Column(Text)
 
-    __table_args__ = (UniqueConstraint('awarding_sub_tier_agency_c', 'piid', 'award_modification_amendme',
+    __table_args__ = (UniqueConstraint('agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme',
                                        'parent_award_id', 'referenced_idv_modificatio', 'transaction_number',
                                        name='uniq_det_award_proc_key'),)
 

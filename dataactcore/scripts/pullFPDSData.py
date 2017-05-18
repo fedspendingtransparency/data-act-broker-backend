@@ -1,9 +1,12 @@
+import logging
 import argparse
 import requests
 import xmltodict
 
 import datetime
 import re
+
+from dataactcore.logging import configure_logging
 
 from sqlalchemy.dialects.postgresql import insert
 
@@ -19,6 +22,8 @@ from dataactvalidator.health_check import create_app
 
 feed_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=PUBLIC&templateName=1.4.5&q="
 delete_url = "https://www.fpds.gov/ezsearch/FEEDS/ATOM?FEEDNAME=DELETED&templateName=1.4.5&q="
+
+logger = logging.getLogger(__name__)
 
 
 def list_data(data):
@@ -36,18 +41,15 @@ def extract_text(data_val):
 
 # Get values from the awardID level of the xml
 def award_id_values(data, obj):
-    try:
-        obj['award_modification_amendme'] = extract_text(data['awardContractID']['modNumber'])
-    except (KeyError, TypeError):
-        obj['award_modification_amendme'] = None
-    try:
-        obj['transaction_number'] = extract_text(data['awardContractID']['transactionNumber'])
-    except (KeyError, TypeError):
-        obj['transaction_number'] = None
-    try:
-        obj['piid'] = extract_text(data['awardContractID']['PIID'])
-    except (KeyError, TypeError):
-        obj['piid'] = None
+    value_map = {'modNumber': 'award_modification_amendme',
+                 'transactionNumber': 'transaction_number',
+                 'PIID': 'piid',
+                 'agencyID': 'agency_id'}
+    for key, value in value_map.items():
+        try:
+            obj[value] = extract_text(data['awardContractID'][key])
+        except (KeyError, TypeError):
+            obj[value] = None
 
     value_map = {'agencyID': 'referenced_idv_agency_iden',
                  'modNumber': 'referenced_idv_modificatio',
@@ -69,7 +71,8 @@ def award_id_values(data, obj):
 
 def contract_id_values(data, obj):
     value_map = {'modNumber': 'award_modification_amendme',
-                 'PIID': 'piid'}
+                 'PIID': 'piid',
+                 'agencyID': 'agency_id'}
     for key, value in value_map.items():
         try:
             obj[value] = extract_text(data['IDVID'][key])
@@ -856,6 +859,11 @@ def process_delete_data(data, atom_type):
             obj['piid'] = None
 
         try:
+            obj['agency_id'] = extract_text(data['awardID']['awardContractID']['agencyID'])
+        except (KeyError, TypeError):
+            obj['agency_id'] = None
+
+        try:
             obj['award_modification_amendme'] = extract_text(data['awardID']['awardContractID']['modNumber'])
         except (KeyError, TypeError):
             obj['award_modification_amendme'] = None
@@ -864,6 +872,11 @@ def process_delete_data(data, atom_type):
             obj['parent_award_id'] = extract_text(data['awardID']['referencedIDVID']['PIID'])
         except (KeyError, TypeError):
             obj['parent_award_id'] = None
+
+        try:
+            obj['referenced_idv_agency_iden'] = extract_text(data['awardID']['referencedIDVID']['agencyID'])
+        except (KeyError, TypeError):
+            obj['referenced_idv_agency_iden'] = None
 
         try:
             obj['referenced_idv_modificatio'] = extract_text(data['awardID']['referencedIDVID']['modNumber'])
@@ -881,6 +894,11 @@ def process_delete_data(data, atom_type):
             obj['piid'] = None
 
         try:
+            obj['agency_id'] = extract_text(data['contractID']['IDVID']['agencyID'])
+        except (KeyError, TypeError):
+            obj['agency_id'] = None
+
+        try:
             obj['award_modification_amendme'] = extract_text(data['contractID']['IDVID']['modNumber'])
         except (KeyError, TypeError):
             obj['award_modification_amendme'] = None
@@ -891,18 +909,17 @@ def process_delete_data(data, atom_type):
             obj['parent_award_id'] = None
 
         try:
+            obj['referenced_idv_agency_iden'] = extract_text(data['contractID']['referencedIDVID']['agencyID'])
+        except (KeyError, TypeError):
+            obj['referenced_idv_agency_iden'] = None
+
+        try:
             obj['referenced_idv_modificatio'] = extract_text(data['contractID']['referencedIDVID']['modNumber'])
         except (KeyError, TypeError):
             obj['referenced_idv_modificatio'] = None
 
         # not in IDV feed, just set it to None
         obj['transaction_number'] = None
-
-    # not sure if I need this yet, we'll see
-    try:
-        obj['last_modified'] = data['transactionInformation']['lastModifiedDate']
-    except (KeyError, TypeError):
-        obj['last_modified'] = None
 
     return obj
 
@@ -942,10 +959,14 @@ def get_data(contract_type, award_type, now, sess, last_run=None):
     # params = 'PIID:"0046"+REF_IDV_PIID:"W56KGZ15A6000"'
 
     i = 0
-    print('Starting: ' + feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"')
+    logger.info('Starting: ' + feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() +
+                '" AWARD_TYPE:"' + award_type + '"')
     while True:
-        resp = requests.get(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' + award_type + '"&start=' + str(i), timeout=60)
-        resp_data = xmltodict.parse(resp.text, process_namespaces=True, namespaces={'http://www.fpdsng.com/FPDS': None, 'http://www.w3.org/2005/Atom': None})
+        resp = requests.get(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' +
+                            award_type + '"&start=' + str(i), timeout=60)
+        resp_data = xmltodict.parse(resp.text, process_namespaces=True,
+                                    namespaces={'http://www.fpdsng.com/FPDS': None,
+                                                'http://www.w3.org/2005/Atom': None})
         # only list the data if there's data to list
         try:
             listed_data = list_data(resp_data['feed']['entry'])
@@ -958,13 +979,13 @@ def get_data(contract_type, award_type, now, sess, last_run=None):
 
         # Log which one we're on so we can keep track of how far we are (different numbers for different pulls)
         if i % log_interval == 0:
-            print("On line " + str(i))
+            logger.info("On line " + str(i))
 
             # every 100,000 records, add the data to the session and clear the data array so we don't run into
             # a memory error. This can be done inside the 100 tracker because 100,000 is divisible by 100
             # so we don't have to check this if statement every time. Don't process on row 0
             if i % 100000 == 0 and i != 0:
-                print("Processing next 100,000 records")
+                logger.info("Processing next 100,000 records")
                 process_and_add(data, contract_type, sess, last_run)
                 data = []
 
@@ -972,11 +993,11 @@ def get_data(contract_type, award_type, now, sess, last_run=None):
         if len(listed_data) < 10:
             break
 
-    print(i)
+    logger.info(i)
 
     # insert whatever is left
     process_and_add(data, contract_type, sess, last_run)
-    print("processed " + contract_type + ": " + award_type + " data")
+    logger.info("processed " + contract_type + ": " + award_type + " data")
 
 
 def get_delete_data(contract_type, now, sess, last_run):
@@ -986,10 +1007,13 @@ def get_delete_data(contract_type, now, sess, last_run):
     params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
 
     i = 0
-    print('Starting: ' + delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"')
+    logger.info('Starting: ' + delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"')
     while True:
-        resp = requests.get(delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"&start=' + str(i), timeout=60)
-        resp_data = xmltodict.parse(resp.text, process_namespaces=True, namespaces={'http://www.fpdsng.com/FPDS': None, 'http://www.w3.org/2005/Atom': None})
+        resp = requests.get(delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"&start=' + str(i),
+                            timeout=60)
+        resp_data = xmltodict.parse(resp.text, process_namespaces=True,
+                                    namespaces={'http://www.fpdsng.com/FPDS': None,
+                                                'http://www.w3.org/2005/Atom': None})
         # only list the data if there's data to list
         try:
             listed_data = list_data(resp_data['feed']['entry'])
@@ -1002,18 +1026,33 @@ def get_delete_data(contract_type, now, sess, last_run):
 
         # Every 100 lines, log which one we're on so we can keep track of how far we are
         if i % 100 == 0:
-            print("On line " + str(i))
+            logger.info("On line " + str(i))
 
         # if we got less than 10 records, we can stop calling the feed
         if len(listed_data) < 10:
             break
 
-    print(i)
+    logger.info(i)
+
+    delete_list = []
     for value in data:
+        # get last modified date
+        last_modified = value['content'][contract_type]['transactionInformation']['lastModifiedDate']
+        last_modified = datetime.datetime.strptime(last_modified, "%Y-%m-%d %H:%M:%S")
         tmp_obj = process_delete_data(value['content'][contract_type], atom_type=contract_type)
-        print(tmp_obj)
-        # tmp_award = DetachedAwardProcurement(**tmp_obj)
-        # sess.add(tmp_award)
+
+        existing_item = sess.query(DetachedAwardProcurement).filter_by(**tmp_obj).one_or_none()
+
+        if existing_item:
+            # only add to delete list if the last modified date is later than the existing entry's last modified date
+            if last_modified > datetime.datetime.strptime(existing_item.last_modified, "%Y-%m-%d %H:%M:%S"):
+                delete_list.append(existing_item.detached_award_procurement_id)
+
+    # only need to delete values if there's something to delete
+    if delete_list:
+        sess.query(DetachedAwardProcurement).\
+            filter(DetachedAwardProcurement.detached_award_procurement_id.in_(delete_list)).\
+            delete(synchronize_session=False)
 
 
 def main():
@@ -1030,7 +1069,7 @@ def main():
     award_types_idv = ["GWAC", "IDC", "FSS", "BOA", "BPA"]
 
     if args.all:
-        print("Starting at: " + str(datetime.datetime.now()))
+        logger.info("Starting at: " + str(datetime.datetime.now()))
         # clear out table
         sess.query(DetachedAwardProcurement).delete()
 
@@ -1043,42 +1082,44 @@ def main():
         last_update = sess.query(FPDSUpdate).one_or_none()
 
         if last_update:
-            sess.query(FPDSUpdate).update({"update_date":now}, synchronize_session=False)
+            sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
         else:
             sess.add(FPDSUpdate(update_date=now))
 
-        print("Ending at: " + str(datetime.datetime.now()))
+        logger.info("Ending at: " + str(datetime.datetime.now()))
 
         sess.commit()
     elif args.latest:
-        print("Starting at: " + str(datetime.datetime.now()))
+        logger.info("Starting at: " + str(datetime.datetime.now()))
 
         last_update = sess.query(FPDSUpdate).one_or_none()
 
         # update_date can't be null because it's being used as the PK for the table, so it can only exist or
         # there are no rows in the table. If there are no rows, act like it's an "add all"
         if not last_update:
-            print("No last_update date present, please run the script with the -a flag to generate an initial dataset")
+            logger.error(
+                "No last_update date present, please run the script with the -a flag to generate an initial dataset")
             raise ValueError(
                 "No last_update date present, please run the script with the -a flag to generate an initial dataset")
 
         # loop through and check all award types
-        # for award_type in award_types_award:
-        #     get_data("award", award_type, sess, last_update)
-        # for award_type in award_types_idv:
-        #     get_data("IDV", award_type, sess, last_update)
+        for award_type in award_types_award:
+            get_data("award", award_type, now, sess, last_update)
+        for award_type in award_types_idv:
+            get_data("IDV", award_type, now, sess, last_update)
 
         # We also need to process the delete feed
         get_delete_data("award", now, sess, last_update)
-        # sess.query(FPDSUpdate).update({"update_date":now}, synchronize_session=False)
+        get_delete_data("IDV", now, sess, last_update)
+        sess.query(FPDSUpdate).update({"update_date": now}, synchronize_session=False)
 
-        print("Ending at: " + str(datetime.datetime.now()))
+        logger.info("Ending at: " + str(datetime.datetime.now()))
         sess.commit()
     # TODO add a correct start date for "all" so we don't get ALL the data
-    # TODO delete feed when inserting not "all" (sub-step, figure out what we're comparing against so it's easier to delete)
     # TODO fine-tune indexing
     # TODO threading
 
 if __name__ == '__main__':
     with create_app().app_context():
+        configure_logging()
         main()
