@@ -1,14 +1,14 @@
 """Add agency name and sub-tier agency name to published award financial assistance
 
-Revision ID: 06b85994d07a
-Revises: f15485f0092b
-Create Date: 2017-05-16 17:55:00.068985
+Revision ID: 064961175093
+Revises: 844f2d3a614a
+Create Date: 2017-05-18 02:43:55.220056
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '06b85994d07a'
-down_revision = 'f15485f0092b'
+revision = '064961175093'
+down_revision = '844f2d3a614a'
 branch_labels = None
 depends_on = None
 

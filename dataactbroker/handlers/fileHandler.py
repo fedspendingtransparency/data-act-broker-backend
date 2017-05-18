@@ -1573,19 +1573,19 @@ def map_generate_status(upload_job, validation_job=None):
 
 
 def fabs_derivations(obj):
+
+    sess = GlobalDB.db().session
+
     # deriving total_funding_amount
     federal_action_obligation = obj['federal_action_obligation'] or 0
     non_federal_funding_amount = obj['non_federal_funding_amount'] or 0
     obj['total_funding_amount'] = federal_action_obligation + non_federal_funding_amount
 
-
-    sess = GlobalDB.db().session
-
     # deriving awarding agency name
     try:
         awarding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['awarding_agency_code']).one()
     except:
-        print('awarding_agency_code not Found')
+        logger.debug('Awarding Agency name not found for Awarding Agency Code %s', obj['awarding_agency_code'])
         awarding_agency_name = False
         pass
 
@@ -1597,7 +1597,8 @@ def fabs_derivations(obj):
         awarding_sub_tier_agency_name = sess.query(SubTierAgency).filter_by(
             sub_tier_agency_code=obj['awarding_sub_tier_agency_c']).one()
     except:
-        print('awarding_sub_tier_agency_c not Found')
+        logger.debug('Awarding Sub-tier Agency Name not found for Awarding Sub-tier Agency Code %s',
+                     obj['awarding_sub_tier_agency_c'])
         awarding_sub_tier_agency_name = False
         pass
 
@@ -1608,7 +1609,7 @@ def fabs_derivations(obj):
     try:
         funding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['funding_agency_code']).one()
     except:
-        print('funding_agency_code not Found')
+        logger.debug('Funding Agency Name not found for Funding Agency Code %s', obj['funding_agency_code'])
         funding_agency_name = False
         pass
 
@@ -1620,7 +1621,8 @@ def fabs_derivations(obj):
         funding_sub_tier_agency_name = sess.query(SubTierAgency).filter_by(
             sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one()
     except:
-        print('funding_sub_tier_agency_co not Found')
+        logger.debug('Funding Sub-tier Agency Name not found for Funding Sub-Tier Agency Code %s',
+                     obj['funding_sub_tier_agency_co'])
         funding_sub_tier_agency_name = False
         pass
 
