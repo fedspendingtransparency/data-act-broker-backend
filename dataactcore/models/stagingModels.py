@@ -585,6 +585,7 @@ class PublishedAwardFinancialAssistance(Base):
     business_funds_indicator = Column(Text)
     business_types = Column(Text)
     cfda_number = Column(Text)
+    cfda_title = Column(Text)
     correction_late_delete_ind = Column(Text)
     face_value_loan_guarantee = Column(Numeric)
     fain = Column(Text, index=True)

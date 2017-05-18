@@ -24,7 +24,7 @@ from dataactbroker.permissions import current_user_can, current_user_can_on_subm
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC, SubTierAgency
+from dataactcore.models.domainModels import CGAC, CFDAProgram, SubTierAgency
 from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.jobModels import (
@@ -1573,8 +1573,20 @@ def map_generate_status(upload_job, validation_job=None):
 
 
 def fabs_derivations(obj):
+
+    sess = GlobalDB.db().session
+
     # deriving total_funding_amount
     federal_action_obligation = obj['federal_action_obligation'] or 0
     non_federal_funding_amount = obj['non_federal_funding_amount'] or 0
     obj['total_funding_amount'] = federal_action_obligation + non_federal_funding_amount
+
+    # deriving cfda_title from program_title in cfda_program table
+    cfda_title = sess.query(CFDAProgram).filter_by(program_number=obj['cfda_number']).one_or_none()
+    if cfda_title:
+        obj['cfda_title'] = cfda_title.program_title
+    else:
+        logging.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
+
+    GlobalDB.close()
     return obj
