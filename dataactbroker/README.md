@@ -770,10 +770,14 @@ List submissions for all agencies for which the current user is a member of. Opt
         "name": "User Name",
         "user_id": 1
       },
+      "agency": "Department of the Treasury (TREAS)"
       "status": "validation_successful" (will be undergoing changes),
       "size": 0,
       "errors": 0,
-      "last_modified": "08/31/2016"
+      "last_modified": "2016-08-31 12:59:37.053424",
+      "publish_status": "published",
+      "certifying_user": "Certifier",
+      "certified_on": "2016-08-30 12:53:37.053424"
     },
     {
       "reporting_end_date": "2015-09-01",
@@ -783,10 +787,14 @@ List submissions for all agencies for which the current user is a member of. Opt
         "name": "User2 Name2",
         "user_id": 2
       },
+      "agency": "Department of Defense (DOD)"
       "status": "file_errors" (will be undergoing changes),
       "size": 34482,
       "errors": 582,
-      "last_modified": "08/31/2016"
+      "last_modified": "2016-08-31 15:59:37.053424",
+      "publish_status": "unpublished",
+      "certifying_user": "",
+      "certified_on": ""
     }
   ],
   "total": 2
@@ -842,7 +850,8 @@ This route returns either a signed S3 URL to the generated file or, if the file 
 ```
 {
     "submission_id": 123,
-    "file_type": "D1"
+    "file_type": "D1",
+    "size": 123
 }
 ```
 

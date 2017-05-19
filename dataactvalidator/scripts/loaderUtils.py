@@ -1,3 +1,5 @@
+import pandas as pd
+
 from datetime import datetime
 from pandas import isnull
 
@@ -74,3 +76,11 @@ def clean_data(data, model, field_map, field_options):
     data = data.assign(created_at=now, updated_at=now)
 
     return data
+
+
+def format_date(value):
+    """ Format date from 'MMM dd, yyyy' to 'yyyymmdd' """
+
+    formatted_value = pd.to_datetime(value, format="%b, %d %Y")
+    formatted_value = formatted_value.apply(lambda x: x.strftime('%Y%m%d') if not pd.isnull(x) else '')
+    return formatted_value
