@@ -1588,9 +1588,6 @@ def fabs_derivations(obj):
     else:
         logging.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
 
-    GlobalDB.close()
-    return obj
-
     # deriving awarding agency name
     awarding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['awarding_agency_code']).one_or_none()
     if awarding_agency_name:
