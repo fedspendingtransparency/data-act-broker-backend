@@ -1589,36 +1589,28 @@ def fabs_derivations(obj):
         logging.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
 
     # deriving awarding agency name
-    awarding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['awarding_agency_code']).one_or_none()
-    if awarding_agency_name:
+    if obj['awarding_agency_code']:
+        awarding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['awarding_agency_code']).one()
         obj['awarding_agency_name'] = awarding_agency_name.agency_name
-    else:
-        logger.error('Awarding Agency name not found for Awarding Agency Code %s', obj['awarding_agency_code'])
 
     # deriving awarding sub tier agency name
-    awarding_sub_tier_agency_name = sess.query(SubTierAgency).filter_by(
-        sub_tier_agency_code=obj['awarding_sub_tier_agency_c']).one_or_none()
-    if awarding_sub_tier_agency_name:
+    if obj['awarding_sub_tier_agency_c']:
+        awarding_sub_tier_agency_name = sess.query(SubTierAgency).\
+            filter_by(sub_tier_agency_code=obj['awarding_sub_tier_agency_c']).one()
+        print(obj['awarding_sub_tier_agency_c'])
         obj['awarding_sub_tier_agency_n'] = awarding_sub_tier_agency_name.sub_tier_agency_name
-    else:
-        logger.error('Awarding Sub-tier Agency Name not found for Awarding Sub-tier Agency Code %s',
-                     obj['awarding_sub_tier_agency_c'])
 
     # deriving funding agency name
-    funding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['funding_agency_code']).one_or_none()
-    if funding_agency_name:
+    if obj['funding_agency_code']:
+        funding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['funding_agency_code']).one()
         obj['funding_agency_name'] = funding_agency_name.agency_name
-    else:
-        logger.debug('Funding Agency Name not found for Funding Agency Code %s', obj['funding_agency_code'])
 
     # deriving funding sub tier agency name
-    funding_sub_tier_agency_name = sess.query(SubTierAgency).filter_by(
-        sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one_or_none()
-    if funding_sub_tier_agency_name:
+
+    if obj['funding_sub_tier_agency_co']:
+        funding_sub_tier_agency_name = sess.query(SubTierAgency).\
+            filter_by(sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one()
         obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency_name.sub_tier_agency_name
-    else:
-        logger.error('Funding Sub-tier Agency Name not found for Funding Sub-Tier Agency Code %s',
-                     obj['funding_sub_tier_agency_co'])
 
     GlobalDB.close()
     return obj
