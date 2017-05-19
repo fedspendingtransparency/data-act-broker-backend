@@ -24,16 +24,17 @@ from dataactbroker.permissions import current_user_can, current_user_can_on_subm
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC, SubTierAgency
+from dataactcore.models.domainModels import CGAC, CFDAProgram, SubTierAgency
 from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.jobModels import (
-    FileGenerationTask, Job, Submission, SubmissionNarrative, JobDependency, SubmissionSubTierAffiliation,
-    RevalidationThreshold, CertifyHistory)
+    FileGenerationTask, Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation, RevalidationThreshold,
+    CertifyHistory)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
     JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT, PUBLISH_STATUS_DICT_ID)
+from dataactcore.models.views import SubmissionUpdatedView
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
 from dataactcore.utils.requestDictionary import RequestDictionary
@@ -41,8 +42,9 @@ from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
-    check_number_of_errors_by_job_id, create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type,
-    get_submission_status, mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date)
+    create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status,
+    mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date,
+    get_lastest_certified_date)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 from dataactbroker.handlers.fileGenerationHandler import generate_e_file, generate_f_file
 
@@ -452,6 +454,10 @@ class FileHandler:
             job.end_date = datetime.strptime(end_date, "%m/%d/%Y").date()
             val_job.start_date = datetime.strptime(start_date, "%m/%d/%Y").date()
             val_job.end_date = datetime.strptime(end_date, "%m/%d/%Y").date()
+
+            # Clear out error messages to prevent stale messages
+            job.error_message = ''
+            val_job.error_message = ''
         except ValueError as e:
             # Date was not in expected format
             exc = ResponseException(str(e), StatusCode.CLIENT_ERROR, ValueError)
@@ -478,11 +484,12 @@ class FileHandler:
                 # Check for numFound = 0
                 if "numFound='0'" in get_xml_response_content(api_url):
                     sess = GlobalDB.db().session
-                    # No results found, skip validation and mark as finished
-                    sess.query(JobDependency). \
-                        filter(JobDependency.prerequisite_id == job.job_id). \
-                        delete(synchronize_session='fetch')
-                    mark_job_status(job.job_id, "finished")
+                    # No results found, skip validation and mark as finished.
+                    #
+                    # Skip check here is true since we don't need to check the dependencies for the upload job
+                    # because there are no results. The validation job will manually be update versus running through
+                    # the validator.
+                    mark_job_status(job.job_id, "finished", skip_check=True)
                     job.filename = None
 
                     if val_job is not None:
@@ -615,7 +622,17 @@ class FileHandler:
             mark_job_status(job.job_id, "failed")
             return error_response
 
+        submission = sess.query(Submission).\
+            filter_by(submission_id=submission_id).\
+            one()
+
         if file_type in ["D1", "D2"]:
+            # Change the publish status back to updated if certified
+            if submission.publish_status_id == PUBLISH_STATUS_DICT['published']:
+                submission.publishable = False
+                submission.publish_status_id = PUBLISH_STATUS_DICT['updated']
+                sess.commit()
+
             # Set cross-file validation status to waiting if it's not already
             cross_file_job = sess.query(Job).filter(Job.submission_id == submission_id,
                                                     Job.job_type_id == JOB_TYPE_DICT['validation'],
@@ -627,9 +644,6 @@ class FileHandler:
                 sess.commit()
 
         # Return same response as check generation route
-        submission = sess.query(Submission).\
-            filter_by(submission_id=submission_id).\
-            one()
         return self.check_generation(submission, file_type)
 
     def generate_detached_file(self, file_type, cgac_code, start, end):
@@ -785,6 +799,10 @@ class FileHandler:
             response_dict['status'] = 'invalid'
             response_dict['message'] = 'No generation job found with the specified ID'
             return JsonResponse.create(StatusCode.OK, response_dict)
+        elif upload_job.filename is None:
+            response_dict['status'] = 'invalid'
+            response_dict['message'] = 'No file has been generated for this submission.'
+            return JsonResponse.create(StatusCode.OK, response_dict)
 
         file_type = FILE_TYPE_DICT_LETTER[upload_job.file_type_id]
         response_dict["status"] = JOB_STATUS_DICT_ID[upload_job.job_status_id]
@@ -832,6 +850,7 @@ class FileHandler:
         response_dict = {
             'status': map_generate_status(upload_job, validation_job),
             'file_type': file_type,
+            'size': upload_job.file_size,
             'message': upload_job.error_message or ""
         }
         if upload_job.filename is None:
@@ -1344,6 +1363,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     certification status """
     sess = GlobalDB.db().session
 
+    submission_updated_view = SubmissionUpdatedView()
+
     offset = limit * (page - 1)
 
     certifying_user = aliased(User)
@@ -1357,13 +1378,17 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
                     certifying_user.name.label('certifying_user_name')]
 
-    columns_to_query = submission_columns + cgac_columns + user_columns
+    view_columns = [submission_updated_view.submission_id,
+                    submission_updated_view.updated_at.label('updated_at')]
+
+    columns_to_query = submission_columns + cgac_columns + user_columns + view_columns
 
     cgac_codes = [aff.cgac.cgac_code for aff in g.user.affiliations]
     query = sess.query(*columns_to_query).\
         outerjoin(User, Submission.user_id == User.user_id). \
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id). \
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
+        outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
         filter(Submission.d2_submission.is_(False))
     if not g.user.website_admin:
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
@@ -1377,7 +1402,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     total_submissions = query.count()
 
     options = {
-        'modified': {'model': Submission, 'col': 'updated_at'},
+        'modified': {'model': submission_updated_view, 'col': 'updated_at'},
         'reporting': {'model': Submission, 'col': 'reporting_start_date'},
         'agency': {'model': CGAC, 'col': 'agency_name'},
         'submitted_by': {'model': User, 'col': 'name'}
@@ -1407,9 +1432,11 @@ def serialize_submission(submission):
     frontend expects"""
     status = get_submission_status(submission)
 
+    certified_on = get_lastest_certified_date(submission)
+
     return {
         "submission_id": submission.submission_id,
-        "last_modified": submission.updated_at.strftime('%Y-%m-%d'),
+        "last_modified": str(submission.updated_at),
         "status": status,
         "agency": submission.agency_name if submission.agency_name else 'N/A',
         # @todo why are these a different format?
@@ -1419,6 +1446,7 @@ def serialize_submission(submission):
                  "name": submission.name if submission.name else "No User"},
         "certifying_user": submission.certifying_user_name if submission.certifying_user_name else "",
         'publish_status': PUBLISH_STATUS_DICT_ID[submission.publish_status_id],
+        "certified_on": str(certified_on) if certified_on else ""
     }
 
 
@@ -1508,7 +1536,7 @@ def map_generate_status(upload_job, validation_job=None):
         validation_status = None
     else:
         validation_status = validation_job.job_status.name
-        if check_number_of_errors_by_job_id(validation_job.job_id) > 0:
+        if validation_job.number_of_errors > 0:
             errors_present = True
         else:
             errors_present = False
@@ -1545,8 +1573,20 @@ def map_generate_status(upload_job, validation_job=None):
 
 
 def fabs_derivations(obj):
+
+    sess = GlobalDB.db().session
+
     # deriving total_funding_amount
     federal_action_obligation = obj['federal_action_obligation'] or 0
     non_federal_funding_amount = obj['non_federal_funding_amount'] or 0
     obj['total_funding_amount'] = federal_action_obligation + non_federal_funding_amount
+
+    # deriving cfda_title from program_title in cfda_program table
+    cfda_title = sess.query(CFDAProgram).filter_by(program_number=obj['cfda_number']).one_or_none()
+    if cfda_title:
+        obj['cfda_title'] = cfda_title.program_title
+    else:
+        logging.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
+
+    GlobalDB.close()
     return obj

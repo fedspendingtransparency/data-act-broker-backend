@@ -9,7 +9,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import NoResultFound
 
 from dataactcore.models.errorModels import ErrorMetadata, File
-from dataactcore.models.jobModels import Job, Submission, JobDependency
+from dataactcore.models.jobModels import Job, Submission, JobDependency, CertifyHistory
 from dataactcore.models.stagingModels import AwardFinancial
 from dataactcore.models.userModel import User, EmailTemplateType, EmailTemplate
 from dataactcore.models.validationModels import RuleSeverity
@@ -66,6 +66,23 @@ def populate_submission_error_info(submission_id):
     submission.number_of_warnings = sum_number_of_errors_for_job_list(submission_id, error_type='warning')
     sess.commit()
 
+    return submission
+
+
+def populate_job_error_info(job):
+    """ Set number of errors and warnings for specified job. """
+    sess = GlobalDB.db().session
+    job.number_of_errors = sess.query(func.sum(ErrorMetadata.occurrences)).\
+        join(ErrorMetadata.severity).\
+        filter(ErrorMetadata.job_id == job.job_id, RuleSeverity.name == 'fatal').\
+        scalar() or 0
+
+    job.number_of_warnings = sess.query(func.sum(ErrorMetadata.occurrences)).\
+        join(ErrorMetadata.severity).\
+        filter(ErrorMetadata.job_id == job.job_id, RuleSeverity.name == 'warning').\
+        scalar() or 0
+    sess.commit()
+
 
 def sum_number_of_errors_for_job_list(submission_id, error_type='fatal'):
     """Add number of errors for all jobs in list."""
@@ -73,26 +90,12 @@ def sum_number_of_errors_for_job_list(submission_id, error_type='fatal'):
     error_sum = 0
     jobs = sess.query(Job).filter(Job.submission_id == submission_id).all()
     for job in jobs:
-        job_errors = check_number_of_errors_by_job_id(job.job_id, error_type)
         if error_type == 'fatal':
-            job.number_of_errors = job_errors
+            error_sum += job.number_of_errors
         elif error_type == 'warning':
-            job.number_of_warnings = job_errors
-        error_sum += job_errors
-    sess.commit()
+            error_sum += job.number_of_warnings
     return error_sum
 
-
-def check_number_of_errors_by_job_id(job_id, error_type='fatal'):
-    """Get the number of errors for a specified job and severity."""
-    sess = GlobalDB.db().session
-    errors = sess.query(func.sum(ErrorMetadata.occurrences)).join(ErrorMetadata.severity).\
-        filter(ErrorMetadata.job_id == job_id, RuleSeverity.name == error_type).scalar()
-    # error_metadata table tallies total errors by job/file/field/error type. jobs that
-    # don't have errors or warnings won't be in the table at all. thus, if the above query
-    # returns an empty value that means the job didn't have any errors that matched
-    # the specified severity type, so return 0
-    return errors or 0
 
 """ ERROR DB FUNCTIONS """
 
@@ -277,7 +280,7 @@ def run_job_checks(job_id):
         return True
 
 
-def mark_job_status(job_id, status_name):
+def mark_job_status(job_id, status_name, skip_check=False):
     """
     Mark job as having specified status.
     Jobs being marked as finished will add dependent jobs to queue.
@@ -296,7 +299,7 @@ def mark_job_status(job_id, status_name):
 
     # if status is changed to finished for the first time, check dependencies
     # and add to the job queue as necessary
-    if old_status != 'finished' and status_name == 'finished':
+    if old_status != 'finished' and status_name == 'finished' and not skip_check:
         check_job_dependencies(job_id)
 
 
@@ -609,6 +612,18 @@ def get_submission_status(submission):
         status = "validation_errors"
 
     return status
+
+
+def get_lastest_certified_date(submission):
+    if submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished']:
+        sess = GlobalDB.db().session
+        last_certified = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id). \
+            order_by(CertifyHistory.created_at.desc()).first()
+
+        if last_certified:
+            return last_certified.created_at
+
+    return None
 
 
 def get_last_validated_date(submission_id):
