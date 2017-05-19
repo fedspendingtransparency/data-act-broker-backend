@@ -768,8 +768,7 @@ class DetachedAwardProcurement(Base):
     last_modified = Column(Text)
 
     __table_args__ = (UniqueConstraint('agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme',
-                                       'parent_award_id', 'referenced_idv_modificatio', 'transaction_number',
-                                       name='uniq_det_award_proc_key'),)
+                                       'parent_award_id', 'transaction_number', name='uniq_det_award_proc_key'),)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

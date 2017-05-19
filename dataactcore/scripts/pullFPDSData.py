@@ -713,6 +713,10 @@ def calculate_remaining_fields(obj, sess):
             obj['awarding_agency_code'] = agency_data.cgac_code
             obj['awarding_agency_name'] = agency_data.agency_name
         else:
+            logger.info('WARNING: MissingSubtierCGAC: The awarding sub-tier cgac_code: %s does not exist in cgac table.'
+                        'The FPDS-provided awarding sub-tier agency name (if given) for this cgac_code is %s.'
+                        'The award has been loaded with awarding_agency_code 999.',
+                        obj['awarding_sub_tier_agency_c'], obj['awarding_sub_tier_agency_n'])
             obj['awarding_agency_code'] = '999'
             obj['awarding_agency_name'] = None
 
@@ -724,6 +728,10 @@ def calculate_remaining_fields(obj, sess):
             obj['funding_agency_code'] = agency_data.cgac_code
             obj['funding_agency_name'] = agency_data.agency_name
         else:
+            logger.info('WARNING: MissingSubtierCGAC: The funding sub-tier cgac_code: %s does not exist in cgac table.'
+                        'The FPDS-provided funding sub-tier agency name (if given) for this cgac_code is %s.'
+                        'The award has been loaded with funding_agency_code 999.',
+                        obj['funding_sub_tier_agency_co'], obj['funding_sub_tier_agency_na'])
             obj['funding_agency_code'] = '999'
             obj['funding_agency_name'] = None
     return obj
@@ -845,13 +853,7 @@ def process_data(data, atom_type, sess):
 def process_delete_data(data, atom_type):
     obj = {}
 
-    # get all values that make up unique key except awarding_sub_tier_agency_c because that doesn't show up
-    # in delete feed
-    # try:
-    #     obj['awarding_sub_tier_agency_c'] = extract_text(data['purchaserInformation']['contractingOfficeAgencyID'])
-    # except (KeyError, TypeError):
-    #     obj['awarding_sub_tier_agency_c'] = None
-
+    # get all values that make up unique key
     if atom_type == "award":
         try:
             obj['piid'] = extract_text(data['awardID']['awardContractID']['PIID'])
@@ -877,11 +879,6 @@ def process_delete_data(data, atom_type):
             obj['referenced_idv_agency_iden'] = extract_text(data['awardID']['referencedIDVID']['agencyID'])
         except (KeyError, TypeError):
             obj['referenced_idv_agency_iden'] = None
-
-        try:
-            obj['referenced_idv_modificatio'] = extract_text(data['awardID']['referencedIDVID']['modNumber'])
-        except (KeyError, TypeError):
-            obj['referenced_idv_modificatio'] = None
 
         try:
             obj['transaction_number'] = extract_text(data['awardID']['awardContractID']['transactionNumber'])
@@ -913,11 +910,6 @@ def process_delete_data(data, atom_type):
         except (KeyError, TypeError):
             obj['referenced_idv_agency_iden'] = None
 
-        try:
-            obj['referenced_idv_modificatio'] = extract_text(data['contractID']['referencedIDVID']['modNumber'])
-        except (KeyError, TypeError):
-            obj['referenced_idv_modificatio'] = None
-
         # not in IDV feed, just set it to None
         obj['transaction_number'] = None
 
@@ -925,18 +917,26 @@ def process_delete_data(data, atom_type):
 
 
 def process_and_add(data, contract_type, sess, last_run=None):
+    i = 0
     if not last_run:
         for value in data:
+            if i % 5000:
+                logger.info('inserting row %s for current batch', i)
+
             tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sess=sess)
             tmp_award = DetachedAwardProcurement(**tmp_obj)
             sess.add(tmp_award)
+            i += 1
     else:
         for value in data:
+            if i % 5000:
+                logger.info('inserting row %s for current batch', i)
+
             tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sess=sess)
-            insert_statement = insert(DetachedAwardProcurement).values(**tmp_obj).on_conflict_do_update(
-                constraint='uniq_det_award_proc_key',
-                set_=tmp_obj)
+            insert_statement = insert(DetachedAwardProcurement).values(**tmp_obj).\
+                on_conflict_do_update(constraint='uniq_det_award_proc_key', set_=tmp_obj)
             sess.execute(insert_statement)
+            i += 1
 
 
 def get_data(contract_type, award_type, now, sess, last_run=None):
