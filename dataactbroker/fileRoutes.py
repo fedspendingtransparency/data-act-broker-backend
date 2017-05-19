@@ -132,19 +132,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
     @app.route("/v1/check_current_page/", methods=["GET"])
     @convert_to_submission_id
-    # @requires_submission_perms('reader')
+    @requires_submission_perms('reader')
     def check_current_page(submission):
 
         sess = GlobalDB.db().session
 
-        # submission_id = submission.submission_id
-
-        try:
-            # if submission is passed like an object
-            submission_id = submission.submission_id
-        except:
-            # if submission is passed like an int
-            submission_id = submission
+        submission_id = submission.submission_id
 
         # /v1/reviewData/
         review_data = sess.query(Job).filter(Job.submission_id == submission_id,
@@ -182,7 +175,10 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         validate_data = sess.query(Job).filter(Job.submission_id == submission_id,
                                                Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
                                                Job.number_of_errors != 0, Job.file_size.isnot(None))
-        if validate_data.count() > 0:
+        check_header_errors = sess.query(Job).filter(Job.submission_id == submission_id,
+                                               Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
+                                               Job.job_status_id != 4, Job.file_size.isnot(None))
+        if validate_data.count() or check_header_errors.count() > 0:
             data = {
                     "message": "The current progress of this submission ID is on /v1/validateData/ page.",
                     "step": "1"
@@ -380,7 +376,7 @@ def convert_to_submission_id(fn):
     convert into a submission_id parameter. The provided function should have
     a submission_id parameter as its first argument."""
     @wraps(fn)
-    # @requires_login     # check login before checking submission_id
+    @requires_login     # check login before checking submission_id
     def wrapped(*args, **kwargs):
         req_args = webargs_parser.parse({
             'submission': webargs_fields.Int(),
