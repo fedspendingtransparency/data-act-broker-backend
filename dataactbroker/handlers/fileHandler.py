@@ -1588,5 +1588,29 @@ def fabs_derivations(obj):
     else:
         logging.error("CFDA title not found for CFDA number %s", obj['cfda_number'])
 
+    # deriving awarding agency name
+    if obj['awarding_agency_code']:
+        awarding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['awarding_agency_code']).one()
+        obj['awarding_agency_name'] = awarding_agency_name.agency_name
+
+    # deriving awarding sub tier agency name
+    if obj['awarding_sub_tier_agency_c']:
+        awarding_sub_tier_agency_name = sess.query(SubTierAgency).\
+            filter_by(sub_tier_agency_code=obj['awarding_sub_tier_agency_c']).one()
+        print(obj['awarding_sub_tier_agency_c'])
+        obj['awarding_sub_tier_agency_n'] = awarding_sub_tier_agency_name.sub_tier_agency_name
+
+    # deriving funding agency name
+    if obj['funding_agency_code']:
+        funding_agency_name = sess.query(CGAC).filter_by(cgac_code=obj['funding_agency_code']).one()
+        obj['funding_agency_name'] = funding_agency_name.agency_name
+
+    # deriving funding sub tier agency name
+
+    if obj['funding_sub_tier_agency_co']:
+        funding_sub_tier_agency_name = sess.query(SubTierAgency).\
+            filter_by(sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one()
+        obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency_name.sub_tier_agency_name
+
     GlobalDB.close()
     return obj
