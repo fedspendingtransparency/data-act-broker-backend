@@ -1622,4 +1622,3 @@ def fabs_derivations(obj):
 
     GlobalDB.close()
     return obj
-
