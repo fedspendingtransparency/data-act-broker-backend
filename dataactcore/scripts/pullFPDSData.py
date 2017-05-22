@@ -946,8 +946,8 @@ def get_data(contract_type, award_type, now, sess, last_run=None):
     if not last_run:
         # we want to log less often for a "get all" run
         log_interval = 10000
-        # params = 'SIGNED_DATE:[2015/10/01'+ yesterday.strftime('%Y/%m/%d') + '] '
-        params = 'SIGNED_DATE:[2016/10/01' + yesterday.strftime('%Y/%m/%d') + '] '
+        # params = 'SIGNED_DATE:[2015/10/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
+        params = 'SIGNED_DATE:[2016/10/01,' + yesterday.strftime('%Y/%m/%d') + '] '
         # params = 'SIGNED_DATE:[2017/03/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
     else:
         last_run_date = last_run.update_date
