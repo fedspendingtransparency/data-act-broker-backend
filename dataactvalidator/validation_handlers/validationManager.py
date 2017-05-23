@@ -376,7 +376,7 @@ class ValidationManager:
         submission_id = job.submission_id
         bucket_name = CONFIG_BROKER['aws_bucket']
         region_name = CONFIG_BROKER['aws_region']
-        logger.info('VALIDATOR_INFO: Beginning run_cross_validation on submission_id: %s', submission_id)
+        logger.info('Beginning run_cross_validation on {submission_id: %s, job_id: %s}', submission_id, job.job_id)
 
         # Delete existing cross file errors for this submission
         sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == job_id).delete()
@@ -396,7 +396,7 @@ class ValidationManager:
                 RuleSql.target_file_id == first_file.id)))
             # send comboRules to validator.crossValidate sql
             failures = cross_validate_sql(combo_rules.all(), submission_id, self.short_to_long_dict, first_file.id,
-                                          second_file.id)
+                                          second_file.id, job)
             # get error file name
             report_filename = self.get_file_name(report_file_name(submission_id, False, first_file.name,
                                                                   second_file.name))
@@ -420,7 +420,8 @@ class ValidationManager:
 
         error_list.write_all_row_errors(job_id)
         mark_job_status(job_id, "finished")
-        logger.info('VALIDATOR_INFO: Completed run_cross_validation on submission_id: %s', submission_id)
+        logger.info('Completed run_cross_validation on {submission_id: %s, job_id: %s}',
+                    submission_id, job.job_id)
         submission = populate_submission_error_info(submission_id)
         # TODO: Remove temporary step below
         # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their
