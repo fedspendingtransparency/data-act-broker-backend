@@ -736,6 +736,19 @@ def calculate_remaining_fields(obj, sess):
                         obj['funding_sub_tier_agency_co'], obj['funding_sub_tier_agency_na'])
             obj['funding_agency_code'] = '999'
             obj['funding_agency_name'] = None
+
+    key_list = ['agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id',
+                'transaction_number']
+    unique_string = ""
+    for item in key_list:
+        if obj[item]:
+            unique_string += obj[item]
+        else:
+            unique_string += "-none-"
+
+    # The order of the unique key is agency_id, referenced_idv_agency_iden, piid, award_modification_amendme,
+    # parent_award_id, transaction_number
+    obj['detached_award_proc_unique'] = unique_string
     return obj
 
 
@@ -751,6 +764,8 @@ def process_data(data, atom_type, sess):
             data['awardID'] = {}
         obj = award_id_values(data['awardID'], obj)
     else:
+        # transaction_number is a part of the unique identifier, set it to None
+        obj['transaction_number'] = None
         # make sure key exists before passing it
         try:
             data['contractID']
@@ -854,69 +869,72 @@ def process_data(data, atom_type, sess):
 
 def process_delete_data(data, atom_type):
     """ process the delete feed data coming in """
-    obj = {}
+    unique_string = ""
+
+    # order of unique constraints in string: agency_id, referenced_idv_agency_iden, piid, award_modification_amendme,
+    # parent_award_id, transaction_number
 
     # get all values that make up unique key
     if atom_type == "award":
         try:
-            obj['piid'] = extract_text(data['awardID']['awardContractID']['PIID'])
+            unique_string += extract_text(data['awardID']['awardContractID']['agencyID'])
         except (KeyError, TypeError):
-            obj['piid'] = None
+            unique_string += "-none-"
 
         try:
-            obj['agency_id'] = extract_text(data['awardID']['awardContractID']['agencyID'])
+            unique_string += extract_text(data['awardID']['referencedIDVID']['agencyID'])
         except (KeyError, TypeError):
-            obj['agency_id'] = None
+            unique_string += "-none-"
 
         try:
-            obj['award_modification_amendme'] = extract_text(data['awardID']['awardContractID']['modNumber'])
+            unique_string += extract_text(data['awardID']['awardContractID']['PIID'])
         except (KeyError, TypeError):
-            obj['award_modification_amendme'] = None
+            unique_string += "-none-"
 
         try:
-            obj['parent_award_id'] = extract_text(data['awardID']['referencedIDVID']['PIID'])
+            unique_string += extract_text(data['awardID']['awardContractID']['modNumber'])
         except (KeyError, TypeError):
-            obj['parent_award_id'] = None
+            unique_string += "-none-"
 
         try:
-            obj['referenced_idv_agency_iden'] = extract_text(data['awardID']['referencedIDVID']['agencyID'])
+            unique_string += extract_text(data['awardID']['referencedIDVID']['PIID'])
         except (KeyError, TypeError):
-            obj['referenced_idv_agency_iden'] = None
+            unique_string += "-none-"
 
         try:
-            obj['transaction_number'] = extract_text(data['awardID']['awardContractID']['transactionNumber'])
+            unique_string += extract_text(data['awardID']['awardContractID']['transactionNumber'])
         except (KeyError, TypeError):
-            obj['transaction_number'] = None
+            unique_string += "-none-"
     else:
         try:
-            obj['piid'] = extract_text(data['contractID']['IDVID']['PIID'])
+            unique_string += extract_text(data['contractID']['IDVID']['agencyID'])
         except (KeyError, TypeError):
-            obj['piid'] = None
+            unique_string += "-none-"
 
         try:
-            obj['agency_id'] = extract_text(data['contractID']['IDVID']['agencyID'])
+            unique_string += extract_text(data['contractID']['referencedIDVID']['agencyID'])
         except (KeyError, TypeError):
-            obj['agency_id'] = None
+            unique_string += "-none-"
 
         try:
-            obj['award_modification_amendme'] = extract_text(data['contractID']['IDVID']['modNumber'])
+            unique_string += extract_text(data['contractID']['IDVID']['PIID'])
         except (KeyError, TypeError):
-            obj['award_modification_amendme'] = None
+            unique_string += "-none-"
 
         try:
-            obj['parent_award_id'] = extract_text(data['contractID']['referencedIDVID']['PIID'])
+            unique_string += extract_text(data['contractID']['IDVID']['modNumber'])
         except (KeyError, TypeError):
-            obj['parent_award_id'] = None
+            unique_string += "-none-"
 
         try:
-            obj['referenced_idv_agency_iden'] = extract_text(data['contractID']['referencedIDVID']['agencyID'])
+            unique_string += extract_text(data['contractID']['referencedIDVID']['PIID'])
         except (KeyError, TypeError):
-            obj['referenced_idv_agency_iden'] = None
+            unique_string += "-none-"
 
-        # not in IDV feed, just set it to None
-        obj['transaction_number'] = None
+        # transaction_number not in IDV feed, just set it to "-none-"
+        unique_string += "-none-"
 
-    return obj
+    return unique_string
 
 
 def process_and_add(data, contract_type, sess, last_run=None):
@@ -942,7 +960,7 @@ def process_and_add(data, contract_type, sess, last_run=None):
 
             tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sess=sess)
             insert_statement = insert(DetachedAwardProcurement).values(**tmp_obj).\
-                on_conflict_do_update(constraint='uniq_det_award_proc_key', set_=tmp_obj)
+                on_conflict_do_update(index_elements=['detached_award_proc_unique'], set_=tmp_obj)
             sess.execute(insert_statement)
             i += 1
 
@@ -1050,9 +1068,10 @@ def get_delete_data(contract_type, now, sess, last_run):
     for value in data:
         # get last modified date
         last_modified = value['content'][contract_type]['transactionInformation']['lastModifiedDate']
-        tmp_obj = process_delete_data(value['content'][contract_type], atom_type=contract_type)
+        unique_string = process_delete_data(value['content'][contract_type], atom_type=contract_type)
 
-        existing_item = sess.query(DetachedAwardProcurement).filter_by(**tmp_obj).one_or_none()
+        existing_item = sess.query(DetachedAwardProcurement).\
+            filter_by(detached_award_proc_unique=unique_string).one_or_none()
 
         if existing_item:
             # only add to delete list if the last modified date is later than the existing entry's last modified date

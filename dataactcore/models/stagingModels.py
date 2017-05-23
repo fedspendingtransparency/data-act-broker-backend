@@ -511,6 +511,7 @@ class DetachedAwardProcurement(Base):
     """Model for D1-Award (Procurement)."""
     __tablename__ = "detached_award_procurement"
     detached_award_procurement_id = Column(Integer, primary_key=True)
+    detached_award_proc_unique = Column(Text, unique=True, nullable=False)
     piid = Column(Text)
     agency_id = Column(Text)
     awarding_sub_tier_agency_c = Column(Text)
@@ -766,9 +767,6 @@ class DetachedAwardProcurement(Base):
     domestic_or_foreign_e_desc = Column(Text)
     pulled_from = Column(Text)
     last_modified = Column(Text)
-
-    __table_args__ = (UniqueConstraint('agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme',
-                                       'parent_award_id', 'transaction_number', name='uniq_det_award_proc_key'),)
 
     def __init__(self, **kwargs):
         # broker is set up to ignore extra columns in submitted data

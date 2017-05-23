@@ -1,13 +1,13 @@
 """Create detached_award_procurement and fpds_update tables and update award_procurement
 
-Revision ID: 5b544ce40298
+Revision ID: 5a4cae4dceed
 Revises: 5664b0e3e179
-Create Date: 2017-05-19 14:00:51.419899
+Create Date: 2017-05-23 15:29:17.010799
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '5b544ce40298'
+revision = '5a4cae4dceed'
 down_revision = '5664b0e3e179'
 branch_labels = None
 depends_on = None
@@ -33,6 +33,7 @@ def upgrade_data_broker():
         *[sa.Column('created_at', sa.DateTime(), nullable=True),
         sa.Column('updated_at', sa.DateTime(), nullable=True),
         sa.Column('detached_award_procurement_id', sa.Integer(), nullable=False),
+        sa.Column('detached_award_proc_unique', sa.Text(), nullable=False),
         sa.Column('piid', sa.Text(), nullable=True),
         sa.Column('agency_id', sa.Text(), nullable=True),
         sa.Column('awarding_sub_tier_agency_c', sa.Text(), nullable=True),
@@ -289,7 +290,7 @@ def upgrade_data_broker():
         sa.Column('pulled_from', sa.Text(), nullable=True),
         sa.Column('last_modified', sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint('detached_award_procurement_id'),
-        sa.UniqueConstraint('agency_id', 'referenced_idv_agency_iden', 'piid', 'award_modification_amendme', 'parent_award_id', 'transaction_number', name='uniq_det_award_proc_key')]
+        sa.UniqueConstraint('detached_award_proc_unique')]
     )
     op.create_table('fpds_update',
         sa.Column('created_at', sa.DateTime(), nullable=True),
