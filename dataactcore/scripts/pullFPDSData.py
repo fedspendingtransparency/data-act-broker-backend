@@ -39,8 +39,8 @@ def extract_text(data_val):
     return data_val
 
 
-# Get values from the awardID level of the xml
 def award_id_values(data, obj):
+    """ Get values from the awardID level of the xml """
     value_map = {'modNumber': 'award_modification_amendme',
                  'transactionNumber': 'transaction_number',
                  'PIID': 'piid',
@@ -70,6 +70,7 @@ def award_id_values(data, obj):
 
 
 def contract_id_values(data, obj):
+    """ Get values from the contractID level of the xml """
     value_map = {'modNumber': 'award_modification_amendme',
                  'PIID': 'piid',
                  'agencyID': 'agency_id'}
@@ -98,8 +99,8 @@ def contract_id_values(data, obj):
     return obj
 
 
-# Get values from the competition level of the xml
 def competition_values(data, obj):
+    """ Get values from the competition level of the xml """
     value_map = {'A76Action': 'a_76_fair_act_action',
                  'commercialItemAcquisitionProcedures': 'commercial_item_acquisitio',
                  'commercialItemTestProgram': 'commercial_item_test_progr',
@@ -145,8 +146,8 @@ def competition_values(data, obj):
     return obj
 
 
-# Get values from the contractData level of the xml
 def contract_data_values(data, obj, atom_type):
+    """ Get values from the contractData level of the xml """
     value_map = {'consolidatedContract': 'consolidated_contract',
                  'contingencyHumanitarianPeacekeepingOperation': 'contingency_humanitarian_o',
                  'contractFinancing': 'contract_financing',
@@ -218,8 +219,8 @@ def contract_data_values(data, obj, atom_type):
     return obj
 
 
-# Get values from the dollarValues level of the xml
 def dollar_values_values(data, obj):
+    """ Get values from the dollarValues level of the xml """
     value_map = {'baseAndAllOptionsValue': 'potential_total_value_awar',
                  'baseAndExercisedOptionsValue': 'current_total_value_award',
                  'obligatedAmount': 'federal_action_obligation'}
@@ -233,8 +234,8 @@ def dollar_values_values(data, obj):
     return obj
 
 
-# Get values from the legislativeMandates level of the xml
 def legislative_mandates_values(data, obj):
+    """ Get values from the legislativeMandates level of the xml """
     value_map = {'ClingerCohenAct': 'clinger_cohen_act_planning',
                  'DavisBaconAct': 'davis_bacon_act',
                  'interagencyContractingAuthority': 'interagency_contracting_au',
@@ -264,8 +265,8 @@ def legislative_mandates_values(data, obj):
     return obj
 
 
-# Get values from the placeOfPerformance level of the xml
 def place_of_performance_values(data, obj, atom_type):
+    """ Get values from the placeOfPerformance level of the xml """
     value_map = {'placeOfPerformanceCongressionalDistrict': 'place_of_performance_congr',
                  'placeOfPerformanceZIPCode': 'place_of_performance_zip4a'}
 
@@ -313,8 +314,8 @@ def place_of_performance_values(data, obj, atom_type):
     return obj
 
 
-# Get values from the productOrServiceInformation level of the xml
 def product_or_service_information_values(data, obj):
+    """ Get values from the productOrServiceInformation level of the xml """
     value_map = {'claimantProgramCode': 'dod_claimant_program_code',
                  'contractBundling': 'contract_bundling',
                  'countryOfOrigin': 'country_of_product_or_serv',
@@ -360,8 +361,8 @@ def product_or_service_information_values(data, obj):
     return obj
 
 
-# Get values from the purchaserInformation level of the xml
 def purchaser_information_values(data, obj):
+    """ Get values from the purchaserInformation level of the xml """
     value_map = {'contractingOfficeAgencyID': 'awarding_sub_tier_agency_c',
                  'contractingOfficeID': 'awarding_office_code',
                  'foreignFunding': 'foreign_funding',
@@ -398,8 +399,8 @@ def purchaser_information_values(data, obj):
     return obj
 
 
-# Get values from the relevantContractDates level of the xml
 def relevant_contract_dates_values(data, obj):
+    """ Get values from the relevantContractDates level of the xml """
     value_map = {'currentCompletionDate': 'period_of_performance_curr',
                  'effectiveDate': 'period_of_performance_star',
                  'lastDateToOrder': 'ordering_period_end_date',
@@ -415,8 +416,8 @@ def relevant_contract_dates_values(data, obj):
     return obj
 
 
-# Get values from the vendor level of the xml
 def vendor_values(data, obj):
+    """ Get values from the vendor level of the xml """
     # base vendor level
     value_map = {'CCRException': 'sam_exception',
                  'contractingOfficerBusinessSizeDetermination': 'contracting_officers_deter'}
@@ -458,8 +459,8 @@ def vendor_values(data, obj):
     return obj
 
 
-# Get values from the vendorSiteDetails level of the xml (sub-level of vendor)
 def vendor_site_details_values(data, obj):
+    """ Get values from the vendorSiteDetails level of the xml (sub-level of vendor) """
     # typeOfEducationalEntity sub-level
     value_map = {'is1862LandGrantCollege': 'c1862_land_grant_college',
                  'is1890LandGrantCollege': 'c1890_land_grant_college',
@@ -703,8 +704,8 @@ def vendor_site_details_values(data, obj):
     return obj
 
 
-# calculate values that aren't in any feed but can be calculated
 def calculate_remaining_fields(obj, sess):
+    """ calculate values that aren't in any feed but can be calculated """
     if obj['awarding_sub_tier_agency_c']:
         agency_data = sess.query(CGAC).\
             filter(CGAC.cgac_id == SubTierAgency.cgac_id,
@@ -737,8 +738,8 @@ def calculate_remaining_fields(obj, sess):
     return obj
 
 
-# process the data coming in
 def process_data(data, atom_type, sess):
+    """ process the data coming in """
     obj = {}
 
     if atom_type == "award":
@@ -851,6 +852,7 @@ def process_data(data, atom_type, sess):
 
 
 def process_delete_data(data, atom_type):
+    """ process the delete feed data coming in """
     obj = {}
 
     # get all values that make up unique key
@@ -917,7 +919,10 @@ def process_delete_data(data, atom_type):
 
 
 def process_and_add(data, contract_type, sess, last_run=None):
+    """ start the processing for data and add it to the DB """
     i = 0
+    # if a date that the script was last successfully run is not provided, assume we're inserting for the first
+    # time so we can just add the model rather than making sure it doesn't exist yet
     if not last_run:
         for value in data:
             if i % 5000:
@@ -927,6 +932,8 @@ def process_and_add(data, contract_type, sess, last_run=None):
             tmp_award = DetachedAwardProcurement(**tmp_obj)
             sess.add(tmp_award)
             i += 1
+    # if a date that the script was last successfully run is provided, we're inserting over something that already
+    # exists so we have to check for conflicts and update when there is one
     else:
         for value in data:
             if i % 5000:
@@ -940,15 +947,18 @@ def process_and_add(data, contract_type, sess, last_run=None):
 
 
 def get_data(contract_type, award_type, now, sess, last_run=None):
+    """ get the data from the atom feed based on contract/award type and the last time the script was run """
     data = []
     yesterday = now - datetime.timedelta(days=1)
     log_interval = 1000
+    # if a date that the script was last successfully run is not provided, get all data
     if not last_run:
         # we want to log less often for a "get all" run
         log_interval = 10000
         # params = 'SIGNED_DATE:[2015/10/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
         params = 'SIGNED_DATE:[2016/10/01,' + yesterday.strftime('%Y/%m/%d') + '] '
         # params = 'SIGNED_DATE:[2017/03/01,'+ yesterday.strftime('%Y/%m/%d') + '] '
+    # if a date that the script was last successfully run is provided, get data since that date
     else:
         last_run_date = last_run.update_date
         params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
@@ -1001,6 +1011,7 @@ def get_data(contract_type, award_type, now, sess, last_run=None):
 
 
 def get_delete_data(contract_type, now, sess, last_run):
+    """ Get data from the delete feed """
     data = []
     yesterday = now - datetime.timedelta(days=1)
     last_run_date = last_run.update_date
@@ -1114,7 +1125,7 @@ def main():
 
         logger.info("Ending at: " + str(datetime.datetime.now()))
         sess.commit()
-    # TODO add a correct start date for "all" so we don't get ALL the data
+    # TODO add a correct start date for "all" so we don't get ALL the data or too little of the data
     # TODO fine-tune indexing
     # TODO threading
 
