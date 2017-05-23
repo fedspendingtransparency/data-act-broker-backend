@@ -129,7 +129,6 @@ db:
     # Set the names for each of the application databases
     base_db_name: postgres #This is the default db on the instance. 
     db_name: data_broker
-    job_queue_db_name: da_job_queue # Job queue db
 
 logging:
 
