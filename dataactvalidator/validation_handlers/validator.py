@@ -162,6 +162,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
         failed_rows = conn.execute(
             rule.rule_sql.format(submission_id))
         if failed_rows.rowcount:
+            logger.info('VALIDATOR_INFO: Running query: %s on submission id %s', rule.query_name, submission_id)
             # get list of fields involved in this validation
             # note: row_number is metadata, not a field being
             # validated, so exclude it
@@ -190,6 +191,9 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
                 failures.append([rule.file.name, target_file_type, full_column_string,
                                 str(rule.rule_error_message), values, row['row_number'], str(rule.rule_label),
                                 rule.file_id, rule.target_file_id, rule.rule_severity_id])
+
+        logger.info('VALIDATOR_INFO: Completed SQL cross validation query %s on submission %s',
+                    rule.query_name, submission_id)
 
     # Return list of cross file validation failures
     return failures
