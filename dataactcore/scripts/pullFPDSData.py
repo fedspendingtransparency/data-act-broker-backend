@@ -925,7 +925,7 @@ def process_and_add(data, contract_type, sess, last_run=None):
     # time so we can just add the model rather than making sure it doesn't exist yet
     if not last_run:
         for value in data:
-            if i % 5000:
+            if i % 5000 == 0:
                 logger.info('inserting row %s for current batch', i)
 
             tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sess=sess)
@@ -936,7 +936,7 @@ def process_and_add(data, contract_type, sess, last_run=None):
     # exists so we have to check for conflicts and update when there is one
     else:
         for value in data:
-            if i % 5000:
+            if i % 5000 == 0:
                 logger.info('inserting row %s for current batch', i)
 
             tmp_obj = process_data(value['content'][contract_type], atom_type=contract_type, sess=sess)
