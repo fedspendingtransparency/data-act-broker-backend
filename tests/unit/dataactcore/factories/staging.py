@@ -301,6 +301,7 @@ class PublishedAwardFinancialAssistanceFactory(factory.Factory):
     funding_office_code = fuzzy.FuzzyText()
     funding_sub_tier_agency_co = fuzzy.FuzzyText()
     funding_sub_tier_agency_na = fuzzy.FuzzyText()
+    is_historical = fuzzy.FuzzyChoice([True, False])
     legal_entity_address_line1 = fuzzy.FuzzyText()
     legal_entity_address_line2 = fuzzy.FuzzyText()
     legal_entity_address_line3 = fuzzy.FuzzyText()
