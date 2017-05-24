@@ -838,7 +838,7 @@ class DetachedAwardFinancialAssistance(Base):
         clean_kwargs = {k: v for k, v in kwargs.items() if hasattr(self, k)}
         super(DetachedAwardFinancialAssistance, self).__init__(**clean_kwargs)
 
-
+# TODO update /dataactcore/scripts/loadHistoricalFabs when this model changes
 class PublishedAwardFinancialAssistance(Base):
     """Model for D2-Award (Financial Assistance)."""
     __tablename__ = "published_award_financial_assistance"
