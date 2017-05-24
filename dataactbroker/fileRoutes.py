@@ -176,8 +176,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                                                Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
                                                Job.number_of_errors != 0, Job.file_size.isnot(None))
         check_header_errors = sess.query(Job).filter(Job.submission_id == submission_id,
-                                               Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
-                                               Job.job_status_id != 4, Job.file_size.isnot(None))
+                                                     Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
+                                                     Job.job_status_id != 4, Job.file_size.isnot(None))
         if validate_data.count() or check_header_errors.count() > 0:
             data = {
                     "message": "The current progress of this submission ID is on /v1/validateData/ page.",
@@ -195,6 +195,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                 "step": "2"
             }
             return JsonResponse.create(StatusCode.OK, data)
+
+        else:
+            return JsonResponse.error(ValueError("The submisssion ID returns no response"), StatusCode.CLIENT_ERROR)
 
     @app.route("/v1/generate_file/", methods=["POST"])
     @convert_to_submission_id
