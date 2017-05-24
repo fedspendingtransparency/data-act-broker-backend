@@ -218,8 +218,8 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
 
     # For each rule, execute sql for rule
     for rule in rules:
-        logger.info('VALIDATOR_INFO: Running query: %s on job %s, submission %s',
-                    rule.query_name, job.job_id, job.submission_id)
+        logger.info('Running query: %s on {submission_id: %s, job_id: %s}',
+                    rule.query_name, job.submission_id, job.job_id)
         failures = sess.execute(rule.rule_sql.format(job.submission_id))
         if failures.rowcount:
             # Create column list (exclude row_number)
@@ -234,9 +234,8 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
             errors.extend(failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, failure)
                           for failure in failures)
 
-        logger.info('VALIDATOR_INFO: Completed SQL validation query %s on job %s, submission %s',
-                    rule.query_name, job.job_id, job.submission_id)
-
+        logger.info('Completed SQL validation query %s on {submission_id: %s, job_id: %s}',
+                    rule.query_name, job.submission_id, job.job_id)
 
     return errors
 

@@ -145,10 +145,10 @@ class ValidationManager:
 
         error_list = ErrorInterface()
 
-        logger.info(
-            'VALIDATOR_INFO: Beginning run_validation on job_id: %s', job_id)
-
         submission_id = job.submission_id
+
+        logger.info(
+            'Beginning run_validation on {submission_id: %s, job_id: %s}', submission_id, job_id)
 
         row_number = 1
         file_type = job.file_type.name
@@ -269,8 +269,8 @@ class ValidationManager:
                         if fatal:
                             error_rows.append(row_number)
 
-                logger.info('VALIDATOR_INFO: Loading complete on job_id: %s. Total rows added to staging: %s', job_id,
-                            row_number)
+                logger.info('Loading complete on {submission_id: %s, job_id: %s}. Total rows added to staging: %s',
+                            submission_id, job_id, row_number)
 
                 if file_type in ('appropriations', 'program_activity', 'award_financial'):
                     update_tas_ids(model, submission_id)
@@ -314,7 +314,8 @@ class ValidationManager:
         finally:
             # Ensure the file always closes
             reader.close()
-            logger.info('VALIDATOR_INFO: Completed L1 and SQL rule validations on job_id: %s', job_id)
+            logger.info('Completed L1 and SQL rule validations on {submission_id: %s, job_id: %s}',
+                        submission_id, job_id)
         return True
 
     def run_sql_validations(self, job, file_type, short_colnames, writer, warning_writer, row_number, error_list):
