@@ -1059,7 +1059,7 @@ def get_delete_data(contract_type, now, sess, last_run):
 
         # Every 100 lines, log which one we're on so we can keep track of how far we are
         if i % 100 == 0:
-            logger.info("On line " + str(i)+ " of %s delete feed", contract_type)
+            logger.info("On line " + str(i) + " of %s delete feed", contract_type)
 
         # if we got less than 10 records, we can stop calling the feed
         if len(listed_data) < 10:
