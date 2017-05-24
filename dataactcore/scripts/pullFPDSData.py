@@ -741,9 +741,12 @@ def calculate_remaining_fields(obj, sess):
                 'transaction_number']
     unique_string = ""
     for item in key_list:
-        if obj[item]:
-            unique_string += obj[item]
-        else:
+        try:
+            if obj[item]:
+                unique_string += obj[item]
+            else:
+                unique_string += "-none-"
+        except KeyError:
             unique_string += "-none-"
 
     # The order of the unique key is agency_id, referenced_idv_agency_iden, piid, award_modification_amendme,
