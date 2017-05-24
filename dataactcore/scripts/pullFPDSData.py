@@ -991,7 +991,7 @@ def get_data(contract_type, award_type, now, sess, last_run=None):
     # params = 'PIID:"0046"+REF_IDV_PIID:"W56KGZ15A6000"'
 
     i = 0
-    logger.info('Starting: ' + feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() +
+    logger.info('Starting get feed: ' + feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() +
                 '" AWARD_TYPE:"' + award_type + '"')
     while True:
         resp = requests.get(feed_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '" AWARD_TYPE:"' +
@@ -1011,7 +1011,7 @@ def get_data(contract_type, award_type, now, sess, last_run=None):
 
         # Log which one we're on so we can keep track of how far we are (different numbers for different pulls)
         if i % log_interval == 0:
-            logger.info("On line " + str(i))
+            logger.info("On line " + str(i) + " of get %s: %s feed", contract_type, award_type)
 
             # every 100,000 records, add the data to the session and clear the data array so we don't run into
             # a memory error. This can be done inside the 100 tracker because 100,000 is divisible by 100
@@ -1025,7 +1025,7 @@ def get_data(contract_type, award_type, now, sess, last_run=None):
         if len(listed_data) < 10:
             break
 
-    logger.info(i)
+    logger.info("Total entries in %s: %s feed: " + str(i), contract_type, award_type)
 
     # insert whatever is left
     process_and_add(data, contract_type, sess, last_run)
@@ -1040,7 +1040,7 @@ def get_delete_data(contract_type, now, sess, last_run):
     params = 'LAST_MOD_DATE:[' + last_run_date.strftime('%Y/%m/%d') + ',' + yesterday.strftime('%Y/%m/%d') + '] '
 
     i = 0
-    logger.info('Starting: ' + delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"')
+    logger.info('Starting delete feed: ' + delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"')
     while True:
         resp = requests.get(delete_url + params + 'CONTRACT_TYPE:"' + contract_type.upper() + '"&start=' + str(i),
                             timeout=60)
@@ -1059,13 +1059,13 @@ def get_delete_data(contract_type, now, sess, last_run):
 
         # Every 100 lines, log which one we're on so we can keep track of how far we are
         if i % 100 == 0:
-            logger.info("On line " + str(i))
+            logger.info("On line " + str(i)+ " of %s delete feed", contract_type)
 
         # if we got less than 10 records, we can stop calling the feed
         if len(listed_data) < 10:
             break
 
-    logger.info(i)
+    logger.info("Total entries in %s delete feed: " + str(i), contract_type)
 
     delete_list = []
     for value in data:
