@@ -18,7 +18,7 @@ services:
     broker_api_port: 3333
     validator_host: 127.0.0.1
     validator_port: 3334
-    error_report_path: error_report_path: /full/path/to/local/error/reports
+    error_report_path: /full/path/to/local/error/reports
 
 db:
 
@@ -26,15 +26,9 @@ db:
     host: localhost
     port: 5432
     base_db_name: postgres #This is the default db on the instance.
-    job_queue_db_name: da_job_queue # Job queue db
     db_name: data_broker
 
 logging:
 
     log_files: /full/path/to/local/logfiles
 
-job-queue:
-
-    url: localhost
-    port: 5672
-    broker_scheme: amqp
