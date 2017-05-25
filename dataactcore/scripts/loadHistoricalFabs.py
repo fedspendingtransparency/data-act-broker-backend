@@ -42,31 +42,30 @@ def parse_fabs_file(f, sess):
 
     data = format_fabs_data(data)
 
-    # Delete previously loaded historical data
-    # [db.session.delete(elem) for elem in DbTable.query.filter_by(is_historical=specific_val).all()]
-
     # insert to db
+    logger.info("inserting "+str(len(data.index))+" rows")
     table_name = PublishedAwardFinancialAssistance.__table__.name
     num = insert_dataframe(data, table_name, sess.connection())
     sess.commit()
 
 def format_fabs_data(data):
-    # NOTE: commented out lines are due to the PublishedAwardFinancialAssistance model being unfinished.
-
-    # data['legal_entity_city_code'] = data.apply(lambda x: format_integer_code(x, 'recipient_city_code', 5), axis=1)
-    # data['legal_entity_county_code'] =data.apply(lambda x: format_integer_code(x, 'recipient_county_code', 3), axis=1)
+    # NOTE: commented out lines are due to the PublishedAwardFinancialAssistance model being unfinished
+    
+    # data['recipient_city_code'] = data.apply(lambda x: format_integer_code(x, 'recipient_city_code', 5), axis=1)
+    # data['recipient_county_code'] = data.apply(lambda x: format_integer_code(x, 'recipient_county_code', 3), axis=1)
     data['legal_entity_zip5'] = data.apply(lambda x: format_zip_five(x), axis=1)
     data['legal_entity_zip_last4'] = data.apply(lambda x: format_zip_four(x), axis=1)
-    data['period_of_performance_curr'] = data.apply(lambda x: format_date(x, 'ending_date'), axis=1)
-    data['period_of_performance_star'] = data.apply(lambda x: format_date(x, 'starting_date'), axis=1)
-    data['place_of_performance_zip4a'] = data.apply(lambda x: format_full_zip(x), axis=1)
-    data['place_of_performance_congr'] = data.apply(lambda x: format_pop_congr(x), axis=1)
+    data['ending_date'] = data.apply(lambda x: format_date(x, 'ending_date'), axis=1)
+    data['starting_date'] = data.apply(lambda x: format_date(x, 'starting_date'), axis=1)
+    data['principal_place_zip'] = data.apply(lambda x: format_full_zip(x), axis=1)
+    data['principal_place_cd'] = data.apply(lambda x: format_pop_congr(x), axis=1)
     # data['place_of_perform_city'] = data.apply(lambda x: format_cc_code(x, False), axis=1) 
     # data['place_of_perform_county_na'] = data.apply(lambda x: format_cc_code(x, True), axis=1)
     data['record_type'] = data.apply(lambda x: format_record_type(x), axis=1)
     data['total_funding_amount'] = data.apply(lambda x: format_total_funding(x), axis=1)
+    data['is_historical'] = np.full(len(data.index), True, dtype=bool)
 
-    cleaned_data = clean_data(
+    cdata = clean_data(
         data,
         PublishedAwardFinancialAssistance,
         {
@@ -101,10 +100,10 @@ def format_fabs_data(data):
             'legal_entity_zip_last4': 'legal_entity_zip_last4',
             'non_fed_funding_amount': 'non_federal_funding_amount',
             'orig_sub_guran': 'original_loan_subsidy_cost',
-            'period_of_performance_curr': 'period_of_performance_curr',
-            'period_of_performance_star': 'period_of_performance_star',
+            'ending_date': 'period_of_performance_curr',
+            'starting_date': 'period_of_performance_star',
             'principal_place_code': 'place_of_performance_code',
-            'place_of_performance_congr': 'place_of_performance_congr',
+            'principal_place_cd': 'place_of_performance_congr',
             'principal_place_zip': 'place_of_performance_zip4a',
             # 'place_of_perform_city': 'place_of_perform_city',
             'principal_place_country_code': 'place_of_perform_country_c',
@@ -113,7 +112,8 @@ def format_fabs_data(data):
             'record_type': 'record_type',
             'sai_number': 'sai_number',
             'total_funding_amount': 'total_funding_amount',
-            'uri': 'uri'
+            'uri': 'uri',
+            'is_historical': 'is_historical'
         }, {
             'place_of_performance_congr': {'pad_to_length': 2, 'keep_null': True},
             'awardee_or_recipient_uniqu': {'pad_to_length': 9, 'keep_null': True}
@@ -122,13 +122,19 @@ def format_fabs_data(data):
 
     # Make a pass through the dataframe, changing any empty values to None, to ensure that those are represented as 
     # NULL in the db.
-    cleaned_data = cleaned_data.replace(np.nan, '', regex=True)
-    cleaned_data = cleaned_data.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
+    cdata = cdata.replace(np.nan, '', regex=True)
+    cdata = cdata.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
 
-    sLength = len(cleaned_data['action_date'])
-    cleaned_data['is_historical'] = np.full(sLength, True, dtype=bool)
+    # drop rows with duplicate UniqueConstraints
+    length = len(cdata.index)
 
-    return cleaned_data
+    cdata = cdata[(~cdata.duplicated(subset=['awarding_sub_tier_agency_c', 'award_modification_amendme', 'fain', \
+            'uri'], keep='first')) | (cdata['awarding_sub_tier_agency_c'].isnull()) | \
+            (cdata['award_modification_amendme'].isnull()) | (cdata['fain'].isnull()) | (cdata['uri'].isnull())]
+    if len(cdata.index) < length:
+        logger.info('file contained '+str(length-len(cdata.index))+' duplicate(s)')
+
+    return cdata
 
 def format_integer_code(row, header, int_length):
     # row[header] is an integer of length int_length
@@ -211,6 +217,11 @@ def format_total_funding(row):
 
 def main():
     sess = GlobalDB.db().session
+
+    # delete previously loaded historical data
+    # logger.info('deleting previous historical data')
+    # historical_data = sess.query(PublishedAwardFinancialAssistance).filter_by(is_historical=True)
+    # [sess.delete(elem) for elem in historical_data]
 
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
