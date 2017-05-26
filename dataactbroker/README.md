@@ -801,6 +801,46 @@ List submissions for all agencies for which the current user is a member of. Opt
 }
 ```
 
+#### GET "/v1/list_agencies/"
+Gets all CGACS that the user has submit/certify permissions
+
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+    "cgac_agency_list": [
+      {
+        "agency_name": "Sample Agency",
+        "cgac_code": "000"
+      }, ...
+    ]
+}
+```
+
+#### GET "/v1/list_all_agencies/"
+Gets all CGACS
+
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+    "cgac_agency_list": [
+      {
+        "agency_name": "Sample Agency",
+        "cgac_code": "000"
+      }, ...
+    ]
+}
+```
+
 ## Generate Files
 **Route:** `/v1/generate_file`
 
