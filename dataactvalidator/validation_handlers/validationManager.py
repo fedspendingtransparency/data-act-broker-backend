@@ -376,8 +376,13 @@ class ValidationManager:
         submission_id = job.submission_id
         bucket_name = CONFIG_BROKER['aws_bucket']
         region_name = CONFIG_BROKER['aws_region']
-        logger.info('Beginning run_cross_validation on {submission_id: %s, job_id: %s}', submission_id, job.job_id)
-
+        logger.info({'message':('Beginning run_cross_validation on {submission_id: %s, job_id: %s}',
+                            submission_id, job.job_id),
+                            'submission_id':submission_id,
+                            'job_id':job.job_id,
+                            'action':'run_cross_validation'
+                            'state':'start'})
+        job_start = datetime.now()
         # Delete existing cross file errors for this submission
         sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == job_id).delete()
         sess.commit()
@@ -420,8 +425,14 @@ class ValidationManager:
 
         error_list.write_all_row_errors(job_id)
         mark_job_status(job_id, "finished")
-        logger.info('Completed run_cross_validation on {submission_id: %s, job_id: %s}',
-                    submission_id, job.job_id)
+        job_duration = "{:.2f}".format(datetime.now()-job_start)
+        logger.info({'message':('Completed run_cross_validation on {submission_id: %s, job_id: %s}',
+                            submission_id, job.job_id),
+                            'submission_id':submission_id,
+                            'job_id':job.job_id,
+                            'action':'run_cross_validation'
+                            'state':'finish'
+                            'duration':job_duration})
         submission = populate_submission_error_info(submission_id)
         # TODO: Remove temporary step below
         # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their
