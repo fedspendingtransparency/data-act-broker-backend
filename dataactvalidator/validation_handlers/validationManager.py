@@ -147,11 +147,19 @@ class ValidationManager:
 
         submission_id = job.submission_id
 
-        logger.info(
-            'Beginning run_validation on {submission_id: %s, job_id: %s}', submission_id, job_id)
-
         row_number = 1
         file_type = job.file_type.name
+        validation_start = datetime.now()
+
+        logger.info({'message':'Beginning run_validation on submission_id: '+str(submission_id)+\
+                ', job_id: '+job_id+', file_type: '+file_type,
+                            'message_type':'ValidatorInfo',
+                            'submission_id':submission_id,
+                            'job_id':job_id,
+                            'file_type':file_type,
+                            'action':'run_validations',
+                            'status':'start',
+                            'start_time': validation_start})
         # Get orm model for this file
         model = [ft.model for ft in FILE_TYPE if ft.name == file_type][0]
 
@@ -314,8 +322,20 @@ class ValidationManager:
         finally:
             # Ensure the file always closes
             reader.close()
-            logger.info('Completed L1 and SQL rule validations on {submission_id: %s, job_id: %s}',
-                        submission_id, job_id)
+
+            validation_duration = "{:.2f}".format(datetime.now()-validation_start)
+            logger.info({'message':'Completed run_validation on submission_id: '+str(submission_id)+\
+                ', job_id: '+job_id+', file_type: '+file_type,
+                            'message_type':'ValidatorInfo',
+                            'submission_id':submission_id,
+                            'job_id':job_id,
+                            'file_type':file_type,
+                            'action':'run_validation',
+                            'status':'finish',
+                            'start_time': validation_start,
+                            'end_time': datetime.now(),
+                            'duration':validation_duration})
+
         return True
 
     def run_sql_validations(self, job, file_type, short_colnames, writer, warning_writer, row_number, error_list):
