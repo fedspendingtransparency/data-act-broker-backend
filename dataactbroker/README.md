@@ -841,6 +841,27 @@ Example output:
 }
 ```
 
+#### GET "/v1/list_sub_tier_agencies/"
+Gets all CGACS that the user has submit/certify permissions
+
+Example input:
+
+None
+
+Example output:
+
+```json
+{
+    "sub_tier_agency_list": [
+      {
+        "agency_name": "Sample Agency",
+        "agency_code": "000",
+	"priority": "0"
+      }, ...
+    ]
+}
+```
+
 ## Generate Files
 **Route:** `/v1/generate_file`
 
