@@ -842,7 +842,7 @@ Example output:
 ```
 
 #### GET "/v1/list_sub_tier_agencies/"
-Gets all CGACS that the user has submit/certify permissions
+Gets all CGACS that the user has submit/certify permissions as well as all sub-tier agencies under said cgacs
 
 Example input:
 
