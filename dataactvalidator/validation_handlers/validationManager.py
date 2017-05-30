@@ -376,14 +376,16 @@ class ValidationManager:
         submission_id = job.submission_id
         bucket_name = CONFIG_BROKER['aws_bucket']
         region_name = CONFIG_BROKER['aws_region']
+        job_start = datetime.now()
         logger.info(
             {
-                'message': 'Beginning run_cross_validation on submission_id: ' + str(submission_id),
+                'message': 'Beginning cross-file validations on submission_id: ' + str(submission_id),
+                'message_type': 'ValidatorInfo',
                 'submission_id': submission_id,
                 'job_id': job.job_id,
                 'action': 'run_cross_validations',
+                'start': job_start,
                 'status': 'start'})
-        job_start = datetime.now()
         # Delete existing cross file errors for this submission
         sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == job_id).delete()
         sess.commit()
@@ -429,11 +431,13 @@ class ValidationManager:
         job_duration = "{:.2f}".format(datetime.now()-job_start)
         logger.info(
             {
-                'message': 'Completed run_cross_validation on submission_id: ' + str(submission_id),
+                'message': 'Completed cross-file validations on submission_id: ' + str(submission_id),
+                'message_type': 'ValidatorInfo',
                 'submission_id': submission_id,
                 'job_id': job.job_id,
                 'action': 'run_cross_validations',
                 'status': 'finish',
+                'start': job_start,
                 'duration': job_duration})
         submission = populate_submission_error_info(submission_id)
         # TODO: Remove temporary step below
