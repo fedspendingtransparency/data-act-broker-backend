@@ -220,23 +220,23 @@ class ValidationManager:
             # While not done, pull one row and put it into staging table if it passes
             # the Validator
 
+            loading_start = datetime.now()
+            logger.info(
+                {
+                    'message': 'Beginning data loading on submission_id: ' + str(submission_id) +
+                    ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                    'message_type': 'ValidatorInfo',
+                    'submission_id': submission_id,
+                    'job_id': job_id,
+                    'file_type': file_type,
+                    'action': 'data_loading',
+                    'status': 'start',
+                    'start_time': loading_start})
+
             with self.get_writer(region_name, bucket_name, error_file_name, self.reportHeaders) as writer, \
                     self.get_writer(region_name, bucket_name, warning_file_name, self.reportHeaders) as warning_writer:
                 while not reader.is_finished:
                     row_number += 1
-
-                    loading_start = datetime.now()
-                    logger.info(
-                        {
-                            'message': 'Beginning data loading on submission_id: ' + str(submission_id) +
-                            ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
-                            'message_type': 'ValidatorInfo',
-                            'submission_id': submission_id,
-                            'job_id': job_id,
-                            'file_type': file_type,
-                            'action': 'data_loading',
-                            'status': 'start',
-                            'start_time': loading_start})
 
                     if row_number % 100 == 0:
 
