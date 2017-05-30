@@ -1,6 +1,7 @@
 from collections import defaultdict, namedtuple
 from decimal import Decimal, DecimalException
 import logging
+import datetime
 
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
 from dataactcore.models.stagingModels import FlexField
@@ -159,13 +160,12 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
     conn = GlobalDB.db().connection
 
     for rule in rules:
-        logger.info({'message':'Started cross-file rule '+rule.query_name+' on submission_id: '+str(submission_id),
-            'rule':rule.query_name,
-            'job_id':job.job_id,
-            'submission_id':submission_id,
-            'action':'run_cross_validation_rule',
-            'status':'start'
-            })
+        logger.info({'message': 'Started cross-file rule '+rule.query_name+' on submission_id: '+str(submission_id),
+                    'rule': rule.query_name,
+                    'job_id': job.job_id,
+                    'submission_id': submission_id,
+                    'action': 'run_cross_validation_rule',
+                    'status': 'start'})
         rule_start = datetime.now()
         failed_rows = conn.execute(
             rule.rule_sql.format(submission_id))
@@ -201,13 +201,12 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
 
         rule_duration = "{:.2f}".format(datetime.now()-rule_start)
         logger.info({'message':'Completed cross-file rule '+rule.query_name+' on submission_id: '+str(submission_id),
-            'rule':rule.query_name,
-            'job_id':job.job_id,
-            'submission_id':submission_id,
-            'action':'run_cross_validation_rule',
-            'status':'finish',
-            'duration':rule_duration
-            })
+                    'rule': rule.query_name,
+                    'job_id': job.job_id,
+                    'submission_id': submission_id,
+                    'action': 'run_cross_validation_rule',
+                    'status': 'finish',
+                    'duration': rule_duration})
 
     # Return list of cross file validation failures
     return failures
