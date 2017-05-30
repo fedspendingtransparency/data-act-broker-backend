@@ -428,7 +428,7 @@ class ValidationManager:
 
         error_list.write_all_row_errors(job_id)
         mark_job_status(job_id, "finished")
-        job_duration = "{:.2f}".format(datetime.now()-job_start)
+        job_duration = (datetime.now()-job_start).total_seconds()
         logger.info(
             {
                 'message': 'Completed cross-file validations on submission_id: ' + str(submission_id),

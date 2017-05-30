@@ -204,7 +204,7 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
                                 str(rule.rule_error_message), values, row['row_number'], str(rule.rule_label),
                                 rule.file_id, rule.target_file_id, rule.rule_severity_id])
 
-        rule_duration = "{:.2f}".format(datetime.now()-rule_start)
+        rule_duration = (datetime.now()-rule_start).total_seconds()
         logger.info(
             {
                 'message': 'Completed cross-file rule '+rule.query_name+' on submission_id: '+str(submission_id),
