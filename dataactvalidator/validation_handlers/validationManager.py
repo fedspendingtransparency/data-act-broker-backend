@@ -154,7 +154,7 @@ class ValidationManager:
         logger.info(
             {
                 'message': 'Beginning run_validation on submission_id: ' + str(submission_id) +
-                ', job_id: ' + job_id + ', file_type: ' + file_type,
+                ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
                 'message_type': 'ValidatorInfo',
                 'submission_id': submission_id,
                 'job_id': job_id,
@@ -225,9 +225,34 @@ class ValidationManager:
                 while not reader.is_finished:
                     row_number += 1
 
-                    if row_number % 100 == 0:
-                        logger.info('loading row %s of submission %s', row_number, submission_id)
+                    loading_start = datetime.now()
+                    logger.info(
+                        {
+                            'message': 'Beginning data loading on submission_id: ' + str(submission_id) +
+                            ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                            'message_type': 'ValidatorInfo',
+                            'submission_id': submission_id,
+                            'job_id': job_id,
+                            'file_type': file_type,
+                            'action': 'data_loading',
+                            'status': 'start',
+                            'start_time': loading_start})
 
+                    if row_number % 100 == 0:
+
+                        logger.info(
+                            {
+                                'message': 'Loading row: ' + str(row_number) + ' on submission_id: ' +
+                                str(submission_id) + ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                                'message_type': 'ValidatorInfo',
+                                'submission_id': submission_id,
+                                'job_id': job_id,
+                                'file_type': file_type,
+                                'action': 'data_loading',
+                                'status': 'loading',
+                                'rows_loaded': row_number,
+                                'start_time': loading_start,
+                                'elapsed_time': "{:.2f}".format(datetime.now()-loading_start)})
                     #
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
@@ -279,8 +304,22 @@ class ValidationManager:
                         if fatal:
                             error_rows.append(row_number)
 
-                logger.info('Loading complete on {submission_id: %s, job_id: %s}. Total rows added to staging: %s',
-                            submission_id, job_id, row_number)
+                loading_duration = "{:.2f}".format(datetime.now()-loading_start)
+                logger.info(
+                    {
+                        'message': 'Completed data loading on submission_id: ' + str(submission_id) +
+                        ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                        'message_type': 'ValidatorInfo',
+                        'submission_id': submission_id,
+                        'job_id': job_id,
+                        'file_type': file_type,
+                        'action': 'data_loading',
+                        'status': 'finish',
+                        'start_time': loading_start,
+                        'end_time': datetime.now(),
+                        'duration': loading_duration,
+                        'total_rows': row_number
+                    })
 
                 if file_type in ('appropriations', 'program_activity', 'award_financial'):
                     update_tas_ids(model, submission_id)
@@ -329,7 +368,7 @@ class ValidationManager:
             logger.info(
                 {
                     'message': 'Completed run_validation on submission_id: ' + str(submission_id) +
-                    ', job_id: ' + job_id + ', file_type: ' + file_type,
+                    ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
                     'message_type': 'ValidatorInfo',
                     'submission_id': submission_id,
                     'job_id': job_id,

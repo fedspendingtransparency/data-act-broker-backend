@@ -1,6 +1,7 @@
 from collections import defaultdict, namedtuple
 from decimal import Decimal, DecimalException
 import logging
+import datetime
 
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
 from dataactcore.models.stagingModels import FlexField
@@ -207,8 +208,18 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
         List of ValidationFailures
     """
 
-    logger.info('VALIDATOR_INFO: Beginning SQL validation rules on job %s, (submission: %s, fileType: %s)',
-                job.job_id, job.submission_id, file_type)
+    sql_val_start = datetime.now()
+    logger.info(
+        {
+            'message': 'Beginning SQL validations on submission_id: ' + str(job.submission_id) +
+            ', job_id: ' + str(job.job_id) + ', file_type: ' + job.file_type.name,
+            'message_type': 'ValidatorInfo',
+            'submission_id': job.submission_id,
+            'job_id': job.job_id,
+            'file_type': job.file_type.name,
+            'action': 'run_sql_validations',
+            'status': 'start',
+            'start_time': sql_val_start})
     sess = GlobalDB.db().session
 
     # Pull all SQL rules for this file type
@@ -218,8 +229,21 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
 
     # For each rule, execute sql for rule
     for rule in rules:
-        logger.info('Running query: %s on {submission_id: %s, job_id: %s}',
-                    rule.query_name, job.submission_id, job.job_id)
+
+        rule_start = datetime.now()
+        logger.info(
+            {
+                'message': 'Beginning SQL validation rule ' + rule.query_name + ' on submission_id: ' +
+                str(job.submission_id) + ', job_id: ' + str(job.job_id) + ', file_type: ' + job.file_type.name,
+                'message_type': 'ValidatorInfo',
+                'submission_id': job.submission_id,
+                'job_id': job.job_id,
+                'rule': rule.query_name,
+                'file_type': job.file_type.name,
+                'action': 'run_sql_validation_rule',
+                'status': 'start',
+                'start_time': rule_start})
+
         failures = sess.execute(rule.rule_sql.format(job.submission_id))
         if failures.rowcount:
             # Create column list (exclude row_number)
@@ -234,9 +258,38 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
             errors.extend(failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, failure)
                           for failure in failures)
 
-        logger.info('Completed SQL validation query %s on {submission_id: %s, job_id: %s}',
-                    rule.query_name, job.submission_id, job.job_id)
+        rule_duration = "{:.2f}".format(datetime.now() - rule_start)
+        logger.info(
+            {
+                'message': 'Completed SQL validation rule ' + rule.query_name + ' on submission_id: ' +
+                str(job.submission_id) + ', job_id: ' + str(job.job_id) + ', file_type: ' + job.file_type.name,
+                'message_type': 'ValidatorInfo',
+                'submission_id': job.submission_id,
+                'job_id': job.job_id,
+                'rule': rule.query_name,
+                'file_type': job.file_type.name,
+                'action': 'run_sql_validation_rule',
+                'status': 'finish',
+                'start_time': rule_start,
+                'end_time': datetime.now(),
+                'duration': rule_duration
+            })
 
+    sql_val_duration = "{:.2f}".format(datetime.now()-sql_val_start)
+    logger.info(
+        {
+            'message': 'Completed SQL validations  on submission_id: ' + str(job.submission_id) +
+            ', job_id: ' + str(job.job_id) + ', file_type: ' + job.file_type.name,
+            'message_type': 'ValidatorInfo',
+            'submission_id': job.submission_id,
+            'job_id': job.job_id,
+            'file_type': job.file_type.name,
+            'action': 'run_sql_validations',
+            'status': 'finish',
+            'start_time': sql_val_start,
+            'end_time': datetime.now(),
+            'duration': sql_val_duration
+        })
     return errors
 
 
