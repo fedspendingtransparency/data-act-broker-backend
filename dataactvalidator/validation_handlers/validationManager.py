@@ -240,6 +240,7 @@ class ValidationManager:
 
                     if row_number % 100 == 0:
 
+                        elapsed_time = (datetime.now()-loading_start).total_seconds()
                         logger.info(
                             {
                                 'message': 'Loading row: ' + str(row_number) + ' on submission_id: ' +
@@ -252,7 +253,7 @@ class ValidationManager:
                                 'status': 'loading',
                                 'rows_loaded': row_number,
                                 'start_time': loading_start,
-                                'elapsed_time': "{:.2f}".format(datetime.now()-loading_start)})
+                                'elapsed_time': elapsed_time})
                     #
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
@@ -304,7 +305,7 @@ class ValidationManager:
                         if fatal:
                             error_rows.append(row_number)
 
-                loading_duration = "{:.2f}".format(datetime.now()-loading_start)
+                loading_duration = (datetime.now()-loading_start).total_seconds()
                 logger.info(
                     {
                         'message': 'Completed data loading on submission_id: ' + str(submission_id) +
@@ -364,7 +365,7 @@ class ValidationManager:
             # Ensure the file always closes
             reader.close()
 
-            validation_duration = "{:.2f}".format(datetime.now()-validation_start)
+            validation_duration = (datetime.now()-validation_start).total_seconds()
             logger.info(
                 {
                     'message': 'Completed run_validation on submission_id: ' + str(submission_id) +

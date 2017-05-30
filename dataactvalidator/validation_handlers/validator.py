@@ -258,7 +258,7 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
             errors.extend(failure_row_to_tuple(rule, flex_data, cols, col_headers, file_id, failure)
                           for failure in failures)
 
-        rule_duration = "{:.2f}".format(datetime.now() - rule_start)
+        rule_duration = (datetime.now() - rule_start).total_seconds()
         logger.info(
             {
                 'message': 'Completed SQL validation rule ' + rule.query_name + ' on submission_id: ' +
@@ -275,7 +275,7 @@ def validate_file_by_sql(job, file_type, short_to_long_dict):
                 'duration': rule_duration
             })
 
-    sql_val_duration = "{:.2f}".format(datetime.now()-sql_val_start)
+    sql_val_duration = (datetime.now()-sql_val_start).total_seconds()
     logger.info(
         {
             'message': 'Completed SQL validations  on submission_id: ' + str(job.submission_id) +
