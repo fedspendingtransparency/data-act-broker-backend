@@ -432,18 +432,32 @@ class ValidationManager:
         return error_rows
 
     def run_cross_validation(self, job):
-        """ Cross file validation job, test all rules with matching rule_timing """
+        """ Cross file validation job. Test all rules with matching rule_timing.
+            Run each cross-file rule and create error report.
+
+            Args:
+                job: Current job
+        """
         sess = GlobalDB.db().session
         job_id = job.job_id
         # Create File Status object
         create_file_if_needed(job_id)
+        # Create list of errors
         error_list = ErrorInterface()
 
         submission_id = job.submission_id
         bucket_name = CONFIG_BROKER['aws_bucket']
         region_name = CONFIG_BROKER['aws_region']
-        logger.info('VALIDATOR_INFO: Beginning run_cross_validation on submission_id: %s', submission_id)
-
+        job_start = datetime.now()
+        logger.info(
+            {
+                'message': 'Beginning cross-file validations on submission_id: ' + str(submission_id),
+                'message_type': 'ValidatorInfo',
+                'submission_id': submission_id,
+                'job_id': job.job_id,
+                'action': 'run_cross_validations',
+                'start': job_start,
+                'status': 'start'})
         # Delete existing cross file errors for this submission
         sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == job_id).delete()
         sess.commit()
@@ -462,7 +476,7 @@ class ValidationManager:
                 RuleSql.target_file_id == first_file.id)))
             # send comboRules to validator.crossValidate sql
             failures = cross_validate_sql(combo_rules.all(), submission_id, self.short_to_long_dict, first_file.id,
-                                          second_file.id)
+                                          second_file.id, job)
             # get error file name
             report_filename = self.get_file_name(report_file_name(submission_id, False, first_file.name,
                                                                   second_file.name))
@@ -481,12 +495,26 @@ class ValidationManager:
                     error_list.record_row_error(job_id, "cross_file",
                                                 failure[0], failure[3], failure[5], failure[6],
                                                 failure[7], failure[8], severity_id=failure[9])
+                # write the last unfinished batch
                 writer.finish_batch()
                 warning_writer.finish_batch()
 
+        # write all recorded errors to database
         error_list.write_all_row_errors(job_id)
+        # mark job status as "finished"
         mark_job_status(job_id, "finished")
-        logger.info('VALIDATOR_INFO: Completed run_cross_validation on submission_id: %s', submission_id)
+        job_duration = (datetime.now()-job_start).total_seconds()
+        logger.info(
+            {
+                'message': 'Completed cross-file validations on submission_id: ' + str(submission_id),
+                'message_type': 'ValidatorInfo',
+                'submission_id': submission_id,
+                'job_id': job.job_id,
+                'action': 'run_cross_validations',
+                'status': 'finish',
+                'start': job_start,
+                'duration': job_duration})
+        # set number of errors and warnings for submission.
         submission = populate_submission_error_info(submission_id)
         # TODO: Remove temporary step below
         # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their
