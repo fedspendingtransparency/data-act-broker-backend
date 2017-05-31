@@ -145,13 +145,23 @@ class ValidationManager:
 
         error_list = ErrorInterface()
 
-        logger.info(
-            'VALIDATOR_INFO: Beginning run_validation on job_id: %s', job_id)
-
         submission_id = job.submission_id
 
         row_number = 1
         file_type = job.file_type.name
+        validation_start = datetime.now()
+
+        logger.info(
+            {
+                'message': 'Beginning run_validation on submission_id: ' + str(submission_id) +
+                ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                'message_type': 'ValidatorInfo',
+                'submission_id': submission_id,
+                'job_id': job_id,
+                'file_type': file_type,
+                'action': 'run_validations',
+                'status': 'start',
+                'start_time': validation_start})
         # Get orm model for this file
         model = [ft.model for ft in FILE_TYPE if ft.name == file_type][0]
 
@@ -210,14 +220,40 @@ class ValidationManager:
             # While not done, pull one row and put it into staging table if it passes
             # the Validator
 
+            loading_start = datetime.now()
+            logger.info(
+                {
+                    'message': 'Beginning data loading on submission_id: ' + str(submission_id) +
+                    ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                    'message_type': 'ValidatorInfo',
+                    'submission_id': submission_id,
+                    'job_id': job_id,
+                    'file_type': file_type,
+                    'action': 'data_loading',
+                    'status': 'start',
+                    'start_time': loading_start})
+
             with self.get_writer(region_name, bucket_name, error_file_name, self.reportHeaders) as writer, \
                     self.get_writer(region_name, bucket_name, warning_file_name, self.reportHeaders) as warning_writer:
                 while not reader.is_finished:
                     row_number += 1
 
                     if row_number % 100 == 0:
-                        logger.info('loading row %s of submission %s', row_number, submission_id)
 
+                        elapsed_time = (datetime.now()-loading_start).total_seconds()
+                        logger.info(
+                            {
+                                'message': 'Loading row: ' + str(row_number) + ' on submission_id: ' +
+                                str(submission_id) + ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                                'message_type': 'ValidatorInfo',
+                                'submission_id': submission_id,
+                                'job_id': job_id,
+                                'file_type': file_type,
+                                'action': 'data_loading',
+                                'status': 'loading',
+                                'rows_loaded': row_number,
+                                'start_time': loading_start,
+                                'elapsed_time': elapsed_time})
                     #
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
@@ -269,8 +305,22 @@ class ValidationManager:
                         if fatal:
                             error_rows.append(row_number)
 
-                logger.info('VALIDATOR_INFO: Loading complete on job_id: %s. Total rows added to staging: %s', job_id,
-                            row_number)
+                loading_duration = (datetime.now()-loading_start).total_seconds()
+                logger.info(
+                    {
+                        'message': 'Completed data loading on submission_id: ' + str(submission_id) +
+                        ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                        'message_type': 'ValidatorInfo',
+                        'submission_id': submission_id,
+                        'job_id': job_id,
+                        'file_type': file_type,
+                        'action': 'data_loading',
+                        'status': 'finish',
+                        'start_time': loading_start,
+                        'end_time': datetime.now(),
+                        'duration': loading_duration,
+                        'total_rows': row_number
+                    })
 
                 if file_type in ('appropriations', 'program_activity', 'award_financial'):
                     update_tas_ids(model, submission_id)
@@ -314,7 +364,23 @@ class ValidationManager:
         finally:
             # Ensure the file always closes
             reader.close()
-            logger.info('VALIDATOR_INFO: Completed L1 and SQL rule validations on job_id: %s', job_id)
+
+            validation_duration = (datetime.now()-validation_start).total_seconds()
+            logger.info(
+                {
+                    'message': 'Completed run_validation on submission_id: ' + str(submission_id) +
+                    ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                    'message_type': 'ValidatorInfo',
+                    'submission_id': submission_id,
+                    'job_id': job_id,
+                    'file_type': file_type,
+                    'action': 'run_validation',
+                    'status': 'finish',
+                    'start_time': validation_start,
+                    'end_time': datetime.now(),
+                    'duration': validation_duration
+                })
+
         return True
 
     def run_sql_validations(self, job, file_type, short_colnames, writer, warning_writer, row_number, error_list):
