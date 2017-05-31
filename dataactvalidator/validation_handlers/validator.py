@@ -1,5 +1,6 @@
 from collections import defaultdict, namedtuple
 from decimal import Decimal, DecimalException
+from datetime import datetime
 import logging
 
 from dataactcore.models.lookups import FIELD_TYPE_DICT_ID, FILE_TYPE_DICT_ID, FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER
@@ -147,7 +148,7 @@ class Validator(object):
         raise ValueError("".join(["Data Type Error, Type: ", datatype, ", Value: ", data]))
 
 
-def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, second_file):
+def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, second_file, job):
     """ Evaluate all sql-based rules for cross file validation
 
     Args:
@@ -159,6 +160,18 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
     conn = GlobalDB.db().connection
 
     for rule in rules:
+
+        rule_start = datetime.now()
+        logger.info(
+            {
+                'message': 'Beginning cross-file rule '+rule.query_name+' on submission_id: '+str(submission_id),
+                'message_type': 'ValidatorInfo',
+                'rule': rule.query_name,
+                'job_id': job.job_id,
+                'submission_id': submission_id,
+                'action': 'run_cross_validation_rule',
+                'status': 'start',
+                'start': rule_start})
         failed_rows = conn.execute(
             rule.rule_sql.format(submission_id))
         if failed_rows.rowcount:
@@ -190,6 +203,19 @@ def cross_validate_sql(rules, submission_id, short_to_long_dict, first_file, sec
                 failures.append([rule.file.name, target_file_type, full_column_string,
                                 str(rule.rule_error_message), values, row['row_number'], str(rule.rule_label),
                                 rule.file_id, rule.target_file_id, rule.rule_severity_id])
+
+        rule_duration = (datetime.now()-rule_start).total_seconds()
+        logger.info(
+            {
+                'message': 'Completed cross-file rule '+rule.query_name+' on submission_id: '+str(submission_id),
+                'message_type': 'ValidatorInfo',
+                'rule': rule.query_name,
+                'job_id': job.job_id,
+                'submission_id': submission_id,
+                'action': 'run_cross_validation_rule',
+                'status': 'finish',
+                'start': rule_start,
+                'duration': rule_duration})
 
     # Return list of cross file validation failures
     return failures
