@@ -150,7 +150,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.create(StatusCode.OK, data)
 
         # /v1/generateEF/
-        generate_ef = sess.query(Job).filter(Job.submission_id == submission_id, Job.file_type_id == 4,
+        generate_ef = sess.query(Job).filter(Job.submission_id == submission_id, Job.job_type_id == 4,
                                              Job.job_status_id == 4)
         if generate_ef.count() > 0:
             data = {
