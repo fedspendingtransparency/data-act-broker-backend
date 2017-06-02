@@ -7,9 +7,16 @@ import zipfile
 import numpy as np
 import pandas as pd
 
+from math import ceil
+
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
+
 from dataactcore.logging import configure_logging
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
+from dataactcore.models.jobModels import Submission # noqa
+from dataactcore.models.userModel import User # noqa
 from dataactcore.models.stagingModels import PublishedAwardFinancialAssistance
 
 from dataactvalidator.health_check import create_app
@@ -40,17 +47,48 @@ def parse_fabs_file(f, sess):
         'recipient_state_code'
     ])
 
-    data = format_fabs_data(data)
+    (to_create, to_update, to_delete) = format_fabs_data(data)
+
+    # delete records
+    if len(to_delete.index) > 0:
+        logger.info("deleting "+str(len(to_delete.index))+" rows")
+    for index, row in to_delete.iterrows():
+        records = sess.query(PublishedAwardFinancialAssistance).filter_by(
+            awarding_sub_tier_agency_c = row['awarding_sub_tier_agency_c'], fain = row['fain'],
+            award_modification_amendme = row['award_modification_amendme'],  uri = row['uri']
+        )
+        records.delete(synchronize_session='fetch')
 
     # insert to db
-    logger.info("inserting "+str(len(data.index))+" rows")
-    table_name = PublishedAwardFinancialAssistance.__table__.name
-    num = insert_dataframe(data, table_name, sess.connection())
-    sess.commit()
+    to_load = pd.concat([to_create, to_update])
+    if len(to_load.index) > 0:
+        logger.info("loading "+str(len(to_create.index))+" new rows and updating "+str(len(to_update.index))+" rows")
+    count = 1
+    for index, row in to_load.iterrows():
+        if count % 100000 == 0 or count == len(to_load.index):
+            logger.info("finished "+str(count)+" rows")
+        try:
+            statement = insert(PublishedAwardFinancialAssistance).values(**row)
+            sess.execute(statement)
+            sess.commit()
+        except IntegrityError: 
+            sess.rollback()
+            stmt = insert(PublishedAwardFinancialAssistance).values(**row)
+            update_dict = {
+                c.name: row[c.name] 
+                for c in stmt.excluded 
+                if not c.primary_key
+            }
+            new_stmt = stmt.on_conflict_do_update(constraint='uniq_award_mod_sub_tier_fain_uri', set_=update_dict)
+            sess.execute(new_stmt)
+            sess.commit()
+        count = count + 1
 
 def format_fabs_data(data):
     # NOTE: commented out lines are due to the PublishedAwardFinancialAssistance model being unfinished
+    logger.info("formatting data")
     
+    data['correction_late_ind'] = data.apply(lambda x: format_correction_ind(x), axis=1)
     # data['recipient_city_code'] = data.apply(lambda x: format_integer_code(x, 'recipient_city_code', 5), axis=1)
     # data['recipient_county_code'] = data.apply(lambda x: format_integer_code(x, 'recipient_county_code', 3), axis=1)
     data['legal_entity_zip5'] = data.apply(lambda x: format_zip_five(x), axis=1)
@@ -63,7 +101,14 @@ def format_fabs_data(data):
     # data['place_of_perform_county_na'] = data.apply(lambda x: format_cc_code(x, True), axis=1)
     data['record_type'] = data.apply(lambda x: format_record_type(x), axis=1)
     data['total_funding_amount'] = data.apply(lambda x: format_total_funding(x), axis=1)
-    data['is_historical'] = np.full(len(data.index), True, dtype=bool)
+    data['is_historical'] = np.full(len(data.index), True, dtype=bool) 
+
+    null_list = ['awarding_sub_tier_agency_n', 'awarding_agency_code', 'awarding_agency_name', 'awarding_office_code', 
+        'funding_agency_name', 'funding_agency_code', 'funding_office_code', 'funding_sub_tier_agency_co', 
+        'funding_sub_tier_agency_na', 'legal_entity_foreign_city', 'legal_entity_foreign_posta', 
+        'legal_entity_foreign_provi', 'place_of_performance_forei']
+    for item in null_list: 
+        data[item] = None
 
     cdata = clean_data(
         data,
@@ -75,7 +120,11 @@ def format_fabs_data(data):
             'project_description': 'award_description',
             'recipient_name': 'awardee_or_recipient_legal',
             'duns_no': 'awardee_or_recipient_uniqu',
-            'agency_code': 'awarding_sub_tier_agency_c',
+            'awarding_agency_code': 'awarding_agency_code',
+            'awarding_agency_name': 'awarding_agency_name',
+            'awarding_office_code': 'awarding_office_code',
+            'agency_code': 'awarding_sub_tier_agency_c',    
+            'awarding_sub_tier_agency_n': 'awarding_sub_tier_agency_n',
             'federal_award_mod': 'award_modification_amendme',
             'rec_flag': 'business_funds_indicator',
             'recipient_type': 'business_types',
@@ -86,6 +135,12 @@ def format_fabs_data(data):
             'federal_award_id': 'fain',
             'fed_funding_amount': 'federal_action_obligation',
             'fyq_correction': 'fiscal_year_and_quarter_co',
+            'funding_agency_name': 'funding_agency_name',
+            'funding_agency_code': 'funding_agency_code',
+            'funding_office_code': 'funding_office_code',
+            'funding_sub_tier_agency_co': 'funding_sub_tier_agency_co',
+            'funding_sub_tier_agency_na': 'funding_sub_tier_agency_na',
+            'is_historical': 'is_historical',
             'receip_addr1': 'legal_entity_address_line1',
             'receip_addr2': 'legal_entity_address_line2',
             'receip_addr3': 'legal_entity_address_line3',
@@ -95,6 +150,9 @@ def format_fabs_data(data):
             'recipient_country_code': 'legal_entity_country_code',
             # 'recipient_county_code': 'legal_entity_county_code',
             # 'recipient_county_name': 'legal_entity_county_name',
+            'legal_entity_foreign_city': 'legal_entity_foreign_city',
+            'legal_entity_foreign_posta': 'legal_entity_foreign_posta',
+            'legal_entity_foreign_provi': 'legal_entity_foreign_provi',
             # 'recipient_state_code': 'legal_entity_state_code',
             'legal_entity_zip5': 'legal_entity_zip5',
             'legal_entity_zip_last4': 'legal_entity_zip_last4',
@@ -104,16 +162,16 @@ def format_fabs_data(data):
             'starting_date': 'period_of_performance_star',
             'principal_place_code': 'place_of_performance_code',
             'principal_place_cd': 'place_of_performance_congr',
+            'principal_place_country_code': 'place_of_perform_country_c',
+            'place_of_performance_forei': 'place_of_performance_forei',
             'principal_place_zip': 'place_of_performance_zip4a',
             # 'place_of_perform_city': 'place_of_perform_city',
-            'principal_place_country_code': 'place_of_perform_country_c',
             # 'place_of_perform_county_na': 'place_of_perform_county_na',
             # 'principal_place_state': 'place_of_perform_state_nam',
             'record_type': 'record_type',
             'sai_number': 'sai_number',
             'total_funding_amount': 'total_funding_amount',
-            'uri': 'uri',
-            'is_historical': 'is_historical'
+            'uri': 'uri'
         }, {
             'place_of_performance_congr': {'pad_to_length': 2, 'keep_null': True},
             'awardee_or_recipient_uniqu': {'pad_to_length': 9, 'keep_null': True}
@@ -126,15 +184,30 @@ def format_fabs_data(data):
     cdata = cdata.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
 
     # drop rows with duplicate UniqueConstraints
-    length = len(cdata.index)
-
-    cdata = cdata[(~cdata.duplicated(subset=['awarding_sub_tier_agency_c', 'award_modification_amendme', 'fain', \
-            'uri'], keep='first')) | (cdata['awarding_sub_tier_agency_c'].isnull()) | \
+    cdata = cdata[(~cdata.duplicated(subset=['awarding_sub_tier_agency_c', 'award_modification_amendme', 'fain', 'uri'], 
+             keep='first')) | (cdata['awarding_sub_tier_agency_c'].isnull()) | \
             (cdata['award_modification_amendme'].isnull()) | (cdata['fain'].isnull()) | (cdata['uri'].isnull())]
-    if len(cdata.index) < length:
-        logger.info('file contained '+str(length-len(cdata.index))+' duplicate(s)')
 
-    return cdata
+    to_create = cdata.loc[~cdata['correction_late_delete_ind'].isin(['C', 'D'])]
+    to_update = cdata.loc[cdata['correction_late_delete_ind'] == 'C']
+    to_delete = cdata.loc[cdata['correction_late_delete_ind'] == 'D']
+
+    matches_to_update = to_create.loc[
+        (to_create['awarding_sub_tier_agency_c'].isin(to_update['awarding_sub_tier_agency_c'])) & \
+        (to_create['award_modification_amendme'].isin(to_update['award_modification_amendme'])) & \
+        (to_create['fain'].isin(to_update['fain'])) & (to_create['uri'].isin(to_update['uri']))
+    ]
+    matches_to_delete = to_create.loc[
+        (to_create['awarding_sub_tier_agency_c'].isin(to_delete['awarding_sub_tier_agency_c'])) & \
+        (to_create['award_modification_amendme'].isin(to_delete['award_modification_amendme'])) & \
+        (to_create['fain'].isin(to_delete['fain'])) & (to_create['uri'].isin(to_delete['uri']))
+    ]
+    to_create = pd.concat([to_create, matches_to_update, matches_to_delete]).drop_duplicates(keep=False)
+
+    return to_create, to_update, to_delete
+
+def format_correction_ind(row):
+    return row['correction_late_ind'][:1]
 
 def format_integer_code(row, header, int_length):
     # row[header] is an integer of length int_length
@@ -192,8 +265,7 @@ def format_record_type(row):
     # Set record_type to integer at beginning of string, otherwise None
     value = None
     try:
-        if len(str(row['record_type']))>0:
-            value = int(str(row['record_type'])[:1])
+        if len(str(row['record_type'])) > 0: value = int(str(row['record_type'])[:1])
     except ValueError:
         pass
 
@@ -204,24 +276,19 @@ def format_total_funding(row):
     value = 0
     try:
         value = float(row['total_funding_amount'])
+        if value == 0: value = float(row['fed_funding_amount'])+float(row['non_fed_funding_amount'])
     except ValueError:
         pass
-
-    if value==0:
-        try: 
-            value = float(row['fed_funding_amount'])+float(row['non_fed_funding_amount'])
-        except ValueError:
-            pass
 
     return value
 
 def main():
     sess = GlobalDB.db().session
 
-    # delete previously loaded historical data
-    # logger.info('deleting previous historical data')
-    # historical_data = sess.query(PublishedAwardFinancialAssistance).filter_by(is_historical=True)
-    # [sess.delete(elem) for elem in historical_data]
+    # delete any data in the PublishedAwardFinancialAssistance table
+    logger.info('deleting PublishedAwardFinancialAssistance data')
+    sess.query(PublishedAwardFinancialAssistance).delete(synchronize_session=False)
+    sess.commit()
 
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
