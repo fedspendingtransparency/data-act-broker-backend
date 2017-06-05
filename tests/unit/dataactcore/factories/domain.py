@@ -45,6 +45,8 @@ class TASFactory(factory.Factory):
     beginning_period_of_availa = fuzzy.FuzzyText()
     ending_period_of_availabil = fuzzy.FuzzyText()
     availability_type_code = fuzzy.FuzzyText()
+    fr_entity_description = fuzzy.FuzzyText()
+    fr_entity_type = fuzzy.FuzzyText()
     main_account_code = fuzzy.FuzzyText()
     sub_account_code = fuzzy.FuzzyText()
     internal_start_date = fuzzy.FuzzyDate(date(2015, 1, 1), date(2015, 12, 31))
