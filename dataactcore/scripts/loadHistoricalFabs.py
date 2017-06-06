@@ -63,10 +63,18 @@ def parse_fabs_file(f, sess):
     to_load = pd.concat([to_create, to_update])
     if len(to_load.index) > 0:
         logger.info("loading "+str(len(to_create.index))+" new rows and updating "+str(len(to_update.index))+" rows")
+    try:
+        num = insert_dataframe(to_load, PublishedAwardFinancialAssistance.__table__.name, sess.connection())
+        sess.commit()
+    except IntegrityError:
+        sess.rollback()
+        load_fabs_by_row(to_load, sess)
+
+def load_fabs_by_row(data, sess):
     count = 1
-    for index, row in to_load.iterrows():
-        if count % 100000 == 0 or count == len(to_load.index):
-            logger.info("finished "+str(count)+" rows")
+    for index, row in data.iterrows():
+        if count % 100000 == 0 or count == len(data.index):
+            logger.info("inserted "+str(count)+" rows")
         try:
             statement = insert(PublishedAwardFinancialAssistance).values(**row)
             sess.execute(statement)
