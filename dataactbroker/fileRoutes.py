@@ -347,12 +347,22 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         if response.status_code == StatusCode.OK:
             sess = GlobalDB.db().session
-            if not is_local:
-                file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-                file_manager.move_certified_files(submission)
+
+            # create the certify_history entry
             certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
                                              submission_id=submission.submission_id)
             sess.add(certify_history)
+            sess.commit()
+
+            # get the certify_history entry including the PK
+            certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
+                order_by(CertifyHistory.created_at.desc()).first()
+
+            # move files (locally we don't move but we still need to populate the certified_files_history table
+            file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+            file_manager.move_certified_files(submission, certify_history, is_local)
+
+            # set submission contents
             submission.certifying_user_id = g.user.user_id
             submission.publish_status_id = PUBLISH_STATUS_DICT['published']
             sess.commit()

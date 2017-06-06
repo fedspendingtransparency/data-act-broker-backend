@@ -79,6 +79,7 @@ FILE_TYPE_DICT = {item.name: item.id for item in FILE_TYPE}
 FILE_TYPE_DICT_ID = {item.id: item.name for item in FILE_TYPE}
 FILE_TYPE_DICT_LETTER = {item.id: item.letter for item in FILE_TYPE}
 FILE_TYPE_DICT_LETTER_ID = {item.letter: item.id for item in FILE_TYPE}
+FILE_TYPE_DICT_LETTER_NAME = {item.letter: item.name for item in FILE_TYPE}
 
 PERMISSION_TYPE = [
     LookupType(1, 'reader', 'This user is allowed to view any submission for their agency'),
