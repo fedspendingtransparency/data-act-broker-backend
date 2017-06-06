@@ -1210,6 +1210,10 @@ class FileHandler:
                 warning_file = new_route + report_file_name(submission.submission_id, True, first_file, second_file)
 
                 # move the file if we aren't local
+                logger.info("TESTING STUFF: original bucket: " + original_bucket)
+                logger.info("TESTING STUFF: new bucket: " + new_bucket)
+                logger.info("TESTING STUFF: original path: " + "errors/" + warning_file)
+                logger.info("TESTING STUFF: new path: " + new_route + warning_file)
                 self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
                                          original_path="errors/" + warning_file, new_path=new_route + warning_file)
             else:
