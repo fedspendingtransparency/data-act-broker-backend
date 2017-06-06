@@ -1181,8 +1181,7 @@ class FileHandler:
 
                     # move warning file while we're here
                     self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
-                                             original_path="errors/" + warning_file_name,
-                                             new_path=new_route + warning_file)
+                                             original_path="errors/" + warning_file_name, new_path=warning_file)
                 else:
                     warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission.submission_id,
                                                                                            True, job.file_type.name)
@@ -1218,7 +1217,7 @@ class FileHandler:
 
                 # move the file if we aren't local
                 self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
-                                         original_path="errors/" + warning_file_name, new_path=new_route + warning_file)
+                                         original_path="errors/" + warning_file_name, new_path=warning_file)
             else:
                 warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission.submission_id, True,
                                                                                        first_file, second_file)
