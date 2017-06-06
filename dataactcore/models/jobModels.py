@@ -188,6 +188,12 @@ class RevalidationThreshold(Base):
     revalidation_date = Column(Date, primary_key=True)
 
 
+class FPDSUpdate(Base):
+    __tablename__ = "fpds_update"
+
+    update_date = Column(Date, primary_key=True)
+
+
 class CertifyHistory(Base):
     __tablename__ = "certify_history"
 
