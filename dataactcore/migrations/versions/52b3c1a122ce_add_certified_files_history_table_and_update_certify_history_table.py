@@ -1,14 +1,14 @@
 """Add certified_files_history table and update certify_history table
 
 Revision ID: 52b3c1a122ce
-Revises: 821a7f4694f0
+Revises: 204e2cf584cd
 Create Date: 2017-06-05 12:37:10.724212
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '52b3c1a122ce'
-down_revision = '821a7f4694f0'
+down_revision = '204e2cf584cd'
 branch_labels = None
 depends_on = None
 
