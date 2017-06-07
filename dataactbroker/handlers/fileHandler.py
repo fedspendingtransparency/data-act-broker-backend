@@ -10,6 +10,7 @@ from shutil import copyfile
 import threading
 
 import calendar
+import zipfile
 
 import requests
 from flask import g, request
@@ -1163,6 +1164,7 @@ class FileHandler:
         new_route = '{}/{}/{}/{}/'.format(submission.cgac_code, submission.reporting_fiscal_year,
                                           submission.reporting_fiscal_period // 3,
                                           certify_history.certify_history_id)
+        file_list = []
         for job in jobs:
             # non-local instances create a new path, local instances just use the existing one
             if not is_local:
@@ -1218,6 +1220,8 @@ class FileHandler:
                 # move the file if we aren't local
                 self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
                                          original_path="errors/" + warning_file_name, new_path=warning_file)
+
+                file_list.append(warning_file_name)
             else:
                 warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission.submission_id, True,
                                                                                        first_file, second_file)
@@ -1229,6 +1233,12 @@ class FileHandler:
                                                            file_type_id=None, narrative=None,
                                                            warning_filename=warning_file)
             sess.add(certified_file_history)
+
+        conn = self.s3manager.create_file_path(new_route + 'test_zip.zip')
+        with zipfile.ZipFile(conn, 'w') as myzip:
+            for file_name in file_list:
+                tmp_url = self.s3manager.get_signed_url(new_route, file_name, new_bucket)
+                myzip.write(tmp_url)
         sess.commit()
 
 
