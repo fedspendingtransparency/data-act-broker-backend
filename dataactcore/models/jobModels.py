@@ -203,7 +203,6 @@ class CertifyHistory(Base):
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_certify_history_user"),
                      nullable=True)
     user = relationship("User")
-    zip_filename = Column(Text)
 
 
 class CertifiedFilesHistory(Base):
