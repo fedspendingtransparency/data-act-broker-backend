@@ -1529,6 +1529,45 @@ def list_certifications(submission):
                                                "certifications": certifications})
 
 
+def file_history_url(submission, file_history_id, is_warning, is_local):
+    """ Get the signed URL for the specified file history """
+    sess = GlobalDB.db().session
+
+    file_history = sess.query(CertifiedFilesHistory).filter_by(certified_files_history_id=file_history_id).one_or_none()
+
+    if not file_history:
+        return JsonResponse.error(ValueError("Invalid certified_files_history_id"), StatusCode.CLIENT_ERROR)
+
+    if file_history.submission_id != submission.submission_id:
+        return JsonResponse.error(ValueError("Requested certified_files_history_id does not "
+                                             "match submission_id provided"), StatusCode.CLIENT_ERROR)
+
+    if is_warning and not file_history.warning_filename:
+        return JsonResponse.error(ValueError("History entry has no warning file"), StatusCode.CLIENT_ERROR)
+
+    if not is_warning and not file_history.filename:
+        return JsonResponse.error(ValueError("History entry has no related file"), StatusCode.CLIENT_ERROR)
+
+    # locally, just return the filepath
+    if is_local:
+        if is_warning:
+            url = file_history.warning_filename
+        else:
+            url = file_history.filename
+    else:
+        if is_warning:
+            file_array = file_history.warning_filename.split("/")
+        else:
+            file_array = file_history.filename.split("/")
+
+        filename = file_array.pop()
+        file_path = '/'.join(x for x in file_array)
+        url = S3Handler().get_signed_url(file_path, filename, bucket_route=CONFIG_BROKER['certified_bucket'],
+                                         method="GET")
+
+    return JsonResponse.create(StatusCode.OK, {"url": url})
+
+
 def serialize_submission(submission):
     """Convert the provided submission into a dictionary in a schema the
     frontend expects"""

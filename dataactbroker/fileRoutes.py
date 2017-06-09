@@ -8,7 +8,7 @@ from webargs.flaskparser import parser as webargs_parser, use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler,
-    narratives_for_submission, submission_report_url, update_narratives, list_certifications)
+    narratives_for_submission, submission_report_url, update_narratives, list_certifications, file_history_url)
 from dataactcore.interfaces.function_bag import get_submission_stats
 from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactbroker.permissions import requires_login, requires_submission_perms
@@ -133,6 +133,17 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                                       StatusCode.CLIENT_ERROR)
 
         return list_certifications(submission)
+
+    @app.route("/v1/get_certified_file/", methods=["POST"])
+    @use_kwargs({
+        'submission_id': webargs_fields.Int(required=True),
+        'certified_files_history_id': webargs_fields.Int(required=True),
+        'is_warning': webargs_fields.Bool(missing=False)
+    })
+    @requires_submission_perms('reader')
+    def get_certified_file(submission, certified_files_history_id, is_warning):
+        """ Get the signed URL for the specified file history """
+        return file_history_url(submission, certified_files_history_id, is_warning, is_local)
 
     @app.route("/v1/get_protected_files/", methods=["GET"])
     @requires_login
