@@ -25,6 +25,16 @@ def add_domain_routes(app):
         ]
         return JsonResponse.create(StatusCode.OK, {'cgac_agency_list': agency_list})
 
+    @app.route("/v1/list_all_agencies/", methods=["GET"])
+    def list_all_agencies():
+        sess = GlobalDB.db().session
+        cgacs = sess.query(CGAC).all()
+        agency_list = [
+            {'agency_name': cgac.agency_name, 'cgac_code': cgac.cgac_code}
+            for cgac in cgacs
+        ]
+        return JsonResponse.create(StatusCode.OK, {'cgac_agency_list': agency_list})
+
     @app.route("/v1/list_sub_tier_agencies/", methods=["GET"])
     @get_cgacs
     def list_sub_tier_agencies(cgacs):

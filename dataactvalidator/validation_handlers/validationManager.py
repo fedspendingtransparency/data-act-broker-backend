@@ -145,13 +145,23 @@ class ValidationManager:
 
         error_list = ErrorInterface()
 
-        logger.info(
-            'VALIDATOR_INFO: Beginning run_validation on job_id: %s', job_id)
-
         submission_id = job.submission_id
 
         row_number = 1
         file_type = job.file_type.name
+        validation_start = datetime.now()
+
+        logger.info(
+            {
+                'message': 'Beginning run_validation on submission_id: ' + str(submission_id) +
+                ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                'message_type': 'ValidatorInfo',
+                'submission_id': submission_id,
+                'job_id': job_id,
+                'file_type': file_type,
+                'action': 'run_validations',
+                'status': 'start',
+                'start_time': validation_start})
         # Get orm model for this file
         model = [ft.model for ft in FILE_TYPE if ft.name == file_type][0]
 
@@ -210,14 +220,40 @@ class ValidationManager:
             # While not done, pull one row and put it into staging table if it passes
             # the Validator
 
+            loading_start = datetime.now()
+            logger.info(
+                {
+                    'message': 'Beginning data loading on submission_id: ' + str(submission_id) +
+                    ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                    'message_type': 'ValidatorInfo',
+                    'submission_id': submission_id,
+                    'job_id': job_id,
+                    'file_type': file_type,
+                    'action': 'data_loading',
+                    'status': 'start',
+                    'start_time': loading_start})
+
             with self.get_writer(region_name, bucket_name, error_file_name, self.reportHeaders) as writer, \
                     self.get_writer(region_name, bucket_name, warning_file_name, self.reportHeaders) as warning_writer:
                 while not reader.is_finished:
                     row_number += 1
 
                     if row_number % 100 == 0:
-                        logger.info('loading row %s of submission %s', row_number, submission_id)
 
+                        elapsed_time = (datetime.now()-loading_start).total_seconds()
+                        logger.info(
+                            {
+                                'message': 'Loading row: ' + str(row_number) + ' on submission_id: ' +
+                                str(submission_id) + ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                                'message_type': 'ValidatorInfo',
+                                'submission_id': submission_id,
+                                'job_id': job_id,
+                                'file_type': file_type,
+                                'action': 'data_loading',
+                                'status': 'loading',
+                                'rows_loaded': row_number,
+                                'start_time': loading_start,
+                                'elapsed_time': elapsed_time})
                     #
                     # first phase of validations: read record and record a
                     # formatting error if there's a problem
@@ -269,8 +305,22 @@ class ValidationManager:
                         if fatal:
                             error_rows.append(row_number)
 
-                logger.info('VALIDATOR_INFO: Loading complete on job_id: %s. Total rows added to staging: %s', job_id,
-                            row_number)
+                loading_duration = (datetime.now()-loading_start).total_seconds()
+                logger.info(
+                    {
+                        'message': 'Completed data loading on submission_id: ' + str(submission_id) +
+                        ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                        'message_type': 'ValidatorInfo',
+                        'submission_id': submission_id,
+                        'job_id': job_id,
+                        'file_type': file_type,
+                        'action': 'data_loading',
+                        'status': 'finish',
+                        'start_time': loading_start,
+                        'end_time': datetime.now(),
+                        'duration': loading_duration,
+                        'total_rows': row_number
+                    })
 
                 if file_type in ('appropriations', 'program_activity', 'award_financial'):
                     update_tas_ids(model, submission_id)
@@ -314,7 +364,23 @@ class ValidationManager:
         finally:
             # Ensure the file always closes
             reader.close()
-            logger.info('VALIDATOR_INFO: Completed L1 and SQL rule validations on job_id: %s', job_id)
+
+            validation_duration = (datetime.now()-validation_start).total_seconds()
+            logger.info(
+                {
+                    'message': 'Completed run_validation on submission_id: ' + str(submission_id) +
+                    ', job_id: ' + str(job_id) + ', file_type: ' + file_type,
+                    'message_type': 'ValidatorInfo',
+                    'submission_id': submission_id,
+                    'job_id': job_id,
+                    'file_type': file_type,
+                    'action': 'run_validation',
+                    'status': 'finish',
+                    'start_time': validation_start,
+                    'end_time': datetime.now(),
+                    'duration': validation_duration
+                })
+
         return True
 
     def run_sql_validations(self, job, file_type, short_colnames, writer, warning_writer, row_number, error_list):
@@ -366,18 +432,32 @@ class ValidationManager:
         return error_rows
 
     def run_cross_validation(self, job):
-        """ Cross file validation job, test all rules with matching rule_timing """
+        """ Cross file validation job. Test all rules with matching rule_timing.
+            Run each cross-file rule and create error report.
+
+            Args:
+                job: Current job
+        """
         sess = GlobalDB.db().session
         job_id = job.job_id
         # Create File Status object
         create_file_if_needed(job_id)
+        # Create list of errors
         error_list = ErrorInterface()
 
         submission_id = job.submission_id
         bucket_name = CONFIG_BROKER['aws_bucket']
         region_name = CONFIG_BROKER['aws_region']
-        logger.info('VALIDATOR_INFO: Beginning run_cross_validation on submission_id: %s', submission_id)
-
+        job_start = datetime.now()
+        logger.info(
+            {
+                'message': 'Beginning cross-file validations on submission_id: ' + str(submission_id),
+                'message_type': 'ValidatorInfo',
+                'submission_id': submission_id,
+                'job_id': job.job_id,
+                'action': 'run_cross_validations',
+                'start': job_start,
+                'status': 'start'})
         # Delete existing cross file errors for this submission
         sess.query(ErrorMetadata).filter(ErrorMetadata.job_id == job_id).delete()
         sess.commit()
@@ -396,7 +476,7 @@ class ValidationManager:
                 RuleSql.target_file_id == first_file.id)))
             # send comboRules to validator.crossValidate sql
             failures = cross_validate_sql(combo_rules.all(), submission_id, self.short_to_long_dict, first_file.id,
-                                          second_file.id)
+                                          second_file.id, job)
             # get error file name
             report_filename = self.get_file_name(report_file_name(submission_id, False, first_file.name,
                                                                   second_file.name))
@@ -415,12 +495,26 @@ class ValidationManager:
                     error_list.record_row_error(job_id, "cross_file",
                                                 failure[0], failure[3], failure[5], failure[6],
                                                 failure[7], failure[8], severity_id=failure[9])
+                # write the last unfinished batch
                 writer.finish_batch()
                 warning_writer.finish_batch()
 
+        # write all recorded errors to database
         error_list.write_all_row_errors(job_id)
+        # mark job status as "finished"
         mark_job_status(job_id, "finished")
-        logger.info('VALIDATOR_INFO: Completed run_cross_validation on submission_id: %s', submission_id)
+        job_duration = (datetime.now()-job_start).total_seconds()
+        logger.info(
+            {
+                'message': 'Completed cross-file validations on submission_id: ' + str(submission_id),
+                'message_type': 'ValidatorInfo',
+                'submission_id': submission_id,
+                'job_id': job.job_id,
+                'action': 'run_cross_validations',
+                'status': 'finish',
+                'start': job_start,
+                'duration': job_duration})
+        # set number of errors and warnings for submission.
         submission = populate_submission_error_info(submission_id)
         # TODO: Remove temporary step below
         # Temporarily set publishable flag at end of cross file, remove this once users are able to mark their

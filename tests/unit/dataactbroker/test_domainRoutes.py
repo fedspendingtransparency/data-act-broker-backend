@@ -44,3 +44,19 @@ def test_list_agencies_superuser(database, monkeypatch, domain_app):
     result = json.loads(result)
     result = {el['cgac_code'] for el in result['cgac_agency_list']}
     assert result == {'0', '1', '2'}    # i.e. all of them
+
+
+def test_list_agencies_all(monkeypatch, user_constants, domain_app):
+    """All agencies should be visible to website admins"""
+    sess = GlobalDB.db().session
+    user = UserFactory()
+    cgacs = [CGACFactory(cgac_code=str(i)) for i in range(3)]
+    user.affiliations = [UserAffiliation(cgac=cgacs[0], permission_type_id=2)]
+    sess.add_all(cgacs + [user])
+    sess.commit()
+    monkeypatch.setattr(domainRoutes, 'g', Mock(user=user))
+
+    result = domain_app.get('/v1/list_all_agencies/').data.decode('UTF-8')
+    result = json.loads(result)
+    result = {el['cgac_code'] for el in result['cgac_agency_list']}
+    assert result == {'0', '1', '2'}    # i.e. all of them

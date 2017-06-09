@@ -7,6 +7,7 @@ from dataactcore.models.userModel import User
 from dataactcore.models.jobModels import Submission
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
+from dataactcore.models.domainModels import SubTierAgency
 
 
 class DetachedUploadTests(BaseTestAPI):
@@ -96,6 +97,10 @@ class DetachedUploadTests(BaseTestAPI):
         return sub.submission_id
 
     def insert_duplicate_detached_award(self):
+
+        sub_tier_agency = SubTierAgency(created_at=datetime.utcnow(), cgac_id=1,
+                                        sub_tier_agency_code="abc", sub_tier_agency_name="test name")
+
         det_award = DetachedAwardFinancialAssistance(created_at=datetime.utcnow(),
                                                      submission_id=self.d2_submission_dupe,
                                                      job_id=1, row_number=1, is_valid=True,
@@ -108,5 +113,5 @@ class DetachedUploadTests(BaseTestAPI):
                                                        fain="abc", uri="def", awarding_sub_tier_agency_c="abc",
                                                        award_modification_amendme="def")
 
-        self.session.add_all([det_award, det_award_2])
+        self.session.add_all([det_award, det_award_2, sub_tier_agency])
         self.session.commit()
