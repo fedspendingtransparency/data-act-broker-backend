@@ -99,13 +99,14 @@ def format_fabs_data(data):
     data['ending_date'] = data.apply(lambda x: format_date(x, 'ending_date'), axis=1)
     data['starting_date'] = data.apply(lambda x: format_date(x, 'starting_date'), axis=1)
     data['principal_place_zip'] = data.apply(lambda x: format_full_zip(x), axis=1)
-    data['principal_place_cd'] = data.apply(lambda x: format_pop_congr(x), axis=1)
+    data['principal_place_cd'] = data.apply(lambda x: format_principal_place_cd(x), axis=1)
     # data['place_of_perform_city'] = data.apply(lambda x: format_cc_code(x, False), axis=1)
     # data['place_of_perform_county_na'] = data.apply(lambda x: format_cc_code(x, True), axis=1)
     data['record_type'] = data.apply(lambda x: format_record_type(x), axis=1)
     data['total_funding_amount'] = data.apply(lambda x: format_total_funding(x), axis=1)
     data['is_historical'] = np.full(len(data.index), True, dtype=bool)
 
+    # adding columns missing from historical data
     null_list = [
         'awarding_sub_tier_agency_n', 'awarding_agency_code', 'awarding_agency_name', 'awarding_office_code',
         'funding_agency_name', 'funding_agency_code', 'funding_office_code', 'funding_sub_tier_agency_co',
@@ -183,7 +184,7 @@ def format_fabs_data(data):
         }
     )
 
-    # Make a pass through the dataframe, changing any empty values to None, to ensure that those are represented as
+    # make a pass through the dataframe, changing any empty values to None, to ensure that those are represented as
     # NULL in the db.
     cdata = cdata.replace(np.nan, '', regex=True)
     cdata = cdata.applymap(lambda x: str(x).strip() if len(str(x).strip()) else None)
@@ -198,20 +199,24 @@ def format_fabs_data(data):
         (cdata['fain'].isnull()) | (cdata['uri'].isnull())
     ]
 
+    # pull correction and deletion rows from the dataframe
     to_create = cdata.loc[~cdata['correction_late_delete_ind'].isin(['C', 'D'])]
     to_update = cdata.loc[cdata['correction_late_delete_ind'] == 'C']
     to_delete = cdata.loc[cdata['correction_late_delete_ind'] == 'D']
 
+    # pull out all rows that match those in the corrections dataframe
     matches_to_update = to_create.loc[
         (to_create['awarding_sub_tier_agency_c'].isin(to_update['awarding_sub_tier_agency_c'])) &
         (to_create['award_modification_amendme'].isin(to_update['award_modification_amendme'])) &
         (to_create['fain'].isin(to_update['fain'])) & (to_create['uri'].isin(to_update['uri']))
     ]
+    # pull out all rows that match those in the corrections dataframe
     matches_to_delete = to_create.loc[
         (to_create['awarding_sub_tier_agency_c'].isin(to_delete['awarding_sub_tier_agency_c'])) &
         (to_create['award_modification_amendme'].isin(to_delete['award_modification_amendme'])) &
         (to_create['fain'].isin(to_delete['fain'])) & (to_create['uri'].isin(to_delete['uri']))
     ]
+    # drop exact duplicates
     to_create = pd.concat([to_create, matches_to_update, matches_to_delete]).drop_duplicates(keep=False)
 
     return to_create, to_update, to_delete
@@ -254,7 +259,7 @@ def format_full_zip(row):
     return full_zip if len(full_zip) != 5 or len(full_zip) != 9 else None
 
 
-def format_pop_congr(row):
+def format_principal_place_cd(row):
     # remove extra characters from principal_place_cd or set invalid integer to None
     pop_congr = re.sub("[^0-9]", "", str(row['principal_place_cd']))
     try:
