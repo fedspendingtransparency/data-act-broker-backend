@@ -1484,6 +1484,51 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
     })
 
 
+def list_certifications(submission):
+    """ List all certifications for a single submission including the file history that goes with them """
+    sess = GlobalDB.db().session
+
+    certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
+        order_by(CertifyHistory.created_at.desc()).all()
+
+    # get the details for each of the certifications
+    certifications = []
+    for history in certify_history:
+        certifying_user = sess.query(User).filter_by(user_id=history.user_id).one()
+
+        # get all certified_files_history for this certification
+        file_history = sess.query(CertifiedFilesHistory).filter_by(certify_history_id=history.certify_history_id).all()
+        certified_files = []
+        for file in file_history:
+            # if there's a filename, add it to the list
+            if file.filename is not None:
+                certified_files.append({
+                    "certified_files_history_id": history.certify_history_id,
+                    "filename": file.filename.split("/")[-1],
+                    "is_warning": False,
+                    "narrative": file.narrative
+                })
+
+            # if there's a warning file, add it to the list
+            if file.warning_filename is not None:
+                certified_files.append({
+                    "certified_files_history_id": history.certify_history_id,
+                    "filename": file.warning_filename.split("/")[-1],
+                    "is_warning": True,
+                    "narrative": None
+                })
+
+        # after adding all certified files to the history, add the entire history entry to the certifications list
+        certifications.append({
+            "certify_date": history.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "certifying_user": {"name": certifying_user.name, "user_id": history.user_id},
+            "certified_files": certified_files
+        })
+
+    return JsonResponse.create(StatusCode.OK, {"submission_id": submission.submission_id,
+                                               "certifications": certifications})
+
+
 def serialize_submission(submission):
     """Convert the provided submission into a dictionary in a schema the
     frontend expects"""
