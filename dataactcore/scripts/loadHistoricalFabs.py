@@ -210,7 +210,7 @@ def format_fabs_data(data):
         (to_create['award_modification_amendme'].isin(to_update['award_modification_amendme'])) &
         (to_create['fain'].isin(to_update['fain'])) & (to_create['uri'].isin(to_update['uri']))
     ]
-    # pull out all rows that match those in the corrections dataframe
+    # pull out all rows that match those in the deletions dataframe
     matches_to_delete = to_create.loc[
         (to_create['awarding_sub_tier_agency_c'].isin(to_delete['awarding_sub_tier_agency_c'])) &
         (to_create['award_modification_amendme'].isin(to_delete['award_modification_amendme'])) &
