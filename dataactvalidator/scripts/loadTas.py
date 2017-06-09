@@ -33,7 +33,9 @@ def clean_tas(csv_path):
          "sub": "sub_account_code",
          "financial_indicator_type2": "financial_indicator2",
          "dt_tm_estab": "internal_start_date",
-         "dt_end": "internal_end_date"
+         "dt_end": "internal_end_date",
+         "fr_entity_description": "fr_entity_description",
+         "fr_entity_type": "fr_entity_type"
          },
         {"allocation_transfer_agency": {"pad_to_length": 3, "keep_null": True},
          "agency_identifier": {"pad_to_length": 3},
