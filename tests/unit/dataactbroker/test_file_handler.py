@@ -8,11 +8,12 @@ import pytest
 import calendar
 
 from dataactbroker.handlers import fileHandler
-from dataactcore.models.jobModels import JobStatus, JobType, FileType
+from dataactcore.models.jobModels import JobStatus, JobType, FileType, CertifiedFilesHistory
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
 from tests.unit.dataactcore.factories.domain import CGACFactory
-from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
+from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory, CertifyHistoryFactory,
+                                                  SubmissionNarrativeFactory)
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
@@ -361,3 +362,91 @@ def test_submission_report_url_s3(monkeypatch):
         ('errors', 'submission_2_some_file_error_report.csv'),
         {'method': 'GET'}
     )
+
+
+def test_move_certified_files(database, monkeypatch, job_constants):
+    # set up cgac and submission
+    cgac = CGACFactory(cgac_code='zyxwv', agency_name='Test')
+    sub = SubmissionFactory(cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
+                            reporting_fiscal_year=2017, reporting_fiscal_period=6)
+    database.session.add_all([cgac, sub])
+    database.session.commit()
+
+    # set up certify history and jobs based on submission
+    sess = database.session
+    cert_hist_local = CertifyHistoryFactory(submission_id=sub.submission_id)
+    cert_hist_remote = CertifyHistoryFactory(submission_id=sub.submission_id)
+
+    finished_job = sess.query(JobStatus).filter_by(name='finished').one()
+    upload_job = sess.query(JobType).filter_by(name='file_upload').one()
+    appropriations_job = JobFactory(submission_id=sub.submission_id, filename="/path/to/appropriations/file_a.csv",
+                                    file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+                                    job_type=upload_job, job_status=finished_job)
+    prog_act_job = JobFactory(submission_id=sub.submission_id, filename="/path/to/prog/act/file_b.csv",
+                              file_type=sess.query(FileType).filter_by(name='program_activity').one(),
+                              job_type=upload_job, job_status=finished_job)
+    award_fin_job = JobFactory(submission_id=sub.submission_id, filename="/path/to/award/fin/file_c.csv",
+                               file_type=sess.query(FileType).filter_by(name='award_financial').one(),
+                               job_type=upload_job, job_status=finished_job)
+    award_proc_job = JobFactory(submission_id=sub.submission_id, filename="/path/to/award/proc/file_d1.csv",
+                                file_type=sess.query(FileType).filter_by(name='award_procurement').one(),
+                                job_type=upload_job, job_status=finished_job)
+    award_job = JobFactory(submission_id=sub.submission_id, filename="/path/to/award/file_d2.csv",
+                           file_type=sess.query(FileType).filter_by(name='award').one(),
+                           job_type=upload_job, job_status=finished_job)
+    exec_comp_job = JobFactory(submission_id=sub.submission_id, filename="/path/to/exec/comp/file_e.csv",
+                               file_type=sess.query(FileType).filter_by(name='executive_compensation').one(),
+                               job_type=upload_job, job_status=finished_job)
+    sub_award_job = JobFactory(submission_id=sub.submission_id, filename="/path/to/sub/award/file_f.csv",
+                               file_type=sess.query(FileType).filter_by(name='sub_award').one(),
+                               job_type=upload_job, job_status=finished_job)
+
+    award_fin_narr = SubmissionNarrativeFactory(submission_id=sub.submission_id, narrative="Test narrative",
+                                                file_type=sess.query(FileType).filter_by(name='award_financial').one())
+    database.session.add_all([cert_hist_local, cert_hist_remote, appropriations_job, prog_act_job, award_fin_job,
+                              award_proc_job, award_job, exec_comp_job, sub_award_job, award_fin_narr])
+    database.session.commit()
+
+    s3_url_handler = Mock()
+    monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
+    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'aws_bucket': 'original_bucket',
+                                                       'certified_bucket': 'cert_bucket'})
+    monkeypatch.setattr(fileHandler, 'CONFIG_SERVICES', {'error_report_path': '/path/to/error/reports/'})
+
+    fh = fileHandler.FileHandler(Mock())
+
+    # test local certification
+    fh.move_certified_files(sub, cert_hist_local, True)
+    local_id = cert_hist_local.certify_history_id
+
+    # make sure we have the right number of history entries
+    all_local_certs = sess.query(CertifiedFilesHistory).filter_by(certify_history_id=local_id).all()
+    assert len(all_local_certs) == 11
+
+    c_cert_hist = sess.query(CertifiedFilesHistory).\
+        filter_by(certify_history_id=local_id,
+                  file_type_id=sess.query(FileType).filter_by(name='award_financial').one().file_type_id).one()
+    assert c_cert_hist.filename == "/path/to/award/fin/file_c.csv"
+    assert c_cert_hist.warning_filename == "/path/to/error/reports/submission_{}_award_financial_warning_report.csv".\
+        format(sub.submission_id)
+    assert c_cert_hist.narrative == "Test narrative"
+
+    # cross-file warnings
+    warning_cert_hist = sess.query(CertifiedFilesHistory).filter_by(certify_history_id=local_id, file_type=None).all()
+    assert len(warning_cert_hist) == 4
+    assert warning_cert_hist[0].narrative is None
+
+    warning_cert_hist_files = [hist.warning_filename for hist in warning_cert_hist]
+    assert "/path/to/error/reports/submission_{}_cross_warning_appropriations_program_activity.csv".\
+        format(sub.submission_id) in warning_cert_hist_files
+
+    # test remote certification
+    fh.move_certified_files(sub, cert_hist_remote, False)
+    remote_id = cert_hist_remote.certify_history_id
+
+    c_cert_hist = sess.query(CertifiedFilesHistory). \
+        filter_by(certify_history_id=remote_id,
+                  file_type_id=sess.query(FileType).filter_by(name='award_financial').one().file_type_id).one()
+    assert c_cert_hist.filename == "zyxwv/2017/2/{}/file_c.csv".format(remote_id)
+    assert c_cert_hist.warning_filename == "zyxwv/2017/2/{}/submission_{}_award_financial_warning_report.csv". \
+        format(remote_id, sub.submission_id)
