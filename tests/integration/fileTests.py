@@ -651,10 +651,6 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.json['submissionId'], self.test_certified_submission_id)
 
     def test_certify_submission(self):
-        post_json = {'submission_id': self.test_uncertified_submission_id}
-        response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id})
-        self.assertEqual(response.json['message'], "Success")
-
         post_json = {'submission_id': self.row_error_submission_id}
         response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id},
                                       expect_errors=True)
@@ -706,14 +702,14 @@ class FileTests(BaseTestAPI):
         post_json = {'submission_id': self.test_certified_submission_id, "is_warning": True,
                      "certified_files_history_id": certified_files_history.certified_files_history_id}
         response = self.app.post_json("/v1/get_certified_file/", post_json, headers={"x-session-id": self.session_id})
-        self.assertEqual(response.json['url'], "path/to/warning_file_a.csv")
+        self.assertIn(response.json['url'], 'path/to/warning_file_a.csv')
         self.assertEqual(response.status_code, 200)
 
         # valid uploaded file
         post_json = {'submission_id': self.test_certified_submission_id, "is_warning": False,
                      "certified_files_history_id": certified_files_history.certified_files_history_id}
         response = self.app.post_json("/v1/get_certified_file/", post_json, headers={"x-session-id": self.session_id})
-        self.assertEqual(response.json['url'], "path/to/file_a.csv")
+        self.assertIn(response.json['url'], 'path/to/file_a.csv')
         self.assertEqual(response.status_code, 200)
 
         # nonexistent certified_files_history_id
