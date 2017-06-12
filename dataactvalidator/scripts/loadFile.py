@@ -7,7 +7,8 @@ import boto
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import CGAC, SubTierAgency, ObjectClass, ProgramActivity, CountryCode, CFDAProgram
+from dataactcore.models.domainModels import CGAC, SubTierAgency, ObjectClass, \
+    ProgramActivity, CountryCode, CFDAProgram, FREC
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe, format_date
 
@@ -65,6 +66,32 @@ def load_cgac(file_name):
         sess.commit()
 
         logger.info('%s CGAC records inserted', len(models))
+
+
+def load_frec(file_name):
+    model = FREC
+    """Load FREC (high-level agency names) lookup table."""
+    with create_app().app_context():
+        sess = GlobalDB.db().session
+
+        # read CGAC values from csv
+        data = pd.read_csv(file_name, dtype=str)
+        # clean data
+        data = clean_data(
+            data,
+            model,
+            {"fr_entity_type": "frec_code", "fr_entity_description": "agency_name"},
+            {}
+        )
+        # de-dupe
+        data.drop_duplicates(subset=['frec_code'], inplace=True)
+
+        # insert to db
+        table_name = model.__table__.name
+        num = insert_dataframe(data, table_name, sess.connection())
+        sess.commit()
+
+        logger.info('{} records inserted to {}'.format(num, table_name))
 
 
 def delete_missing_sub_tier_agencies(models, new_data):
@@ -300,6 +327,7 @@ def load_domain_values(base_path, local_program_activity=None):
         program_activity_file = s3bucket.get_key("program_activity.csv").generate_url(expires_in=600)
         country_codes_file = s3bucket.get_key("country_codes.csv").generate_url(expires_in=600)
         cfda_program_file = s3bucket.get_key("cfda_program.csv").generate_url(expires_in=600)
+        frec_file = s3bucket.get_key("cars_tas.csv").generate_url(expires_in=600)
 
     else:
         agency_list_file = os.path.join(base_path, "agency_list.csv")
@@ -307,9 +335,12 @@ def load_domain_values(base_path, local_program_activity=None):
         program_activity_file = os.path.join(base_path, "program_activity.csv")
         country_codes_file = os.path.join(base_path, "country_codes.csv")
         cfda_program_file = os.path.join(base_path, "cfda_program.csv")
+        frec_file = os.path.join(base_path, "cars_tas.csv")
 
     logger.info('Loading CGAC')
     load_cgac(agency_list_file)
+    logger.info('Loading FREC')
+    load_frec(frec_file)
     logger.info('Loading Sub Tier Agencies')
     load_sub_tier_agencies(agency_list_file)
     logger.info('Loading object class')

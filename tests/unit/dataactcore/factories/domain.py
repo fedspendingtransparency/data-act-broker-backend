@@ -34,6 +34,15 @@ class CGACFactory(factory.Factory):
     agency_name = fuzzy.FuzzyText()
 
 
+class FRECFactory(factory.Factory):
+    class Meta:
+        model = domainModels.FREC
+
+    frec_id = None
+    frec_code = fuzzy.FuzzyText()
+    agency_name = fuzzy.FuzzyText()
+
+
 class TASFactory(factory.Factory):
     class Meta:
         model = domainModels.TASLookup
