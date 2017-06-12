@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import json
 import os.path
 from unittest.mock import Mock
@@ -8,11 +8,12 @@ import pytest
 import calendar
 
 from dataactbroker.handlers import fileHandler
-from dataactcore.models.jobModels import JobStatus, JobType, FileType
+from dataactcore.models.jobModels import JobStatus, JobType, FileType, CertifiedFilesHistory
 from dataactcore.utils.responseException import ResponseException
 from tests.unit.dataactbroker.utils import add_models, delete_models
 from tests.unit.dataactcore.factories.domain import CGACFactory
-from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
+from tests.unit.dataactcore.factories.job import (JobFactory, SubmissionFactory, CertifyHistoryFactory,
+                                                  SubmissionNarrativeFactory, CertifiedFilesHistoryFactory)
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
@@ -361,3 +362,180 @@ def test_submission_report_url_s3(monkeypatch):
         ('errors', 'submission_2_some_file_error_report.csv'),
         {'method': 'GET'}
     )
+
+
+def test_move_certified_files(database, monkeypatch, job_constants):
+    # set up cgac and submission
+    cgac = CGACFactory(cgac_code='zyxwv', agency_name='Test')
+    sub = SubmissionFactory(cgac_code='zyxwv', number_of_errors=0, publish_status_id=1,
+                            reporting_fiscal_year=2017, reporting_fiscal_period=6)
+    database.session.add_all([cgac, sub])
+    database.session.commit()
+
+    # set up certify history and jobs based on submission
+    sess = database.session
+    cert_hist_local = CertifyHistoryFactory(submission_id=sub.submission_id)
+    cert_hist_remote = CertifyHistoryFactory(submission_id=sub.submission_id)
+
+    finished_job = sess.query(JobStatus).filter_by(name='finished').one()
+    upload_job = sess.query(JobType).filter_by(name='file_upload').one()
+    appropriations_job = JobFactory(submission=sub, filename="/path/to/appropriations/file_a.csv",
+                                    file_type=sess.query(FileType).filter_by(name='appropriations').one(),
+                                    job_type=upload_job, job_status=finished_job)
+    prog_act_job = JobFactory(submission=sub, filename="/path/to/prog/act/file_b.csv",
+                              file_type=sess.query(FileType).filter_by(name='program_activity').one(),
+                              job_type=upload_job, job_status=finished_job)
+    award_fin_job = JobFactory(submission=sub, filename="/path/to/award/fin/file_c.csv",
+                               file_type=sess.query(FileType).filter_by(name='award_financial').one(),
+                               job_type=upload_job, job_status=finished_job)
+    award_proc_job = JobFactory(submission=sub, filename="/path/to/award/proc/file_d1.csv",
+                                file_type=sess.query(FileType).filter_by(name='award_procurement').one(),
+                                job_type=upload_job, job_status=finished_job)
+    award_job = JobFactory(submission=sub, filename="/path/to/award/file_d2.csv",
+                           file_type=sess.query(FileType).filter_by(name='award').one(),
+                           job_type=upload_job, job_status=finished_job)
+    exec_comp_job = JobFactory(submission=sub, filename="/path/to/exec/comp/file_e.csv",
+                               file_type=sess.query(FileType).filter_by(name='executive_compensation').one(),
+                               job_type=upload_job, job_status=finished_job)
+    sub_award_job = JobFactory(submission=sub, filename="/path/to/sub/award/file_f.csv",
+                               file_type=sess.query(FileType).filter_by(name='sub_award').one(),
+                               job_type=upload_job, job_status=finished_job)
+
+    award_fin_narr = SubmissionNarrativeFactory(submission=sub, narrative="Test narrative",
+                                                file_type=sess.query(FileType).filter_by(name='award_financial').one())
+    database.session.add_all([cert_hist_local, cert_hist_remote, appropriations_job, prog_act_job, award_fin_job,
+                              award_proc_job, award_job, exec_comp_job, sub_award_job, award_fin_narr])
+    database.session.commit()
+
+    s3_url_handler = Mock()
+    monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
+    monkeypatch.setattr(fileHandler, 'CONFIG_BROKER', {'aws_bucket': 'original_bucket',
+                                                       'certified_bucket': 'cert_bucket'})
+    monkeypatch.setattr(fileHandler, 'CONFIG_SERVICES', {'error_report_path': '/path/to/error/reports/'})
+
+    fh = fileHandler.FileHandler(Mock())
+
+    # test local certification
+    fh.move_certified_files(sub, cert_hist_local, True)
+    local_id = cert_hist_local.certify_history_id
+
+    # make sure we have the right number of history entries
+    all_local_certs = sess.query(CertifiedFilesHistory).filter_by(certify_history_id=local_id).all()
+    assert len(all_local_certs) == 11
+
+    c_cert_hist = sess.query(CertifiedFilesHistory).\
+        filter_by(certify_history_id=local_id,
+                  file_type_id=sess.query(FileType).filter_by(name='award_financial').one().file_type_id).one()
+    assert c_cert_hist.filename == "/path/to/award/fin/file_c.csv"
+    assert c_cert_hist.warning_filename == "/path/to/error/reports/submission_{}_award_financial_warning_report.csv".\
+        format(sub.submission_id)
+    assert c_cert_hist.narrative == "Test narrative"
+
+    # cross-file warnings
+    warning_cert_hist = sess.query(CertifiedFilesHistory).filter_by(certify_history_id=local_id, file_type=None).all()
+    assert len(warning_cert_hist) == 4
+    assert warning_cert_hist[0].narrative is None
+
+    warning_cert_hist_files = [hist.warning_filename for hist in warning_cert_hist]
+    assert "/path/to/error/reports/submission_{}_cross_warning_appropriations_program_activity.csv".\
+        format(sub.submission_id) in warning_cert_hist_files
+
+    # test remote certification
+    fh.move_certified_files(sub, cert_hist_remote, False)
+    remote_id = cert_hist_remote.certify_history_id
+
+    c_cert_hist = sess.query(CertifiedFilesHistory). \
+        filter_by(certify_history_id=remote_id,
+                  file_type_id=sess.query(FileType).filter_by(name='award_financial').one().file_type_id).one()
+    assert c_cert_hist.filename == "zyxwv/2017/2/{}/file_c.csv".format(remote_id)
+    assert c_cert_hist.warning_filename == "zyxwv/2017/2/{}/submission_{}_award_financial_warning_report.csv". \
+        format(remote_id, sub.submission_id)
+
+
+def test_list_certifications(database, job_constants):
+    # set up submission
+    sub = SubmissionFactory()
+    database.session.add(sub)
+    database.session.commit()
+
+    # set up certify history, make sure the empty one comes last in the list
+    cert_hist_empty = CertifyHistoryFactory(submission=sub, created_at=datetime.utcnow() - timedelta(days=1))
+    cert_hist = CertifyHistoryFactory(submission=sub)
+    database.session.add_all([cert_hist_empty, cert_hist])
+    database.session.commit()
+
+    # add some data to certified_files_history for the cert_history ID
+    sess = database.session
+    history_id = cert_hist.certify_history_id
+    sub_id = sub.submission_id
+    file_hist_1 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
+                                               filename="/path/to/file_a.csv",
+                                               warning_filename="/path/to/warning_file_a.csv",
+                                               narrative="A has a narrative",
+                                               file_type=sess.query(FileType).filter_by(name='appropriations').one())
+    file_hist_2 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
+                                               filename="/path/to/file_d2.csv",
+                                               warning_filename=None,
+                                               file_type=sess.query(FileType).filter_by(name='award').one())
+    file_hist_3 = CertifiedFilesHistoryFactory(certify_history_id=history_id, submission_id=sub_id,
+                                               filename=None,
+                                               warning_filename="/path/to/warning_file_cross_test.csv",
+                                               file_type=None)
+    database.session.add_all([file_hist_1, file_hist_2, file_hist_3])
+    database.session.commit()
+
+    json_response = fileHandler.list_certifications(sub)
+    response_dict = json.loads(json_response.get_data().decode('utf-8'))
+    assert len(response_dict["certifications"]) == 2
+
+    has_file_list = response_dict["certifications"][0]
+    empty_file_list = response_dict["certifications"][1]
+
+    # asserts for certification with files associated
+    assert len(has_file_list["certified_files"]) == 4
+    assert has_file_list["certified_files"][0]["is_warning"] is False
+    assert has_file_list["certified_files"][0]["filename"] == "file_a.csv"
+    assert has_file_list["certified_files"][0]["narrative"] == "A has a narrative"
+
+    assert has_file_list["certified_files"][1]["is_warning"]
+    assert has_file_list["certified_files"][1]["narrative"] is None
+
+    # asserts for certification without files associated
+    assert len(empty_file_list["certified_files"]) == 0
+
+
+def test_file_history_url(database, monkeypatch):
+    sub = SubmissionFactory()
+    database.session.add(sub)
+    database.session.commit()
+
+    # set up certify history so it works
+    cert_hist = CertifyHistoryFactory(submission=sub)
+    database.session.add(cert_hist)
+    database.session.commit()
+
+    file_hist = CertifiedFilesHistoryFactory(certify_history_id=cert_hist.certify_history_id,
+                                             submission_id=sub.submission_id, filename="/path/to/file_d2.csv",
+                                             warning_filename="/path/to/warning_file_cross.csv",
+                                             narrative=None, file_type=None)
+    database.session.add(file_hist)
+    database.session.commit()
+
+    s3_url_handler = Mock()
+    s3_url_handler.return_value.get_signed_url.return_value = 'some/url/here.csv'
+    monkeypatch.setattr(fileHandler, 'S3Handler', s3_url_handler)
+
+    # checking for local response to non-warning file
+    json_response = fileHandler.file_history_url(sub, file_hist.certified_files_history_id, False, True)
+    url = json.loads(json_response.get_data().decode('utf-8'))["url"]
+    assert url == "/path/to/file_d2.csv"
+
+    # local response to warning file
+    json_response = fileHandler.file_history_url(sub, file_hist.certified_files_history_id, True, True)
+    url = json.loads(json_response.get_data().decode('utf-8'))["url"]
+    assert url == "/path/to/warning_file_cross.csv"
+
+    # generic test to make sure it's reaching the s3 handler properly
+    json_response = fileHandler.file_history_url(sub, file_hist.certified_files_history_id, False, False)
+    url = json.loads(json_response.get_data().decode('utf-8'))["url"]
+    assert url == 'some/url/here.csv'

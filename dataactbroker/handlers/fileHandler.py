@@ -29,11 +29,12 @@ from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.jobModels import (
     FileGenerationTask, Job, Submission, SubmissionNarrative, SubmissionSubTierAffiliation, RevalidationThreshold,
-    CertifyHistory)
+    CertifyHistory, CertifiedFilesHistory)
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (
     FILE_TYPE_DICT, FILE_TYPE_DICT_LETTER, FILE_TYPE_DICT_LETTER_ID, PUBLISH_STATUS_DICT, JOB_STATUS_DICT,
-    JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT, PUBLISH_STATUS_DICT_ID)
+    JOB_TYPE_DICT, RULE_SEVERITY_DICT, FILE_TYPE_DICT_ID, JOB_STATUS_DICT_ID, FILE_STATUS_DICT, PUBLISH_STATUS_DICT_ID,
+    FILE_TYPE_DICT_LETTER_NAME)
 from dataactcore.models.views import SubmissionUpdatedView
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.report import get_cross_file_pairs, report_file_name
@@ -1147,21 +1148,88 @@ class FileHandler:
 
         return JsonResponse.create(StatusCode.OK, {"message": "Success"})
 
-    def move_certified_files(self, submission):
+    def move_certified_files(self, submission, certify_history, is_local):
         sess = GlobalDB.db().session
         # Putting this here for now, get the uploads list
         jobs = sess.query(Job).filter(Job.submission_id == submission.submission_id,
                                       Job.job_type_id == JOB_TYPE_DICT['file_upload'],
                                       Job.filename.isnot(None)).all()
+        possible_warning_files = [FILE_TYPE_DICT["appropriations"], FILE_TYPE_DICT["program_activity"],
+                                  FILE_TYPE_DICT["award_financial"]]
         original_bucket = CONFIG_BROKER['aws_bucket']
         new_bucket = CONFIG_BROKER['certified_bucket']
+
+        # route is used in multiple places, might as well just make it out here
+        new_route = '{}/{}/{}/{}/'.format(submission.cgac_code, submission.reporting_fiscal_year,
+                                          submission.reporting_fiscal_period // 3,
+                                          certify_history.certify_history_id)
         for job in jobs:
-            old_path_sections = job.filename.split("/")
-            new_path = '{}/{}/{}/{}'.format(submission.cgac_code, submission.reporting_fiscal_year,
-                                            submission.reporting_fiscal_period // 3, old_path_sections[-1])
-            self.s3manager.copy_file(original_bucket=original_bucket,
-                                     new_bucket=new_bucket,
-                                     original_path=job.filename, new_path=new_path)
+            # non-local instances create a new path, local instances just use the existing one
+            if not is_local:
+                old_path_sections = job.filename.split("/")
+                new_path = new_route + old_path_sections[-1]
+            else:
+                new_path = job.filename
+
+            # get the warning file name for this file
+            warning_file = None
+            if job.file_type_id in possible_warning_files:
+                # warning file is in the new path for non-local instances and just in its normal place for local ones
+                if not is_local:
+                    warning_file_name = report_file_name(submission.submission_id, True, job.file_type.name)
+                    warning_file = new_route + warning_file_name
+
+                    # move warning file while we're here
+                    self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
+                                             original_path="errors/" + warning_file_name, new_path=warning_file)
+                else:
+                    warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission.submission_id,
+                                                                                           True, job.file_type.name)
+
+            # get the narrative relating to the file
+            narrative = sess.query(SubmissionNarrative).\
+                filter_by(submission_id=submission.submission_id, file_type_id=job.file_type_id).one_or_none()
+            if narrative:
+                narrative = narrative.narrative
+
+            # create the certified_files_history for this file
+            certified_file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+                                                           submission_id=submission.submission_id,
+                                                           filename=new_path,
+                                                           file_type_id=job.file_type_id, narrative=narrative,
+                                                           warning_filename=warning_file)
+            sess.add(certified_file_history)
+
+            # only actually move the files if it's not a local submission
+            if not is_local:
+                self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
+                                         original_path=job.filename, new_path=new_path)
+
+        cross_list = {"B": "A", "C": "B", "D1": "C", "D2": "C"}
+        for key, value in cross_list.items():
+            first_file = FILE_TYPE_DICT_LETTER_NAME[value]
+            second_file = FILE_TYPE_DICT_LETTER_NAME[key]
+
+            # create warning file path
+            if not is_local:
+                warning_file_name = report_file_name(submission.submission_id, True, first_file, second_file)
+                warning_file = new_route + warning_file_name
+
+                # move the file if we aren't local
+                self.s3manager.copy_file(original_bucket=original_bucket, new_bucket=new_bucket,
+                                         original_path="errors/" + warning_file_name, new_path=warning_file)
+            else:
+                warning_file = CONFIG_SERVICES['error_report_path'] + report_file_name(submission.submission_id, True,
+                                                                                       first_file, second_file)
+
+            # add certified history
+            certified_file_history = CertifiedFilesHistory(certify_history_id=certify_history.certify_history_id,
+                                                           submission_id=submission.submission_id,
+                                                           filename=None,
+                                                           file_type_id=None, narrative=None,
+                                                           warning_filename=warning_file)
+            sess.add(certified_file_history)
+        sess.commit()
 
 
 def narratives_for_submission(submission):
@@ -1414,6 +1482,90 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
         "submissions": [serialize_submission(submission) for submission in query],
         "total": total_submissions
     })
+
+
+def list_certifications(submission):
+    """ List all certifications for a single submission including the file history that goes with them """
+    sess = GlobalDB.db().session
+
+    certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
+        order_by(CertifyHistory.created_at.desc()).all()
+
+    # get the details for each of the certifications
+    certifications = []
+    for history in certify_history:
+        certifying_user = sess.query(User).filter_by(user_id=history.user_id).one()
+
+        # get all certified_files_history for this certification
+        file_history = sess.query(CertifiedFilesHistory).filter_by(certify_history_id=history.certify_history_id).all()
+        certified_files = []
+        for file in file_history:
+            # if there's a filename, add it to the list
+            if file.filename is not None:
+                certified_files.append({
+                    "certified_files_history_id": file.certified_files_history_id,
+                    "filename": file.filename.split("/")[-1],
+                    "is_warning": False,
+                    "narrative": file.narrative
+                })
+
+            # if there's a warning file, add it to the list
+            if file.warning_filename is not None:
+                certified_files.append({
+                    "certified_files_history_id": file.certified_files_history_id,
+                    "filename": file.warning_filename.split("/")[-1],
+                    "is_warning": True,
+                    "narrative": None
+                })
+
+        # after adding all certified files to the history, add the entire history entry to the certifications list
+        certifications.append({
+            "certify_date": history.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "certifying_user": {"name": certifying_user.name, "user_id": history.user_id},
+            "certified_files": certified_files
+        })
+
+    return JsonResponse.create(StatusCode.OK, {"submission_id": submission.submission_id,
+                                               "certifications": certifications})
+
+
+def file_history_url(submission, file_history_id, is_warning, is_local):
+    """ Get the signed URL for the specified file history """
+    sess = GlobalDB.db().session
+
+    file_history = sess.query(CertifiedFilesHistory).filter_by(certified_files_history_id=file_history_id).one_or_none()
+
+    if not file_history:
+        return JsonResponse.error(ValueError("Invalid certified_files_history_id"), StatusCode.CLIENT_ERROR)
+
+    if file_history.submission_id != submission.submission_id:
+        return JsonResponse.error(ValueError("Requested certified_files_history_id does not "
+                                             "match submission_id provided"), StatusCode.CLIENT_ERROR)
+
+    if is_warning and not file_history.warning_filename:
+        return JsonResponse.error(ValueError("History entry has no warning file"), StatusCode.CLIENT_ERROR)
+
+    if not is_warning and not file_history.filename:
+        return JsonResponse.error(ValueError("History entry has no related file"), StatusCode.CLIENT_ERROR)
+
+    # locally, just return the filepath
+    if is_local:
+        if is_warning:
+            url = file_history.warning_filename
+        else:
+            url = file_history.filename
+    else:
+        if is_warning:
+            file_array = file_history.warning_filename.split("/")
+        else:
+            file_array = file_history.filename.split("/")
+
+        filename = file_array.pop()
+        file_path = '/'.join(x for x in file_array)
+        url = S3Handler().get_signed_url(file_path, filename, bucket_route=CONFIG_BROKER['certified_bucket'],
+                                         method="GET")
+
+    return JsonResponse.create(StatusCode.OK, {"url": url})
 
 
 def serialize_submission(submission):

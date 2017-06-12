@@ -801,6 +801,100 @@ List submissions for all agencies for which the current user is a member of. Opt
 }
 ```
 
+#### POST "/v1/list_certifications/"
+List certifications for a single submission
+
+### Body (JSON)
+
+```
+{
+    "submission_id": 123
+}
+```
+
+### Body Description
+
+* `submission_id` - **required** - an integer corresponding the submission_id
+
+### Response (JSON)
+
+Successful response will contain the submission_id and a list of certifications.
+
+```
+{
+    "submission_id": 7,
+    "certifications": [{
+        "certify_date": "2017-05-11 18:10:18",
+        "certify_history_id": 4,
+        "certifying_user": {
+            "name": "User Name",
+            "user_id": 1
+        },
+        "certified_files": [{
+            "certified_files_history_id": 1,
+            "filename": "1492041855_file_c.csv",
+            "is_warning": False,
+            "narrative": "Comment on the file"
+            },
+            {"certified_files_history_id": 1,
+            "filename": "submission_7_award_financial_warning_report.csv",
+            "is_warning": True,
+            "narrative": None}
+        ]},
+        {"certify_date": "2017-05-08 12:07:18",
+        "certify_history_id": 3,
+        "certifying_user": {
+            "name": "Admin User Name",
+            "user_id": 2
+        },
+        "certified_files": [{
+            "certified_files_history_id": 3,
+            "filename": "1492041855_file_a.csv",
+            "is_warning": False,
+            "narrative": "This is also a comment"
+            },
+            {"certified_files_history_id": 6,
+            "filename": "submission_280_cross_warning_appropriations_program_activity.csv",
+            "is_warning": True,
+            "narrative": None}
+        ]}
+    ]
+}
+```
+
+Invalid submission_ids (nonexistant, not certified, or FABS submissions) will return a 400 error.
+
+#### POST "/v1/get_certified_file/"
+Get a signed url for a specified history item
+
+### Body (JSON)
+
+```
+{
+    "submission_id": 1,
+    "certified_files_history_id": 7,
+    "is_warning": True
+}
+```
+
+### Body Description
+
+* `submission_id` - **required** - an integer corresponding the submission_id
+* `certified_files_history_id` - **required** - an integer corresponding the certified_files_history_id
+* `is_warning` - a boolean to denote whether the file being grabbed is a warning file or uploaded file
+
+### Response (JSON)
+
+Successful response will contain the signed S3 URL for the file we're trying to access.
+
+```
+{
+    "url": "https://........",
+}
+```
+
+Invalid certified_files_history_id, requests for a file not related to the submission_id given, or requests for a file that isn't stored in the table will return a 400 error.
+
 #### GET "/v1/list_agencies/"
 Gets all CGACS that the user has submit/certify permissions
 
