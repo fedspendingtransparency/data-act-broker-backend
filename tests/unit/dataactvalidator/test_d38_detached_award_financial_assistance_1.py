@@ -11,7 +11,7 @@ def test_column_headers(database):
     assert expected_subset == actual
 
 
-def test_pubished_date_success(database):
+def test_primary_place_of_performance_state_success(database):
     """ 00***** is a valid PrimaryPlaceOfPerformanceCode value and indicates a multi-state project.
         00FORGN indicates that the place of performance is in a foreign country.
         If neither of the above, PrimaryPlaceOfPerformanceCode must start with valid 2 character state abbreviation
@@ -30,7 +30,7 @@ def test_pubished_date_success(database):
     assert errors == 0
 
 
-def test_pubished_date_failure(database):
+def test_primary_place_of_performance_state_failure(database):
     """ Test for failure that PrimaryPlaceOfPerformanceCode must start with 2 character state abbreviation """
 
     zip = Zips(zip5="12345", state_abbreviation="NY")
