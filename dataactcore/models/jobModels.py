@@ -198,9 +198,26 @@ class CertifyHistory(Base):
     __tablename__ = "certify_history"
 
     certify_history_id = Column(Integer, primary_key=True)
-    submission_id = Column(Integer, ForeignKey("submission.submission_id", ondelete="CASCADE",
-                                               name="fk_certify_history_submission_id"))
-    submission = relationship("Submission", uselist=False, cascade="delete")
+    submission_id = Column(Integer, ForeignKey("submission.submission_id", name="fk_certify_history_submission_id"))
+    submission = relationship("Submission", uselist=False)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL", name="fk_certify_history_user"),
                      nullable=True)
     user = relationship("User")
+
+
+class CertifiedFilesHistory(Base):
+    __tablename__ = "certified_files_history"
+
+    certified_files_history_id = Column(Integer, primary_key=True)
+    certify_history_id = Column(Integer, ForeignKey("certify_history.certify_history_id",
+                                                    name="fk_certify_history_certified_files_id"))
+    certify_history = relationship("CertifyHistory", uselist=False)
+    submission_id = Column(Integer, ForeignKey("submission.submission_id",
+                                               name="fk_certified_files_history_submission_id"))
+    submission = relationship("Submission", uselist=False)
+    filename = Column(Text)
+    file_type_id = Column(Integer, ForeignKey("file_type.file_type_id", name="fk_certified_files_history_file_type"),
+                          nullable=True,)
+    file_type = relationship("FileType", uselist=False, lazy='joined')
+    warning_filename = Column(Text)
+    narrative = Column(Text)
