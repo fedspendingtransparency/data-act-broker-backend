@@ -11,13 +11,13 @@ def test_column_headers(database):
     assert expected_subset == actual
 
 
-def test_primary_place_of_performance_state_success(database):
+def test_success(database):
     """ 00***** is a valid PrimaryPlaceOfPerformanceCode value and indicates a multi-state project.
         00FORGN indicates that the place of performance is in a foreign country.
         If neither of the above, PrimaryPlaceOfPerformanceCode must start with valid 2 character state abbreviation
     """
 
-    zip = Zips(zip5="12345", state_abbreviation="NY")
+    zip_code = Zips(zip5="12345", state_abbreviation="NY")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00FORGN")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00FORgN")
@@ -26,15 +26,15 @@ def test_primary_place_of_performance_state_success(database):
     det_award_6 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY**ABC")
     det_award_7 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY12345")
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6, det_award_7, zip])
+                                                       det_award_6, det_award_7, zip_code])
     assert errors == 0
 
 
-def test_primary_place_of_performance_state_failure(database):
+def test_failure(database):
     """ Test for failure that PrimaryPlaceOfPerformanceCode must start with 2 character state abbreviation """
 
-    zip = Zips(zip5="12345", state_abbreviation="NY")
+    zip_code = Zips(zip5="12345", state_abbreviation="NY")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="001****")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NA*****")
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, zip])
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, zip_code])
     assert errors == 2
