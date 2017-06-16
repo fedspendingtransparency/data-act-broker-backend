@@ -17,7 +17,9 @@ def test_success(database):
     det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='AAAAAA')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='111111')
     det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_office_code='AAA111')
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(funding_office_code='')
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(funding_office_code=None)
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4])
     assert errors == 0
 
 
@@ -27,6 +29,5 @@ def test_failure(database):
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(funding_office_code='AAAA1')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(funding_office_code='AAAAAAA')
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(funding_office_code='')
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
-    assert errors == 3
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
+    assert errors == 2
