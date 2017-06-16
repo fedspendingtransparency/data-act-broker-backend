@@ -18,7 +18,7 @@ FAIN,fain,ASP: Conditional per Validation Rule,string,30,"C9, D2, D5, D6"
 FederalActionObligation,federal_action_obligation,ASP: Conditional per Validation Rule,numeric,20,"C12, D20"
 FiscalYearAndQuarterCorrection,fiscal_year_and_quarter_co,ASP: Optional,string,5,D8
 FundingAgencyCode,funding_agency_code,ASP: Optional,string,3,D1
-FundingOfficeCode,funding_office_code,ASP: Optional,string,3,
+FundingOfficeCode,funding_office_code,ASP: Optional,string,6,
 FundingSubTierAgencyCode,funding_sub_tier_agency_co,ASP: Optional,string,4,D1
 LegalEntityAddressLine1,legal_entity_address_line1,ASP: Conditional per Validation Rule,string,150,D2
 LegalEntityAddressLine2,legal_entity_address_line2,ASP: Optional,string,150,
