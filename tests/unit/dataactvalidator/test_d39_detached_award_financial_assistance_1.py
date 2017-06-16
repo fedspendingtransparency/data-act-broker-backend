@@ -2,7 +2,7 @@ from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssis
 from dataactcore.models.domainModels import Zips
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
-_FILE = 'd38_detached_award_financial_assistance_1'
+_FILE = 'd39_detached_award_financial_assistance_1'
 
 
 def test_column_headers(database):
