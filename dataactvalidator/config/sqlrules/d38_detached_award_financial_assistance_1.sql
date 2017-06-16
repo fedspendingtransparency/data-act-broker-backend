@@ -1,5 +1,5 @@
 -- 00***** is a valid PrimaryPlaceOfPerformanceCode value and indicates a multi-state project.
--- 00FORGN indicates that the place of performance is in a foreign country.
+-- 00FORGN indicates that the place of performance is in a foreign country (allow it to pass, don't test).
 -- If neither of the above, PrimaryPlaceOfPerformanceCode must start with valid 2 character state abbreviation
 SELECT
     dafa.row_number,
