@@ -24,7 +24,7 @@ FiscalYearAndQuarterCorrection,fiscal_year_and_quarter_co,ASP: Optional,string,5
 FundingAgencyCode,funding_agency_code,ASP: Optional,string,3,D1
 FundingAgencyName,funding_agency_name,ASP: Derived,string,100,
 FundingAgencyOfficeName,funding_office_name,ASP: Derived,string,100,
-FundingOfficeCode,funding_office_code,ASP: Optional,string,3,
+FundingOfficeCode,funding_office_code,ASP: Optional,string,6,
 FundingSubTierAgencyCode,funding_sub_tier_agency_co,ASP: Optional,string,4,D1
 FundingSubTierAgencyName,funding_sub_tier_agency_na,ASP: Derived,string,100,
 LegalEntityAddressLine1,legal_entity_address_line1,ASP: Conditional per Validation Rule,string,150,D2
