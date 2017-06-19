@@ -16,19 +16,19 @@ def test_success(database):
     det_award_1 = DetachedAwardFinancialAssistanceFactory(record_type=1, business_types="ABP",
                                                           awardee_or_recipient_uniqu='')
     det_award_2 = DetachedAwardFinancialAssistanceFactory(record_type=1, business_types="ABC",
-                                                          awardee_or_recipient_uniqu='')
+                                                          awardee_or_recipient_uniqu=None)
     det_award_3 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="pbc",
-                                                          awardee_or_recipient_uniqu='')
+                                                          awardee_or_recipient_uniqu=None)
     det_award_4 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="PBC",
                                                           awardee_or_recipient_uniqu='')
     det_award_5 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="apc",
                                                           awardee_or_recipient_uniqu='')
     det_award_6 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="APC",
-                                                          awardee_or_recipient_uniqu='')
+                                                          awardee_or_recipient_uniqu=None)
     det_award_7 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="abp",
                                                           awardee_or_recipient_uniqu='')
     det_award_8 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="ABP",
-                                                          awardee_or_recipient_uniqu='')
+                                                          awardee_or_recipient_uniqu=None)
     det_award_9 = DetachedAwardFinancialAssistanceFactory(record_type=2, business_types="ABC",
                                                           awardee_or_recipient_uniqu='test')
 
