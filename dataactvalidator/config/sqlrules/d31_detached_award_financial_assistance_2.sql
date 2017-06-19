@@ -23,4 +23,4 @@ WHERE submission_id = {0}
             THEN
                 CAST(action_date as DATE)
         END) > CAST('10/01/2010' as DATE)
-    AND (awardee_or_recipient_uniqu IS NULL or awardee_or_recipient_uniqu = '')
+    AND COALESCE(awardee_or_recipient_uniqu, '') = ''
