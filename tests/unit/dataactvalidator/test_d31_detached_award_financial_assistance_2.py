@@ -35,7 +35,7 @@ def test_success(database):
                                                            awardee_or_recipient_uniqu='')
 
     errors = number_of_errors(_FILE, database, models=[det_award_01, det_award_02, det_award_03, det_award_04,
-                                                       det_award_05, det_award_06, det_award_07, det_award_08, 
+                                                       det_award_05, det_award_06, det_award_07, det_award_08,
                                                        det_award_09, det_award_10])
     assert errors == 0
 
