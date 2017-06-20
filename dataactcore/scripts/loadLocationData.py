@@ -7,7 +7,7 @@ from datetime import datetime
 from dataactcore.logging import configure_logging
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.config import CONFIG_BROKER
-from dataactcore.models.domainModels import CityCode
+from dataactcore.models.domainModels import CityCode, CountyCode
 
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import insert_dataframe
@@ -25,7 +25,6 @@ def clean_data(data, field_map):
 
 
 def parse_city_file(city_file, sess):
-    logger.info("Beginning data parsing")
     # read the data and clean up the column names
     data = pd.read_csv(city_file, dtype=str, sep="|")
     data = clean_data(
@@ -64,27 +63,65 @@ def parse_city_file(city_file, sess):
     sess.commit()
 
 
-def load_city_values(sess):
+def parse_county_file(county_file, sess):
+    # read the data and clean up the column names
+    data = pd.read_csv(county_file, dtype=str, sep="|")
+    data = clean_data(
+        data,
+        {"COUNTY_NUMERIC": "county_number",
+         "COUNTY_NAME": "county_name",
+         "STATE_ALPHA": "state_code"})
+
+    # remove all blank county_number rows. Not much use in a county number table
+    data = data[pd.notnull(data['county_number'])]
+
+    # remove duplicates because we have no use for them (there may be none, this is a precaution)
+    data = data[~data.duplicated(subset=['county_number', 'state_code'], keep='first')]
+
+    # add created_at and updated_at columns
+    now = datetime.utcnow()
+    data = data.assign(created_at=now, updated_at=now)
+
+    # insert data into table
+    logger.info("Data parsing complete, inserting into CountyCode table")
+    insert_dataframe(data, CountyCode.__table__.name, sess.connection())
+    sess.commit()
+
+
+def load_city_data(city_file, sess):
     # delete any data in the CityCode table
     logger.info('Deleting CityCode data')
     sess.query(CityCode).delete(synchronize_session=False)
-    sess.commit()
+
+    logger.info("Beginning city data parsing")
+    parse_city_file(city_file, sess)
+
+
+def load_county_data(county_file, sess):
+    # delete any data in the CityCode table
+    logger.info('Deleting CountyCode data')
+    sess.query(CountyCode).delete(synchronize_session=False)
+
+    logger.info("Beginning county data parsing")
+    parse_county_file(county_file, sess)
+
+
+def main():
+    sess = GlobalDB.db().session
 
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
         city_file = s3bucket.get_key("NationalFedCodes.txt").generate_url(expires_in=600)
+        county_file = s3bucket.get_key("GOVT_UNITS.txt").generate_url(expires_in=600)
     else:
         city_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "NationalFedCodes.txt")
+        county_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "GOVT_UNITS.txt")
 
-    parse_city_file(city_file, sess)
-
-    logger.info("City Code script complete")
-
-
-def main():
-    sess = GlobalDB.db().session
-    load_city_values(sess)
+    logger.info('Loading city data')
+    load_city_data(city_file, sess)
+    logger.info('Loading county data')
+    load_county_data(county_file, sess)
 
 
 if __name__ == '__main__':
