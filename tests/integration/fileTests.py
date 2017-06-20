@@ -11,7 +11,7 @@ from tests.unit.dataactcore.factories.job import SubmissionFactory
 from tests.integration.baseTestAPI import BaseTestAPI
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.interfaces.function_bag import populate_submission_error_info
-from dataactcore.models.jobModels import Submission, Job, JobDependency
+from dataactcore.models.jobModels import Submission, Job, JobDependency, CertifyHistory, CertifiedFilesHistory
 from dataactcore.models.errorModels import ErrorMetadata, File
 from dataactcore.models.userModel import User
 from dataactcore.models.lookups import (PUBLISH_STATUS_DICT, ERROR_TYPE_DICT, RULE_SEVERITY_DICT,
@@ -98,6 +98,13 @@ class FileTests(BaseTestAPI):
             cls.test_monthly_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
                                                                    start_date="10/2015", end_date="12/2015",
                                                                    is_quarter=False, number_of_errors=0)
+
+            cls.test_fabs_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
+                                                                start_date="10/2015", end_date="12/2015",
+                                                                is_quarter=False, number_of_errors=0,
+                                                                is_fabs=True)
+
+            cls.test_certify_history_id = cls.setup_certification_history(sess)
 
     def setUp(self):
         """Test set-up."""
@@ -644,10 +651,6 @@ class FileTests(BaseTestAPI):
         self.assertEqual(response.json['submissionId'], self.test_certified_submission_id)
 
     def test_certify_submission(self):
-        post_json = {'submission_id': self.test_uncertified_submission_id}
-        response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id})
-        self.assertEqual(response.json['message'], "Success")
-
         post_json = {'submission_id': self.row_error_submission_id}
         response = self.app.post_json("/v1/certify_submission/", post_json, headers={"x-session-id": self.session_id},
                                       expect_errors=True)
@@ -663,6 +666,85 @@ class FileTests(BaseTestAPI):
                                       expect_errors=True)
         self.assertEqual(response.json['message'], "Submission has already been certified")
 
+    def test_list_certifications(self):
+        post_json = {'submission_id': self.test_certified_submission_id}
+        response = self.app.post_json("/v1/list_certifications/", post_json, headers={"x-session-id": self.session_id})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(len(response.json['certifications']), 0)
+
+        post_json = {'submission_id': self.test_fabs_submission_id}
+        response = self.app.post_json("/v1/list_certifications/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "FABS submissions do not have a certification history")
+
+        post_json = {'submission_id': self.test_monthly_submission_id}
+        response = self.app.post_json("/v1/list_certifications/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "This submission has no certification history")
+
+    def test_get_certified_file(self):
+        sess = GlobalDB.db().session
+        certified_files_history = sess.query(CertifiedFilesHistory).\
+            filter_by(certify_history_id=self.test_certify_history_id, file_type_id=FILE_TYPE_DICT["appropriations"]).\
+            one()
+        certified_files_history_d = sess.query(CertifiedFilesHistory). \
+            filter_by(certify_history_id=self.test_certify_history_id,
+                      file_type_id=FILE_TYPE_DICT["award_procurement"]). \
+            one()
+        certified_files_history_cross = sess.query(CertifiedFilesHistory). \
+            filter_by(certify_history_id=self.test_certify_history_id,
+                      file_type_id=None). \
+            one()
+
+        # valid warning file
+        post_json = {'submission_id': self.test_certified_submission_id, "is_warning": True,
+                     "certified_files_history_id": certified_files_history.certified_files_history_id}
+        response = self.app.post_json("/v1/get_certified_file/", post_json, headers={"x-session-id": self.session_id})
+        self.assertIn('path/to/warning_file_a.csv', response.json['url'])
+        self.assertEqual(response.status_code, 200)
+
+        # valid uploaded file
+        post_json = {'submission_id': self.test_certified_submission_id, "is_warning": False,
+                     "certified_files_history_id": certified_files_history.certified_files_history_id}
+        response = self.app.post_json("/v1/get_certified_file/", post_json, headers={"x-session-id": self.session_id})
+        self.assertIn('path/to/file_a.csv', response.json['url'])
+        self.assertEqual(response.status_code, 200)
+
+        # nonexistent certified_files_history_id
+        post_json = {'submission_id': self.test_certified_submission_id, "is_warning": False,
+                     "certified_files_history_id": -1}
+        response = self.app.post_json("/v1/get_certified_file/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "Invalid certified_files_history_id")
+
+        # non-matching submission_id and certified_files_history_id
+        post_json = {'submission_id': self.test_monthly_submission_id, "is_warning": False,
+                     "certified_files_history_id": certified_files_history.certified_files_history_id}
+        response = self.app.post_json("/v1/get_certified_file/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'],
+                         "Requested certified_files_history_id does not match submission_id provided")
+
+        # no warning file associated with entry when requesting warning file
+        post_json = {'submission_id': self.test_certified_submission_id, "is_warning": True,
+                     "certified_files_history_id": certified_files_history_d.certified_files_history_id}
+        response = self.app.post_json("/v1/get_certified_file/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "History entry has no warning file")
+
+        # no uploaded file associated with entry when requesting uploaded file
+        post_json = {'submission_id': self.test_certified_submission_id, "is_warning": False,
+                     "certified_files_history_id": certified_files_history_cross.certified_files_history_id}
+        response = self.app.post_json("/v1/get_certified_file/", post_json, headers={"x-session-id": self.session_id},
+                                      expect_errors=True)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['message'], "History entry has no related file")
+
     def test_revalidate_submission(self):
         post_json = {'submission_id': self.row_error_submission_id}
         response = self.app.post_json("/v1/restart_validation/", post_json,
@@ -671,7 +753,7 @@ class FileTests(BaseTestAPI):
 
     @staticmethod
     def insert_submission(sess, submission_user_id, cgac_code=None, start_date=None, end_date=None,
-                          is_quarter=False, number_of_errors=0, publish_status_id=1):
+                          is_quarter=False, number_of_errors=0, publish_status_id=1, is_fabs=False):
         """Insert one submission into job tracker and get submission ID back."""
         publishable = True if number_of_errors == 0 else False
         end_date = datetime.strptime(end_date, '%m/%Y')
@@ -689,7 +771,8 @@ class FileTests(BaseTestAPI):
                          is_quarter_format=is_quarter,
                          number_of_errors=number_of_errors,
                          publish_status_id=publish_status_id,
-                         publishable=publishable)
+                         publishable=publishable,
+                         d2_submission=is_fabs)
         sess.add(sub)
         sess.commit()
         return sub.submission_id
@@ -736,6 +819,63 @@ class FileTests(BaseTestAPI):
         sess.add(ed)
         sess.commit()
         return ed.error_metadata_id
+
+    @classmethod
+    def insert_certified_files_history(cls, sess, ch_id, submission_id, file_type=None, filename=None,
+                                       warning_filename=None, narrative=None):
+        """ Insert one history entry into certified files history database. """
+        cfh = CertifiedFilesHistory(
+            certify_history_id=ch_id,
+            submission_id=submission_id,
+            filename=filename,
+            file_type_id=file_type,
+            warning_filename=warning_filename,
+            narrative=narrative
+        )
+        sess.add(cfh)
+        sess.commit()
+        return cfh.certified_files_history_id
+
+    @classmethod
+    def setup_certification_history(cls, sess):
+        submission_id = cls.test_certified_submission_id
+
+        ch = CertifyHistory(
+            user_id=cls.submission_user_id,
+            submission_id=submission_id
+        )
+        sess.add(ch)
+        sess.commit()
+
+        # Create an A file entry
+        cls.insert_certified_files_history(
+            sess,
+            ch.certify_history_id,
+            submission_id,
+            FILE_TYPE_DICT["appropriations"],
+            "path/to/file_a.csv",
+            "path/to/warning_file_a.csv",
+            "Narrative content"
+        )
+
+        # Create a D1 file entry
+        cls.insert_certified_files_history(
+            sess,
+            ch.certify_history_id,
+            submission_id,
+            FILE_TYPE_DICT["award_procurement"],
+            "path/to/file_d1.csv"
+        )
+
+        # Create a cross-file entry
+        cls.insert_certified_files_history(
+            sess,
+            ch.certify_history_id,
+            submission_id,
+            warning_filename="path/to/cross_file.csv"
+        )
+
+        return ch.certify_history_id
 
     @classmethod
     def setup_file_generation_submission(cls, sess, submission_id=None):
