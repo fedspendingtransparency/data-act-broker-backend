@@ -256,3 +256,28 @@ class Zips(Base):
     congressional_district_no = Column(Text)
 
     __table_args__ = (UniqueConstraint('zip5', 'zip_last4', name='uniq_zip5_zip_last4'),)
+
+
+class CityCode(Base):
+    """ City code data and other useful, identifying location data """
+    __tablename__ = "city_code"
+
+    city_code_id = Column(Integer, primary_key=True)
+    feature_name = Column(Text)
+    feature_class = Column(Text)
+    city_code = Column(Text)
+    state_code = Column(Text)
+    county_number = Column(Text)
+    county_name = Column(Text)
+    latitude = Column(Text)
+    longitude = Column(Text)
+
+
+class CountyCode(Base):
+    """ County code data per state """
+    __tablename__ = "county_code"
+
+    county_code_id = Column(Integer, primary_key=True)
+    county_number = Column(Text)
+    county_name = Column(Text)
+    state_code = Column(Text)
