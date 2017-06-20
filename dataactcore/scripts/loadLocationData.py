@@ -64,9 +64,7 @@ def parse_city_file(city_file, sess):
     sess.commit()
 
 
-def main():
-    sess = GlobalDB.db().session
-
+def load_city_values(sess):
     # delete any data in the CityCode table
     logger.info('Deleting CityCode data')
     sess.query(CityCode).delete(synchronize_session=False)
@@ -82,6 +80,12 @@ def main():
     parse_city_file(city_file, sess)
 
     logger.info("City Code script complete")
+
+
+def main():
+    sess = GlobalDB.db().session
+    load_city_values(sess)
+
 
 if __name__ == '__main__':
     configure_logging()
