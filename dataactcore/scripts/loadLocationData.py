@@ -122,6 +122,7 @@ def main():
     load_city_data(city_file, sess)
     logger.info('Loading county data')
     load_county_data(county_file, sess)
+    logger.info('Location data load complete')
 
 
 if __name__ == '__main__':
