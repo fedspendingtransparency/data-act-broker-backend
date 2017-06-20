@@ -271,3 +271,13 @@ class CityCode(Base):
     county_name = Column(Text)
     latitude = Column(Text)
     longitude = Column(Text)
+
+
+class CountyCode(Base):
+    """ County code data per state """
+    __tablename__ = "county_code"
+
+    county_code_id = Column(Integer, primary_key=True)
+    county_number = Column(Text)
+    county_name = Column(Text)
+    state_code = Column(Text)
