@@ -18,6 +18,7 @@ from dataactvalidator.filestreaming.sqlLoader import SQLLoader
 from dataactvalidator.scripts.loadFile import load_domain_values
 from dataactvalidator.scripts.load_sf133 import load_all_sf133
 from dataactvalidator.scripts.loadTas import load_tas
+from dataactvalidator.scripts.loadLocationData import load_location_data
 
 logger = logging.getLogger(__name__)
 basePath = CONFIG_BROKER["path"]
@@ -83,6 +84,12 @@ def load_validator_schema():
     SchemaLoader.load_all_from_path(validator_config_path)
 
 
+def load_location_codes():
+    """Load city and county codes into the broker database."""
+    logger.info('Loading location data')
+    load_location_data()
+
+
 def main():
     parser = argparse.ArgumentParser(description='Initialize the DATA Act Broker.')
     parser.add_argument('-i', '--initialize', help='Run all broker initialization tasks', action='store_true')
@@ -94,6 +101,7 @@ def main():
     parser.add_argument('-t', '--update_tas', help='Update broker TAS list', action='store_true')
     parser.add_argument('-s', '--update_sf133', help='Update broker SF-133 reports', action='store_true')
     parser.add_argument('-v', '--update_validator', help='Update validator schema', action='store_true')
+    parser.add_argument('-l', '--load_location', help='Load city and county codes', action='store_true')
     args = parser.parse_args()
 
     if args.initialize:
@@ -103,6 +111,7 @@ def main():
         load_tas_lookup()
         load_sf133()
         load_validator_schema()
+        load_location_codes()
         return
 
     if args.setup_db:
@@ -125,6 +134,9 @@ def main():
 
     if args.update_validator:
         load_validator_schema()
+
+    if args.load_location:
+        load_location_codes()
 
 if __name__ == '__main__':
     configure_logging()

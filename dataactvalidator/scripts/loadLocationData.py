@@ -58,8 +58,8 @@ def parse_city_file(city_file, sess):
     data = data.sort_values(by=['feature_name'])
 
     # insert data into table
-    logger.info("Data parsing complete, inserting into CityCode table")
-    insert_dataframe(data, CityCode.__table__.name, sess.connection())
+    num = insert_dataframe(data, CityCode.__table__.name, sess.connection())
+    logger.info('{} records inserted to city_code'.format(num))
     sess.commit()
 
 
@@ -83,32 +83,34 @@ def parse_county_file(county_file, sess):
     data = data.assign(created_at=now, updated_at=now)
 
     # insert data into table
-    logger.info("Data parsing complete, inserting into CountyCode table")
-    insert_dataframe(data, CountyCode.__table__.name, sess.connection())
+    num = insert_dataframe(data, CountyCode.__table__.name, sess.connection())
+    logger.info('{} records inserted to county_code'.format(num))
     sess.commit()
 
 
-def load_city_data(city_file, sess):
-    # delete any data in the CityCode table
-    logger.info('Deleting CityCode data')
-    sess.query(CityCode).delete(synchronize_session=False)
+def load_city_data(city_file):
+    with create_app().app_context():
+        sess = GlobalDB.db().session
 
-    logger.info("Beginning city data parsing")
-    parse_city_file(city_file, sess)
+        # delete any data in the CityCode table
+        sess.query(CityCode).delete()
 
-
-def load_county_data(county_file, sess):
-    # delete any data in the CityCode table
-    logger.info('Deleting CountyCode data')
-    sess.query(CountyCode).delete(synchronize_session=False)
-
-    logger.info("Beginning county data parsing")
-    parse_county_file(county_file, sess)
+        # parse the new city code data
+        parse_city_file(city_file, sess)
 
 
-def main():
-    sess = GlobalDB.db().session
+def load_county_data(county_file):
+    with create_app().app_context():
+        sess = GlobalDB.db().session
 
+        # delete any data in the CityCode table
+        sess.query(CountyCode).delete()
+
+        # parse the new county code data
+        parse_county_file(county_file, sess)
+
+
+def load_location_data():
     if CONFIG_BROKER["use_aws"]:
         s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
         s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
@@ -119,13 +121,11 @@ def main():
         county_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "GOVT_UNITS.txt")
 
     logger.info('Loading city data')
-    load_city_data(city_file, sess)
+    load_city_data(city_file)
     logger.info('Loading county data')
-    load_county_data(county_file, sess)
-    logger.info('Location data load complete')
+    load_county_data(county_file)
 
 
 if __name__ == '__main__':
     configure_logging()
-    with create_app().app_context():
-        main()
+    load_location_data()
