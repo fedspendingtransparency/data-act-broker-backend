@@ -208,11 +208,14 @@ class ValidationManager:
             sess.expunge(field)
 
         csv_schema = {row.name_short: row for row in fields}
+        fields_long_names = [row.name for row in fields]
+        long_to_short_file_type = {long_name: short_name for long_name, short_name in self.long_to_short_dict.items()
+                                   if long_name in fields_long_names}
 
         try:
             # Pull file and return info on whether it's using short or long col headers
             reader.open_file(region_name, bucket_name, file_name, fields, bucket_name, error_file_name,
-                             self.long_to_short_dict)
+                             long_to_short_file_type)
 
             # list to keep track of rows that fail validations
             error_rows = []
