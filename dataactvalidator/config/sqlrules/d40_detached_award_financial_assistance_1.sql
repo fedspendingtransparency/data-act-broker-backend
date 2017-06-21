@@ -9,6 +9,7 @@ WHERE submission_id = {0}
     AND NOT EXISTS (
         SELECT *
         FROM detached_award_financial_assistance AS sub_dafa
-        JOIN zips
-            ON SUBSTRING(dafa.place_of_performance_code, 5, 3) = zips.county_number
+        JOIN county_code
+            ON SUBSTRING(dafa.place_of_performance_code, 5, 3) = county_code.county_number
+                AND UPPER(SUBSTRING(dafa.place_of_performance_code, 1, 2)) = county_code.state_code
     )

@@ -1,5 +1,5 @@
 from tests.unit.dataactcore.factories.staging import DetachedAwardFinancialAssistanceFactory
-from dataactcore.models.domainModels import Zips
+from dataactcore.models.domainModels import CountyCode
 from tests.unit.dataactvalidator.utils import number_of_errors, query_columns
 
 _FILE = 'd40_detached_award_financial_assistance_1'
@@ -14,11 +14,12 @@ def test_column_headers(database):
 def test_success(database):
     """ PrimaryPlaceOfPerformanceCode last three digits must be a valid county code when format is XX**###. """
 
-    zip_code = Zips(zip5="12345", county_number="123")
+    county_code = CountyCode(county_number="123", state_code="NY")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY*****")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00FO333")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY**123")
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, zip_code])
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="Ny**123")
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, county_code])
     assert errors == 0
 
 
@@ -26,8 +27,10 @@ def test_failure(database):
     """ Test failure for PrimaryPlaceOfPerformanceCode last three digits must be a valid county code when
         format is XX**###. """
 
-    zip_code = Zips(zip5="12345", county_number="123")
+    county_code = CountyCode(county_number="123", state_code="NY")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00**333")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00**33")
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, zip_code])
-    assert errors == 2
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="Ny**124")
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NA**123")
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, county_code])
+    assert errors == 4
