@@ -8,7 +8,7 @@ from webargs.flaskparser import parser as webargs_parser, use_kwargs
 
 from dataactbroker.handlers.fileHandler import (
     FileHandler, get_error_metrics, get_status, list_submissions as list_submissions_handler,
-    narratives_for_submission, submission_report_url, update_narratives)
+    narratives_for_submission, submission_report_url, update_narratives, list_certifications, file_history_url)
 from dataactcore.interfaces.function_bag import get_submission_stats
 from dataactcore.models.lookups import FILE_TYPE_DICT
 from dataactbroker.permissions import requires_login, requires_submission_perms
@@ -115,6 +115,35 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     def list_submissions(page, limit, certified, sort, order):
         """ List submission IDs associated with the current user """
         return list_submissions_handler(page, limit, certified, sort, order)
+
+    @app.route("/v1/list_certifications/", methods=["POST"])
+    @convert_to_submission_id
+    @requires_submission_perms('reader')
+    def submission_list_certifications(submission):
+        if submission.d2_submission:
+            return JsonResponse.error(ValueError("FABS submissions do not have a certification history"),
+                                      StatusCode.CLIENT_ERROR)
+
+        sess = GlobalDB.db().session
+
+        certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id)
+
+        if certify_history.count() == 0:
+            return JsonResponse.error(ValueError("This submission has no certification history"),
+                                      StatusCode.CLIENT_ERROR)
+
+        return list_certifications(submission)
+
+    @app.route("/v1/get_certified_file/", methods=["POST"])
+    @use_kwargs({
+        'submission_id': webargs_fields.Int(required=True),
+        'certified_files_history_id': webargs_fields.Int(required=True),
+        'is_warning': webargs_fields.Bool(missing=False)
+    })
+    @requires_submission_perms('reader')
+    def get_certified_file(submission, certified_files_history_id, is_warning):
+        """ Get the signed URL for the specified file history """
+        return file_history_url(submission, certified_files_history_id, is_warning, is_local)
 
     @app.route("/v1/get_protected_files/", methods=["GET"])
     @requires_login
@@ -347,12 +376,22 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         if response.status_code == StatusCode.OK:
             sess = GlobalDB.db().session
-            if not is_local:
-                file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
-                file_manager.move_certified_files(submission)
+
+            # create the certify_history entry
             certify_history = CertifyHistory(created_at=datetime.utcnow(), user_id=g.user.user_id,
                                              submission_id=submission.submission_id)
             sess.add(certify_history)
+            sess.commit()
+
+            # get the certify_history entry including the PK
+            certify_history = sess.query(CertifyHistory).filter_by(submission_id=submission.submission_id).\
+                order_by(CertifyHistory.created_at.desc()).first()
+
+            # move files (locally we don't move but we still need to populate the certified_files_history table
+            file_manager = FileHandler(request, is_local=is_local, server_path=server_path)
+            file_manager.move_certified_files(submission, certify_history, is_local)
+
+            # set submission contents
             submission.certifying_user_id = g.user.user_id
             submission.publish_status_id = PUBLISH_STATUS_DICT['published']
             sess.commit()

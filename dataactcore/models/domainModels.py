@@ -50,6 +50,8 @@ class TASLookup(Base):
     internal_start_date = Column(Date, nullable=False)
     internal_end_date = Column(Date, nullable=True)
     financial_indicator2 = Column(Text, nullable=True)
+    fr_entity_description = Column(Text, nullable=True)
+    fr_entity_type = Column(Text, nullable=True)
 
     def component_dict(self):
         """We'll often want to copy TAS component fields; this method returns

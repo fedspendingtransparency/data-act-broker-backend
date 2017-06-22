@@ -16,7 +16,7 @@ def write_then_read_tas(tmpdir, *rows):
     with open(str(csv_file), 'w') as f:
         writer = DictWriter(
             f, ['ACCT_NUM', 'ATA', 'AID', 'A', 'BPOA', 'EPOA', 'MAIN', 'SUB', 'FINANCIAL_INDICATOR_TYPE2',
-                'DT_TM_ESTAB', 'DT_END']
+                'DT_TM_ESTAB', 'DT_END', 'fr_entity_description', 'fr_entity_type']
         )
         writer.writeheader()
         for row in rows:
@@ -34,10 +34,12 @@ def test_clean_tas_multiple(tmpdir):
         tmpdir,
         {'ACCT_NUM': '6', 'ATA': 'aaa', 'AID': 'bbb', 'A': 'ccc',
          'BPOA': 'ddd', 'EPOA': 'eee', 'MAIN': 'ffff', 'SUB': 'ggg',
-         'DT_END': '', 'DT_TM_ESTAB': '10/1/1987  12:00:00 AM'},
+         'DT_END': '', 'DT_TM_ESTAB': '10/1/1987  12:00:00 AM',
+         'fr_entity_description': 'abcd', 'fr_entity_type': '1234'},
         {'ACCT_NUM': '12345', 'ATA': '111', 'AID': '222', 'A': '333',
          'BPOA': '444', 'EPOA': '555', 'MAIN': '6666', 'SUB': '777',
-         'DT_END': '12/22/2016  12:00:00 AM', 'DT_TM_ESTAB': '10/1/2008  12:00:00 AM'}
+         'DT_END': '12/22/2016  12:00:00 AM', 'DT_TM_ESTAB': '10/1/2008  12:00:00 AM',
+         'fr_entity_description': 'xyz', 'fr_entity_type': 'AB12'}
     )
     assert results['account_num'].tolist() == [6, 12345]
     assert results['allocation_transfer_agency'].tolist() == ['aaa', '111']
@@ -49,6 +51,8 @@ def test_clean_tas_multiple(tmpdir):
     assert results['sub_account_code'].tolist() == ['ggg', '777']
     assert results['internal_start_date'].tolist() == ['10/1/1987  12:00:00 AM', '10/1/2008  12:00:00 AM']
     assert results['internal_end_date'].tolist() == [None, '12/22/2016  12:00:00 AM']
+    assert results['fr_entity_description'].tolist() == ['abcd', 'xyz']
+    assert results['fr_entity_type'].tolist() == ['1234', 'AB12']
 
 
 def test_clean_tas_space_nulls(tmpdir):

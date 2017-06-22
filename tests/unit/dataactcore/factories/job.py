@@ -4,6 +4,7 @@ from factory import fuzzy
 from datetime import date
 
 from dataactcore.models import jobModels
+from tests.unit.dataactcore.factories.user import UserFactory
 
 
 class SubmissionFactory(factory.Factory):
@@ -70,3 +71,40 @@ class JobFactory(factory.Factory):
     error_message = fuzzy.FuzzyText()
     start_date = fuzzy.FuzzyDate(date(2010, 1, 1))
     end_date = fuzzy.FuzzyDate(date(2010, 1, 1))
+
+
+class CertifyHistoryFactory(factory.Factory):
+    class Meta:
+        model = jobModels.CertifyHistory
+
+    certify_history_id = None
+    submission_id = fuzzy.FuzzyInteger(9999)
+    submission = factory.SubFactory(SubmissionFactory)
+    user_id = fuzzy.FuzzyInteger(9999)
+    user = factory.SubFactory(UserFactory)
+
+
+class CertifiedFilesHistoryFactory(factory.Factory):
+    class Meta:
+        model = jobModels.CertifiedFilesHistory
+
+    certified_files_history_id = None
+    certify_history_id = fuzzy.FuzzyInteger(9999)
+    submission_id = fuzzy.FuzzyInteger(9999)
+    filename = fuzzy.FuzzyText()
+    file_type_id = fuzzy.FuzzyInteger(9999)
+    file_type = factory.SubFactory(FileTypeFactory)
+    warning_filename = fuzzy.FuzzyText()
+    narrative = fuzzy.FuzzyText()
+
+
+class SubmissionNarrativeFactory(factory.Factory):
+    class Meta:
+        model = jobModels.SubmissionNarrative
+
+    submission_narrative_id = None
+    submission_id = fuzzy.FuzzyInteger(9999)
+    submission = factory.SubFactory(SubmissionFactory)
+    file_type_id = fuzzy.FuzzyInteger(9999)
+    file_type = factory.SubFactory(FileTypeFactory)
+    narrative = fuzzy.FuzzyText()
