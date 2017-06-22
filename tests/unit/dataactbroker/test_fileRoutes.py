@@ -151,7 +151,7 @@ def test_current_page(file_app, database, user_constants, job_constants, monkeyp
     job_cross_file.job_status = waiting
     job_d1.number_of_errors = 0
     database.session.commit()
-    # E and F generated
+    # E and F generated with C file errors
     response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['step'] == '1'
