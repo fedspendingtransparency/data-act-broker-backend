@@ -148,7 +148,6 @@ def test_current_page(file_app, database, user_constants, job_constants, monkeyp
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['step'] == '1'
 
-
     job_cross_file.job_status = waiting
     job_d1.number_of_errors = 0
     database.session.commit()

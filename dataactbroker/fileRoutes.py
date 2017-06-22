@@ -170,8 +170,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         generate_ef = sess.query(Job).filter(Job.submission_id == submission_id, Job.job_type_id == 4,
                                              Job.number_of_errors == 0)
 
-
-        if review_data.count() == 2 and generate_ef.count() > 0: 
+        if review_data.count() == 2 and generate_ef.count() > 0:
             data = {
                 "message": "The current progress of this submission ID is on /v1/reviewData/ page.",
                 "step": "5"
@@ -187,8 +186,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.create(StatusCode.OK, data)
 
         validate_cross_file = sess.query(Job).filter(Job.submission_id == submission_id,
-                                                 Job.file_type_id.in_([4, 5]), Job.job_type_id == 2,
-                                                 Job.number_of_errors == 0, Job.file_size.isnot(None))
+                                                     Job.file_type_id.in_([4, 5]), Job.job_type_id == 2,
+                                                     Job.number_of_errors == 0, Job.file_size.isnot(None))
 
         generate_files = sess.query(Job).filter(Job.submission_id == submission_id,
                                                 Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
@@ -204,8 +203,6 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.create(StatusCode.OK, data)
 
         # /v1/generateFiles/
-        
-
         if generate_files.count() == 3:
             data = {
                 "message": "The current progress of this submission ID is on /v1/generateFiles/ page.",
