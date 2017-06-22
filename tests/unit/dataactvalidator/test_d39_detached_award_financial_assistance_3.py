@@ -14,6 +14,8 @@ def test_success(database):
     """ PrimaryPlaceofPerformanceZIP+4 should not be provided for any format of PrimaryPlaceOfPerformanceCode
         other than XX#####. """
 
+    # place_of_performance_code = None should technically be a failure based on the rule, but because it is a
+    # required field we want it to pass so the user isn't double-errored for the same thing.
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="NY12345",
                                                           place_of_performance_zip4a="1234")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny98765",
@@ -36,5 +38,7 @@ def test_failure(database):
                                                           place_of_performance_zip4a="1234")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****",
                                                           place_of_performance_zip4a="4312")
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2])
-    assert errors == 2
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="ny**987",
+                                                          place_of_performance_zip4a="4312")
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
+    assert errors == 3
