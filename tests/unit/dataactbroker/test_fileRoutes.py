@@ -68,9 +68,8 @@ def test_current_page(file_app, database, user_constants, job_constants, monkeyp
     the correct page
     """
 
-    cgacs = CGACFactory()
-    print(cgacs)
-    user = UserFactory.with_cgacs(cgacs)
+    cgac = CGACFactory()
+    user = UserFactory.with_cgacs(cgac)
     user.user_id = 1
     user.name = 'Oliver Queen'
     user.website_admin = True
@@ -78,7 +77,7 @@ def test_current_page(file_app, database, user_constants, job_constants, monkeyp
     database.session.commit()
     g.user = user
 
-    sub = SubmissionFactory(user_id=1, cgac_code=cgacs.cgac_code)
+    sub = SubmissionFactory(user_id=1, cgac_code=cgac.cgac_code)
     database.session.add(sub)
 
     csv_validation = database.session.query(JobType).filter_by(name='csv_record_validation').one()
@@ -129,21 +128,22 @@ def test_current_page(file_app, database, user_constants, job_constants, monkeyp
     job_e.job_status_id = 4
     job_cross_file.number_of_errors = 6
     database.session.commit()
-    # Fail C file upload
+
+    # Restore job_e and create errors for cross_file
     response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['step'] == '3'
 
     job_d1.number_of_errors = 6
     database.session.commit()
-    # Fail C file upload
+    # D file has errors
     response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['step'] == '2'
 
     job_c.number_of_errors = 6
     database.session.commit()
-    # Fail C file upload
+    # Fail C file validation
     response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
     response_json = json.loads(response.data.decode('UTF-8'))
     assert response_json['step'] == '1'

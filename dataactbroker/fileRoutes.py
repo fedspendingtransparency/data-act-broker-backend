@@ -194,7 +194,7 @@ def add_file_routes(app, create_credentials, is_local, server_path):
                                                 Job.number_of_errors == 0, Job.file_size.isnot(None),
                                                 Job.job_status_id == 4)
 
-        # /v1/validateCrossFile/)
+        # /v1/validateCrossFile/
         if validate_cross_file.count() == 2 and generate_files.count() == 3:
             data = {
                 "message": "The current progress of this submission ID is on /v1/validateCrossFile/ page.",
