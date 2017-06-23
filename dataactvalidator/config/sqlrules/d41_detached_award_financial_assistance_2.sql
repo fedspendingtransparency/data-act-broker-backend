@@ -5,6 +5,7 @@ SELECT
 FROM detached_award_financial_assistance AS dafa
 WHERE dafa.submission_id = {0}
     AND UPPER(dafa.place_of_performance_code) ~ '^[A-Z][A-Z]\d\d\d\d\d$'
+    AND UPPER(dafa.place_of_performance_code) !~ '^[A-Z][A-Z]00000$'
     AND COALESCE(dafa.place_of_performance_zip4a, '') != ''
     AND NOT EXISTS (
         SELECT *
