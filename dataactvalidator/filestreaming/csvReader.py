@@ -37,13 +37,12 @@ class CsvReader(object):
         # If this is a file in S3, download to a local temp file first
         if region and bucket:
             # Use temp file as local file
-
             filename = self._transfer_s3_file_to_local(region, bucket, filename)
 
         self.filename = filename
         self.is_local = True
         try:
-            self.file = open(filename, "r")
+            self.file = open(filename, "r", newline=None)
         except:
             raise ValueError("".join(["Filename provided not found : ", str(self.filename)]))
 
@@ -53,7 +52,7 @@ class CsvReader(object):
         self.packet_counter = 0
         self.is_finished = False
         self.column_count = 0
-        header_line = self._get_line()
+        header_line = self.file.readline()
         # make sure we have not finished reading the file
 
         if self.is_finished:
@@ -64,10 +63,11 @@ class CsvReader(object):
             raise ResponseException("CSV file must have a header", StatusCode.CLIENT_ERROR,
                                     ValueError, ValidationError.singleRow)
 
-        # create the header
         self.set_csv_delimiter(header_line, bucket_name, error_filename)
+        self.csv_reader = csv.reader(self.file, quotechar='"', dialect='excel', delimiter=self.delimiter)
 
-        header_row = next(csv.reader([header_line], dialect='excel', delimiter=self.delimiter))
+        # create the header
+        header_row = next(csv.reader([header_line], quotechar='"', dialect='excel', delimiter=self.delimiter))
         long_headers = use_long_headers(header_row, long_to_short_dict)
         header_row = list(normalize_headers(header_row, long_headers, long_to_short_dict))
 
@@ -109,9 +109,8 @@ class CsvReader(object):
         """
         return_dict = {}
         flex_fields = []
-        line = self._get_line()
 
-        row = next(csv.reader([line], dialect='excel', delimiter=self.delimiter))
+        row = self._get_line()
         if len(row) != self.column_count:
             raise ResponseException(
                 "Wrong number of fields in this row, expected %s got %s" %
@@ -125,8 +124,7 @@ class CsvReader(object):
             # Use None instead of empty strings for sqlalchemy
             if cell == "":
                 cell = None
-            # self.expected_headers uses the short, machine-readable column
-            # names
+            # self.expected_headers uses the short, machine-readable column names
             if self.expected_headers[idx] is None and self.flex_headers[idx] is not None:
                 flex_fields.append(FlexField(header=self.flex_headers[idx], cell=cell))
             # We skip headers which aren't expected and aren't flex
@@ -135,21 +133,21 @@ class CsvReader(object):
         return return_dict, flex_fields
 
     def _get_line(self):
-        line = self.file.readline()
-        # Empty lines are represented with '\n'. Read until we get a non-empty line or get an empty string
-        # signifying end of file.
-        while line == '\n':
-            line = self.file.readline()
-
-        # If the line is empty, we've reached the end of the file.
-        if not line:
+        try:
+            # read next until we get a non-empty line or get an empty string signifying end of file
+            line = next(self.csv_reader)
+            while line == '\n' or line == []:
+                line = next(self.csv_reader)
+        except:
+            # If we cannot continue, we've reached the end of the file
+            line = ''
             self.is_finished = True
             self.extra_line = True
+
         return line
 
     def set_csv_delimiter(self, header_line, bucket_name, error_filename):
-        """Try to determine the delimiter type, raising exceptions if we
-        cannot figure it out."""
+        """Try to determine the delimiter type, raising exceptions if we cannot figure it out."""
         pipe_count = header_line.count("|")
         comma_count = header_line.count(",")
 
@@ -166,8 +164,7 @@ class CsvReader(object):
         self.delimiter = "|" if header_line.count("|") != 0 else ","
 
     def handle_missing_duplicate_headers(self, expected_fields, bucket_name, error_filename):
-        """Check for missing or duplicated headers. If present, raise an
-        exceptions with a meaningful message"""
+        """Check for missing or duplicated headers. If present, raise an exception with a meaningful message"""
         missing_headers = [cell for cell, count in expected_fields.items() if count == 0]
         duplicated_headers = [cell for cell, count in expected_fields.items() if count > 1]
 
@@ -179,8 +176,7 @@ class CsvReader(object):
             raise_missing_duplicated_exception(missing_headers, duplicated_headers)
 
     def write_missing_duplicated_headers(self, missing_headers, duplicated_headers, bucket_name, error_filename):
-        """Write header errors if any occurred and raise a header_error
-        exception"""
+        """Write header errors if any occurred and raise a header_error exception"""
         with self.get_writer(bucket_name, error_filename, self.header_report_headers, self.is_local) as writer:
             for header in duplicated_headers:
                 writer.write(["Duplicated header", header])
@@ -189,13 +185,12 @@ class CsvReader(object):
             writer.finish_batch()
 
     def count_and_set_headers(self, csv_schema, header_row):
-        """Track how many times we've seen a field we were expecting and set
-        self.expected_headers and self.flex_headers"""
+        """Track how many times we've seen a field we were expecting and set self.expected_headers and
+        self.flex_headers"""
         self.expected_headers = []
         self.flex_headers = []
 
-        # Track how many times we've seen a field we were expecting. Keyed by
-        # the shorter, machine-readable column names
+        # Track how many times we've seen a field we were expecting. Keyed by the shorter, machine-readable column names
         expected_fields = {}
 
         for schema in csv_schema:
@@ -208,8 +203,7 @@ class CsvReader(object):
                     self.flex_headers.append(header_value)
                 else:
                     self.flex_headers.append(None)
-                # Allow unexpected headers, just mark the header as None so we
-                # skip it when reading
+                # Allow unexpected headers, just mark the header as None so we skip it when reading
                 self.expected_headers.append(None)
             else:
                 self.flex_headers.append(None)
@@ -240,16 +234,14 @@ def use_long_headers(header_row, long_to_short_dict):
     for value in header_row:
         if FieldCleaner.clean_string(value) in long_to_short_dict:
             col_matches += 1
-    # if most of column headers are in the long format,
-    # we'll treat the file as having long headers
+    # if most of column headers are in the long format, we'll treat the file as having long headers
     return col_matches > .5 * len(header_row)
 
 
 def normalize_headers(header_row, long_headers, long_to_short_dict):
     for header in header_row:
         header = FieldCleaner.clean_string(header)
-        # Replace correctly spelled header (which does NOT match the db) with the
-        # misspelling that DOES match the db
+        # Replace correctly spelled header (which does NOT match the db) with the misspelling that DOES match the db
         if header == 'deobligationsrecoveriesrefundsofprioryearbyprogramobjectclass_cpe':
             header = 'deobligationsrecoveriesrefundsdofprioryearbyprogramobjectclass_cpe'
         if long_headers and header in long_to_short_dict:
@@ -259,8 +251,7 @@ def normalize_headers(header_row, long_headers, long_to_short_dict):
 
 
 def raise_missing_duplicated_exception(missing_headers, duplicated_headers):
-    """Construct and raise an exception about missing and/or duplicated
-    headers"""
+    """Construct and raise an exception about missing and/or duplicated headers"""
     error_string, extra_info = '', {}
     duplicated_str = ', '.join(duplicated_headers)
     missing_str = ', '.join(missing_headers)
