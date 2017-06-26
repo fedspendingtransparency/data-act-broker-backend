@@ -1747,11 +1747,16 @@ def fabs_derivations(obj):
         obj['funding_agency_name'] = funding_agency_name.agency_name
 
     # deriving funding sub tier agency name
-
     if obj['funding_sub_tier_agency_co']:
         funding_sub_tier_agency_name = sess.query(SubTierAgency).\
             filter_by(sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one()
         obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency_name.sub_tier_agency_name
+
+    # deriving place of performance
+    if obj['place_of_performance_zip4a'] and not obj['place_of_performance_congr']:
+        zip_info = sess.query(Zips).\
+            filter_by(zip5=obj['place_of_performance_zip4a'][5:]).one()
+        obj['place_of_performance_congr'] = zip_info.congressional_district_no
 
     GlobalDB.close()
     return obj
