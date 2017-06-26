@@ -12,10 +12,7 @@ def test_column_headers(database):
 
 
 def test_pubished_date_success(database):
-    """ Test valid. For (ActionType = B, C, or D), the CFDA_Number need NOT be active as of the
-        ActionDate.
-        Not apply to those with CorrectionLateDeleteIndicator = C.
-        Active date: publish_date <= action_date <= archive_date (Fails validation if active).
+    """ Test valid. Must be a valid 9-digit DUNS number
     """
 
     exec_comp_1 = ExecutiveCompensation(awardee_or_recipient_uniqu="111111111")
@@ -26,11 +23,7 @@ def test_pubished_date_success(database):
 
 
 def test_pubished_date_failure(database):
-    """ Test invalid. For (ActionType = B, C, or D), the CFDA_Number need NOT be active as of the
-        ActionDate.
-        Not apply to those with CorrectionLateDeleteIndicator = C.
-        Active date: publish_date <= action_date <= archive_date (Fails validation if active).
-        If action date is < published_date, should trigger a warning.
+    """ Test invalid. Must be a valid 9-digit DUNS number
     """
 
     exec_comp_1 = ExecutiveCompensation(awardee_or_recipient_uniqu="111111111")

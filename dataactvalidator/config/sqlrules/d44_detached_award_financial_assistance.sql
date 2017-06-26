@@ -1,4 +1,4 @@
--- Must be a 9-digit DUNS number
+-- Must be a valid 9-digit DUNS number
 
 SELECT
     row_number,
