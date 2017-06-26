@@ -7,8 +7,9 @@ import pytest
 from dataactbroker import fileRoutes
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 from tests.unit.dataactcore.factories.domain import CGACFactory
-from tests.unit.dataactcore.factories.job import SubmissionFactory
+from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
 from tests.unit.dataactcore.factories.user import UserFactory
+from dataactcore.models.jobModels import JobStatus, JobType, FileType
 
 
 @pytest.fixture
@@ -60,3 +61,97 @@ def test_list_submissions(file_app, database, user_constants, job_constants):
     g.user = user2
     response = file_app.get("/v1/list_submissions/?certified=mixed")
     assert sub_ids(response) == {submissions[2].submission_id}
+
+
+def test_current_page(file_app, database, user_constants, job_constants, monkeypatch):
+    """Test the route to check what the current progress of the submission is at
+    the correct page
+    """
+
+    cgac = CGACFactory()
+    user = UserFactory.with_cgacs(cgac)
+    user.user_id = 1
+    user.name = 'Oliver Queen'
+    user.website_admin = True
+    database.session.add(user)
+    database.session.commit()
+    g.user = user
+
+    sub = SubmissionFactory(user_id=1, cgac_code=cgac.cgac_code)
+    database.session.add(sub)
+
+    csv_validation = database.session.query(JobType).filter_by(name='csv_record_validation').one()
+    upload = database.session.query(JobType).filter_by(name='file_upload').one()
+    validation = database.session.query(JobType).filter_by(name='validation').one()
+    finished_job = database.session.query(JobStatus).filter_by(name='finished').one()
+    waiting = database.session.query(JobStatus).filter_by(name='waiting').one()
+
+    job_a = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
+                       .filter_by(name='appropriations').one(), job_type=csv_validation, number_of_errors=0,
+                       file_size=123, job_status=finished_job)
+    job_b = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
+                       .filter_by(name='program_activity').one(), job_type=csv_validation, number_of_errors=0,
+                       file_size=123, job_status=finished_job)
+    job_c = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
+                       .filter_by(name='award_financial').one(), job_type=csv_validation, number_of_errors=0,
+                       file_size=123, job_status=finished_job)
+    job_d1 = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
+                        .filter_by(name='award_procurement').one(), job_type=csv_validation, number_of_errors=0,
+                        file_size=123, job_status=finished_job)
+    job_d2 = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
+                        .filter_by(name='award').one(), job_type=csv_validation, number_of_errors=0, file_size=123,
+                        job_status=finished_job)
+    job_e = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
+                       .filter_by(name='executive_compensation').one(), job_type=upload, number_of_errors=0,
+                       file_size=123, job_status=finished_job)
+    job_f = JobFactory(submission_id=sub.submission_id, file_type=database.session.query(FileType)
+                       .filter_by(name='sub_award').one(), job_type=upload, number_of_errors=0, file_size=123,
+                       job_status=finished_job)
+    job_cross_file = JobFactory(submission_id=sub.submission_id, file_type=None, job_type=validation,
+                                number_of_errors=0, file_size=123, job_status=finished_job)
+
+    database.session.add_all([job_a, job_b, job_c, job_d1, job_d2, job_e, job_f, job_cross_file])
+    database.session.commit()
+
+    # Everything ok
+    response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
+    response_json = json.loads(response.data.decode('UTF-8'))
+    assert response_json['step'] == '5'
+
+    job_e.job_status_id = 6
+    database.session.commit()
+    # E or F failed
+    response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
+    response_json = json.loads(response.data.decode('UTF-8'))
+    assert response_json['step'] == '4'
+
+    job_e.job_status_id = 4
+    job_cross_file.number_of_errors = 6
+    database.session.commit()
+
+    # Restore job_e and create errors for cross_file
+    response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
+    response_json = json.loads(response.data.decode('UTF-8'))
+    assert response_json['step'] == '3'
+
+    job_d1.number_of_errors = 6
+    database.session.commit()
+    # D file has errors
+    response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
+    response_json = json.loads(response.data.decode('UTF-8'))
+    assert response_json['step'] == '2'
+
+    job_c.number_of_errors = 6
+    database.session.commit()
+    # Fail C file validation
+    response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
+    response_json = json.loads(response.data.decode('UTF-8'))
+    assert response_json['step'] == '1'
+
+    job_cross_file.job_status = waiting
+    job_d1.number_of_errors = 0
+    database.session.commit()
+    # E and F generated with C file errors
+    response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
+    response_json = json.loads(response.data.decode('UTF-8'))
+    assert response_json['step'] == '1'
