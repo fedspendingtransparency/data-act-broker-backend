@@ -83,7 +83,7 @@ class FileTests(BaseTestAPI):
                                                                      publish_status_id=2)
 
             cls.test_updated_submission_id = cls.insert_submission(sess, cls.submission_user_id, cgac_code="SYS",
-                                                                   start_date="07/2015", end_date="09/2015",
+                                                                   start_date="07/2016", end_date="09/2016",
                                                                    is_quarter=True, number_of_errors=0,
                                                                    publish_status_id=3)
 
