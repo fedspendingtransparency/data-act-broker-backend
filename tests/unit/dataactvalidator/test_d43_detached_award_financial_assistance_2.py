@@ -64,7 +64,7 @@ def test_failure(database):
 
     det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a='12345',
                                                           place_of_performance_congr = "06")
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, zips1, zips2, zips3, zips4])
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, zips1, zips2, zips3, zips4])
     assert errors == 3
 
     # invalid 9 digit zip
@@ -77,5 +77,5 @@ def test_failure(database):
     det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_zip4a='12345-6781',
                                                           place_of_performance_congr = "03")
 
-    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, zips1, zips2, zips3, zips4])
+    errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, zips1, zips2, zips3, zips4])
     assert errors == 3
