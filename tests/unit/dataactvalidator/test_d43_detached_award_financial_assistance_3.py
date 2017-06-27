@@ -26,12 +26,12 @@ def test_success(database):
     det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="Ny12345",
                                                           place_of_performance_congr="90",
                                                           place_of_performance_zip4a=None)
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="Ny12345",
+    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****",
+                                                          place_of_performance_congr="90",
+                                                          place_of_performance_zip4a="")
+    det_award_5 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="Ny12345",
                                                           place_of_performance_congr="03",
                                                           place_of_performance_zip4a="12345")
-    det_award_5 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****",
-                                                          place_of_performance_congr=None,
-                                                          place_of_performance_zip4a="")
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
                                                        zips1, zips2])
@@ -64,6 +64,9 @@ def test_failure(database):
                                                           place_of_performance_zip4a=None)
     det_award_7 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="PA**345",
                                                           place_of_performance_congr="90",
+                                                          place_of_performance_zip4a="")
+    det_award_7 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****",
+                                                          place_of_performance_congr="01",
                                                           place_of_performance_zip4a="")
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
