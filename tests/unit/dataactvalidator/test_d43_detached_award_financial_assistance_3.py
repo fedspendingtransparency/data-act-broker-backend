@@ -6,13 +6,14 @@ _FILE = 'd43_detached_award_financial_assistance_3'
 
 
 def test_column_headers(database):
-    expected_subset = {"row_number", "place_of_performance_code", "place_of_performance_zip4a", "place_of_performance_congr"}
+    expected_subset = {"row_number", "place_of_performance_code", "place_of_performance_zip4a", 
+                       "place_of_performance_congr"}
     actual = set(query_columns(_FILE, database))
     assert expected_subset == actual
 
 
 def test_success(database):
-    """ Test PrimaryPlaceOfPerformanceCongressionalDistrict is provided when no PrimaryPlaceOfPerformanceZIP+4 is 
+    """ Test PrimaryPlaceOfPerformanceCongressionalDistrict is provided when no PrimaryPlaceOfPerformanceZIP+4 is
         provided and the congressional district exists in the state indicated by the PrimaryPlaceOfPerformanceCode """
     zips1 = Zips(zip5='12345', zip_last4='6789', congressional_district_no="01", state_abbreviation="NY")
     zips2 = Zips(zip5='98765', zip_last4='4321', congressional_district_no="02", state_abbreviation="NY")
