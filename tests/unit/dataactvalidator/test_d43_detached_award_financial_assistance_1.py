@@ -16,8 +16,8 @@ def test_success(database):
     det_award_1 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="Nk",
                                                           place_of_performance_congr="")
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="CA",
-                                                          place_of_performance_congr="")
-    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="Mx",
+                                                          place_of_performance_congr=None)
+    det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="Usa",
                                                           place_of_performance_congr="")
     det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="USA",
                                                           place_of_performance_congr="12")
@@ -34,6 +34,6 @@ def test_failure(database):
     det_award_2 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="CA",
                                                           place_of_performance_congr="32")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="Mx",
-                                                          place_of_performance_congr="12")
+                                                          place_of_performance_congr="09")
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3])
     assert errors == 3
