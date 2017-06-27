@@ -13,7 +13,7 @@ SELECT
 FROM detached_award_financial_assistance_d39_1_{0} AS dafa
 WHERE dafa.place_of_performance_code != '00*****'
     AND UPPER(dafa.place_of_performance_code) != '00FORGN'
-    AND NOT EXISTS (
+    AND dafa.row_number NOT IN (
         SELECT DISTINCT sub_dafa.row_number
         FROM detached_award_financial_assistance_d39_1_{0} AS sub_dafa
         JOIN zips

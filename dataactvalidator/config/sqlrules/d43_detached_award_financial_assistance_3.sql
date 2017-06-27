@@ -14,7 +14,7 @@ SELECT
     dafa.place_of_performance_congr
 FROM detached_award_financial_assistance_d43_3_{0} AS dafa
 WHERE CASE WHEN COALESCE(dafa.place_of_performance_congr, '') != ''
-        THEN (NOT EXISTS (
+        THEN (dafa.row_number NOT IN (
                 SELECT DISTINCT sub_dafa.row_number
                 FROM detached_award_financial_assistance_d43_3_{0} AS sub_dafa
                 JOIN zips
