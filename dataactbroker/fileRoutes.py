@@ -187,7 +187,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         validate_cross_file = sess.query(Job).filter(Job.submission_id == submission_id,
                                                      Job.file_type_id.in_([4, 5]), Job.job_type_id == 2,
-                                                     Job.number_of_errors == 0, Job.file_size.isnot(None))
+                                                     Job.number_of_errors == 0, Job.file_size.isnot(None),
+                                                     Job.job_status_id == 4)
 
         generate_files = sess.query(Job).filter(Job.submission_id == submission_id,
                                                 Job.file_type_id.in_([1, 2, 3]), Job.job_type_id == 2,
