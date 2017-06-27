@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 UseGSSAPI = True             # enable GSS-API / SSPI authentication
 DoGSSAPIKeyExchange = True
 
-REMOTE_SAM_DIR = '/current/SAM/6_EXECCOMP'
 # sftp -i SAMDATAProd -P 22 samdataprod04@66.77.18.174
 
 
@@ -36,18 +35,18 @@ def parse_sam_file(file, sess):
     # can't use skipfooter, pandas' c engine doesn't work with skipfooter and the python engine doesn't work with dtype
     nrows = 0
     with zfile.open(csv_file) as f:
-        nrows = len(f.readlines()) - 2  # subtract the header and footer
+        nrows = len(f.readlines()) - 2 # subtract the header and footer
     column_header_mapping = {
-        "awardee_or_recipient_uniqu": 0,
-        "sam_extract": 4,
-        "expiration_date": 7,
-        "activation_date": 9,
-        "ultimate_parent_legal_enti": 10,
-        "ultimate_parent_unique_ide": 48,
-        "exec_comp_str": 89
+        "awardee_or_recipient_uniqu"        : 0,
+        "sam_extract"                       : 4,
+        "expiration_date"                   : 7,
+        "activation_date"                   : 9,
+        "ultimate_parent_legal_enti"        : 10,
+        "ultimate_parent_unique_ide"        : 48,
+        "exec_comp_str"                     : 89
     }
     column_header_mapping_ordered = OrderedDict(sorted(column_header_mapping.items(), key=lambda c: c[1]))
-    csv_data = pd.read_csv(zfile.open(csv_file), dtype=str, header=None, skiprows=1, nrows=nrows, sep='|',
+    csv_data = pd.read_csv(zfile.open(csv_file), dtype=str, header=None, skiprows=1, nrows = nrows, sep='|',
                            usecols=column_header_mapping_ordered.values(), names=column_header_mapping_ordered.keys())
     total_data = csv_data.copy()
 
@@ -79,14 +78,14 @@ def parse_sam_file(file, sess):
     sess.commit()
 
 
-def parse_exec_comp(exec_comp_str=None):
+def parse_exec_comp(exec_comp_str = None):
     """
     Parses the executive compensation string into a dictionary for the ExecutiveCompensation data model
     :param exec_comp_str: the incoming compensation string
     :return: dictionary for the ExecutiveCompensation data model
     """
     exec_comp_data = OrderedDict()
-    for index in range(1, 6):
+    for index in range(1,6):
         exec_comp_data["high_comp_officer{}_full_na".format(index)] = np.nan
         exec_comp_data["high_comp_officer{}_amount".format(index)] = np.nan
 
@@ -99,7 +98,7 @@ def parse_exec_comp(exec_comp_str=None):
 
         for index, high_comp_officer in enumerate(high_comp_officers):
             index += 1
-            exec_name, exec_title, exec_comp = high_comp_officer.split('^')
+            exec_name,exec_title,exec_comp = high_comp_officer.split('^')
             if exec_title.lower() not in unaccepted_titles:
                 exec_comp_data["high_comp_officer{}_full_na".format(index)] = exec_name
                 exec_comp_data["high_comp_officer{}_amount".format(index)] = exec_comp
@@ -109,7 +108,6 @@ def parse_exec_comp(exec_comp_str=None):
 
 def get_config():
     sam_config = CONFIG_BROKER.get('sam')
-    print(sam_config)
 
     if sam_config:
         return sam_config.get('private_key'), sam_config.get('username'), sam_config.get('password'), \
@@ -117,51 +115,52 @@ def get_config():
 
     return None, None, None, None, None
 
-
 def get_parser():
     parser = argparse.ArgumentParser(description="Get data from SAM and update execution_compensation table")
     parser.add_argument("--historic", "-i", action="store_true", help='populate based on historical data')
-    parser.add_argument("--local", "-l", type=str, default=None, help='use a local directory')
+    parser.add_argument("--test", "-t", type=str, help='test file')
     return parser
 
 if __name__ == '__main__':
     configure_logging()
     parser = get_parser()
     args = parser.parse_args()
-
     historic = args.historic
-    local = args.local
+    test_file = args.test
 
     with create_app().app_context():
         sess = GlobalDB.db().session
+        private_key, username, password, host, port = get_config()
 
-        if not local:
-            private_key, username, password, host, port = get_config()
-            if None in (private_key, username, password):
-                logger.error("Missing config elements for connecting to SAM")
-                sys.exit(1)
+        if test_file:
+            class File():
+                def __init__(self, path):
+                    self.name = path
+            parse_sam_file(File(test_file), sess)
+            exit()
 
-            transport = paramiko.Transport((host, port))
-            transport.connect(hostkey=private_key, username=username, password=password, gss_host=socket.getfqdn(host),
-                              gss_auth=UseGSSAPI, gss_kex=DoGSSAPIKeyExchange)
+        if None in (private_key, username, password):
+            logger.error("Missing config elements for connecting to SAM")
+            sys.exit(1)
 
-            sftp = paramiko.SFTPClient.from_transport(transport)
+        transport = paramiko.Transport((host, port))
+        transport.connect(hostkey=private_key, username=username, password=password, gss_host=socket.getfqdn(host),
+                          gss_auth=UseGSSAPI, gss_kex=DoGSSAPIKeyExchange)
 
-            # dirlist on remote host
-            dirlist = sftp.listdir(REMOTE_SAM_DIR)
-        else:
-            root_dir = local
-            dirlist = os.listdir(local)
+        sftp = paramiko.SFTPClient.from_transport(transport)
 
-        # generate chronological list of daily files
-        sorted_daily_file_names = sorted([daily_file for daily_file in dirlist if "DAILY" in daily_file])
-        if not local:
-            daily_files = [sftp.file(os.path.join(root_dir, daily_file)) for daily_file in sorted_daily_file_names]
-        else:
-            daily_files = [open(os.path.join(root_dir, daily_file)) for daily_file in sorted_daily_file_names]
+        # dirlist on remote host
+        dirlist = sftp.listdir('/current/SAM/6_EXECCOMP')
+        print("Dirlist: %s" % dirlist)
 
         if historic:
-            for daily_file in daily_files:
-                parse_sam_file(daily_file, sess)
+            # pull every daily file
+            for item in dirlist:
+                file = sftp.file(item)
+
+                parse_sam_file(file, sess)
         else:
-            parse_sam_file(daily_files[-1], sess)
+            # pull the latest daily file
+            # parse_sam_file(file, sess)
+            pass
+
