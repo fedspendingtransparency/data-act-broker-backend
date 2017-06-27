@@ -35,7 +35,5 @@ def test_failure(database):
                                                           place_of_performance_congr="32")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="Mx",
                                                           place_of_performance_congr="12")
-    det_award_4 = DetachedAwardFinancialAssistanceFactory(place_of_perform_country_c="USA",
-                                                          place_of_performance_congr="")
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4])
-    assert errors == 4
+    assert errors == 3
