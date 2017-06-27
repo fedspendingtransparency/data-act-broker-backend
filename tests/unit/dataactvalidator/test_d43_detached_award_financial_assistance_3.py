@@ -65,10 +65,10 @@ def test_failure(database):
     det_award_7 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="PA**345",
                                                           place_of_performance_congr="90",
                                                           place_of_performance_zip4a="")
-    det_award_7 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****",
+    det_award_8 = DetachedAwardFinancialAssistanceFactory(place_of_performance_code="00*****",
                                                           place_of_performance_congr="01",
                                                           place_of_performance_zip4a="")
 
     errors = number_of_errors(_FILE, database, models=[det_award_1, det_award_2, det_award_3, det_award_4, det_award_5,
-                                                       det_award_6, det_award_7, zips1, zips2, zips3])
-    assert errors == 7
+                                                       det_award_6, det_award_7, det_award_8, zips1, zips2, zips3])
+    assert errors == 8
