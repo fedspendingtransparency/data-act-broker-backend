@@ -1,4 +1,4 @@
---  If PrimaryPlaceOfPerformanceCode is not USA, Congressional District must be blank
+--  If PrimaryPlaceOfPerformanceCountryCode is not USA, Congressional District must be blank
 
 SELECT
     row_number,
