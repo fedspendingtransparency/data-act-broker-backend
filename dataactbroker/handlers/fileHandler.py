@@ -24,7 +24,7 @@ from dataactbroker.permissions import current_user_can, current_user_can_on_subm
 from dataactcore.aws.s3Handler import S3Handler
 from dataactcore.config import CONFIG_BROKER, CONFIG_SERVICES
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.domainModels import CGAC, CFDAProgram, SubTierAgency
+from dataactcore.models.domainModels import CGAC, CFDAProgram, SubTierAgency, Zips
 from dataactcore.models.errorModels import File
 from dataactcore.models.stagingModels import DetachedAwardFinancialAssistance, PublishedAwardFinancialAssistance
 from dataactcore.models.jobModels import (
@@ -1747,11 +1747,24 @@ def fabs_derivations(obj):
         obj['funding_agency_name'] = funding_agency_name.agency_name
 
     # deriving funding sub tier agency name
-
     if obj['funding_sub_tier_agency_co']:
         funding_sub_tier_agency_name = sess.query(SubTierAgency).\
             filter_by(sub_tier_agency_code=obj['funding_sub_tier_agency_co']).one()
         obj['funding_sub_tier_agency_na'] = funding_sub_tier_agency_name.sub_tier_agency_name
+
+    # deriving place of performance
+    if obj['place_of_performance_zip4a'] and not obj['place_of_performance_congr']:
+        zip_five = obj['place_of_performance_zip4a'][5:]
+        zip_four = None
+        if len(obj['place_of_performance_zip4a']) > 5:
+            zip_four = obj['place_of_performance_zip4a'][-4:]
+        if zip_four:
+            zip_info = sess.query(Zips).\
+                filter_by(zip5=zip_five, zip_last4=zip_four).first()
+        else:
+            zip_info = sess.query(Zips).\
+                filter_by(zip5=zip_five).first()
+        obj['place_of_performance_congr'] = zip_info.congressional_district_no
 
     GlobalDB.close()
     return obj
