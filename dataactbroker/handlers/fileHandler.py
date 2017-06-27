@@ -1754,8 +1754,16 @@ def fabs_derivations(obj):
 
     # deriving place of performance
     if obj['place_of_performance_zip4a'] and not obj['place_of_performance_congr']:
-        zip_info = sess.query(Zips).\
-            filter_by(zip5=obj['place_of_performance_zip4a'][5:]).one()
+        zip_five = obj['place_of_performance_zip4a'][5:]
+        zip_four = None
+        if len(obj['place_of_performance_zip4a']) > 5:
+            zip_four = obj['place_of_performance_zip4a'][-4:]
+        if zip_four:
+            zip_info = sess.query(Zips).\
+                filter_by(zip5=zip_five, zip_last4=zip_four).first()
+        else:
+            zip_info = sess.query(Zips).\
+                filter_by(zip5=zip_five).first()
         obj['place_of_performance_congr'] = zip_info.congressional_district_no
 
     GlobalDB.close()
