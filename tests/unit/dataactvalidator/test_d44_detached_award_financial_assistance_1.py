@@ -21,14 +21,14 @@ def test_pubished_date_success(database):
     """
     exec_comp_1 = ExecutiveCompensation(awardee_or_recipient_uniqu="111111111", activation_date="06/21/2017")
     det_award_1 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="A",
-                                                           assistance_type="02", action_date="06/23/2017")
+                                                          assistance_type="02", action_date="06/23/2017")
     # inactive at action date but not A files
     det_award_2 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="B",
-                                                           assistance_type="03", action_date="06/21/2017")
+                                                          assistance_type="03", action_date="06/21/2017")
     det_award_3 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="C",
-                                                           assistance_type="04", action_date="06/21/2017")
+                                                          assistance_type="04", action_date="06/21/2017")
     det_award_4 = DetachedAwardFinancialAssistanceFactory(awardee_or_recipient_uniqu="111111111", action_type="D",
-                                                           assistance_type="05", action_date="06/21/2017")
+                                                          assistance_type="05", action_date="06/21/2017")
 
     errors = number_of_errors(_FILE, database, models=[exec_comp_1, det_award_1, det_award_2, det_award_3,
                                                        det_award_4])
