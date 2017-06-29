@@ -155,35 +155,35 @@ def parse_ctystate_file(f, sess):
 
 
 def read_zips():
-    sess = GlobalDB.db().session
+    with create_app().app_context():
+        sess = GlobalDB.db().session
 
-    # delete old values in case something changed and one is now invalid
-    sess.query(Zips).delete(synchronize_session=False)
-    sess.commit()
+        # delete old values in case something changed and one is now invalid
+        sess.query(Zips).delete(synchronize_session=False)
+        sess.commit()
 
-    if CONFIG_BROKER["use_aws"]:
-        s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
-        s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
-        zip_folder = CONFIG_BROKER["zip_folder"] + "/"
-        for key in s3bucket.list(prefix=zip_folder):
-            if key.name != zip_folder:
-                zip_4_file_path = key.generate_url(expires_in=600)
-                parse_zip4_file(urllib.request.urlopen(zip_4_file_path), sess)
-    else:
-        base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", CONFIG_BROKER["zip_folder"])
-        # creating the list while ignoring hidden files on mac
-        file_list = [f for f in os.listdir(base_path) if not re.match('^\.', f)]
-        for file in file_list:
-            parse_zip4_file(open(os.path.join(base_path, file)), sess)
+        if CONFIG_BROKER["use_aws"]:
+            s3connection = boto.s3.connect_to_region(CONFIG_BROKER['aws_region'])
+            s3bucket = s3connection.lookup(CONFIG_BROKER['sf_133_bucket'])
+            zip_folder = CONFIG_BROKER["zip_folder"] + "/"
+            for key in s3bucket.list(prefix=zip_folder):
+                if key.name != zip_folder:
+                    zip_4_file_path = key.generate_url(expires_in=600)
+                    parse_zip4_file(urllib.request.urlopen(zip_4_file_path), sess)
+        else:
+            base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", CONFIG_BROKER["zip_folder"])
+            # creating the list while ignoring hidden files on mac
+            file_list = [f for f in os.listdir(base_path) if not re.match('^\.', f)]
+            for file in file_list:
+                parse_zip4_file(open(os.path.join(base_path, file)), sess)
 
-        # parse remaining 5 digit zips that weren't in the first file
-        ctystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
-        parse_ctystate_file(open(ctystate_file), sess)
+            # parse remaining 5 digit zips that weren't in the first file
+            ctystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
+            parse_ctystate_file(open(ctystate_file), sess)
 
-    logger.info("Zipcode script complete")
+        logger.info("Zipcode script complete")
 
 
 if __name__ == '__main__':
     configure_logging()
-    with create_app().app_context():
-        read_zips()
+    read_zips()
