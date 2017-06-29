@@ -170,6 +170,10 @@ def read_zips():
                 if key.name != zip_folder:
                     zip_4_file_path = key.generate_url(expires_in=600)
                     parse_zip4_file(urllib.request.urlopen(zip_4_file_path), sess)
+
+            # parse remaining 5 digit zips that weren't in the first file
+            ctystate_file = s3bucket.get_key("ctystate.txt").generate_url(expires_in=600)
+            parse_ctystate_file(urllib.request.urlopen(ctystate_file), sess)
         else:
             base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", CONFIG_BROKER["zip_folder"])
             # creating the list while ignoring hidden files on mac
