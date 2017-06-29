@@ -17,7 +17,8 @@ from dataactcore.models.domainModels import Zips
 from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
-line_size = 182
+zip4_line_size = 182
+ctystate_line_size = 129
 chunk_size = 1024 * 10
 
 
@@ -43,7 +44,7 @@ def add_to_table(data, sess):
 def parse_zip4_file(f, sess):
     logger.info("starting file " + str(f))
     # pull out the copyright data
-    f.read(line_size)
+    f.read(zip4_line_size)
 
     data_array = {}
     curr_chunk = ""
@@ -58,13 +59,13 @@ def parse_zip4_file(f, sess):
         curr_chunk += next_chunk
 
         # if the current chunk is smaller than the line size, we're done
-        if len(curr_chunk) < line_size:
+        if len(curr_chunk) < zip4_line_size:
             break
 
         # while we can still do more processing on the current chunk, process it per line
-        while len(curr_chunk) >= line_size:
+        while len(curr_chunk) >= zip4_line_size:
             # grab another line and get the data that's always the same
-            curr_row = curr_chunk[:line_size]
+            curr_row = curr_chunk[:zip4_line_size]
             zip5 = curr_row[1:6]
             state = curr_row[157:159]
             county = curr_row[159:162]
@@ -93,12 +94,12 @@ def parse_zip4_file(f, sess):
                 logger.error("error parsing entry: " + curr_row)
 
             # cut the current line out of the chunk we're processing
-            curr_chunk = curr_chunk[line_size:]
+            curr_chunk = curr_chunk[zip4_line_size:]
 
         # we want to do DB adding in large chunks so we can hopefully remove duplicates that are near each other
         # in the file just by them having the same key in the dict
-        if len(data_array) > 100000:
-            logger.info("inserting next 100k+ records")
+        if len(data_array) > 50000:
+            logger.info("inserting next 50k+ records")
             add_to_table(data_array, sess)
             data_array.clear()
 
@@ -109,7 +110,51 @@ def parse_zip4_file(f, sess):
         data_array.clear()
 
 
-def main():
+def parse_ctystate_file(f, sess):
+    logger.info("starting file " + str(f))
+    # pull out the copyright data
+    f.read(ctystate_line_size)
+
+    data_array = {}
+    curr_chunk = ""
+    while True:
+        # grab the next chunk
+        next_chunk = f.read(chunk_size)
+        # when streaming from S3 it reads in as bytes, we need to decode it as a utf-8 string
+        if not type(next_chunk) == str:
+            next_chunk = next_chunk.decode("utf-8")
+
+        # add the new chunk of the file to the current chunk we're processing
+        curr_chunk += next_chunk
+
+        # if the current chunk is smaller than the line size, we're done
+        if len(curr_chunk) < ctystate_line_size:
+            break
+
+        # while we can still do more processing on the current chunk, process it per line
+        while len(curr_chunk) >= ctystate_line_size:
+            # grab another line and get the data if it's a "detail record"
+            curr_row = curr_chunk[:ctystate_line_size]
+            if curr_row[0] == "D":
+                zip5 = curr_row[1:6]
+                state = curr_row[99:101]
+                county = curr_row[101:104]
+                data_array[zip5] = {"zip5": zip5, "zip_last4": None, "state_abbreviation": state,
+                                    "county_number": county, "congressional_district_no": None}
+
+            # cut the current line out of the chunk we're processing
+            curr_chunk = curr_chunk[ctystate_line_size:]
+
+    # remove all zip5s that already exist in the table
+    for item in sess.query(Zips.zip5).distinct():
+        if item.zip5 in data_array:
+            del data_array[item.zip5]
+
+    add_to_table(data_array, sess)
+    return f
+
+
+def read_zips():
     sess = GlobalDB.db().session
 
     # delete old values in case something changed and one is now invalid
@@ -126,11 +171,14 @@ def main():
                 parse_zip4_file(urllib.request.urlopen(zip_4_file_path), sess)
     else:
         base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", CONFIG_BROKER["zip_folder"])
-        file_list = [f for f in os.listdir(base_path)]
+        # creating the list while ignoring hidden files on mac
+        file_list = [f for f in os.listdir(base_path) if not re.match('^\.', f)]
         for file in file_list:
-            # ignore hidden files on Mac
-            if not re.match('^\.', file):
-                parse_zip4_file(open(os.path.join(base_path, file)), sess)
+            parse_zip4_file(open(os.path.join(base_path, file)), sess)
+
+        # parse remaining 5 digit zips that weren't in the first file
+        ctystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
+        parse_ctystate_file(open(ctystate_file), sess)
 
     logger.info("Zipcode script complete")
 
@@ -138,4 +186,4 @@ def main():
 if __name__ == '__main__':
     configure_logging()
     with create_app().app_context():
-        main()
+        read_zips()
