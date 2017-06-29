@@ -18,7 +18,7 @@ from dataactvalidator.health_check import create_app
 
 logger = logging.getLogger(__name__)
 zip4_line_size = 182
-ctystate_line_size = 129
+citystate_line_size = 129
 chunk_size = 1024 * 10
 
 
@@ -110,10 +110,10 @@ def parse_zip4_file(f, sess):
         data_array.clear()
 
 
-def parse_ctystate_file(f, sess):
+def parse_citystate_file(f, sess):
     logger.info("starting file " + str(f))
     # pull out the copyright data
-    f.read(ctystate_line_size)
+    f.read(citystate_line_size)
 
     data_array = {}
     curr_chunk = ""
@@ -128,13 +128,13 @@ def parse_ctystate_file(f, sess):
         curr_chunk += next_chunk
 
         # if the current chunk is smaller than the line size, we're done
-        if len(curr_chunk) < ctystate_line_size:
+        if len(curr_chunk) < citystate_line_size:
             break
 
         # while we can still do more processing on the current chunk, process it per line
-        while len(curr_chunk) >= ctystate_line_size:
+        while len(curr_chunk) >= citystate_line_size:
             # grab another line and get the data if it's a "detail record"
-            curr_row = curr_chunk[:ctystate_line_size]
+            curr_row = curr_chunk[:citystate_line_size]
             if curr_row[0] == "D":
                 zip5 = curr_row[1:6]
                 state = curr_row[99:101]
@@ -143,7 +143,7 @@ def parse_ctystate_file(f, sess):
                                     "county_number": county, "congressional_district_no": None}
 
             # cut the current line out of the chunk we're processing
-            curr_chunk = curr_chunk[ctystate_line_size:]
+            curr_chunk = curr_chunk[citystate_line_size:]
 
     # remove all zip5s that already exist in the table
     for item in sess.query(Zips.zip5).distinct():
@@ -172,8 +172,8 @@ def read_zips():
                     parse_zip4_file(urllib.request.urlopen(zip_4_file_path), sess)
 
             # parse remaining 5 digit zips that weren't in the first file
-            ctystate_file = s3bucket.get_key("ctystate.txt").generate_url(expires_in=600)
-            parse_ctystate_file(urllib.request.urlopen(ctystate_file), sess)
+            citystate_file = s3bucket.get_key("ctystate.txt").generate_url(expires_in=600)
+            parse_citystate_file(urllib.request.urlopen(citystate_file), sess)
         else:
             base_path = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", CONFIG_BROKER["zip_folder"])
             # creating the list while ignoring hidden files on mac
@@ -182,8 +182,8 @@ def read_zips():
                 parse_zip4_file(open(os.path.join(base_path, file)), sess)
 
             # parse remaining 5 digit zips that weren't in the first file
-            ctystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
-            parse_ctystate_file(open(ctystate_file), sess)
+            citystate_file = os.path.join(CONFIG_BROKER["path"], "dataactvalidator", "config", "ctystate.txt")
+            parse_citystate_file(open(citystate_file), sess)
 
         logger.info("Zipcode script complete")
 
