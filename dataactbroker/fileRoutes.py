@@ -17,7 +17,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.jobModels import Submission, Job, CertifyHistory
+from dataactcore.models.jobModels import Submission, SubmissionSubTierAffiliation, Job, CertifyHistory
 
 
 # Add the file submission route
@@ -357,6 +357,9 @@ def add_file_routes(app, create_credentials, is_local, server_path):
             return JsonResponse.error(ValueError("Submissions with running jobs cannot be deleted"),
                                       StatusCode.CLIENT_ERROR)
 
+        sess.query(SubmissionSubTierAffiliation).filter(
+            SubmissionSubTierAffiliation.submission_id == submission.submission_id).delete(
+                synchronize_session=False)
         sess.query(Submission).filter(Submission.submission_id == submission.submission_id).delete(
             synchronize_session=False)
         sess.expire_all()
