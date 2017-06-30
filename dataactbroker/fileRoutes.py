@@ -163,6 +163,17 @@ def add_file_routes(app, create_credentials, is_local, server_path):
 
         submission_id = submission.submission_id
 
+        # /v1/uploadDetachedFiles/
+        # DetachedFiles
+        detached_data = sess.query(Submission).filter(Submission.submission_id == submission_id,
+                                                      Submission.d2_submission)
+        if detached_data.count() > 0:
+            data = {
+                "message": "The current progress of this submission ID is on /v1/uploadDetachedFiles/ page.",
+                "step": "6"
+            }
+            return JsonResponse.create(StatusCode.OK, data)
+
         # /v1/reviewData/
         # Checks that both E and F files are finished
         review_data = sess.query(Job).filter(Job.submission_id == submission_id,

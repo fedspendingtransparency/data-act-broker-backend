@@ -189,6 +189,7 @@ def test_list_submissions_failure(database, job_constants, monkeypatch):
     assert result['submissions'][0]['status'] == "file_errors"
     delete_models(database, [user, sub, job])
 
+
 def test_list_submissions_detached(database, job_constants, monkeypatch):
     user = UserFactory(user_id=1)
     sub = SubmissionFactory(user_id=1, submission_id=1, publish_status_id=1)
