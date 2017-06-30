@@ -648,6 +648,7 @@ def get_last_validated_date(submission_id):
     # This is the case for a single unit test
     return oldest_date.strftime('%m/%d/%Y') if oldest_date else oldest_date
 
+
 def get_action_dates(submission_id, sess):
     min_action_date = None
     max_action_date = None
@@ -655,7 +656,7 @@ def get_action_dates(submission_id, sess):
     date_to_format = '%Y-%m-%d'
     action_dates = sess.query(func.min(DetachedAwardFinancialAssistance.action_date).label("min_action_date"),
                               func.max(DetachedAwardFinancialAssistance.action_date).label("max_action_date"))\
-                             .filter(Submission.submission_id == submission_id)
+        .filter(Submission.submission_id == submission_id)
     res = action_dates.one()
     if res.min_action_date or res.max_action_date:
         if res.min_action_date:
