@@ -1415,7 +1415,7 @@ def get_error_metrics(submission):
         return JsonResponse.error(e, StatusCode.INTERNAL_ERROR)
 
 
-def list_submissions(page, limit, certified, sort='modified', order='desc'):
+def list_submissions(page, limit, certified, sort='modified', order='desc', d2_submission=False):
     """ List submission based on current page and amount to display. If provided, filter based on
     certification status """
     sess = GlobalDB.db().session
@@ -1446,7 +1446,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc'):
         outerjoin(certifying_user, Submission.certifying_user_id == certifying_user.user_id). \
         outerjoin(CGAC, Submission.cgac_code == CGAC.cgac_code).\
         outerjoin(submission_updated_view.table, submission_updated_view.submission_id == Submission.submission_id).\
-        filter(Submission.d2_submission.is_(False))
+        filter(Submission.d2_submission.is_(d2_submission))
     if not g.user.website_admin:
         query = query.filter(sa.or_(Submission.cgac_code.in_(cgac_codes),
                                     Submission.user_id == g.user.user_id))
