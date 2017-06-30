@@ -14,9 +14,12 @@ SELECT
     row_number,
     assistance_type,
     action_date,
-    awardee_or_recipient_uniqu
+    awardee_or_recipient_uniqu,
+    business_types,
+    record_type
 FROM detached_award_financial_assistance
 WHERE submission_id = {0}
+    AND NOT (record_type = 1 or LOWER(business_types) LIKE '%%p%%')
     AND COALESCE(assistance_type, '') IN ('02', '03', '04', '05')
     AND (CASE
             WHEN pg_temp.is_date(COALESCE(action_date, '0'))
