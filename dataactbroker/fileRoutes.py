@@ -439,7 +439,7 @@ def find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
         Submission.cgac_code == cgac_code,
         Submission.reporting_fiscal_year == reporting_fiscal_year,
         Submission.reporting_fiscal_period == reporting_fiscal_period,
-        Submission.publish_status_id == PUBLISH_STATUS_DICT['published'])
+        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
     if submission_id:
         submission_query = submission_query.filter(
             Submission.submission_id != submission_id)

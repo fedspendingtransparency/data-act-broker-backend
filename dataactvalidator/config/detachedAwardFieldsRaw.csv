@@ -18,14 +18,13 @@ FAIN,fain,ASP: Conditional per Validation Rule,string,30,"C9, D2, D5, D6"
 FederalActionObligation,federal_action_obligation,ASP: Conditional per Validation Rule,numeric,20,"C12, D20"
 FiscalYearAndQuarterCorrection,fiscal_year_and_quarter_co,ASP: Optional,string,5,D8
 FundingAgencyCode,funding_agency_code,ASP: Optional,string,3,D1
-FundingOfficeCode,funding_office_code,ASP: Optional,string,3,
+FundingOfficeCode,funding_office_code,ASP: Optional,string,6,
 FundingSubTierAgencyCode,funding_sub_tier_agency_co,ASP: Optional,string,4,D1
 LegalEntityAddressLine1,legal_entity_address_line1,ASP: Conditional per Validation Rule,string,150,D2
 LegalEntityAddressLine2,legal_entity_address_line2,ASP: Optional,string,150,
 LegalEntityAddressLine3,legal_entity_address_line3,ASP: Optional,string,35,
 LegalEntityCountryCode,legal_entity_country_code,ASP: Required,string,3,"D1, D2, D12"
 LegalEntityForeignCityName,legal_entity_foreign_city,ASP: Conditional per Validation Rule,string,40,D9
-LegalEntityCongressionalDistrict,legal_entity_congressional,ASP: Optional,string,2,
 LegalEntityForeignPostalCode,legal_entity_foreign_posta,ASP: Optional,string,50,
 LegalEntityForeignProvinceName,legal_entity_foreign_provi,ASP: Optional,string,25,
 LegalEntityZIP5,legal_entity_zip5,ASP: Conditional per Validation Rule,string,5,"D2, D11"
@@ -38,7 +37,7 @@ PrimaryPlaceOfPerformanceCode,place_of_performance_code,ASP: Required,string,7,"
 PrimaryPlaceOfPerformanceCongressionalDistrict,place_of_performance_congr,ASP: Conditional per Validation Rule,string,2,
 PrimaryPlaceOfPerformanceCountryCode,place_of_perform_country_c,ASP: Required,string,3,D1
 PrimaryPlaceOfPerformanceForeignLocationDescription,place_of_performance_forei,ASP: Conditional per Validation Rule,string,100,D17
-PrimaryPlaceOfPerformanceZIP_4,place_of_performance_zip4a,ASP: Conditional per Validation Rule,string,10,"D2, D16"
+PrimaryPlaceOfPerformanceZIP+4,place_of_performance_zip4a,ASP: Conditional per Validation Rule,string,10,"D2, D16"
 RecordType,record_type,ASP: Required,integer,1,D1
 SAI_Number,sai_number,ASP: Optional,string,50,
 URI,uri,ASP: Conditional per Validation Rule,string,70,"C9, D6, D7"
