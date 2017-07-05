@@ -13,7 +13,8 @@ def test_column_headers(database):
 
 def test_success(database):
     """ Test success for AwardeeOrRecipientUniqueIdentifier is required for AssistanceType of 02, 03, 04, or 05 whose
-    ActionDate after October 1, 2010. """
+    ActionDate after October 1, 2010, unless the record is an aggregate record (RecordType=1) or individual recipient
+    (BusinessTypes includes 'P') """
     det_award_01 = DetachedAwardFinancialAssistanceFactory(assistance_type="02", record_type=2, business_types="AbC",
                                                            awardee_or_recipient_uniqu='test', action_date="10/02/2010")
     det_award_02 = DetachedAwardFinancialAssistanceFactory(assistance_type="03", record_type=3, business_types="aBc",
@@ -47,7 +48,8 @@ def test_success(database):
 
 def test_failure(database):
     """ Test failure for AwardeeOrRecipientUniqueIdentifier is required for AssistanceType of 02, 03, 04, or 05 whose
-    ActionDate after October 1, 2010. """
+    ActionDate after October 1, 2010, , unless the record is an aggregate record (RecordType=1) or individual recipient
+    (BusinessTypes includes 'P') """
 
     det_award_1 = DetachedAwardFinancialAssistanceFactory(assistance_type="02", record_type=2, business_types="AbC",
                                                           awardee_or_recipient_uniqu=None, action_date="10/02/2010")

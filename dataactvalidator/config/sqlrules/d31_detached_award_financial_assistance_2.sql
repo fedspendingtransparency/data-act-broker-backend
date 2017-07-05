@@ -1,5 +1,6 @@
--- AwardeeOrRecipientUniqueIdentifier is required for AssistanceType of 02, 03, 04, or 05 whose
--- ActionDate after October 1, 2010.
+-- AwardeeOrRecipientUniqueIdentifier is required for AssistanceType of 02, 03, 04, or 05 whose ActionDate after 
+-- October 1, 2010, unless the record is an aggregate record (RecordType=1) or individual recipient (BusinessTypes 
+-- includes "P").
 
 CREATE OR REPLACE function pg_temp.is_date(str text) returns boolean AS $$
 BEGIN
