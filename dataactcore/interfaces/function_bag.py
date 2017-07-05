@@ -649,18 +649,19 @@ def get_last_validated_date(submission_id):
     return oldest_date.strftime('%m/%d/%Y') if oldest_date else oldest_date
 
 
-def get_action_dates(submission_id, sess):
+def get_action_dates(submission_id):
+    sess = GlobalDB.db().session
+
     min_action_date = None
     max_action_date = None
     date_from_format = '%Y%m%d'
     date_to_format = '%Y-%m-%d'
     action_dates = sess.query(func.min(DetachedAwardFinancialAssistance.action_date).label("min_action_date"),
                               func.max(DetachedAwardFinancialAssistance.action_date).label("max_action_date"))\
-        .filter(Submission.submission_id == submission_id)
+        .filter(DetachedAwardFinancialAssistance.submission_id == submission_id)
     res = action_dates.one()
-    if res.min_action_date or res.max_action_date:
-        if res.min_action_date:
-            min_action_date = datetime.strptime(res.min_action_date, date_from_format).date().strftime(date_to_format)
-        if res.max_action_date:
-            max_action_date = datetime.strptime(res.max_action_date, date_from_format).date().strftime(date_to_format)
+    if res.min_action_date:
+        min_action_date = datetime.strptime(res.min_action_date, date_from_format).date().strftime(date_to_format)
+    if res.max_action_date:
+        max_action_date = datetime.strptime(res.max_action_date, date_from_format).date().strftime(date_to_format)
     return min_action_date, max_action_date

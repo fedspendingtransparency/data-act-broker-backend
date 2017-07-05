@@ -45,7 +45,7 @@ from dataactcore.utils.stringCleaner import StringCleaner
 from dataactcore.interfaces.function_bag import (
     create_jobs, create_submission, get_error_metrics_by_job_jd, get_error_type, get_submission_status,
     mark_job_status, run_job_checks, create_file_if_needed, get_last_validated_date,
-    get_lastest_certified_date, get_action_dates)
+    get_lastest_certified_date)
 from dataactvalidator.filestreaming.csv_selection import write_csv
 from dataactbroker.handlers.fileGenerationHandler import generate_e_file, generate_f_file
 
@@ -1429,7 +1429,8 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     submission_columns = [Submission.submission_id, Submission.cgac_code, Submission.user_id,
                           Submission.publish_status_id, Submission.d2_submission, Submission.number_of_warnings,
                           Submission.number_of_errors, Submission.updated_at, Submission.reporting_start_date,
-                          Submission.reporting_end_date, Submission.certifying_user_id]
+                          Submission.reporting_end_date, Submission.earliest_action_date,
+                          Submission.latest_action_date, Submission.certifying_user_id]
 
     cgac_columns = [CGAC.cgac_code, CGAC.agency_name]
     user_columns = [User.user_id, User.name, certifying_user.user_id.label('certifying_user_id'),
@@ -1479,7 +1480,7 @@ def list_submissions(page, limit, certified, sort='modified', order='desc', d2_s
     query = query.limit(limit).offset(offset)
 
     return JsonResponse.create(StatusCode.OK, {
-        "submissions": [serialize_submission(submission, sess) for submission in query],
+        "submissions": [serialize_submission(submission) for submission in query],
         "total": total_submissions
     })
 
@@ -1568,14 +1569,12 @@ def file_history_url(submission, file_history_id, is_warning, is_local):
     return JsonResponse.create(StatusCode.OK, {"url": url})
 
 
-def serialize_submission(submission, sess):
+def serialize_submission(submission):
     """Convert the provided submission into a dictionary in a schema the
     frontend expects"""
     status = get_submission_status(submission)
 
     certified_on = get_lastest_certified_date(submission)
-
-    min_action_date, max_action_date = get_action_dates(submission.submission_id, sess)
 
     return {
         "submission_id": submission.submission_id,
@@ -1585,8 +1584,8 @@ def serialize_submission(submission, sess):
         # @todo why are these a different format?
         "reporting_start_date": str(submission.reporting_start_date),
         "reporting_end_date": str(submission.reporting_end_date),
-        "earliest_action_date": min_action_date,
-        "latest_action_date": max_action_date,
+        "earliest_action_date": str(submission.earliest_action_date) if submission.earliest_action_date else None,
+        "latest_action_date": str(submission.latest_action_date) if submission.latest_action_date else None,
         "user": {"user_id": submission.user_id,
                  "name": submission.name if submission.name else "No User"},
         "certifying_user": submission.certifying_user_name if submission.certifying_user_name else "",
