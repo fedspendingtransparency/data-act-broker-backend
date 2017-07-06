@@ -221,3 +221,10 @@ class CertifiedFilesHistory(Base):
     file_type = relationship("FileType", uselist=False, lazy='joined')
     warning_filename = Column(Text)
     narrative = Column(Text)
+
+class GTASSubmissionWindow(Base):
+    __tablename__ = "gtas_submission_window"
+
+    window_id = Column(Integer, primary_key=True)
+    start_date = Column(Date)
+    end_date = Column(Date)

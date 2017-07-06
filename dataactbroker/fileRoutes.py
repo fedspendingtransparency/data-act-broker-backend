@@ -17,7 +17,7 @@ from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.responseException import ResponseException
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.db import GlobalDB
-from dataactcore.models.jobModels import Submission, Job, CertifyHistory
+from dataactcore.models.jobModels import Submission, Job, CertifyHistory, GTASSubmissionWindow
 
 
 # Add the file submission route
@@ -74,6 +74,22 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     @requires_submission_perms('reader')
     def check_status(submission):
         return get_status(submission)
+
+    @app.route("/v1/is_gtas_window/", methods=["GET"])
+    def is_gtas_window():
+        sess = GlobalDB.db().session
+
+        curr_date = datetime.utcnow()
+
+        gtas_window = sess.query(GTASSubmissionWindow).filter(
+                                                GTASSubmissionWindow.start_date < curr_date, 
+                                                GTASSubmissionWindow.end_date > curr_date)
+
+        if gtas_window.count() > 0:
+            return JsonResponse.create(StatusCode.OK, {"message": "GTAS Window is open", "open": True})
+
+        
+        return JsonResponse.create(StatusCode.OK, {"message": "GTAS Window is not open", "open": False})
 
     @app.route("/v1/submission_error_reports/", methods=["POST"])
     @requires_login
@@ -439,7 +455,7 @@ def find_existing_submissions_in_period(sess, cgac_code, reporting_fiscal_year,
         Submission.cgac_code == cgac_code,
         Submission.reporting_fiscal_year == reporting_fiscal_year,
         Submission.reporting_fiscal_period == reporting_fiscal_period,
-        Submission.publish_status_id != PUBLISH_STATUS_DICT['unpublished'])
+        Submission.publish_status_id == PUBLISH_STATUS_DICT['published'])
     if submission_id:
         submission_query = submission_query.filter(
             Submission.submission_id != submission_id)
