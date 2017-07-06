@@ -109,6 +109,7 @@ class SubmissionNarrativeFactory(factory.Factory):
     file_type = factory.SubFactory(FileTypeFactory)
     narrative = fuzzy.FuzzyText()
 
+
 class GTASWindowFactory(factory.Factory):
     class Meta:
         model = jobModels.GTASSubmissionWindow

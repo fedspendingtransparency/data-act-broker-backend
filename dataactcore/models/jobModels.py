@@ -222,6 +222,7 @@ class CertifiedFilesHistory(Base):
     warning_filename = Column(Text)
     narrative = Column(Text)
 
+
 class GTASSubmissionWindow(Base):
     __tablename__ = "gtas_submission_window"
 

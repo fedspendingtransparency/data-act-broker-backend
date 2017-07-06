@@ -82,13 +82,12 @@ def add_file_routes(app, create_credentials, is_local, server_path):
         curr_date = datetime.utcnow()
 
         gtas_window = sess.query(GTASSubmissionWindow).filter(
-                                                GTASSubmissionWindow.start_date < curr_date, 
+                                                GTASSubmissionWindow.start_date < curr_date,
                                                 GTASSubmissionWindow.end_date > curr_date)
 
         if gtas_window.count() > 0:
             return JsonResponse.create(StatusCode.OK, {"message": "GTAS Window is open", "open": True})
 
-        
         return JsonResponse.create(StatusCode.OK, {"message": "GTAS Window is not open", "open": False})
 
     @app.route("/v1/submission_error_reports/", methods=["POST"])
