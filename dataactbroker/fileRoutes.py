@@ -75,8 +75,8 @@ def add_file_routes(app, create_credentials, is_local, server_path):
     def check_status(submission):
         return get_status(submission)
 
-    @app.route("/v1/is_gtas_window/", methods=["GET"])
-    def is_gtas_window():
+    @app.route("/v1/gtas_window/", methods=["GET"])
+    def gtas_window():
         sess = GlobalDB.db().session
 
         curr_date = datetime.utcnow()

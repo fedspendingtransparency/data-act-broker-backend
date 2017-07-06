@@ -7,9 +7,10 @@ import pytest
 from dataactbroker import fileRoutes
 from dataactcore.models.lookups import PUBLISH_STATUS_DICT
 from tests.unit.dataactcore.factories.domain import CGACFactory
-from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory
+from tests.unit.dataactcore.factories.job import JobFactory, SubmissionFactory, GTASWindowFactory
 from tests.unit.dataactcore.factories.user import UserFactory
 from dataactcore.models.jobModels import JobStatus, JobType, FileType
+from datetime import datetime, timedelta
 
 
 @pytest.fixture
@@ -61,6 +62,27 @@ def test_list_submissions(file_app, database, user_constants, job_constants):
     g.user = user2
     response = file_app.get("/v1/list_submissions/?certified=mixed")
     assert sub_ids(response) == {submissions[2].submission_id}
+
+def test_is_gtas_period(file_app, database):
+    """Test listing user's submissions. The expected values here correspond to
+    the number of submissions within the agency of the user that is logged in
+    """
+
+    gtas = GTASWindowFactory(start_date=datetime(2007, 1, 3) , end_date=datetime(2010, 3, 5))
+    database.session.add(gtas)
+
+    response = file_app.get("/v1/gtas_window/")
+    response_json = json.loads(response.data.decode('UTF-8'))
+    assert response_json['open'] == False
+
+    curr_date = datetime.now()
+    diff = timedelta(days=1)
+    gtas_current = GTASWindowFactory(start_date=curr_date-diff , end_date=curr_date+diff)
+    database.session.add(gtas_current)
+
+    response = file_app.get("/v1/gtas_window/")
+    response_json = json.loads(response.data.decode('UTF-8'))
+    assert response_json['open'] == True
 
 
 def test_current_page(file_app, database, user_constants, job_constants, monkeypatch):
@@ -122,7 +144,7 @@ def test_current_page(file_app, database, user_constants, job_constants, monkeyp
     database.session.commit()
     # E or F failed
     response = file_app.get("/v1/check_current_page/?submission_id=" + str(sub.submission_id))
-    response_json = json.loads(response.data.decode('UTF-8'))
+    
     assert response_json['step'] == '4'
 
     job_e.job_status_id = 4
