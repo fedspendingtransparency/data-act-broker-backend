@@ -352,7 +352,7 @@ class ValidationManager:
                     update({"is_valid": False}, synchronize_session=False)
                 min_action_date, max_action_date = get_action_dates(submission_id)
                 sess.query(Submission).filter(Submission.submission_id == submission_id).\
-                    update({"earliest_action_date": min_action_date, "latest_action_date": max_action_date},
+                    update({"reporting_start_date": min_action_date, "reporting_end_date": max_action_date},
                            synchronize_session=False)
 
             # Update job metadata
