@@ -7,7 +7,8 @@ import boto
 from dataactcore.config import CONFIG_BROKER
 from dataactcore.interfaces.db import GlobalDB
 from dataactcore.logging import configure_logging
-from dataactcore.models.domainModels import CGAC, SubTierAgency, ObjectClass, ProgramActivity, CountryCode, CFDAProgram
+from dataactcore.models.domainModels import CGAC, SubTierAgency, ObjectClass, ProgramActivity, CountryCode, \
+    CFDAProgram, FREC
 from dataactvalidator.health_check import create_app
 from dataactvalidator.scripts.loaderUtils import clean_data, insert_dataframe, format_date
 
@@ -65,6 +66,32 @@ def load_cgac(file_name):
         sess.commit()
 
         logger.info('%s CGAC records inserted', len(models))
+
+
+def load_frec(file_name):
+    model = FREC
+    """Load FREC (high-level agency names) lookup table."""
+    with create_app().app_context():
+        sess = GlobalDB.db().session
+
+        # read CGAC values from csv
+        data = pd.read_csv(file_name, dtype=str)
+        # clean data
+        data = clean_data(
+            data,
+            model,
+            {"fr_entity_type": "frec_code", "fr_entity_description": "agency_name"},
+            {}
+        )
+        # de-dupe
+        data.drop_duplicates(subset=['frec_code'], inplace=True)
+
+        # insert to db
+        table_name = model.__table__.name
+        num = insert_dataframe(data, table_name, sess.connection())
+        sess.commit()
+
+        logger.info('{} records inserted to {}'.format(num, table_name))
 
 
 def delete_missing_sub_tier_agencies(models, new_data):

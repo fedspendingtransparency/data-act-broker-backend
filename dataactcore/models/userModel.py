@@ -36,7 +36,10 @@ class UserAffiliation(Base):
                      primary_key=True)
     cgac_id = Column(Integer, ForeignKey("cgac.cgac_id", name="user_affiliation_cgac_fk", ondelete='CASCADE'),
                      primary_key=True)
+    frec_id = Column(Integer, ForeignKey("frec.frec_id", name="user_affiliation_frec_fk", ondelete='CASCADE'),
+                     primary_key=True)
     cgac = relationship("CGAC")
+    frec = relationship("FREC")
     permission_type_id = Column(
         Integer, ForeignKey(column="permission_type.permission_type_id", name="user_affiliation_permission_type_fk"))
 
