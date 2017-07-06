@@ -91,8 +91,8 @@ def get_cgacs(fn):
 
 
 def get_frecs(fn):
-    """ Decorator which provides a list of all CGAC Agencies. The function
-    should have a cgacs parameter as its first argument. """
+    """ Decorator which provides a list of all FREC Agencies. The function
+    should have a frecs parameter as its first argument. """
     @wraps(fn)
     def wrapped(*args, **kwargs):
         sess = GlobalDB.db().session

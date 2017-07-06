@@ -15,7 +15,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy import func
 
 from dataactcore.models.userModel import User, UserAffiliation
-from dataactcore.models.domainModels import CGAC
+from dataactcore.models.domainModels import CGAC, FREC
 from dataactcore.models.jobModels import Submission
 from dataactcore.utils.statusCode import StatusCode
 from dataactcore.interfaces.function_bag import get_email_template, check_correct_password
@@ -239,9 +239,13 @@ class AccountHandler:
 def perms_to_affiliations(perms):
     """Convert a list of perms from MAX to a list of UserAffiliations. Filter
     out and log any malformed perms"""
-    available_codes = {
+    available_cgacs = {
         cgac.cgac_code: cgac
         for cgac in GlobalDB.db().session.query(CGAC)
+    }
+    available_frecs = {
+        frec.frec_code: frec
+        for frec in GlobalDB.db().session.query(FREC)
     }
     for perm in perms:
         components = perm.split('-PERM_')
@@ -249,14 +253,27 @@ def perms_to_affiliations(perms):
             logger.warning('Malformed permission: %s', perm)
             continue
 
-        cgac_code, perm_level = components
+        codes, perm_level = components
         perm_level = perm_level.lower()
-        if cgac_code not in available_codes or perm_level not in 'rws':
+
+        split_codes = codes.split('-FREC_')
+        frec_code = None
+        if len(split_codes) == 2:
+            cgac_code, frec_code = split_codes
+            if frec_code not in available_frecs:
+                logger.warning('Malformed permission: %s', perm)
+                continue
+        else:
+            cgac_code = codes
+
+        if cgac_code not in available_cgacs or perm_level not in 'rws':
             logger.warning('Malformed permission: %s', perm)
             continue
 
+        frec = available_frecs[frec_code] if frec_code else None
         yield UserAffiliation(
-            cgac=available_codes[cgac_code],
+            cgac=available_cgacs[cgac_code],
+            frec=frec,
             permission_type_id=PERMISSION_SHORT_DICT[perm_level]
         )
 
@@ -267,7 +284,7 @@ def best_affiliation(affiliations):
     by_agency = {}
     affiliations = sorted(affiliations, key=attrgetter('permission_type_id'))
     for affiliation in affiliations:
-        by_agency[affiliation.cgac] = affiliation
+        by_agency[affiliation.cgac, affiliation.frec] = affiliation
     return by_agency.values()
 
 
@@ -277,6 +294,7 @@ def set_max_perms(user, max_group_list):
 
     Permissions are encoded as a comma-separated list of
     {parent-group}-CGAC_{cgac-code}-PERM_{one-of-R-W-S}
+    {parent-group}-CGAC_{cgac-code}-FREC_{frec_code}-PERM_{one-of-R-W-S}
     or
     {parent-group}-CGAC_SYS to indicate website_admin"""
     prefix = CONFIG_BROKER['parent_group'] + '-CGAC_'

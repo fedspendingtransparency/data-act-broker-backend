@@ -7,7 +7,7 @@ from dataactcore.models.lookups import PERMISSION_TYPE_DICT
 from dataactcore.models.userModel import UserAffiliation
 from dataactcore.utils.jsonResponse import JsonResponse
 from dataactcore.utils.statusCode import StatusCode
-from tests.unit.dataactcore.factories.domain import CGACFactory
+from tests.unit.dataactcore.factories.domain import CGACFactory, FRECFactory
 from tests.unit.dataactcore.factories.user import UserFactory
 
 
@@ -84,8 +84,10 @@ def test_set_max_perms(database, monkeypatch):
     """Verify that we get the _highest_ permission within our CGAC"""
     cgac_abc = CGACFactory(cgac_code='ABC')
     cgac_def = CGACFactory(cgac_code='DEF')
+    frec_abc = FRECFactory(frec_code='ABC')
+    frec_def = FRECFactory(frec_code='DEF')
     user = UserFactory()
-    database.session.add_all([cgac_abc, cgac_def, user])
+    database.session.add_all([cgac_abc, cgac_def, frec_abc, frec_def, user])
     database.session.commit()
 
     monkeypatch.setitem(accountHandler.CONFIG_BROKER, 'parent_group', 'prefix')
@@ -109,9 +111,50 @@ def test_set_max_perms(database, monkeypatch):
     affiliations = list(sorted(user.affiliations, key=lambda a: a.cgac.cgac_code))
     abc_aff, def_aff = affiliations
     assert abc_aff.cgac.cgac_code == 'ABC'
+    assert abc_aff.frec is None
     assert abc_aff.permission_type_id == PERMISSION_TYPE_DICT['reader']
     assert def_aff.cgac.cgac_code == 'DEF'
+    assert def_aff.frec is None
     assert def_aff.permission_type_id == PERMISSION_TYPE_DICT['submitter']
+
+    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-FREC_ABC-PERM_R,prefix-CGAC_ABC-FREC_ABC-PERM_S')
+    database.session.commit()
+    assert len(user.affiliations) == 1
+    affiliations = list(sorted(user.affiliations, key=lambda a: a.cgac.cgac_code))
+    affil = user.affiliations[0]
+    assert affil.cgac.cgac_code == 'ABC'
+    assert affil.frec.frec_code == 'ABC'
+    assert affil.permission_type_id == PERMISSION_TYPE_DICT['submitter']
+
+    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-FREC_ABC-PERM_R,prefix-CGAC_ABC-FREC_DEF-PERM_S')
+    database.session.commit()
+    assert len(user.affiliations) == 2
+    affiliations = list(sorted(user.affiliations, key=lambda a: a.cgac.cgac_code))
+    # affiliations may not be in correct order
+    correct_assertions = 0
+    for affiliation in affiliations:
+        if affiliation.cgac.cgac_code == 'ABC' and affiliation.frec.frec_code == 'ABC' and \
+           affiliation.permission_type_id == PERMISSION_TYPE_DICT['reader']:
+            correct_assertions = correct_assertions + 1
+        if affiliation.cgac.cgac_code == 'ABC' and affiliation.frec.frec_code == 'DEF' and\
+           affiliation.permission_type_id == PERMISSION_TYPE_DICT['submitter']:
+            correct_assertions = correct_assertions + 1
+    assert correct_assertions == 2
+
+    accountHandler.set_max_perms(user, 'prefix-CGAC_ABC-PERM_R,prefix-CGAC_DEF-FREC_DEF-PERM_R')
+    database.session.commit()
+    assert len(user.affiliations) == 2
+    affiliations = list(sorted(user.affiliations, key=lambda a: a.cgac.cgac_code))
+    # affiliations may not be in correct order
+    correct_assertions = 0
+    for affiliation in affiliations:
+        if affiliation.cgac.cgac_code == 'ABC' and affiliation.frec is None and \
+           affiliation.permission_type_id == PERMISSION_TYPE_DICT['reader']:
+            correct_assertions = correct_assertions + 1
+        if affiliation.cgac.cgac_code == 'DEF' and affiliation.frec.frec_code == 'DEF' and\
+           affiliation.permission_type_id == PERMISSION_TYPE_DICT['reader']:
+            correct_assertions = correct_assertions + 1
+    assert correct_assertions == 2
 
 
 @pytest.mark.usefixtures("user_constants")
